@@ -84,6 +84,13 @@ public class Actors {
         }
     }
 
+    /**
+     * override to implement system managed dispatcher allocation
+     *
+     * @return
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     */
     protected Dispatcher newDispatcher() throws InstantiationException, IllegalAccessException {
         return defaultDispatcherClass.newInstance();
     }

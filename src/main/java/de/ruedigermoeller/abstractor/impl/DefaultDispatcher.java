@@ -44,7 +44,7 @@ import java.util.concurrent.locks.LockSupport;
  * Each dispatcher owns exactly one single thread.
  * Note that dispatchers must be terminated if not needed any longer, as a thread is associated with them.
  *
- * For more sophisticated applications it might be appropriate to manually set up dispatchers (e.g. new DefaultDispatcher()).
+ * For more sophisticated applications it might be appropriate to manually set up dispatchers (Actors.newDispatcher()).
  * The Actors.New method allows to specifiy a dedicated dispatcher on which to run the actor. This way it is possible
  * to exactly balance and control the number of threads created and which thread operates a set of actors.
  *

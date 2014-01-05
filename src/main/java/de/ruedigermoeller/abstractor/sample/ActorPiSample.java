@@ -26,27 +26,27 @@ import java.util.concurrent.CountDownLatch;
  * Time: 02:58
  * To change this template use File | Settings | File Templates.
  */
-public class ActorPi extends Actor {
+public class ActorPiSample {
 
-    public void calculatePiFor(int start, int nrOfElements, Future result ) {
-        double acc = 0.0;
-        for (int i = start * nrOfElements; i <= ((start + 1) * nrOfElements - 1); i++) {
-            acc += 4.0 * (1 - (i % 2) * 2) / (2 * i + 1);
+    public static class Pi extends Actor {
+        public void calculatePiFor(int start, int nrOfElements, Future result ) {
+            double acc = 0.0;
+            for (int i = start * nrOfElements; i <= ((start + 1) * nrOfElements - 1); i++) {
+                acc += 4.0 * (1 - (i % 2) * 2) / (2 * i + 1);
+            }
+            result.receiveDoubleResult(acc);
         }
-        result.receiveDoubleResult(acc);
     }
 
     static void calcPi(final int numMessages, int step, int numActors) throws InterruptedException {
         final long tim = System.currentTimeMillis();
         final CountDownLatch latch = new CountDownLatch(1); // to be able to wait for finish
-
         // setup actors, as they are not instantiated from within another actor,
         // a new dispatcher (~Thread) is created implicitely
-        ActorPi actors[] = new ActorPi[numActors];
+        Pi actors[] = new Pi[numActors];
         for (int i = 0; i < actors.length; i++) {
-            actors[i] = Actors.New(ActorPi.class);
+            actors[i] = Actors.New(Pi.class);
         }
-
         // a temporary actor to accumulate results, automatically shuts down dispatcher after numMessages
         Future resultReceiver = Future.New( numMessages,
                 new FutureResultReceiver() {
@@ -67,25 +67,19 @@ public class ActorPi extends Actor {
         }
         // wait until done
         latch.await();
-
-        // terminate/shutdown dispatchers (implicitely) created by creating actors from the non-actor world
+        // terminate/shutdown dispatchers (implicitely) created by newing actors from the non-actor world
         for (int i = 0; i < actors.length; i++) {
             actors[i].getDispatcher().shutDown();
         }
-
-//        System.out.println("dispatchers: "+ DefaultDispatcher.instanceCount.get());
     }
 
     public static void main( String arg[] ) throws InterruptedException {
-
-        final int numMessages = 10000000;
-        final int step = 10;
+        final int numMessages = 1000000;
+        final int step = 100;
         final int numActors = 4;
 
         for ( int ii=0; ii < 100; ii++) {
             calcPi(numMessages, step, numActors);
         }
-
     }
-
 }

@@ -3,7 +3,10 @@ package de.ruedigermoeller.abstractor.sample;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -29,9 +32,9 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ThreadPi {
 
-    static double calculatePiFor(int start, int nrOfElements) {
+    static double calculatePiFor(int slice, int nrOfIterations) {
         double acc = 0.0;
-        for (int i = start * nrOfElements; i <= ((start + 1) * nrOfElements - 1); i++) {
+        for (int i = slice * nrOfIterations; i <= ((slice + 1) * nrOfIterations - 1); i++) {
             acc += 4.0 * (1 - (i % 2) * 2) / (2 * i + 1);
         }
         return acc;
@@ -39,37 +42,41 @@ public class ThreadPi {
 
     private static void piTest() throws InterruptedException {
 
-        final int numMessages = 10000000;
-        final int step = 10;
+        final int numMessages = 100000;
+        final int step = 1000;
 
-        ExecutorService test = Executors.newFixedThreadPool(4);
-        final CountDownLatch latch = new CountDownLatch(numMessages);
+        final ExecutorService test = Executors.newFixedThreadPool(4);
+        final AtomicInteger latch = new AtomicInteger(numMessages);
         final AtomicReference<Double> result = new AtomicReference<>(0.0);
 
         final long tim = System.currentTimeMillis();
         for ( int i= 0; i< numMessages; i++) {
             final int finalI = i;
+            while ( ((ThreadPoolExecutor)test).getQueue().size() > 40000 ) {
+                LockSupport.parkNanos(100);
+            }
             test.execute(new Runnable() {
-                @Override
                 public void run() {
                     double res = calculatePiFor(finalI, step);
-                    Double expect = null;
-                    boolean success = false;
+                    Double expect;
+                    boolean success;
                     do {
                         expect = result.get();
                         success = result.compareAndSet(expect,expect+res);
-//                        if ( ! success )
-//                            Thread.yield();
+                        if ( ! success )
+                            Thread.yield();
                     } while( !success );
-                    latch.countDown();
-                    if (latch.getCount() == 0 ) {
+                    int lc = latch.decrementAndGet();
+                    if (lc == 0 ) {
+                        test.shutdown();
                         System.out.println("pi: " + result.get()+" t:" + (System.currentTimeMillis() - tim)+" finI "+finalI);
                     }
                 }
             });
         }
-        latch.await();
-        test.shutdown();
+        while (latch.get() > 0 ) {
+            LockSupport.parkNanos(1000*1000);
+        }
     }
 
     public static void main( String arg[] ) throws Exception {
