@@ -44,7 +44,7 @@ public class MixedPi {
 
     private static void calcPi() throws InterruptedException {
         final long tim = System.currentTimeMillis();
-        final int numActors = 4;
+        final int numActors = 12;
         final ExecutorService executorService = Executors.newFixedThreadPool(numActors);
         final int numMessages = 1000000;
         final int step = 100;

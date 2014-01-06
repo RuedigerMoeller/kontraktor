@@ -47,9 +47,23 @@ public class Actors {
         return (T) instance.newProxy(actorClazz,disp);
     }
 
+    /**
+     * @return a new dispatcher backed by a new thread. Use to isolate blocking code only, Else use AnyDispatcher instead
+     */
     public static Dispatcher NewDispatcher() {
         try {
             return instance.newDispatcher();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * @return a new or a suitable dispatcher for hosting an actor instance
+     */
+    public static Dispatcher AnyDispatcher() {
+        try {
+            return instance.aquireDispatcher();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -76,7 +90,7 @@ public class Actors {
             return newProxy( clz, threadDispatcher.get() );
         } else {
             try {
-                return newProxy(clz, newDispatcher());
+                return newProxy(clz, aquireDispatcher());
             } catch (Exception e) {
                 e.printStackTrace();
                 return null;
@@ -85,13 +99,27 @@ public class Actors {
     }
 
     /**
-     * override to implement system managed dispatcher allocation
+     * return a new dispatcher backed by a new thread. Overriding classes should not
+     * return existing dispatchers here, as this can be used to isolate blocking code from the actor flow.
      *
      * @return
      * @throws InstantiationException
      * @throws IllegalAccessException
      */
     protected Dispatcher newDispatcher() throws InstantiationException, IllegalAccessException {
+        return defaultDispatcherClass.newInstance();
+    }
+
+    /**
+     * return a usable dispatcher. called to signal that a new actor instance does not necessary need to
+     * live in the dispatcher of a parent. can be used to implement load balancing (and automatically
+     * limit the number of concurrent dispatchers)
+     *
+     * @return
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     */
+    protected Dispatcher aquireDispatcher() throws InstantiationException, IllegalAccessException {
         return defaultDispatcherClass.newInstance();
     }
 

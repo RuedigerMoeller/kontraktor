@@ -24,26 +24,66 @@ package de.ruedigermoeller.abstractor;
  */
 
 /**
- * wrapper as weaving does not work on anonymous classes
+ * wrapper anonymous actors, weaving does not work on anonymous classes
  */
 public class Future<T> extends Actor {
     FutureResultReceiver rec;
     boolean autoShut;
     int responseCount;
 
+    /**
+     * Create a new future actor inheriting the dispatcher from the calling actor.
+     * If a future is created from a non-actor context, a new DispatcherThread will be created,
+     * which is automatically terminated after the one message has been received by the
+     * future.
+     * @param rec
+     * @param <R>
+     * @return
+     */
     public static <R> Future<R> New( FutureResultReceiver<R> rec ) {
         return New(1, null, rec);
     }
 
-    public static <R> Future<R> New( FutureResultReceiver<R> rec, Dispatcher disp ) {
-        return New(1, disp, rec);
+    public static <R> Future<R> New( int resp, FutureResultReceiver<R> rec ) {
+        return New(resp, null, rec);
     }
 
-    public static <R> Future<R> New( int expectedResponses, FutureResultReceiver<R> rec ) {
-        return New(expectedResponses, null, rec);
+    /**
+     * execute a piece of (possibly blocking) code in a dedicated Thread. Create a Future.New(..) to talk back from the
+     * runnable. Attention, this creates a thread for each call. Use an ExecutorService in order to limit
+     * the amount of threads created.
+     * @param toRunIsolated
+     */
+    public static void Isolated( Runnable toRunIsolated ) {
+        new Thread(toRunIsolated,"isolated runnable ").start();
     }
 
-    public static <R> Future<R> New( int expectedResponses, Dispatcher disp, FutureResultReceiver<R> rec ) {
+    /**
+     * Create a new future actor with a dedicated Dispatcher(-Thread). The Dispatcher is automatically terminated
+     * after receiving one response.
+     *
+     * @param rec
+     * @param <R>
+     * @return
+     */
+// MOST PROBABLY USELESS
+//    public static <R> Future<R> Isolated( FutureResultReceiver<R> rec) {
+//        return New(1, Actors.NewDispatcher(), rec);
+//    }
+
+    /**
+     * Create a new future actor with a dedicated Dispatcher(-Thread). The Dispatcher is automatically terminated
+     * after receiving "expectedResponses" responses (incl error callbacks).
+     *
+     * @param rec
+     * @param <R>
+     * @return
+     */
+//    public static <R> Future<R> Isolated( int expectedResponses, FutureResultReceiver<R> rec ) {
+//        return New(expectedResponses, null, rec);
+//    }
+
+    static <R> Future<R> New( int expectedResponses, Dispatcher disp, FutureResultReceiver<R> rec ) {
         // autoShutdown is not applied if a shared dispatcher is used.
         // It is always applied if disp argument != null (assume temp dispatcher). FIXME: trouble ahead in case of global future dispatcher
         boolean autoShut = Actors.threadDispatcher.get() == null || disp != null ;

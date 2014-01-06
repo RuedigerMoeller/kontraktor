@@ -3,6 +3,8 @@ package de.ruedigermoeller.abstractor.sample;
 import de.ruedigermoeller.abstractor.*;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -28,7 +30,7 @@ import java.util.concurrent.CountDownLatch;
  */
 public class ActorPiSample {
 
-    public static class Pi extends Actor {
+    public static class PiActor extends Actor {
         public void calculatePiFor(int start, int nrOfElements, Future result ) {
             double acc = 0.0;
             for (int i = start * nrOfElements; i <= ((start + 1) * nrOfElements - 1); i++) {
@@ -38,14 +40,16 @@ public class ActorPiSample {
         }
     }
 
-    static void calcPi(final int numMessages, int step, int numActors) throws InterruptedException {
+    static long calcPi(final int numMessages, int step, int numActors) throws InterruptedException {
         final long tim = System.currentTimeMillis();
         final CountDownLatch latch = new CountDownLatch(1); // to be able to wait for finish
+        final AtomicLong timSum = new AtomicLong(0);
+
         // setup actors, as they are not instantiated from within another actor,
         // a new dispatcher (~Thread) is created implicitely
-        Pi actors[] = new Pi[numActors];
+        PiActor actors[] = new PiActor[numActors];
         for (int i = 0; i < actors.length; i++) {
-            actors[i] = Actors.New(Pi.class);
+            actors[i] = Actors.New(PiActor.class);
         }
         // a temporary actor to accumulate results, automatically shuts down dispatcher after numMessages
         Future resultReceiver = Future.New( numMessages,
@@ -56,7 +60,9 @@ public class ActorPiSample {
                         result += pi;
                         count++;
                         if (count == numMessages) {
-                            System.out.println("pi: " + result + " " + (System.currentTimeMillis() - tim));
+                            long l = System.currentTimeMillis() - tim;
+                            timSum.set(l+timSum.get());
+                            System.out.println("pi: " + result + " " + l);
                             latch.countDown();
                         }
                     }
@@ -71,15 +77,30 @@ public class ActorPiSample {
         for (int i = 0; i < actors.length; i++) {
             actors[i].getDispatcher().shutDown();
         }
+        return timSum.get();
     }
 
     public static void main( String arg[] ) throws InterruptedException {
         final int numMessages = 1000000;
         final int step = 100;
-        final int numActors = 4;
+        final int MAX_ACT = 16;
+        String results[] = new String[MAX_ACT];
 
-        for ( int ii=0; ii < 100; ii++) {
-            calcPi(numMessages, step, numActors);
+        for ( int numActors = 1; numActors <= MAX_ACT; numActors++ ) {
+
+            long sum = 0;
+            for ( int ii=0; ii < 40; ii++) {
+                long res = calcPi(numMessages, step, numActors);
+                if ( ii >= 20 ) {
+                    sum+=res;
+                }
+            }
+            results[numActors-1] = "average "+numActors+" threads : "+sum/20;
+        }
+
+        for (int i = 0; i < results.length; i++) {
+            String result = results[i];
+            System.out.println(result);
         }
     }
 }

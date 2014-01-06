@@ -4,6 +4,7 @@ import de.ruedigermoeller.abstractor.*;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -73,14 +74,16 @@ public class DefaultDispatcher implements Dispatcher {
     private volatile boolean dead;
 
     static class CallEntry {
-        private Actor target;
-        private Method method;
-        private Object[] args;
+        final private Actor target;
+        final private Method method;
+        final private Object[] args;
+        final boolean sentinel;
 
-        CallEntry(Actor actor, Method method, Object[] args) {
+        CallEntry(Actor actor, Method method, Object[] args, boolean sentinel) {
             this.target = actor;
             this.method = method;
             this.args = args;
+            this.sentinel = sentinel;
         }
 
         public Actor getTarget() {
@@ -90,6 +93,7 @@ public class DefaultDispatcher implements Dispatcher {
             return method;
         }
         public Object[] getArgs() { return args; }
+        public boolean isSentinel() { return sentinel; }
     }
 
     public DefaultDispatcher() {
@@ -101,8 +105,12 @@ public class DefaultDispatcher implements Dispatcher {
     public void dispatch(Actor actor, Method method, Object args[]) {
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher ");
-        queue.offer(new CallEntry(actor,method,args));
-        Thread.yield();
+        CallEntry e = new CallEntry(actor, method, args, false);
+        int count = 0;
+        while ( ! queue.offer(e) ) {
+            yield(count);
+            count++;
+        }
     }
 
     public void start() {
@@ -124,13 +132,18 @@ public class DefaultDispatcher implements Dispatcher {
         worker.start();
     }
 
+    final int YIELD_THRESH = 100000;
+    final int PARK_THRESH = YIELD_THRESH+50000;
+    final int SLEEP_THRESH = PARK_THRESH+5000;
     protected void yield(int count) {
         if ( count > 105000 ) {
             LockSupport.parkNanos(1000000);
-        } else if ( count > 100000 ) {
+        } else if ( count > PARK_THRESH ) {
             LockSupport.parkNanos(1);
-        } else if ( count > 100 )
-            Thread.yield();
+        } else {
+            if ( count > YIELD_THRESH)
+                Thread.yield();
+        }
     }
 
     protected boolean poll() {
