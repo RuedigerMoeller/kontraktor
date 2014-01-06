@@ -1,0 +1,5 @@
+A sample for the Typesafe Stack (http://typesafe.com/stack).
+
+Akka 2.0 sample project using Java and Maven.
+
+To run and test it use Maven invoke: 'mvn compile exec:java'
