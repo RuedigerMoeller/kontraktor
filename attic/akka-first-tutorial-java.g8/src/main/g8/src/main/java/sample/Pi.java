@@ -10,7 +10,11 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.actor.UntypedActorFactory;
 import akka.routing.RoundRobinRouter;
+import com.typesafe.config.*;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -21,22 +25,22 @@ public class Pi {
 
     public static void main(String[] args) throws InterruptedException {
         Pi pi = new Pi();
-        int numStepsPerComp = 100;
-        int numJobs = 1000000;
+        int numStepsPerComp = 1000;
+        int numJobs = 100000;
         final int MAX_ACT = 16;
         String results[] = new String[MAX_ACT];
 
         for (int numActors = 1; numActors <= MAX_ACT; numActors++) {
             timSum = 0;
-            for (int i = 0; i < 50; i++) {
+            for (int i = 0; i < 30; i++) {
                 latch = new CountDownLatch(1);
                 pi.calculate(numActors, numStepsPerComp, numJobs);
                 latch.await();
-                if ( i == 30 ) { // take last 20 samples only
+                if ( i == 20 ) { // take last 10 samples only
                     timSum = 0;
                 }
             }
-            results[numActors-1] = "average "+numActors+" threads : "+timSum/20;
+            results[numActors-1] = "average "+numActors+" threads : "+(timSum/10/1000/1000);
         }
 
         for (int i = 0; i < results.length; i++) {
@@ -123,7 +127,7 @@ public class Pi {
 
         private double pi;
         private int nrOfResults;
-        private final long start = System.currentTimeMillis();
+        private final long start = System.nanoTime();
 
         private final ActorRef listener;
         private final ActorRef workerRouter;
@@ -153,7 +157,7 @@ public class Pi {
                 nrOfResults += 1;
                 if (nrOfResults == nrOfMessages) {
                     // Send the result to the listener
-                    long duration = System.currentTimeMillis() - start;
+                    long duration = System.nanoTime() - start;
                     listener.tell(new PiApproximation(pi, duration), getSelf());
                     // Stops this actor and all its supervised children
                     getContext().stop(getSelf());
@@ -171,7 +175,7 @@ public class Pi {
                 long duration = approximation.getDuration();
                 System.out.println(String.format("Pi approximation: " +
                         "%s Calculation time: \t%s",
-                        approximation.getPi(), duration));
+                        approximation.getPi(), duration/1000/1000));
                 timSum += duration;
                 getContext().system().shutdown();
                 latch.countDown();
@@ -186,8 +190,27 @@ public class Pi {
             final int nrOfElements,
             final int nrOfMessages) {
 
+
         // Create an Akka system
-        ActorSystem system = ActorSystem.create("PiSystem");
+        ActorSystem system = ActorSystem.create("PiSystem", ConfigFactory.parseString(
+                "akka {\n" +
+                        "  actor.default-dispatcher {\n" +
+                        "      fork-join-executor {\n" +
+                        "        parallelism-min = 2\n" +
+                        "        parallelism-factor = 0.4\n" +
+                        "        parallelism-max = 16\n" +
+                        "      }\n" +
+                        "      throughput = 1000\n" +
+                        "  }\n" +
+                        "\n" +
+                        "  log-dead-letters = off\n" +
+                        "\n" +
+                        "  actor.default-mailbox {\n" +
+                        "    mailbox-type = \"akka.dispatch.SingleConsumerOnlyUnboundedMailbox\"\n" +
+                        "  }\n" +
+                        "}"
+        )
+        );
 
         // create the result listener, which will print the result and shutdown the system
         final ActorRef listener = system.actorOf(new Props(Listener.class), "listener");
