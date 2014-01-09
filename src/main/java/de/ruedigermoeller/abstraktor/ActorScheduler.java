@@ -1,4 +1,4 @@
-package de.ruedigermoeller.abstractor;
+package de.ruedigermoeller.abstraktor;
 
 /**
  * Created by ruedi on 1/8/14.

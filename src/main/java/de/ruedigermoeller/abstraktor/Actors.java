@@ -1,8 +1,7 @@
-package de.ruedigermoeller.abstractor;
+package de.ruedigermoeller.abstraktor;
 
-import de.ruedigermoeller.abstractor.impl.DefaultDispatcher;
-import de.ruedigermoeller.abstractor.impl.ActorProxyFactory;
-import de.ruedigermoeller.abstractor.impl.DefaultScheduler;
+import de.ruedigermoeller.abstraktor.impl.ActorProxyFactory;
+import de.ruedigermoeller.abstraktor.impl.DefaultScheduler;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.

@@ -1,7 +1,8 @@
-package de.ruedigermoeller.abstractor.impl;
+package de.ruedigermoeller.abstraktor.impl;
 
-import de.ruedigermoeller.abstractor.Actor;
-import de.ruedigermoeller.abstractor.ActorProxy;
+import de.ruedigermoeller.abstraktor.Actor;
+import de.ruedigermoeller.abstraktor.ActorProxy;
+import de.ruedigermoeller.abstraktor.Dispatcher;
 import javassist.*;
 import javassist.bytecode.AccessFlag;
 
@@ -81,7 +82,7 @@ public class ActorProxyFactory {
 
     protected <T> Class<T> createProxyClass(Class<T> clazz) throws Exception {
         synchronized (generatedProxyClasses) {
-            String proxyName = clazz.getName() + "ActorProxy";
+            String proxyName = clazz.getName() + "_ActorProxy";
             String key = clazz.getName();
             Class ccClz = generatedProxyClasses.get(key);
             if (ccClz == null) {
@@ -134,11 +135,17 @@ public class ActorProxyFactory {
     }
 
     protected void defineProxyMethods(CtClass cc, CtClass orig) throws Exception {
+        cc.addMethod( CtMethod.make( "public void __setDispatcher( "+ Dispatcher.class.getName()+" d ) { __target.__dispatcher(d); }", cc ) );
         CtMethod[] methods = getSortedPublicCtMethods(orig,false);
         for (int i = 0; i < methods.length; i++) {
             CtMethod method = methods[i];
             CtMethod originalMethod = method;
-            method = new CtMethod(method, cc, null);
+            if (method.getName().equals("getActor")) {
+                ClassMap map = new ClassMap();
+                map.put(Actor.class.getName(),Actor.class.getName());
+                method = CtMethod.make( "public "+Actor.class.getName()+" getActor() { return __target; }", cc ) ;
+            } else
+                method = new CtMethod(method, cc, null);
             CtClass[] parameterTypes = method.getParameterTypes();
             CtClass returnType = method.getReturnType();
             boolean allowed = ((method.getModifiers() & AccessFlag.ABSTRACT) == 0 ) &&
@@ -150,17 +157,23 @@ public class ActorProxyFactory {
                     throw new RuntimeException("only void methods allowed");
                 }
                 String body = "{ " +
-                    " if ( __marshaller.doDirectCall(\""+method.getName()+"\",this) ) {"+
-                        "__target."+method.getName()+"($$); " +
-                        "return;"+
+                    "boolean sameThread = __marshaller.isSameThread(\""+method.getName()+"\",this);" +
+                    " if ( sameThread ) {" +
+                        "if ( __marshaller.doDirectCall(\""+method.getName()+"\",this) ) {" +
+                          "try { (("+Actor.class.getName()+")__target).__outCalls++;" +
+                          "__target."+method.getName()+"($$); } finally { (("+Actor.class.getName()+")__target).__outCalls--; } " +
+                          "return;" +
+                        "}"+
                      "}" +
-                     "__marshaller.dispatchCall( __target, \""+method.getName()+"\", $args );"+
+                     "__marshaller.dispatchCall( this, sameThread, __target, \""+method.getName()+"\", $args );" +
                     "}";
                 method.setBody(body);
                 cc.addMethod(method);
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
-                if ( method.getName().equals("getDispatcher") ) {
+                if ( method.getName().equals("getActor") ) {
+                    // do nothing
+                } else if ( method.getName().equals("getDispatcher") ) {
                     method.setBody(" return __target.getDispatcher();");
                 } else {
                     method.setBody("throw new RuntimeException(\"can only call public methods on actor ref\");");

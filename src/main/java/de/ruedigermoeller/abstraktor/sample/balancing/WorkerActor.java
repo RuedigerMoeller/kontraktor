@@ -1,13 +1,12 @@
-package de.ruedigermoeller.abstractor.sample.balancing;
+package de.ruedigermoeller.abstraktor.sample.balancing;
 
-import de.ruedigermoeller.abstractor.Actor;
-import de.ruedigermoeller.abstractor.Actors;
-import de.ruedigermoeller.abstractor.Future;
-import de.ruedigermoeller.abstractor.FutureResultReceiver;
-import de.ruedigermoeller.abstractor.impl.DefaultDispatcher;
+import de.ruedigermoeller.abstraktor.Actor;
+import de.ruedigermoeller.abstraktor.Actors;
+import de.ruedigermoeller.abstraktor.Future;
+import de.ruedigermoeller.abstraktor.FutureResultReceiver;
+import de.ruedigermoeller.abstraktor.impl.DefaultDispatcher;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by ruedi on 1/8/14.
@@ -15,8 +14,10 @@ import java.util.concurrent.atomic.AtomicLong;
 public class WorkerActor extends Actor {
 
     SubActor subActors[] = new SubActor[12];
+    WorkerActor self;
 
     public void init() {
+        self = self();
         for (int i = 0; i < subActors.length; i++) {
 //            subActors[i] = Actors.New( SubActor.class);
             subActors[i] = Actors.New( SubActor.class, Actors.AnyDispatcher() );
@@ -34,7 +35,7 @@ public class WorkerActor extends Actor {
     }
 
     public void runTest(final int numMsg, final long tim, final CountDownLatch latch) {
-        doWork(numMsg, Future.New(-1, Actors.AnyDispatcher(), new FutureResultReceiver<String>() {
+        self.doWork(numMsg, Future.New(-1, Actors.AnyDispatcher(), new FutureResultReceiver<String>() {
             int count = 0;
             long res;
 
@@ -61,7 +62,7 @@ public class WorkerActor extends Actor {
         }
 
         final long tim = System.nanoTime();
-        final int NUMMSG = 10000000;
+        final int NUMMSG = 100000;
         for (int i = 0; i < act.length; i++) {
             WorkerActor workerActor = act[i];
             workerActor.runTest(NUMMSG, tim, actLatch[i]);
@@ -80,7 +81,7 @@ public class WorkerActor extends Actor {
     }
 
     public static void main( String arg[] ) throws InterruptedException {
-        Actors.Init(14);
+        Actors.Init(10);
         for ( int i = 0; i < 50; i++) {
             test();
             System.out.println( "dispatcher: "+DefaultDispatcher.instanceCount.get() );

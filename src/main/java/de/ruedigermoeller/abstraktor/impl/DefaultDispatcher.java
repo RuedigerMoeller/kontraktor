@@ -1,13 +1,13 @@
-package de.ruedigermoeller.abstractor.impl;
+package de.ruedigermoeller.abstraktor.impl;
 
-import de.ruedigermoeller.abstractor.*;
+import de.ruedigermoeller.abstraktor.*;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -68,10 +68,22 @@ public class DefaultDispatcher implements Dispatcher {
 
     public static AtomicInteger instanceCount = new AtomicInteger(0);
 
+    final int SENTINEL_MASK = 8192-1;
+
     Thread worker;
     ConcurrentLinkedQueue<CallEntry> queue = new ConcurrentLinkedQueue<>();
     AtomicBoolean shutDown = new AtomicBoolean(false);
     private volatile boolean dead;
+
+    int instanceNum;
+    boolean isSystemDispatcher;
+
+    AtomicInteger sentinelCounter = new AtomicInteger(0);
+    int sentinelTrigger = 0;
+    int slowDownThr = (100*1000)/SENTINEL_MASK;
+
+    AtomicReference<DefaultDispatcher> nextDispatcher = new AtomicReference<>();
+    DefaultDispatcher parentDispatcher;
 
     static class CallEntry {
         final private Actor target;
@@ -96,18 +108,21 @@ public class DefaultDispatcher implements Dispatcher {
         public boolean isSentinel() { return sentinel; }
     }
 
-    int instanceNum;
-    boolean isSystemDispatcher;
-
     public DefaultDispatcher() {
         instanceNum = instanceCount.incrementAndGet();
         start();
     }
 
+    public DefaultDispatcher(DefaultDispatcher parentDispatcher) {
+        this.parentDispatcher = parentDispatcher;
+        isSystemDispatcher = parentDispatcher.isSystemDispatcher();
+        this.worker = parentDispatcher.getWorker();
+    }
+
     @Override
     public String toString() {
         return "DefaultDispatcher{" +
-                "worker=" + worker + " q: "+queue.size()+
+                "worker=" + worker + " q: "+getQueueSize()+" parent: "+parentDispatcher+
                 '}';
     }
 
@@ -120,15 +135,40 @@ public class DefaultDispatcher implements Dispatcher {
     }
 
     @Override
-    public void dispatch(Actor actor, Method method, Object args[]) {
+    public void dispatch(ActorProxy senderRef, boolean sameThread, Actor actor, Method method, Object args[]) {
+        // MT. sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
-        CallEntry e = new CallEntry(actor, method, args, false);
+        boolean sentinel = (sentinelTrigger++ & SENTINEL_MASK) == SENTINEL_MASK; // FIXME: sentinelcounter flawed, consider lazySet
+        if ( sentinel ) {
+            int curSent = sentinelCounter.incrementAndGet();
+            // async backpressure
+            if ( curSent > slowDownThr) {
+                migrate(senderRef);
+                return;
+            }
+        }
+        plainDispatch(actor, method, args, sentinel);
+    }
+
+    protected void plainDispatch(Actor actor, Method method, Object[] args, boolean sentinel) {
+        CallEntry e = new CallEntry(actor, method, args, sentinel);
         int count = 0;
         while ( ! queue.offer(e) ) {
             yield(count);
             count++;
         }
+    }
+
+    private void migrate(ActorProxy senderRef) {
+        if ( 1 != 0 )
+            return;
+        System.out.println("migrate from "+toString());
+        if ( nextDispatcher.get() == null ) {
+            DefaultDispatcher newOne = new DefaultDispatcher(this);
+            nextDispatcher.compareAndSet(null,newOne);
+        }
+        senderRef.__setDispatcher(nextDispatcher.get());
     }
 
     public void start() {
@@ -154,8 +194,8 @@ public class DefaultDispatcher implements Dispatcher {
     final int PARK_THRESH = YIELD_THRESH+50000;
     final int SLEEP_THRESH = PARK_THRESH+5000;
     protected void yield(int count) {
-        if ( count > 105000 ) {
-            LockSupport.parkNanos(1000000);
+        if ( count > SLEEP_THRESH ) {
+            LockSupport.parkNanos(1000*500);
         } else if ( count > PARK_THRESH ) {
             LockSupport.parkNanos(1);
         } else {
@@ -169,11 +209,16 @@ public class DefaultDispatcher implements Dispatcher {
         if ( poll != null ) {
             try {
                 poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
+                if ( poll.isSentinel() ) {
+                    sentinelCounter.decrementAndGet();
+                }
                 return true;
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
+//        if ( nextDispatcher.get() != null )
+//            return nextDispatcher.get().poll();
         return false;
     }
 
@@ -186,15 +231,21 @@ public class DefaultDispatcher implements Dispatcher {
             HashMap<String, Method> methodCache = new HashMap<>();
 
             @Override
-            /**
-             * callback from bytecode weaving
-             */
-            public boolean doDirectCall(String methodName, ActorProxy proxy) {
+            public boolean isSameThread(String methodName, ActorProxy proxy) {
                 return proxy.getDispatcher().getWorker() == Thread.currentThread();
             }
 
             @Override
-            public void dispatchCall( Actor actor, String methodName, Object args[] ) {
+            /**
+             * callback from bytecode weaving
+             */
+            public boolean doDirectCall(String methodName, ActorProxy proxy) {
+                return proxy.getActor().__outCalls == 0;
+            }
+
+            @Override
+            public void dispatchCall( ActorProxy senderRef, boolean sameThread, Actor actor, String methodName, Object args[] ) {
+                // here sender + receiver are known in a ST context
                 Method method = methodCache.get(methodName);
                 if ( method == null ) {
                     Method[] methods = actor.getClass().getMethods();
@@ -207,7 +258,7 @@ public class DefaultDispatcher implements Dispatcher {
                         }
                     }
                 }
-                actor.getDispatcher().dispatch(actor,method,args);
+                actor.getDispatcher().dispatch(senderRef, sameThread, actor, method, args);
             }
         };
     }
@@ -269,7 +320,7 @@ public class DefaultDispatcher implements Dispatcher {
     }
 
     public int getQueueSize() {
-        return queue.size();
+        return sentinelCounter.get()*(SENTINEL_MASK+1);
     }
 
 

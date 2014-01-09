@@ -1,11 +1,8 @@
-package de.ruedigermoeller.abstractor.impl;
+package de.ruedigermoeller.abstraktor.impl;
 
-import de.ruedigermoeller.abstractor.ActorScheduler;
-import de.ruedigermoeller.abstractor.Dispatcher;
+import de.ruedigermoeller.abstraktor.ActorScheduler;
+import de.ruedigermoeller.abstraktor.Dispatcher;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
-import java.lang.management.ThreadMXBean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -18,12 +15,17 @@ public class DefaultScheduler implements ActorScheduler {
         int curQSize;
         long lastTime;
         long curTime;
+        int growCount;
 
         public void update( int newQSize) {
             lastQSize = curQSize;
             curQSize = newQSize;
             lastTime = curTime;
             curTime = System.nanoTime();
+            if ( curQSize-lastQSize > 0 ) {
+                growCount++;
+            } else
+                growCount = 0;
         }
 
         public long getIntervalMicros() {
@@ -39,6 +41,7 @@ public class DefaultScheduler implements ActorScheduler {
             return "WorkerStats{" +
                     "lastQSize=" + lastQSize +
                     ", curQSize=" + curQSize +
+                    ", growCount=" + growCount +
                     ", grow=" + getGrowthPerMS() +
                     ", iv micros=" + getIntervalMicros() +
                     '}';
@@ -67,7 +70,8 @@ public class DefaultScheduler implements ActorScheduler {
                     }
                 }
             }
-        }.start();
+        }
+        .start();
     }
 
     int count;
@@ -77,7 +81,7 @@ public class DefaultScheduler implements ActorScheduler {
             WorkerStats wStat = wStats[i];
             wStat.update(worker.getQueueSize());
         }
-        if ( count++ % 2000 == 0) {
+        if ( count++ % 2000 == 0 && false) {
             System.out.println("----");
             for (int i = 0; i < workers.length; i++) {
                 DefaultDispatcher worker = workers[i];

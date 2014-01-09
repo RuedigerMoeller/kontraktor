@@ -1,4 +1,4 @@
-package de.ruedigermoeller.abstractor;
+package de.ruedigermoeller.abstraktor;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.

@@ -1,4 +1,4 @@
-package de.ruedigermoeller.abstractor;
+package de.ruedigermoeller.abstraktor;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -23,7 +23,7 @@ package de.ruedigermoeller.abstractor;
  * To change this template use File | Settings | File Templates.
  */
 
-import de.ruedigermoeller.abstractor.impl.ActorProxyFactory;
+import de.ruedigermoeller.abstraktor.impl.ActorProxyFactory;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
@@ -51,8 +51,10 @@ import de.ruedigermoeller.abstractor.impl.ActorProxyFactory;
  */
 public class Actor {
 
+    public int __outCalls = 0; // internal use
+    Actor __self;
+
     Dispatcher dispatcher;
-    Actor self;
 
     /**
      * required by bytecode magic. Use Actors.New(..) to construct actor instances
@@ -64,16 +66,35 @@ public class Actor {
         return dispatcher;
     }
 
-    public <T extends Actor> T self() {
-        if ( this instanceof ActorProxy )
-            return (T) this;
-        if ( self != null )
-            self = getFactory().instantiateProxy(this);
-        return (T)self;
+    /**
+     * use this to call public methods using actor-dispatch instead of direct in-thread call.
+     * Improtant: When passing references out of your actor, always pass 'self()' instead of this !
+     * @param <T>
+     * @return
+     */
+    protected <T extends Actor> T self() {
+        if ( __self == null )
+            __self = getFactory().instantiateProxy(this);
+        return (T)__self;
     }
 
     public ActorProxyFactory getFactory() {
         return Actors.instance.getFactory();
     }
 
+    public Actor getActor() {
+        return this;
+    }
+
+    public void startQueuedDispatch() {
+        __outCalls++;
+    }
+
+    public void endQueuedDispatch() {
+        __outCalls--;
+    }
+
+    public void __dispatcher( Dispatcher d ) {
+        dispatcher = d;
+    }
 }

@@ -1,7 +1,7 @@
-package de.ruedigermoeller.abstractor.impl;
+package de.ruedigermoeller.abstraktor.impl;
 
-import de.ruedigermoeller.abstractor.Actor;
-import de.ruedigermoeller.abstractor.ActorProxy;
+import de.ruedigermoeller.abstraktor.Actor;
+import de.ruedigermoeller.abstraktor.ActorProxy;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -27,7 +27,8 @@ import de.ruedigermoeller.abstractor.ActorProxy;
  */
 public interface Marshaller {
 
+    public boolean isSameThread( String methodName, ActorProxy proxy );
     public boolean doDirectCall(String methodName, ActorProxy proxy );
-    public void dispatchCall( Actor actor, String methodName, Object args[] );
+    public void dispatchCall( ActorProxy senderRef, boolean sameThread, Actor actor, String methodName, Object args[] );
 
 }

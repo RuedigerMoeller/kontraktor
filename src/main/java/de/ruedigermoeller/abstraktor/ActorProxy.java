@@ -1,4 +1,4 @@
-package de.ruedigermoeller.abstractor;
+package de.ruedigermoeller.abstraktor;
 
 /**
 * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -30,6 +30,14 @@ package de.ruedigermoeller.abstractor;
  */
 public interface ActorProxy<T extends Actor> {
 
+    /**
+     * for internal use only
+     * @param disp
+     * @return
+     */
+    public void __setDispatcher(Dispatcher disp);
+
     public Dispatcher getDispatcher();
+    public Actor getActor();
 
 }

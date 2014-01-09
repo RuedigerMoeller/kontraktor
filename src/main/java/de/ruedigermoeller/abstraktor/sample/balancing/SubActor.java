@@ -1,7 +1,7 @@
-package de.ruedigermoeller.abstractor.sample.balancing;
+package de.ruedigermoeller.abstraktor.sample.balancing;
 
-import de.ruedigermoeller.abstractor.Actor;
-import de.ruedigermoeller.abstractor.Future;
+import de.ruedigermoeller.abstraktor.Actor;
+import de.ruedigermoeller.abstraktor.Future;
 
 /**
  * Created by ruedi on 1/8/14.

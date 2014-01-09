@@ -1,6 +1,6 @@
-package de.ruedigermoeller.abstractor;
+package de.ruedigermoeller.abstraktor;
 
-import de.ruedigermoeller.abstractor.impl.Marshaller;
+import de.ruedigermoeller.abstraktor.impl.Marshaller;
 
 import java.lang.reflect.Method;
 
@@ -33,7 +33,7 @@ import java.lang.reflect.Method;
 public interface Dispatcher {
 
     Marshaller instantiateMarshaller(Actor target);
-    void dispatch(Actor actor, Method method, Object args[]);
+    void dispatch(ActorProxy senderRef, boolean sameThread, Actor actor, Method method, Object args[]);
     Thread getWorker();
 
     /**

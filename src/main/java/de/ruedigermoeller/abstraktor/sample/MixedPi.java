@@ -1,8 +1,8 @@
-package de.ruedigermoeller.abstractor.sample;
+package de.ruedigermoeller.abstraktor.sample;
 
-import de.ruedigermoeller.abstractor.Future;
-import de.ruedigermoeller.abstractor.FutureResultReceiver;
-import de.ruedigermoeller.abstractor.impl.DefaultDispatcher;
+import de.ruedigermoeller.abstraktor.Future;
+import de.ruedigermoeller.abstraktor.FutureResultReceiver;
+import de.ruedigermoeller.abstraktor.impl.DefaultDispatcher;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
