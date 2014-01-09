@@ -96,15 +96,33 @@ public class DefaultDispatcher implements Dispatcher {
         public boolean isSentinel() { return sentinel; }
     }
 
+    int instanceNum;
+    boolean isSystemDispatcher;
+
     public DefaultDispatcher() {
-        instanceCount.incrementAndGet();
+        instanceNum = instanceCount.incrementAndGet();
         start();
+    }
+
+    @Override
+    public String toString() {
+        return "DefaultDispatcher{" +
+                "worker=" + worker + " q: "+queue.size()+
+                '}';
+    }
+
+    public boolean isSystemDispatcher() {
+        return isSystemDispatcher;
+    }
+
+    public void setSystemDispatcher(boolean isSystemDispatcher) {
+        this.isSystemDispatcher = isSystemDispatcher;
     }
 
     @Override
     public void dispatch(Actor actor, Method method, Object args[]) {
         if ( dead )
-            throw new RuntimeException("received message on terminated dispatcher ");
+            throw new RuntimeException("received message on terminated dispatcher "+this);
         CallEntry e = new CallEntry(actor, method, args, false);
         int count = 0;
         while ( ! queue.offer(e) ) {
@@ -114,7 +132,7 @@ public class DefaultDispatcher implements Dispatcher {
     }
 
     public void start() {
-        worker = new Thread("ActorDispatcher") {
+        worker = new Thread("DefaultDispatcher "+instanceNum) {
             public void run() {
                 Actors.threadDispatcher.set(DefaultDispatcher.this);
                 int emptyCount = 0;
@@ -248,6 +266,10 @@ public class DefaultDispatcher implements Dispatcher {
     public void waitEmpty() {
         while( queue.peek() != null )
             Thread.currentThread().yield();
+    }
+
+    public int getQueueSize() {
+        return queue.size();
     }
 
 

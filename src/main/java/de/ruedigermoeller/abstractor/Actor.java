@@ -52,6 +52,7 @@ import de.ruedigermoeller.abstractor.impl.ActorProxyFactory;
 public class Actor {
 
     Dispatcher dispatcher;
+    Actor self;
 
     /**
      * required by bytecode magic. Use Actors.New(..) to construct actor instances
@@ -63,14 +64,16 @@ public class Actor {
         return dispatcher;
     }
 
-    public <T extends Actor> T createRef() {
+    public <T extends Actor> T self() {
         if ( this instanceof ActorProxy )
             return (T) this;
-        return (T) getFactory().instantiateProxy(this);
+        if ( self != null )
+            self = getFactory().instantiateProxy(this);
+        return (T)self;
     }
 
     public ActorProxyFactory getFactory() {
-        return Actors.factory;
+        return Actors.instance.getFactory();
     }
 
 }

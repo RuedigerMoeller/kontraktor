@@ -2,6 +2,7 @@ package de.ruedigermoeller.abstractor;
 
 import de.ruedigermoeller.abstractor.impl.DefaultDispatcher;
 import de.ruedigermoeller.abstractor.impl.ActorProxyFactory;
+import de.ruedigermoeller.abstractor.impl.DefaultScheduler;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -27,12 +28,12 @@ import de.ruedigermoeller.abstractor.impl.ActorProxyFactory;
  */
 public class Actors {
 
-    static Actors instance = new Actors();
-    public static ActorProxyFactory factory = new ActorProxyFactory();
-    /**
-     * default implementation to use for dispatchers. requires no-arg constructor
-     */
-    public static Class<? extends Dispatcher> defaultDispatcherClass = DefaultDispatcher.class;
+    public static void Init( int numWorker ) {
+        instance = new Actors(numWorker);
+    }
+
+    static Actors instance;
+
     /**
      * allowed to be set only by dispatcher instances from their associated thread.
      * Do not modify externally !
@@ -69,6 +70,17 @@ public class Actors {
         }
     }
 
+    protected Actors() {
+    }
+
+    protected Actors( int worker ) {
+        factory = new ActorProxyFactory();
+        scheduler = new DefaultScheduler(worker);
+    }
+
+    protected ActorProxyFactory factory;
+    protected ActorScheduler scheduler;
+
     protected ActorProxyFactory getFactory() {
         return factory;
     }
@@ -99,7 +111,7 @@ public class Actors {
     }
 
     /**
-     * return a new dispatcher backed by a new thread. Overriding classes should not
+     * return a new dispatcher backed by a new thread. Overriding classes should *not*
      * return existing dispatchers here, as this can be used to isolate blocking code from the actor flow.
      *
      * @return
@@ -107,7 +119,7 @@ public class Actors {
      * @throws IllegalAccessException
      */
     protected Dispatcher newDispatcher() throws InstantiationException, IllegalAccessException {
-        return defaultDispatcherClass.newInstance();
+        return scheduler.newDispatcher();
     }
 
     /**
@@ -120,7 +132,7 @@ public class Actors {
      * @throws IllegalAccessException
      */
     protected Dispatcher aquireDispatcher() throws InstantiationException, IllegalAccessException {
-        return defaultDispatcherClass.newInstance();
+        return scheduler.aquireDispatcher();
     }
 
 }

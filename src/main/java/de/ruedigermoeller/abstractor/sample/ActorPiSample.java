@@ -40,7 +40,7 @@ public class ActorPiSample {
         }
     }
 
-    static long calcPi(final int numMessages, int step, int numActors) throws InterruptedException {
+    static long calcPi(final int numMessages, int step, final int numActors) throws InterruptedException {
         final long tim = System.currentTimeMillis();
         final CountDownLatch latch = new CountDownLatch(1); // to be able to wait for finish
         final AtomicLong timSum = new AtomicLong(0);
@@ -62,7 +62,7 @@ public class ActorPiSample {
                         if (count == numMessages) {
                             long l = System.currentTimeMillis() - tim;
                             timSum.set(l+timSum.get());
-                            System.out.println("pi: " + result + " " + l);
+                            System.out.println("T = "+numActors+" pi: " + result + " " + l);
                             latch.countDown();
                         }
                     }
@@ -74,28 +74,29 @@ public class ActorPiSample {
         // wait until done
         latch.await();
         // terminate/shutdown dispatchers (implicitely) created by newing actors from the non-actor world
-        for (int i = 0; i < actors.length; i++) {
-            actors[i].getDispatcher().shutDown();
-        }
+//        for (int i = 0; i < actors.length; i++) {
+//            actors[i].getDispatcher().shutDown();
+//        }
         return timSum.get();
     }
 
     public static void main( String arg[] ) throws InterruptedException {
-        final int numMessages = 1000000;
-        final int step = 100;
+        final int numMessages = 100000;
+        final int step = 1000;
         final int MAX_ACT = 16;
+        Actors.Init(MAX_ACT);
         String results[] = new String[MAX_ACT];
 
         for ( int numActors = 1; numActors <= MAX_ACT; numActors++ ) {
 
             long sum = 0;
-            for ( int ii=0; ii < 40; ii++) {
+            for ( int ii=0; ii < 30; ii++) {
                 long res = calcPi(numMessages, step, numActors);
                 if ( ii >= 20 ) {
                     sum+=res;
                 }
             }
-            results[numActors-1] = "average "+numActors+" threads : "+sum/20;
+            results[numActors-1] = "average "+numActors+" threads : "+sum/10;
         }
 
         for (int i = 0; i < results.length; i++) {

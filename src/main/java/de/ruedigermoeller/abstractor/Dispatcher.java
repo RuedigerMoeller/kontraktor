@@ -66,4 +66,9 @@ public interface Dispatcher {
      */
     void shutDownImmediate();
 
+    /**
+     * @return decides wether this gets automatically killed
+     */
+    public boolean isSystemDispatcher();
+
 }

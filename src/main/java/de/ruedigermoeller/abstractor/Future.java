@@ -83,15 +83,16 @@ public class Future<T> extends Actor {
 //        return New(expectedResponses, null, rec);
 //    }
 
-    static <R> Future<R> New( int expectedResponses, Dispatcher disp, FutureResultReceiver<R> rec ) {
+    public static <R> Future<R> New( int expectedResponses, Dispatcher disp, FutureResultReceiver<R> rec ) {
         // autoShutdown is not applied if a shared dispatcher is used.
         // It is always applied if disp argument != null (assume temp dispatcher). FIXME: trouble ahead in case of global future dispatcher
-        boolean autoShut = Actors.threadDispatcher.get() == null || disp != null ;
+        disp = disp != null ? disp : Actors.threadDispatcher.get();
+        boolean autoShut = Actors.threadDispatcher.get() == null && (disp == null || !disp.isSystemDispatcher());
         Future res = null;
         if ( disp != null ) {
             res = Actors.New(Future.class,disp);
         } else
-            res = Actors.New(Future.class);
+            res = Actors.New(Future.class,Actors.NewDispatcher());
         res.init(rec, expectedResponses, autoShut);
         return res;
     }
@@ -109,7 +110,7 @@ public class Future<T> extends Actor {
 
     void respReceived() {
         responseCount--;
-        if ( responseCount <= 0 ) {
+        if ( responseCount == 0 ) {
             done();
         }
     }
@@ -127,6 +128,11 @@ public class Future<T> extends Actor {
     public void receiveError( Object error ) {
         rec.receiveError(error);
         respReceived();
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        done();
     }
 
     public void done() {
