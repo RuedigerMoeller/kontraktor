@@ -61,7 +61,7 @@ public class WorkerActor extends Actor {
         }
 
         final long tim = System.nanoTime();
-        final int NUMMSG = 100000;
+        final int NUMMSG = 1000000;
         for (int i = 0; i < act.length; i++) {
             WorkerActor workerActor = act[i];
             workerActor.runTest(NUMMSG, tim, actLatch[i]);
@@ -80,11 +80,12 @@ public class WorkerActor extends Actor {
     }
 
     public static void main( String arg[] ) throws InterruptedException {
-        Actors.Init(3);
+        Actors.Init(12);
         for ( int i = 0; i < 50; i++) {
             test();
             System.out.println( "dispatcher: "+DefaultDispatcher.instanceCount.get() );
         }
+        System.exit(0);
     }
 
 }

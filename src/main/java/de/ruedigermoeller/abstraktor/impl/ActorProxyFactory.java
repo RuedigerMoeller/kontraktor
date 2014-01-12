@@ -145,8 +145,11 @@ public class ActorProxyFactory {
                 ClassMap map = new ClassMap();
                 map.put(Actor.class.getName(),Actor.class.getName());
                 method = CtMethod.make( "public "+Actor.class.getName()+" getActor() { return __target; }", cc ) ;
-            } else
-                method = new CtMethod(method, cc, null);
+            } else {
+                ClassMap map = new ClassMap();
+                map.fix(orig);
+                method = new CtMethod(method, cc, map);
+            }
             CtClass[] parameterTypes = method.getParameterTypes();
             CtClass returnType = method.getReturnType();
             boolean allowed = ((method.getModifiers() & AccessFlag.ABSTRACT) == 0 ) &&
@@ -170,6 +173,7 @@ public class ActorProxyFactory {
                     "}";
                 method.setBody(body);
                 cc.addMethod(method);
+//                System.out.println("generated proxy methoid for "+method.getDeclaringClass().getName()+" "+method);
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
                 if ( method.getName().equals("getActor") ) {

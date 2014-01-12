@@ -122,12 +122,22 @@ public class DefaultDispatcher implements Dispatcher {
         this.isSystemDispatcher = isSystemDispatcher;
     }
 
+//    static ConcurrentHashMap debug = new ConcurrentHashMap();
     @Override
     public void dispatch(ActorProxy actorRef, boolean sameThread, Method method, Object args[]) {
         // MT. sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
-        plainDispatch(actorRef.getActor(), method, args, false);
+        Actor sender = Actor.__sender.get();
+        if ( sender != null ) {
+//            String out = "sender " + sender.getActor().getClass().getSimpleName() + " to " + actorRef.getActor().getClass().getSimpleName()+"."+method.getName();
+//            if (! debug.containsKey(out) ) {
+//                debug.put(out,out);
+//                System.out.println(out);
+//            }
+            sender.__genCalls++;
+        }
+        plainDispatch( actorRef.getActor(), method, args, false );
     }
 
     protected void plainDispatch(Actor actor, Method method, Object[] args, boolean sentinel) {
@@ -172,35 +182,47 @@ public class DefaultDispatcher implements Dispatcher {
         }
     }
 
+    public void calcQSize() {
+        queueSize = 0;
+        for (Iterator<Actor> iterator = scheduledActors.keySet().iterator(); iterator.hasNext(); ) {
+            Actor current = iterator.next();
+            queueSize+=current.__queue.size();
+        }
+    }
+
     protected boolean poll() {
         boolean anyOne = false;
-        queueSize = 0;
         for (Iterator<Actor> iterator = scheduledActors.keySet().iterator(); iterator.hasNext(); ) {
             Actor current = iterator.next();
             if ( pollActor(current) ) {
                 anyOne = true;
+                current.__emptyCount = 0;
+            } else {
+                if ( current.__queue.isEmpty() ) {
+                    if ( current.__emptyCount == 10 ) {
+                        iterator.remove();
+                        current.__emptyCount = 0;
+                    } else {
+                        current.__emptyCount++;
+                    }
+                }
             }
-            if ( current instanceof WorkerActor)
-                System.out.println("sender "+current.getClass().getName()+" created "+current.__genCalls);
-            if ( current.__queue.isEmpty() )
-                iterator.remove();
         }
         return anyOne;
     }
 
-    // ret true when yield should be triggered
+    // ret true when yield should be triggered. read queue of actor current
     private boolean pollActor(Actor current) {
-        Actor.__sender.set(current);
-        current.__genCalls=0;
         boolean yield = true;
-//        queueSize+=current.__queue.size();
-        int bulk = 100;//Math.max(1, queueSize/10);
+        Actor.__sender.set(current);
+        int bulk = current.__genCalls < 1000 ? 100 : 1;
+//        int bulk = 100;
+        current.__genCalls=0;
         while ( bulk-- > 0 ) {
             CallEntry poll = (CallEntry) current.__queue.poll();
             if ( poll != null ) {
                 try {
-                    poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
-                    current.__genCalls++;
+                    poll.getMethod().invoke(current,poll.getArgs());
                     yield = false;
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -209,6 +231,8 @@ public class DefaultDispatcher implements Dispatcher {
                 break;
             }
         }
+//        if ( current.__genCalls > 0 )
+//            System.out.println("sender "+current.getClass().getName()+" created "+current.__genCalls);
         return !yield;
     }
 
@@ -230,7 +254,7 @@ public class DefaultDispatcher implements Dispatcher {
              * callback from bytecode weaving
              */
             public boolean doDirectCall(String methodName, ActorProxy proxy) {
-                return proxy.getActor().__outCalls == 0;
+                return false; // proxy.getActor().__outCalls == 0;
             }
 
             @Override

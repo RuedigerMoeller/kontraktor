@@ -19,6 +19,7 @@ public class DefaultScheduler implements ActorScheduler {
         int nextQSize;
 
         public void update( DefaultDispatcher disp) {
+            disp.calcQSize();
             lastQSize = curQSize;
             curQSize = disp.getQueueSize();
             lastTime = curTime;
@@ -66,7 +67,7 @@ public class DefaultScheduler implements ActorScheduler {
                 while( true ) {
                     supervise();
                     try {
-                        Thread.sleep(1);
+                        Thread.sleep(2000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -77,20 +78,21 @@ public class DefaultScheduler implements ActorScheduler {
     }
 
     int count;
-    private void supervise() {
+    public void supervise() {
         for (int i = 0; i < workers.length; i++) {
             DefaultDispatcher worker = workers[i];
             WorkerStats wStat = wStats[i];
             wStat.update(worker);
         }
-        if ( count++ % 2000 == 0 && true) {
-            System.out.println("----");
-            for (int i = 0; i < workers.length; i++) {
-                DefaultDispatcher worker = workers[i];
-                WorkerStats wStat = wStats[i];
-                System.out.println(worker.getWorker().getName()+" : " + wStat);
-            }
+        System.out.println("----");
+        long avg = 0;
+        for (int i = 0; i < workers.length; i++) {
+            DefaultDispatcher worker = workers[i];
+            WorkerStats wStat = wStats[i];
+            avg+=wStat.curQSize;
+            System.out.println(worker.getWorker().getName()+" : " + wStat);
         }
+        System.out.println("avg Q =>" +avg/workers.length);
     }
 
     public DefaultScheduler() {

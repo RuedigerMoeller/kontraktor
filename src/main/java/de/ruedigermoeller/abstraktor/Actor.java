@@ -59,6 +59,7 @@ public class Actor {
     public Actor __self;       // internal use
     public Queue __queue;      // internal use
     public int __genCalls;      // internal use
+    public int __emptyCount;
 
     Dispatcher dispatcher;
 

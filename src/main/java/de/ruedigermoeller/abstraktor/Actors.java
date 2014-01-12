@@ -99,6 +99,10 @@ public class Actors {
         }
     }
 
+    public ActorScheduler getScheduler() {
+        return scheduler;
+    }
+
     protected Actor newProxy(Class<? extends Actor> clz) {
         if ( threadDispatcher.get() != null ) {
             return newProxy( clz, threadDispatcher.get() );
