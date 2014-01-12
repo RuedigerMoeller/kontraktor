@@ -1,9 +1,13 @@
 package de.ruedigermoeller.abstraktor.impl;
 
 import de.ruedigermoeller.abstraktor.*;
+import de.ruedigermoeller.abstraktor.sample.balancing.SubActor;
+import de.ruedigermoeller.abstraktor.sample.balancing.WorkerActor;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -49,55 +53,45 @@ import java.util.concurrent.locks.LockSupport;
  * The Actors.New method allows to specifiy a dedicated dispatcher on which to run the actor. This way it is possible
  * to exactly balance and control the number of threads created and which thread operates a set of actors.
  *
- * current limits (future work/possible extensions):
- * - Currently no efforts are done to implement dynamic rebalancing (e.g. move actors to other dispatchers in case
- *   of high load).
- *
- * - The DefaultDispatcher operates of an unbounded ConcurrentLinkedQueue, there are faster lockfree implementations
- *   out there.
- *
- * - flow control is probably even more important than
- *
- * Creating your own dispatcher logic/implementation:
- * - getMarshhaller is important, as it defines wether to send a message directly, queued or .. (block, remote, etc).
- *   note currently the sender is unknown, but could be set using threadlocals in case
- * - in order to keep inheritance of dispatchers when creating actors in actors, the Actors.threadDispatcher must
- *   be set. (see start() method below)
  */
 public class DefaultDispatcher implements Dispatcher {
 
     public static AtomicInteger instanceCount = new AtomicInteger(0);
 
-    final int SENTINEL_MASK = 8192-1;
+    final int SENTINEL_MASK = 1024-1;
 
     Thread worker;
-    ConcurrentLinkedQueue<CallEntry> queue = new ConcurrentLinkedQueue<>();
     AtomicBoolean shutDown = new AtomicBoolean(false);
     private volatile boolean dead;
 
+    ConcurrentHashMap<Actor,Boolean> scheduledActors = new ConcurrentHashMap<>();
+
     int instanceNum;
     boolean isSystemDispatcher;
+    private int queueSize;
 
-    AtomicInteger sentinelCounter = new AtomicInteger(0);
-    int sentinelTrigger = 0;
-    int slowDownThr = (100*1000)/SENTINEL_MASK;
-
-    AtomicReference<DefaultDispatcher> nextDispatcher = new AtomicReference<>();
-    DefaultDispatcher parentDispatcher;
+    public int getQueueSize() {
+        return queueSize;
+    }
 
     static class CallEntry {
+        final private Actor sender;
         final private Actor target;
         final private Method method;
         final private Object[] args;
         final boolean sentinel;
 
-        CallEntry(Actor actor, Method method, Object[] args, boolean sentinel) {
+        CallEntry(Actor sender, Actor actor, Method method, Object[] args, boolean sentinel) {
+            this.sender = sender;
             this.target = actor;
             this.method = method;
             this.args = args;
             this.sentinel = sentinel;
         }
 
+        public Actor getSender() {
+            return sender;
+        }
         public Actor getTarget() {
             return target;
         }
@@ -113,16 +107,10 @@ public class DefaultDispatcher implements Dispatcher {
         start();
     }
 
-    public DefaultDispatcher(DefaultDispatcher parentDispatcher) {
-        this.parentDispatcher = parentDispatcher;
-        isSystemDispatcher = parentDispatcher.isSystemDispatcher();
-        this.worker = parentDispatcher.getWorker();
-    }
-
     @Override
     public String toString() {
         return "DefaultDispatcher{" +
-                "worker=" + worker + " q: "+getQueueSize()+" parent: "+parentDispatcher+
+                "worker=" + worker + " sched: "+scheduledActors.size()+
                 '}';
     }
 
@@ -135,40 +123,20 @@ public class DefaultDispatcher implements Dispatcher {
     }
 
     @Override
-    public void dispatch(ActorProxy senderRef, boolean sameThread, Actor actor, Method method, Object args[]) {
+    public void dispatch(ActorProxy actorRef, boolean sameThread, Method method, Object args[]) {
         // MT. sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
-        boolean sentinel = (sentinelTrigger++ & SENTINEL_MASK) == SENTINEL_MASK; // FIXME: sentinelcounter flawed, consider lazySet
-        if ( sentinel ) {
-            int curSent = sentinelCounter.incrementAndGet();
-            // async backpressure
-            if ( curSent > slowDownThr) {
-                migrate(senderRef);
-                return;
-            }
-        }
-        plainDispatch(actor, method, args, sentinel);
+        plainDispatch(actorRef.getActor(), method, args, false);
     }
 
     protected void plainDispatch(Actor actor, Method method, Object[] args, boolean sentinel) {
-        CallEntry e = new CallEntry(actor, method, args, sentinel);
+        CallEntry e = new CallEntry(Actor.__sender.get(), actor, method, args, sentinel);
         int count = 0;
-        while ( ! queue.offer(e) ) {
+        while ( ! actor.__queue.offer(e) ) {
             yield(count);
             count++;
         }
-    }
-
-    private void migrate(ActorProxy senderRef) {
-        if ( 1 != 0 )
-            return;
-        System.out.println("migrate from "+toString());
-        if ( nextDispatcher.get() == null ) {
-            DefaultDispatcher newOne = new DefaultDispatcher(this);
-            nextDispatcher.compareAndSet(null,newOne);
-        }
-        senderRef.__setDispatcher(nextDispatcher.get());
     }
 
     public void start() {
@@ -205,21 +173,43 @@ public class DefaultDispatcher implements Dispatcher {
     }
 
     protected boolean poll() {
-        CallEntry poll = queue.poll();
-        if ( poll != null ) {
-            try {
-                poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
-                if ( poll.isSentinel() ) {
-                    sentinelCounter.decrementAndGet();
+        boolean anyOne = false;
+        queueSize = 0;
+        for (Iterator<Actor> iterator = scheduledActors.keySet().iterator(); iterator.hasNext(); ) {
+            Actor current = iterator.next();
+            if ( pollActor(current) ) {
+                anyOne = true;
+            }
+            if ( current instanceof WorkerActor)
+                System.out.println("sender "+current.getClass().getName()+" created "+current.__genCalls);
+            if ( current.__queue.isEmpty() )
+                iterator.remove();
+        }
+        return anyOne;
+    }
+
+    // ret true when yield should be triggered
+    private boolean pollActor(Actor current) {
+        Actor.__sender.set(current);
+        current.__genCalls=0;
+        boolean yield = true;
+//        queueSize+=current.__queue.size();
+        int bulk = 100;//Math.max(1, queueSize/10);
+        while ( bulk-- > 0 ) {
+            CallEntry poll = (CallEntry) current.__queue.poll();
+            if ( poll != null ) {
+                try {
+                    poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
+                    current.__genCalls++;
+                    yield = false;
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                return true;
-            } catch (Exception e) {
-                e.printStackTrace();
+            } else {
+                break;
             }
         }
-//        if ( nextDispatcher.get() != null )
-//            return nextDispatcher.get().poll();
-        return false;
+        return !yield;
     }
 
     public Thread getWorker() {
@@ -244,9 +234,10 @@ public class DefaultDispatcher implements Dispatcher {
             }
 
             @Override
-            public void dispatchCall( ActorProxy senderRef, boolean sameThread, Actor actor, String methodName, Object args[] ) {
+            public void dispatchCall( ActorProxy senderRef, boolean sameThread, String methodName, Object args[] ) {
                 // here sender + receiver are known in a ST context
                 Method method = methodCache.get(methodName);
+                Actor actor = senderRef.getActor();
                 if ( method == null ) {
                     Method[] methods = actor.getClass().getMethods();
                     for (int i = 0; i < methods.length; i++) {
@@ -258,7 +249,8 @@ public class DefaultDispatcher implements Dispatcher {
                         }
                     }
                 }
-                actor.getDispatcher().dispatch(senderRef, sameThread, actor, method, args);
+                actor.getDispatcher().dispatch(senderRef, sameThread, method, args);
+                scheduledActors.put(actor, Boolean.TRUE);
             }
         };
     }
@@ -315,12 +307,8 @@ public class DefaultDispatcher implements Dispatcher {
      * blocking method, use for debugging only.
      */
     public void waitEmpty() {
-        while( queue.peek() != null )
-            Thread.currentThread().yield();
-    }
-
-    public int getQueueSize() {
-        return sentinelCounter.get()*(SENTINEL_MASK+1);
+        while( scheduledActors.size() > 0 )
+            LockSupport.parkNanos(1000*50);
     }
 
 

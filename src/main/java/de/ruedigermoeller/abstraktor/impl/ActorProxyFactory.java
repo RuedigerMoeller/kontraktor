@@ -74,6 +74,7 @@ public class ActorProxyFactory {
             f = instance.getClass().getField("__target");
             f.setAccessible(true);
             f.set(instance, target);
+            target.__self = (Actor) instance;
             return instance;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -165,7 +166,7 @@ public class ActorProxyFactory {
                           "return;" +
                         "}"+
                      "}" +
-                     "__marshaller.dispatchCall( this, sameThread, __target, \""+method.getName()+"\", $args );" +
+                     "__marshaller.dispatchCall( this, sameThread, \""+method.getName()+"\", $args );" +
                     "}";
                 method.setBody(body);
                 cc.addMethod(method);

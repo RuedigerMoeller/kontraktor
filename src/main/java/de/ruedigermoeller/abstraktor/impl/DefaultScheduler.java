@@ -16,10 +16,11 @@ public class DefaultScheduler implements ActorScheduler {
         long lastTime;
         long curTime;
         int growCount;
+        int nextQSize;
 
-        public void update( int newQSize) {
+        public void update( DefaultDispatcher disp) {
             lastQSize = curQSize;
-            curQSize = newQSize;
+            curQSize = disp.getQueueSize();
             lastTime = curTime;
             curTime = System.nanoTime();
             if ( curQSize-lastQSize > 0 ) {
@@ -41,6 +42,7 @@ public class DefaultScheduler implements ActorScheduler {
             return "WorkerStats{" +
                     "lastQSize=" + lastQSize +
                     ", curQSize=" + curQSize +
+                    ", nxtQSize=" + nextQSize +
                     ", growCount=" + growCount +
                     ", grow=" + getGrowthPerMS() +
                     ", iv micros=" + getIntervalMicros() +
@@ -79,9 +81,9 @@ public class DefaultScheduler implements ActorScheduler {
         for (int i = 0; i < workers.length; i++) {
             DefaultDispatcher worker = workers[i];
             WorkerStats wStat = wStats[i];
-            wStat.update(worker.getQueueSize());
+            wStat.update(worker);
         }
-        if ( count++ % 2000 == 0 && false) {
+        if ( count++ % 2000 == 0 && true) {
             System.out.println("----");
             for (int i = 0; i < workers.length; i++) {
                 DefaultDispatcher worker = workers[i];

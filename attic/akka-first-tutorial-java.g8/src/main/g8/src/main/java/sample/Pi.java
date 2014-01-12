@@ -27,7 +27,7 @@ public class Pi {
         Pi pi = new Pi();
         int numStepsPerComp = 1000;
         int numJobs = 100000;
-        final int MAX_ACT = 16;
+        final int MAX_ACT = 4;
         String results[] = new String[MAX_ACT];
 
         for (int numActors = 1; numActors <= MAX_ACT; numActors++) {
@@ -198,9 +198,9 @@ public class Pi {
                         "      fork-join-executor {\n" +
                         "        parallelism-min = 2\n" +
                         "        parallelism-factor = 0.4\n" +
-                        "        parallelism-max = 16\n" +
+                        "        parallelism-max = "+nrOfWorkers+"\n" +
                         "      }\n" +
-                        "      throughput = 1000\n" +
+                        "      throughput = 1\n" +
                         "  }\n" +
                         "\n" +
                         "  log-dead-letters = off\n" +

@@ -25,7 +25,6 @@ public class WorkerActor extends Actor {
     }
 
     public void doWork(int random, final Future<String> counted) {
-
         final long[] count = {0};
         Future<String> fut = counted;
         for ( int i = 0; i < random; i++ ) {
@@ -81,7 +80,7 @@ public class WorkerActor extends Actor {
     }
 
     public static void main( String arg[] ) throws InterruptedException {
-        Actors.Init(10);
+        Actors.Init(3);
         for ( int i = 0; i < 50; i++) {
             test();
             System.out.println( "dispatcher: "+DefaultDispatcher.instanceCount.get() );

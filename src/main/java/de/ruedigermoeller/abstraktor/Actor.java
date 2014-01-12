@@ -25,6 +25,8 @@ package de.ruedigermoeller.abstraktor;
 
 import de.ruedigermoeller.abstraktor.impl.ActorProxyFactory;
 
+import java.util.Queue;
+
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
  * Use Actors.New(..) to instantiate an actor instance. To pass initialization parameter,
@@ -51,8 +53,12 @@ import de.ruedigermoeller.abstraktor.impl.ActorProxyFactory;
  */
 public class Actor {
 
+    public static ThreadLocal<Actor> __sender = new ThreadLocal<>(); // internal use
+
     public int __outCalls = 0; // internal use
-    Actor __self;
+    public Actor __self;       // internal use
+    public Queue __queue;      // internal use
+    public int __genCalls;      // internal use
 
     Dispatcher dispatcher;
 
@@ -73,8 +79,6 @@ public class Actor {
      * @return
      */
     protected <T extends Actor> T self() {
-        if ( __self == null )
-            __self = getFactory().instantiateProxy(this);
         return (T)__self;
     }
 

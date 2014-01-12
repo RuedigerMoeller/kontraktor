@@ -29,6 +29,6 @@ public interface Marshaller {
 
     public boolean isSameThread( String methodName, ActorProxy proxy );
     public boolean doDirectCall(String methodName, ActorProxy proxy );
-    public void dispatchCall( ActorProxy senderRef, boolean sameThread, Actor actor, String methodName, Object args[] );
+    public void dispatchCall( ActorProxy actorRef, boolean sameThread, String methodName, Object args[] );
 
 }
