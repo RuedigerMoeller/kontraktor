@@ -97,13 +97,18 @@ public class Future<T> extends Actor {
         return res;
     }
 
+    Thread initThread;
     public void init(FutureResultReceiver<T> rec, int expected, boolean autoShutdown ) {
+        initThread = Thread.currentThread();
         this.rec = rec;
         autoShut = autoShutdown;
         responseCount = expected;
     }
 
     public void receiveObjectResult(T result) {
+        if ( initThread != Thread.currentThread() ) {
+            System.out.println("POK");
+        }
         rec.receiveObjectResult(result);
         respReceived();
     }

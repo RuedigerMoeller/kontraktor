@@ -53,13 +53,8 @@ import java.util.Queue;
  */
 public class Actor {
 
-    public static ThreadLocal<Actor> __sender = new ThreadLocal<>(); // internal use
-
     public int __outCalls = 0; // internal use
     public Actor __self;       // internal use
-    public Queue __queue;      // internal use
-    public int __genCalls;      // internal use
-    public int __emptyCount;
 
     Dispatcher dispatcher;
 

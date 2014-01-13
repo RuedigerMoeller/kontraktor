@@ -90,7 +90,6 @@ public class Actors {
         try {
             Actor res = clz.newInstance();
             res.dispatcher = disp;
-            res.__queue = new ConcurrentLinkedDeque(); // fixme; make queue class configurable
             Actor proxy = getFactory().instantiateProxy(res);
             return proxy;
         } catch (Exception e) {

@@ -61,7 +61,7 @@ public class WorkerActor extends Actor {
         }
 
         final long tim = System.nanoTime();
-        final int NUMMSG = 1000000;
+        final int NUMMSG = 100000;
         for (int i = 0; i < act.length; i++) {
             WorkerActor workerActor = act[i];
             workerActor.runTest(NUMMSG, tim, actLatch[i]);

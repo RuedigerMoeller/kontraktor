@@ -80,9 +80,9 @@ public class ActorPiSample {
     }
 
     public static void main( String arg[] ) throws InterruptedException {
-        final int numMessages = 100000;
-        final int step = 1000;
-        final int MAX_ACT = 14;
+        final int numMessages = 1000000;
+        final int step = 100;
+        final int MAX_ACT = 16;
         Actors.Init(MAX_ACT);
         String results[] = new String[MAX_ACT];
 

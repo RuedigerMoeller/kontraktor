@@ -4,6 +4,7 @@ import de.ruedigermoeller.abstraktor.ActorScheduler;
 import de.ruedigermoeller.abstraktor.Dispatcher;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by ruedi on 1/8/14.
@@ -67,7 +68,7 @@ public class DefaultScheduler implements ActorScheduler {
                 while( true ) {
                     supervise();
                     try {
-                        Thread.sleep(2000);
+                        Thread.sleep(200000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }

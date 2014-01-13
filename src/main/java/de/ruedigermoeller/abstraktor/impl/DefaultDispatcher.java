@@ -3,10 +3,12 @@ package de.ruedigermoeller.abstraktor.impl;
 import de.ruedigermoeller.abstraktor.*;
 import de.ruedigermoeller.abstraktor.sample.balancing.SubActor;
 import de.ruedigermoeller.abstraktor.sample.balancing.WorkerActor;
+import io.jaq.mpsc.MpscConcurrentQueue;
 
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -64,7 +66,7 @@ public class DefaultDispatcher implements Dispatcher {
     AtomicBoolean shutDown = new AtomicBoolean(false);
     private volatile boolean dead;
 
-    ConcurrentHashMap<Actor,Boolean> scheduledActors = new ConcurrentHashMap<>();
+    Queue<CallEntry> queue = new MpscConcurrentQueue<>(1000000); //new ConcurrentLinkedQueue<CallEntry>();
 
     int instanceNum;
     boolean isSystemDispatcher;
@@ -74,24 +76,23 @@ public class DefaultDispatcher implements Dispatcher {
         return queueSize;
     }
 
+    public boolean isEmpty() {
+        return queue.isEmpty();
+    }
+
     static class CallEntry {
-        final private Actor sender;
         final private Actor target;
         final private Method method;
         final private Object[] args;
         final boolean sentinel;
 
-        CallEntry(Actor sender, Actor actor, Method method, Object[] args, boolean sentinel) {
-            this.sender = sender;
+        CallEntry(Actor actor, Method method, Object[] args, boolean sentinel) {
             this.target = actor;
             this.method = method;
             this.args = args;
             this.sentinel = sentinel;
         }
 
-        public Actor getSender() {
-            return sender;
-        }
         public Actor getTarget() {
             return target;
         }
@@ -110,7 +111,7 @@ public class DefaultDispatcher implements Dispatcher {
     @Override
     public String toString() {
         return "DefaultDispatcher{" +
-                "worker=" + worker + " sched: "+scheduledActors.size()+
+                "worker=" + worker+
                 '}';
     }
 
@@ -128,22 +129,13 @@ public class DefaultDispatcher implements Dispatcher {
         // MT. sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
-        Actor sender = Actor.__sender.get();
-        if ( sender != null ) {
-//            String out = "sender " + sender.getActor().getClass().getSimpleName() + " to " + actorRef.getActor().getClass().getSimpleName()+"."+method.getName();
-//            if (! debug.containsKey(out) ) {
-//                debug.put(out,out);
-//                System.out.println(out);
-//            }
-            sender.__genCalls++;
-        }
         plainDispatch( actorRef.getActor(), method, args, false );
     }
 
     protected void plainDispatch(Actor actor, Method method, Object[] args, boolean sentinel) {
-        CallEntry e = new CallEntry(Actor.__sender.get(), actor, method, args, sentinel);
+        CallEntry e = new CallEntry(actor, method, args, sentinel);
         int count = 0;
-        while ( ! actor.__queue.offer(e) ) {
+        while ( ! queue.offer(e) ) {
             yield(count);
             count++;
         }
@@ -154,12 +146,18 @@ public class DefaultDispatcher implements Dispatcher {
             public void run() {
                 Actors.threadDispatcher.set(DefaultDispatcher.this);
                 int emptyCount = 0;
+                Queue<CallEntry> callQueue = queue;
+//                queue.set(new ConcurrentLinkedQueue<CallEntry>());
                 while( ! shutDown.get() ) {
-                    if ( poll() )
+                    if ( poll(callQueue) ) {
                         emptyCount = 0;
-                    else
+                    }
+                    else {
                         emptyCount++;
-                    DefaultDispatcher.this.yield(emptyCount);
+                        callQueue = queue;
+//                        queue.set(new ConcurrentLinkedQueue<CallEntry>());
+                        DefaultDispatcher.this.yield(emptyCount);
+                    }
                 }
                 dead = true;
                 instanceCount.decrementAndGet();
@@ -167,6 +165,20 @@ public class DefaultDispatcher implements Dispatcher {
         };
         worker.start();
     }
+
+    protected boolean poll(Queue<CallEntry> callQueue) {
+        CallEntry poll = callQueue.poll();
+        if ( poll != null ) {
+            try {
+                poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
+                return true;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return false;
+    }
+
 
     final int YIELD_THRESH = 100000;
     final int PARK_THRESH = YIELD_THRESH+50000;
@@ -183,57 +195,7 @@ public class DefaultDispatcher implements Dispatcher {
     }
 
     public void calcQSize() {
-        queueSize = 0;
-        for (Iterator<Actor> iterator = scheduledActors.keySet().iterator(); iterator.hasNext(); ) {
-            Actor current = iterator.next();
-            queueSize+=current.__queue.size();
-        }
-    }
-
-    protected boolean poll() {
-        boolean anyOne = false;
-        for (Iterator<Actor> iterator = scheduledActors.keySet().iterator(); iterator.hasNext(); ) {
-            Actor current = iterator.next();
-            if ( pollActor(current) ) {
-                anyOne = true;
-                current.__emptyCount = 0;
-            } else {
-                if ( current.__queue.isEmpty() ) {
-                    if ( current.__emptyCount == 10 ) {
-                        iterator.remove();
-                        current.__emptyCount = 0;
-                    } else {
-                        current.__emptyCount++;
-                    }
-                }
-            }
-        }
-        return anyOne;
-    }
-
-    // ret true when yield should be triggered. read queue of actor current
-    private boolean pollActor(Actor current) {
-        boolean yield = true;
-        Actor.__sender.set(current);
-        int bulk = current.__genCalls < 1000 ? 100 : 1;
-//        int bulk = 100;
-        current.__genCalls=0;
-        while ( bulk-- > 0 ) {
-            CallEntry poll = (CallEntry) current.__queue.poll();
-            if ( poll != null ) {
-                try {
-                    poll.getMethod().invoke(current,poll.getArgs());
-                    yield = false;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            } else {
-                break;
-            }
-        }
-//        if ( current.__genCalls > 0 )
-//            System.out.println("sender "+current.getClass().getName()+" created "+current.__genCalls);
-        return !yield;
+        queueSize = queue.size();
     }
 
     public Thread getWorker() {
@@ -246,7 +208,7 @@ public class DefaultDispatcher implements Dispatcher {
 
             @Override
             public boolean isSameThread(String methodName, ActorProxy proxy) {
-                return proxy.getDispatcher().getWorker() == Thread.currentThread();
+                return false; //proxy.getDispatcher().getWorker() == Thread.currentThread();
             }
 
             @Override
@@ -254,7 +216,7 @@ public class DefaultDispatcher implements Dispatcher {
              * callback from bytecode weaving
              */
             public boolean doDirectCall(String methodName, ActorProxy proxy) {
-                return false; // proxy.getActor().__outCalls == 0;
+                return proxy.getActor().__outCalls == 0;
             }
 
             @Override
@@ -274,7 +236,6 @@ public class DefaultDispatcher implements Dispatcher {
                     }
                 }
                 actor.getDispatcher().dispatch(senderRef, sameThread, method, args);
-                scheduledActors.put(actor, Boolean.TRUE);
             }
         };
     }
@@ -331,9 +292,8 @@ public class DefaultDispatcher implements Dispatcher {
      * blocking method, use for debugging only.
      */
     public void waitEmpty() {
-        while( scheduledActors.size() > 0 )
-            LockSupport.parkNanos(1000*50);
+        while( queue.peek() != null )
+            Thread.currentThread().yield();
     }
-
 
 }
