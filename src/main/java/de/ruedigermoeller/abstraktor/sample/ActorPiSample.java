@@ -1,6 +1,7 @@
 package de.ruedigermoeller.abstraktor.sample;
 
 import de.ruedigermoeller.abstraktor.*;
+import de.ruedigermoeller.abstraktor.impl.DefaultDispatcher;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
@@ -39,55 +40,91 @@ public class ActorPiSample {
         }
     }
 
-    static long calcPi(final int numMessages, int step, final int numActors) throws InterruptedException {
-        final long tim = System.currentTimeMillis();
-        final CountDownLatch latch = new CountDownLatch(1); // to be able to wait for finish
-        final AtomicLong timSum = new AtomicLong(0);
+    public static class PiStriper extends Actor {
+        PiActor actors[];
 
-        // setup actors, as they are not instantiated from within another actor,
-        // a new dispatcher (~Thread) is created implicitely
-        PiActor actors[] = new PiActor[numActors];
-        for (int i = 0; i < actors.length; i++) {
-            actors[i] = Actors.New(PiActor.class);
-        }
-        // a temporary actor to accumulate results, automatically shuts down dispatcher after numMessages
-        Future resultReceiver = Future.New( numMessages,
-                new FutureResultReceiver() {
-                    double result;
-                    int count;
-                    public void receiveDoubleResult(double pi) {
-                        result += pi;
+        public void run(int numActors, int iterationSize, int numJobs, final Future resultListener ) {
+            final long tim = System.currentTimeMillis();
+            actors = new PiActor[numActors];
+            for (int i = 0; i < actors.length; i++) {
+                actors[i] = Actors.New(PiActor.class, Actors.AnyDispatcher());
+            }
+
+            final Future endResult = Future.New(new FutureResultReceiver() {
+                double sum = 0;
+                int count = 0;
+                @Override
+                public void receiveDoubleResult(double result) {
+                    count++;
+                    sum+=result;
+                    if ( count == actors.length ) {
+                        resultListener.receiveDoubleResult(sum);
+                        done();
+                    }
+                }
+            });
+
+            int iteri = 0;
+            for (int i = 0; i < actors.length; i++) {
+                final int iterPerAct = numJobs / numActors;
+                final Future subRes = Future.NewIsolated(new FutureResultReceiver() {
+                    double sum = 0;
+                    int count = 0;
+
+                    @Override
+                    public void receiveDoubleResult(double result) {
+                        sum += result;
                         count++;
-                        if (count == numMessages) {
-                            long l = System.currentTimeMillis() - tim;
-                            timSum.set(l+timSum.get());
-                            System.out.println("T = "+numActors+" pi: " + result + " " + l);
-                            latch.countDown();
+                        if (count == iterPerAct) {
+                            endResult.receiveDoubleResult(sum);
+                            done();
                         }
                     }
                 });
 
-        for ( int i = 0; i < numMessages; i++ ) {
-            actors[i%actors.length].calculatePiFor( i, step, resultReceiver);
+                for ( int ii = 0; ii < iterPerAct; ii++ ) {
+                    actors[iteri%actors.length].calculatePiFor(iteri, iterationSize, subRes);
+                    iteri++;
+                }
+            }
+            System.out.println("POK iteri "+iteri);
+
         }
+
+    }
+
+    static long calcPi(final int numMessages, int step, final int numActors) throws InterruptedException {
+        final long tim = System.currentTimeMillis();
+        final CountDownLatch latch = new CountDownLatch(1); // to be able to wait for finish
+        final AtomicLong time = new AtomicLong(0);
+
+        Future resultReceiver = Future.New(
+                new FutureResultReceiver() {
+                    public void receiveDoubleResult(double pi) {
+                        long l = System.currentTimeMillis() - tim;
+                        System.out.println("T = "+numActors+" pi: " + pi + " " + l+ " disp:"+ DefaultDispatcher.instanceCount.get());
+                        time.set(l);
+                        done();
+                        latch.countDown();
+                    }
+                });
+
+        PiStriper piStriper = Actors.New(PiStriper.class);
+        piStriper.run(numActors,step, numMessages, resultReceiver );
+
         // wait until done
         latch.await();
-        // terminate/shutdown dispatchers (implicitely) created by newing actors from the non-actor world
-//        for (int i = 0; i < actors.length; i++) {
-//            actors[i].getDispatcher().shutDown();
-//        }
-        return timSum.get();
+        return time.get();
     }
 
     public static void main( String arg[] ) throws InterruptedException {
         final int numMessages = 1000000;
         final int step = 100;
         final int MAX_ACT = 16;
-        Actors.Init(MAX_ACT);
+        Actors.Init(16);
         String results[] = new String[MAX_ACT];
 
         for ( int numActors = 1; numActors <= MAX_ACT; numActors++ ) {
-
             long sum = 0;
             for ( int ii=0; ii < 30; ii++) {
                 long res = calcPi(numMessages, step, numActors);

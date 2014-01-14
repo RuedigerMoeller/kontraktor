@@ -24,11 +24,17 @@ package de.ruedigermoeller.abstraktor;
  */
 public abstract class FutureResultReceiver<T> {
 
+    Future fut;
+
     public void receiveError( Object error ) {
         System.out.println("error received "+error);
     }
     public void receiveObjectResult(T result) {}
     public void receiveLongResult(long result) {}
     public void receiveDoubleResult(double result) {}
+    public void done() {
+        fut.done();
+    }
+
 
 }

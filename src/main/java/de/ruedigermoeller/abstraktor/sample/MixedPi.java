@@ -50,7 +50,7 @@ public class MixedPi {
         final int step = 100;
 
         final CountDownLatch finished = new CountDownLatch(1);
-        final Future<Double> receiver = Future.New( numMessages, new FutureResultReceiver<Double>() {
+        final Future<Double> receiver = Future.New( new FutureResultReceiver<Double>() {
             double pi;
             int count;
             @Override
@@ -60,6 +60,7 @@ public class MixedPi {
                 if (count == numMessages) {
                     System.out.println("pi: " + pi + " " + (System.currentTimeMillis() - tim) + " " + DefaultDispatcher.instanceCount.get());
                     finished.countDown();
+                    done();
                 }
             }
         });

@@ -5,6 +5,8 @@ import de.ruedigermoeller.abstraktor.sample.balancing.SubActor;
 import de.ruedigermoeller.abstraktor.sample.balancing.WorkerActor;
 import io.jaq.mpsc.MpscConcurrentQueue;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -66,7 +68,7 @@ public class DefaultDispatcher implements Dispatcher {
     AtomicBoolean shutDown = new AtomicBoolean(false);
     private volatile boolean dead;
 
-    Queue<CallEntry> queue = new MpscConcurrentQueue<>(1000000); //new ConcurrentLinkedQueue<CallEntry>();
+    Queue<CallEntry> queue = new MpscConcurrentQueue<>(50000); //new ConcurrentLinkedQueue<CallEntry>();
 
     int instanceNum;
     boolean isSystemDispatcher;
@@ -103,15 +105,32 @@ public class DefaultDispatcher implements Dispatcher {
         public boolean isSentinel() { return sentinel; }
     }
 
+    String name;
+    String stack;
+
     public DefaultDispatcher() {
         instanceNum = instanceCount.incrementAndGet();
         start();
+        StringWriter stringWriter = new StringWriter(1000);
+        PrintWriter s = new PrintWriter(stringWriter);
+        new Exception().printStackTrace(s);
+        s.flush();
+        stack = stringWriter.getBuffer().toString();
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+        worker.setName(name);
     }
 
     @Override
     public String toString() {
         return "DefaultDispatcher{" +
-                "worker=" + worker+
+                "worker=" + worker+" name:"+name+
                 '}';
     }
 
@@ -142,7 +161,7 @@ public class DefaultDispatcher implements Dispatcher {
     }
 
     public void start() {
-        worker = new Thread("DefaultDispatcher "+instanceNum) {
+        worker = new Thread() {
             public void run() {
                 Actors.threadDispatcher.set(DefaultDispatcher.this);
                 int emptyCount = 0;
@@ -208,7 +227,7 @@ public class DefaultDispatcher implements Dispatcher {
 
             @Override
             public boolean isSameThread(String methodName, ActorProxy proxy) {
-                return false; //proxy.getDispatcher().getWorker() == Thread.currentThread();
+                return proxy.getDispatcher().getWorker() == Thread.currentThread();
             }
 
             @Override

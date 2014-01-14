@@ -34,7 +34,7 @@ public class WorkerActor extends Actor {
     }
 
     public void runTest(final int numMsg, final long tim, final CountDownLatch latch) {
-        self.doWork(numMsg, Future.New(-1, Actors.AnyDispatcher(), new FutureResultReceiver<String>() {
+        self.doWork(numMsg, Future.New(Actors.AnyDispatcher(), new FutureResultReceiver<String>() {
             int count = 0;
             long res;
 
@@ -44,6 +44,7 @@ public class WorkerActor extends Actor {
                 if (count == numMsg * 2) {
 //                    System.out.println(count + " res " + res);
                     latch.countDown();
+                    done();
                 }
             }
         }));

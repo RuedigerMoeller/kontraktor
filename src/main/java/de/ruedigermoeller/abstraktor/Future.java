@@ -23,13 +23,14 @@ package de.ruedigermoeller.abstraktor;
  * To change this template use File | Settings | File Templates.
  */
 
+import de.ruedigermoeller.abstraktor.impl.DefaultDispatcher;
+
 /**
  * wrapper anonymous actors, weaving does not work on anonymous classes
  */
 public class Future<T> extends Actor {
     FutureResultReceiver rec;
     boolean autoShut;
-    int responseCount;
 
     /**
      * Create a new future actor inheriting the dispatcher from the calling actor.
@@ -41,68 +42,52 @@ public class Future<T> extends Actor {
      * @return
      */
     public static <R> Future<R> New( FutureResultReceiver<R> rec ) {
-        return New(1, null, rec);
+        return New(null, rec);
     }
 
-    public static <R> Future<R> New( int resp, FutureResultReceiver<R> rec ) {
-        return New(resp, null, rec);
+    public static <R> Future<R> NewIsolated(FutureResultReceiver<R> rec ) {
+        Dispatcher disp = Actors.NewDispatcher();
+        ((DefaultDispatcher)disp).setName("Isolated Future "+rec.getClass().getName());
+        return New(disp, rec);
     }
 
-    /**
-     * execute a piece of (possibly blocking) code in a dedicated Thread. Create a Future.New(..) to talk back from the
-     * runnable. Attention, this creates a thread for each call. Use an ExecutorService in order to limit
-     * the amount of threads created.
-     * @param toRunIsolated
-     */
-    public static void Isolated( Runnable toRunIsolated ) {
-        new Thread(toRunIsolated,"isolated runnable ").start();
+    public static <R> Future<R> NewOther(FutureResultReceiver<R> rec ) {
+        Dispatcher disp = Actors.AnyDispatcher();
+        ((DefaultDispatcher)disp).setName("Isolated Future "+rec.getClass().getName());
+        return New(disp, rec);
     }
 
-    /**
-     * Create a new future actor with a dedicated Dispatcher(-Thread). The Dispatcher is automatically terminated
-     * after receiving one response.
-     *
-     * @param rec
-     * @param <R>
-     * @return
-     */
-// MOST PROBABLY USELESS
-//    public static <R> Future<R> Isolated( FutureResultReceiver<R> rec) {
-//        return New(1, Actors.NewDispatcher(), rec);
-//    }
-
-    /**
-     * Create a new future actor with a dedicated Dispatcher(-Thread). The Dispatcher is automatically terminated
-     * after receiving "expectedResponses" responses (incl error callbacks).
-     *
-     * @param rec
-     * @param <R>
-     * @return
-     */
-//    public static <R> Future<R> Isolated( int expectedResponses, FutureResultReceiver<R> rec ) {
-//        return New(expectedResponses, null, rec);
-//    }
-
-    public static <R> Future<R> New( int expectedResponses, Dispatcher disp, FutureResultReceiver<R> rec ) {
+    public static <R> Future<R> New( Dispatcher disp, FutureResultReceiver<R> rec ) {
         // autoShutdown is not applied if a shared dispatcher is used.
-        // It is always applied if disp argument != null (assume temp dispatcher). FIXME: trouble ahead in case of global future dispatcher
-        disp = disp != null ? disp : Actors.threadDispatcher.get();
-        boolean autoShut = Actors.threadDispatcher.get() == null && (disp == null || !disp.isSystemDispatcher());
+        boolean autoShut = false;
+        if ( disp == null ) {
+            disp = Actors.threadDispatcher.get();
+        } else {
+            autoShut = ! disp.isSystemDispatcher();
+        }
         Future res = null;
         if ( disp != null ) {
             res = Actors.New(Future.class,disp);
-        } else
-            res = Actors.New(Future.class,Actors.NewDispatcher());
-        res.init(rec, expectedResponses, autoShut);
+        } else {
+            Dispatcher newDisp = Actors.NewDispatcher();
+            autoShut = true;
+            ((DefaultDispatcher)newDisp).setName("Future "+rec.getClass().getName());
+            res = Actors.New(Future.class, newDisp);
+        }
+        rec.fut = (Future) res.getActor();
+        res.init(rec, autoShut);
         return res;
     }
 
+    public void finalize() {
+        done();
+    }
+
     Thread initThread;
-    public void init(FutureResultReceiver<T> rec, int expected, boolean autoShutdown ) {
+    public void init(FutureResultReceiver<T> rec, boolean autoShutdown ) {
         initThread = Thread.currentThread();
         this.rec = rec;
         autoShut = autoShutdown;
-        responseCount = expected;
     }
 
     public void receiveObjectResult(T result) {
@@ -110,34 +95,18 @@ public class Future<T> extends Actor {
             System.out.println("POK");
         }
         rec.receiveObjectResult(result);
-        respReceived();
-    }
-
-    void respReceived() {
-        responseCount--;
-        if ( responseCount == 0 ) {
-            done();
-        }
     }
 
     public void receiveLongResult(long result) {
         rec.receiveLongResult(result);
-        respReceived();
     }
 
     public void receiveDoubleResult(double result) {
         rec.receiveDoubleResult(result);
-        respReceived();
     }
 
     public void receiveError( Object error ) {
         rec.receiveError(error);
-        respReceived();
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        done();
     }
 
     public void done() {
