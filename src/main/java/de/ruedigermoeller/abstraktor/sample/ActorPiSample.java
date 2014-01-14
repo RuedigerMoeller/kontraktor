@@ -72,10 +72,6 @@ public class ActorPiSample {
         }
         // wait until done
         latch.await();
-        // terminate/shutdown dispatchers (implicitely) created by newing actors from the non-actor world
-//        for (int i = 0; i < actors.length; i++) {
-//            actors[i].getDispatcher().shutDown();
-//        }
         return timSum.get();
     }
 

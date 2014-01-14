@@ -4,6 +4,7 @@ import de.ruedigermoeller.abstraktor.impl.ActorProxyFactory;
 import de.ruedigermoeller.abstraktor.impl.DefaultScheduler;
 import io.jaq.mpsc.MpscConcurrentQueue;
 
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
@@ -29,6 +30,8 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  * To change this template use File | Settings | File Templates.
  */
 public class Actors {
+
+    private Queue queue;
 
     public static void Init( int numWorker ) {
         instance = new Actors(numWorker);
@@ -91,7 +94,7 @@ public class Actors {
         try {
             Actor res = clz.newInstance();
             res.dispatcher = disp;
-            res.__queue = new MpscConcurrentQueue(10000);
+            queue = new MpscConcurrentQueue(10000);
 //            res.__queue = new ConcurrentLinkedDeque();
             Actor proxy = getFactory().instantiateProxy(res);
             return proxy;

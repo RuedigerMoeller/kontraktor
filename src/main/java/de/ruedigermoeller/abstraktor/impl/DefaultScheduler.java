@@ -1,6 +1,7 @@
 package de.ruedigermoeller.abstraktor.impl;
 
 import de.ruedigermoeller.abstraktor.ActorScheduler;
+import de.ruedigermoeller.abstraktor.Actors;
 import de.ruedigermoeller.abstraktor.Dispatcher;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -67,7 +68,7 @@ public class DefaultScheduler implements ActorScheduler {
                 while( true ) {
                     supervise();
                     try {
-                        Thread.sleep(2000000);
+                        Thread.sleep(2000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -111,7 +112,11 @@ public class DefaultScheduler implements ActorScheduler {
         if ( li > workers.length * 100 && li % workers.length == 0 )
             lastIndex.set(0);
         li %= workers.length;
-        return workers[li];
+        Dispatcher worker = workers[li];
+        if ( workers.length > 1 && worker == Actors.threadDispatcher.get()) {
+            worker = aquireDispatcher();
+        }
+        return worker;
     }
 
 }

@@ -55,8 +55,6 @@ public class Actor {
 
     public int __outCalls = 0; // internal use
     public Actor __self;       // internal use
-    public Queue __queue;      // internal use
-    public int __emptyCount;
 
     Dispatcher dispatcher;
 
