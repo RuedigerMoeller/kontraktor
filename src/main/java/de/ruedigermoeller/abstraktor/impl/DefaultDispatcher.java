@@ -75,23 +75,18 @@ public class DefaultDispatcher implements Dispatcher {
     }
 
     static class CallEntry {
-        final private Actor sender;
         final private Actor target;
         final private Method method;
         final private Object[] args;
         final boolean sentinel;
 
-        CallEntry(Actor sender, Actor actor, Method method, Object[] args, boolean sentinel) {
-            this.sender = sender;
+        CallEntry(Actor actor, Method method, Object[] args, boolean sentinel) {
             this.target = actor;
             this.method = method;
             this.args = args;
             this.sentinel = sentinel;
         }
 
-        public Actor getSender() {
-            return sender;
-        }
         public Actor getTarget() {
             return target;
         }
@@ -128,20 +123,11 @@ public class DefaultDispatcher implements Dispatcher {
         // MT. sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
-        Actor sender = Actor.__sender.get();
-        if ( sender != null ) {
-//            String out = "sender " + sender.getActor().getClass().getSimpleName() + " to " + actorRef.getActor().getClass().getSimpleName()+"."+method.getName();
-//            if (! debug.containsKey(out) ) {
-//                debug.put(out,out);
-//                System.out.println(out);
-//            }
-            sender.__genCalls++;
-        }
         plainDispatch( actorRef.getActor(), method, args, false );
     }
 
     protected void plainDispatch(Actor actor, Method method, Object[] args, boolean sentinel) {
-        CallEntry e = new CallEntry(Actor.__sender.get(), actor, method, args, sentinel);
+        CallEntry e = new CallEntry(actor, method, args, sentinel);
         int count = 0;
         while ( ! actor.__queue.offer(e) ) {
             yield(count);
@@ -214,10 +200,8 @@ public class DefaultDispatcher implements Dispatcher {
     // ret true when yield should be triggered. read queue of actor current
     private boolean pollActor(Actor current) {
         boolean yield = true;
-        Actor.__sender.set(current);
-        int bulk = current.__genCalls < 1000 ? 100 : 1;
+        int bulk = 10;//current.__genCalls < 1000 ? 100 : 1;
 //        int bulk = 100;
-        current.__genCalls=0;
         while ( bulk-- > 0 ) {
             CallEntry poll = (CallEntry) current.__queue.poll();
             if ( poll != null ) {
@@ -254,7 +238,7 @@ public class DefaultDispatcher implements Dispatcher {
              * callback from bytecode weaving
              */
             public boolean doDirectCall(String methodName, ActorProxy proxy) {
-                return false; // proxy.getActor().__outCalls == 0;
+                return proxy.getActor().__outCalls == 0;
             }
 
             @Override

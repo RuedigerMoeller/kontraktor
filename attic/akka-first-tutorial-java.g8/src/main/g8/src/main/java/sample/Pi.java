@@ -20,14 +20,14 @@ import java.util.concurrent.TimeUnit;
 
 public class Pi {
 
-    static volatile CountDownLatch latch;
+    static CountDownLatch latch;
     static long timSum = 0;
 
     public static void main(String[] args) throws InterruptedException {
         Pi pi = new Pi();
         int numStepsPerComp = 1000;
         int numJobs = 100000;
-        final int MAX_ACT = 4;
+        final int MAX_ACT = 10;
         String results[] = new String[MAX_ACT];
 
         for (int numActors = 1; numActors <= MAX_ACT; numActors++) {
@@ -198,9 +198,10 @@ public class Pi {
                         "      fork-join-executor {\n" +
                         "        parallelism-min = 2\n" +
                         "        parallelism-factor = 0.4\n" +
-                        "        parallelism-max = "+nrOfWorkers+"\n" +
+//                        "        parallelism-max = "+nrOfWorkers+"\n" +
+                        "        parallelism-max = "+4+"\n" +
                         "      }\n" +
-                        "      throughput = 1\n" +
+                        "      throughput = 1000\n" +
                         "  }\n" +
                         "\n" +
                         "  log-dead-letters = off\n" +

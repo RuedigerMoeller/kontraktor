@@ -2,6 +2,7 @@ package de.ruedigermoeller.abstraktor;
 
 import de.ruedigermoeller.abstraktor.impl.ActorProxyFactory;
 import de.ruedigermoeller.abstraktor.impl.DefaultScheduler;
+import io.jaq.mpsc.MpscConcurrentQueue;
 
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -46,7 +47,7 @@ public class Actors {
     }
 
     public static <T extends Actor> T New( Class<? extends Actor> actorClazz, Dispatcher disp ) {
-        return (T) instance.newProxy(actorClazz,disp);
+        return (T) instance.newProxy(actorClazz, disp);
     }
 
     /**
@@ -90,7 +91,8 @@ public class Actors {
         try {
             Actor res = clz.newInstance();
             res.dispatcher = disp;
-            res.__queue = new ConcurrentLinkedDeque(); // fixme; make queue class configurable
+            res.__queue = new MpscConcurrentQueue(10000);
+//            res.__queue = new ConcurrentLinkedDeque();
             Actor proxy = getFactory().instantiateProxy(res);
             return proxy;
         } catch (Exception e) {

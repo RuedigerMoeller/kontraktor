@@ -67,7 +67,7 @@ public class DefaultScheduler implements ActorScheduler {
                 while( true ) {
                     supervise();
                     try {
-                        Thread.sleep(2000);
+                        Thread.sleep(2000000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }

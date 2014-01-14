@@ -67,7 +67,6 @@ public class WorkerActor extends Actor {
             workerActor.runTest(NUMMSG, tim, actLatch[i]);
         }
 
-
         try {
             for (int i = 0; i < actLatch.length; i++) {
                 CountDownLatch latch = actLatch[i];
