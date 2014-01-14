@@ -67,7 +67,7 @@ public class DefaultDispatcher implements Dispatcher {
     int instanceNum;
     boolean isSystemDispatcher;
     private int queueSize;
-    private Queue<CallEntry> queue = new MpscConcurrentQueue<>(10000);
+    private Queue<CallEntry> queue = new MpscConcurrentQueue<>(10*100000);
 
     public int getQueueSize() {
         return queueSize;
@@ -175,18 +175,13 @@ public class DefaultDispatcher implements Dispatcher {
     // ret true if had one
     protected boolean poll() {
         boolean yield = true;
-        int bulk =10;
-        while ( bulk-- > 0 ) {
-            CallEntry poll = (CallEntry) queue.poll();
-            if ( poll != null ) {
-                try {
-                    poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
-                    yield = false;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            } else {
-                break;
+        CallEntry poll = (CallEntry) queue.poll();
+        if ( poll != null ) {
+            try {
+                poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
+                yield = false;
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
         return !yield;
