@@ -29,11 +29,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  */
 public class Actors {
 
-    public static void Init( int numWorker ) {
-        instance = new Actors(numWorker);
-    }
-
-    static Actors instance;
+    static Actors instance = new Actors();
 
     /**
      * allowed to be set only by dispatcher instances from their associated thread.
@@ -72,11 +68,8 @@ public class Actors {
     }
 
     protected Actors() {
-    }
-
-    protected Actors( int worker ) {
         factory = new ActorProxyFactory();
-        scheduler = new DefaultScheduler(worker);
+        scheduler = new DefaultScheduler();
     }
 
     protected ActorProxyFactory factory;

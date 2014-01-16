@@ -31,7 +31,7 @@ abstract class MpscOnSpscL0Pad {
 
 @SuppressWarnings("unchecked")
 abstract class MpscOnSpscFields<E> extends MpscOnSpscL0Pad {
-	private final Queue<E>[] queues = new Queue[Integer.getInteger("producers", 4)];
+	private final Queue<E>[] queues = new Queue[Integer.getInteger("producers", 64)];
 	protected final ThreadLocal<Queue<E>> producerQueue;
 	protected int tail;
 	protected Queue<E> currentQ;

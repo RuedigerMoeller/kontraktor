@@ -44,51 +44,59 @@ public class ActorPiSample {
         PiActor actors[];
 
         public void run(int numActors, int iterationSize, int numJobs, final Future resultListener ) {
+            PiStriper self = self();
             final long tim = System.currentTimeMillis();
             actors = new PiActor[numActors];
             for (int i = 0; i < actors.length; i++) {
                 actors[i] = Actors.New(PiActor.class, Actors.AnyDispatcher());
             }
 
-            final Future endResult = Future.New(new FutureResultReceiver() {
+            final int iterPerAct = numJobs / numActors;
+            final int iterSum = iterPerAct * actors.length;
+
+            final Future endResult = Future.NewIsolated(new FutureResultReceiver() {
                 double sum = 0;
                 int count = 0;
+
                 @Override
                 public void receiveDoubleResult(double result) {
                     count++;
-                    sum+=result;
-                    if ( count == actors.length ) {
+                    sum += result;
+                    if (count == iterSum) {
                         resultListener.receiveDoubleResult(sum);
                         done();
+                        PiStriper.this.getDispatcher().shutDown();
+                        for (int i = 0; i < actors.length; i++) {
+                            PiActor actor = actors[i];
+                            actor.getDispatcher().shutDown();
+                        }
                     }
                 }
             });
 
             int iteri = 0;
             for (int i = 0; i < actors.length; i++) {
-                final int iterPerAct = numJobs / numActors;
-                final Future subRes = Future.NewIsolated(new FutureResultReceiver() {
-                    double sum = 0;
-                    int count = 0;
-
-                    @Override
-                    public void receiveDoubleResult(double result) {
-                        sum += result;
-                        count++;
-                        if (count == iterPerAct) {
-                            endResult.receiveDoubleResult(sum);
-                            done();
-                        }
-                    }
-                });
+//                final Future subRes = Future.NewIsolated(new FutureResultReceiver() {
+//                    double sum = 0;
+//                    int count = 0;
+//
+//                    @Override
+//                    public void receiveDoubleResult(double result) {
+//                        sum += result;
+//                        count++;
+//                        if (count == iterPerAct) {
+//                            endResult.receiveDoubleResult(sum);
+//                            done();
+//                        }
+//                    }
+//                });
 
                 for ( int ii = 0; ii < iterPerAct; ii++ ) {
-                    actors[iteri%actors.length].calculatePiFor(iteri, iterationSize, subRes);
+                    actors[iteri%actors.length].calculatePiFor(iteri, iterationSize, endResult /*subRes*/);
                     iteri++;
                 }
             }
-            System.out.println("POK iteri "+iteri);
-
+            System.out.println("POK iteri " + iteri);
         }
 
     }
@@ -121,7 +129,6 @@ public class ActorPiSample {
         final int numMessages = 1000000;
         final int step = 100;
         final int MAX_ACT = 16;
-        Actors.Init(16);
         String results[] = new String[MAX_ACT];
 
         for ( int numActors = 1; numActors <= MAX_ACT; numActors++ ) {

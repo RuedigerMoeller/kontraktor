@@ -34,7 +34,7 @@ public class WorkerActor extends Actor {
     }
 
     public void runTest(final int numMsg, final long tim, final CountDownLatch latch) {
-        self.doWork(numMsg, Future.New(Actors.AnyDispatcher(), new FutureResultReceiver<String>() {
+        self.doWork(numMsg, Future.New(Actors.AnyDispatcher(), true, new FutureResultReceiver<String>() {
             int count = 0;
             long res;
 
@@ -80,7 +80,6 @@ public class WorkerActor extends Actor {
     }
 
     public static void main( String arg[] ) throws InterruptedException {
-        Actors.Init(12);
         for ( int i = 0; i < 50; i++) {
             test();
             System.out.println( "dispatcher: "+DefaultDispatcher.instanceCount.get() );

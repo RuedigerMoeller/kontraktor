@@ -29,7 +29,7 @@ import de.ruedigermoeller.abstraktor.impl.DefaultDispatcher;
  * wrapper anonymous actors, weaving does not work on anonymous classes
  */
 public class Future<T> extends Actor {
-    FutureResultReceiver rec;
+    volatile FutureResultReceiver rec;
     boolean autoShut;
 
     /**
@@ -42,28 +42,22 @@ public class Future<T> extends Actor {
      * @return
      */
     public static <R> Future<R> New( FutureResultReceiver<R> rec ) {
-        return New(null, rec);
+        return New(null, false, rec);
     }
 
     public static <R> Future<R> NewIsolated(FutureResultReceiver<R> rec ) {
         Dispatcher disp = Actors.NewDispatcher();
         ((DefaultDispatcher)disp).setName("Isolated Future "+rec.getClass().getName());
-        return New(disp, rec);
+        return New(disp, true, rec);
     }
 
-    public static <R> Future<R> NewOther(FutureResultReceiver<R> rec ) {
-        Dispatcher disp = Actors.AnyDispatcher();
-        ((DefaultDispatcher)disp).setName("Isolated Future "+rec.getClass().getName());
-        return New(disp, rec);
-    }
-
-    public static <R> Future<R> New( Dispatcher disp, FutureResultReceiver<R> rec ) {
+    public static <R> Future<R> New( Dispatcher disp,  boolean autoShut, FutureResultReceiver<R> rec ) {
         // autoShutdown is not applied if a shared dispatcher is used.
-        boolean autoShut = false;
         if ( disp == null ) {
             disp = Actors.threadDispatcher.get();
+            autoShut = false;
         } else {
-            autoShut = ! disp.isSystemDispatcher();
+            autoShut = ! disp.isSystemDispatcher() && autoShut;
         }
         Future res = null;
         if ( disp != null ) {
@@ -76,6 +70,7 @@ public class Future<T> extends Actor {
         }
         rec.fut = (Future) res.getActor();
         res.init(rec, autoShut);
+        res.getActor().sync();
         return res;
     }
 

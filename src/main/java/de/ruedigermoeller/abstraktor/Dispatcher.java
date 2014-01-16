@@ -33,8 +33,12 @@ import java.lang.reflect.Method;
 public interface Dispatcher {
 
     Marshaller instantiateMarshaller(Actor target);
-    void dispatch(ActorProxy actorRef, boolean sameThread, Method method, Object args[]);
+    void dispatch( ActorProxy actorRef, boolean sameThread, Method method, Object args[]);
     Thread getWorker();
+
+    void incNesting();
+    void decNesting();
+    int getNesting();
 
     /**
      * stop processing messages, but do not block adding of new messages to Q
@@ -71,4 +75,5 @@ public interface Dispatcher {
      */
     public boolean isSystemDispatcher();
 
+    public boolean poll();
 }

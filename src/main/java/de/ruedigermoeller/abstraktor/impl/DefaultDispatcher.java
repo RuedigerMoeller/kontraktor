@@ -7,6 +7,7 @@ import io.jaq.mpsc.MpscConcurrentQueue;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -65,21 +66,38 @@ public class DefaultDispatcher implements Dispatcher {
     final int SENTINEL_MASK = 1024-1;
 
     Thread worker;
-    AtomicBoolean shutDown = new AtomicBoolean(false);
-    private volatile boolean dead;
+    private int nested;
 
-    Queue<CallEntry> queue = new MpscConcurrentQueue<>(50000); //new ConcurrentLinkedQueue<CallEntry>();
+    AtomicBoolean shutDown = new AtomicBoolean(false);
+    private boolean dead;
+
+    final int QS = 5000;
+    Queue[] queue = {
+            new MpscConcurrentQueue<CallEntry>(QS), null,
+            new MpscConcurrentQueue<CallEntry>(QS), null,
+            new MpscConcurrentQueue<CallEntry>(QS), null,
+            new MpscConcurrentQueue<CallEntry>(QS), null,
+            new MpscConcurrentQueue<CallEntry>(QS), null,
+            new MpscConcurrentQueue<CallEntry>(QS), null,
+            new MpscConcurrentQueue<CallEntry>(QS), null,
+            new MpscConcurrentQueue<CallEntry>(QS), null,
+    };
 
     int instanceNum;
     boolean isSystemDispatcher;
     private int queueSize;
+    public int qIndex = 2*(instanceCount.get()&(queue.length/2-1));
 
     public int getQueueSize() {
         return queueSize;
     }
 
     public boolean isEmpty() {
-        return queue.isEmpty();
+        for (int i = 0; i < queue.length; i+=2) {
+            if ( ! queue[i].isEmpty() )
+                return false;
+        }
+        return true;
     }
 
     static class CallEntry {
@@ -142,21 +160,33 @@ public class DefaultDispatcher implements Dispatcher {
         this.isSystemDispatcher = isSystemDispatcher;
     }
 
-    //    static ConcurrentHashMap debug = new ConcurrentHashMap();
     @Override
-    public void dispatch(ActorProxy actorRef, boolean sameThread, Method method, Object args[]) {
+    public void dispatch( ActorProxy actorRef, boolean sameThread, Method method, Object args[]) {
         // MT. sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
-        plainDispatch( actorRef.getActor(), method, args, false );
-    }
-
-    protected void plainDispatch(Actor actor, Method method, Object[] args, boolean sentinel) {
-        CallEntry e = new CallEntry(actor, method, args, sentinel);
+        CallEntry e = new CallEntry(actorRef.getActor(), method, args, false);
         int count = 0;
-        while ( ! queue.offer(e) ) {
-            yield(count);
-            count++;
+        DefaultDispatcher sender = (DefaultDispatcher) Actors.threadDispatcher.get();
+        int qIndex = 0;
+        if ( sender != null )
+            qIndex = sender.qIndex;
+        while ( ! queue[qIndex].offer(e) ) {
+            if ( sender != null && sender.getNesting() < 2000 ) {
+                boolean hadPoll;
+                try {
+                    sender.incNesting();
+                    hadPoll = sender.poll();
+                } finally {
+                    sender.decNesting();
+                }
+                if ( ! hadPoll )
+                    yield(count++);
+                else
+                    count = 0;
+            } else {
+                yield(count++);
+            }
         }
     }
 
@@ -165,16 +195,12 @@ public class DefaultDispatcher implements Dispatcher {
             public void run() {
                 Actors.threadDispatcher.set(DefaultDispatcher.this);
                 int emptyCount = 0;
-                Queue<CallEntry> callQueue = queue;
-//                queue.set(new ConcurrentLinkedQueue<CallEntry>());
                 while( ! shutDown.get() ) {
-                    if ( poll(callQueue) ) {
+                    if ( poll() ) {
                         emptyCount = 0;
                     }
                     else {
                         emptyCount++;
-                        callQueue = queue;
-//                        queue.set(new ConcurrentLinkedQueue<CallEntry>());
                         DefaultDispatcher.this.yield(emptyCount);
                     }
                 }
@@ -185,17 +211,28 @@ public class DefaultDispatcher implements Dispatcher {
         worker.start();
     }
 
-    protected boolean poll(Queue<CallEntry> callQueue) {
-        CallEntry poll = callQueue.poll();
-        if ( poll != null ) {
-            try {
-                poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
-                return true;
-            } catch (Exception e) {
-                e.printStackTrace();
+    // return true if msg was avaiable
+    public boolean poll() {
+        CallEntry poll = null;
+        boolean hadOne = false;
+        for (int i = 0; i < queue.length; i+=2) {
+            poll = (CallEntry) queue[i].poll();
+            if ( poll != null ) {
+                try {
+                    poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
+                    hadOne = true;
+                } catch (RuntimeException e) {
+                    e.getCause().printStackTrace();
+                    throw e;
+                } catch (InvocationTargetException e) {
+                    e.getCause().printStackTrace();
+                    throw new RuntimeException(e.getCause());
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
             }
         }
-        return false;
+        return hadOne;
     }
 
 
@@ -214,11 +251,29 @@ public class DefaultDispatcher implements Dispatcher {
     }
 
     public void calcQSize() {
-        queueSize = queue.size();
+        queueSize = 0;
+        for (int i = 0; i < queue.length; i+=2) {
+            queueSize += queue[i].size();
+        }
     }
 
     public Thread getWorker() {
         return worker;
+    }
+
+    @Override
+    public void incNesting() {
+        nested++;
+    }
+
+    @Override
+    public void decNesting() {
+        nested--;
+    }
+
+    @Override
+    public int getNesting() {
+        return nested;
     }
 
     public Marshaller instantiateMarshaller(Actor target) {
@@ -311,7 +366,7 @@ public class DefaultDispatcher implements Dispatcher {
      * blocking method, use for debugging only.
      */
     public void waitEmpty() {
-        while( queue.peek() != null )
+        while( ! isEmpty() )
             Thread.currentThread().yield();
     }
 

@@ -156,6 +156,8 @@ public class ActorProxyFactory {
                     (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 &&
                     (method.getModifiers() & AccessFlag.PUBLIC) != 0;
             allowed &= !originalMethod.getDeclaringClass().getName().equals(Object.class.getName()) && !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName()) ;
+            if ( method.getName().equals("__sync") )
+                allowed = true;
             if (allowed) {
                 if (returnType != CtPrimitiveType.voidType ) {
                     throw new RuntimeException("only void methods allowed");
@@ -176,7 +178,10 @@ public class ActorProxyFactory {
 //                System.out.println("generated proxy methoid for "+method.getDeclaringClass().getName()+" "+method);
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
-                if ( method.getName().equals("getActor") ) {
+                if ( method.getName().equals("getActor") ||
+                     method.getName().equals("startQueuedDispatch") ||
+                     method.getName().equals("endQueuedDispatch")
+                ) {
                     // do nothing
                 } else if ( method.getName().equals("getDispatcher") ) {
                     method.setBody(" return __target.getDispatcher();");

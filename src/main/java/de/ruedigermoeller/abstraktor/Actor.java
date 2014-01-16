@@ -26,6 +26,7 @@ package de.ruedigermoeller.abstraktor;
 import de.ruedigermoeller.abstraktor.impl.ActorProxyFactory;
 
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
@@ -55,6 +56,9 @@ public class Actor {
 
     public int __outCalls = 0; // internal use
     public Actor __self;       // internal use
+
+    static AtomicInteger syncCount = new AtomicInteger(1);
+    volatile int syncFlag = 0;
 
     Dispatcher dispatcher;
 
@@ -86,6 +90,19 @@ public class Actor {
         return this;
     }
 
+    public void sync() {
+        try {
+            startQueuedDispatch();
+            int sc = syncCount.incrementAndGet();
+            __self.__sync(sc);
+            while (syncFlag != sc) {
+                Thread.yield();
+            }
+        } finally {
+            endQueuedDispatch();
+        }
+    }
+
     public void startQueuedDispatch() {
         __outCalls++;
     }
@@ -97,4 +114,9 @@ public class Actor {
     public void __dispatcher( Dispatcher d ) {
         dispatcher = d;
     }
+
+    public void __sync(int count) {
+        syncFlag = count;
+    }
+
 }

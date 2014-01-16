@@ -54,24 +54,13 @@ public class DefaultScheduler implements ActorScheduler {
         }
     }
 
-    DefaultDispatcher workers[];
-    WorkerStats wStats[];
-
     public DefaultScheduler(int worker) {
-        workers = new DefaultDispatcher[worker];
-        wStats = new WorkerStats[worker];
-        for (int i = 0; i < workers.length; i++) {
-            workers[i] = (DefaultDispatcher) newDispatcher();
-            wStats[i] = new WorkerStats();
-            workers[i].setSystemDispatcher(true);
-            workers[i].setName("System " + i);
-        }
         new Thread("Supervisor") {
             public void run() {
                 while( true ) {
                     supervise();
                     try {
-                        Thread.sleep(200000);
+                        Thread.sleep(5000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -83,20 +72,21 @@ public class DefaultScheduler implements ActorScheduler {
 
     int count;
     public void supervise() {
-        for (int i = 0; i < workers.length; i++) {
-            DefaultDispatcher worker = workers[i];
-            WorkerStats wStat = wStats[i];
-            wStat.update(worker);
-        }
-        System.out.println("----");
-        long avg = 0;
-        for (int i = 0; i < workers.length; i++) {
-            DefaultDispatcher worker = workers[i];
-            WorkerStats wStat = wStats[i];
-            avg+=wStat.curQSize;
-            System.out.println(worker.getWorker().getName()+" : " + wStat);
-        }
-        System.out.println("avg Q =>" +avg/workers.length);
+        System.out.println("Threads "+DefaultDispatcher.instanceCount);
+//        for (int i = 0; i < workers.length; i++) {
+//            DefaultDispatcher worker = workers[i];
+//            WorkerStats wStat = wStats[i];
+//            wStat.update(worker);
+//        }
+//        System.out.println("----");
+//        long avg = 0;
+//        for (int i = 0; i < workers.length; i++) {
+//            DefaultDispatcher worker = workers[i];
+//            WorkerStats wStat = wStats[i];
+//            avg+=wStat.curQSize;
+//            System.out.println(worker.getWorker().getName()+" : " + wStat);
+//        }
+//        System.out.println("avg Q =>" +avg/workers.length);
     }
 
     public DefaultScheduler() {
@@ -111,14 +101,15 @@ public class DefaultScheduler implements ActorScheduler {
     AtomicInteger lastIndex = new AtomicInteger(-1);
     @Override
     public Dispatcher aquireDispatcher() {
-        int li = lastIndex.incrementAndGet();
-        if ( li > workers.length * 100 && li % workers.length == 0 )
-            lastIndex.set(0);
-        li %= workers.length;
-        DefaultDispatcher worker = workers[li];
-        if ( worker == Actors.threadDispatcher.get() && workers.length > 1 )
-            return aquireDispatcher();
-        return worker;
+//        int li = lastIndex.incrementAndGet();
+//        if ( li > workers.length * 100 && li % workers.length == 0 )
+//            lastIndex.set(0);
+//        li %= workers.length;
+//        DefaultDispatcher worker = workers[li];
+//        if ( worker == Actors.threadDispatcher.get() && workers.length > 1 )
+//            return aquireDispatcher();
+//        return worker;
+        return newDispatcher();
     }
 
 }
