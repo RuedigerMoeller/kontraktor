@@ -2,7 +2,6 @@ package de.ruedigermoeller.abstraktor.impl;
 
 import de.ruedigermoeller.abstraktor.Actor;
 import de.ruedigermoeller.abstraktor.ActorProxy;
-import de.ruedigermoeller.abstraktor.Dispatcher;
 import javassist.*;
 import javassist.bytecode.AccessFlag;
 

@@ -24,6 +24,7 @@ package de.ruedigermoeller.abstraktor;
  */
 
 import de.ruedigermoeller.abstraktor.impl.ActorProxyFactory;
+import de.ruedigermoeller.abstraktor.impl.Dispatcher;
 
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;

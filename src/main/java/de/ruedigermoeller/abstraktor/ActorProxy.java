@@ -23,6 +23,8 @@ package de.ruedigermoeller.abstraktor;
 * To change this template use File | Settings | File Templates.
 */
 
+import de.ruedigermoeller.abstraktor.impl.Dispatcher;
+
 /**
  * taging interface. Using Actors.New() actually returns kind of a proxy which implements this interface.
  * This way one can determine wether an Object is the "real" actor or a proxy reference to it.

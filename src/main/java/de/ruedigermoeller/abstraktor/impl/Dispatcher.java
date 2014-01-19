@@ -1,8 +1,6 @@
 package de.ruedigermoeller.abstraktor.impl;
 
 import de.ruedigermoeller.abstraktor.*;
-import de.ruedigermoeller.abstraktor.sample.balancing.SubActor;
-import de.ruedigermoeller.abstraktor.sample.balancing.WorkerActor;
 import io.jaq.mpsc.MpscConcurrentQueue;
 
 import java.io.PrintWriter;
@@ -10,13 +8,9 @@ import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -59,7 +53,7 @@ import java.util.concurrent.locks.LockSupport;
  * to exactly balance and control the number of threads created and which thread operates a set of actors.
  *
  */
-public class DefaultDispatcher implements Dispatcher {
+public class Dispatcher {
 
     public static AtomicInteger instanceCount = new AtomicInteger(0);
 
@@ -77,10 +71,10 @@ public class DefaultDispatcher implements Dispatcher {
             new MpscConcurrentQueue<CallEntry>(QS), null,
             new MpscConcurrentQueue<CallEntry>(QS), null,
             new MpscConcurrentQueue<CallEntry>(QS), null,
-            new MpscConcurrentQueue<CallEntry>(QS), null,
-            new MpscConcurrentQueue<CallEntry>(QS), null,
-            new MpscConcurrentQueue<CallEntry>(QS), null,
-            new MpscConcurrentQueue<CallEntry>(QS), null,
+//            new MpscConcurrentQueue<CallEntry>(QS), null,
+//            new MpscConcurrentQueue<CallEntry>(QS), null,
+//            new MpscConcurrentQueue<CallEntry>(QS), null,
+//            new MpscConcurrentQueue<CallEntry>(QS), null,
     };
 
     int instanceNum;
@@ -126,7 +120,7 @@ public class DefaultDispatcher implements Dispatcher {
     String name;
     String stack;
 
-    public DefaultDispatcher() {
+    public Dispatcher() {
         instanceNum = instanceCount.incrementAndGet();
         start();
         StringWriter stringWriter = new StringWriter(1000);
@@ -147,7 +141,7 @@ public class DefaultDispatcher implements Dispatcher {
 
     @Override
     public String toString() {
-        return "DefaultDispatcher{" +
+        return "Dispatcher{" +
                 "worker=" + worker+" name:"+name+
                 '}';
     }
@@ -160,40 +154,25 @@ public class DefaultDispatcher implements Dispatcher {
         this.isSystemDispatcher = isSystemDispatcher;
     }
 
-    @Override
     public void dispatch( ActorProxy actorRef, boolean sameThread, Method method, Object args[]) {
         // MT. sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
         CallEntry e = new CallEntry(actorRef.getActor(), method, args, false);
         int count = 0;
-        DefaultDispatcher sender = (DefaultDispatcher) Actors.threadDispatcher.get();
+        Dispatcher sender = (Dispatcher) Actors.threadDispatcher.get();
         int qIndex = 0;
         if ( sender != null )
             qIndex = sender.qIndex;
         while ( ! queue[qIndex].offer(e) ) {
-            if ( sender != null && sender.getNesting() < 2000 ) {
-                boolean hadPoll;
-                try {
-                    sender.incNesting();
-                    hadPoll = sender.poll();
-                } finally {
-                    sender.decNesting();
-                }
-                if ( ! hadPoll )
-                    yield(count++);
-                else
-                    count = 0;
-            } else {
-                yield(count++);
-            }
+            yield(count++);
         }
     }
 
     public void start() {
         worker = new Thread() {
             public void run() {
-                Actors.threadDispatcher.set(DefaultDispatcher.this);
+                Actors.threadDispatcher.set(Dispatcher.this);
                 int emptyCount = 0;
                 while( ! shutDown.get() ) {
                     if ( poll() ) {
@@ -201,7 +180,7 @@ public class DefaultDispatcher implements Dispatcher {
                     }
                     else {
                         emptyCount++;
-                        DefaultDispatcher.this.yield(emptyCount);
+                        Dispatcher.this.yield(emptyCount);
                     }
                 }
                 dead = true;
@@ -261,17 +240,14 @@ public class DefaultDispatcher implements Dispatcher {
         return worker;
     }
 
-    @Override
     public void incNesting() {
         nested++;
     }
 
-    @Override
     public void decNesting() {
         nested--;
     }
 
-    @Override
     public int getNesting() {
         return nested;
     }
@@ -315,41 +291,15 @@ public class DefaultDispatcher implements Dispatcher {
     }
 
     /**
-     * stop processing messages, but do not block adding of new messages to Q
-     */
-    @Override
-    public void pauseOperation() {
-        throw new RuntimeException("unimplemented");
-    }
-
-    /**
-     * continue processing messages
-     */
-    @Override
-    public void continueOperation() {
-        throw new RuntimeException("unimplemented");
-    }
-
-    /**
      * @return true if Dispatcher is not shut down
      */
-    @Override
     public boolean isAlive() {
         return ! shutDown.get();
     }
 
     /**
-     * @return true if Dispatcher is paused but not shut-down
-     */
-    @Override
-    public boolean isPaused() {
-        return false;
-    }
-
-    /**
      * terminate operation after emptying Q
      */
-    @Override
     public void shutDown() {
         shutDown.set(true);
     }
@@ -357,7 +307,6 @@ public class DefaultDispatcher implements Dispatcher {
     /**
      * terminate operation immediately. Pending messages in Q are lost
      */
-    @Override
     public void shutDownImmediate() {
         throw new RuntimeException("unimplemented");
     }

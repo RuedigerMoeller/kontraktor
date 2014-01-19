@@ -1,7 +1,6 @@
 package de.ruedigermoeller.abstraktor.sample;
 
 import de.ruedigermoeller.abstraktor.*;
-import de.ruedigermoeller.abstraktor.impl.DefaultDispatcher;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
@@ -48,7 +47,7 @@ public class ActorPiSample {
             final long tim = System.currentTimeMillis();
             actors = new PiActor[numActors];
             for (int i = 0; i < actors.length; i++) {
-                actors[i] = Actors.New(PiActor.class, Actors.AnyDispatcher());
+                actors[i] = Actors.New(PiActor.class, Actors.NewDispatcher());
             }
 
             final int iterPerAct = numJobs / numActors;
@@ -110,7 +109,7 @@ public class ActorPiSample {
                 new FutureResultReceiver() {
                     public void receiveDoubleResult(double pi) {
                         long l = System.currentTimeMillis() - tim;
-                        System.out.println("T = "+numActors+" pi: " + pi + " " + l+ " disp:"+ DefaultDispatcher.instanceCount.get());
+                        System.out.println("T = "+numActors+" pi: " + pi + " " + l+ " disp:"+ de.ruedigermoeller.abstraktor.impl.Dispatcher.instanceCount.get());
                         time.set(l);
                         done();
                         latch.countDown();
@@ -131,7 +130,7 @@ public class ActorPiSample {
         final int MAX_ACT = 16;
         String results[] = new String[MAX_ACT];
 
-        for ( int numActors = 1; numActors <= MAX_ACT; numActors++ ) {
+        for ( int numActors = 1; numActors <= MAX_ACT; numActors+=2 ) {
             long sum = 0;
             for ( int ii=0; ii < 30; ii++) {
                 long res = calcPi(numMessages, step, numActors);

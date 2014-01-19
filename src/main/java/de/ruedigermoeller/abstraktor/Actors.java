@@ -1,7 +1,7 @@
 package de.ruedigermoeller.abstraktor;
 
 import de.ruedigermoeller.abstraktor.impl.ActorProxyFactory;
-import de.ruedigermoeller.abstraktor.impl.DefaultScheduler;
+import de.ruedigermoeller.abstraktor.impl.Dispatcher;
 
 import java.util.concurrent.ConcurrentLinkedDeque;
 
@@ -56,24 +56,11 @@ public class Actors {
         }
     }
 
-    /**
-     * @return a new or a suitable dispatcher for hosting an actor instance
-     */
-    public static Dispatcher AnyDispatcher() {
-        try {
-            return instance.aquireDispatcher();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     protected Actors() {
         factory = new ActorProxyFactory();
-        scheduler = new DefaultScheduler();
     }
 
     protected ActorProxyFactory factory;
-    protected ActorScheduler scheduler;
 
     protected ActorProxyFactory getFactory() {
         return factory;
@@ -91,16 +78,12 @@ public class Actors {
         }
     }
 
-    public ActorScheduler getScheduler() {
-        return scheduler;
-    }
-
     protected Actor newProxy(Class<? extends Actor> clz) {
         if ( threadDispatcher.get() != null ) {
             return newProxy( clz, threadDispatcher.get() );
         } else {
             try {
-                return newProxy(clz, aquireDispatcher());
+                return newProxy(clz, newDispatcher());
             } catch (Exception e) {
                 e.printStackTrace();
                 return null;
@@ -117,20 +100,7 @@ public class Actors {
      * @throws IllegalAccessException
      */
     protected Dispatcher newDispatcher() throws InstantiationException, IllegalAccessException {
-        return scheduler.newDispatcher();
-    }
-
-    /**
-     * return a usable dispatcher. called to signal that a new actor instance does not necessary need to
-     * live in the dispatcher of a parent. can be used to implement load balancing (and automatically
-     * limit the number of concurrent dispatchers)
-     *
-     * @return
-     * @throws InstantiationException
-     * @throws IllegalAccessException
-     */
-    protected Dispatcher aquireDispatcher() throws InstantiationException, IllegalAccessException {
-        return scheduler.aquireDispatcher();
+        return new Dispatcher();
     }
 
 }

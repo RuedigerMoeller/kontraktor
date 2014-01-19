@@ -23,7 +23,7 @@ package de.ruedigermoeller.abstraktor;
  * To change this template use File | Settings | File Templates.
  */
 
-import de.ruedigermoeller.abstraktor.impl.DefaultDispatcher;
+import de.ruedigermoeller.abstraktor.impl.Dispatcher;
 
 /**
  * wrapper anonymous actors, weaving does not work on anonymous classes
@@ -47,7 +47,7 @@ public class Future<T> extends Actor {
 
     public static <R> Future<R> NewIsolated(FutureResultReceiver<R> rec ) {
         Dispatcher disp = Actors.NewDispatcher();
-        ((DefaultDispatcher)disp).setName("Isolated Future "+rec.getClass().getName());
+        ((de.ruedigermoeller.abstraktor.impl.Dispatcher)disp).setName("Isolated Future "+rec.getClass().getName());
         return New(disp, true, rec);
     }
 
@@ -65,7 +65,7 @@ public class Future<T> extends Actor {
         } else {
             Dispatcher newDisp = Actors.NewDispatcher();
             autoShut = true;
-            ((DefaultDispatcher)newDisp).setName("Future "+rec.getClass().getName());
+            newDisp.setName("Future "+rec.getClass().getName());
             res = Actors.New(Future.class, newDisp);
         }
         rec.fut = (Future) res.getActor();

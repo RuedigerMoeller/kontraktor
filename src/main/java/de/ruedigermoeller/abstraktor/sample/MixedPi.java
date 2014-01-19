@@ -2,7 +2,7 @@ package de.ruedigermoeller.abstraktor.sample;
 
 import de.ruedigermoeller.abstraktor.Future;
 import de.ruedigermoeller.abstraktor.FutureResultReceiver;
-import de.ruedigermoeller.abstraktor.impl.DefaultDispatcher;
+import de.ruedigermoeller.abstraktor.impl.Dispatcher;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -58,7 +58,7 @@ public class MixedPi {
                 pi += result;
                 count++;
                 if (count == numMessages) {
-                    System.out.println("pi: " + pi + " " + (System.currentTimeMillis() - tim) + " " + DefaultDispatcher.instanceCount.get());
+                    System.out.println("pi: " + pi + " " + (System.currentTimeMillis() - tim) + " " + Dispatcher.instanceCount.get());
                     finished.countDown();
                     done();
                 }

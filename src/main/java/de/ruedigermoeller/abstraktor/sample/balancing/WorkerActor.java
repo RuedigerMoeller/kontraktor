@@ -4,7 +4,7 @@ import de.ruedigermoeller.abstraktor.Actor;
 import de.ruedigermoeller.abstraktor.Actors;
 import de.ruedigermoeller.abstraktor.Future;
 import de.ruedigermoeller.abstraktor.FutureResultReceiver;
-import de.ruedigermoeller.abstraktor.impl.DefaultDispatcher;
+import de.ruedigermoeller.abstraktor.impl.Dispatcher;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -20,7 +20,7 @@ public class WorkerActor extends Actor {
         self = self();
         for (int i = 0; i < subActors.length; i++) {
 //            subActors[i] = Actors.New( SubActor.class);
-            subActors[i] = Actors.New( SubActor.class, Actors.AnyDispatcher() );
+            subActors[i] = Actors.New( SubActor.class, Actors.NewDispatcher() );
         }
     }
 
@@ -34,7 +34,7 @@ public class WorkerActor extends Actor {
     }
 
     public void runTest(final int numMsg, final long tim, final CountDownLatch latch) {
-        self.doWork(numMsg, Future.New(Actors.AnyDispatcher(), true, new FutureResultReceiver<String>() {
+        self.doWork(numMsg, Future.New(Actors.NewDispatcher(), true, new FutureResultReceiver<String>() {
             int count = 0;
             long res;
 
@@ -82,7 +82,7 @@ public class WorkerActor extends Actor {
     public static void main( String arg[] ) throws InterruptedException {
         for ( int i = 0; i < 50; i++) {
             test();
-            System.out.println( "dispatcher: "+DefaultDispatcher.instanceCount.get() );
+            System.out.println( "dispatcher: "+ Dispatcher.instanceCount.get() );
         }
         System.exit(0);
     }
