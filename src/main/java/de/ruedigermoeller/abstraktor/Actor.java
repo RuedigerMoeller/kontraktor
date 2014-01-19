@@ -26,30 +26,33 @@ package de.ruedigermoeller.abstraktor;
 import de.ruedigermoeller.abstraktor.impl.ActorProxyFactory;
 import de.ruedigermoeller.abstraktor.impl.Dispatcher;
 
+import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Queue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
- * Use Actors.New(..) to instantiate an actor instance. To pass initialization parameter,
+ * Use Actors.Queue(..) to instantiate an actor instance. To pass initialization parameter,
  * define an init method in your implementation.
  *
- * e.g.; MyActor act = Actors.New(MyActor.class); act.myInit( x,y,z );
+ * e.g.; MyActor act = Actors.Queue(MyActor.class); act.myInit( x,y,z );
  *
  * The init method then will be executed in the thread of the dispatcher associated with your
  * actor avoiding problems rised by state visibility inconsistency amongst threads.
  *
  * Inside an actor, everything is executed single threaded. You don't have to worry about synchronization.
  *
- * public actor methods are not allowed to return values. They must be of type void. Pass a Future.New to a call
+ * public actor methods are not allowed to return values. They must be of type void. Pass a ChannelActor.Queue to a call
  * in order to receive results from other actors. This does not apply to non-public methods, as they cannot be called
  * from outside the actor.
  *
  * Note that you have to pass immutable objects as arguments, else you'll get unpredictable behaviour.
- * Future versions will provide a generic deep copy for those cases, until then fall back to serialization if you
+ * ChannelActor versions will provide a generic deep copy for those cases, until then fall back to serialization if you
  * really have to copy large object graphs (you also might mix in traditional synchronization for shared structure access).
  *
- * code inside an actor is not allowed to ever block the current thread (networking etc.). Use Future.New and executors
+ * code inside an actor is not allowed to ever block the current thread (networking etc.). Use ChannelActor.Queue and executors
  * talking to the future result handler in order to handle calls to blocking code.
  *
  */
@@ -58,18 +61,18 @@ public class Actor {
     public int __outCalls = 0; // internal use
     public Actor __self;       // internal use
 
-    static AtomicInteger syncCount = new AtomicInteger(1);
-    volatile int syncFlag = 0;
-
     Dispatcher dispatcher;
 
     /**
-     * required by bytecode magic. Use Actors.New(..) to construct actor instances
+     * required by bytecode magic. Use Actors.Queue(..) to construct actor instances
      */
     public Actor() {
     }
 
     public Dispatcher getDispatcher() {
+        if ( __self == null ) {
+            return getActor().getDispatcher();
+        }
         return dispatcher;
     }
 
@@ -92,15 +95,16 @@ public class Actor {
     }
 
     public void sync() {
+        if ( __self == null ) {
+            getActor().sync();
+            return;
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        __self.__sync(latch);
         try {
-            startQueuedDispatch();
-            int sc = syncCount.incrementAndGet();
-            __self.__sync(sc);
-            while (syncFlag != sc) {
-                Thread.yield();
-            }
-        } finally {
-            endQueuedDispatch();
+            latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
@@ -112,12 +116,48 @@ public class Actor {
         __outCalls--;
     }
 
+    ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
+
     public void __dispatcher( Dispatcher d ) {
         dispatcher = d;
     }
 
-    public void __sync(int count) {
-        syncFlag = count;
+    public void __sync(CountDownLatch latch) {
+        latch.countDown();
     }
+
+    HashMap<String, Method> methodCache = new HashMap<>();
+
+    public boolean __isSameThread(String methodName, ActorProxy proxy) {
+        boolean same = proxy.getDispatcher() == Thread.currentThread();
+        return same;
+    }
+
+    /**
+     * callback from bytecode weaving
+     */
+    public boolean __doDirectCall(String methodName, ActorProxy proxy) {
+        return proxy.getActor().__outCalls == 0;
+    }
+
+    public void __dispatchCall( ActorProxy receiver, boolean sameThread, String methodName, Object args[] ) {
+//        System.out.println("dispatch "+methodName+" "+Thread.currentThread());
+        // here sender + receiver are known in a ST context
+        Method method = methodCache.get(methodName);
+        Actor actor = receiver.getActor();
+        if ( method == null ) {
+            Method[] methods = actor.getClass().getMethods();
+            for (int i = 0; i < methods.length; i++) {
+                Method m = methods[i];
+                if ( m.getName().equals(methodName) ) {
+                    methodCache.put(methodName,m);
+                    method = m;
+                    break;
+                }
+            }
+        }
+        actor.getDispatcher().dispatch(receiver, sameThread, method, args);
+    }
+
 
 }

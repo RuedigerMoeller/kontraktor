@@ -1,9 +1,13 @@
 package de.ruedigermoeller.abstraktor.sample;
 
 import de.ruedigermoeller.abstraktor.*;
+import de.ruedigermoeller.abstraktor.impl.ChannelActor;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static de.ruedigermoeller.abstraktor.Actors.SpawnActor;
+import static de.ruedigermoeller.abstraktor.Actors.Queue;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -30,39 +34,38 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ActorPiSample {
 
     public static class PiActor extends Actor {
-        public void calculatePiFor(int start, int nrOfElements, Future result ) {
+        public void calculatePiFor(int start, int nrOfElements, ChannelActor result ) {
             double acc = 0.0;
             for (int i = start * nrOfElements; i <= ((start + 1) * nrOfElements - 1); i++) {
                 acc += 4.0 * (1 - (i % 2) * 2) / (2 * i + 1);
             }
-            result.receiveDoubleResult(acc);
+            result.receiveResult(acc);
         }
     }
 
     public static class PiStriper extends Actor {
         PiActor actors[];
 
-        public void run(int numActors, int iterationSize, int numJobs, final Future resultListener ) {
-            PiStriper self = self();
+        public void run(int numActors, int iterationSize, int numJobs, final ChannelActor resultListener ) {
             final long tim = System.currentTimeMillis();
             actors = new PiActor[numActors];
             for (int i = 0; i < actors.length; i++) {
-                actors[i] = Actors.New(PiActor.class, Actors.NewDispatcher());
+                actors[i] = SpawnActor(PiActor.class);
             }
 
             final int iterPerAct = numJobs / numActors;
             final int iterSum = iterPerAct * actors.length;
 
-            final Future endResult = Future.NewIsolated(new FutureResultReceiver() {
+            final ChannelActor endResult = Actors.Channel(new ChannelReceiver<Double>() {
                 double sum = 0;
                 int count = 0;
 
                 @Override
-                public void receiveDoubleResult(double result) {
+                public void receiveResult(Double result) {
                     count++;
                     sum += result;
                     if (count == iterSum) {
-                        resultListener.receiveDoubleResult(sum);
+                        resultListener.receiveResult(sum);
                         done();
                         PiStriper.this.getDispatcher().shutDown();
                         for (int i = 0; i < actors.length; i++) {
@@ -75,7 +78,7 @@ public class ActorPiSample {
 
             int iteri = 0;
             for (int i = 0; i < actors.length; i++) {
-//                final Future subRes = Future.NewIsolated(new FutureResultReceiver() {
+//                final ChannelActor subRes = ChannelActor.Channel(new ChannelReceiver() {
 //                    double sum = 0;
 //                    int count = 0;
 //
@@ -105,18 +108,18 @@ public class ActorPiSample {
         final CountDownLatch latch = new CountDownLatch(1); // to be able to wait for finish
         final AtomicLong time = new AtomicLong(0);
 
-        Future resultReceiver = Future.New(
-                new FutureResultReceiver() {
-                    public void receiveDoubleResult(double pi) {
+        ChannelActor resultReceiver = Queue(
+                new ChannelReceiver<Double>() {
+                    public void receiveResult(Double pi) {
                         long l = System.currentTimeMillis() - tim;
-                        System.out.println("T = "+numActors+" pi: " + pi + " " + l+ " disp:"+ de.ruedigermoeller.abstraktor.impl.Dispatcher.instanceCount.get());
+                        System.out.println("T = " + numActors + " pi: " + pi + " " + l + " disp:" + de.ruedigermoeller.abstraktor.impl.Dispatcher.instanceCount.get());
                         time.set(l);
                         done();
                         latch.countDown();
                     }
                 });
 
-        PiStriper piStriper = Actors.New(PiStriper.class);
+        PiStriper piStriper = Actors.AsActor(PiStriper.class);
         piStriper.run(numActors,step, numMessages, resultReceiver );
 
         // wait until done
@@ -125,12 +128,12 @@ public class ActorPiSample {
     }
 
     public static void main( String arg[] ) throws InterruptedException {
-        final int numMessages = 1000000;
-        final int step = 100;
+        final int numMessages = 100000;
+        final int step = 1000;
         final int MAX_ACT = 16;
         String results[] = new String[MAX_ACT];
 
-        for ( int numActors = 1; numActors <= MAX_ACT; numActors+=2 ) {
+        for ( int numActors = 1; numActors <= MAX_ACT; numActors+=1 ) {
             long sum = 0;
             for ( int ii=0; ii < 30; ii++) {
                 long res = calcPi(numMessages, step, numActors);

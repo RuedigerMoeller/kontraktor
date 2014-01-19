@@ -171,7 +171,7 @@ public final class SpmcConcurrentQueue<E> extends SpmcConcurrentArrayQueueL3Pad<
     }
 
 	/**
-	 * Using head counter as the entry point to the queue.
+	 * Using head counter as the entry point to the Queue.
 	 */
 	public E poll() {
 		final long currentTail = getTailV();

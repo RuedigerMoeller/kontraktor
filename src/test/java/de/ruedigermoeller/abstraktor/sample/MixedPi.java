@@ -1,7 +1,8 @@
 package de.ruedigermoeller.abstraktor.sample;
 
-import de.ruedigermoeller.abstraktor.Future;
-import de.ruedigermoeller.abstraktor.FutureResultReceiver;
+import de.ruedigermoeller.abstraktor.Actors;
+import de.ruedigermoeller.abstraktor.impl.ChannelActor;
+import de.ruedigermoeller.abstraktor.ChannelReceiver;
 import de.ruedigermoeller.abstraktor.impl.Dispatcher;
 
 import java.util.concurrent.CountDownLatch;
@@ -50,11 +51,12 @@ public class MixedPi {
         final int step = 100;
 
         final CountDownLatch finished = new CountDownLatch(1);
-        final Future<Double> receiver = Future.New( new FutureResultReceiver<Double>() {
+        final ChannelActor<Double> receiver = Actors.Queue(new ChannelReceiver<Double>() {
             double pi;
             int count;
+
             @Override
-            public void receiveDoubleResult(double result) {
+            public void receiveResult(Double result) {
                 pi += result;
                 count++;
                 if (count == numMessages) {
@@ -73,7 +75,7 @@ public class MixedPi {
                             for (int i = finalI * step; i <= ((finalI + 1) * step - 1); i++) {
                                 acc += 4.0 * (1 - (i % 2) * 2) / (2 * i + 1);
                             }
-                            receiver.receiveDoubleResult(acc);
+                            receiver.receiveResult(acc);
                         }
                     }
             );

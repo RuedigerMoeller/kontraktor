@@ -26,7 +26,7 @@ package de.ruedigermoeller.abstraktor;
 import de.ruedigermoeller.abstraktor.impl.Dispatcher;
 
 /**
- * taging interface. Using Actors.New() actually returns kind of a proxy which implements this interface.
+ * taging interface. Using Actors.Queue() actually returns kind of a proxy which implements this interface.
  * This way one can determine wether an Object is the "real" actor or a proxy reference to it.
  * @param <T>
  */

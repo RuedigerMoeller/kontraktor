@@ -42,27 +42,24 @@ import java.util.concurrent.locks.LockSupport;
  * automatically. An actor created from within another actor inherits the dispatcher of the enclosing actor
  * by default.
  * Calls from actors sharing the same dispatcher are done directly (no queueing). Calls across actors in
- * different dispatchers are put to the queue of the receiving dispatcher. Note that cross-dispatcher calls
+ * different dispatchers are put to the Queue of the receiving dispatcher. Note that cross-dispatcher calls
  * are like 1000 times slower than inbound calls.
  *
  * Each dispatcher owns exactly one single thread.
  * Note that dispatchers must be terminated if not needed any longer, as a thread is associated with them.
  *
  * For more sophisticated applications it might be appropriate to manually set up dispatchers (Actors.newDispatcher()).
- * The Actors.New method allows to specifiy a dedicated dispatcher on which to run the actor. This way it is possible
+ * The Actors.Queue method allows to specifiy a dedicated dispatcher on which to run the actor. This way it is possible
  * to exactly balance and control the number of threads created and which thread operates a set of actors.
  *
  */
-public class Dispatcher {
+public class Dispatcher extends Thread {
 
     public static AtomicInteger instanceCount = new AtomicInteger(0);
 
-    final int SENTINEL_MASK = 1024-1;
-
-    Thread worker;
     private int nested;
 
-    AtomicBoolean shutDown = new AtomicBoolean(false);
+    boolean shutDown = false;
     private boolean dead;
 
     final int QS = 5000;
@@ -71,20 +68,14 @@ public class Dispatcher {
             new MpscConcurrentQueue<CallEntry>(QS), null,
             new MpscConcurrentQueue<CallEntry>(QS), null,
             new MpscConcurrentQueue<CallEntry>(QS), null,
-//            new MpscConcurrentQueue<CallEntry>(QS), null,
-//            new MpscConcurrentQueue<CallEntry>(QS), null,
-//            new MpscConcurrentQueue<CallEntry>(QS), null,
-//            new MpscConcurrentQueue<CallEntry>(QS), null,
+            new MpscConcurrentQueue<CallEntry>(QS), null,
+            new MpscConcurrentQueue<CallEntry>(QS), null,
+            new MpscConcurrentQueue<CallEntry>(QS), null,
+            new MpscConcurrentQueue<CallEntry>(QS), null,
     };
 
     int instanceNum;
-    boolean isSystemDispatcher;
-    private int queueSize;
     public int qIndex = 2*(instanceCount.get()&(queue.length/2-1));
-
-    public int getQueueSize() {
-        return queueSize;
-    }
 
     public boolean isEmpty() {
         for (int i = 0; i < queue.length; i+=2) {
@@ -117,7 +108,6 @@ public class Dispatcher {
         public boolean isSentinel() { return sentinel; }
     }
 
-    String name;
     String stack;
 
     public Dispatcher() {
@@ -130,28 +120,11 @@ public class Dispatcher {
         stack = stringWriter.getBuffer().toString();
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-        worker.setName(name);
-    }
-
     @Override
     public String toString() {
         return "Dispatcher{" +
-                "worker=" + worker+" name:"+name+
+                " name:"+getName()+
                 '}';
-    }
-
-    public boolean isSystemDispatcher() {
-        return isSystemDispatcher;
-    }
-
-    public void setSystemDispatcher(boolean isSystemDispatcher) {
-        this.isSystemDispatcher = isSystemDispatcher;
     }
 
     public void dispatch( ActorProxy actorRef, boolean sameThread, Method method, Object args[]) {
@@ -160,7 +133,7 @@ public class Dispatcher {
             throw new RuntimeException("received message on terminated dispatcher "+this);
         CallEntry e = new CallEntry(actorRef.getActor(), method, args, false);
         int count = 0;
-        Dispatcher sender = (Dispatcher) Actors.threadDispatcher.get();
+        Dispatcher sender = getThreadDispatcher();
         int qIndex = 0;
         if ( sender != null )
             qIndex = sender.qIndex;
@@ -169,25 +142,26 @@ public class Dispatcher {
         }
     }
 
-    public void start() {
-        worker = new Thread() {
-            public void run() {
-                Actors.threadDispatcher.set(Dispatcher.this);
-                int emptyCount = 0;
-                while( ! shutDown.get() ) {
-                    if ( poll() ) {
-                        emptyCount = 0;
-                    }
-                    else {
-                        emptyCount++;
-                        Dispatcher.this.yield(emptyCount);
-                    }
-                }
-                dead = true;
-                instanceCount.decrementAndGet();
+    public static Dispatcher getThreadDispatcher() {
+        Dispatcher sender = null;
+        if ( Thread.currentThread() instanceof Dispatcher )
+            sender = (Dispatcher) Thread.currentThread();
+        return sender;
+    }
+
+    public void run() {
+        int emptyCount = 0;
+        while( ! shutDown ) {
+            if ( poll() ) {
+                emptyCount = 0;
             }
-        };
-        worker.start();
+            else {
+                emptyCount++;
+                Dispatcher.this.yield(emptyCount);
+            }
+        }
+        dead = true;
+        instanceCount.decrementAndGet();
     }
 
     // return true if msg was avaiable
@@ -229,79 +203,26 @@ public class Dispatcher {
         }
     }
 
-    public void calcQSize() {
-        queueSize = 0;
+    public int getQSize() {
+        int queueSize = 0;
         for (int i = 0; i < queue.length; i+=2) {
             queueSize += queue[i].size();
         }
-    }
-
-    public Thread getWorker() {
-        return worker;
-    }
-
-    public void incNesting() {
-        nested++;
-    }
-
-    public void decNesting() {
-        nested--;
-    }
-
-    public int getNesting() {
-        return nested;
-    }
-
-    public Marshaller instantiateMarshaller(Actor target) {
-        return new Marshaller() {
-            HashMap<String, Method> methodCache = new HashMap<>();
-
-            @Override
-            public boolean isSameThread(String methodName, ActorProxy proxy) {
-                return proxy.getDispatcher().getWorker() == Thread.currentThread();
-            }
-
-            @Override
-            /**
-             * callback from bytecode weaving
-             */
-            public boolean doDirectCall(String methodName, ActorProxy proxy) {
-                return proxy.getActor().__outCalls == 0;
-            }
-
-            @Override
-            public void dispatchCall( ActorProxy senderRef, boolean sameThread, String methodName, Object args[] ) {
-                // here sender + receiver are known in a ST context
-                Method method = methodCache.get(methodName);
-                Actor actor = senderRef.getActor();
-                if ( method == null ) {
-                    Method[] methods = actor.getClass().getMethods();
-                    for (int i = 0; i < methods.length; i++) {
-                        Method m = methods[i];
-                        if ( m.getName().equals(methodName) ) {
-                            methodCache.put(methodName,m);
-                            method = m;
-                            break;
-                        }
-                    }
-                }
-                actor.getDispatcher().dispatch(senderRef, sameThread, method, args);
-            }
-        };
+        return queueSize;
     }
 
     /**
      * @return true if Dispatcher is not shut down
      */
-    public boolean isAlive() {
-        return ! shutDown.get();
+    public boolean isShutDown() {
+        return ! shutDown;
     }
 
     /**
      * terminate operation after emptying Q
      */
     public void shutDown() {
-        shutDown.set(true);
+        shutDown=true;
     }
 
     /**

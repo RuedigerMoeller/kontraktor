@@ -15,7 +15,7 @@ package io.jaq;
 
 
 /**
- * A minimal top level queue interface which allows producer/consumers access via separate interfaces.
+ * A minimal top level Queue interface which allows producer/consumers access via separate interfaces.
  * 
  * @author nitsanw
  *
@@ -34,11 +34,11 @@ public interface ConcurrentQueue<E> {
     /**
      * This method may be O(n) or O(1) and may not be accurate.
      * 
-     * @return the number of elements in the queue
+     * @return the number of elements in the Queue
      */
     int size();
     /**
-     * @return the maximum number of elements that can fit in this queue, or MAX_INT if unbounded.
+     * @return the maximum number of elements that can fit in this Queue, or MAX_INT if unbounded.
      */
     int capacity();
 }

@@ -1,9 +1,8 @@
 package de.ruedigermoeller.abstraktor;
 
 import de.ruedigermoeller.abstraktor.impl.ActorProxyFactory;
+import de.ruedigermoeller.abstraktor.impl.ChannelActor;
 import de.ruedigermoeller.abstraktor.impl.Dispatcher;
-
-import java.util.concurrent.ConcurrentLinkedDeque;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -29,32 +28,81 @@ import java.util.concurrent.ConcurrentLinkedDeque;
  */
 public class Actors {
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // static API
+
     static Actors instance = new Actors();
 
-    /**
-     * allowed to be set only by dispatcher instances from their associated thread.
-     * Do not modify externally !
-     */
-    public static ThreadLocal<Dispatcher> threadDispatcher = new ThreadLocal<Dispatcher>();
-
-    public static <T extends Actor> T New( Class<? extends Actor> actorClazz ) {
+    public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz) {
         return (T) instance.newProxy(actorClazz);
     }
 
-    public static <T extends Actor> T New( Class<? extends Actor> actorClazz, Dispatcher disp ) {
+    public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz, Dispatcher disp) {
         return (T) instance.newProxy(actorClazz,disp);
+    }
+
+    public static <T extends Actor> T SpawnActor(Class<? extends Actor> actorClazz) {
+        return (T) instance.newProxy(actorClazz, createDispatcher() );
+    }
+
+    /**
+     * Create a new future actor inheriting the dispatcher from the calling actor.
+     * If a future is created from a non-actor context, a new DispatcherThread will be created,
+     * which is automatically terminated after the one message has been received by the
+     * future.
+     * @param rec
+     * @param <R>
+     * @return
+     */
+    public static <R> ChannelActor<R> Queue(ChannelReceiver<R> rec) {
+        return channel(null, false, rec);
+    }
+
+    public static <R> ChannelActor<R> Channel(ChannelReceiver<R> rec) {
+        Dispatcher disp = Actors.createDispatcher();
+        ((Dispatcher)disp).setName("SpawnActor ChannelActor "+rec.getClass().getName());
+        return channel(disp, true, rec);
+    }
+
+    public static <R> ChannelActor<R> channel(Dispatcher disp, boolean autoShut, ChannelReceiver<R> rec) {
+        // autoShutdown is not applied if a shared dispatcher is used.
+        if ( disp == null ) {
+            disp = Dispatcher.getThreadDispatcher();
+            autoShut = false;
+        } else {
+            //autoShut = ! disp.isSystemDispatcher() && autoShut;
+        }
+        ChannelActor res = null;
+        if ( disp != null ) {
+            res = AsActor(ChannelActor.class, disp);
+        } else {
+            Dispatcher newDisp = Actors.createDispatcher();
+            autoShut = true;
+            newDisp.setName("ChannelActor "+rec.getClass().getName());
+            res = AsActor(ChannelActor.class, newDisp);
+        }
+        rec.fut = (ChannelActor) res.getActor();
+        res.init(rec, autoShut);
+        res.getActor().sync();
+        return res;
     }
 
     /**
      * @return a new dispatcher backed by a new thread. Use to isolate blocking code only, Else use AnyDispatcher instead
      */
-    public static Dispatcher NewDispatcher() {
+    public static Dispatcher createDispatcher() {
         try {
             return instance.newDispatcher();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
+
+    // end static API
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
     protected Actors() {
         factory = new ActorProxyFactory();
@@ -79,8 +127,8 @@ public class Actors {
     }
 
     protected Actor newProxy(Class<? extends Actor> clz) {
-        if ( threadDispatcher.get() != null ) {
-            return newProxy( clz, threadDispatcher.get() );
+        if ( Dispatcher.getThreadDispatcher() != null ) {
+            return newProxy( clz, Dispatcher.getThreadDispatcher() );
         } else {
             try {
                 return newProxy(clz, newDispatcher());

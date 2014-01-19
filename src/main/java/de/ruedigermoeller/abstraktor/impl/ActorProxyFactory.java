@@ -45,7 +45,6 @@ public class ActorProxyFactory {
 
     public <T> T instantiateProxy(Actor target) {
         try {
-            Marshaller m = target.getDispatcher().instantiateMarshaller(target);
             Class proxyClass = createProxyClass(target.getClass());
             Constructor[] constructors = proxyClass.getConstructors();
             T instance = null;
@@ -67,10 +66,7 @@ public class ActorProxyFactory {
                 if ( instance == null )
                     throw e;
             }
-            Field f = instance.getClass().getField("__marshaller");
-            f.setAccessible(true);
-            f.set(instance, m);
-            f = instance.getClass().getField("__target");
+            Field f = instance.getClass().getField("__target");
             f.setAccessible(true);
             f.set(instance, target);
             target.__self = (Actor) instance;
@@ -126,9 +122,6 @@ public class ActorProxyFactory {
     }
 
     protected void defineProxyFields(ClassPool pool, CtClass cc) throws CannotCompileException, NotFoundException {
-        CtField marsh = new CtField(pool.get(Marshaller.class.getName()), "__marshaller", cc);
-        marsh.setModifiers(AccessFlag.PUBLIC);
-        cc.addField(marsh);
         CtField target = new CtField(pool.get(cc.getSuperclass().getName()), "__target", cc);
         target.setModifiers(AccessFlag.PUBLIC);
         cc.addField(target);
@@ -162,32 +155,37 @@ public class ActorProxyFactory {
                     throw new RuntimeException("only void methods allowed");
                 }
                 String body = "{ " +
-                    "boolean sameThread = __marshaller.isSameThread(\""+method.getName()+"\",this);" +
+                    "boolean sameThread = __target.__isSameThread(\""+method.getName()+"\",this);" +
                     " if ( sameThread ) {" +
-                        "if ( __marshaller.doDirectCall(\""+method.getName()+"\",this) ) {" +
+                        "if ( __target.__doDirectCall(\""+method.getName()+"\",this) ) {" +
                           "try { (("+Actor.class.getName()+")__target).__outCalls++;" +
                           "__target."+method.getName()+"($$); } finally { (("+Actor.class.getName()+")__target).__outCalls--; } " +
                           "return;" +
                         "}"+
                      "}" +
-                     "__marshaller.dispatchCall( this, sameThread, \""+method.getName()+"\", $args );" +
+                     "__target.__dispatchCall( this, sameThread, \""+method.getName()+"\", $args );" +
                     "}";
                 method.setBody(body);
                 cc.addMethod(method);
-//                System.out.println("generated proxy methoid for "+method.getDeclaringClass().getName()+" "+method);
+                System.out.println("generated proxy methoid for "+method.getDeclaringClass().getName()+" "+method);
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
-                if ( method.getName().equals("getActor") ||
+                if (
                      method.getName().equals("startQueuedDispatch") ||
-                     method.getName().equals("endQueuedDispatch")
+                     method.getName().equals("endQueuedDispatch") ||
+                     method.getName().equals("sync") ||
+                     method.getName().startsWith("__")
                 ) {
                     // do nothing
                 } else if ( method.getName().equals("getDispatcher") ) {
                     method.setBody(" return __target.getDispatcher();");
-                } else {
+                    cc.addMethod(method);
+                } else if ( ! method.getName().equals("getActor") ) {
                     method.setBody("throw new RuntimeException(\"can only call public methods on actor ref\");");
+                    cc.addMethod(method);
+                } else {
+                    cc.addMethod(method);
                 }
-                cc.addMethod(method);
             }
         }
     }

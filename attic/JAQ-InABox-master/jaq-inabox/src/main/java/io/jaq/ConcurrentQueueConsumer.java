@@ -24,30 +24,30 @@ import java.util.Queue;
  */
 public interface ConcurrentQueueConsumer<E> {
     /**
-     * See {@link Queue#poll()} for contract. Elements are removed from the queue once read.
+     * See {@link Queue#poll()} for contract. Elements are removed from the Queue once read.
      * 
-     * @return next element or null if queue is empty
+     * @return next element or null if Queue is empty
      */
     E poll();
     /**
      * See {@link Queue#peek()} for contract.
      * 
-     * @return next element or null if queue is empty
+     * @return next element or null if Queue is empty
      */
     E peek();
     
     /**
-     * This method allows consumers to read from the queue in batches and thus allows for intelligent handling
+     * This method allows consumers to read from the Queue in batches and thus allows for intelligent handling
      * for batches of available data. This also opens the door to optimizations around nulling out of the read
      * elements and setting the consumer index(HEAD).
      * 
-     * @param bc consumer will be fed elements off the queue
+     * @param bc consumer will be fed elements off the Queue
      * @param batchSizeLimit the maximum number of elements to consume
      */
     void consumeBatch(BatchConsumer<E> bc, int batchSizeLimit);
     
     /**
-     * Remove all elements from the queue. This will not stop the producers from adding new elements, so only
+     * Remove all elements from the Queue. This will not stop the producers from adding new elements, so only
      * guarantees elements visible to the consumer on first sweep are removed.
      */
     void clear();

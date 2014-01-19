@@ -5,8 +5,8 @@ import io.jaq.spsc.FFBufferWithOfferBatch;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * The queue factory produces {@link ConcurrentQueue} instances based on a best fit to the {@link ConcurrentQueueSpec}. This
- * allows minimal dependencies between user code and the queue implementations and gives users a way to
+ * The Queue factory produces {@link ConcurrentQueue} instances based on a best fit to the {@link ConcurrentQueueSpec}. This
+ * allows minimal dependencies between user code and the Queue implementations and gives users a way to
  * express their requirements on a higher level.
  * 
  * @author nitsanw
@@ -22,7 +22,7 @@ public class ConcurrentQueueFactory {
         return new GenericQueue<E>();
     }
 
-    // generic queue solution to fill gaps for now
+    // generic Queue solution to fill gaps for now
     private final static class GenericQueue<E> extends ConcurrentLinkedQueue<E> implements ConcurrentQueue<E>,
             ConcurrentQueueConsumer<E>, ConcurrentQueueProducer<E> {
         private static final long serialVersionUID = -599236378503873292L;
