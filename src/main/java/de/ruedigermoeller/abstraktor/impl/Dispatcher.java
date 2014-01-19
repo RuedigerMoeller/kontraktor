@@ -7,9 +7,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Queue;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
@@ -42,14 +40,14 @@ import java.util.concurrent.locks.LockSupport;
  * automatically. An actor created from within another actor inherits the dispatcher of the enclosing actor
  * by default.
  * Calls from actors sharing the same dispatcher are done directly (no queueing). Calls across actors in
- * different dispatchers are put to the Queue of the receiving dispatcher. Note that cross-dispatcher calls
+ * different dispatchers are put to the Channel of the receiving dispatcher. Note that cross-dispatcher calls
  * are like 1000 times slower than inbound calls.
  *
  * Each dispatcher owns exactly one single thread.
  * Note that dispatchers must be terminated if not needed any longer, as a thread is associated with them.
  *
  * For more sophisticated applications it might be appropriate to manually set up dispatchers (Actors.newDispatcher()).
- * The Actors.Queue method allows to specifiy a dedicated dispatcher on which to run the actor. This way it is possible
+ * The Actors.Channel method allows to specifiy a dedicated dispatcher on which to run the actor. This way it is possible
  * to exactly balance and control the number of threads created and which thread operates a set of actors.
  *
  */
@@ -68,6 +66,9 @@ public class Dispatcher extends Thread {
             new MpscConcurrentQueue<CallEntry>(QS), null,
             new MpscConcurrentQueue<CallEntry>(QS), null,
             new MpscConcurrentQueue<CallEntry>(QS), null,
+    };
+
+    Queue[] channels =  {
             new MpscConcurrentQueue<CallEntry>(QS), null,
             new MpscConcurrentQueue<CallEntry>(QS), null,
             new MpscConcurrentQueue<CallEntry>(QS), null,
@@ -112,12 +113,13 @@ public class Dispatcher extends Thread {
 
     public Dispatcher() {
         instanceNum = instanceCount.incrementAndGet();
-        start();
         StringWriter stringWriter = new StringWriter(1000);
         PrintWriter s = new PrintWriter(stringWriter);
         new Exception().printStackTrace(s);
         s.flush();
         stack = stringWriter.getBuffer().toString();
+        setName("Dispatcher spawned from ["+Thread.currentThread().getName()+"]");
+        start();
     }
 
     @Override
@@ -127,19 +129,33 @@ public class Dispatcher extends Thread {
                 '}';
     }
 
-    public void dispatch( ActorProxy actorRef, boolean sameThread, Method method, Object args[]) {
-        // MT. sequential per actor ref
+    /**
+     *
+     * @param actorRef - receiver of call
+     * @param sameThread
+     * @param method
+     * @param args
+     * @return true if blocked and polling channels should be done
+     */
+    public boolean dispatch( ActorProxy actorRef, boolean sameThread, Method method, Object args[]) {
+        // MT sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
         CallEntry e = new CallEntry(actorRef.getActor(), method, args, false);
-        int count = 0;
         Dispatcher sender = getThreadDispatcher();
         int qIndex = 0;
         if ( sender != null )
             qIndex = sender.qIndex;
-        while ( ! queue[qIndex].offer(e) ) {
-            yield(count++);
+        if ( actorRef.getActor().__isFIFO() ) {
+            if ( ! queue[qIndex].offer(e) ) {
+                return true;
+            }
+        } else {
+            if ( ! channels[qIndex].offer(e) ) {
+                return true;
+            }
         }
+        return false;
     }
 
     public static Dispatcher getThreadDispatcher() {
@@ -152,20 +168,30 @@ public class Dispatcher extends Thread {
     public void run() {
         int emptyCount = 0;
         while( ! shutDown ) {
-            if ( poll() ) {
+
+            if ( pollQs() ) {
                 emptyCount = 0;
             }
             else {
                 emptyCount++;
                 Dispatcher.this.yield(emptyCount);
             }
+
+            if ( pollChannels() ) {
+                emptyCount = 0;
+            }
+            else {
+                emptyCount++;
+                Dispatcher.this.yield(emptyCount);
+            }
+
         }
         dead = true;
         instanceCount.decrementAndGet();
     }
 
     // return true if msg was avaiable
-    public boolean poll() {
+    public boolean pollQs() {
         CallEntry poll = null;
         boolean hadOne = false;
         for (int i = 0; i < queue.length; i+=2) {
@@ -188,11 +214,35 @@ public class Dispatcher extends Thread {
         return hadOne;
     }
 
+    // return true if msg was avaiable
+    public boolean pollChannels() {
+        CallEntry poll = null;
+        boolean hadOne = false;
+        for (int i = 0; i < channels.length; i+=2) {
+            poll = (CallEntry) channels[i].poll();
+            if ( poll != null ) {
+                try {
+                    poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
+                    hadOne = true;
+                } catch (RuntimeException e) {
+                    e.getCause().printStackTrace();
+                    throw e;
+                } catch (InvocationTargetException e) {
+                    e.getCause().printStackTrace();
+                    throw new RuntimeException(e.getCause());
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }
+        return hadOne;
+    }
 
-    final int YIELD_THRESH = 100000;
-    final int PARK_THRESH = YIELD_THRESH+50000;
-    final int SLEEP_THRESH = PARK_THRESH+5000;
-    protected void yield(int count) {
+
+    static int YIELD_THRESH = 100000;
+    static int PARK_THRESH = YIELD_THRESH+50000;
+    static int SLEEP_THRESH = PARK_THRESH+5000;
+    public static void yield(int count) {
         if ( count > SLEEP_THRESH ) {
             LockSupport.parkNanos(1000*500);
         } else if ( count > PARK_THRESH ) {

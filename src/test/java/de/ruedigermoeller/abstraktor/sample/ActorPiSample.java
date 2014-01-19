@@ -7,7 +7,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static de.ruedigermoeller.abstraktor.Actors.SpawnActor;
-import static de.ruedigermoeller.abstraktor.Actors.Queue;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -56,7 +55,7 @@ public class ActorPiSample {
             final int iterPerAct = numJobs / numActors;
             final int iterSum = iterPerAct * actors.length;
 
-            final ChannelActor endResult = Actors.Channel(new ChannelReceiver<Double>() {
+            final ChannelActor endResult = Actors.QueuedChannel(new ChannelReceiver<Double>() {
                 double sum = 0;
                 int count = 0;
 
@@ -78,7 +77,7 @@ public class ActorPiSample {
 
             int iteri = 0;
             for (int i = 0; i < actors.length; i++) {
-//                final ChannelActor subRes = ChannelActor.Channel(new ChannelReceiver() {
+//                final ChannelActor subRes = ChannelActor.QueuedChannel(new ChannelReceiver() {
 //                    double sum = 0;
 //                    int count = 0;
 //
@@ -108,7 +107,7 @@ public class ActorPiSample {
         final CountDownLatch latch = new CountDownLatch(1); // to be able to wait for finish
         final AtomicLong time = new AtomicLong(0);
 
-        ChannelActor resultReceiver = Queue(
+        ChannelActor resultReceiver = Actors.Channel(
                 new ChannelReceiver<Double>() {
                     public void receiveResult(Double pi) {
                         long l = System.currentTimeMillis() - tim;

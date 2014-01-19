@@ -121,7 +121,7 @@ public class RingBurstRoundTripWithGroups {
          */
         @TearDown(Level.Iteration)
         public void clear() {
-            // SPSC -> consumer must clear the Queue
+            // SPSC -> consumer must clear the Channel
             in.clear();
         }
     }
@@ -160,7 +160,7 @@ public class RingBurstRoundTripWithGroups {
          */
         @TearDown(Level.Iteration)
         public void clear() {
-            // SPSC -> consumer must clear the Queue
+            // SPSC -> consumer must clear the Channel
             end.clear();
         }
     }

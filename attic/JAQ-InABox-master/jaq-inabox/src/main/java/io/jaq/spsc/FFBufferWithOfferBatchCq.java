@@ -77,7 +77,7 @@ public final class FFBufferWithOfferBatchCq<E> extends FFBufferOfferBatchCqColdF
             throw new RuntimeException(e);
         }
     }
-    // post pad Queue fields
+    // post pad Channel fields
     long p00, p01, p02, p03, p04, p05, p06, p07;
     long p10, p11, p12, p13, p14, p15, p16, p17;
 

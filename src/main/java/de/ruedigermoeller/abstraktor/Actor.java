@@ -34,17 +34,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
- * Use Actors.Queue(..) to instantiate an actor instance. To pass initialization parameter,
+ * Use Actors.Channel(..) to instantiate an actor instance. To pass initialization parameter,
  * define an init method in your implementation.
  *
- * e.g.; MyActor act = Actors.Queue(MyActor.class); act.myInit( x,y,z );
+ * e.g.; MyActor act = Actors.Channel(MyActor.class); act.myInit( x,y,z );
  *
  * The init method then will be executed in the thread of the dispatcher associated with your
  * actor avoiding problems rised by state visibility inconsistency amongst threads.
  *
  * Inside an actor, everything is executed single threaded. You don't have to worry about synchronization.
  *
- * public actor methods are not allowed to return values. They must be of type void. Pass a ChannelActor.Queue to a call
+ * public actor methods are not allowed to return values. They must be of type void. Pass a ChannelActor.Channel to a call
  * in order to receive results from other actors. This does not apply to non-public methods, as they cannot be called
  * from outside the actor.
  *
@@ -52,7 +52,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * ChannelActor versions will provide a generic deep copy for those cases, until then fall back to serialization if you
  * really have to copy large object graphs (you also might mix in traditional synchronization for shared structure access).
  *
- * code inside an actor is not allowed to ever block the current thread (networking etc.). Use ChannelActor.Queue and executors
+ * code inside an actor is not allowed to ever block the current thread (networking etc.). Use ChannelActor.Channel and executors
  * talking to the future result handler in order to handle calls to blocking code.
  *
  */
@@ -64,7 +64,7 @@ public class Actor {
     Dispatcher dispatcher;
 
     /**
-     * required by bytecode magic. Use Actors.Queue(..) to construct actor instances
+     * required by bytecode magic. Use Actors.Channel(..) to construct actor instances
      */
     public Actor() {
     }
@@ -140,6 +140,7 @@ public class Actor {
         return proxy.getActor().__outCalls == 0;
     }
 
+    // try to offer an outgoing call to the target actor queue. Runs in Caller Thread
     public void __dispatchCall( ActorProxy receiver, boolean sameThread, String methodName, Object args[] ) {
 //        System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
@@ -156,8 +157,19 @@ public class Actor {
                 }
             }
         }
-        actor.getDispatcher().dispatch(receiver, sameThread, method, args);
+        int count = 0;
+        while ( actor.getDispatcher().dispatch(receiver, sameThread, method, args) ) {
+            if ( Thread.currentThread() instanceof Dispatcher ) {
+                if ( ! ((Dispatcher)Thread.currentThread()).pollChannels() ) {
+                    Dispatcher.yield(count++);
+                } else
+                    count = 0;
+            } else
+                Dispatcher.yield(count++);
+        }
     }
 
-
+    public boolean __isFIFO() {
+        return true;
+    }
 }

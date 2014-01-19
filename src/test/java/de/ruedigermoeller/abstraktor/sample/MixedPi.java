@@ -51,7 +51,7 @@ public class MixedPi {
         final int step = 100;
 
         final CountDownLatch finished = new CountDownLatch(1);
-        final ChannelActor<Double> receiver = Actors.Queue(new ChannelReceiver<Double>() {
+        final ChannelActor<Double> receiver = Actors.Channel(new ChannelReceiver<Double>() {
             double pi;
             int count;
 

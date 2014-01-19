@@ -148,6 +148,7 @@ public class ActorProxyFactory {
                     (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 &&
                     (method.getModifiers() & AccessFlag.PUBLIC) != 0;
             allowed &= !originalMethod.getDeclaringClass().getName().equals(Object.class.getName()) && !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName()) ;
+            allowed &= !method.getName().startsWith("__");
             if ( method.getName().equals("__sync") )
                 allowed = true;
             if (allowed) {

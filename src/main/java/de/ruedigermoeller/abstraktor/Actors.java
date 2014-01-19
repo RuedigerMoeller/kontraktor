@@ -55,17 +55,17 @@ public class Actors {
      * @param <R>
      * @return
      */
-    public static <R> ChannelActor<R> Queue(ChannelReceiver<R> rec) {
-        return channel(null, false, rec);
+    public static <R> ChannelActor<R> Channel(ChannelReceiver<R> rec) {
+        return Queue(null, false, rec);
     }
 
-    public static <R> ChannelActor<R> Channel(ChannelReceiver<R> rec) {
+    public static <R> ChannelActor<R> QueuedChannel(ChannelReceiver<R> rec) {
         Dispatcher disp = Actors.createDispatcher();
         ((Dispatcher)disp).setName("SpawnActor ChannelActor "+rec.getClass().getName());
-        return channel(disp, true, rec);
+        return Queue(disp, true, rec);
     }
 
-    public static <R> ChannelActor<R> channel(Dispatcher disp, boolean autoShut, ChannelReceiver<R> rec) {
+    public static <R> ChannelActor<R> Queue(Dispatcher disp, boolean autoShut, ChannelReceiver<R> rec) {
         // autoShutdown is not applied if a shared dispatcher is used.
         if ( disp == null ) {
             disp = Dispatcher.getThreadDispatcher();

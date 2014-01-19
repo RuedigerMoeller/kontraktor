@@ -35,10 +35,7 @@ public class ChannelActor<T> extends Actor {
 
     volatile ChannelReceiver rec;
     boolean autoShut;
-
-    public void finalize() {
-        done();
-    }
+    boolean isFifo = false;
 
     Thread initThread;
     public void init(ChannelReceiver<T> rec, boolean autoShutdown ) {
@@ -48,8 +45,8 @@ public class ChannelActor<T> extends Actor {
     }
 
     public void receiveResult(T result) {
-        if ( initThread != Thread.currentThread() ) {
-            throw new RuntimeException("oops");
+        if ( initThread != null && initThread != Thread.currentThread() ) {
+            throw new RuntimeException("oops "+initThread.getName()+" != "+Thread.currentThread().getName());
         }
         rec.receiveResult(result);
     }
@@ -63,4 +60,14 @@ public class ChannelActor<T> extends Actor {
             getDispatcher().shutDown();
         }
     }
+
+    @Override
+    public boolean __isFIFO() {
+        return isFifo;
+    }
+
+    public void finalize() {
+        done();
+    }
+
 }

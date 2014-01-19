@@ -20,11 +20,14 @@ public class Conti {
         }
 
         public void sendPings(final int num) {
-            ChannelActor<Integer> queue = Queue(new ChannelReceiver<Integer>() {
+            ChannelActor<Integer> queue = Channel(new ChannelReceiver<Integer>() {
+                int count = 0;
                 @Override
                 public void receiveResult(Integer val) {
 //                    System.out.println("res "+val);
-                    if (val.intValue() == num-1) {
+                    if ( count != val.intValue() )
+                        System.out.println("ORDER VIOLATION");
+                    if (count++ == num - 1) {
                         System.out.println("Done !");
                         System.exit(0);
                     }
@@ -46,10 +49,11 @@ public class Conti {
     }
 
     public static void main(String[]a) {
+        Thread.currentThread().setName("Main Thread");
         Ping ping = AsActor(Ping.class);
         ping.init();
         ping.sync();
-        ping.sendPings(20000);
+        ping.sendPings(2000000);
     }
 
 }
