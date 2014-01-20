@@ -1,5 +1,6 @@
 package de.ruedigermoeller.abstraktor.sample;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -46,7 +47,7 @@ public class ThreadPi {
         final int step = 100;
 
         final ExecutorService test = Executors.newFixedThreadPool(numThreads);
-        final AtomicInteger latch = new AtomicInteger(numMessages);
+        final CountDownLatch latch = new CountDownLatch(numMessages);
         final AtomicReference<Double> result = new AtomicReference<>(0.0);
         final AtomicLong timSum = new AtomicLong(0);
 
@@ -65,8 +66,8 @@ public class ThreadPi {
                         expect = result.get();
                         success = result.compareAndSet(expect,expect+res);
                     } while( !success );
-                    int lc = latch.decrementAndGet();
-                    if (lc == 0 ) {
+                    latch.countDown();
+                    if (latch.getCount() == 0 ) {
                         long l = System.currentTimeMillis() - tim;
                         timSum.set(timSum.get()+l);
                         System.out.println("pi: " + result.get() + " t:" + l + " finI " + finalI);
@@ -75,9 +76,7 @@ public class ThreadPi {
                 }
             });
         }
-        while (latch.get() > 0 ) {
-            LockSupport.parkNanos(1000*500); // don't care as 0,5 ms are not significant per run
-        }
+        latch.await();
         return timSum.get();
     }
 
