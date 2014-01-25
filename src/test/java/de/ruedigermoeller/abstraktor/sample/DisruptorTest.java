@@ -3,7 +3,6 @@ package de.ruedigermoeller.abstraktor.sample;
 import com.lmax.disruptor.*;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.EventHandlerGroup;
-import de.ruedigermoeller.abstraktor.Future;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
