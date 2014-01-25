@@ -128,7 +128,7 @@ public class ActorPiSample {
     public static void main( String arg[] ) throws InterruptedException {
         final int numMessages = 1000000;
         final int step = 100;
-        final int MAX_ACT = 16;
+        final int MAX_ACT = 4;
         String results[] = new String[MAX_ACT];
 
         for ( int numActors = 1; numActors <= MAX_ACT; numActors++ ) {

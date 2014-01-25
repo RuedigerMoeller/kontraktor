@@ -25,9 +25,9 @@ public class Pi {
 
     public static void main(String[] args) throws InterruptedException {
         Pi pi = new Pi();
-        int numStepsPerComp = 1000;
-        int numJobs = 100000;
-        final int MAX_ACT = 10;
+        int numStepsPerComp = 100;
+        int numJobs = 1000000;
+        final int MAX_ACT = 4;
         String results[] = new String[MAX_ACT];
 
         for (int numActors = 1; numActors <= MAX_ACT; numActors++) {
@@ -198,8 +198,8 @@ public class Pi {
                         "      fork-join-executor {\n" +
                         "        parallelism-min = 2\n" +
                         "        parallelism-factor = 0.4\n" +
-//                        "        parallelism-max = "+nrOfWorkers+"\n" +
-                        "        parallelism-max = "+4+"\n" +
+                        "        parallelism-max = "+nrOfWorkers+"\n" +
+//                        "        parallelism-max = "+4+"\n" +
                         "      }\n" +
                         "      throughput = 1000\n" +
                         "  }\n" +
