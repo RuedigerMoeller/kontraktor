@@ -1,7 +1,6 @@
-package de.ruedigermoeller.abstraktor.impl;
+package de.ruedigermoeller.abstraktor;
 
-import de.ruedigermoeller.abstraktor.Actor;
-import de.ruedigermoeller.abstraktor.ActorProxy;
+import de.ruedigermoeller.abstraktor.impl.ChannelActor;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -21,14 +20,20 @@ import de.ruedigermoeller.abstraktor.ActorProxy;
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  * <p/>
- * Date: 03.01.14
- * Time: 18:52
+ * Date: 04.01.14
+ * Time: 14:22
  * To change this template use File | Settings | File Templates.
  */
-public interface Marshaller {
+public abstract class ChannelReceiver<T> {
 
-    public boolean isSameThread( String methodName, ActorProxy proxy );
-    public boolean doDirectCall(String methodName, ActorProxy proxy );
-    public void dispatchCall( ActorProxy actorRef, boolean sameThread, String methodName, Object args[] );
+    ChannelActor fut;
+    public void receiveError( Object error ) {
+        System.out.println("error received "+error);
+    }
+    public void receiveResult(T result) {}
+    public void done() {
+        fut.done();
+    }
+
 
 }

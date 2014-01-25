@@ -117,7 +117,7 @@ public final class BQueue<E> extends BQueueL3Pad<E> implements Queue<E> {
         if (offer(e)) {
             return true;
         }
-        throw new IllegalStateException("Queue is full");
+        throw new IllegalStateException("Channel is full");
     }
 
     private long offset(long index) {
@@ -185,7 +185,7 @@ public final class BQueue<E> extends BQueueL3Pad<E> implements Queue<E> {
 	public E remove() {
         final E e = poll();
         if (null == e) {
-            throw new NoSuchElementException("Queue is empty");
+            throw new NoSuchElementException("Channel is empty");
         }
 
         return e;
@@ -194,7 +194,7 @@ public final class BQueue<E> extends BQueueL3Pad<E> implements Queue<E> {
     public E element() {
         final E e = peek();
         if (null == e) {
-            throw new NoSuchElementException("Queue is empty");
+            throw new NoSuchElementException("Channel is empty");
         }
 
         return e;

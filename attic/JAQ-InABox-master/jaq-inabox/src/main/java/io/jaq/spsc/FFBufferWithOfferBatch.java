@@ -114,7 +114,7 @@ public final class FFBufferWithOfferBatch<E> extends FFBufferOfferBatchL3Pad<E> 
         if (offer(e)) {
             return true;
         }
-        throw new IllegalStateException("Queue is full");
+        throw new IllegalStateException("Channel is full");
     }
     private long offset(long index) {
         return ARRAY_BASE + ((index & mask) << ELEMENT_SHIFT);
@@ -151,7 +151,7 @@ public final class FFBufferWithOfferBatch<E> extends FFBufferOfferBatchL3Pad<E> 
     public E remove() {
         final E e = poll();
         if (null == e) {
-            throw new NoSuchElementException("Queue is empty");
+            throw new NoSuchElementException("Channel is empty");
         }
 
         return e;
@@ -160,7 +160,7 @@ public final class FFBufferWithOfferBatch<E> extends FFBufferOfferBatchL3Pad<E> 
     public E element() {
         final E e = peek();
         if (null == e) {
-            throw new NoSuchElementException("Queue is empty");
+            throw new NoSuchElementException("Channel is empty");
         }
 
         return e;

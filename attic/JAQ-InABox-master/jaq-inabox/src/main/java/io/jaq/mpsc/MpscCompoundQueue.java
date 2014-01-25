@@ -66,7 +66,7 @@ public final class MpscCompoundQueue<E> extends MPSCQueue33L3Pad<E> implements Q
 		if (offer(e)) {
 			return true;
 		}
-		throw new IllegalStateException("Queue is full");
+		throw new IllegalStateException("Channel is full");
 	}
 
 	public boolean offer(final E e) {
@@ -106,7 +106,7 @@ public final class MpscCompoundQueue<E> extends MPSCQueue33L3Pad<E> implements Q
 	public E remove() {
 		final E e = poll();
 		if (null == e) {
-			throw new NoSuchElementException("Queue is empty");
+			throw new NoSuchElementException("Channel is empty");
 		}
 
 		return e;
@@ -115,7 +115,7 @@ public final class MpscCompoundQueue<E> extends MPSCQueue33L3Pad<E> implements Q
 	public E element() {
 		final E e = peek();
 		if (null == e) {
-			throw new NoSuchElementException("Queue is empty");
+			throw new NoSuchElementException("Channel is empty");
 		}
 
 		return e;

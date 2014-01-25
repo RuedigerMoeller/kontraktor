@@ -67,7 +67,7 @@ public final class MpscOnSpscQueue<E> extends MpscOnSpscFields<E> implements Que
 		if (offer(e)) {
 			return true;
 		}
-		throw new IllegalStateException("Queue is full");
+		throw new IllegalStateException("Channel is full");
 	}
 
 	public boolean offer(final E e) {
@@ -94,7 +94,7 @@ public final class MpscOnSpscQueue<E> extends MpscOnSpscFields<E> implements Que
 	public E remove() {
 		final E e = poll();
 		if (null == e) {
-			throw new NoSuchElementException("Queue is empty");
+			throw new NoSuchElementException("Channel is empty");
 		}
 
 		return e;
@@ -103,7 +103,7 @@ public final class MpscOnSpscQueue<E> extends MpscOnSpscFields<E> implements Que
 	public E element() {
 		final E e = peek();
 		if (null == e) {
-			throw new NoSuchElementException("Queue is empty");
+			throw new NoSuchElementException("Channel is empty");
 		}
 
 		return e;
