@@ -60,7 +60,7 @@ public class Dispatcher extends Thread {
     boolean shutDown = false;
     private boolean dead;
 
-    final int QS = 5000;
+    final int QS = 10000;
     Queue[] queue = {
             new MpscConcurrentQueue<CallEntry>(QS), null,
             new MpscConcurrentQueue<CallEntry>(QS), null,

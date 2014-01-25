@@ -81,7 +81,7 @@ public class ThreadPi {
     }
 
     public static void main( String arg[] ) throws Exception {
-        final int MAX_ACT = 2;
+        final int MAX_ACT = 16;
         String results[] = new String[MAX_ACT];
 
         for ( int numActors = 1; numActors <= MAX_ACT; numActors++ ) {

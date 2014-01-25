@@ -3,7 +3,9 @@ package de.ruedigermoeller.abstraktor.sample;
 import com.lmax.disruptor.*;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.EventHandlerGroup;
+import com.lmax.disruptor.dsl.ProducerType;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -53,9 +55,10 @@ public class DisruptorTest {
         }
     }
 
-    public void run(int numTH, int numSlice, int numIter) throws InterruptedException {
+    public long run(int numTH, int numSlice, int numIter) throws InterruptedException {
         PiEventFac fac = new PiEventFac();
-        Disruptor<PiJob> disruptor = new Disruptor<>(fac,16384, Executors.newCachedThreadPool());
+        ExecutorService executor = Executors.newCachedThreadPool();
+        Disruptor<PiJob> disruptor = new Disruptor<>(fac,16384, executor, ProducerType.SINGLE, new BlockingWaitStrategy());
         PiEventProcessor procs[] = new PiEventProcessor[numTH];
         PiResultReclaimer res = new PiResultReclaimer();
 
@@ -82,20 +85,34 @@ public class DisruptorTest {
             Thread.sleep(1);
             // busy spin
         }
-        System.out.println(numTH+": tim: "+(System.currentTimeMillis()-tim)+" Pi: "+res.result);
+        long timTest = System.currentTimeMillis() - tim;
+        System.out.println(numTH+": tim: "+ timTest +" Pi: "+res.result);
 
         disruptor.shutdown();
-
+        executor.shutdownNow();
+        return timTest;
     }
 
     public static void main(String arg[] ) throws InterruptedException {
         final DisruptorTest disruptorTest = new DisruptorTest();
+        int numSlice = 100000;
+        int numIter = 1000;
 
-        for ( int i = 1; i <= 4; i++ ) {
+        int NUM_CORE = 16;
+        String res[] = new String[NUM_CORE];
+        for ( int i = 1; i <= NUM_CORE; i++ ) {
+            long sum = 0;
             System.out.println("--------------------------");
-            for ( int ii = 0; ii < 30; ii++ ) {
-                disruptorTest.run(i,1000000,100);
+            for ( int ii = 0; ii < 20; ii++ ) {
+                long t = disruptorTest.run(i, numSlice, numIter);
+                if ( ii >= 10 )
+                    sum += t;
             }
+            res[i-1] = i+": "+(sum/10);
+        }
+        for (int i = 0; i < res.length; i++) {
+            String re = res[i];
+            System.out.println(re);
         }
     }
 

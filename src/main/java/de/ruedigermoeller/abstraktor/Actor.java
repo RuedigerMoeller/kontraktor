@@ -129,15 +129,16 @@ public class Actor {
     HashMap<String, Method> methodCache = new HashMap<>();
 
     public boolean __isSameThread(String methodName, ActorProxy proxy) {
-        boolean same = proxy.getDispatcher() == Thread.currentThread();
-        return same;
+        return false;
+//        boolean same = proxy.getDispatcher() == Thread.currentThread();
+//        return same;
     }
 
     /**
      * callback from bytecode weaving
      */
     public boolean __doDirectCall(String methodName, ActorProxy proxy) {
-        return proxy.getActor().__outCalls == 0;
+        return false; //proxy.getActor().__outCalls == 0;
     }
 
     // try to offer an outgoing call to the target actor queue. Runs in Caller Thread

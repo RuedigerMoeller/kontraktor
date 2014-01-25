@@ -127,16 +127,16 @@ public class ActorPiSample {
     }
 
     public static void main( String arg[] ) throws InterruptedException {
-        final int numMessages = 1000000;
-        final int step = 100;
-        final int MAX_ACT = 4;
+        final int numMessages = 100000;
+        final int step = 1000;
+        final int MAX_ACT = 16;
         String results[] = new String[MAX_ACT];
 
         for ( int numActors = 1; numActors <= MAX_ACT; numActors+=1 ) {
             long sum = 0;
-            for ( int ii=0; ii < 30; ii++) {
+            for ( int ii=0; ii < 20; ii++) {
                 long res = calcPi(numMessages, step, numActors);
-                if ( ii >= 20 ) {
+                if ( ii >= 10 ) {
                     sum+=res;
                 }
             }
