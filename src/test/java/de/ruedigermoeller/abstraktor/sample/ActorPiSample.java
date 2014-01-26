@@ -77,21 +77,6 @@ public class ActorPiSample {
 
             int iteri = 0;
             for (int i = 0; i < actors.length; i++) {
-//                final ChannelActor subRes = ChannelActor.QueuedChannel(new ChannelReceiver() {
-//                    double sum = 0;
-//                    int count = 0;
-//
-//                    @Override
-//                    public void receiveDoubleResult(double result) {
-//                        sum += result;
-//                        count++;
-//                        if (count == iterPerAct) {
-//                            endResult.receiveDoubleResult(sum);
-//                            done();
-//                        }
-//                    }
-//                });
-
                 for ( int ii = 0; ii < iterPerAct; ii++ ) {
                     actors[iteri%actors.length].calculatePiFor(iteri, iterationSize, endResult /*subRes*/);
                     iteri++;
@@ -127,8 +112,8 @@ public class ActorPiSample {
     }
 
     public static void main( String arg[] ) throws InterruptedException {
-        final int numMessages = 100000;
-        final int step = 1000;
+        final int numMessages = 1000000;
+        final int step = 100;
         final int MAX_ACT = 16;
         String results[] = new String[MAX_ACT];
 

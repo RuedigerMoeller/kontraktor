@@ -83,7 +83,7 @@ public class DisruptorTest {
         while (res.seq.get() < numSlice)
         {
             Thread.sleep(1);
-            // busy spin
+            // spin
         }
         long timTest = System.currentTimeMillis() - tim;
         System.out.println(numTH+": tim: "+ timTest +" Pi: "+res.result);
@@ -95,8 +95,8 @@ public class DisruptorTest {
 
     public static void main(String arg[] ) throws InterruptedException {
         final DisruptorTest disruptorTest = new DisruptorTest();
-        int numSlice = 100000;
-        int numIter = 1000;
+        int numSlice = 1000000;
+        int numIter = 100;
 
         int NUM_CORE = 16;
         String res[] = new String[NUM_CORE];
