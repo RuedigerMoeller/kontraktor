@@ -3,18 +3,11 @@ package de.ruedigermoeller.abstraktor.sample;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveTask;
-import java.util.concurrent.TimeUnit;
-
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinTask;
-import java.util.concurrent.RecursiveTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * originally created by Aleksey Shipilev
  * 
- * added some minor correction to actually compute Pi, adapted to blog benchmark 'style'
+ * added some minor correction to actually compute Pi, adapted to blog benchmark mainloop 'style'
  * 
  */
 public class ForkJoinRecursiveDeep {
@@ -70,7 +63,7 @@ public class ForkJoinRecursiveDeep {
     static ForkJoinPool pool;
     public static void main(String arg[] ) throws InterruptedException {
 
-        int NUM_CORE = 4;
+        int NUM_CORE = 16;
         String res[] = new String[NUM_CORE];
         for ( int i = 1; i <= NUM_CORE; i++ ) {
             long sum = 0;
