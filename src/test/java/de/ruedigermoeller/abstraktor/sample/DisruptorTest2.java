@@ -129,7 +129,7 @@ public class DisruptorTest2 {
         int numSlice = 1000000;
         int numIter = 100;
 
-        int NUM_CORE = 16;
+        int NUM_CORE = 4;
         String res[] = new String[NUM_CORE];
         for ( int i = 1; i <= NUM_CORE; i++ ) {
             long sum = 0;
