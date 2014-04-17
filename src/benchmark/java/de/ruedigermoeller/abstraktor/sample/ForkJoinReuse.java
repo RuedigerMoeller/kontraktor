@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.concurrent.*;
 
 /**
- * my shot on sequential FJ jobs, does not scale, but better single thread performance
+ * adapted of a microbench of Aleksey Shipilev
  */
 public class ForkJoinReuse {
 
