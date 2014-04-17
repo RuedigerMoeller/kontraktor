@@ -1,9 +1,6 @@
 package de.ruedigermoeller.abstraktor.sample;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -41,42 +38,51 @@ public class ThreadPi {
         return acc;
     }
 
-    private static long piTest(final int numThreads) throws InterruptedException {
+    static class MyCallable extends RecursiveTask<Double> {
+        public volatile int i;
+        public volatile int step;
+
+        @Override
+        protected Double compute() {
+            double res = calculatePiFor(i, step);
+            return res;
+        }
+    }
+
+    private static long piTest(final int numThreads) throws InterruptedException, ExecutionException {
 
         final int numMessages = 1000000;
         final int step = 100;
 
-        final ExecutorService test = Executors.newFixedThreadPool(numThreads);
-        final CountDownLatch latch = new CountDownLatch(numMessages);
-        final AtomicReference<Double> result = new AtomicReference<>(0.0);
+//        final ExecutorService test = Executors.newFixedThreadPool(numThreads);
+        final ForkJoinPool test = new ForkJoinPool(numThreads);
         final AtomicLong timSum = new AtomicLong(0);
 
-        final long tim = System.currentTimeMillis();
-        for ( int i= 0; i< numMessages; i++) {
-            final int finalI = i;
-            while ( ((ThreadPoolExecutor)test).getQueue().size() > 40000 ) {
-                LockSupport.parkNanos(100);
-            }
-            test.execute(new Runnable() {
-                public void run() {
-                    double res = calculatePiFor(finalI, step);
-                    Double expect;
-                    boolean success;
-                    do {
-                        expect = result.get();
-                        success = result.compareAndSet(expect,expect+res);
-                    } while( !success );
-                    latch.countDown();
-                    if (latch.getCount() == 0 ) {
-                        long l = System.currentTimeMillis() - tim;
-                        timSum.set(timSum.get()+l);
-                        System.out.println("pi: " + result.get() + " t:" + l + " finI " + finalI);
-                        test.shutdown();
-                    }
-                }
-            });
+        MyCallable toCall[] = new MyCallable[50000];
+        for (int i = 0; i < toCall.length; i++) {
+            toCall[i] = new MyCallable();
+            toCall[i].step = step;
         }
-        latch.await();
+
+        final long tim = System.currentTimeMillis();
+        double res = 0;
+        int count = 0;
+        final int max = numMessages / toCall.length;
+        for ( int i= 0; i< max; i++) {
+            for ( int ii = 0; ii < toCall.length; ii++ ) {
+                toCall[ii].reinitialize();
+                toCall[ii].i = count++;
+                test.execute(toCall[ii]);
+            }
+            for ( int ii= 0; ii< toCall.length; ii++) {
+                res += toCall[ii].get();
+            }
+        }
+
+        long l = System.currentTimeMillis() - tim;
+        timSum.set(timSum.get()+l);
+        System.out.println("pi: " + res + " t:" + l + " paral:"+numThreads );
+        test.shutdownNow();
         return timSum.get();
     }
 
@@ -86,9 +92,9 @@ public class ThreadPi {
 
         for ( int numActors = 1; numActors <= MAX_ACT; numActors++ ) {
             long sum = 0;
-            for ( int ii=0; ii < 30; ii++) {
+            for ( int ii=0; ii < 20; ii++) {
                 long res = piTest(numActors);
-                if ( ii >= 20 ) {
+                if ( ii >= 10 ) {
                     sum+=res;
                 }
             }

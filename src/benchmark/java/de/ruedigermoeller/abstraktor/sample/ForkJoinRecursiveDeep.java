@@ -3,13 +3,6 @@ package de.ruedigermoeller.abstraktor.sample;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.RecursiveTask;
-import java.util.concurrent.TimeUnit;
-
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinTask;
-import java.util.concurrent.RecursiveTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * originally created by Aleksey Shipilev
@@ -64,13 +57,13 @@ public class ForkJoinRecursiveDeep {
         return pool.invoke(new PiForkJoinTask(SLICES,0));
     }
 
-    private static final int ITERS = 100;
-    private static final int SLICES = 1000*1000;
+    public static final int ITERS = 100;
+    public static final int SLICES = 1000*1000;
+    private static int NUM_CORE = 16;
 
     static ForkJoinPool pool;
     public static void main(String arg[] ) throws InterruptedException {
 
-        int NUM_CORE = 4;
         String res[] = new String[NUM_CORE];
         for ( int i = 1; i <= NUM_CORE; i++ ) {
             long sum = 0;
