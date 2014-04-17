@@ -7,7 +7,7 @@ import java.util.concurrent.RecursiveTask;
 /**
  * originally created by Aleksey Shipilev
  * 
- * added some minor correction to actually compute Pi, adapted to blog benchmark 'style'
+ * added some minor correction, adapted to blog benchmark 'style'
  * 
  */
 public class ForkJoinRecursiveDeep {
