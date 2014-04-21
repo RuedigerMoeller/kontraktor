@@ -7,13 +7,15 @@ import java.util.concurrent.*;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * Created by ruedi on 21.04.14.
+ * Created by ruedi on 4/21/14.
  */
-public class UnorderedThreadPoolService implements LoadFeeder.Service {
+public class QueuedThreadPoolExecutor implements LoadFeeder.Service{
 
     static FSTConfiguration conf = FSTConfiguration.getDefaultConfiguration();
     private LoadFeeder serv;
-    private ExecutorService executor;
+    private ExecutorService decodeExecutor;
+    private ExecutorService encodeExecutor;
+    private ExecutorService logicExecutor;
 
     private static class TestThread extends Thread {
         public TestRequest req = new TestRequest();
@@ -31,15 +33,17 @@ public class UnorderedThreadPoolService implements LoadFeeder.Service {
 
     SharedData sharedData;
 
-    public UnorderedThreadPoolService(LoadFeeder serv, SharedData data, int numWorkers) {
+    public QueuedThreadPoolExecutor(LoadFeeder serv, SharedData data, int numEnc, int numDec) {
         this.serv = serv;
-        init(numWorkers);
+        init(numEnc,numDec);
         sharedData = data;
     }
 
-    public void init(int workers) {
-        executor = (ExecutorService) createBoundedThreadExecutor(workers, "pool", 40000);
-//        executor = Executors.newFixedThreadPool(workers,new ThreadFactory() {
+    public void init(int decoders, int encoders) {
+        decodeExecutor = (ExecutorService) createBoundedThreadExecutor(decoders, "pooldec", 40000);
+        encodeExecutor = (ExecutorService) createBoundedThreadExecutor(encoders, "poolenc", 40000);
+        logicExecutor = (ExecutorService) createBoundedThreadExecutor(1, "pool-logic", 40000);
+//        decodeExecutor = Executors.newFixedThreadPool(workers,new ThreadFactory() {
 //            @Override
 //            public Thread newThread(Runnable r) {
 //                return new TestThread( r, "-" );
@@ -49,15 +53,24 @@ public class UnorderedThreadPoolService implements LoadFeeder.Service {
 
     @Override
     public void processRequest(final byte[] rawRequest) {
-        executor.execute(new Runnable() {
+        decodeExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 try {
-                    final TestRequest testRequest = ((TestThread)Thread.currentThread()).req;
+                    final TestRequest testRequest = ((TestThread) Thread.currentThread()).req;
                     testRequest.rawRequest = rawRequest;
                     testRequest.decode();
-                    testRequest.process(sharedData);
-                    testRequest.encode(serv);
+                    encodeExecutor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                testRequest.process(sharedData);
+                                testRequest.encode(serv);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -67,9 +80,9 @@ public class UnorderedThreadPoolService implements LoadFeeder.Service {
 
     @Override
     public void shutdown() {
-        executor.shutdownNow();
+        decodeExecutor.shutdownNow();
         try {
-            executor.awaitTermination(10000, TimeUnit.SECONDS);
+            decodeExecutor.awaitTermination(10000, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -98,7 +111,7 @@ public class UnorderedThreadPoolService implements LoadFeeder.Service {
     public static void main(String a[]) throws IOException, ClassNotFoundException {
         for ( int i = 0; i < 50; i++ ) {
             LoadFeeder feeder = new LoadFeeder(10000);
-            UnorderedThreadPoolService service = new UnorderedThreadPoolService(feeder,new LockFreeSharedData(),4);
+            QueuedThreadPoolExecutor service = new QueuedThreadPoolExecutor(feeder,new LockFreeSharedData(),3,3);
 //            UnorderedThreadPoolService service = new UnorderedThreadPoolService(feeder,new SynchronizedSharedData(),2);
             feeder.run(service, 1000 * 1000);
         }

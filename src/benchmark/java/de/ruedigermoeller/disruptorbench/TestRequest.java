@@ -12,7 +12,8 @@ import java.util.Date;
 */
 public class TestRequest {
 
-    static FSTConfiguration conf = FSTConfiguration.getDefaultConfiguration();
+    static FSTConfiguration confRead = FSTConfiguration.createDefaultConfiguration();
+    static FSTConfiguration confWrite = FSTConfiguration.createDefaultConfiguration();
 
     // used for partitioning encoding/decoding
     public int decPartition;
@@ -20,12 +21,12 @@ public class TestRequest {
 
     byte [] rawRequest;
     LoadFeeder.Request req; // after decoding
-    LoadFeeder.Response resp =  new LoadFeeder.Response();
+    LoadFeeder.Response resp =  new LoadFeeder.Response(null,0);
 
     // can be multithreaded
     public void decode() throws Exception {
 //            decount.incrementAndGet(); // debug
-        final FSTObjectInput objectInput = conf.getObjectInput(rawRequest);
+        final FSTObjectInput objectInput = confRead.getObjectInput(rawRequest);
         req = (LoadFeeder.Request) objectInput.readObject();
     }
 
@@ -44,7 +45,7 @@ public class TestRequest {
 
     // can be multithreaded
     public void encode(LoadFeeder serv) throws Exception {
-        FSTObjectOutput out = conf.getObjectOutput((OutputStream) null);
+        FSTObjectOutput out = confWrite.getObjectOutput((OutputStream) null);
         out.writeObject(resp);
         serv.response(out.getCopyOfWrittenBuffer());
         out.flush();

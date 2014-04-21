@@ -10,7 +10,9 @@ import com.lmax.disruptor.dsl.ProducerType;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by ruedi on 20.04.14.
@@ -41,7 +43,7 @@ public class DisruptorService implements LoadFeeder.Service {
     }
 
     Disruptor<TestRequest> disruptor;
-    ExecutorService executor;
+    static ExecutorService executor;
     SharedData sharedData;
 
     int decPartCount = 0;
@@ -57,8 +59,9 @@ public class DisruptorService implements LoadFeeder.Service {
     }
 
     void initDisruptor(final LoadFeeder feeder) {
-        executor = Executors.newCachedThreadPool();
-        disruptor = new Disruptor<>(new DSEventFac(), 65536, executor, ProducerType.SINGLE, new SleepingWaitStrategy());
+        if ( executor == null )
+            executor = Executors.newCachedThreadPool();
+        disruptor = new Disruptor<>(new DSEventFac(), 32768, executor, ProducerType.SINGLE, new SleepingWaitStrategy());
 //        DSPartitionedProcessor decoders[] = new DSPartitionedProcessor[codingThreads];
         DSPartitionedProcessor decoders[] = new DSPartitionedProcessor[numDecodingThreads];
         for (int i = 0; i < decoders.length; i++) {
@@ -105,14 +108,16 @@ public class DisruptorService implements LoadFeeder.Service {
     @Override
     public void shutdown() {
         disruptor.shutdown();
-        executor.shutdownNow();
+        while ( ((ThreadPoolExecutor)executor).getActiveCount() > 0 )
+            LockSupport.parkNanos(1000*1000);
+//        executor.shutdownNow();
     }
 
     public static void main(String a[]) throws IOException, ClassNotFoundException {
-        for ( int i = 0; i < 50; i++ ) {
+        for ( int i = 0; i < 150; i++ ) {
             LoadFeeder feeder = new LoadFeeder(10000);
-            DisruptorService service = new DisruptorService(feeder, 3, 3, new SingleThreadedSharedData());
-            feeder.run(service, 2 * 1000 * 1000);
+            DisruptorService service = new DisruptorService(feeder, 3, 4, new SingleThreadedSharedData());
+            feeder.run(service, 1000 * 1000);
         }
     }
 

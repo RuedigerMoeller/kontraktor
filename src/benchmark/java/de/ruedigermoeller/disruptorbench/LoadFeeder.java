@@ -16,6 +16,7 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class LoadFeeder {
 
+    private static final boolean BIGMSG = false;
 
     public LoadFeeder(int numberOfPreallocedRequests) {
         try {
@@ -29,43 +30,27 @@ public class LoadFeeder {
 
     public static class Request implements Serializable {
 
-        String dummy;
-        int data;
+        protected String dummy;
+        protected int data;
+        HashMap encodingWork; // give en/decoding something todo in case
 
         public Request(String dummy, int data) {
             this.dummy = dummy;
             this.data = data;
+            if ( BIGMSG ) {
+                encodingWork = new HashMap();
+                for (int i = 0; i < 10; i++)
+                    encodingWork.put(i, "hallo " + i);
+            }
         }
     }
 
-    public static class Response implements Serializable {
-
-        String dummy;
-        int data;
+    public static class Response extends Request {
 
         public Response(String dummy, int data) {
-            this.dummy = dummy;
-            this.data = data;
+            super(dummy,data);
         }
 
-        public Response() {
-        }
-
-        public String getDummy() {
-            return dummy;
-        }
-
-        public void setDummy(String dummy) {
-            this.dummy = dummy;
-        }
-
-        public int getData() {
-            return data;
-        }
-
-        public void setData(int data) {
-            this.data = data;
-        }
     }
 
     public static interface Service {
