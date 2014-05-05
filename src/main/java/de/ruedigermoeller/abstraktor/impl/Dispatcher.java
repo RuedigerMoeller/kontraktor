@@ -7,7 +7,10 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayDeque;
 import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
@@ -61,13 +64,14 @@ public class Dispatcher extends Thread {
 
     final int DEFAULT_QUEUE_SIZE = 10000;
     Queue queue = new MpscConcurrentQueue<CallEntry>(DEFAULT_QUEUE_SIZE);
+//    Queue queue = new ConcurrentLinkedDeque();
     int instanceNum;
 
     public boolean isEmpty() {
         return queue.isEmpty();
     }
 
-    static class CallEntry {
+    protected static class CallEntry {
         final private Object target;
         final private Method method;
         final private Object[] args;
@@ -233,9 +237,9 @@ public class Dispatcher extends Thread {
     /**
      * blocking method, use for debugging only.
      */
-    public void waitEmpty() {
+    public void waitEmpty(long nanos) {
         while( ! isEmpty() )
-            Thread.currentThread().yield();
+            LockSupport.parkNanos(nanos);
     }
 
 }

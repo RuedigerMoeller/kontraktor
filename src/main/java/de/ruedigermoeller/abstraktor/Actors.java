@@ -27,33 +27,43 @@ import de.ruedigermoeller.abstraktor.impl.Dispatcher;
  */
 public class Actors {
 
+    static Actors instance = new Actors();
+
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // static API
 
-    static Actors instance = new Actors();
-
+    /**
+     * create an new actor. If this is called outside an actor, a new Dispatcher(-Thread) will be scheduled. If
+     * called from inside actor code, the new actor will share the thread+queue with the caller.
+     *
+     * @param actorClazz
+     * @param <T>
+     * @return
+     */
     public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz) {
         return (T) instance.newProxy(actorClazz);
     }
 
+    /**
+     * create an new actor dispatched in the given Dispatcher (-Thread)
+     *
+     * @param actorClazz
+     * @param <T>
+     * @return
+     */
     public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz, Dispatcher disp) {
         return (T) instance.newProxy(actorClazz,disp);
     }
 
-    public static <T extends Actor> T SpawnActor(Class<? extends Actor> actorClazz) {
-        return (T) instance.newProxy(actorClazz, createDispatcher() );
-    }
-
     /**
-     * @return a new dispatcher backed by a new thread. Use to isolate blocking code only, Else use AnyDispatcher instead
+     * create a new actor with a newly created Dispatcher (-Thread)
+     * @param actorClazz
+     * @param <T>
+     * @return
      */
-    public static Dispatcher createDispatcher() {
-        try {
-            return instance.newDispatcher();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    public static <T extends Actor> T SpawnActor(Class<? extends Actor> actorClazz) {
+        return (T) instance.newProxy(actorClazz, instance.newDispatcher() );
     }
 
     // end static API
@@ -104,7 +114,7 @@ public class Actors {
      * @throws InstantiationException
      * @throws IllegalAccessException
      */
-    protected Dispatcher newDispatcher() throws InstantiationException, IllegalAccessException {
+    protected Dispatcher newDispatcher() {
         return new Dispatcher();
     }
 
