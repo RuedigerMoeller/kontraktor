@@ -30,7 +30,7 @@ public class Playground {
 
     public static void main( String arg[] ) throws InterruptedException {
         SampleActor actorA = Actors.AsActor(SampleActor.class);
-        SampleActor actorB = Actors.AsActor(SampleActor.class);
+        final SampleActor actorB = Actors.AsActor(SampleActor.class);
         actorA.setOther(actorB);
         while( true ) {
             Thread.sleep(1000);
@@ -42,7 +42,8 @@ public class Playground {
 
                 @Override
                 public void receiveResult(String result) {
-                    System.out.println("result:"+result+" in Thread "+Thread.currentThread().getName());
+                    System.out.println("forward result in "+Thread.currentThread().getName());
+                    actorB.printStuff(result);
                 }
             });
         }

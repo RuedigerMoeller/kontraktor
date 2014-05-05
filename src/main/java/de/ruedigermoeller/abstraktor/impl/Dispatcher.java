@@ -73,13 +73,11 @@ public class Dispatcher extends Thread {
         final private Actor target;
         final private Method method;
         final private Object[] args;
-        final boolean sentinel;
 
-        CallEntry(Actor actor, Method method, Object[] args, boolean sentinel) {
+        CallEntry(Actor actor, Method method, Object[] args) {
             this.target = actor;
             this.method = method;
             this.args = args;
-            this.sentinel = sentinel;
         }
 
         public Actor getTarget() {
@@ -89,7 +87,6 @@ public class Dispatcher extends Thread {
             return method;
         }
         public Object[] getArgs() { return args; }
-        public boolean isSentinel() { return sentinel; }
     }
 
     String stack;
@@ -101,7 +98,7 @@ public class Dispatcher extends Thread {
         new Exception().printStackTrace(s);
         s.flush();
         stack = stringWriter.getBuffer().toString();
-        setName("Dispatcher spawned from ["+Thread.currentThread().getName()+"]");
+        setName("ActorDisp spawned from ["+Thread.currentThread().getName()+"] "+System.identityHashCode(this));
         start();
     }
 
@@ -124,7 +121,7 @@ public class Dispatcher extends Thread {
         // MT sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
-        CallEntry e = new CallEntry(actorRef.getActor(), method, args, false);
+        CallEntry e = new CallEntry(actorRef.getActor(), method, args);
         Dispatcher sender = getThreadDispatcher();
         if ( ! queue.offer(e) ) {
             return true;

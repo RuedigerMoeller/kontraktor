@@ -24,7 +24,6 @@ package de.ruedigermoeller.abstraktor;
  */
 public abstract class ActFut<T> {
 
-    Actor receiver;
     public void receiveError( Object error ) {
         System.out.println("error received "+error);
     }
