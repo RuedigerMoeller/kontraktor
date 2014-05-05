@@ -119,15 +119,8 @@ public class Actor {
 
     HashMap<String, Method> methodCache = new HashMap<>();
 
-    /**
-     * callback from bytecode weaving
-     */
-    public boolean __doDirectCall(String methodName, ActorProxy proxy) {
-        return false; //proxy.getActor().__outCalls == 0;
-    }
-
     // try to offer an outgoing call to the target actor queue. Runs in Caller Thread
-    public void __dispatchCall( ActorProxy receiver, boolean sameThread, String methodName, Object args[] ) {
+    public void __dispatchCall( ActorProxy receiver, String methodName, Object args[] ) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
         Method method = methodCache.get(methodName);
@@ -144,7 +137,7 @@ public class Actor {
             }
         }
         int count = 0;
-        while ( actor.getDispatcher().dispatch(receiver, sameThread, method, args) ) {
+        while ( actor.getDispatcher().dispatch(receiver, method, args) ) {
             Dispatcher.yield(count++);
         }
     }

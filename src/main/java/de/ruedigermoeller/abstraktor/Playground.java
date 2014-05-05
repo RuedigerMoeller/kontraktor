@@ -19,7 +19,7 @@ public class Playground {
             System.out.println(stuff+" in Thread "+Thread.currentThread().getName());
         }
 
-        public void service( String in, ActFut<String> result ) {
+        public void service( String in, ActorFuture<String> result ) {
             if ( other != null )
                 other.service(in, result);
             else
@@ -34,7 +34,7 @@ public class Playground {
         actorA.setOther(actorB);
         while( true ) {
             Thread.sleep(1000);
-            actorA.service("Hallo", new ActFut<String>() {
+            actorA.service("Hallo", new ActorFuture<String>() {
                 @Override
                 public void receiveError(Object error) {
                     System.out.println("error "+error+" in Thread "+Thread.currentThread().getName());

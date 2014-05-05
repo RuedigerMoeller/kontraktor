@@ -55,14 +55,12 @@ public class Dispatcher extends Thread {
 
     public static AtomicInteger instanceCount = new AtomicInteger(0);
 
-    private int nested;
-
     //volatile
     boolean shutDown = false;
     private boolean dead;
 
-    final int QS = 10000;
-    Queue queue = new MpscConcurrentQueue<CallEntry>(QS);
+    final int DEFAULT_QUEUE_SIZE = 10000;
+    Queue queue = new MpscConcurrentQueue<CallEntry>(DEFAULT_QUEUE_SIZE);
     int instanceNum;
 
     public boolean isEmpty() {
@@ -70,17 +68,17 @@ public class Dispatcher extends Thread {
     }
 
     static class CallEntry {
-        final private Actor target;
+        final private Object target;
         final private Method method;
         final private Object[] args;
 
-        CallEntry(Actor actor, Method method, Object[] args) {
+        CallEntry(Object actor, Method method, Object[] args) {
             this.target = actor;
             this.method = method;
             this.args = args;
         }
 
-        public Actor getTarget() {
+        public Object getTarget() {
             return target;
         }
         public Method getMethod() {
@@ -112,16 +110,33 @@ public class Dispatcher extends Thread {
     /**
      *
      * @param actorRef - receiver of call
-     * @param sameThread
      * @param method
      * @param args
      * @return true if blocked and polling channels should be done
      */
-    public boolean dispatch( ActorProxy actorRef, boolean sameThread, Method method, Object args[]) {
+    public boolean dispatch( ActorProxy actorRef, Method method, Object args[]) {
         // MT sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
+        for (int i = 0; i < args.length; i++) {
+            Object arg = args[i];
+            if ( arg instanceof ActorFuture) {
+                Dispatcher sender = getThreadDispatcher();
+                args[i] = new ActorFutureWrapper<>(sender,(ActorFuture<Object>) arg);
+            }
+        }
         CallEntry e = new CallEntry(actorRef.getActor(), method, args);
+        if ( ! queue.offer(e) ) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean dispatchCallback( Object callback, Method method, Object args[]) {
+        // MT sequential per actor ref
+        if ( dead )
+            throw new RuntimeException("received message on terminated dispatcher "+this);
+        CallEntry e = new CallEntry(callback, method, args);
         Dispatcher sender = getThreadDispatcher();
         if ( ! queue.offer(e) ) {
             return true;
@@ -161,8 +176,11 @@ public class Dispatcher extends Thread {
                 poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
                 return true;
             } catch (RuntimeException e) {
-                e.getCause().printStackTrace();
-                throw e;
+                if ( e.getCause() != null )
+                    e.getCause().printStackTrace();
+                else
+                    e.printStackTrace();
+//                throw e;
             } catch (InvocationTargetException e) {
                 e.getCause().printStackTrace();
                 throw new RuntimeException(e.getCause());

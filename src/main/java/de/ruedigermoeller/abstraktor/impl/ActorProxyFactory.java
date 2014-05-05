@@ -156,7 +156,7 @@ public class ActorProxyFactory {
                     throw new RuntimeException("only void methods allowed");
                 }
                 String body = "{ " +
-                     "__target.__dispatchCall( this, false, \""+method.getName()+"\", $args );" +
+                     "__target.__dispatchCall( this, \""+method.getName()+"\", $args );" +
                     "}";
                 method.setBody(body);
                 cc.addMethod(method);
@@ -164,8 +164,6 @@ public class ActorProxyFactory {
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
                 if (
-                     method.getName().equals("startQueuedDispatch") ||
-                     method.getName().equals("endQueuedDispatch") ||
                      method.getName().equals("sync") ||
                      method.getName().startsWith("__")
                 ) {

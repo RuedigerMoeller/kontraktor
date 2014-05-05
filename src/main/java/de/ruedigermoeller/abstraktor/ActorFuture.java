@@ -1,5 +1,7 @@
 package de.ruedigermoeller.abstraktor;
 
+import de.ruedigermoeller.abstraktor.impl.Dispatcher;
+
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
  * <p/>
@@ -22,7 +24,8 @@ package de.ruedigermoeller.abstraktor;
  * Time: 14:22
  * To change this template use File | Settings | File Templates.
  */
-public abstract class ActFut<T> {
+public abstract class ActorFuture<T> {
+
 
     public void receiveError( Object error ) {
         System.out.println("error received "+error);
