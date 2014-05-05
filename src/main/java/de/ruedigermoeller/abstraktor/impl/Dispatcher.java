@@ -57,33 +57,16 @@ public class Dispatcher extends Thread {
 
     private int nested;
 
+    //volatile
     boolean shutDown = false;
     private boolean dead;
 
     final int QS = 10000;
-    Queue[] queue = {
-            new MpscConcurrentQueue<CallEntry>(QS), null,
-            new MpscConcurrentQueue<CallEntry>(QS), null,
-            new MpscConcurrentQueue<CallEntry>(QS), null,
-            new MpscConcurrentQueue<CallEntry>(QS), null,
-    };
-
-    Queue[] channels =  {
-            new MpscConcurrentQueue<CallEntry>(QS), null,
-            new MpscConcurrentQueue<CallEntry>(QS), null,
-            new MpscConcurrentQueue<CallEntry>(QS), null,
-            new MpscConcurrentQueue<CallEntry>(QS), null,
-    };
-
+    Queue queue = new MpscConcurrentQueue<CallEntry>(QS);
     int instanceNum;
-    public int qIndex = 2*(instanceCount.get()&(queue.length/2-1));
 
     public boolean isEmpty() {
-        for (int i = 0; i < queue.length; i+=2) {
-            if ( ! queue[i].isEmpty() )
-                return false;
-        }
-        return true;
+        return queue.isEmpty();
     }
 
     static class CallEntry {
@@ -143,17 +126,8 @@ public class Dispatcher extends Thread {
             throw new RuntimeException("received message on terminated dispatcher "+this);
         CallEntry e = new CallEntry(actorRef.getActor(), method, args, false);
         Dispatcher sender = getThreadDispatcher();
-        int qIndex = 0;
-        if ( sender != null )
-            qIndex = sender.qIndex;
-        if ( actorRef.getActor().__isFIFO() ) {
-            if ( ! queue[qIndex].offer(e) ) {
-                return true;
-            }
-        } else {
-            if ( ! channels[qIndex].offer(e) ) {
-                return true;
-            }
+        if ( ! queue.offer(e) ) {
+            return true;
         }
         return false;
     }
@@ -176,15 +150,6 @@ public class Dispatcher extends Thread {
                 emptyCount++;
                 Dispatcher.this.yield(emptyCount);
             }
-
-            if ( pollChannels() ) {
-                emptyCount = 0;
-            }
-            else {
-                emptyCount++;
-                Dispatcher.this.yield(emptyCount);
-            }
-
         }
         dead = true;
         instanceCount.decrementAndGet();
@@ -193,51 +158,23 @@ public class Dispatcher extends Thread {
     // return true if msg was avaiable
     public boolean pollQs() {
         CallEntry poll = null;
-        boolean hadOne = false;
-        for (int i = 0; i < queue.length; i+=2) {
-            poll = (CallEntry) queue[i].poll();
-            if ( poll != null ) {
-                try {
-                    poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
-                    hadOne = true;
-                } catch (RuntimeException e) {
-                    e.getCause().printStackTrace();
-                    throw e;
-                } catch (InvocationTargetException e) {
-                    e.getCause().printStackTrace();
-                    throw new RuntimeException(e.getCause());
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
+        poll = (CallEntry) queue.poll();
+        if ( poll != null ) {
+            try {
+                poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
+                return true;
+            } catch (RuntimeException e) {
+                e.getCause().printStackTrace();
+                throw e;
+            } catch (InvocationTargetException e) {
+                e.getCause().printStackTrace();
+                throw new RuntimeException(e.getCause());
+            } catch (Exception ex) {
+                throw new RuntimeException(ex);
             }
         }
-        return hadOne;
+        return false;
     }
-
-    // return true if msg was avaiable
-    public boolean pollChannels() {
-        CallEntry poll = null;
-        boolean hadOne = false;
-        for (int i = 0; i < channels.length; i+=2) {
-            poll = (CallEntry) channels[i].poll();
-            if ( poll != null ) {
-                try {
-                    poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
-                    hadOne = true;
-                } catch (RuntimeException e) {
-                    e.getCause().printStackTrace();
-                    throw e;
-                } catch (InvocationTargetException e) {
-                    e.getCause().printStackTrace();
-                    throw new RuntimeException(e.getCause());
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-        }
-        return hadOne;
-    }
-
 
     static int YIELD_THRESH = 100000;
     static int PARK_THRESH = YIELD_THRESH+50000;
@@ -254,11 +191,7 @@ public class Dispatcher extends Thread {
     }
 
     public int getQSize() {
-        int queueSize = 0;
-        for (int i = 0; i < queue.length; i+=2) {
-            queueSize += queue[i].size();
-        }
-        return queueSize;
+        return queue.size(); // FIXME: bad for concurrentlinkedq
     }
 
     /**

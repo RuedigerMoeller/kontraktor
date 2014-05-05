@@ -9,25 +9,25 @@
         <default-constraints vsize-policy="6" hsize-policy="1" anchor="0" fill="2" />
       </item>
       <item class="javax.swing.JPanel" icon="/com/intellij/uiDesigner/icons/panel.png" removable="false" auto-create-binding="false" can-attach-label="false">
-        <default-constraints vsize-policy="3" hsize-policy="3" anchor="0" fill="3" />
+        <default-constraints vsize-policy="$NUMNOD$" hsize-policy="$NUMNOD$" anchor="0" fill="$NUMNOD$" />
       </item>
       <item class="javax.swing.JScrollPane" icon="/com/intellij/uiDesigner/icons/scrollPane.png" removable="false" auto-create-binding="false" can-attach-label="true">
-        <default-constraints vsize-policy="7" hsize-policy="7" anchor="0" fill="3" />
+        <default-constraints vsize-policy="7" hsize-policy="7" anchor="0" fill="$NUMNOD$" />
       </item>
       <item class="javax.swing.JButton" icon="/com/intellij/uiDesigner/icons/button.png" removable="false" auto-create-binding="true" can-attach-label="false">
-        <default-constraints vsize-policy="0" hsize-policy="3" anchor="0" fill="1" />
+        <default-constraints vsize-policy="0" hsize-policy="$NUMNOD$" anchor="0" fill="1" />
         <initial-values>
           <property name="text" value="Button" />
         </initial-values>
       </item>
       <item class="javax.swing.JRadioButton" icon="/com/intellij/uiDesigner/icons/radioButton.png" removable="false" auto-create-binding="true" can-attach-label="false">
-        <default-constraints vsize-policy="0" hsize-policy="3" anchor="8" fill="0" />
+        <default-constraints vsize-policy="0" hsize-policy="$NUMNOD$" anchor="8" fill="0" />
         <initial-values>
           <property name="text" value="RadioButton" />
         </initial-values>
       </item>
       <item class="javax.swing.JCheckBox" icon="/com/intellij/uiDesigner/icons/checkBox.png" removable="false" auto-create-binding="true" can-attach-label="false">
-        <default-constraints vsize-policy="0" hsize-policy="3" anchor="8" fill="0" />
+        <default-constraints vsize-policy="0" hsize-policy="$NUMNOD$" anchor="8" fill="0" />
         <initial-values>
           <property name="text" value="CheckBox" />
         </initial-values>
@@ -54,17 +54,17 @@
         </default-constraints>
       </item>
       <item class="javax.swing.JTextArea" icon="/com/intellij/uiDesigner/icons/textArea.png" removable="false" auto-create-binding="true" can-attach-label="true">
-        <default-constraints vsize-policy="6" hsize-policy="6" anchor="0" fill="3">
+        <default-constraints vsize-policy="6" hsize-policy="6" anchor="0" fill="$NUMNOD$">
           <preferred-size width="150" height="50" />
         </default-constraints>
       </item>
       <item class="javax.swing.JTextPane" icon="/com/intellij/uiDesigner/icons/textPane.png" removable="false" auto-create-binding="true" can-attach-label="true">
-        <default-constraints vsize-policy="6" hsize-policy="6" anchor="0" fill="3">
+        <default-constraints vsize-policy="6" hsize-policy="6" anchor="0" fill="$NUMNOD$">
           <preferred-size width="150" height="50" />
         </default-constraints>
       </item>
       <item class="javax.swing.JEditorPane" icon="/com/intellij/uiDesigner/icons/editorPane.png" removable="false" auto-create-binding="true" can-attach-label="true">
-        <default-constraints vsize-policy="6" hsize-policy="6" anchor="0" fill="3">
+        <default-constraints vsize-policy="6" hsize-policy="6" anchor="0" fill="$NUMNOD$">
           <preferred-size width="150" height="50" />
         </default-constraints>
       </item>
@@ -72,27 +72,27 @@
         <default-constraints vsize-policy="0" hsize-policy="2" anchor="8" fill="1" />
       </item>
       <item class="javax.swing.JTable" icon="/com/intellij/uiDesigner/icons/table.png" removable="false" auto-create-binding="true" can-attach-label="false">
-        <default-constraints vsize-policy="6" hsize-policy="6" anchor="0" fill="3">
+        <default-constraints vsize-policy="6" hsize-policy="6" anchor="0" fill="$NUMNOD$">
           <preferred-size width="150" height="50" />
         </default-constraints>
       </item>
       <item class="javax.swing.JList" icon="/com/intellij/uiDesigner/icons/list.png" removable="false" auto-create-binding="true" can-attach-label="false">
-        <default-constraints vsize-policy="6" hsize-policy="2" anchor="0" fill="3">
+        <default-constraints vsize-policy="6" hsize-policy="2" anchor="0" fill="$NUMNOD$">
           <preferred-size width="150" height="50" />
         </default-constraints>
       </item>
       <item class="javax.swing.JTree" icon="/com/intellij/uiDesigner/icons/tree.png" removable="false" auto-create-binding="true" can-attach-label="false">
-        <default-constraints vsize-policy="6" hsize-policy="6" anchor="0" fill="3">
+        <default-constraints vsize-policy="6" hsize-policy="6" anchor="0" fill="$NUMNOD$">
           <preferred-size width="150" height="50" />
         </default-constraints>
       </item>
       <item class="javax.swing.JTabbedPane" icon="/com/intellij/uiDesigner/icons/tabbedPane.png" removable="false" auto-create-binding="true" can-attach-label="false">
-        <default-constraints vsize-policy="3" hsize-policy="3" anchor="0" fill="3">
+        <default-constraints vsize-policy="$NUMNOD$" hsize-policy="$NUMNOD$" anchor="0" fill="$NUMNOD$">
           <preferred-size width="200" height="200" />
         </default-constraints>
       </item>
       <item class="javax.swing.JSplitPane" icon="/com/intellij/uiDesigner/icons/splitPane.png" removable="false" auto-create-binding="false" can-attach-label="false">
-        <default-constraints vsize-policy="3" hsize-policy="3" anchor="0" fill="3">
+        <default-constraints vsize-policy="$NUMNOD$" hsize-policy="$NUMNOD$" anchor="0" fill="$NUMNOD$">
           <preferred-size width="200" height="200" />
         </default-constraints>
       </item>
@@ -103,7 +103,7 @@
         <default-constraints vsize-policy="0" hsize-policy="6" anchor="8" fill="1" />
       </item>
       <item class="javax.swing.JSeparator" icon="/com/intellij/uiDesigner/icons/separator.png" removable="false" auto-create-binding="false" can-attach-label="false">
-        <default-constraints vsize-policy="6" hsize-policy="6" anchor="0" fill="3" />
+        <default-constraints vsize-policy="6" hsize-policy="6" anchor="0" fill="$NUMNOD$" />
       </item>
       <item class="javax.swing.JProgressBar" icon="/com/intellij/uiDesigner/icons/progressbar.png" removable="false" auto-create-binding="true" can-attach-label="false">
         <default-constraints vsize-policy="0" hsize-policy="6" anchor="0" fill="1" />

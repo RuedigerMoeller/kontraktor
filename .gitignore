@@ -210,10 +210,11 @@ pip-log.txt
 
 #Translations
 *.mo
+*.iml
 
 #Mr Developer
 .mr.developer.cfg
 .idea/
 target/
 out/
-*.iml
+.idea/uiDesigner.xml

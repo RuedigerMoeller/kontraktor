@@ -1,7 +1,6 @@
 package de.ruedigermoeller.abstraktor;
 
 import de.ruedigermoeller.abstraktor.impl.ActorProxyFactory;
-import de.ruedigermoeller.abstraktor.impl.ChannelActor;
 import de.ruedigermoeller.abstraktor.impl.Dispatcher;
 
 /**
@@ -44,48 +43,6 @@ public class Actors {
 
     public static <T extends Actor> T SpawnActor(Class<? extends Actor> actorClazz) {
         return (T) instance.newProxy(actorClazz, createDispatcher() );
-    }
-
-    /**
-     * Create a new future actor inheriting the dispatcher from the calling actor.
-     * If a future is created from a non-actor context, a new DispatcherThread will be created,
-     * which is automatically terminated after the one message has been received by the
-     * future.
-     * @param rec
-     * @param <R>
-     * @return
-     */
-    public static <R> ChannelActor<R> Channel(ChannelReceiver<R> rec) {
-        return Queue(null, false, rec);
-    }
-
-    public static <R> ChannelActor<R> QueuedChannel(ChannelReceiver<R> rec) {
-        Dispatcher disp = Actors.createDispatcher();
-        ((Dispatcher)disp).setName("SpawnActor ChannelActor "+rec.getClass().getName());
-        return Queue(disp, true, rec);
-    }
-
-    public static <R> ChannelActor<R> Queue(Dispatcher disp, boolean autoShut, ChannelReceiver<R> rec) {
-        // autoShutdown is not applied if a shared dispatcher is used.
-        if ( disp == null ) {
-            disp = Dispatcher.getThreadDispatcher();
-            autoShut = false;
-        } else {
-            //autoShut = ! disp.isSystemDispatcher() && autoShut;
-        }
-        ChannelActor res = null;
-        if ( disp != null ) {
-            res = AsActor(ChannelActor.class, disp);
-        } else {
-            Dispatcher newDisp = Actors.createDispatcher();
-            autoShut = true;
-            newDisp.setName("ChannelActor "+rec.getClass().getName());
-            res = AsActor(ChannelActor.class, newDisp);
-        }
-        rec.fut = (ChannelActor) res.getActor();
-        res.init(rec, autoShut);
-        res.getActor().sync();
-        return res;
     }
 
     /**

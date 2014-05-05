@@ -58,7 +58,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class Actor {
 
-    public int __outCalls = 0; // internal use
     public Actor __self;       // internal use
 
     Dispatcher dispatcher;
@@ -108,14 +107,6 @@ public class Actor {
         }
     }
 
-    public void startQueuedDispatch() {
-        __outCalls++;
-    }
-
-    public void endQueuedDispatch() {
-        __outCalls--;
-    }
-
     ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     public void __dispatcher( Dispatcher d ) {
@@ -128,12 +119,6 @@ public class Actor {
 
     HashMap<String, Method> methodCache = new HashMap<>();
 
-    public boolean __isSameThread(String methodName, ActorProxy proxy) {
-        return false;
-//        boolean same = proxy.getDispatcher() == Thread.currentThread();
-//        return same;
-    }
-
     /**
      * callback from bytecode weaving
      */
@@ -143,7 +128,7 @@ public class Actor {
 
     // try to offer an outgoing call to the target actor queue. Runs in Caller Thread
     public void __dispatchCall( ActorProxy receiver, boolean sameThread, String methodName, Object args[] ) {
-//        System.out.println("dispatch "+methodName+" "+Thread.currentThread());
+        // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
         Method method = methodCache.get(methodName);
         Actor actor = receiver.getActor();
@@ -160,17 +145,8 @@ public class Actor {
         }
         int count = 0;
         while ( actor.getDispatcher().dispatch(receiver, sameThread, method, args) ) {
-            if ( Thread.currentThread() instanceof Dispatcher ) {
-                if ( ! ((Dispatcher)Thread.currentThread()).pollChannels() ) {
-                    Dispatcher.yield(count++);
-                } else
-                    count = 0;
-            } else
-                Dispatcher.yield(count++);
+            Dispatcher.yield(count++);
         }
     }
 
-    public boolean __isFIFO() {
-        return true;
-    }
 }

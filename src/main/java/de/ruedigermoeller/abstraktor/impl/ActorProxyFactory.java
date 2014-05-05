@@ -156,15 +156,7 @@ public class ActorProxyFactory {
                     throw new RuntimeException("only void methods allowed");
                 }
                 String body = "{ " +
-                    "boolean sameThread = __target.__isSameThread(\""+method.getName()+"\",this);" +
-                    " if ( sameThread ) {" +
-                        "if ( __target.__doDirectCall(\""+method.getName()+"\",this) ) {" +
-                          "try { (("+Actor.class.getName()+")__target).__outCalls++;" +
-                          "__target."+method.getName()+"($$); } finally { (("+Actor.class.getName()+")__target).__outCalls--; } " +
-                          "return;" +
-                        "}"+
-                     "}" +
-                     "__target.__dispatchCall( this, sameThread, \""+method.getName()+"\", $args );" +
+                     "__target.__dispatchCall( this, false, \""+method.getName()+"\", $args );" +
                     "}";
                 method.setBody(body);
                 cc.addMethod(method);
