@@ -1,0 +1,68 @@
+package de.ruedigermoeller.kontraktor.impl;
+
+import de.ruedigermoeller.kontraktor.Callback;
+
+import java.lang.reflect.Method;
+
+/**
+ * Copyright (c) 2014, Ruediger Moeller. All rights reserved.
+ * <p/>
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * <p/>
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * <p/>
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+ * MA 02110-1301  USA
+ * <p/>
+ * Date: 03.01.14
+ * Time: 18:46
+ */
+
+/**
+ * ..
+ */
+public class CallbackWrapper<T> extends Callback<T> {
+
+    static Method receiveRes;
+
+    static {
+        try {
+            receiveRes = Callback.class.getMethod("receiveResult", new Class[]{Object.class,Object.class});
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+    }
+
+    final DispatcherThread dispatcher;
+    Callback<T> realFuture;
+
+    public CallbackWrapper(DispatcherThread dispatcher, Callback<T> realFuture) {
+        this.realFuture = realFuture;
+        this.dispatcher = dispatcher;
+    }
+
+    @Override
+    public void receiveResult(T result, Object error) {
+        if ( dispatcher == null ) {
+            // call came from outside the actor world => use current thread => blocking the callback blocks actor, dont't !
+            try {
+                receiveRes.invoke(realFuture, result, error);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            int count = 0;
+            while (dispatcher.dispatchCallback(realFuture, receiveRes, new Object[]{result,error})) {
+                dispatcher.yield(count++);
+            }
+        }
+    }
+}

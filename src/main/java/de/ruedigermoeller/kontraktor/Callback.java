@@ -1,6 +1,4 @@
-package de.ruedigermoeller.abstraktor;
-
-import de.ruedigermoeller.abstraktor.impl.Dispatcher;
+package de.ruedigermoeller.kontraktor;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -22,14 +20,17 @@ import de.ruedigermoeller.abstraktor.impl.Dispatcher;
  * <p/>
  * Date: 04.01.14
  * Time: 14:22
- * To change this template use File | Settings | File Templates.
  */
-public abstract class ActorFuture<T> {
 
+/**
+ * Typically used to receive results from outside the actor.
+ * The underlying mechanics scans method arguments and schedules calls on the call back into the calling actors thread.
+ * Note that the callback invocation is added as a message to the end of the calling actor.
+ * e.g. actor.method( arg, new Callbacl() { public void receiveResult(T result, Object error ) { ..runs in caller thread.. } }
+ */
+public abstract class Callback<T>  // do not use interface, slows down instanceof significantly
+{
 
-    public void receiveError( Object error ) {
-        System.out.println("error received "+error);
-    }
-    public void receiveResult(T result) {}
+    public void receiveResult(T result, Object error ) {};
 
 }
