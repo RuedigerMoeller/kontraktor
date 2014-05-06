@@ -3,9 +3,10 @@ package kontraktor;
 import de.ruedigermoeller.kontraktor.Actor;
 import de.ruedigermoeller.kontraktor.Actors;
 import de.ruedigermoeller.kontraktor.Callback;
+import de.ruedigermoeller.kontraktor.impl.*;
 import org.junit.Test;
 
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.*;
 
 import static org.junit.Assert.assertTrue;
 
@@ -70,6 +71,30 @@ public class BasicTest {
         });
         try {
             latch.await();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Test
+    public void lockStratTest() {
+        Executor ex = Executors.newCachedThreadPool();
+        for ( int iii : new int[30] ) {
+            ex.execute( new Runnable() {
+                @Override
+                public void run() {
+                    BackOffStrategy backOffStrategy = new BackOffStrategy();
+                    for (int i = 0; i < 1000; i++) {
+                        for (int ii = 0; ii < 160000; ii++) {
+                            backOffStrategy.yield(ii);
+                        }
+                        System.out.println("plop");
+                    }
+                }
+            });
+        }
+        try {
+            Thread.sleep(60000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
