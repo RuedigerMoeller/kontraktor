@@ -2,6 +2,7 @@ package de.ruedigermoeller.kontraktor.impl;
 
 import de.ruedigermoeller.kontraktor.Actor;
 import de.ruedigermoeller.kontraktor.ActorProxy;
+import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
 import javassist.*;
 import javassist.bytecode.AccessFlag;
 
@@ -145,15 +146,19 @@ public class ActorProxyFactory {
                 map.fix(orig);
                 method = new CtMethod(method, cc, map);
             }
-            CtClass[] parameterTypes = method.getParameterTypes();
+//            CtClass[] parameterTypes = method.getParameterTypes();
             CtClass returnType = method.getReturnType();
+            boolean isCallerSide = originalMethod.getAnnotation(CallerSideMethod.class) != null;
             boolean allowed = ((method.getModifiers() & AccessFlag.ABSTRACT) == 0 ) &&
                     (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 &&
-                    (method.getModifiers() & AccessFlag.PUBLIC) != 0;
-            allowed &= !originalMethod.getDeclaringClass().getName().equals(Object.class.getName()) && !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName()) ;
-            allowed &= !method.getName().startsWith("__");
-            if ( method.getName().equals("__sync") )
+                    (method.getModifiers() & AccessFlag.PUBLIC) != 0 &&
+                    !isCallerSide;
+            allowed &= !originalMethod.getDeclaringClass().getName().equals(Object.class.getName()) &&
+                       !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName()) ;
+
+            if ( method.getName().equals("__sync") ) // ??
                 allowed = true;
+
             if (allowed) {
                 if (returnType != CtPrimitiveType.voidType ) {
                     throw new RuntimeException("only void methods allowed");
@@ -166,11 +171,7 @@ public class ActorProxyFactory {
                 System.out.println("generated proxy methoid for "+method.getDeclaringClass().getName()+" "+method);
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
-                if (
-                    method.getName().equals("sync") ||
-                    method.getName().equals("stop") ||
-                    method.getName().startsWith("__")
-                ) {
+                if (isCallerSide) {
                     // do nothing
                 } else if ( method.getName().equals("getDispatcher") ) {
                     method.setBody(" return __target.getDispatcher();");

@@ -55,6 +55,11 @@ public class DispatcherThread extends Thread {
 
     public static AtomicInteger instanceCount = new AtomicInteger(0);
 
+    /**
+     * defines the strategy applied when idling
+     */
+    public static BackOffStrategy backOffStrategy = new BackOffStrategy();
+
     AtomicInteger usingActors = new AtomicInteger(0);
     volatile
     boolean shutDown = false;
@@ -63,10 +68,6 @@ public class DispatcherThread extends Thread {
     public static int DEFAULT_QUEUE_SIZE = 5000;
     Queue queue;
     int instanceNum;
-
-    public boolean isEmpty() {
-        return queue.isEmpty();
-    }
 
     protected static class CallEntry {
         final private Object target;
@@ -88,7 +89,7 @@ public class DispatcherThread extends Thread {
         public Object[] getArgs() { return args; }
     }
 
-    String stack;
+    String stack; // contains stacktrace of creation of this
 
     public DispatcherThread() {
         init(DEFAULT_QUEUE_SIZE);
@@ -96,6 +97,10 @@ public class DispatcherThread extends Thread {
 
     public DispatcherThread(int qSize) {
         init(qSize);
+    }
+
+    public boolean isEmpty() {
+        return queue.isEmpty();
     }
 
     protected void init(int qSize) {
@@ -217,18 +222,8 @@ public class DispatcherThread extends Thread {
         return false;
     }
 
-    static int YIELD_THRESH = 100000;
-    static int PARK_THRESH = YIELD_THRESH+50000;
-    static int SLEEP_THRESH = PARK_THRESH+5000;
     public static void yield(int count) {
-        if ( count > SLEEP_THRESH ) {
-            LockSupport.parkNanos(1000*500);
-        } else if ( count > PARK_THRESH ) {
-            LockSupport.parkNanos(1);
-        } else {
-            if ( count > YIELD_THRESH)
-                Thread.yield();
-        }
+        backOffStrategy.yield(count);
     }
 
     public int getQSize() {

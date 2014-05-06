@@ -38,7 +38,7 @@ public class Playground {
             Actors.Execute(
                     new Callable<String>() {
                         public String call() throws Exception {
-                            return new Scanner(new URL("http://www.spiegel.de").openStream(), "UTF-8").useDelimiter("\\A").next();
+                            return "TEST"; //new Scanner(new URL("http://www.spiegel.de").openStream(), "UTF-8").useDelimiter("\\A").next();
                         }
                     },
                     new Callback<String>() {
@@ -74,9 +74,9 @@ public class Playground {
     public static void main( String arg[] ) throws InterruptedException {
         SampleActor actorA = Actors.AsActor(SampleActor.class);
 
-        for ( int i : new int[10] ) {
-            bench(actorA);
-        }
+//        for ( int i : new int[10] ) {
+//            bench(actorA);
+//        }
 
         final SampleActor actorB = Actors.AsActor(SampleActor.class);
         actorA.setOther(actorB);

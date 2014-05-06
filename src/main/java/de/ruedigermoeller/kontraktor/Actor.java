@@ -23,6 +23,7 @@ package de.ruedigermoeller.kontraktor;
  * To change this template use File | Settings | File Templates.
  */
 
+import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
 import de.ruedigermoeller.kontraktor.impl.ActorProxyFactory;
 import de.ruedigermoeller.kontraktor.impl.DispatcherThread;
 
@@ -99,7 +100,7 @@ public class Actor {
     /**
      * blocks calling thread until all messages on this actor have been processed
      */
-    public void sync() {
+    @CallerSideMethod public void sync() {
         if ( __self == null ) {
             getActor().sync();
             return;
@@ -117,23 +118,23 @@ public class Actor {
      * stop receiving events. If there are no actors left on the underlying dispatcher,
      * the dispatching thread will be terminated.
      */
-    public void stop() {
+    @CallerSideMethod public void stop() {
         getDispatcher().actorStopped(this);
     }
 
     ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
-    public void __dispatcher( DispatcherThread d ) {
+    @CallerSideMethod public void __dispatcher( DispatcherThread d ) {
         dispatcher = d;
     }
 
-    public void __sync(CountDownLatch latch) {
+    @CallerSideMethod public void __sync(CountDownLatch latch) {
         latch.countDown();
     }
 
     protected HashMap<String, Method> methodCache = new HashMap<>();
     // try to offer an outgoing call to the target actor queue. Runs in Caller Thread
-    public void __dispatchCall( ActorProxy receiver, String methodName, Object args[] ) {
+    @CallerSideMethod public void __dispatchCall( ActorProxy receiver, String methodName, Object args[] ) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
         Method method = methodCache.get(methodName);
