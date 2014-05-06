@@ -3,10 +3,10 @@ kontraktor
 
 lightweight and efficient Actor implementation in Java
 
-Kontraktor implements a typed actor model to avoid message definition and handlng boilerplate code. Additionally this integrates well
-with code comletion of IDEs.
+Kontraktor implements a typed actor model to avoid message definition+handling boilerplate code. Additionally this integrates well
+with code completion and refactoring of modern IDEs.
 
-Kontraktor creates a runtime-generated proxy instance which puts all calls onto a queue. The real actor instance then reads 
+Kontraktor uses runtime-generated proxy instances which put all calls to the proxy onto a queue. The real actor instance then reads 
 method invocations (=messages) from this queue in a dedicated thread.
 
 E.g.
@@ -44,3 +44,4 @@ Kontrakor internally uses a high performance queue implementation of the Jaq-In-
 9 million messages per second (on i7 laptop, method with 3 arguments passed).
 
 [documentation+maven still undone]
+
