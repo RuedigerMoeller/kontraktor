@@ -61,6 +61,20 @@ public class Actors {
     }
 
     /**
+     * Creates a wrapper on the given object enqueuing all calls to INTERFACE methods of the given object to the calling actors's queue.
+     * This is used to enable processing of resulting callback's in the callers thread.
+     * see also @InThread annotation.
+     * @param callback
+     * @param <T>
+     * @return
+     */
+    public static <T> T InThread(T callback) {
+        Class<?>[] interfaces = callback.getClass().getInterfaces();
+        InvocationHandler invoker = DispatcherThread.getThreadDispatcher().getInvoker(callback);
+        return (T) Proxy.newProxyInstance(callback.getClass().getClassLoader(), interfaces, invoker);
+    }
+
+    /**
      * create an new actor dispatched in the given DispatcherThread
      *
      * @param actorClazz

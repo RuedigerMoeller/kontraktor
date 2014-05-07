@@ -89,6 +89,20 @@ public class DispatcherThread extends Thread {
         public Object[] getArgs() { return args; }
     }
 
+    class CallbackInvokeHandler implements InvocationHandler {
+
+        final Object target;
+
+        public CallbackInvokeHandler(Object target) {
+            this.target = target;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            return dispatchCallback(target, method, args);
+        }
+    }
+
     String stack; // contains stacktrace of creation of this
 
     public DispatcherThread() {
@@ -101,6 +115,10 @@ public class DispatcherThread extends Thread {
 
     public boolean isEmpty() {
         return queue.isEmpty();
+    }
+
+    public InvocationHandler getInvoker(Object toWrap) {
+        return new CallbackInvokeHandler(toWrap);
     }
 
     protected void init(int qSize) {

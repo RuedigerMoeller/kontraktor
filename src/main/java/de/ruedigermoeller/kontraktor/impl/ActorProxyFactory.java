@@ -163,12 +163,21 @@ public class ActorProxyFactory {
                 if (returnType != CtPrimitiveType.voidType ) {
                     throw new RuntimeException("only void methods allowed");
                 }
-                String body = "{ " +
+                String conversion = "";
+                Object[][] availableParameterAnnotations = originalMethod.getAvailableParameterAnnotations();
+                for (int j = 0; j < availableParameterAnnotations.length; j++) {
+                    Object[] availableParameterAnnotation = availableParameterAnnotations[j];
+                    if ( availableParameterAnnotation.length > 0 ) {
+                        Object annot = availableParameterAnnotation[0];
+                        if ( annot.toString().indexOf("kontraktor.annotations.InThread") > 0 )
+                            conversion += "$args["+j+"] = de.ruedigermoeller.kontraktor.Actors.InThread($args["+j+"]);";
+                    }
+                }
+                String body = "{ " + conversion +
                      "__target.__dispatchCall( this, \""+method.getName()+"\", $args );" +
                     "}";
                 method.setBody(body);
                 cc.addMethod(method);
-                System.out.println("generated proxy methoid for "+method.getDeclaringClass().getName()+" "+method);
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
                 if (isCallerSide) {
