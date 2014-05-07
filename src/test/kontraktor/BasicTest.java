@@ -8,6 +8,7 @@ import org.junit.Test;
 
 import java.util.concurrent.*;
 
+import static de.ruedigermoeller.kontraktor.Actors.*;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -36,7 +37,7 @@ public class BasicTest {
 
     @Test
     public void callBench() {
-        Bench b = Actors.SpawnActor(Bench.class);
+        Bench b = SpawnActor(Bench.class);
         bench(b);
         long callsPerSec = bench(b);
         b.stop();
@@ -56,7 +57,7 @@ public class BasicTest {
 
     @Test
     public void testInheritance() {
-        final BenchSub bs = Actors.SpawnActor(BenchSub.class);
+        final BenchSub bs = SpawnActor(BenchSub.class);
         for (int i : new int[10] ) {
             bs.benchCall("u", "o", null);
         }
@@ -103,7 +104,7 @@ public class BasicTest {
 
         public void callbackTest() {
             final Thread callerThread = Thread.currentThread();
-            service.getString(Actors.InThread(new SomeCallbackHandler() {
+            service.getString(InThread(new SomeCallbackHandler() {
                 @Override
                 public void callbackReceived(Object callback) {
                     if (callerThread != Thread.currentThread()) {
@@ -132,8 +133,8 @@ public class BasicTest {
     @Test
     public void inThreadTest() throws InterruptedException {
 
-        ServiceActor service = Actors.AsActor(ServiceActor.class);
-        MyActor cbActor = Actors.AsActor(MyActor.class);
+        ServiceActor service = AsActor(ServiceActor.class);
+        MyActor cbActor = AsActor(MyActor.class);
         cbActor.init(service);
         cbActor.callbackTest();
         Thread.sleep(1000);
