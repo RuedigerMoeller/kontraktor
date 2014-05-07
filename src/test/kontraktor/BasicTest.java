@@ -76,6 +76,74 @@ public class BasicTest {
         }
     }
 
+    public static interface SomeCallbackHandler {
+        public void callbackReceived( Object callback );
+    }
+
+    public static class ServiceActor extends Actor {
+
+        public void getString( SomeCallbackHandler callback ) {
+            callback.callbackReceived("Hallo");
+        }
+
+        public void getStringAnnotated( @de.ruedigermoeller.kontraktor.annotations.InThread SomeCallbackHandler callback ) {
+            callback.callbackReceived("Hallo");
+        }
+
+    }
+
+    public static class MyActor extends Actor {
+
+        ServiceActor service;
+        volatile int success = 0;
+
+        public void init(ServiceActor service) {
+            this.service = service;
+        }
+
+        public void callbackTest() {
+            final Thread callerThread = Thread.currentThread();
+            service.getString(Actors.InThread(new SomeCallbackHandler() {
+                @Override
+                public void callbackReceived(Object callback) {
+                    if (callerThread != Thread.currentThread()) {
+                        throw new RuntimeException("Dammit");
+                    } else {
+                        success++;
+                        System.out.println("Alles prima");
+                    }
+                }
+            }));
+            service.getStringAnnotated(new SomeCallbackHandler() {
+                @Override
+                public void callbackReceived(Object callback) {
+                    if (callerThread != Thread.currentThread()) {
+                        throw new RuntimeException("Dammit 1");
+                    } else {
+                        success++;
+                        System.out.println("Alles prima 1");
+                    }
+                }
+            });
+        }
+
+    }
+
+    @Test
+    public void inThreadTest() throws InterruptedException {
+
+        ServiceActor service = Actors.AsActor(ServiceActor.class);
+        MyActor cbActor = Actors.AsActor(MyActor.class);
+        cbActor.init(service);
+        cbActor.callbackTest();
+        Thread.sleep(1000);
+        cbActor.stop();
+        assertTrue(((MyActor)cbActor.getActor()).success == 2);
+        service.stop();
+    }
+
+
+
     @Test
     public void lockStratTest() {
 //        Executor ex = Executors.newCachedThreadPool();

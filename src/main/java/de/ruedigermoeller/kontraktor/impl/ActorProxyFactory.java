@@ -170,11 +170,12 @@ public class ActorProxyFactory {
                     if ( availableParameterAnnotation.length > 0 ) {
                         Object annot = availableParameterAnnotation[0];
                         if ( annot.toString().indexOf("kontraktor.annotations.InThread") > 0 )
-                            conversion += "$args["+j+"] = de.ruedigermoeller.kontraktor.Actors.InThread($args["+j+"]);";
+                            conversion += "args["+j+"] = de.ruedigermoeller.kontraktor.Actors.InThread(args["+j+"]);";
                     }
                 }
-                String body = "{ " + conversion +
-                     "__target.__dispatchCall( this, \""+method.getName()+"\", $args );" +
+                String body = "{ Object args[] = $args;" +
+                        conversion +
+                     "__target.__dispatchCall( this, \""+method.getName()+"\", args );" +
                     "}";
                 method.setBody(body);
                 cc.addMethod(method);

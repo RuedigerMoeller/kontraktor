@@ -4,6 +4,7 @@ import de.ruedigermoeller.kontraktor.impl.CallbackWrapper;
 import de.ruedigermoeller.kontraktor.impl.ActorProxyFactory;
 import de.ruedigermoeller.kontraktor.impl.DispatcherThread;
 
+import java.lang.reflect.*;
 import java.util.concurrent.*;
 
 /**
