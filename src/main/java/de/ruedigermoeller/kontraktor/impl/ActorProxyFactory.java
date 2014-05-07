@@ -165,12 +165,19 @@ public class ActorProxyFactory {
                 }
                 String conversion = "";
                 Object[][] availableParameterAnnotations = originalMethod.getAvailableParameterAnnotations();
+                CtClass[] parameterTypes = originalMethod.getParameterTypes();
                 for (int j = 0; j < availableParameterAnnotations.length; j++) {
                     Object[] availableParameterAnnotation = availableParameterAnnotations[j];
                     if ( availableParameterAnnotation.length > 0 ) {
-                        Object annot = availableParameterAnnotation[0];
-                        if ( annot.toString().indexOf("kontraktor.annotations.InThread") > 0 )
-                            conversion += "args["+j+"] = de.ruedigermoeller.kontraktor.Actors.InThread(args["+j+"]);";
+                        for (int k = 0; k < availableParameterAnnotation.length; k++) {
+                            Object annot = availableParameterAnnotation[k];
+                            if ( annot.toString().indexOf("kontraktor.annotations.InThread") > 0 ) {
+                                if ( ! parameterTypes[j].isInterface() )
+                                    throw new RuntimeException("@InThread can be used on interfaces only");
+                                conversion += "args[" + j + "] = de.ruedigermoeller.kontraktor.Actors.InThread(args[" + j + "]);";
+                                break;
+                            }
+                        }
                     }
                 }
                 String body = "{ Object args[] = $args;" +
@@ -255,17 +262,24 @@ public class ActorProxyFactory {
         }
     }
 
-    protected CtMethod[] getSortedPublicCtMethods(CtClass orig, boolean onlyRemote) {
+    protected CtMethod[] getSortedPublicCtMethods(CtClass orig, boolean onlyRemote) throws NotFoundException {
         int count = 0;
         CtMethod[] methods0 = orig.getMethods();
         HashSet alreadypresent = new HashSet();
+        HashSet unqiqueForActors = new HashSet();
         for (int i = methods0.length-1; i >= 0; i-- ) {
             CtMethod method = methods0[i];
             String str = toString(method);
             if (alreadypresent.contains(str)) {
                 methods0[i] = null;
-            } else
+            } else {
+                String key = method.getName()+"#"+method.getParameterTypes().length;
+                if ( unqiqueForActors.contains(key) ) {
+                    throw new RuntimeException("method overloading not supported for actors. Methods have to be separate in the number of arguments at least if name is identical.");
+                }
+                unqiqueForActors.add(key);
                 alreadypresent.add(str);
+            }
         }
 
         CtMethod methods[] = null;

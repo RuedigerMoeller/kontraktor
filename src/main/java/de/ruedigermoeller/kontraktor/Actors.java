@@ -72,6 +72,10 @@ public class Actors {
     public static <T> T InThread(T callback) {
         Class<?>[] interfaces = callback.getClass().getInterfaces();
         InvocationHandler invoker = DispatcherThread.getThreadDispatcher().getInvoker(callback);
+        if ( invoker == null ) // called from outside actor world
+        {
+            return callback; // callback in callee thread
+        }
         return (T) Proxy.newProxyInstance(callback.getClass().getClassLoader(), interfaces, invoker);
     }
 

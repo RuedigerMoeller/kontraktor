@@ -28,7 +28,9 @@ import de.ruedigermoeller.kontraktor.impl.ActorProxyFactory;
 import de.ruedigermoeller.kontraktor.impl.DispatcherThread;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -143,7 +145,9 @@ public class Actor {
             Method[] methods = actor.getClass().getMethods();
             for (int i = 0; i < methods.length; i++) {
                 Method m = methods[i];
-                if ( m.getName().equals(methodName) ) {
+                int modifiers = m.getModifiers();
+                if (Modifier.isPublic(modifiers) && !Modifier.isStatic(modifiers) &&
+                    m.getName().equals(methodName) && m.getParameterTypes().length == args.length ) {
                     methodCache.put(methodName,m);
                     method = m;
                     break;
