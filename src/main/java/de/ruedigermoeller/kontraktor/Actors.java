@@ -153,8 +153,9 @@ public class Actors {
             disp.actorAdded(res);
             return proxy;
         } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            if ( e instanceof RuntimeException)
+                throw (RuntimeException)e;
+            throw new RuntimeException(e);
         }
     }
 
@@ -165,8 +166,9 @@ public class Actors {
             try {
                 return newProxy(clz, newDispatcher(qsize));
             } catch (Exception e) {
-                e.printStackTrace();
-                return null;
+                if ( e instanceof RuntimeException)
+                    throw (RuntimeException)e;
+                throw new RuntimeException(e);
             }
         }
     }

@@ -273,8 +273,8 @@ public class ActorProxyFactory {
             if (alreadypresent.contains(str)) {
                 methods0[i] = null;
             } else {
-                String key = method.getName()+"#"+method.getParameterTypes().length;
-                if ( unqiqueForActors.contains(key) ) {
+                String key = method.getName();
+                if ( unqiqueForActors.contains(key) && !method.getDeclaringClass().getName().equals("java.lang.Object") ) {
                     throw new RuntimeException("method overloading not supported for actors. Methods have to be separate in the number of arguments at least if name is identical.");
                 }
                 unqiqueForActors.add(key);

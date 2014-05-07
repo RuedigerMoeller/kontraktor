@@ -66,6 +66,7 @@ public class DispatcherThread extends Thread {
 
     public static int DEFAULT_QUEUE_SIZE = 5000;
     Queue queue;
+    Queue cbQueue;
     int instanceNum;
 
     protected static class CallEntry {
@@ -113,7 +114,7 @@ public class DispatcherThread extends Thread {
     }
 
     public boolean isEmpty() {
-        return queue.isEmpty();
+        return queue.isEmpty()&&cbQueue.isEmpty();
     }
 
     public InvocationHandler getInvoker(Object toWrap) {
@@ -124,6 +125,7 @@ public class DispatcherThread extends Thread {
         if (qSize<=0)
             qSize = DEFAULT_QUEUE_SIZE;
         queue = new MpscConcurrentQueue<CallEntry>(qSize);
+        cbQueue = new MpscConcurrentQueue<CallEntry>(qSize);
         instanceNum = instanceCount.incrementAndGet();
         StringWriter stringWriter = new StringWriter(1000);
         PrintWriter s = new PrintWriter(stringWriter);
@@ -183,7 +185,7 @@ public class DispatcherThread extends Thread {
             throw new RuntimeException("received message on terminated dispatcher "+this);
         CallEntry e = new CallEntry(callback, method, args);
         DispatcherThread sender = getThreadDispatcher();
-        if ( ! queue.offer(e) ) {
+        if ( ! cbQueue.offer(e) ) {
             return true;
         }
         return false;
@@ -218,7 +220,9 @@ public class DispatcherThread extends Thread {
 
     // return true if msg was avaiable
     public boolean pollQs() {
-        CallEntry poll = (CallEntry) queue.poll();
+        CallEntry poll = (CallEntry) cbQueue.poll();
+        if (poll==null)
+            poll = (CallEntry) queue.poll();
         if ( poll != null ) {
             try {
                 poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
@@ -244,7 +248,7 @@ public class DispatcherThread extends Thread {
     }
 
     public int getQSize() {
-        return queue.size(); // FIXME: bad for concurrentlinkedq
+        return queue.size()+cbQueue.size(); // FIXME: bad for concurrentlinkedq
     }
 
     /**

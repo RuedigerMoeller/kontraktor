@@ -7,6 +7,7 @@ import de.ruedigermoeller.kontraktor.impl.*;
 import org.junit.Test;
 
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static de.ruedigermoeller.kontraktor.Actors.*;
 import static org.junit.Assert.assertTrue;
@@ -143,7 +144,48 @@ public class BasicTest {
         service.stop();
     }
 
+    public static class Overload extends Actor {
 
+        public void a(int x, Callback<Integer> cb) {
+            cb.receiveResult(x,null);
+        }
+
+        public void a(int x, int y, Callback<Integer> cb) {
+            cb.receiveResult(y,null);
+        }
+
+    }
+
+    @Test
+    public void testOverload() {
+//        final AtomicInteger succ = new AtomicInteger(0);
+        try {
+            Overload ov = AsActor(Overload.class);
+            assertTrue(false);
+        } catch (Exception e) {
+
+        }
+//        ov.a(1,2,new Callback<Integer>() {
+//            @Override
+//            public void receiveResult(Integer result, Object error) {
+//                if (result==1)
+//                    succ.incrementAndGet();
+//            }
+//        });
+//        ov.a(2,new Callback<Integer>() {
+//            @Override
+//            public void receiveResult(Integer result, Object error) {
+//                if (result==2)
+//                    succ.incrementAndGet();
+//            }
+//        });
+//        try {
+//            Thread.sleep(500);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+//        assertTrue(succ.get()==2);
+    }
 
     @Test
     public void lockStratTest() {
