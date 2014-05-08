@@ -1,7 +1,6 @@
 package de.ruedigermoeller.kontraktor.impl;
 
-import de.ruedigermoeller.kontraktor.Actor;
-import de.ruedigermoeller.kontraktor.ActorProxy;
+import de.ruedigermoeller.kontraktor.*;
 import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
 import javassist.*;
 import javassist.bytecode.AccessFlag;
@@ -172,6 +171,10 @@ public class ActorProxyFactory {
                         for (int k = 0; k < availableParameterAnnotation.length; k++) {
                             Object annot = availableParameterAnnotation[k];
                             if ( annot.toString().indexOf("kontraktor.annotations.InThread") > 0 ) {
+                                if ( parameterTypes[j].getName().equals(Callback.class.getName()) ) {
+                                    System.out.println("InThread unnecessary when using built in Callback class");
+                                    continue;
+                                }
                                 if ( ! parameterTypes[j].isInterface() )
                                     throw new RuntimeException("@InThread can be used on interfaces only");
                                 conversion += "args[" + j + "] = de.ruedigermoeller.kontraktor.Actors.InThread(args[" + j + "]);";

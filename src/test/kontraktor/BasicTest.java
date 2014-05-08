@@ -3,6 +3,7 @@ package kontraktor;
 import de.ruedigermoeller.kontraktor.Actor;
 import de.ruedigermoeller.kontraktor.Actors;
 import de.ruedigermoeller.kontraktor.Callback;
+import de.ruedigermoeller.kontraktor.annotations.*;
 import de.ruedigermoeller.kontraktor.impl.*;
 import org.junit.Test;
 
