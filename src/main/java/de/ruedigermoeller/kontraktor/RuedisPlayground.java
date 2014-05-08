@@ -17,7 +17,7 @@ public class RuedisPlayground {
             callback.callbackReceived("Hallo");
         }
 
-        public void getStringAnnotated( @de.ruedigermoeller.kontraktor.annotations.InThread SomeCallbackHandler callback ) {
+        public void getStringAnnotated( @InThread SomeCallbackHandler callback ) {
             callback.callbackReceived("Hallo");
         }
 

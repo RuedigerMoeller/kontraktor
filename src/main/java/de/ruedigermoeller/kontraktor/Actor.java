@@ -145,9 +145,7 @@ public class Actor {
             Method[] methods = actor.getClass().getMethods();
             for (int i = 0; i < methods.length; i++) {
                 Method m = methods[i];
-                int modifiers = m.getModifiers();
-                if (Modifier.isPublic(modifiers) && !Modifier.isStatic(modifiers) &&
-                    m.getName().equals(methodName) && m.getParameterTypes().length == args.length ) {
+                if ( m.getName().equals(methodName) ) {
                     methodCache.put(methodName,m);
                     method = m;
                     break;

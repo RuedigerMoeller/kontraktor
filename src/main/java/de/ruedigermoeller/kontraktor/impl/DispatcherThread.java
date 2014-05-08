@@ -99,7 +99,9 @@ public class DispatcherThread extends Thread {
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            return dispatchCallback(target, method, args);
+            if ( target != null )
+                return dispatchCallback(target, method, args);
+            return null;
         }
     }
 

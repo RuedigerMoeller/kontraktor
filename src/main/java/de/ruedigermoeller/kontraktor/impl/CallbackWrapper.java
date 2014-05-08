@@ -51,6 +51,9 @@ public class CallbackWrapper<T> extends Callback<T> {
 
     @Override
     public void receiveResult(T result, Object error) {
+        if ( realFuture == null ) {
+            return;
+        }
         if ( dispatcher == null ) {
             // call came from outside the actor world => use current thread => blocking the callback blocks actor, dont't !
             try {
