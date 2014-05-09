@@ -1,7 +1,7 @@
 kontraktor
 ==========
 
-lightweight and efficient Actor implementation in Java
+lightweight and efficient (CSP flavoured) Actor implementation in Java
 
 Kontraktor implements a typed actor model to avoid message definition+handling boilerplate code. Additionally this integrates well
 with code completion and refactoring of modern IDEs.
@@ -43,5 +43,5 @@ E.g.
 Kontrakor internally uses a high performance bounded queue implementation of the Jaq-In-A-Box project and can pass 
 9 million messages per second (on i7 laptop, method with 3 arguments passed) up to 15 million on decent hardware.
 
-[documentation+maven still undone]
+[Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-documentation) is work in progress,
 
