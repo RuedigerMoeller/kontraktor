@@ -1,7 +1,7 @@
 kontraktor
 ==========
 
-lightweight and efficient Actor implementation in Java
+lightweight and efficient (CSP flavoured) Actor implementation in Java
 
 Kontraktor implements a typed actor model to avoid message definition+handling boilerplate code. Additionally this integrates well
 with code completion and refactoring of modern IDEs.
