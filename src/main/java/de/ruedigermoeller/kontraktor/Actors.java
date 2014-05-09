@@ -37,6 +37,10 @@ public class Actors {
     //
     // static API
 
+    public static void SetDefaultQueueSize(int siz) {
+        DispatcherThread.DEFAULT_QUEUE_SIZE = siz;
+    }
+
     /**
      * create an new actor. If this is called outside an actor, a new DispatcherThread will be scheduled. If
      * called from inside actor code, the new actor will share the thread+queue with the caller.
