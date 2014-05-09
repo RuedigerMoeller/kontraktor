@@ -8,6 +8,8 @@ with code completion and refactoring of modern IDEs.
 
 [Full Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-documentation) is work in progress,
 
+[SampleApp - a nio http 1.0 webserver skeleton done with actors](https://github.com/RuedigerMoeller/kontraktor-samples/tree/master/src/main/java/samples/niohttp)
+
 Kontraktor uses runtime-generated (javassist) proxy instances which put all calls to the proxy onto a queue. The real actor instance then reads 
 method invocations (=messages) from this queue in a dedicated thread.
 
