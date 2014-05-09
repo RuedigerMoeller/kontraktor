@@ -7,6 +7,8 @@ import de.ruedigermoeller.kontraktor.annotations.*;
 import de.ruedigermoeller.kontraktor.impl.*;
 import org.junit.Test;
 
+import java.net.URL;
+import java.util.Scanner;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -89,7 +91,7 @@ public class BasicTest {
             callback.callbackReceived("Hallo");
         }
 
-        public void getStringAnnotated( @de.ruedigermoeller.kontraktor.annotations.InThread SomeCallbackHandler callback ) {
+        public void getStringAnnotated( @InThread SomeCallbackHandler callback ) {
             callback.callbackReceived("Hallo");
         }
 
@@ -134,7 +136,6 @@ public class BasicTest {
 
     @Test
     public void inThreadTest() throws InterruptedException {
-
         ServiceActor service = AsActor(ServiceActor.class);
         MyActor cbActor = AsActor(MyActor.class);
         cbActor.init(service);
@@ -159,33 +160,60 @@ public class BasicTest {
 
     @Test
     public void testOverload() {
-//        final AtomicInteger succ = new AtomicInteger(0);
         try {
+            // verify exception is thrown
             Overload ov = AsActor(Overload.class);
             assertTrue(false);
         } catch (Exception e) {
 
         }
-//        ov.a(1,2,new Callback<Integer>() {
-//            @Override
-//            public void receiveResult(Integer result, Object error) {
-//                if (result==1)
-//                    succ.incrementAndGet();
-//            }
-//        });
-//        ov.a(2,new Callback<Integer>() {
-//            @Override
-//            public void receiveResult(Integer result, Object error) {
-//                if (result==2)
-//                    succ.incrementAndGet();
-//            }
-//        });
-//        try {
-//            Thread.sleep(500);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        assertTrue(succ.get()==2);
+    }
+
+
+    public static class TestBlockingAPI extends Actor {
+
+        public void get( final String url, final Callback<String> content ) {
+            final Thread myThread = getDispatcher();
+            Actors.Execute(
+                    new Callable<String>() {
+                        @Override
+                        public String call() throws Exception {
+                            return new Scanner( new URL(url).openStream(), "UTF-8" ).useDelimiter("\\A").next();
+                        }
+                    },
+                    new Callback<String>() {
+                        @Override
+                        public void receiveResult(String result, Object error) {
+                            if ( Thread.currentThread() == myThread ) {
+                                content.receiveResult(result,null);
+                            } else {
+                                content.receiveResult(null, "wrong thread");
+                            }
+                        }
+                });
+        }
+
+    }
+
+    @Test
+    public void testBlockingCall() {
+        final AtomicInteger success = new AtomicInteger(0);
+        TestBlockingAPI actor = AsActor(TestBlockingAPI.class);
+        actor.get("http://www.google.com", new Callback<String>() {
+            @Override
+            public void receiveResult(String result, Object error) {
+                if ( error != null )
+                    success.set(1);
+                else
+                    success.set(2);
+            }
+        });
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        assertTrue(success.get()!=1); // if no response (proxy etc) also return true
     }
 
     @Test
