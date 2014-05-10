@@ -155,7 +155,7 @@ public class ActorProxyFactory {
             allowed &= !originalMethod.getDeclaringClass().getName().equals(Object.class.getName()) &&
                        !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName()) ;
 
-            if ( method.getName().equals("__sync") ) // ??
+            if ( method.getName().equals("__sync") ) // ?? forgot what this is good for
                 allowed = true;
 
             if (allowed) {
