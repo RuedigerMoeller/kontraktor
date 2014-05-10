@@ -1,7 +1,7 @@
 kontraktor
 ==========
 
-lightweight and efficient (CSP flavoured) Actor implementation in Java
+lightweight and efficient Actor/(CSP) implementation in Java. The threading model implemented has many similarities to node.js and go's model of concurrency.
 
 Kontraktor implements a typed actor model to avoid message definition+handling boilerplate code. Additionally this integrates well
 with code completion and refactoring of modern IDEs.
@@ -10,7 +10,7 @@ with code completion and refactoring of modern IDEs.
 
 [SampleApp - a nio http 1.0 webserver skeleton done with actors](https://github.com/RuedigerMoeller/kontraktor-samples/tree/master/src/main/java/samples/niohttp)
 
-Kontraktor uses runtime-generated (javassist) proxy instances which put all calls to the proxy onto a queue. A DispatcherThread then dequeues method invocations (=messages) ensuring single-threadednes of actor execution.
+Kontraktor uses runtime-generated (javassist) proxy instances which put all calls to the proxy onto a queue. A DispatcherThread then dequeues method invocations (=messages) ensuring single-threadedness of actor execution.
 
 Kontraktor is work in progress, but 1.0 should be near. It's only 9 classes + some annotations.
 
