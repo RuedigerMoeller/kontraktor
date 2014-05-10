@@ -64,7 +64,7 @@ public class DispatcherThread extends Thread {
     boolean shutDown = false;
     private boolean dead;
 
-    public static int DEFAULT_QUEUE_SIZE = 10000;
+    public static int DEFAULT_QUEUE_SIZE = 30000;
     Queue queue;
     Queue cbQueue;
     int instanceNum;
