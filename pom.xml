@@ -2,11 +2,34 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
     <version>1.0</version>
+
+    <description>a light weight, high speed actors</description>
+    <url>https://github.com/RuedigerMoeller/kontraktor</url>
+
+    <licenses>
+        <license>
+            <name>LGPL 2.1</name>
+            <url>http://www.gnu.org/licenses/lgpl.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:git@github.com:RuedigerMoeller/kontraktor.git</connection>
+        <url>scm:git:git@github.com:RuedigerMoeller/kontraktor.git</url>
+        <developerConnection>scm:git:git@github.com:RuedigerMoeller/kontraktor.git</developerConnection>
+    </scm>
 
     <build>
         <plugins>
@@ -30,20 +53,49 @@
                 </configuration>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 
     <dependencies>
+
         <dependency>
             <groupId>org.javassist</groupId>
             <artifactId>javassist</artifactId>
             <version>3.18.1-GA</version>
         </dependency>
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.11</version>
         </dependency>
+
     </dependencies>
 
 </project>

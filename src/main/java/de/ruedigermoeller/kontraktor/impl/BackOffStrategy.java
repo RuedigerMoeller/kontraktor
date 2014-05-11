@@ -16,10 +16,10 @@ public class BackOffStrategy {
     int yieldCount;
     int parkCount;
     int sleepCount;
-    int nanosToPark  = 1000*500; // half milli
+    int nanosToPark  = 1000*500; // half milli (=latency peak on burst ..)
 
     public BackOffStrategy() {
-        setCounters(100000,50000,5000);
+        setCounters(5000,5000,5000);
     }
 
     /**
