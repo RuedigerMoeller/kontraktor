@@ -155,8 +155,9 @@ public class ActorProxyFactory {
             allowed &= !originalMethod.getDeclaringClass().getName().equals(Object.class.getName()) &&
                        !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName()) ;
 
-            if ( method.getName().equals("__sync") ) // ?? forgot what this is good for
+            if ( originalMethod.getName().equals("executeInActorThread") ) {
                 allowed = true;
+            }
 
             if (allowed) {
                 if (returnType != CtPrimitiveType.voidType ) {

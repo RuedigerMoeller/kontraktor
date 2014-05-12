@@ -160,10 +160,10 @@ public class DispatcherThread extends Thread {
      *
      * @param actorRef - receiver of call
      * @param method
-     * @param args
+     * @param args - scanned for instances of callback and wrapped in case
      * @return true if blocked and polling channels should be done
      */
-    public boolean dispatch( ActorProxy actorRef, Method method, Object args[]) {
+    public boolean dispatchOnObject( Object target, Method method, Object args[]) {
         // MT sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
@@ -174,11 +174,22 @@ public class DispatcherThread extends Thread {
                 args[i] = new CallbackWrapper<>(sender,(Callback<Object>) arg);
             }
         }
-        CallEntry e = new CallEntry(actorRef.getActor(), method, args);
+        CallEntry e = new CallEntry(target, method, args);
         if ( ! queue.offer(e) ) {
             return true;
         }
         return false;
+    }
+
+    /**
+     *
+     * @param actorRef - receiver of call
+     * @param method
+     * @param args
+     * @return true if blocked and polling channels should be done
+     */
+    public boolean dispatch( ActorProxy actorRef, Method method, Object args[]) {
+        return dispatchOnObject(actorRef.getActor(),method,args);
     }
 
     public boolean dispatchCallback( Object callback, Method method, Object args[]) {

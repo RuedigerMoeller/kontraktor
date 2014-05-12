@@ -1,14 +1,14 @@
 package kontraktor;
 
-import de.ruedigermoeller.kontraktor.Actor;
-import de.ruedigermoeller.kontraktor.Actors;
-import de.ruedigermoeller.kontraktor.Callback;
+import de.ruedigermoeller.kontraktor.*;
 import de.ruedigermoeller.kontraktor.annotations.*;
 import de.ruedigermoeller.kontraktor.impl.*;
+import kontraktor.BasicTest.MyActor.*;
+import kontraktor.BasicTest.ServiceActor.*;
 import org.junit.Test;
 
 import java.net.URL;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -87,12 +87,35 @@ public class BasicTest {
 
     public static class ServiceActor extends Actor {
 
+        public static interface DataAccess {
+            HashMap getMap();
+        }
+
+        HashMap myPrivateData;
+
+        public void init() {
+            myPrivateData = new HashMap();
+            myPrivateData.put("One", "Two");
+            myPrivateData.put(3, 4);
+            myPrivateData.put("five", 6);
+        }
+
         public void getString( SomeCallbackHandler callback ) {
             callback.callbackReceived("Hallo");
         }
 
         public void getStringAnnotated( @InThread SomeCallbackHandler callback ) {
             callback.callbackReceived("Hallo");
+        }
+
+        @Override
+        protected Object getActorAccess() {
+            return new DataAccess() {
+                @Override
+                public HashMap getMap() {
+                    return myPrivateData;
+                }
+            };
         }
 
     }
@@ -107,6 +130,7 @@ public class BasicTest {
         }
 
         public void callbackTest() {
+
             final Thread callerThread = Thread.currentThread();
             service.getString(InThread(new SomeCallbackHandler() {
                 @Override
@@ -130,19 +154,55 @@ public class BasicTest {
                     }
                 }
             });
-        }
 
+            service.executeInActorThread(
+                    new ActorRunnable() {
+                        @Override
+                        public void run(Object actorAccess, Actor actorImpl, Callback resultReceiver) {
+                            if ( service.getDispatcher() == Thread.currentThread() ) {
+                                success++;
+                            } else {
+                                System.out.println("POKPOK err");
+                            }
+                            DataAccess access = (DataAccess) actorAccess;
+                            Iterator iterator = access.getMap().keySet().iterator();
+                            while( iterator.hasNext() ) {
+                                Object o = iterator.next();
+                                if ( "five".equals(o) ) {
+                                    resultReceiver.receiveResult(access.getMap().get(o),null);
+                                }
+                            }
+                        }
+                    },
+                    new Callback() {
+                        @Override
+                        public void receiveResult(Object result, Object error) {
+                            if (callerThread != Thread.currentThread()) {
+                                throw new RuntimeException("Dammit");
+                            } else {
+                                success++;
+                                System.out.println("Alles prima 2");
+                            }
+                            System.out.println("res "+result);
+                        }
+                    }
+            );
+
+        }
     }
 
     @Test
     public void inThreadTest() throws InterruptedException {
         ServiceActor service = AsActor(ServiceActor.class);
+        service.init();
+
         MyActor cbActor = AsActor(MyActor.class);
         cbActor.init(service);
         cbActor.callbackTest();
+
         Thread.sleep(1000);
         cbActor.stop();
-        assertTrue(((MyActor)cbActor.getActor()).success == 2);
+        assertTrue(((MyActor)cbActor.getActor()).success == 4);
         service.stop();
     }
 

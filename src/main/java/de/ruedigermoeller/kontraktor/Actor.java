@@ -100,23 +100,6 @@ public class Actor {
     }
 
     /**
-     * blocks calling thread until all messages on this actor have been processed
-     */
-    @CallerSideMethod public void sync() {
-        if ( __self == null ) {
-            getActor().sync();
-            return;
-        }
-        CountDownLatch latch = new CountDownLatch(1);
-        __self.__sync(latch);
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
      * stop receiving events. If there are no actors left on the underlying dispatcher,
      * the dispatching thread will be terminated.
      */
@@ -124,14 +107,18 @@ public class Actor {
         getDispatcher().actorStopped(this);
     }
 
+    public <T> void executeInActorThread( ActorRunnable<T> toRun, Callback<T> cb ) {
+        toRun.run( getActorAccess(), getActor(), cb );
+    }
+
+    protected Object getActorAccess() {
+        return null;
+    }
+
     ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     @CallerSideMethod public void __dispatcher( DispatcherThread d ) {
         dispatcher = d;
-    }
-
-    @CallerSideMethod public void __sync(CountDownLatch latch) {
-        latch.countDown();
     }
 
     protected ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
