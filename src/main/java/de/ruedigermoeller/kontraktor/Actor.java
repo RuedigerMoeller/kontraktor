@@ -31,7 +31,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Objects;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.*;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
@@ -134,7 +134,7 @@ public class Actor {
         latch.countDown();
     }
 
-    protected HashMap<String, Method> methodCache = new HashMap<>();
+    protected ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
     // try to offer an outgoing call to the target actor queue. Runs in Caller Thread
     @CallerSideMethod public void __dispatchCall( ActorProxy receiver, String methodName, Object args[] ) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
