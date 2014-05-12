@@ -63,6 +63,10 @@ public class RuedisPlayground {
         ServiceActor service = Actors.AsActor(ServiceActor.class);
         MyActor cbActor = Actors.AsActor(MyActor.class);
         cbActor.init(service);
+
+        service.getDispatcher().setName("service");
+        cbActor.getDispatcher().setName("actor");
+
         cbActor.callbackTest();
 
         Thread.sleep(10000);
