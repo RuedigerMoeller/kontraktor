@@ -107,8 +107,8 @@ public class Actor {
         getDispatcher().actorStopped(this);
     }
 
-    public <T> void executeInActorThread( ActorRunnable<T> toRun, Callback<T> cb ) {
-        toRun.run( getActorAccess(), getActor(), cb );
+    public void executeInActorThread( ActorRunnable toRun, Callback cb ) {
+        toRun.run( getActorAccess(), getActor(), cb);
     }
 
     protected Object getActorAccess() {
