@@ -33,9 +33,9 @@ public class BasicTest {
         for ( int i = 0; i < numCalls; i++ ) {
             actorA.benchCall("A", "B", "C");
         }
-        actorA.getDispatcher().waitEmpty(1000*1000);
         final long l = (numCalls / (System.currentTimeMillis() - tim)) * 1000;
         System.out.println("tim "+ l +" calls per sec");
+        actorA.getDispatcher().waitEmpty(3000*1000);
         return l;
     }
 

@@ -29,7 +29,7 @@ import java.lang.reflect.Method;
 /**
  * ..
  */
-public class CallbackWrapper<T> extends Callback<T> {
+public class CallbackWrapper<T> implements Callback<T> {
 
     static Method receiveRes;
 
@@ -42,28 +42,28 @@ public class CallbackWrapper<T> extends Callback<T> {
     }
 
     final DispatcherThread dispatcher;
-    Callback<T> realFuture;
+    Callback<T> realCallback;
 
     public CallbackWrapper(DispatcherThread dispatcher, Callback<T> realFuture) {
-        this.realFuture = realFuture;
+        this.realCallback = realFuture;
         this.dispatcher = dispatcher;
     }
 
     @Override
     public void receiveResult(T result, Object error) {
-        if ( realFuture == null ) {
+        if ( realCallback == null ) {
             return;
         }
         if ( dispatcher == null ) {
             // call came from outside the actor world => use current thread => blocking the callback blocks actor, dont't !
             try {
-                receiveRes.invoke(realFuture, result, error);
+                receiveRes.invoke(realCallback, result, error);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         } else {
             int count = 0;
-            while (dispatcher.dispatchCallback(realFuture, receiveRes, new Object[]{result,error})) {
+            while (dispatcher.dispatchCallback(realCallback, receiveRes, new Object[]{result,error})) {
                 dispatcher.yield(count++);
             }
         }

@@ -28,9 +28,9 @@ package de.ruedigermoeller.kontraktor;
  * Note that the callback invocation is added as a message to the end of the calling actor.
  * e.g. actor.method( arg, new Callbacl() { public void receiveResult(T result, Object error ) { ..runs in caller thread.. } }
  */
-public abstract class Callback<T>  // do not use interface, slows down instanceof significantly
+public interface Callback<T>  // do not use interface, slows down instanceof significantly
 {
 
-    public void receiveResult(T result, Object error ) {};
+    public void receiveResult(T result, Object error );
 
 }
