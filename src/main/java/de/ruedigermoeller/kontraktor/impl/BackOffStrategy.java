@@ -23,18 +23,18 @@ public class BackOffStrategy {
     }
 
     /**
-     * @param yieldCount - number of busy spins until Thread.yield is used
-     * @param parkCount  - number of Thread.yield iterations until parkNanos(1) is used
-     * @param sleepCount - number of parkNanos(1) is used until park(nanosToPark) is used. Default for nanosToPark is 0.5 milliseconds
+     * @param spinUntilYield - number of busy spins until Thread.yield is used
+     * @param yieldUntilPark  - number of Thread.yield iterations until parkNanos(1) is used
+     * @param parkUntilSleep - number of parkNanos(1) is used until park(nanosToPark) is used. Default for nanosToPark is 0.5 milliseconds
      */
-    public BackOffStrategy(int yieldCount, int parkCount, int sleepCount) {
-        setCounters(yieldCount,parkCount,sleepCount);
+    public BackOffStrategy(int spinUntilYield, int yieldUntilPark, int parkUntilSleep) {
+        setCounters(spinUntilYield,yieldUntilPark,parkUntilSleep);
     }
 
-    public void setCounters( int yield, int park, int sleep ) {
-        yieldCount = yield;
-        parkCount = yield+park;
-        sleepCount = yield+park+sleep;
+    public void setCounters( int spinUntilYield, int yieldUntilPark, int parkUntilSleep ) {
+        yieldCount = spinUntilYield;
+        parkCount = spinUntilYield+yieldUntilPark;
+        sleepCount = spinUntilYield+yieldUntilPark+parkUntilSleep;
     }
 
     public int getNanosToPark() {
