@@ -160,7 +160,7 @@ public class ActorProxyFactory {
             }
 
             if (allowed) {
-                if (returnType != CtPrimitiveType.voidType && returnType.getName().indexOf("kontraktor.KFuture") < 0) {
+                if (returnType != CtPrimitiveType.voidType ) {
                     throw new RuntimeException("only void methods or methods returning KFututre allowed");
                 }
                 String conversion = "";
