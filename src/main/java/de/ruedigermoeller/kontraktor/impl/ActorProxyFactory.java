@@ -72,6 +72,42 @@ public class ActorProxyFactory {
             Field f = instance.getClass().getField("__target");
             f.setAccessible(true);
             f.set(instance, target);
+            return instance;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Object result = other.yield().someCall();
+    //
+    // Yield yield = Actors.Yield(); yield.call(
+    // Actor yield = ref.yield();
+    public <T> T instantiateYieldProxy(Actor target) {
+        try {
+            Class proxyClass = createProxyClass(target.getClass());
+            Constructor[] constructors = proxyClass.getConstructors();
+            T instance = null;
+            try {
+                instance = (T) proxyClass.newInstance();
+            } catch (Exception e) {
+                for (int i = 0; i < constructors.length; i++) {
+                    Constructor constructor = constructors[i];
+                    if ( constructor.getParameterTypes().length == 0) {
+                        constructor.setAccessible(true);
+                        instance = (T) constructor.newInstance();
+                        break;
+                    }
+                    if ( constructor.getParameterTypes().length == 1) {
+                        instance = (T) constructor.newInstance((Class)null);
+                        break;
+                    }
+                }
+                if ( instance == null )
+                    throw e;
+            }
+            Field f = instance.getClass().getField("__target");
+            f.setAccessible(true);
+            f.set(instance, target);
             target.__self = (Actor) instance;
             return instance;
         } catch (Exception e) {
@@ -147,7 +183,9 @@ public class ActorProxyFactory {
             }
 //            CtClass[] parameterTypes = method.getParameterTypes();
             CtClass returnType = method.getReturnType();
-            boolean isCallerSide = originalMethod.getAnnotation(CallerSideMethod.class) != null;
+            boolean isCallerSide = // don't touch
+                    originalMethod.getAnnotation(CallerSideMethod.class) != null ||
+                    (originalMethod.getName().equals("self") || originalMethod.getName().equals("yield"));
             boolean allowed = ((method.getModifiers() & AccessFlag.ABSTRACT) == 0 ) &&
                     (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 &&
                     (method.getModifiers() & AccessFlag.PUBLIC) != 0 &&
@@ -160,8 +198,9 @@ public class ActorProxyFactory {
             }
 
             if (allowed) {
-                if (returnType != CtPrimitiveType.voidType ) {
-                    throw new RuntimeException("only void methods or methods returning KFututre allowed");
+                boolean isVoid = returnType == CtPrimitiveType.voidType;
+                if (returnType != CtPrimitiveType.voidType && returnType.isPrimitive() ) {
+                    throw new RuntimeException("only void methods or methods returning Objects allowed (no int,long,..))");
                 }
                 String conversion = "";
                 Object[][] availableParameterAnnotations = originalMethod.getAvailableParameterAnnotations();
@@ -184,24 +223,32 @@ public class ActorProxyFactory {
                         }
                     }
                 }
+                String call ="__target.__dispatchCall( this, \""+method.getName()+"\", args );";
+                if ( ! isVoid ) {
+                    call = "return ("+originalMethod.getReturnType().getName()+") (Object)"+call;
+                }
                 String body = "{ Object args[] = $args;" +
                         conversion +
-                     "__target.__dispatchCall( this, \""+method.getName()+"\", args );" +
+                        call+
                     "}";
                 method.setBody(body);
                 cc.addMethod(method);
+//                System.out.println("patch method 0 "+method.getName());
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
-                if (isCallerSide) {
+                if (isCallerSide || method.getName().equals("toString")) {
                     // do nothing
                 } else if ( method.getName().equals("getDispatcher") ) {
                     method.setBody(" return __target.getDispatcher();");
                     cc.addMethod(method);
+//                    System.out.println("patch method 1 "+method.getName());
                 } else if ( ! method.getName().equals("getActor") ) {
                     method.setBody("throw new RuntimeException(\"can only call public methods on actor ref\");");
                     cc.addMethod(method);
+//                    System.out.println("patch method 2 "+method.getName());
                 } else {
                     cc.addMethod(method);
+//                    System.out.println("patch method 3 "+method.getName());
                 }
             }
         }

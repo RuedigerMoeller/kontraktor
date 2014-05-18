@@ -154,6 +154,13 @@ public class Actors {
             Actor res = clz.newInstance();
             res.dispatcher = disp;
             Actor proxy = getFactory().instantiateProxy(res);
+            Actor yieldProxy = getFactory().instantiateProxy(res);
+            yieldProxy.__isYield = true;
+
+            res.__self = proxy;
+            proxy.__yield = yieldProxy;
+            res.__yield = yieldProxy;
+
             disp.actorAdded(res);
             return proxy;
         } catch (Exception e) {

@@ -25,12 +25,11 @@ package de.ruedigermoeller.kontraktor;
 
 import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
 import de.ruedigermoeller.kontraktor.impl.ActorProxyFactory;
+import de.ruedigermoeller.kontraktor.impl.CallEntry;
+import de.ruedigermoeller.kontraktor.impl.CallbackWrapper;
 import de.ruedigermoeller.kontraktor.impl.DispatcherThread;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.HashMap;
-import java.util.Objects;
 import java.util.concurrent.*;
 
 /**
@@ -59,6 +58,8 @@ import java.util.concurrent.*;
 public class Actor {
 
     public Actor __self;       // internal use
+    public Actor __yield;       // internal use
+    boolean __isYield = false;
 
     DispatcherThread dispatcher;
 
@@ -80,12 +81,22 @@ public class Actor {
 
     /**
      * use this to call public methods using actor-dispatch instead of direct in-thread call.
-     * Improtant: When passing references out of your actor, always pass 'self()' instead of this !
+     * Important: When passing references out of your actor, always pass 'self()' instead of this !
      * @param <T>
      * @return
      */
     protected <T extends Actor> T self() {
         return (T)__self;
+    }
+
+    /**
+     * processes other messages until result of call is avaiable, meaningless on void methods.
+     * Avoids the need for callbacks to obtain single results
+     * @param <T>
+     * @return
+     */
+    @CallerSideMethod public <T extends Actor> T yield() {
+        return (T) __yield;
     }
 
     public ActorProxyFactory getFactory() {
@@ -115,6 +126,10 @@ public class Actor {
         return null;
     }
 
+    public boolean isProxy() {
+        return getActor() != this;
+    }
+
     ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     @CallerSideMethod public void __dispatcher( DispatcherThread d ) {
@@ -122,12 +137,56 @@ public class Actor {
     }
 
     protected ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
+
     // try to offer an outgoing call to the target actor queue. Runs in Caller Thread
-    @CallerSideMethod public void __dispatchCall( ActorProxy receiver, String methodName, Object args[] ) {
+    @CallerSideMethod public Object __dispatchCall( Actor receiver, String methodName, Object args[] ) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
-        Method method = methodCache.get(methodName);
         Actor actor = receiver.getActor();
+        Method method = getCachedMethod(methodName, actor);
+
+        int count = 0;
+        DispatcherThread threadDispatcher = DispatcherThread.getThreadDispatcher();
+        // scan for callbacks in arguments ..
+        for (int i = 0; i < args.length; i++) {
+            Object arg = args[i];
+            if ( arg instanceof Callback) {
+                DispatcherThread sender = threadDispatcher;
+                args[i] = new CallbackWrapper<>(sender,(Callback<Object>) arg);
+            }
+        }
+
+        boolean isYieldCall = receiver.__isYield && method.getReturnType() != void.class;
+        CallEntry e = new CallEntry(
+                actor,
+                method,
+                args,
+                isYieldCall
+        );
+        while ( actor.getDispatcher().dispatchOnObject(e) ) {
+            if ( threadDispatcher != null ) {
+                // FIXME: poll callback queue here
+                threadDispatcher.yield(count++);
+            }
+            else
+                DispatcherThread.yield(count++);
+        }
+        if (isYieldCall) {
+            if ( threadDispatcher == null ) {
+                // call from outside actor world .. block
+                int answerCount = 0;
+                while( ! e.isAnswered() ) {
+                    DispatcherThread.yield(answerCount++);
+                }
+                return e.getResult();
+            }
+            return threadDispatcher.yieldPoll(e);
+        }
+        return null;
+    }
+
+    private Method getCachedMethod(String methodName, Actor actor) {
+        Method method = methodCache.get(methodName);
         if ( method == null ) {
             Method[] methods = actor.getClass().getMethods();
             for (int i = 0; i < methods.length; i++) {
@@ -139,10 +198,7 @@ public class Actor {
                 }
             }
         }
-        int count = 0;
-        while ( actor.getDispatcher().dispatch(receiver, method, args) ) {
-            DispatcherThread.yield(count++);
-        }
+        return method;
     }
 
 }

@@ -69,26 +69,6 @@ public class DispatcherThread extends Thread {
     Queue cbQueue;
     int instanceNum;
 
-    protected static class CallEntry {
-        final private Object target;
-        final private Method method;
-        final private Object[] args;
-
-        CallEntry(Object actor, Method method, Object[] args) {
-            this.target = actor;
-            this.method = method;
-            this.args = args;
-        }
-
-        public Object getTarget() {
-            return target;
-        }
-        public Method getMethod() {
-            return method;
-        }
-        public Object[] getArgs() { return args; }
-    }
-
     class CallbackInvokeHandler implements InvocationHandler {
 
         final Object target;
@@ -157,46 +137,23 @@ public class DispatcherThread extends Thread {
     }
 
     /**
-     *
-     * @param actorRef - receiver of call
-     * @param method
-     * @param args - scanned for instances of callback and wrapped in case
      * @return true if blocked and polling channels should be done
      */
-    public boolean dispatchOnObject( Object target, Method method, Object args[]) {
+    public boolean dispatchOnObject( CallEntry entry ) {
         // MT sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
-        for (int i = 0; i < args.length; i++) {
-            Object arg = args[i];
-            if ( arg instanceof Callback) {
-                DispatcherThread sender = getThreadDispatcher();
-                args[i] = new CallbackWrapper<>(sender,(Callback<Object>) arg);
-            }
-        }
-        CallEntry e = new CallEntry(target, method, args);
-        if ( ! queue.offer(e) ) {
+        if ( ! queue.offer(entry) ) {
             return true;
         }
         return false;
-    }
-
-    /**
-     *
-     * @param actorRef - receiver of call
-     * @param method
-     * @param args
-     * @return true if blocked and polling channels should be done
-     */
-    public boolean dispatch( ActorProxy actorRef, Method method, Object args[]) {
-        return dispatchOnObject(actorRef.getActor(),method,args);
     }
 
     public boolean dispatchCallback( Object callback, Method method, Object args[]) {
         // MT sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
-        CallEntry e = new CallEntry(callback, method, args);
+        CallEntry e = new CallEntry(callback, method, args, false);
         DispatcherThread sender = getThreadDispatcher();
         if ( ! cbQueue.offer(e) ) {
             return true;
@@ -209,6 +166,36 @@ public class DispatcherThread extends Thread {
         if ( Thread.currentThread() instanceof DispatcherThread)
             sender = (DispatcherThread) Thread.currentThread();
         return sender;
+    }
+
+    /**
+     * poll queues until callentry is received, then exit
+     * @param e
+     */
+    // FIXME: add timeout
+    public Object yieldPoll(CallEntry e) {
+        int emptyCount = 0;
+        boolean isShutDown = false;
+        while( ! isShutDown ) {
+
+            if ( pollQs() ) {
+                emptyCount = 0;
+            }
+            else {
+                emptyCount++;
+                DispatcherThread.this.yield(emptyCount);
+                if (shutDown) // access volatile only when idle
+                    isShutDown = true;
+            }
+            if ( e.isAnswered() ) {
+                Object result = e.getResult();
+                if ( result instanceof Throwable ) {
+                    throw new RuntimeException((Throwable) result);
+                }
+                return result;
+            }
+        }
+        return null;
     }
 
     public void run() {
@@ -238,23 +225,23 @@ public class DispatcherThread extends Thread {
             poll = (CallEntry) queue.poll();
         if ( poll != null ) {
             try {
-                poll.getMethod().invoke(poll.getTarget(),poll.getArgs());
+                Object invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
+                if ( poll.isYield() ) {
+                    poll.setResult(invoke);
+                }
                 return true;
-            } catch (RuntimeException e) {
+            } catch (Exception e) {
+                poll.setResult(e);
                 if ( e.getCause() != null )
                     e.getCause().printStackTrace();
                 else
                     e.printStackTrace();
-//                throw e;
-            } catch (InvocationTargetException e) {
-                e.getCause().printStackTrace();
-                throw new RuntimeException(e.getCause());
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
             }
         }
         return false;
     }
+
+
 
     public static void yield(int count) {
         backOffStrategy.yield(count);
