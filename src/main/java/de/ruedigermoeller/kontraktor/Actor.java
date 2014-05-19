@@ -90,8 +90,12 @@ public class Actor {
     }
 
     /**
-     * processes other messages until result of call is avaiable, meaningless on void methods.
-     * Avoids the need for callbacks to obtain single results
+     * processes other messages until result of call is avaiable, returns null on void methods.
+     * Avoids the need for callbacks to obtain simple single results.
+     * WARNING: this works LIFO, check documentation before using this. Never use to send slowish
+     * code, as in case of cascading the first yield will be notified last. The LIFO order cannot be
+     * fixed as long the VM does not support continuations.
+     *
      * @param <T>
      * @return
      */
@@ -137,7 +141,6 @@ public class Actor {
     }
 
     protected ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
-
     // try to offer an outgoing call to the target actor queue. Runs in Caller Thread
     @CallerSideMethod public Object __dispatchCall( Actor receiver, String methodName, Object args[] ) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
@@ -156,7 +159,7 @@ public class Actor {
             }
         }
 
-        boolean isYieldCall = receiver.__isYield && method.getReturnType() != void.class;
+        boolean isYieldCall = receiver.__isYield; // && method.getReturnType() != void.class;
         CallEntry e = new CallEntry(
                 actor,
                 method,

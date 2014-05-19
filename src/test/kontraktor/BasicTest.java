@@ -228,7 +228,6 @@ public class BasicTest {
         }
     }
 
-
     public static class TestBlockingAPI extends Actor {
 
         public void get( final String url, final Callback<String> content ) {
