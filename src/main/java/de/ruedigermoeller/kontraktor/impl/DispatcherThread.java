@@ -198,11 +198,11 @@ public class DispatcherThread extends Thread {
             try {
                 Object invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
                 if ( ! poll.isVoid() )
-                    poll.receiveResult(invoke, WRONG);
+                    poll.receiveResult(invoke, null);
                 return true;
             } catch (Exception e) {
                 if ( ! poll.isVoid() )
-                    poll.receiveResult(e, WRONG);
+                    poll.receiveResult( null, e);
                 if ( e.getCause() != null )
                     e.getCause().printStackTrace();
                 else

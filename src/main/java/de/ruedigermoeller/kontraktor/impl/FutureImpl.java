@@ -9,49 +9,37 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class FutureImpl<T> implements Future<T> {
 
-    protected Object result;             // FIXME: volatile required for both ?
-    protected Callback resultReceiver;
-    AtomicBoolean lock = new AtomicBoolean(false);
+    protected Object result;
+    protected Object error;
+    private Callback resultReceiver;
 
     public FutureImpl() {
     }
 
     public FutureImpl(Throwable exception) {
-        receiveResult(exception, WRONG);
+        receiveResult(null, exception);
     }
 
     public FutureImpl(T result) {
-        receiveResult(result, WRONG);
+        receiveResult(result, null);
     }
 
     public void receiveResult(Object res, Object error) {
-        while( ! lock.compareAndSet(false,true) ) {
-        }
-        try {
-            if (resultReceiver != null) {
-                boolean ex = result instanceof Throwable;
-                resultReceiver.receiveResult(ex ? null:res, ex ? res: null );
-            }
-            if (res == null)
-                res = CallEntry.NULL_RESULT;
-            this.result = res;
-        } finally {
-            lock.set(false);
+        result = res;
+        error = error;
+        if ( resultReceiver != null ) {
+            resultReceiver.receiveResult(result,error);
+            resultReceiver = null;
         }
     }
 
     @Override
     public void then(Callback resultCB) {
-        while( ! lock.compareAndSet(false,true) ) {
+        if (result != null) {
+            boolean ex = result instanceof Throwable;
+            resultCB.receiveResult(ex ? null:result, ex ? result: null );
+            return;
         }
-        try {
-            if (result != null) {
-                boolean ex = result instanceof Throwable;
-                resultCB.receiveResult(ex ? null:result, ex ? result: null );
-            }
-            resultReceiver = new CallbackWrapper(DispatcherThread.getThreadDispatcher(), resultCB);
-        } finally {
-            lock.set(false);
-        }
+        resultReceiver = resultCB;
     }
 }

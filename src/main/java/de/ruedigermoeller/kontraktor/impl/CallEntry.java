@@ -5,8 +5,7 @@ import java.lang.reflect.Method;
 /**
 * Created by ruedi on 18.05.14.
 */
-public class CallEntry extends FutureImpl {
-    public static final String NULL_RESULT = "__N_U_L_L__";
+public class CallEntry {
     final private Object target;
     final private Method method;
     final private Object[] args;
@@ -27,16 +26,9 @@ public class CallEntry extends FutureImpl {
     }
     public Object[] getArgs() { return args; }
 
-    public Object getResult() {
-        if ( result == NULL_RESULT )
-            return null;
-        return result;
-    }
-
     public boolean isVoid() {
         return isVoid;
     }
-
     public boolean isAnswered() {
         return result != null || !isVoid;
     }
