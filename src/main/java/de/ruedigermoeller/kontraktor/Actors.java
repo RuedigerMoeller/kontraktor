@@ -1,10 +1,12 @@
 package de.ruedigermoeller.kontraktor;
 
-import de.ruedigermoeller.kontraktor.impl.CallbackWrapper;
-import de.ruedigermoeller.kontraktor.impl.ActorProxyFactory;
-import de.ruedigermoeller.kontraktor.impl.DispatcherThread;
+import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
+import de.ruedigermoeller.kontraktor.impl.*;
+import de.ruedigermoeller.kontraktor.impl.Future;
 
 import java.lang.reflect.*;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.*;
 
 /**
@@ -115,8 +117,13 @@ public class Actors {
         return (T) instance.newProxy(actorClazz, instance.newDispatcher(qSiz) );
     }
 
-    public static <T> void CallDelayed( final Callable<T> toCall, Callback<T> resultHandler ) {
+    public static <T> void Execute( final Callable<T> toCall, Callback<T> resultHandler ) {
         instance.runBlockingCall(toCall,resultHandler);
+    }
+
+    @CallerSideMethod
+    public static <T> Future<T> Future( T call ) {
+        return Actor.__lastCall.get();
     }
 
     /**
@@ -126,8 +133,6 @@ public class Actors {
      *
      * Actors.Delayed( 100, () -> { self().doAction( x, y,  ); } );
      *
-     * @param toCall - a Callable to execut in paralell. The result is delivered in the given resultHandler
-     * @param resultHandler - a callback to receive the result of the Callable inside actors thread
      * @param <T>
      */
     public static <T> void Delayed( int millis, final Runnable toRun ) {
@@ -139,6 +144,7 @@ public class Actors {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     protected ExecutorService exec = Executors.newCachedThreadPool();
+    protected Timer delayedCalls = new Timer();
 
     protected Actors() {
         factory = new ActorProxyFactory();
@@ -176,15 +182,9 @@ public class Actors {
     protected Actor newProxy(Class<? extends Actor> clz, DispatcherThread disp ) {
         try {
             Actor res = clz.newInstance();
-            res.dispatcher = disp;
+            res.__dispatcher = disp;
             Actor proxy = getFactory().instantiateProxy(res);
-            Actor yieldProxy = getFactory().instantiateProxy(res);
-            yieldProxy.__isYield = true;
-
             res.__self = proxy;
-            proxy.__yield = yieldProxy;
-            res.__yield = yieldProxy;
-
             disp.actorAdded(res);
             return proxy;
         } catch (Exception e) {

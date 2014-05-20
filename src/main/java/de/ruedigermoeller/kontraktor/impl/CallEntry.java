@@ -5,19 +5,18 @@ import java.lang.reflect.Method;
 /**
 * Created by ruedi on 18.05.14.
 */
-public class CallEntry {
+public class CallEntry extends FutureImpl {
     public static final String NULL_RESULT = "__N_U_L_L__";
     final private Object target;
     final private Method method;
     final private Object[] args;
-    final boolean isYield;
-    private volatile Object result; // FIXME: volatile ?
+    final boolean isVoid;
 
-    public CallEntry(Object actor, Method method, Object[] args, boolean isYield) {
+    public CallEntry(Object actor, Method method, Object[] args, boolean isVoid) {
         this.target = actor;
         this.method = method;
         this.args = args;
-        this.isYield = isYield;
+        this.isVoid = isVoid;
     }
 
     public Object getTarget() {
@@ -34,15 +33,12 @@ public class CallEntry {
         return result;
     }
 
-    public void setResult(Object result) {
-        this.result = result;
-    }
-
-    public boolean isYield() {
-        return isYield;
+    public boolean isVoid() {
+        return isVoid;
     }
 
     public boolean isAnswered() {
-        return result != null || !isYield;
+        return result != null || !isVoid;
     }
+
 }

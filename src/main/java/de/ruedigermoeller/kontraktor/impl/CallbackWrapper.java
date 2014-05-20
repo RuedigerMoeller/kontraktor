@@ -63,7 +63,8 @@ public class CallbackWrapper<T> implements Callback<T> {
             }
         } else {
             int count = 0;
-            while (dispatcher.dispatchCallback(realCallback, receiveRes, new Object[]{result,error})) {
+            CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error}, true);
+            while (dispatcher.dispatchCallback( ce ) ) {
                 dispatcher.yield(count++);
             }
         }

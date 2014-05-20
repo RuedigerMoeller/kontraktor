@@ -24,13 +24,10 @@ package de.ruedigermoeller.kontraktor;
  */
 
 import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
-import de.ruedigermoeller.kontraktor.impl.ActorProxyFactory;
-import de.ruedigermoeller.kontraktor.impl.CallEntry;
-import de.ruedigermoeller.kontraktor.impl.CallbackWrapper;
-import de.ruedigermoeller.kontraktor.impl.DispatcherThread;
+import de.ruedigermoeller.kontraktor.impl.*;
 
 import java.lang.reflect.Method;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
@@ -57,11 +54,10 @@ import java.util.concurrent.*;
  */
 public class Actor {
 
-    public Actor __self;       // internal use
-    public Actor __yield;       // internal use
-    boolean __isYield = false;
-
-    DispatcherThread dispatcher;
+    // internal
+    public static ThreadLocal<CallEntry> __lastCall = new ThreadLocal<>();
+    public Actor __self;
+    DispatcherThread __dispatcher;
 
     /**
      * required by bytecode magic. Use Actors.Channel(..) to construct actor instances
@@ -76,7 +72,7 @@ public class Actor {
         if ( __self == null ) {
             return getActor().getDispatcher();
         }
-        return dispatcher;
+        return __dispatcher;
     }
 
     /**
@@ -89,18 +85,8 @@ public class Actor {
         return (T)__self;
     }
 
-    /**
-     * processes other messages until result of call is avaiable, returns null on void methods.
-     * Avoids the need for callbacks to obtain simple single results.
-     * WARNING: this works LIFO, check documentation before using this. Never use to send slowish
-     * code, as in case of cascading the first yield will be notified last. The LIFO order cannot be
-     * fixed as long the VM does not support continuations.
-     *
-     * @param <T>
-     * @return
-     */
-    @CallerSideMethod public <T extends Actor> T yield() {
-        return (T) __yield;
+    @CallerSideMethod public static <T> Future<T> future( T call ) {
+        return __lastCall.get();
     }
 
     public ActorProxyFactory getFactory() {
@@ -137,10 +123,11 @@ public class Actor {
     ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     @CallerSideMethod public void __dispatcher( DispatcherThread d ) {
-        dispatcher = d;
+        __dispatcher = d;
     }
 
     protected ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
+
     // try to offer an outgoing call to the target actor queue. Runs in Caller Thread
     @CallerSideMethod public Object __dispatchCall( Actor receiver, String methodName, Object args[] ) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
@@ -159,13 +146,14 @@ public class Actor {
             }
         }
 
-        boolean isYieldCall = receiver.__isYield; // && method.getReturnType() != void.class;
+        boolean isVoidCall = method.getReturnType() == void.class;
         CallEntry e = new CallEntry(
                 actor,
                 method,
                 args,
-                isYieldCall
+                isVoidCall
         );
+        __lastCall.set(e);
         while ( actor.getDispatcher().dispatchOnObject(e) ) {
             if ( threadDispatcher != null ) {
                 // FIXME: poll callback queue here
@@ -173,17 +161,6 @@ public class Actor {
             }
             else
                 DispatcherThread.yield(count++);
-        }
-        if (isYieldCall) {
-            if ( threadDispatcher == null ) {
-                // call from outside actor world .. block
-                int answerCount = 0;
-                while( ! e.isAnswered() ) {
-                    DispatcherThread.yield(answerCount++);
-                }
-                return e.getResult();
-            }
-            return threadDispatcher.yieldPoll(e);
         }
         return null;
     }

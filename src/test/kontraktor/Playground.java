@@ -4,8 +4,6 @@ import de.ruedigermoeller.kontraktor.Actor;
 import de.ruedigermoeller.kontraktor.Actors;
 import de.ruedigermoeller.kontraktor.Callback;
 
-import java.net.URL;
-import java.util.Scanner;
 import java.util.concurrent.Callable;
 
 /**
@@ -21,6 +19,9 @@ public class Playground {
         public SampleActor() {
         }
 
+        public String getString() {
+            return "String";
+        }
         public void emptyMethod( Object arg, Object arg1, Object arg2 ) {
             callCount++;
         }
@@ -73,6 +74,13 @@ public class Playground {
 
     public static void main( String arg[] ) throws InterruptedException {
         SampleActor actorA = Actors.AsActor(SampleActor.class);
+
+        actorA.future(actorA.getString()).then(new Callback<String>() {
+            @Override
+            public void receiveResult(String result, Object error) {
+                System.out.println("result:" + error);
+            }
+        });
 
 //        for ( int i : new int[10] ) {
 //            bench(actorA);

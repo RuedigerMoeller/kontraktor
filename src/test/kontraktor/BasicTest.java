@@ -2,6 +2,8 @@ package kontraktor;
 
 import de.ruedigermoeller.kontraktor.*;
 import de.ruedigermoeller.kontraktor.annotations.*;
+import de.ruedigermoeller.kontraktor.impl.*;
+import de.ruedigermoeller.kontraktor.impl.Future;
 import kontraktor.BasicTest.ServiceActor.*;
 import org.junit.Test;
 
@@ -9,7 +11,6 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.LockSupport;
 
 import static de.ruedigermoeller.kontraktor.Actors.*;
 import static org.junit.Assert.assertTrue;
@@ -250,7 +251,62 @@ public class BasicTest {
                         }
                 });
         }
+    }
 
+    public static class FutureTest extends Actor {
+
+        public String getString( String s ) {
+            System.out.println("getter Thread:"+System.identityHashCode(Thread.currentThread()));
+            return s+"_String";
+        }
+
+        public String getStringEx( String s ) {
+            throw new RuntimeException("Ex");
+        }
+
+    }
+
+    public static class FutureTestCaller extends Actor {
+
+        FutureTest ft;
+
+        public void init() {
+            ft = Actors.SpawnActor(FutureTest.class);
+        }
+
+        public void doTestCall(final Future<String> futRes) {
+            System.out.println("caller Thread:"+System.identityHashCode(Thread.currentThread()));
+            future(ft.getString("13")).then(new Callback<String>() {
+                @Override
+                public void receiveResult(String result, Object error) {
+                    System.out.println("result "+result);
+                    System.out.println("caller CB Thread:" + System.identityHashCode(Thread.currentThread()));
+                    futRes.receiveResult(result, WRONG);
+                }
+            });
+        }
+
+    }
+
+    @Test
+    public void testFuture() {
+        FutureTestCaller test = Actors.SpawnActor(FutureTestCaller.class);
+        test.init();
+        Future<String> f = new FutureImpl<>();
+        test.doTestCall(f);
+        f.then(new Callback<String>() {
+            @Override
+            public void receiveResult(String result, Object error) {
+                System.out.println("outer result "+result);
+                System.out.println("outer CB Thread:" + System.identityHashCode(Thread.currentThread()));
+            }
+        });
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     @Test
@@ -272,111 +328,6 @@ public class BasicTest {
             e.printStackTrace();
         }
         assertTrue(success.get()!=1); // if no response (proxy etc) also return true
-    }
-
-
-    static AtomicInteger yieldThreadErrors = new AtomicInteger(0);
-    public static class YieldCallerActor extends Actor {
-
-        YieldService service;
-        int state = 0;
-
-        public void init() {
-            service = Actors.SpawnActor(YieldService.class);
-        }
-
-        public void yieldException() {
-            try {
-                service.yield().yieldException();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                return;
-            }
-            yieldThreadErrors.incrementAndGet();
-        }
-
-        public void mainLoop(int count) {
-            if ( count == 0 ) {
-                return;
-            }
-            final int preState = state;
-
-            String aResult = service.yield().getSomething(state, Thread.currentThread());
-            System.out.println("state post call "+state+" pre:"+preState+" res "+aResult);
-
-            state++;
-            LockSupport.parkNanos(1000 * 1000 * 1); // simulate processing, yielded call is slower
-            self().mainLoop(count-1);
-        }
-
-        @Override
-        protected YieldCallerActor self() {
-            return super.self();
-        }
-
-        public Integer getState() {
-            return state;
-        }
-
-        public void changeState() {
-            state++;
-        }
-
-        @Override
-        public YieldCallerActor yield() {
-            return super.yield();
-        }
-    }
-
-    public static class YieldService extends Actor {
-
-        Thread firstDispatcher;
-        public String getSomething( int i, Thread caller ) {
-            if ( firstDispatcher == null ) {
-                firstDispatcher = Thread.currentThread();
-            } else {
-                if ( firstDispatcher != Thread.currentThread() ) {
-                    yieldThreadErrors.incrementAndGet();
-                }
-                if ( caller == Thread.currentThread() ) {
-                    yieldThreadErrors.incrementAndGet();
-                }
-            }
-            LockSupport.parkNanos(1000*1000*10); // simulate processing
-            return "result"+i;
-        }
-
-        public String yieldException() {
-            throw new RuntimeException("Bla");
-        }
-
-        @Override
-        public YieldService yield() {
-            return super.yield();
-        }
-    }
-
-    @Test
-    public void yieldTest() {
-        YieldCallerActor actor = Actors.SpawnActor(YieldCallerActor.class);
-        actor.init();
-        boolean hadEx = false;
-
-        actor.yieldException();
-
-        actor.mainLoop(5000);
-        for (int i = 0; i<10000; i++) {
-            actor.changeState();
-            LockSupport.parkNanos(1000 * 1000); // simulate processing
-        }
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        System.out.println("Thread errors "+yieldThreadErrors.get());
-        assertTrue(yieldThreadErrors.get()==0);
-        assertTrue(actor.yield().getState()!=0);
     }
 
     @Test

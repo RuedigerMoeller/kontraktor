@@ -79,8 +79,10 @@ public class DispatcherThread extends Thread {
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            if ( target != null )
-                return dispatchCallback(target, method, args);
+            if ( target != null ) {
+                CallEntry ce = new CallEntry(target,method,args,true);
+                return dispatchCallback(ce);
+            }
             return null;
         }
     }
@@ -149,13 +151,12 @@ public class DispatcherThread extends Thread {
         return false;
     }
 
-    public boolean dispatchCallback( Object callback, Method method, Object args[]) {
+    public boolean dispatchCallback( CallEntry ce ) {
         // MT sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
-        CallEntry e = new CallEntry(callback, method, args, false);
         DispatcherThread sender = getThreadDispatcher();
-        if ( ! cbQueue.offer(e) ) {
+        if ( ! cbQueue.offer(ce) ) {
             return true;
         }
         return false;
@@ -166,36 +167,6 @@ public class DispatcherThread extends Thread {
         if ( Thread.currentThread() instanceof DispatcherThread)
             sender = (DispatcherThread) Thread.currentThread();
         return sender;
-    }
-
-    /**
-     * poll queues until callentry is received, then exit
-     * @param e
-     */
-    // FIXME: add timeout
-    public Object yieldPoll(CallEntry e) {
-        int emptyCount = 0;
-        boolean isShutDown = false;
-        while( ! isShutDown ) {
-
-            if ( pollQs() ) {
-                emptyCount = 0;
-            }
-            else {
-                emptyCount++;
-                DispatcherThread.this.yield(emptyCount);
-                if (shutDown) // access volatile only when idle
-                    isShutDown = true;
-            }
-            if ( e.isAnswered() ) {
-                Object result = e.getResult();
-                if ( result instanceof Throwable ) {
-                    throw new RuntimeException((Throwable) result);
-                }
-                return result;
-            }
-        }
-        return null;
     }
 
     public void run() {
@@ -226,12 +197,12 @@ public class DispatcherThread extends Thread {
         if ( poll != null ) {
             try {
                 Object invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
-                if ( poll.isYield() ) {
-                    poll.setResult(invoke);
-                }
+                if ( ! poll.isVoid() )
+                    poll.receiveResult(invoke, WRONG);
                 return true;
             } catch (Exception e) {
-                poll.setResult(e);
+                if ( ! poll.isVoid() )
+                    poll.receiveResult(e, WRONG);
                 if ( e.getCause() != null )
                     e.getCause().printStackTrace();
                 else
