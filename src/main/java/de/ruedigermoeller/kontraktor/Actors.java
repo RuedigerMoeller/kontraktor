@@ -115,8 +115,23 @@ public class Actors {
         return (T) instance.newProxy(actorClazz, instance.newDispatcher(qSiz) );
     }
 
-    public static <T> void Execute( final Callable<T> toCall, Callback<T> resultHandler ) {
+    public static <T> void CallDelayed( final Callable<T> toCall, Callback<T> resultHandler ) {
         instance.runBlockingCall(toCall,resultHandler);
+    }
+
+    /**
+     * schedule an action or call delayed.
+     *
+     * typical use case:
+     *
+     * Actors.Delayed( 100, () -> { self().doAction( x, y,  ); } );
+     *
+     * @param toCall - a Callable to execut in paralell. The result is delivered in the given resultHandler
+     * @param resultHandler - a callback to receive the result of the Callable inside actors thread
+     * @param <T>
+     */
+    public static <T> void Delayed( int millis, final Runnable toRun ) {
+        instance.delayedCall(millis, toRun);
     }
 
     // end static API
@@ -133,6 +148,15 @@ public class Actors {
 
     protected ActorProxyFactory getFactory() {
         return factory;
+    }
+
+    protected <T> void delayedCall( int millis, final Runnable toRun ) {
+        delayedCalls.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                toRun.run();
+            }
+        }, millis);
     }
 
     protected <T> void runBlockingCall( final Callable<T> toCall, Callback<T> resultHandler ) {
