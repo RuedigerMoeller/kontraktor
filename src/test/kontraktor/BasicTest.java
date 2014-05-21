@@ -255,13 +255,9 @@ public class BasicTest {
 
     public static class FutureTest extends Actor {
 
-        public String getString( String s ) {
+        public Future<String> getString( String s ) {
             System.out.println("getter Thread:"+System.identityHashCode(Thread.currentThread()));
-            return s+"_String";
-        }
-
-        public String getStringEx( String s ) {
-            throw new RuntimeException("Ex");
+            return new Result<>(s+"_String");
         }
 
     }
@@ -274,26 +270,50 @@ public class BasicTest {
             ft = Actors.SpawnActor(FutureTest.class);
         }
 
-        public void doTestCall(final Future<String> futRes) {
-            System.out.println("caller Thread:"+System.identityHashCode(Thread.currentThread()));
-            future(ft.getString("13")).then(new Callback<String>() {
-                @Override
-                public void receiveResult(String result, Object error) {
-                    System.out.println("result "+result);
-                    System.out.println("caller CB Thread:" + System.identityHashCode(Thread.currentThread()));
-                    futRes.receiveResult(result, WRONG);
-                }
-            });
+        public Future<String> doTestCall() {
+            final Result<String> stringResult = new Result<>();
+            System.out.println("caller Thread:" + System.identityHashCode(Thread.currentThread()));
+            ft.getString("13")
+                .then(new Callback<String>() {
+                    @Override
+                    public void receiveResult(String result, Object error) {
+                        System.out.println("result " + result);
+                        System.out.println("caller CB Thread:" + System.identityHashCode(Thread.currentThread()));
+                        stringResult.receiveResult(result, null);
+                    }
+                });
+            return stringResult;
         }
 
+        public void doTestCall1(final Future<String> stringResult) {
+            System.out.println("caller Thread:" + System.identityHashCode(Thread.currentThread()));
+            ft.getString("13")
+                    .then(new Callback<String>() {
+                        @Override
+                        public void receiveResult(String result, Object error) {
+                            System.out.println("result " + result);
+                            System.out.println("caller CB Thread:" + System.identityHashCode(Thread.currentThread()));
+                            stringResult.receiveResult(result, null);
+                        }
+                    });
+        }
     }
 
     @Test
     public void testFuture() {
+        FutureTest ft = Actors.SpawnActor(FutureTest.class);
+        ft.getString("oj").then( new Callback<String>() {
+            @Override
+            public void receiveResult(String result, Object error) {
+                System.out.println("simple:" +result);
+            }
+        });
+
         FutureTestCaller test = Actors.SpawnActor(FutureTestCaller.class);
         test.init();
-        Future<String> f = new FutureImpl<>();
-        test.doTestCall(f);
+//        Future<String> f = test.doTestCall();
+        Future<String> f = new Result<>();
+        test.doTestCall1(f);
         f.then(new Callback<String>() {
             @Override
             public void receiveResult(String result, Object error) {
@@ -307,6 +327,8 @@ public class BasicTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        System.out.println("POk");
     }
 
     @Test

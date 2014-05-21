@@ -26,7 +26,7 @@ public class FutureImpl<T> implements Future<T> {
 
     public void receiveResult(Object res, Object error) {
         result = res;
-        error = error;
+        this.error = error;
         if ( resultReceiver != null ) {
             resultReceiver.receiveResult(result,error);
             resultReceiver = null;
@@ -36,8 +36,7 @@ public class FutureImpl<T> implements Future<T> {
     @Override
     public void then(Callback resultCB) {
         if (result != null) {
-            boolean ex = result instanceof Throwable;
-            resultCB.receiveResult(ex ? null:result, ex ? result: null );
+            resultCB.receiveResult( result, error );
             return;
         }
         resultReceiver = resultCB;

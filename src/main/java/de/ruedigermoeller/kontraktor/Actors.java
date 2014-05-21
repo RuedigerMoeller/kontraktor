@@ -1,8 +1,6 @@
 package de.ruedigermoeller.kontraktor;
 
-import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
 import de.ruedigermoeller.kontraktor.impl.*;
-import de.ruedigermoeller.kontraktor.impl.Future;
 
 import java.lang.reflect.*;
 import java.util.Timer;
@@ -64,7 +62,7 @@ public class Actors {
      * @return
      */
     public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz, int qSize) {
-        return (T) instance.newProxy(actorClazz,qSize);
+        return (T) instance.newProxy(actorClazz, qSize);
     }
 
     /**
@@ -119,11 +117,6 @@ public class Actors {
 
     public static <T> void Execute( final Callable<T> toCall, Callback<T> resultHandler ) {
         instance.runBlockingCall(toCall,resultHandler);
-    }
-
-    @CallerSideMethod
-    public static <T> Future<T> Future( T call ) {
-        return Actor.__lastCall.get();
     }
 
     /**

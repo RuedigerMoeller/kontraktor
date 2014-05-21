@@ -80,7 +80,7 @@ public class DispatcherThread extends Thread {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             if ( target != null ) {
-                CallEntry ce = new CallEntry(target,method,args,true);
+                CallEntry ce = new CallEntry(target,method,args);
                 return dispatchCallback(ce);
             }
             return null;
@@ -192,18 +192,18 @@ public class DispatcherThread extends Thread {
     // return true if msg was avaiable
     public boolean pollQs() {
         CallEntry poll = (CallEntry) cbQueue.poll();
-        if (poll==null)
+        if (poll == null)
             poll = (CallEntry) queue.poll();
-        if ( poll != null ) {
+        if (poll != null) {
             try {
                 Object invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
-                if ( ! poll.isVoid() )
-                    poll.receiveResult(invoke, null);
+                if (poll.getFutureCB() != null)
+                    poll.getFutureCB().receiveResult( ((Result)invoke).getResult(), ((Result)invoke).getError());
                 return true;
             } catch (Exception e) {
-                if ( ! poll.isVoid() )
-                    poll.receiveResult( null, e);
-                if ( e.getCause() != null )
+                if (poll.getFutureCB() != null)
+                    poll.getFutureCB().receiveResult(null, e);
+                if (e.getCause() != null)
                     e.getCause().printStackTrace();
                 else
                     e.printStackTrace();

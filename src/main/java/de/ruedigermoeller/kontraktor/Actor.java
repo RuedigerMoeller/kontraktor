@@ -55,7 +55,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Actor {
 
     // internal
-    public static ThreadLocal<CallEntry> __lastCall = new ThreadLocal<>();
     public Actor __self;
     DispatcherThread __dispatcher;
 
@@ -83,10 +82,6 @@ public class Actor {
      */
     protected <T extends Actor> T self() {
         return (T)__self;
-    }
-
-    @CallerSideMethod public static <T> Future<T> future( T call ) {
-        return __lastCall.get();
     }
 
     public ActorProxyFactory getFactory() {
@@ -134,6 +129,7 @@ public class Actor {
         // here sender + receiver are known in a ST context
         Actor actor = receiver.getActor();
         Method method = getCachedMethod(methodName, actor);
+        boolean isFut = method.getReturnType() == Future.class;
 
         int count = 0;
         DispatcherThread threadDispatcher = DispatcherThread.getThreadDispatcher();
@@ -150,10 +146,19 @@ public class Actor {
         CallEntry e = new CallEntry(
                 actor,
                 method,
-                args,
-                isVoidCall
+                args
         );
-        __lastCall.set(e);
+        final Future fut;
+        if (isFut) {
+            fut = new FutureImpl();
+            e.setFutureCB(new CallbackWrapper(threadDispatcher,new Callback() {
+                @Override
+                public void receiveResult(Object result, Object error) {
+                    fut.receiveResult(result,error);
+                }
+            }));
+        } else
+            fut = null;
         while ( actor.getDispatcher().dispatchOnObject(e) ) {
             if ( threadDispatcher != null ) {
                 // FIXME: poll callback queue here
@@ -162,7 +167,7 @@ public class Actor {
             else
                 DispatcherThread.yield(count++);
         }
-        return null;
+        return fut;
     }
 
     private Method getCachedMethod(String methodName, Actor actor) {

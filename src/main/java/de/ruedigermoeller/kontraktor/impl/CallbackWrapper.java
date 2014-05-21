@@ -29,7 +29,7 @@ import java.lang.reflect.Method;
 /**
  * ..
  */
-public class CallbackWrapper<T> implements Callback<T> {
+public class CallbackWrapper<T> implements Future<T> {
 
     static Method receiveRes;
 
@@ -63,10 +63,18 @@ public class CallbackWrapper<T> implements Callback<T> {
             }
         } else {
             int count = 0;
-            CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error}, true);
+            CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error});
             while (dispatcher.dispatchCallback( ce ) ) {
                 dispatcher.yield(count++);
             }
         }
+    }
+
+    @Override
+    public void then(Callback<T> result) {
+        if (realCallback instanceof Future == false)
+            throw new RuntimeException("this is an error.");
+        else
+            ((Future)realCallback).then(result);
     }
 }

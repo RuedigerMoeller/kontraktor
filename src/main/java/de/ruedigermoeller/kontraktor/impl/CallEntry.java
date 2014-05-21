@@ -1,5 +1,7 @@
 package de.ruedigermoeller.kontraktor.impl;
 
+import de.ruedigermoeller.kontraktor.Callback;
+
 import java.lang.reflect.Method;
 
 /**
@@ -9,13 +11,12 @@ public class CallEntry {
     final private Object target;
     final private Method method;
     final private Object[] args;
-    final boolean isVoid;
+    private Callback futureCB;
 
-    public CallEntry(Object actor, Method method, Object[] args, boolean isVoid) {
+    public CallEntry(Object actor, Method method, Object[] args) {
         this.target = actor;
         this.method = method;
         this.args = args;
-        this.isVoid = isVoid;
     }
 
     public Object getTarget() {
@@ -26,11 +27,11 @@ public class CallEntry {
     }
     public Object[] getArgs() { return args; }
 
-    public boolean isVoid() {
-        return isVoid;
-    }
-    public boolean isAnswered() {
-        return result != null || !isVoid;
+    public void setFutureCB(Callback futureCB) {
+        this.futureCB = futureCB;
     }
 
+    public Callback getFutureCB() {
+        return futureCB;
+    }
 }

@@ -3,6 +3,9 @@ package kontraktor;
 import de.ruedigermoeller.kontraktor.Actor;
 import de.ruedigermoeller.kontraktor.Actors;
 import de.ruedigermoeller.kontraktor.Callback;
+import de.ruedigermoeller.kontraktor.impl.Future;
+import de.ruedigermoeller.kontraktor.impl.FutureImpl;
+import de.ruedigermoeller.kontraktor.impl.Result;
 
 import java.util.concurrent.Callable;
 
@@ -19,9 +22,12 @@ public class Playground {
         public SampleActor() {
         }
 
-        public String getString() {
-            return "String";
+        @Override
+        protected SampleActor self() {
+            return super.self();
         }
+
+
         public void emptyMethod( Object arg, Object arg1, Object arg2 ) {
             callCount++;
         }
@@ -60,6 +66,25 @@ public class Playground {
                 result.receiveResult(in + "-result"+" in Thread "+Thread.currentThread().getName(),null);
         }
 
+        public Future<String> getFutureString() {
+            System.out.println("getfutstring thread "+System.identityHashCode(Thread.currentThread()));
+            return new Result<>("FString");
+        }
+
+        public Future<String> concat(final Future<String> pokpok) {
+            final Future<String> resultFuture = new Result();
+            final Thread curt = Thread.currentThread();
+            pokpok.then(new Callback<String>() {
+                @Override
+                public void receiveResult(String result, Object error) {
+                    if (Thread.currentThread()!=curt) throw new RuntimeException("wrong thread");
+                    System.out.println("concat thread "+System.identityHashCode(curt));
+                    result+="POKPOK";
+                    resultFuture.receiveResult(result,null);
+                }
+            });
+            return resultFuture;
+        }
     }
 
     private static void bench(SampleActor actorA) {
@@ -74,11 +99,15 @@ public class Playground {
 
     public static void main( String arg[] ) throws InterruptedException {
         SampleActor actorA = Actors.AsActor(SampleActor.class);
+        final SampleActor actorB = Actors.AsActor(SampleActor.class);
+        actorA.setOther(actorB);
 
-        actorA.future(actorA.getString()).then(new Callback<String>() {
+        final Future<String> futureString = actorA.getFutureString();
+        actorB.concat(futureString).then(new Callback<String>() {
             @Override
             public void receiveResult(String result, Object error) {
-                System.out.println("result:" + error);
+                System.out.println("uter result thread "+System.identityHashCode(Thread.currentThread()));
+                System.out.println("result:" + result);
             }
         });
 
@@ -86,8 +115,6 @@ public class Playground {
 //            bench(actorA);
 //        }
 
-        final SampleActor actorB = Actors.AsActor(SampleActor.class);
-        actorA.setOther(actorB);
         int count = 0;
         for ( int i : new int[10])
         {

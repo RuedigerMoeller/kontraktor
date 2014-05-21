@@ -78,43 +78,6 @@ public class ActorProxyFactory {
         }
     }
 
-    // Object result = other.yield().someCall();
-    //
-    // Yield yield = Actors.Yield(); yield.call(
-    // Actor yield = ref.yield();
-    public <T> T instantiateYieldProxy(Actor target) {
-        try {
-            Class proxyClass = createProxyClass(target.getClass());
-            Constructor[] constructors = proxyClass.getConstructors();
-            T instance = null;
-            try {
-                instance = (T) proxyClass.newInstance();
-            } catch (Exception e) {
-                for (int i = 0; i < constructors.length; i++) {
-                    Constructor constructor = constructors[i];
-                    if ( constructor.getParameterTypes().length == 0) {
-                        constructor.setAccessible(true);
-                        instance = (T) constructor.newInstance();
-                        break;
-                    }
-                    if ( constructor.getParameterTypes().length == 1) {
-                        instance = (T) constructor.newInstance((Class)null);
-                        break;
-                    }
-                }
-                if ( instance == null )
-                    throw e;
-            }
-            Field f = instance.getClass().getField("__target");
-            f.setAccessible(true);
-            f.set(instance, target);
-            target.__self = (Actor) instance;
-            return instance;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     protected <T> Class<T> createProxyClass(Class<T> clazz) throws Exception {
         synchronized (generatedProxyClasses) {
             String proxyName = clazz.getName() + "_ActorProxy";
@@ -185,7 +148,7 @@ public class ActorProxyFactory {
             CtClass returnType = method.getReturnType();
             boolean isCallerSide = // don't touch
                     originalMethod.getAnnotation(CallerSideMethod.class) != null ||
-                    (originalMethod.getName().equals("self") || originalMethod.getName().equals("yield"));
+                    (originalMethod.getName().equals("self") || originalMethod.getName().equals("future"));
             boolean allowed = ((method.getModifiers() & AccessFlag.ABSTRACT) == 0 ) &&
                     (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 &&
                     (method.getModifiers() & AccessFlag.PUBLIC) != 0 &&
@@ -199,8 +162,8 @@ public class ActorProxyFactory {
 
             if (allowed) {
                 boolean isVoid = returnType == CtPrimitiveType.voidType;
-                if (returnType != CtPrimitiveType.voidType && returnType.isPrimitive() ) {
-                    throw new RuntimeException("only void methods or methods returning Objects allowed (no int,long,..))");
+                if (returnType != CtPrimitiveType.voidType && !returnType.getName().equals(Future.class.getName()) ) {
+                    throw new RuntimeException("only void methods or methods returning Future allowed");
                 }
                 String conversion = "";
                 Object[][] availableParameterAnnotations = originalMethod.getAvailableParameterAnnotations();
