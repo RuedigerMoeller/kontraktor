@@ -186,7 +186,6 @@ public class DispatcherThread extends Thread {
         }
         dead = true;
         instanceCount.decrementAndGet();
-        System.out.println("dispatcher finished");
     }
 
     // return true if msg was avaiable
@@ -197,8 +196,18 @@ public class DispatcherThread extends Thread {
         if (poll != null) {
             try {
                 Object invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
-                if (poll.getFutureCB() != null)
-                    poll.getFutureCB().receiveResult( ((Result)invoke).getResult(), ((Result)invoke).getError());
+                if (poll.getFutureCB() != null) {
+                    final Future futureCB = poll.getFutureCB();   // the future of caller side
+                    final Result invokeResult = (Result) invoke;  // the future returned sync from call
+                    invokeResult.then(
+                        new Callback() {
+                               @Override
+                               public void receiveResult(Object result, Object error) {
+                                   futureCB.receiveResult(result, error );
+                               }
+                           }
+                        );
+                }
                 return true;
             } catch (Exception e) {
                 if (poll.getFutureCB() != null)

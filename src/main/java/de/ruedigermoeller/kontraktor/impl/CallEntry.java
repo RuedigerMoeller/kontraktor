@@ -11,7 +11,7 @@ public class CallEntry {
     final private Object target;
     final private Method method;
     final private Object[] args;
-    private Callback futureCB;
+    private Future futureCB;
 
     public CallEntry(Object actor, Method method, Object[] args) {
         this.target = actor;
@@ -27,11 +27,11 @@ public class CallEntry {
     }
     public Object[] getArgs() { return args; }
 
-    public void setFutureCB(Callback futureCB) {
+    public void setFutureCB(Future futureCB) {
         this.futureCB = futureCB;
     }
 
-    public Callback getFutureCB() {
+    public Future getFutureCB() {
         return futureCB;
     }
 }

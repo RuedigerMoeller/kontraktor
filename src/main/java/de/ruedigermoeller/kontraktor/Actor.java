@@ -115,6 +115,25 @@ public class Actor {
         return getActor() != this;
     }
 
+    protected Future<Future[]> yield(Future ... futures) {
+        Result res = new Result();
+        yield(futures,0,res);
+        return res;
+    }
+
+    private void yield(final Future futures[], final int index, final Future result) {
+        if ( index < futures.length ) {
+            futures[index].then(new Callback() {
+                @Override
+                public void receiveResult(Object res, Object error) {
+                    yield(futures, index + 1, result);
+                }
+            });
+        } else {
+            result.receiveResult(futures, null);
+        }
+    }
+
     ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     @CallerSideMethod public void __dispatcher( DispatcherThread d ) {
@@ -150,7 +169,7 @@ public class Actor {
         );
         final Future fut;
         if (isFut) {
-            fut = new FutureImpl();
+            fut = new Result();
             e.setFutureCB(new CallbackWrapper(threadDispatcher,new Callback() {
                 @Override
                 public void receiveResult(Object result, Object error) {

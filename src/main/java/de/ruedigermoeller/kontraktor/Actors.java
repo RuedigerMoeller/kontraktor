@@ -1,6 +1,7 @@
 package de.ruedigermoeller.kontraktor;
 
 import de.ruedigermoeller.kontraktor.impl.*;
+import de.ruedigermoeller.kontraktor.impl.Future;
 
 import java.lang.reflect.*;
 import java.util.Timer;
@@ -132,9 +133,28 @@ public class Actors {
         instance.delayedCall(millis, toRun);
     }
 
+    public static Future<Future[]> Yield(Future ... futures) {
+        Result res = new Result();
+        Yield(futures, 0, res);
+        return res;
+    }
+
     // end static API
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    private static void Yield(final Future futures[], final int index, final Future result) {
+        if ( index < futures.length ) {
+            futures[index].then(new Callback() {
+                @Override
+                public void receiveResult(Object res, Object error) {
+                    Yield(futures, index + 1, result);
+                }
+            });
+        } else {
+            result.receiveResult(futures, null);
+        }
+    }
 
     protected ExecutorService exec = Executors.newCachedThreadPool();
     protected Timer delayedCalls = new Timer();

@@ -7,4 +7,9 @@ import de.ruedigermoeller.kontraktor.Callback;
  */
 public interface Future<T> extends Callback<T> {
     public void then( Callback<T> result );
+
+    /**
+     * @return result if already avaiable
+     */
+    public T getResult();
 }

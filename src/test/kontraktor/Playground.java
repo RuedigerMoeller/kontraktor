@@ -4,7 +4,6 @@ import de.ruedigermoeller.kontraktor.Actor;
 import de.ruedigermoeller.kontraktor.Actors;
 import de.ruedigermoeller.kontraktor.Callback;
 import de.ruedigermoeller.kontraktor.impl.Future;
-import de.ruedigermoeller.kontraktor.impl.FutureImpl;
 import de.ruedigermoeller.kontraktor.impl.Result;
 
 import java.util.concurrent.Callable;

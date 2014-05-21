@@ -77,4 +77,9 @@ public class CallbackWrapper<T> implements Future<T> {
         else
             ((Future)realCallback).then(result);
     }
+
+    @Override
+    public T getResult() {
+        return null;
+    }
 }

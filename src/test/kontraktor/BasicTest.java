@@ -10,7 +10,10 @@ import org.junit.Test;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static de.ruedigermoeller.kontraktor.Actors.*;
 import static org.junit.Assert.assertTrue;
@@ -218,6 +221,7 @@ public class BasicTest {
 
     }
 
+
     @Test
     public void testOverload() {
         try {
@@ -225,8 +229,71 @@ public class BasicTest {
             Overload ov = AsActor(Overload.class);
             assertTrue(false);
         } catch (Exception e) {
+            // expected, cannot overload with argument types, number (too expensive)
+            //e.printStackTrace();
+        }
+    }
+
+
+    public static class SleepActor extends Actor {
+        public Future<Long> sleep() {
+            long millis = (long) (Math.random() * 1000);
+            try {
+                Thread.sleep(millis);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return new Result<>(millis);
+        }
+    }
+
+    public static class SleepCallerActor extends Actor {
+        SleepActor act[];
+        Future<Long> results[];
+
+        public void test() {
+            act = new SleepActor[10];
+            results = new Future[act.length];
+            for (int i = 0; i < act.length; i++) {
+                act[i] = Actors.SpawnActor(SleepActor.class);
+            }
+
+            for (int i = 0; i < act.length; i++) {
+                results[i] = act[i].sleep();
+            }
+
+            yield(results).then(new Callback<Future[]>() {
+                @Override
+                public void receiveResult(Future[] result, Object error) {
+                    System.out.println("now "+System.currentTimeMillis());
+                    for (int i = 0; i < result.length; i++) {
+                        Future future = result[i];
+                        System.out.println("sleep "+i+" "+future.getResult());
+                    }
+                }
+            });
 
         }
+
+        public void stop() {
+            for (int i = 0; i < act.length; i++) {
+                act[i].stop();
+            }
+        }
+
+    }
+
+    @Test
+    public void testYield() {
+        SleepCallerActor act = Actors.SpawnActor(SleepCallerActor.class);
+        System.out.println("now "+System.currentTimeMillis());
+        act.test();
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        act.stop();
     }
 
     public static class TestBlockingAPI extends Actor {
@@ -256,7 +323,6 @@ public class BasicTest {
     public static class FutureTest extends Actor {
 
         public Future<String> getString( String s ) {
-            System.out.println("getter Thread:"+System.identityHashCode(Thread.currentThread()));
             return new Result<>(s+"_String");
         }
 
@@ -271,14 +337,11 @@ public class BasicTest {
         }
 
         public Future<String> doTestCall() {
-            final Result<String> stringResult = new Result<>();
-            System.out.println("caller Thread:" + System.identityHashCode(Thread.currentThread()));
+            final Result<String> stringResult = new Result<String>().setId("doTestCall");
             ft.getString("13")
                 .then(new Callback<String>() {
                     @Override
                     public void receiveResult(String result, Object error) {
-                        System.out.println("result " + result);
-                        System.out.println("caller CB Thread:" + System.identityHashCode(Thread.currentThread()));
                         stringResult.receiveResult(result, null);
                     }
                 });
@@ -286,13 +349,10 @@ public class BasicTest {
         }
 
         public void doTestCall1(final Future<String> stringResult) {
-            System.out.println("caller Thread:" + System.identityHashCode(Thread.currentThread()));
             ft.getString("13")
                     .then(new Callback<String>() {
                         @Override
                         public void receiveResult(String result, Object error) {
-                            System.out.println("result " + result);
-                            System.out.println("caller CB Thread:" + System.identityHashCode(Thread.currentThread()));
                             stringResult.receiveResult(result, null);
                         }
                     });
@@ -302,23 +362,36 @@ public class BasicTest {
     @Test
     public void testFuture() {
         FutureTest ft = Actors.SpawnActor(FutureTest.class);
-        ft.getString("oj").then( new Callback<String>() {
+        final AtomicReference<String> outerresult0 = new AtomicReference<>();
+        ft.getString("oj").then(new Callback<String>() {
             @Override
             public void receiveResult(String result, Object error) {
-                System.out.println("simple:" +result);
+                System.out.println("simple:" + result);
+                outerresult0.set(result);
             }
         });
 
         FutureTestCaller test = Actors.SpawnActor(FutureTestCaller.class);
         test.init();
-//        Future<String> f = test.doTestCall();
+
+        final AtomicReference<String> outerresult = new AtomicReference<>();
+        test.doTestCall()
+            .then(new Callback<String>() {
+                @Override
+                public void receiveResult(String result, Object error) {
+                    System.out.println("outer result " + result);
+                    outerresult.set(result);
+                }
+            });
+
+        final AtomicReference<String> outerresult1 = new AtomicReference<>();
         Future<String> f = new Result<>();
         test.doTestCall1(f);
         f.then(new Callback<String>() {
             @Override
             public void receiveResult(String result, Object error) {
-                System.out.println("outer result "+result);
-                System.out.println("outer CB Thread:" + System.identityHashCode(Thread.currentThread()));
+                System.out.println("outer1 result:"+result);
+                outerresult1.set(result);
             }
         });
 
@@ -328,7 +401,55 @@ public class BasicTest {
             e.printStackTrace();
         }
 
-        System.out.println("POk");
+        assertTrue(outerresult0.get().equals("oj_String"));
+        assertTrue(outerresult.get().equals("13_String"));
+        assertTrue(outerresult1.get().equals("13_String"));
+    }
+
+
+    public static class DelayedTest extends Actor {
+
+        public void delay(long started) {
+            delay_threads.set(getDispatcher() == Thread.currentThread());
+            if (!delay_threads.get()) {
+                System.out.println("current thread " + Thread.currentThread().getName());
+                System.out.println("dispatcher " + getDispatcher().getName());
+            }
+            System.out.println("ThreadsCheck:" + delay_threads.get());
+            long l = System.currentTimeMillis() - started;
+            System.out.println("DELAY:" + l);
+            delay_time.set(l);
+        }
+    }
+
+    final static AtomicBoolean delay_threads = new AtomicBoolean(false);
+    final static AtomicLong delay_time = new AtomicLong(0);
+
+    public static class DelayedCaller extends Actor {
+
+        public void delay() {
+            final DelayedTest test = Actors.SpawnActor(DelayedTest.class);
+            final long now = System.currentTimeMillis();
+            Actors.Delayed(100,new Runnable() {
+                @Override
+                public void run() {
+                    test.delay(now);
+                }
+            });
+        }
+    }
+
+    @Test
+    public void testDelayed() {
+        DelayedCaller caller = Actors.SpawnActor(DelayedCaller.class);
+        caller.delay();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        assertTrue(delay_threads.get());
+        assertTrue(delay_time.get() >= 100 && delay_time.get() < 120);
     }
 
     @Test
