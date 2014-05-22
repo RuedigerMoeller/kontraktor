@@ -116,22 +116,7 @@ public class Actor {
     }
 
     protected Future<Future[]> yield(Future ... futures) {
-        Result res = new Result();
-        yield(futures,0,res);
-        return res;
-    }
-
-    private void yield(final Future futures[], final int index, final Future result) {
-        if ( index < futures.length ) {
-            futures[index].then(new Callback() {
-                @Override
-                public void receiveResult(Object res, Object error) {
-                    yield(futures, index + 1, result);
-                }
-            });
-        } else {
-            result.receiveResult(futures, null);
-        }
+        return Actors.Yield(futures);
     }
 
     ////////////////////////////// internals ///////////////////////////////////////////////////////////////////

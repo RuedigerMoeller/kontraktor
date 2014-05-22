@@ -79,6 +79,8 @@ public class DispatcherThread extends Thread {
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if ( method.getDeclaringClass() == Object.class )
+                return method.invoke(proxy,args);
             if ( target != null ) {
                 CallEntry ce = new CallEntry(target,method,args);
                 return dispatchCallback(ce);
