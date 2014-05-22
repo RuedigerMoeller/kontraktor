@@ -1,4 +1,4 @@
-package de.ruedigermoeller.kontraktor.impl;
+package de.ruedigermoeller.kontraktor;
 
 import de.ruedigermoeller.kontraktor.Callback;
 

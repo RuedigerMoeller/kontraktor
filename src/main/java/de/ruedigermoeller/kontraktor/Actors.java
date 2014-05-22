@@ -1,7 +1,6 @@
 package de.ruedigermoeller.kontraktor;
 
 import de.ruedigermoeller.kontraktor.impl.*;
-import de.ruedigermoeller.kontraktor.impl.Future;
 
 import java.lang.reflect.*;
 import java.util.Timer;

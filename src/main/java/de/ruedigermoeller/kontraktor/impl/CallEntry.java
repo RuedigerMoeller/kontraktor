@@ -1,6 +1,6 @@
 package de.ruedigermoeller.kontraktor.impl;
 
-import de.ruedigermoeller.kontraktor.Callback;
+import de.ruedigermoeller.kontraktor.Future;
 
 import java.lang.reflect.Method;
 

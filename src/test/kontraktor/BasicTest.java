@@ -3,7 +3,7 @@ package kontraktor;
 import de.ruedigermoeller.kontraktor.*;
 import de.ruedigermoeller.kontraktor.annotations.*;
 import de.ruedigermoeller.kontraktor.impl.*;
-import de.ruedigermoeller.kontraktor.impl.Future;
+import de.ruedigermoeller.kontraktor.Future;
 import kontraktor.BasicTest.ServiceActor.*;
 import org.junit.Test;
 
@@ -272,6 +272,8 @@ public class BasicTest {
                     }
                 }
             });
+
+            act[0].sleep().then(act[1].sleep());
 
         }
 
