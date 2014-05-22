@@ -14,6 +14,7 @@ public class Result<T> implements Future<T> {
     protected Object error;
     protected Callback resultReceiver;
     protected boolean hadResult;
+    protected boolean hasFired = false;
     // not necessary in many cases and also increases cost
     // of allocation. However for now stay safe and optimize
     // from a proven-working implementation
@@ -50,6 +51,9 @@ public class Result<T> implements Future<T> {
         while( !lock.compareAndSet(false,true) ) {}
         resultReceiver = resultCB;
         if (hadResult) {
+            if ( hasFired )
+                throw new RuntimeException("Double result received on future");
+            hasFired = true;
             lock.set(false);
             resultCB.receiveResult( result, error );
             return;
@@ -70,6 +74,9 @@ public class Result<T> implements Future<T> {
             while( !lock.compareAndSet(false,true) ) {}
             hadResult = true;
             if ( resultReceiver != null ) {
+                if ( hasFired )
+                    throw new RuntimeException("Double result received on future");
+                hasFired = true;
                 lock.set(false);
                 resultReceiver.receiveResult(result,error);
                 resultReceiver = null;

@@ -236,6 +236,13 @@ public class BasicTest {
 
 
     public static class SleepActor extends Actor {
+
+        private String name;
+
+        public void init(String na) {
+            name = na;
+        }
+
         public Future<Long> sleep() {
             long millis = (long) (Math.random() * 1000);
             try {
@@ -244,6 +251,10 @@ public class BasicTest {
                 e.printStackTrace();
             }
             return new Result<>(millis);
+        }
+        public Future<String> say( String s ) {
+            System.out.println(name+" says '"+s+"'");
+            return new Result<>("result "+s);
         }
     }
 
@@ -256,6 +267,7 @@ public class BasicTest {
             results = new Future[act.length];
             for (int i = 0; i < act.length; i++) {
                 act[i] = Actors.SpawnActor(SleepActor.class);
+                act[i].init("("+i+")");
             }
 
             for (int i = 0; i < act.length; i++) {
@@ -273,7 +285,7 @@ public class BasicTest {
                 }
             });
 
-            act[0].sleep().then(act[1].sleep());
+            //seq().say("0"); seq().bly(pok); seq().get();
 
         }
 
