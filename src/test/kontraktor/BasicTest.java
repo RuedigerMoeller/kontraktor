@@ -23,7 +23,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class BasicTest {
 
-    public static class Bench extends Actor {
+    public static class Bench extends Actor<Bench> {
         protected int count;
         public void benchCall( String a, String b, String c) {
             count++;
@@ -88,7 +88,7 @@ public class BasicTest {
         public void callbackReceived( Object callback );
     }
 
-    public static class ServiceActor extends Actor {
+    public static class ServiceActor extends Actor<ServiceActor> {
 
         public static interface DataAccess {
             HashMap getMap();
@@ -123,7 +123,7 @@ public class BasicTest {
 
     }
 
-    public static class MyActor extends Actor {
+    public static class MyActor extends Actor<MyActor> {
 
         ServiceActor service;
         volatile int success = 0;
@@ -235,7 +235,7 @@ public class BasicTest {
     }
 
 
-    public static class SleepActor extends Actor {
+    public static class SleepActor extends Actor<SleepActor> {
 
         private String name;
 
@@ -252,13 +252,15 @@ public class BasicTest {
             }
             return new Result<>(millis);
         }
+
         public Future<String> say( String s ) {
             System.out.println(name+" says '"+s+"'");
             return new Result<>("result "+s);
         }
+
     }
 
-    public static class SleepCallerActor extends Actor {
+    public static class SleepCallerActor extends Actor<SleepCallerActor> {
         SleepActor act[];
         Future<Long> results[];
 
@@ -285,17 +287,18 @@ public class BasicTest {
                 }
             });
 
-            //seq().say("0"); seq().bly(pok); seq().get();
-
         }
 
         public void stop() {
             for (int i = 0; i < act.length; i++) {
                 act[i].stop();
             }
+             super.stop();
         }
 
+
     }
+
 
     @Test
     public void testYield() {
@@ -310,7 +313,7 @@ public class BasicTest {
         act.stop();
     }
 
-    public static class TestBlockingAPI extends Actor {
+    public static class TestBlockingAPI extends Actor<TestBlockingAPI> {
 
         public void get( final String url, final Callback<String> content ) {
             final Thread myThread = getDispatcher();
@@ -334,7 +337,7 @@ public class BasicTest {
         }
     }
 
-    public static class FutureTest extends Actor {
+    public static class FutureTest extends Actor<FutureTest> {
 
         public Future<String> getString( String s ) {
             return new Result<>(s+"_String");
@@ -342,7 +345,7 @@ public class BasicTest {
 
     }
 
-    public static class FutureTestCaller extends Actor {
+    public static class FutureTestCaller extends Actor<FutureTestCaller> {
 
         FutureTest ft;
 
@@ -421,7 +424,7 @@ public class BasicTest {
     }
 
 
-    public static class DelayedTest extends Actor {
+    public static class DelayedTest extends Actor<DelayedTest> {
 
         public void delay(long started) {
             delay_threads.set(getDispatcher() == Thread.currentThread());

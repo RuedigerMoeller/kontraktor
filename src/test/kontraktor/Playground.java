@@ -13,19 +13,13 @@ import java.util.concurrent.Callable;
  */
 public class Playground {
 
-    public static class SampleActor extends Actor {
+    public static class SampleActor extends Actor<SampleActor> {
 
         SampleActor other;
         int callCount;
 
         public SampleActor() {
         }
-
-        @Override
-        protected SampleActor self() {
-            return super.self();
-        }
-
 
         public void emptyMethod( Object arg, Object arg1, Object arg2 ) {
             callCount++;

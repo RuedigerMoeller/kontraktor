@@ -52,7 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Use Actors.Exec in case you need to do blocking calls (e.g. synchronous requests)
  *
  */
-public class Actor {
+public class Actor<SELF extends Actor> {
 
     // internal
     public Actor __self;
@@ -80,8 +80,8 @@ public class Actor {
      * @param <T>
      * @return
      */
-    protected <T extends Actor> T self() {
-        return (T)__self;
+    protected SELF self() {
+        return (SELF)__self;
     }
 
     public ActorProxyFactory getFactory() {
@@ -91,8 +91,8 @@ public class Actor {
     /**
      * @return if this is an actorproxy, return the underlying actor instance, else return this
      */
-    public Actor getActor() {
-        return this;
+    public SELF getActor() {
+        return (SELF) this;
     }
 
     /**
@@ -104,7 +104,7 @@ public class Actor {
     }
 
     public void executeInActorThread( ActorRunnable toRun, Callback cb ) {
-        toRun.run( getActorAccess(), getActor(), cb);
+        toRun.run(getActorAccess(), getActor(), cb);
     }
 
     protected Object getActorAccess() {
