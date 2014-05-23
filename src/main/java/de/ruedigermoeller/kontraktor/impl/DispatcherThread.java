@@ -82,7 +82,7 @@ public class DispatcherThread extends Thread {
             if ( method.getDeclaringClass() == Object.class )
                 return method.invoke(proxy,args);
             if ( target != null ) {
-                CallEntry ce = new CallEntry(target,method,args);
+                CallEntry ce = new CallEntry(target,method,args,DispatcherThread.this);
                 return dispatchCallback(ce);
             }
             return null;
@@ -139,6 +139,31 @@ public class DispatcherThread extends Thread {
             shutDown();
         }
     }
+
+    public static IFuture pollDispatchOnObject(DispatcherThread currentThreadDispatcher, CallEntry e) {
+        final IFuture fut;
+        if (e.hasFutureResult()) {
+            fut = new Future();
+            e.setFutureCB(new CallbackWrapper(currentThreadDispatcher,new Callback() {
+                @Override
+                public void receiveResult(Object result, Object error) {
+                    fut.receiveResult(result,error);
+                }
+            }));
+        } else
+            fut = null;
+        int count = 0;
+        while ( e.getDispatcher().dispatchOnObject(e) ) {
+            if ( currentThreadDispatcher != null ) {
+                // FIXME: poll callback queue here
+                currentThreadDispatcher.yield(count++);
+            }
+            else
+                DispatcherThread.yield(count++);
+        }
+        return fut;
+    }
+
 
     /**
      * @return true if blocked and polling channels should be done
@@ -199,8 +224,8 @@ public class DispatcherThread extends Thread {
             try {
                 Object invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
                 if (poll.getFutureCB() != null) {
-                    final Future futureCB = poll.getFutureCB();   // the future of caller side
-                    final Result invokeResult = (Result) invoke;  // the future returned sync from call
+                    final IFuture futureCB = poll.getFutureCB();   // the future of caller side
+                    final Future invokeResult = (Future) invoke;  // the future returned sync from call
                     invokeResult.then(
                         new Callback() {
                                @Override

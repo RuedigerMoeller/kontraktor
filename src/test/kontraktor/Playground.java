@@ -3,8 +3,8 @@ package kontraktor;
 import de.ruedigermoeller.kontraktor.Actor;
 import de.ruedigermoeller.kontraktor.Actors;
 import de.ruedigermoeller.kontraktor.Callback;
+import de.ruedigermoeller.kontraktor.IFuture;
 import de.ruedigermoeller.kontraktor.Future;
-import de.ruedigermoeller.kontraktor.impl.Result;
 
 import java.util.concurrent.Callable;
 
@@ -59,13 +59,13 @@ public class Playground {
                 result.receiveResult(in + "-result"+" in Thread "+Thread.currentThread().getName(),null);
         }
 
-        public Future<String> getFutureString() {
+        public IFuture<String> getFutureString() {
             System.out.println("getfutstring thread "+System.identityHashCode(Thread.currentThread()));
-            return new Result<>("FString");
+            return new Future<>("FString");
         }
 
-        public Future<String> concat(final Future<String> pokpok) {
-            final Future<String> resultFuture = new Result();
+        public IFuture<String> concat(final IFuture<String> pokpok) {
+            final IFuture<String> resultFuture = new Future();
             final Thread curt = Thread.currentThread();
             pokpok.then(new Callback<String>() {
                 @Override
@@ -95,7 +95,7 @@ public class Playground {
         final SampleActor actorB = Actors.AsActor(SampleActor.class);
         actorA.setOther(actorB);
 
-        final Future<String> futureString = actorA.getFutureString();
+        final IFuture<String> futureString = actorA.getFutureString();
         actorB.concat(futureString).then(new Callback<String>() {
             @Override
             public void receiveResult(String result, Object error) {

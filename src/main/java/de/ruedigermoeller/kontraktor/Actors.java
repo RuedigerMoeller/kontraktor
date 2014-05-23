@@ -1,6 +1,7 @@
 package de.ruedigermoeller.kontraktor;
 
 import de.ruedigermoeller.kontraktor.impl.*;
+import de.ruedigermoeller.kontraktor.Future;
 
 import java.lang.reflect.*;
 import java.util.Timer;
@@ -132,8 +133,8 @@ public class Actors {
         instance.delayedCall(millis, toRun);
     }
 
-    public static Future<Future[]> Yield(Future ... futures) {
-        Result res = new Result();
+    public static IFuture<IFuture[]> Yield(IFuture... futures) {
+        Future res = new Future();
         Yield(futures, 0, res);
         return res;
     }
@@ -142,7 +143,7 @@ public class Actors {
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static void Yield(final Future futures[], final int index, final Future result) {
+    private static void Yield(final IFuture futures[], final int index, final IFuture result) {
         if ( index < futures.length ) {
             futures[index].then(new Callback() {
                 @Override
@@ -193,12 +194,20 @@ public class Actors {
 
     protected Actor newProxy(Class<? extends Actor> clz, DispatcherThread disp ) {
         try {
-            Actor res = clz.newInstance();
-            res.__dispatcher = disp;
-            Actor proxy = getFactory().instantiateProxy(res);
-            res.__self = proxy;
-            disp.actorAdded(res);
-            return proxy;
+            Actor realActor = clz.newInstance();
+            realActor.__dispatcher = disp;
+
+            Actor selfproxy = getFactory().instantiateProxy(realActor);
+            realActor.__self = selfproxy;
+
+            Actor seqproxy = getFactory().instantiateProxy(realActor);
+            seqproxy.__isSeq = true;
+
+            realActor.__seq = seqproxy;
+            selfproxy.__seq = seqproxy;
+
+            disp.actorAdded(realActor);
+            return selfproxy;
         } catch (Exception e) {
             if ( e instanceof RuntimeException)
                 throw (RuntimeException)e;

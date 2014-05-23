@@ -162,7 +162,7 @@ public class ActorProxyFactory {
 
             if (allowed) {
                 boolean isVoid = returnType == CtPrimitiveType.voidType;
-                if (returnType != CtPrimitiveType.voidType && !returnType.getName().equals(Future.class.getName()) ) {
+                if (returnType != CtPrimitiveType.voidType && !returnType.getName().equals(IFuture.class.getName()) ) {
                     throw new RuntimeException("only void methods or methods returning Future allowed");
                 }
                 String conversion = "";
@@ -186,7 +186,7 @@ public class ActorProxyFactory {
                         }
                     }
                 }
-                String call ="__target.__dispatchCall( this, \""+method.getName()+"\", args );";
+                String call = "__target.__dispatchCall( this, \""+method.getName()+"\", args );";
                 if ( ! isVoid ) {
                     call = "return ("+originalMethod.getReturnType().getName()+") (Object)"+call;
                 }

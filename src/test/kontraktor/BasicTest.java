@@ -2,7 +2,7 @@ package kontraktor;
 
 import de.ruedigermoeller.kontraktor.*;
 import de.ruedigermoeller.kontraktor.annotations.*;
-import de.ruedigermoeller.kontraktor.impl.*;
+import de.ruedigermoeller.kontraktor.IFuture;
 import de.ruedigermoeller.kontraktor.Future;
 import kontraktor.BasicTest.ServiceActor.*;
 import org.junit.Test;
@@ -107,6 +107,37 @@ public class BasicTest {
             callback.callbackReceived("Hallo");
         }
 
+        public IFuture<String> concat(String other) {
+            return new Future<>("Hallo"+other);
+        }
+
+        public void sequenceTest() {
+            concat("1").then(new Callback<String>() {
+                @Override
+                public void receiveResult(String result, Object error) {
+                    System.out.println("result0 "+result);
+                }
+            }).then( new Callback() {
+                @Override
+                public void receiveResult(Object result, Object error) {
+                    System.out.println("finished");
+                }
+            }).then(new Callback() {
+                @Override
+                public void receiveResult(Object result, Object error) {
+                    System.out.println("Doch nicht");
+                }
+            });
+//            $().concat("1").then( $().concat("2") );
+//            $().concat("2");
+//            sequence().exec().then(new Callback<Future[]>() {
+//                @Override
+//                public void receiveResult(Future[] result, Object error) {
+//                    System.out.println(Arrays.toString(result));
+//                }
+//            });
+        }
+
         public void getStringAnnotated( @InThread SomeCallbackHandler callback ) {
             callback.callbackReceived("Hallo");
         }
@@ -132,7 +163,10 @@ public class BasicTest {
             this.service = service;
         }
 
+
         public void callbackTest() {
+
+            service.sequenceTest();
 
             final Thread callerThread = Thread.currentThread();
             service.getString(InThread(new SomeCallbackHandler() {
@@ -204,9 +238,11 @@ public class BasicTest {
         cbActor.callbackTest();
 
         Thread.sleep(1000);
+
         cbActor.stop();
         assertTrue(((MyActor)cbActor.getActor()).success == 4);
         service.stop();
+
     }
 
     public static class Overload extends Actor {
@@ -243,30 +279,30 @@ public class BasicTest {
             name = na;
         }
 
-        public Future<Long> sleep() {
+        public IFuture<Long> sleep() {
             long millis = (long) (Math.random() * 1000);
             try {
                 Thread.sleep(millis);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            return new Result<>(millis);
+            return new Future<>(millis);
         }
 
-        public Future<String> say( String s ) {
+        public IFuture<String> say( String s ) {
             System.out.println(name+" says '"+s+"'");
-            return new Result<>("result "+s);
+            return new Future<>("result "+s);
         }
 
     }
 
     public static class SleepCallerActor extends Actor<SleepCallerActor> {
         SleepActor act[];
-        Future<Long> results[];
+        IFuture<Long> results[];
 
         public void test() {
             act = new SleepActor[10];
-            results = new Future[act.length];
+            results = new IFuture[act.length];
             for (int i = 0; i < act.length; i++) {
                 act[i] = Actors.SpawnActor(SleepActor.class);
                 act[i].init("("+i+")");
@@ -276,12 +312,12 @@ public class BasicTest {
                 results[i] = act[i].sleep();
             }
 
-            yield(results).then(new Callback<Future[]>() {
+            yield(results).then(new Callback<IFuture[]>() {
                 @Override
-                public void receiveResult(Future[] result, Object error) {
+                public void receiveResult(IFuture[] result, Object error) {
                     System.out.println("now "+System.currentTimeMillis());
                     for (int i = 0; i < result.length; i++) {
-                        Future future = result[i];
+                        IFuture future = result[i];
                         System.out.println("sleep "+i+" "+future.getResult());
                     }
                 }
@@ -339,8 +375,8 @@ public class BasicTest {
 
     public static class FutureTest extends Actor<FutureTest> {
 
-        public Future<String> getString( String s ) {
-            return new Result<>(s+"_String");
+        public IFuture<String> getString( String s ) {
+            return new Future<>(s+"_String");
         }
 
     }
@@ -353,8 +389,8 @@ public class BasicTest {
             ft = Actors.SpawnActor(FutureTest.class);
         }
 
-        public Future<String> doTestCall() {
-            final Result<String> stringResult = new Result<String>().setId("doTestCall");
+        public IFuture<String> doTestCall() {
+            final Future<String> stringResult = new Future<String>().setId("doTestCall");
             ft.getString("13")
                 .then(new Callback<String>() {
                     @Override
@@ -365,7 +401,7 @@ public class BasicTest {
             return stringResult;
         }
 
-        public void doTestCall1(final Future<String> stringResult) {
+        public void doTestCall1(final IFuture<String> stringResult) {
             ft.getString("13")
                     .then(new Callback<String>() {
                         @Override
@@ -402,7 +438,7 @@ public class BasicTest {
             });
 
         final AtomicReference<String> outerresult1 = new AtomicReference<>();
-        Future<String> f = new Result<>();
+        IFuture<String> f = new Future<>();
         test.doTestCall1(f);
         f.then(new Callback<String>() {
             @Override

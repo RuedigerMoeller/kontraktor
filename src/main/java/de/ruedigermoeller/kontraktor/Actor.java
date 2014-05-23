@@ -27,6 +27,8 @@ import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
 import de.ruedigermoeller.kontraktor.impl.*;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -54,8 +56,19 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Actor<SELF extends Actor> {
 
+    static ThreadLocal<List<Message>> methodSequence = new ThreadLocal<List<Message>>() {
+        @Override protected List<Message> initialValue() { return new ArrayList<>(); }
+    };
+    public static MessageSequence sequence() {
+        List<Message> res = methodSequence.get();
+        methodSequence.set(new ArrayList<Message>());
+        return new MessageSequence(res);
+    }
+
     // internal
     public Actor __self;
+    public Actor __seq;
+    public boolean __isSeq = false;
     DispatcherThread __dispatcher;
 
     /**
@@ -77,12 +90,13 @@ public class Actor<SELF extends Actor> {
     /**
      * use this to call public methods using actor-dispatch instead of direct in-thread call.
      * Important: When passing references out of your actor, always pass 'self()' instead of this !
-     * @param <T>
      * @return
      */
     protected SELF self() {
         return (SELF)__self;
     }
+
+    public SELF $() { return (SELF) __seq; }
 
     public ActorProxyFactory getFactory() {
         return Actors.instance.getFactory();
@@ -115,7 +129,7 @@ public class Actor<SELF extends Actor> {
         return getActor() != this;
     }
 
-    protected Future<Future[]> yield(Future ... futures) {
+    protected IFuture<IFuture[]> yield(IFuture... futures) {
         return Actors.Yield(futures);
     }
 
@@ -133,7 +147,6 @@ public class Actor<SELF extends Actor> {
         // here sender + receiver are known in a ST context
         Actor actor = receiver.getActor();
         Method method = getCachedMethod(methodName, actor);
-        boolean isFut = method.getReturnType() == Future.class;
 
         int count = 0;
         DispatcherThread threadDispatcher = DispatcherThread.getThreadDispatcher();
@@ -146,32 +159,17 @@ public class Actor<SELF extends Actor> {
             }
         }
 
-        boolean isVoidCall = method.getReturnType() == void.class;
         CallEntry e = new CallEntry(
                 actor,
                 method,
-                args
+                args,
+                actor.getDispatcher()
         );
-        final Future fut;
-        if (isFut) {
-            fut = new Result();
-            e.setFutureCB(new CallbackWrapper(threadDispatcher,new Callback() {
-                @Override
-                public void receiveResult(Object result, Object error) {
-                    fut.receiveResult(result,error);
-                }
-            }));
-        } else
-            fut = null;
-        while ( actor.getDispatcher().dispatchOnObject(e) ) {
-            if ( threadDispatcher != null ) {
-                // FIXME: poll callback queue here
-                threadDispatcher.yield(count++);
-            }
-            else
-                DispatcherThread.yield(count++);
+        if ( receiver.__isSeq ) {
+            methodSequence.get().add(e);
+            return null;
         }
-        return fut;
+        return DispatcherThread.pollDispatchOnObject(threadDispatcher, e);
     }
 
     private Method getCachedMethod(String methodName, Actor actor) {

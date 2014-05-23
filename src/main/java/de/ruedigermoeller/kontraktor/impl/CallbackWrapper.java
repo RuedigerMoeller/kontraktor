@@ -1,7 +1,7 @@
 package de.ruedigermoeller.kontraktor.impl;
 
 import de.ruedigermoeller.kontraktor.Callback;
-import de.ruedigermoeller.kontraktor.Future;
+import de.ruedigermoeller.kontraktor.IFuture;
 
 import java.lang.reflect.Method;
 
@@ -30,7 +30,7 @@ import java.lang.reflect.Method;
 /**
  * ..
  */
-public class CallbackWrapper<T> implements Future<T> {
+public class CallbackWrapper<T> implements IFuture<T> {
 
     static Method receiveRes;
 
@@ -63,8 +63,8 @@ public class CallbackWrapper<T> implements Future<T> {
                 e.printStackTrace();
             }
         } else {
+            CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error}, dispatcher);
             int count = 0;
-            CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error});
             while (dispatcher.dispatchCallback( ce ) ) {
                 dispatcher.yield(count++);
             }
@@ -72,11 +72,11 @@ public class CallbackWrapper<T> implements Future<T> {
     }
 
     @Override
-    public void then(Callback<T> result) {
-        if (realCallback instanceof Future == false)
+    public IFuture then(Callback<T> result) {
+        if (realCallback instanceof IFuture == false)
             throw new RuntimeException("this is an error.");
         else
-            ((Future)realCallback).then(result);
+            return ((IFuture)realCallback).then(result);
     }
 
     @Override
