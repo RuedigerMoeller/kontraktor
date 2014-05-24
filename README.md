@@ -25,14 +25,14 @@ Kontraktor is work in progress, but 1.0 should be near. It's only 9 classes + so
 E.g.
 
 ```java
-    public static class BenchSub extends Actor {
+    public static class BenchSub extends Actor<BenchSub> {
         int count;
         
         public void benchCall(String a, String b, String c) {
             count++;
         }
           
-        public void getResult( Callback<Integer> cb ) {
+        public Future<Integer> getResult() {
             cb.receiveResult(count,null);
         }
     }
@@ -44,12 +44,7 @@ E.g.
             bsProxy.benchCall("u", "o", null); // actually enqueues
         }
         // all communication is async
-        bsProxy.getResult( new Callback<Integer>() {
-            @Override
-            public void receiveResult(Integer result, Object error) {
-                bs.stop();
-            }
-        });
+        bsProxy.getResult().then( (res,err) -> bs.stop(); );
     }
 ```
 
