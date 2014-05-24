@@ -2,6 +2,7 @@ package de.ruedigermoeller.kontraktor;
 
 import de.ruedigermoeller.kontraktor.Future;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -9,6 +10,14 @@ import java.util.List;
  */
 public class MessageSequence {
     List<Message> messages;
+
+    public MessageSequence(Message msg, Object ... targets) {
+        messages = new ArrayList<>();
+        for (int i = 0; i < targets.length; i++) {
+            Object target = targets[i];
+            messages.add(msg.withTarget(target,true));
+        }
+    }
 
     public MessageSequence(List<Message> messages) {
         this.messages = messages;

@@ -1,7 +1,6 @@
 package de.ruedigermoeller.kontraktor.impl;
 
-import de.ruedigermoeller.kontraktor.IFuture;
-import de.ruedigermoeller.kontraktor.Message;
+import de.ruedigermoeller.kontraktor.*;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -39,6 +38,43 @@ public class CallEntry<T> implements Message<T> {
     @Override
     public IFuture send() {
         return DispatcherThread.pollDispatchOnObject(DispatcherThread.getThreadDispatcher(), this);
+    }
+
+    @Override
+    public IFuture send(T target) {
+        return withTarget(target,true).send();
+    }
+
+    public IFuture yield(T... targets) {
+        return new MessageSequence(this, targets).yield();
+    }
+
+    public IFuture exec(T... targets) {
+        return new MessageSequence(this, targets).exec();
+    }
+
+    public Message copy() {
+        return withTarget(target, true);
+    }
+
+    public Message withTarget(T newTarget) {
+        return withTarget(target, false);
+    }
+
+    public Message withTarget(T newTarget, boolean copyArgs) {
+        DispatcherThread newDispatcher = dispatcher;
+        if ( newTarget instanceof ActorProxy )
+            newTarget = (T) ((ActorProxy) newTarget).getActor();
+        if ( newTarget instanceof Actor) {
+            newDispatcher = ((Actor) newTarget).getDispatcher();
+        }
+        if ( copyArgs ) {
+            Object argCopy[] = new Object[args.length];
+            System.arraycopy(args, 0, argCopy, 0, args.length);
+            return new CallEntry(newTarget, method, argCopy, newDispatcher);
+        } else {
+            return new CallEntry(newTarget, method, args, newDispatcher);
+        }
     }
 
     public boolean hasFutureResult() {

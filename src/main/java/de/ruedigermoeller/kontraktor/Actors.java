@@ -105,6 +105,17 @@ public class Actors {
         return (T) instance.newProxy(actorClazz, instance.newDispatcher(-1) );
     }
 
+    public static <T extends Actor> T $$( Class<T> clz ) {
+        try {
+            T seqproxy = instance.getFactory().instantiateProxy(clz.newInstance());
+            seqproxy.__isSeq = true;
+            return seqproxy;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     /**
      * create a new actor with a newly created DispatcherThread
      * @param actorClazz

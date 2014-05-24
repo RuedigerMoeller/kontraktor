@@ -111,33 +111,6 @@ public class BasicTest {
             return new Future<>("Hallo"+other);
         }
 
-        public void sequenceTest() {
-            concat("1").then(new Callback<String>() {
-                @Override
-                public void receiveResult(String result, Object error) {
-                    System.out.println("result0 "+result);
-                }
-            }).then( new Callback() {
-                @Override
-                public void receiveResult(Object result, Object error) {
-                    System.out.println("finished");
-                }
-            }).then(new Callback() {
-                @Override
-                public void receiveResult(Object result, Object error) {
-                    System.out.println("Doch nicht");
-                }
-            });
-//            $().concat("1").then( $().concat("2") );
-//            $().concat("2");
-//            sequence().exec().then(new Callback<Future[]>() {
-//                @Override
-//                public void receiveResult(Future[] result, Object error) {
-//                    System.out.println(Arrays.toString(result));
-//                }
-//            });
-        }
-
         public void getStringAnnotated( @InThread SomeCallbackHandler callback ) {
             callback.callbackReceived("Hallo");
         }
@@ -165,8 +138,6 @@ public class BasicTest {
 
 
         public void callbackTest() {
-
-            service.sequenceTest();
 
             final Thread callerThread = Thread.currentThread();
             service.getString(InThread(new SomeCallbackHandler() {
@@ -275,8 +246,13 @@ public class BasicTest {
 
         private String name;
 
-        public void init(String na) {
+        public IFuture init(String na) {
             name = na;
+            return new Future(na);
+        }
+
+        public IFuture<String> getName() {
+            return new Future<>(name);
         }
 
         public IFuture<Long> sleep() {
@@ -524,6 +500,82 @@ public class BasicTest {
             e.printStackTrace();
         }
         assertTrue(success.get()!=1); // if no response (proxy etc) also return true
+    }
+
+
+    public static class FutureSequenceActor extends Actor<FutureSequenceActor> {
+
+        public IFuture run() {
+
+            final Future mresult = new Future();
+
+            final SleepActor sleepers[] = new SleepActor[4];
+            for (int i = 0; i < sleepers.length; i++) {
+                sleepers[i] = SpawnActor(SleepActor.class);
+            }
+
+
+
+            final IFuture<IFuture[]> finished = new Future<>();
+
+            msg($$(SleepActor.class).init("saved message"))
+            .yield(sleepers)
+            .then(new Callback<IFuture[]>() {
+                @Override
+                public void receiveResult(IFuture[] result, Object error) {
+                    System.out.println("yield done");
+                }
+            }).then(new Callback() {
+                @Override
+                public void receiveResult(Object result, Object error) {
+                    System.out.println("start getting names");
+//                    yield( sleepers[0].getName(),
+//                           sleepers[1].getName(),
+//                           sleepers[2].getName(),
+//                           sleepers[3].getName()
+//                         ).then(finished);
+                    // same:
+                    msg( $$(SleepActor.class).getName() ).yield( sleepers ).then( finished );
+                }
+            });
+
+            finished.then(new Callback<IFuture[]>() {
+                @Override
+                public void receiveResult(IFuture[] result, Object error) {
+                    System.out.println("finished, checking results");
+                    for (int i = 0; i < result.length; i++) {
+                        IFuture iFuture = result[i];
+                        assertTrue("saved message".equals(iFuture.getResult()));
+                    }
+                }
+            }).then(new Callback() {
+                @Override
+                public void receiveResult(Object result, Object error) {
+                    mresult.receiveResult("void",null);
+                    for (int i = 0; i < sleepers.length; i++) {
+                        SleepActor sleeper = sleepers[i];
+                        sleeper.stop();
+                    }
+                    System.out.println("--stopped--");
+                }
+            });
+            return mresult;
+        }
+
+    }
+
+
+    @Test
+    public void futureSequenceTest() throws InterruptedException {
+        FutureSequenceActor fut = SpawnActor(FutureSequenceActor.class);
+        final CountDownLatch latch = new CountDownLatch(1);
+        fut.run().then(new Callback() {
+            @Override
+            public void receiveResult(Object result, Object error) {
+                latch.countDown();
+            }
+        });
+        latch.await();
     }
 
     @Test

@@ -59,7 +59,22 @@ public class Actor<SELF extends Actor> {
     static ThreadLocal<List<Message>> methodSequence = new ThreadLocal<List<Message>>() {
         @Override protected List<Message> initialValue() { return new ArrayList<>(); }
     };
-    public static MessageSequence sequence() {
+
+    public static MessageSequence currentSequence() {
+        List<Message> res = methodSequence.get();
+        methodSequence.set(new ArrayList<Message>());
+        return new MessageSequence(res);
+    }
+
+    public static Message currentMsg() {
+        return currentSequence().first();
+    }
+
+    public static Message msg( IFuture call ) {
+        return currentSequence().first();
+    }
+
+    public static MessageSequence seq( IFuture ... calls ) {
         List<Message> res = methodSequence.get();
         methodSequence.set(new ArrayList<Message>());
         return new MessageSequence(res);
@@ -81,7 +96,7 @@ public class Actor<SELF extends Actor> {
      * @return the DispatcherThread of this actor
      */
     public DispatcherThread getDispatcher() {
-        if ( __self == null ) {
+        if ( __self == null && getActor() != this ) {
             return getActor().getDispatcher();
         }
         return __dispatcher;
