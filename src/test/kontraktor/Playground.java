@@ -1,10 +1,7 @@
 package kontraktor;
 
-import de.ruedigermoeller.kontraktor.Actor;
-import de.ruedigermoeller.kontraktor.Actors;
-import de.ruedigermoeller.kontraktor.Callback;
-import de.ruedigermoeller.kontraktor.IFuture;
-import de.ruedigermoeller.kontraktor.Future;
+import de.ruedigermoeller.kontraktor.*;
+import de.ruedigermoeller.kontraktor.Promise;
 
 import java.util.concurrent.Callable;
 
@@ -40,16 +37,15 @@ public class Playground {
                         public String call() throws Exception {
                             return "TEST"; //new Scanner(new URL("http://www.spiegel.de").openStream(), "UTF-8").useDelimiter("\\A").next();
                         }
-                    },
-                    new Callback<String>() {
-                        public void receiveResult(String result, Object error) {
-                            if (t != Thread.currentThread()) {
-                                System.out.println("Ooops !");
-                            }
-                            System.out.println("received website id:" + id + " size:" + result.length());
-                        }
                     }
-            );
+            ).then( new Callback<String>() {
+                public void receiveResult(String result, Object error) {
+                    if (t != Thread.currentThread()) {
+                        System.out.println("Ooops !");
+                    }
+                    System.out.println("received website id:" + id + " size:" + result.length());
+                }
+            });
         }
 
         public void service( String in, Callback<String> result ) {
@@ -59,13 +55,13 @@ public class Playground {
                 result.receiveResult(in + "-result"+" in Thread "+Thread.currentThread().getName(),null);
         }
 
-        public IFuture<String> getFutureString() {
+        public Future<String> getFutureString() {
             System.out.println("getfutstring thread "+System.identityHashCode(Thread.currentThread()));
-            return new Future<>("FString");
+            return new Promise<>("FString");
         }
 
-        public IFuture<String> concat(final IFuture<String> pokpok) {
-            final IFuture<String> resultFuture = new Future();
+        public Future<String> concat(final Future<String> pokpok) {
+            final Future<String> resultFuture = new Promise();
             final Thread curt = Thread.currentThread();
             pokpok.then(new Callback<String>() {
                 @Override
@@ -95,7 +91,7 @@ public class Playground {
         final SampleActor actorB = Actors.AsActor(SampleActor.class);
         actorA.setOther(actorB);
 
-        final IFuture<String> futureString = actorA.getFutureString();
+        final Future<String> futureString = actorA.getFutureString();
         actorB.concat(futureString).then(new Callback<String>() {
             @Override
             public void receiveResult(String result, Object error) {

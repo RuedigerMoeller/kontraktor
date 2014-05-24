@@ -70,11 +70,11 @@ public class Actor<SELF extends Actor> {
         return currentSequence().first();
     }
 
-    public static Message msg( IFuture call ) {
+    public static Message msg( Future call ) {
         return currentSequence().first();
     }
 
-    public static MessageSequence seq( IFuture ... calls ) {
+    public static MessageSequence seq( Future... calls ) {
         List<Message> res = methodSequence.get();
         methodSequence.set(new ArrayList<Message>());
         return new MessageSequence(res);
@@ -144,7 +144,7 @@ public class Actor<SELF extends Actor> {
         return getActor() != this;
     }
 
-    protected IFuture<IFuture[]> yield(IFuture... futures) {
+    protected Future<Future[]> yield(Future... futures) {
         return Actors.Yield(futures);
     }
 
@@ -156,7 +156,7 @@ public class Actor<SELF extends Actor> {
 
     protected ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
 
-    // try to offer an outgoing call to the target actor queue. Runs in Caller Thread
+    // dispatch an outgoing call to the target actor queue. Runs in Caller Thread
     @CallerSideMethod public Object __dispatchCall( Actor receiver, String methodName, Object args[] ) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context

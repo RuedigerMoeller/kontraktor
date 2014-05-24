@@ -140,10 +140,10 @@ public class DispatcherThread extends Thread {
         }
     }
 
-    public static IFuture pollDispatchOnObject(DispatcherThread currentThreadDispatcher, CallEntry e) {
-        final IFuture fut;
+    public static Future pollDispatchOnObject(DispatcherThread currentThreadDispatcher, CallEntry e) {
+        final Future fut;
         if (e.hasFutureResult()) {
-            fut = new Future();
+            fut = new Promise();
             e.setFutureCB(new CallbackWrapper(currentThreadDispatcher,new Callback() {
                 @Override
                 public void receiveResult(Object result, Object error) {
@@ -224,8 +224,8 @@ public class DispatcherThread extends Thread {
             try {
                 Object invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
                 if (poll.getFutureCB() != null) {
-                    final IFuture futureCB = poll.getFutureCB();   // the future of caller side
-                    final Future invokeResult = (Future) invoke;  // the future returned sync from call
+                    final Future futureCB = poll.getFutureCB();   // the future of caller side
+                    final Promise invokeResult = (Promise) invoke;  // the future returned sync from call
                     invokeResult.then(
                         new Callback() {
                                @Override

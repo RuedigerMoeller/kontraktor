@@ -1,7 +1,6 @@
 package de.ruedigermoeller.kontraktor;
 
 import de.ruedigermoeller.kontraktor.impl.*;
-import de.ruedigermoeller.kontraktor.Future;
 
 import java.lang.reflect.*;
 import java.util.Timer;
@@ -127,8 +126,10 @@ public class Actors {
         return (T) instance.newProxy(actorClazz, instance.newDispatcher(qSiz) );
     }
 
-    public static <T> void Execute( final Callable<T> toCall, Callback<T> resultHandler ) {
-        instance.runBlockingCall(toCall,resultHandler);
+    public static <T> Future<T> Execute( final Callable<T> toCall ) {
+        Promise<T> prom = new Promise<>();
+        instance.runBlockingCall(toCall,prom);
+        return prom;
     }
 
     /**
@@ -144,8 +145,8 @@ public class Actors {
         instance.delayedCall(millis, toRun);
     }
 
-    public static IFuture<IFuture[]> Yield(IFuture... futures) {
-        Future res = new Future();
+    public static Future<Future[]> Yield(Future... futures) {
+        Promise res = new Promise();
         Yield(futures, 0, res);
         return res;
     }
@@ -154,7 +155,7 @@ public class Actors {
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static void Yield(final IFuture futures[], final int index, final IFuture result) {
+    private static void Yield(final Future futures[], final int index, final Future result) {
         if ( index < futures.length ) {
             futures[index].then(new Callback() {
                 @Override

@@ -5,6 +5,6 @@ package de.ruedigermoeller.kontraktor;
  */
 public interface Filter<IN,OUT> {
 
-    public OUT filter( IN in );
+    public Future<OUT> filter( IN result, Object error );
 
 }

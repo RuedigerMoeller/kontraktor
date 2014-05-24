@@ -1,7 +1,8 @@
 package de.ruedigermoeller.kontraktor.impl;
 
 import de.ruedigermoeller.kontraktor.Callback;
-import de.ruedigermoeller.kontraktor.IFuture;
+import de.ruedigermoeller.kontraktor.Filter;
+import de.ruedigermoeller.kontraktor.Future;
 
 import java.lang.reflect.Method;
 
@@ -30,7 +31,7 @@ import java.lang.reflect.Method;
 /**
  * ..
  */
-public class CallbackWrapper<T> implements IFuture<T> {
+public class CallbackWrapper<T> implements Future<T> {
 
     static Method receiveRes;
 
@@ -72,15 +73,26 @@ public class CallbackWrapper<T> implements IFuture<T> {
     }
 
     @Override
-    public IFuture then(Callback<T> result) {
-        if (realCallback instanceof IFuture == false)
+    public Future then(Callback<T> result) {
+        if (realCallback instanceof Future == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((IFuture)realCallback).then(result);
+            return ((Future)realCallback).then(result);
+    }
+
+    @Override
+    public <OUT> Future<OUT> filter(Filter<T, OUT> filter) {
+        if (realCallback instanceof Future == false)
+            throw new RuntimeException("this is an error.");
+        else
+            return ((Future)realCallback).filter(filter);
     }
 
     @Override
     public T getResult() {
-        return null;
+        if (realCallback instanceof Future == false)
+            return null;
+        else
+            return (T) ((Future)realCallback).getResult();
     }
 }

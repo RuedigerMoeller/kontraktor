@@ -12,7 +12,7 @@ public class CallEntry<T> implements Message<T> {
     final private T target;
     final private Method method;
     final private Object[] args;
-    private IFuture futureCB;
+    private Future futureCB;
     private DispatcherThread dispatcher;
 
     public CallEntry(T actor, Method method, Object[] args, DispatcherThread disp) {
@@ -36,20 +36,20 @@ public class CallEntry<T> implements Message<T> {
     }
 
     @Override
-    public IFuture send() {
+    public Future send() {
         return DispatcherThread.pollDispatchOnObject(DispatcherThread.getThreadDispatcher(), this);
     }
 
     @Override
-    public IFuture send(T target) {
+    public Future send(T target) {
         return withTarget(target,true).send();
     }
 
-    public IFuture yield(T... targets) {
+    public Future yield(T... targets) {
         return new MessageSequence(this, targets).yield();
     }
 
-    public IFuture exec(T... targets) {
+    public Future exec(T... targets) {
         return new MessageSequence(this, targets).exec();
     }
 
@@ -78,13 +78,13 @@ public class CallEntry<T> implements Message<T> {
     }
 
     public boolean hasFutureResult() {
-        return method.getReturnType() == IFuture.class;
+        return method.getReturnType() == Future.class;
     }
 
-    public void setFutureCB(IFuture futureCB) {
+    public void setFutureCB(Future futureCB) {
         this.futureCB = futureCB;
     }
-    public IFuture getFutureCB() {
+    public Future getFutureCB() {
         return futureCB;
     }
 

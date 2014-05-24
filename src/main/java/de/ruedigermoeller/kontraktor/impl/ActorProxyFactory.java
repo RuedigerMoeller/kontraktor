@@ -162,7 +162,7 @@ public class ActorProxyFactory {
 
             if (allowed) {
                 boolean isVoid = returnType == CtPrimitiveType.voidType;
-                if (returnType != CtPrimitiveType.voidType && !returnType.getName().equals(IFuture.class.getName()) ) {
+                if (returnType != CtPrimitiveType.voidType && !returnType.getName().equals(Future.class.getName()) ) {
                     throw new RuntimeException("only void methods or methods returning IFuture allowed");
                 }
                 String conversion = "";

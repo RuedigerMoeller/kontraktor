@@ -1,9 +1,9 @@
 package kontraktor;
 
 import de.ruedigermoeller.kontraktor.*;
-import de.ruedigermoeller.kontraktor.annotations.*;
-import de.ruedigermoeller.kontraktor.IFuture;
 import de.ruedigermoeller.kontraktor.Future;
+import de.ruedigermoeller.kontraktor.annotations.*;
+import de.ruedigermoeller.kontraktor.Promise;
 import kontraktor.BasicTest.ServiceActor.*;
 import org.junit.Test;
 
@@ -107,8 +107,8 @@ public class BasicTest {
             callback.callbackReceived("Hallo");
         }
 
-        public IFuture<String> concat(String other) {
-            return new Future<>("Hallo"+other);
+        public Future<String> concat(String other) {
+            return new Promise<>("Hallo"+other);
         }
 
         public void getStringAnnotated( @InThread SomeCallbackHandler callback ) {
@@ -246,39 +246,39 @@ public class BasicTest {
 
         private String name;
 
-        public IFuture init(String na) {
+        public Future init(String na) {
             name = na;
-            return new Future(na);
+            return new Promise(na);
         }
 
-        public IFuture<String> getName() {
-            return new Future<>(name);
+        public Future<String> getName() {
+            return new Promise<>(name);
         }
 
-        public IFuture<Long> sleep() {
+        public Future<Long> sleep() {
             long millis = (long) (Math.random() * 1000);
             try {
                 Thread.sleep(millis);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            return new Future<>(millis);
+            return new Promise<>(millis);
         }
 
-        public IFuture<String> say( String s ) {
+        public Future<String> say( String s ) {
             System.out.println(name+" says '"+s+"'");
-            return new Future<>("result "+s);
+            return new Promise<>("result "+s);
         }
 
     }
 
     public static class SleepCallerActor extends Actor<SleepCallerActor> {
         SleepActor act[];
-        IFuture<Long> results[];
+        Future<Long> results[];
 
         public void test() {
             act = new SleepActor[10];
-            results = new IFuture[act.length];
+            results = new Future[act.length];
             for (int i = 0; i < act.length; i++) {
                 act[i] = Actors.SpawnActor(SleepActor.class);
                 act[i].init("("+i+")");
@@ -288,12 +288,12 @@ public class BasicTest {
                 results[i] = act[i].sleep();
             }
 
-            yield(results).then(new Callback<IFuture[]>() {
+            yield(results).then(new Callback<Future[]>() {
                 @Override
-                public void receiveResult(IFuture[] result, Object error) {
+                public void receiveResult(Future[] result, Object error) {
                     System.out.println("now "+System.currentTimeMillis());
                     for (int i = 0; i < result.length; i++) {
-                        IFuture future = result[i];
+                        Future future = result[i];
                         System.out.println("sleep "+i+" "+future.getResult());
                     }
                 }
@@ -330,29 +330,29 @@ public class BasicTest {
         public void get( final String url, final Callback<String> content ) {
             final Thread myThread = getDispatcher();
             Actors.Execute(
-                    new Callable<String>() {
-                        @Override
-                        public String call() throws Exception {
-                            return new Scanner( new URL(url).openStream(), "UTF-8" ).useDelimiter("\\A").next();
+                new Callable<String>() {
+                    @Override
+                    public String call() throws Exception {
+                        return new Scanner( new URL(url).openStream(), "UTF-8" ).useDelimiter("\\A").next();
+                    }
+                }).then(
+                new Callback<String>() {
+                    @Override
+                    public void receiveResult(String result, Object error) {
+                        if ( Thread.currentThread() == myThread ) {
+                            content.receiveResult(result,null);
+                        } else {
+                            content.receiveResult(null, "wrong thread");
                         }
-                    },
-                    new Callback<String>() {
-                        @Override
-                        public void receiveResult(String result, Object error) {
-                            if ( Thread.currentThread() == myThread ) {
-                                content.receiveResult(result,null);
-                            } else {
-                                content.receiveResult(null, "wrong thread");
-                            }
-                        }
-                });
+                    }
+            });
         }
     }
 
     public static class FutureTest extends Actor<FutureTest> {
 
-        public IFuture<String> getString( String s ) {
-            return new Future<>(s+"_String");
+        public Future<String> getString( String s ) {
+            return new Promise<>(s+"_String");
         }
 
     }
@@ -365,8 +365,8 @@ public class BasicTest {
             ft = Actors.SpawnActor(FutureTest.class);
         }
 
-        public IFuture<String> doTestCall() {
-            final Future<String> stringResult = new Future<String>().setId("doTestCall");
+        public Future<String> doTestCall() {
+            final Promise<String> stringResult = new Promise<String>().setId("doTestCall");
             ft.getString("13")
                 .then(new Callback<String>() {
                     @Override
@@ -377,7 +377,7 @@ public class BasicTest {
             return stringResult;
         }
 
-        public void doTestCall1(final IFuture<String> stringResult) {
+        public void doTestCall1(final Future<String> stringResult) {
             ft.getString("13")
                     .then(new Callback<String>() {
                         @Override
@@ -414,7 +414,7 @@ public class BasicTest {
             });
 
         final AtomicReference<String> outerresult1 = new AtomicReference<>();
-        IFuture<String> f = new Future<>();
+        Future<String> f = new Promise<>();
         test.doTestCall1(f);
         f.then(new Callback<String>() {
             @Override
@@ -505,9 +505,9 @@ public class BasicTest {
 
     public static class FutureSequenceActor extends Actor<FutureSequenceActor> {
 
-        public IFuture run() {
+        public Future run() {
 
-            final Future mresult = new Future();
+            final Promise mresult = new Promise();
 
             final SleepActor sleepers[] = new SleepActor[4];
             for (int i = 0; i < sleepers.length; i++) {
@@ -516,13 +516,13 @@ public class BasicTest {
 
 
 
-            final IFuture<IFuture[]> finished = new Future<>();
+            final Future<Future[]> finished = new Promise<>();
 
             msg($$(SleepActor.class).init("saved message"))
             .yield(sleepers)
-            .then(new Callback<IFuture[]>() {
+            .then(new Callback<Future[]>() {
                 @Override
-                public void receiveResult(IFuture[] result, Object error) {
+                public void receiveResult(Future[] result, Object error) {
                     System.out.println("yield done");
                 }
             }).then(new Callback() {
@@ -539,13 +539,13 @@ public class BasicTest {
                 }
             });
 
-            finished.then(new Callback<IFuture[]>() {
+            finished.then(new Callback<Future[]>() {
                 @Override
-                public void receiveResult(IFuture[] result, Object error) {
+                public void receiveResult(Future[] result, Object error) {
                     System.out.println("finished, checking results");
                     for (int i = 0; i < result.length; i++) {
-                        IFuture iFuture = result[i];
-                        assertTrue("saved message".equals(iFuture.getResult()));
+                        Future future = result[i];
+                        assertTrue("saved message".equals(future.getResult()));
                     }
                 }
             }).then(new Callback() {
@@ -562,6 +562,9 @@ public class BasicTest {
             return mresult;
         }
 
+        public Future<String> testFunc(String s) {
+            return new Promise(s+s);
+        }
     }
 
 
@@ -569,6 +572,43 @@ public class BasicTest {
     public void futureSequenceTest() throws InterruptedException {
         FutureSequenceActor fut = SpawnActor(FutureSequenceActor.class);
         final CountDownLatch latch = new CountDownLatch(1);
+
+        fut.testFunc("A").then(new Callback<String>() {
+            @Override
+            public void receiveResult(String result, Object error) {
+                System.out.println("received:"+result);
+            }
+        }).then(new Callback() {
+            @Override
+            public void receiveResult(Object result, Object error) {
+                System.out.println("received 1:"+result);
+            }
+        }).filter(new Filter() {
+            @Override
+            public Future filter(final Object result, Object error) {
+                System.out.println("filter a in " + result);
+                Promise res = new Promise();
+                Execute( new Callable<Object>() {
+                    @Override
+                    public Object call() throws Exception {
+                        return result + "_fa";
+                    }
+                }).then(res);
+                return res;
+            }
+        }).filter(new Filter() {
+            @Override
+            public Future filter(Object result, Object error) {
+                System.out.println("filter b in " + result);
+                return new Promise(result + "_fb");
+            }
+        }).then(new Callback() {
+            @Override
+            public void receiveResult(Object result, Object error) {
+                System.out.println("finally "+result);
+            }
+        });
+
         fut.run().then(new Callback() {
             @Override
             public void receiveResult(Object result, Object error) {

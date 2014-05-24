@@ -21,10 +21,10 @@ public interface Message<T> {
      */
     public Object[] getArgs();
     public DispatcherThread getDispatcher();
-    public IFuture send();
-    public IFuture send(T target);
-    public IFuture yield(T ... targets);
-    public IFuture exec(T ... targets);
+    public Future send();
+    public Future send(T target);
+    public Future yield(T ... targets);
+    public Future exec(T ... targets);
 
     /**
      * @return the same message, but with copied argument array.
