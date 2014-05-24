@@ -44,7 +44,7 @@ E.g.
             bsProxy.benchCall("u", "o", null); // actually enqueues
         }
         // all communication is async
-        bsProxy.getResult().then( (res,err) -> bs.stop(); );
+        bsProxy.getResult().then( (res,err) -> bs.stop() );
     }
 ```
 
