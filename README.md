@@ -20,7 +20,6 @@ with code completion and refactoring of modern IDEs.
 
 Kontraktor uses runtime-generated (javassist) proxy instances which put all calls to the proxy onto a queue. A DispatcherThread then dequeues method invocations (=messages) ensuring single-threadedness of actor execution.
 
-Kontraktor is work in progress, but 1.0 should be near. It's only 9 classes + some annotations.
 
 E.g.
 
