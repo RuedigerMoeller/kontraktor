@@ -33,7 +33,7 @@ E.g.
         }
           
         public Future<Integer> getResult() {
-            cb.receiveResult(count,null);
+            return new Promise(count);
         }
     }
 
