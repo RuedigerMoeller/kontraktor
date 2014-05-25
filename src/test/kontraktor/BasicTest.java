@@ -327,7 +327,8 @@ public class BasicTest {
 
     public static class TestBlockingAPI extends Actor<TestBlockingAPI> {
 
-        public void get( final String url, final Callback<String> content ) {
+        public Future<String> get( final String url ) {
+            final Promise<String> content = new Promise();
             final Thread myThread = getDispatcher();
             Actors.Execute(
                 new Callable<String>() {
@@ -346,6 +347,7 @@ public class BasicTest {
                         }
                     }
             });
+            return content;
         }
     }
 
@@ -485,13 +487,13 @@ public class BasicTest {
     public void testBlockingCall() {
         final AtomicInteger success = new AtomicInteger(0);
         TestBlockingAPI actor = AsActor(TestBlockingAPI.class);
-        actor.get("http://www.google.com", new Callback<String>() {
+        actor.get("http://www.google.com" ).then( new Callback<String>() {
             @Override
             public void receiveResult(String result, Object error) {
-                if ( error != null )
-                    success.set(1);
-                else
-                    success.set(2);
+            if ( error != null )
+                success.set(1);
+            else
+                success.set(2);
             }
         });
         try {
