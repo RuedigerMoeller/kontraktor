@@ -1,10 +1,12 @@
 kontraktor
 ==========
 
-lightweight and efficient Actor/(CSP) implementation in Java. The threading model implemented has many similarities to node.js and go's model of concurrency.
+lightweight and efficient Actor/(CSP) implementation in Java. The threading model implemented has many similarities to node.js, go's and Dart's model of concurrency.
 
 Kontraktor implements a typed actor model to avoid message definition+handling boilerplate code. Additionally this integrates well
 with code completion and refactoring of modern IDEs.
+
+Requires JDK 1.7+, but JDK 8 is recommended as readability is much better with lambda's and now optional "final" modifier.
 
 [Full Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-documentation) is work in progress,
 
@@ -20,20 +22,19 @@ with code completion and refactoring of modern IDEs.
 
 Kontraktor uses runtime-generated (javassist) proxy instances which put all calls to the proxy onto a queue. A DispatcherThread then dequeues method invocations (=messages) ensuring single-threadedness of actor execution.
 
-Kontraktor is work in progress, but 1.0 should be near. It's only 9 classes + some annotations.
 
 E.g.
 
 ```java
-    public static class BenchSub extends Actor {
+    public static class BenchSub extends Actor<BenchSub> {
         int count;
         
         public void benchCall(String a, String b, String c) {
             count++;
         }
           
-        public void getResult( Callback<Integer> cb ) {
-            cb.receiveResult(count,null);
+        public Future<Integer> getResult() {
+            return new Promise(count);
         }
     }
 
@@ -44,12 +45,7 @@ E.g.
             bsProxy.benchCall("u", "o", null); // actually enqueues
         }
         // all communication is async
-        bsProxy.getResult( new Callback<Integer>() {
-            @Override
-            public void receiveResult(Integer result, Object error) {
-                bs.stop();
-            }
-        });
+        bsProxy.getResult().then( (res,err) -> bs.stop() );
     }
 ```
 
