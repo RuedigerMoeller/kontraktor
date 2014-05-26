@@ -14,7 +14,7 @@
     <artifactId>kontraktor</artifactId>
     <version>1.11</version>
 
-    <description>a light weight, high speed actors</description>
+    <description>a light weight, high speed actors lib</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
 
     <licenses>
