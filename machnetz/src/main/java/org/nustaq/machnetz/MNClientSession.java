@@ -1,6 +1,7 @@
 package org.nustaq.machnetz;
 
 import de.ruedigermoeller.kontraktor.Actor;
+import de.ruedigermoeller.kontraktor.annotations.*;
 import io.netty.channel.ChannelHandlerContext;
 import org.nustaq.webserver.ClientSession;
 
@@ -9,24 +10,28 @@ import org.nustaq.webserver.ClientSession;
  */
 public class MNClientSession extends Actor<MNClientSession> implements ClientSession {
     MachNetz server; // FIXME: iface
+    int sessionId;
 
-    public void init(MachNetz machNetz) {
+    public void $init(MachNetz machNetz, int sessionId) {
         server = machNetz;
     }
 
-    public void onOpen(ChannelHandlerContext ctx) {
+    @CallerSideMethod
+    public int getSessionId() { return getActor().sessionId; }
+
+    public void $onOpen(ChannelHandlerContext ctx) {
 
     }
 
-    public void onClose(ChannelHandlerContext ctx) {
+    public void $onClose(ChannelHandlerContext ctx) {
 
     }
 
-    public void onTextMessage(ChannelHandlerContext ctx, String text) {
+    public void $onTextMessage(ChannelHandlerContext ctx, String text) {
 
     }
 
-    public void onBinaryMessage(ChannelHandlerContext ctx, byte[] buffer) {
+    public void $onBinaryMessage(ChannelHandlerContext ctx, byte[] buffer) {
 
     }
 

@@ -163,7 +163,7 @@ public class ActorProxyFactory {
             if (allowed) {
                 boolean isVoid = returnType == CtPrimitiveType.voidType;
                 if (returnType != CtPrimitiveType.voidType && !returnType.getName().equals(Future.class.getName()) ) {
-                    throw new RuntimeException("only void methods or methods returning IFuture allowed");
+                    throw new RuntimeException("only void methods or methods returning Future allowed");
                 }
                 String conversion = "";
                 Object[][] availableParameterAnnotations = originalMethod.getAvailableParameterAnnotations();
@@ -284,7 +284,7 @@ public class ActorProxyFactory {
         for (int i = methods0.length-1; i >= 0; i-- ) {
             CtMethod method = methods0[i];
             String str = toString(method);
-            if (alreadypresent.contains(str)) {
+            if (alreadypresent.contains(str)||method.getName().startsWith("access$")) {
                 methods0[i] = null;
             } else {
                 String key = method.getName();

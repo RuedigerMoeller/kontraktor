@@ -10,6 +10,7 @@ import org.nustaq.webserver.ClientSession;
 import org.nustaq.webserver.WebSocketHttpServer;
 
 import java.io.File;
+import java.util.concurrent.atomic.*;
 
 /**
  * Created by ruedi on 25.05.14.
@@ -38,7 +39,7 @@ public class MachNetz extends WebSocketHttpServer {
         if ( session == null ) {
             logger.warning("onOpen without session");
         } else {
-            session.onOpen( ctx );
+            session.$onOpen(ctx);
         }
     }
 
@@ -48,7 +49,7 @@ public class MachNetz extends WebSocketHttpServer {
         if ( session == null ) {
             logger.warning("onClose without session");
         } else {
-            session.onClose( ctx );
+            session.$onClose(ctx);
         }
     }
 
@@ -58,7 +59,7 @@ public class MachNetz extends WebSocketHttpServer {
         if ( session == null ) {
             logger.warning("onTextMessage without session");
         } else {
-            session.onTextMessage( ctx, text );
+            session.$onTextMessage(ctx, text);
         }
     }
 
@@ -68,7 +69,7 @@ public class MachNetz extends WebSocketHttpServer {
         if ( session == null ) {
             logger.warning("onBinaryMessage without session");
         } else {
-            session.onBinaryMessage( ctx, buffer );
+            session.$onBinaryMessage(ctx, buffer);
         }
     }
 
@@ -77,10 +78,11 @@ public class MachNetz extends WebSocketHttpServer {
         return (MNClientSession) super.getSession(ctx);
     }
 
+    AtomicInteger sessionid = new AtomicInteger(1);
     @Override
     protected ClientSession createNewSession() {
         MNClientSession session = Actors.AsActor(MNClientSession.class,chooseDispatcher());
-        session.init( this );
+        session.$init(this,sessionid.incrementAndGet());
         return session;
     }
 
