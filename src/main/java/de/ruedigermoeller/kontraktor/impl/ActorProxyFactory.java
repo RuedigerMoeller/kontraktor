@@ -284,7 +284,7 @@ public class ActorProxyFactory {
         for (int i = methods0.length-1; i >= 0; i-- ) {
             CtMethod method = methods0[i];
             String str = toString(method);
-            if (alreadypresent.contains(str)||method.getName().startsWith("access$")) {
+            if (alreadypresent.contains(str)||method.getName().startsWith("access$")) { // ignore synthetic methods
                 methods0[i] = null;
             } else {
                 String key = method.getName();
