@@ -255,6 +255,15 @@ public class BasicTest {
             return new Promise<>(name);
         }
 
+        public Future $sleep(long millis) {
+            try {
+                Thread.sleep(millis);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return new Promise<>("void");
+        }
+
         public Future<Long> sleep() {
             long millis = (long) (Math.random() * 1000);
             try {
@@ -314,6 +323,7 @@ public class BasicTest {
 
     @Test
     public void testYield() {
+
         SleepCallerActor act = Actors.SpawnActor(SleepCallerActor.class);
         System.out.println("now "+System.currentTimeMillis());
         act.test();
@@ -330,13 +340,14 @@ public class BasicTest {
         public Future<String> get( final String url ) {
             final Promise<String> content = new Promise();
             final Thread myThread = getDispatcher();
-            Actors.Execute(
-                new Callable<String>() {
-                    @Override
-                    public String call() throws Exception {
-                        return new Scanner( new URL(url).openStream(), "UTF-8" ).useDelimiter("\\A").next();
+            Actors.Async(
+                    new Callable<String>() {
+                        @Override
+                        public String call() throws Exception {
+                            return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
+                        }
                     }
-                }).then(
+            ).then(
                 new Callback<String>() {
                     @Override
                     public void receiveResult(String result, Object error) {
@@ -587,10 +598,10 @@ public class BasicTest {
             }
         }).filter(new Filter() {
             @Override
-            public Future filter(final Object result, Object error) {
-                System.out.println("filter a in " + result);
+            public Future map(final Object result, Object error) {
+                System.out.println("map a in " + result);
                 Promise res = new Promise();
-                Execute( new Callable<Object>() {
+                Async(new Callable<Object>() {
                     @Override
                     public Object call() throws Exception {
                         return result + "_fa";
@@ -600,8 +611,8 @@ public class BasicTest {
             }
         }).filter(new Filter() {
             @Override
-            public Future filter(Object result, Object error) {
-                System.out.println("filter b in " + result);
+            public Future map(Object result, Object error) {
+                System.out.println("map b in " + result);
                 return new Promise(result + "_fb");
             }
         }).then(new Callback() {

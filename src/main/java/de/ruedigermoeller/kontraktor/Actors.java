@@ -126,7 +126,14 @@ public class Actors {
         return (T) instance.newProxy(actorClazz, instance.newDispatcher(qSiz) );
     }
 
-    public static <T> Future<T> Execute( final Callable<T> toCall ) {
+    /**
+     * execute a callable asynchronously (in a different thread) and return a future
+     * of the result (delivered in caller thread)
+     * @param toCall
+     * @param <T>
+     * @return
+     */
+    public static <T> Future<T> Async(final Callable<T> toCall) {
         Promise<T> prom = new Promise<>();
         instance.runBlockingCall(toCall,prom);
         return prom;
@@ -145,6 +152,13 @@ public class Actors {
         instance.delayedCall(millis, toRun);
     }
 
+    /**
+     * wait for all futures to complete and return an array of fulfilled futures
+     *
+     * e.g. Yield( f1, f2 ).then( (f,e) -> System.out.println( f[0].getResult() + f[1].getResult() ) );
+     * @param futures
+     * @return
+     */
     public static Future<Future[]> Yield(Future... futures) {
         Promise res = new Promise();
         Yield(futures, 0, res);

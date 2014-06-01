@@ -32,7 +32,7 @@ public class Playground {
 
         public void doBlockingStuff( final String id ) {
             final Thread t = Thread.currentThread();
-            Actors.Execute(
+            Actors.Async(
                     new Callable<String>() {
                         public String call() throws Exception {
                             return "TEST"; //new Scanner(new URL("http://www.spiegel.de").openStream(), "UTF-8").useDelimiter("\\A").next();

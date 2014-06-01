@@ -53,7 +53,7 @@ public class Promise<T> implements Future<T> {
         then(new Callback<T>() {
             @Override
             public void receiveResult(T result, Object error) {
-                filter.filter(result,error).then(promise);
+                filter.map(result, error).then(promise);
             }
         });
         return promise;
