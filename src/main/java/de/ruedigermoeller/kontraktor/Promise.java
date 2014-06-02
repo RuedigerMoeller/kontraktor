@@ -12,7 +12,7 @@ public class Promise<T> implements Future<T> {
 
     protected Object result;
     protected Object error;
-    protected Callback resultReceiver;
+    protected Callback resultReceiver; // fixme: volatile ?
     protected boolean hadResult;
     protected boolean hasFired = false;
     // not necessary in many cases and also increases cost
@@ -70,8 +70,8 @@ public class Promise<T> implements Future<T> {
             }
             hasFired = true;
             lock.set(false);
-            resultCB.receiveResult( result, error );
             nextFuture = new Promise(result,error);
+            resultCB.receiveResult( result, error );
             return nextFuture;
         } else {
             lock.set(false);
@@ -92,11 +92,15 @@ public class Promise<T> implements Future<T> {
             this.result = res;
             this.error = error;
             while( !lock.compareAndSet(false,true) ) {}
+            if ( hadResult ) {
+                lock.set(false);
+                throw new RuntimeException("Double result received on future");
+            }
             hadResult = true;
             if ( resultReceiver != null ) {
                 if ( hasFired ) {
                     lock.set(false);
-                    throw new RuntimeException("Double result received on future");
+                    throw new RuntimeException("Double fire on callback");
                 }
                 hasFired = true;
                 lock.set(false);
@@ -117,6 +121,16 @@ public class Promise<T> implements Future<T> {
 
     public Object getError() {
         return error;
+    }
+
+    // debug
+    public boolean _isHadResult() {
+        return hadResult;
+    }
+
+    // debug
+    public boolean _isHasFired() {
+        return hasFired;
     }
 
     @Override
