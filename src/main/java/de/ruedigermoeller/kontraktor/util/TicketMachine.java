@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * Created by ruedi on 02.06.14.
  *
- * Single threaded, can be used from one actor only !
+ * Single threaded, can be used from within one actor only !
  *
  * Problem:
  * you receive a stream of events related to some items (e.g. UserSessions or Trades)
@@ -63,17 +63,13 @@ public class TicketMachine {
 //                System.out.println("rec "+channelKey+" do remove+checknext");
                 boolean remove = finalFutures.remove(ticket);
                 if ( ! remove )
-                    System.out.println("Error failed to remove "+channelKey);
+                    System.err.println("Error failed to remove "+channelKey);
                 checkNext(channelKey, finalFutures, ticket);
             }
 
         });
         if ( futures.size() == 1 ) { // this is the one and only call, start immediately
             signalStart.receiveResult(signalFin,null);
-        } else {
-            System.out.println("start q "+channelKey+" qs "+futures.size());
-            if ( futures.size() > 10 )
-                System.out.println("POK");
         }
         return signalStart;
     }
@@ -89,4 +85,7 @@ public class TicketMachine {
         }
     }
 
+    public HashMap<Object, List<Ticket>> getTickets() {
+        return tickets;
+    }
 }

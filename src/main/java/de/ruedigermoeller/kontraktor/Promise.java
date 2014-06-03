@@ -61,6 +61,7 @@ public class Promise<T> implements Future<T> {
 
     @Override
     public Future then(Callback resultCB) {
+        // FIXME: this can be implemented more efficient
         while( !lock.compareAndSet(false,true) ) {}
         resultReceiver = resultCB;
         if (hadResult) {

@@ -1,10 +1,14 @@
 package kontraktor;
 
 import de.ruedigermoeller.kontraktor.*;
+import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
 import de.ruedigermoeller.kontraktor.util.TicketMachine;
+import junit.framework.Assert;
+import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -14,16 +18,12 @@ public class TicketMachineTest {
 
     public static class AsyncWork extends Actor<AsyncWork> {
 
-        public Future $work(final long millis) {
+        public Future $work(final long nanos) {
             Promise promise = new Promise<>();
             Actors.Async( new Callable<Object>() {
                 @Override
                 public Object call() throws Exception {
-                    try {
-                        Thread.sleep(millis);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                    LockSupport.parkNanos(nanos);
                     return "void";
                 }
             }).then(promise);
@@ -31,6 +31,7 @@ public class TicketMachineTest {
         }
     }
 
+    static AtomicInteger errorCount = new AtomicInteger(0);
     public static class TicketedProcessor extends Actor<TicketedProcessor> {
 
         TicketMachine machine;
@@ -51,11 +52,13 @@ public class TicketMachineTest {
                     if ( curSeq == null )
                         seqTracker.put(stock,curSeq);
                     else {
-                        if ( curSeq.longValue() != sequence-1 )
-                            System.out.println("***** error on "+stock+" prevSeq "+curSeq+" new Seq "+sequence);
+                        if ( curSeq.longValue() != sequence-1 ) {
+                            System.out.println("***** error on " + stock + " prevSeq " + curSeq + " new Seq " + sequence);
+                            errorCount.incrementAndGet();
+                        }
                     }
 //                    System.out.println("working "+stock+" sq:"+sequence);
-                    worker.$work((long) (Math.random()*1000)).then(new Callback() {
+                    worker.$work((long) (Math.random()*1000*1000)).then(new Callback() {
                         @Override
                         public void receiveResult(Object result, Object error) {
                             System.out.println("fin work "+stock+" "+sequence);
@@ -66,18 +69,26 @@ public class TicketMachineTest {
             });
         }
 
+        @CallerSideMethod TicketMachine getMachindeForTest() {
+            return getActor().machine;
+        }
+
     }
 
-    public static void main(String arg[]) {
+    @Test
+    public void test() throws InterruptedException {
         TicketedProcessor proc = Actors.AsActor(TicketedProcessor.class);
         proc.$init();
         String stocks[] = { "ALV", "BMW", "FDAX", "ODAX", "FGBL", "CCIP", "OGBL" };
         int seq[] = new int[stocks.length];
-        while( true ) {
+        for( int n = 0; n < 10000; n++) {
             int index = (int) (Math.random() * stocks.length);
             proc.$process(stocks[index], seq[index]++ );
-            LockSupport.parkNanos(1000*1000*200);
+            LockSupport.parkNanos(1000*100);
         }
+        Thread.sleep(1000*5);
+        Assert.assertTrue(proc.getMachindeForTest().getTickets().size() == 0);
+        Assert.assertTrue(errorCount.get() == 0);
     }
 
 }
