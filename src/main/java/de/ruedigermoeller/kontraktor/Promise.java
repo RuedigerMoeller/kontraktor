@@ -48,7 +48,7 @@ public class Promise<T> implements Future<T> {
     }
 
     @Override
-    public <OUT> Future<OUT> filter(final Filter<T, OUT> filter) {
+    public <OUT> Future<OUT> map(final Filter<T, OUT> filter) {
         final Promise<OUT> promise = new Promise<>();
         then(new Callback<T>() {
             @Override

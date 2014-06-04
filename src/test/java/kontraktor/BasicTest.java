@@ -596,7 +596,7 @@ public class BasicTest {
             public void receiveResult(Object result, Object error) {
                 System.out.println("received 1:"+result);
             }
-        }).filter(new Filter() {
+        }).map(new Filter() {
             @Override
             public Future map(final Object result, Object error) {
                 System.out.println("map a in " + result);
@@ -609,7 +609,7 @@ public class BasicTest {
                 }).then(res);
                 return res;
             }
-        }).filter(new Filter() {
+        }).map(new Filter() {
             @Override
             public Future map(Object result, Object error) {
                 System.out.println("map b in " + result);

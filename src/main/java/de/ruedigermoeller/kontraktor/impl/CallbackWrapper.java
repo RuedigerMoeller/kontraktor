@@ -81,11 +81,11 @@ public class CallbackWrapper<T> implements Future<T> {
     }
 
     @Override
-    public <OUT> Future<OUT> filter(Filter<T, OUT> filter) {
+    public <OUT> Future<OUT> map(Filter<T, OUT> filter) {
         if (realCallback instanceof Future == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).filter(filter);
+            return ((Future)realCallback).map(filter);
     }
 
     @Override
