@@ -29,6 +29,7 @@ import de.ruedigermoeller.kontraktor.impl.*;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -146,6 +147,10 @@ public class Actor<SELF extends Actor> {
 
     protected Future<Future[]> yield(Future... futures) {
         return Actors.Yield(futures);
+    }
+
+    protected <T> Future<T> async(Callable<T> callable) {
+        return Actors.Async(callable);
     }
 
     ////////////////////////////// internals ///////////////////////////////////////////////////////////////////

@@ -3,46 +3,36 @@ package de.ruedigermoeller.kontraktor;
 import de.ruedigermoeller.kontraktor.impl.CallbackWrapper;
 import de.ruedigermoeller.kontraktor.impl.DispatcherThread;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Created by ruedi on 20.05.14.
+ * Created by ruedi on 05.06.14.
  */
-public class Promise<T> implements Future<T> {
-
-    protected Object result;
-    protected Object error;
-    protected Callback resultReceiver; // fixme: volatile ?
-    protected boolean hadResult;
-    protected boolean hasFired = false;
-    // not necessary in many cases and also increases cost
-    // of allocation. However for now stay safe and optimize
-    // from a proven-working implementation
-    AtomicBoolean lock = new AtomicBoolean(false);
+public class Channel<T> implements Future<T> {
+    protected Queue result;
+    protected Callback resultReceiver;
     Thread currentThread;
     String id;
     Future nextFuture;
 
-    public Promise(T result, Object error) {
+    public Channel(T result) {
         currentThread = Thread.currentThread();
-        this.result = result;
-        this.error = error;
-        hadResult = true;
+        this.result = new ConcurrentLinkedQueue<T>();
+        this.result.offer(result);
     }
 
-    public Promise(T result) {
-        this(result,null);
-    }
-
-    public Promise() {
+    public Channel() {
         currentThread = Thread.currentThread();
+        this.result = new ConcurrentLinkedQueue<T>();
     }
 
     public String getId() {
         return id;
     }
 
-    public Promise<T> setId(String id) {
+    public Channel<T> setId(String id) {
         this.id = id;
         return this;
     }
@@ -141,4 +131,5 @@ public class Promise<T> implements Future<T> {
                 ", error=" + error +
                 '}';
     }
+
 }
