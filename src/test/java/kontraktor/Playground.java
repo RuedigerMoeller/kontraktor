@@ -87,9 +87,13 @@ public class Playground {
     }
 
     public static void main( String arg[] ) throws InterruptedException {
+
         SampleActor actorA = Actors.AsActor(SampleActor.class);
         final SampleActor actorB = Actors.AsActor(SampleActor.class);
         actorA.setOther(actorB);
+        for ( int i : new int[10] ) {
+            bench(actorA);
+        }
 
         final Future<String> futureString = actorA.getFutureString();
         actorB.concat(futureString).then(new Callback<String>() {
@@ -100,9 +104,6 @@ public class Playground {
             }
         });
 
-//        for ( int i : new int[10] ) {
-//            bench(actorA);
-//        }
 
         int count = 0;
         for ( int i : new int[10])

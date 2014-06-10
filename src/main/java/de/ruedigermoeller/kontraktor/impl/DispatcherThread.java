@@ -80,7 +80,7 @@ public class DispatcherThread extends Thread {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             if ( method.getDeclaringClass() == Object.class )
-                return method.invoke(proxy,args);
+                return method.invoke(proxy,args); // toString, hashCode etc.
             if ( target != null ) {
                 CallEntry ce = new CallEntry(target,method,args,DispatcherThread.this);
                 return dispatchCallback(ce);
@@ -216,13 +216,27 @@ public class DispatcherThread extends Thread {
     }
 
     // return true if msg was avaiable
+    int profileCounter = 0;
     public boolean pollQs() {
         CallEntry poll = (CallEntry) cbQueue.poll();
         if (poll == null)
             poll = (CallEntry) queue.poll();
         if (poll != null) {
             try {
-                Object invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
+                Object invoke = null;
+                profileCounter++;
+                if ( (profileCounter&1023) == 0 && poll.getTarget() instanceof Actor) {
+                    long nanos = System.nanoTime();
+                    invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
+                    nanos = System.nanoTime()-nanos;
+                    ((Actor)poll.getTarget()).__nanos += nanos;
+                    if ( (profileCounter & (1024*1024-1)) == 0 ) {
+                        profileCounter = 0;
+                        System.out.println("nanos "+poll.getTarget()+" "+((Actor)poll.getTarget()).__nanos);
+                    }
+                } else {
+                    invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
+                }
                 if (poll.getFutureCB() != null) {
                     final Future futureCB = poll.getFutureCB();   // the future of caller side
                     final Promise invokeResult = (Promise) invoke;  // the future returned sync from call

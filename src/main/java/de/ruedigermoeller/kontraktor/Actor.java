@@ -82,6 +82,7 @@ public class Actor<SELF extends Actor> {
     }
 
     // internal
+    public long __nanos;
     public Actor __self;
     public Actor __seq;
     public boolean __isSeq = false;
