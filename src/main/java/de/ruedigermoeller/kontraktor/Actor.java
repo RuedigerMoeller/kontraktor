@@ -29,6 +29,7 @@ import de.ruedigermoeller.kontraktor.impl.*;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -82,6 +83,7 @@ public class Actor<SELF extends Actor> {
     }
 
     // internal
+    public Queue __mailbox;
     public long __nanos;
     public Actor __self;
     public Actor __seq;

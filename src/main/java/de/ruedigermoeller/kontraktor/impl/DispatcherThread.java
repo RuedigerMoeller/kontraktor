@@ -6,6 +6,7 @@ import io.jaq.mpsc.MpscConcurrentQueue;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.*;
+import java.util.ArrayList;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
@@ -59,15 +60,22 @@ public class DispatcherThread extends Thread {
      */
     public static BackOffStrategy backOffStrategy = new BackOffStrategy();
 
-    AtomicInteger usingActors = new AtomicInteger(0);
+    public static int DEFAULT_QUEUE_SIZE = 30000;
+
+    ArrayList<Queue> queueList = new ArrayList<>();
+    Queue queues[] = new Queue[0];
+    Queue cbQueue;
+    int instanceNum;
+    private int defaultQueueSize = DEFAULT_QUEUE_SIZE;
     volatile
     boolean shutDown = false;
     private boolean dead;
+    private int defQSize;
 
-    public static int DEFAULT_QUEUE_SIZE = 30000;
-    Queue queue;
-    Queue cbQueue;
-    int instanceNum;
+
+    public int getDefaultQueueSize() {
+        return defQSize;
+    }
 
     class CallbackInvokeHandler implements InvocationHandler {
 
@@ -91,6 +99,9 @@ public class DispatcherThread extends Thread {
 
     String stack; // contains stacktrace of creation of this
 
+    private DispatcherThread(String dummy) {
+    }
+
     public DispatcherThread() {
         init(DEFAULT_QUEUE_SIZE);
     }
@@ -100,7 +111,12 @@ public class DispatcherThread extends Thread {
     }
 
     public boolean isEmpty() {
-        return queue.isEmpty()&&cbQueue.isEmpty();
+        for (int i = 0; i < queues.length; i++) {
+            Queue queue = queues[i];
+            if ( ! queue.isEmpty() )
+                return false;
+        }
+        return cbQueue.isEmpty();
     }
 
     public InvocationHandler getInvoker(Object toWrap) {
@@ -108,9 +124,14 @@ public class DispatcherThread extends Thread {
     }
 
     protected void init(int qSize) {
+        initNoStart(qSize);
+        start();
+    }
+
+    protected void initNoStart(int qSize) {
         if (qSize<=0)
             qSize = DEFAULT_QUEUE_SIZE;
-        queue = new MpscConcurrentQueue<CallEntry>(qSize);
+        defQSize = qSize;
         cbQueue = new MpscConcurrentQueue<CallEntry>(qSize);
         instanceNum = instanceCount.incrementAndGet();
         StringWriter stringWriter = new StringWriter(1000);
@@ -119,7 +140,6 @@ public class DispatcherThread extends Thread {
         s.flush();
         stack = stringWriter.getBuffer().toString();
         setName("ActorDisp spawned from ["+Thread.currentThread().getName()+"] "+System.identityHashCode(this));
-        start();
     }
 
     @Override
@@ -130,13 +150,14 @@ public class DispatcherThread extends Thread {
     }
 
     public void actorAdded(Actor a) {
-        usingActors.incrementAndGet();
+        synchronized (queueList) {
+            queueList.add(a.__mailbox);
+        }
     }
 
     public void actorStopped(Actor a) {
-        final int count = usingActors.decrementAndGet();
-        if ( count == 0 ) {
-            shutDown();
+        synchronized (queueList) {
+            queueList.remove(a.__mailbox);
         }
     }
 
@@ -172,7 +193,7 @@ public class DispatcherThread extends Thread {
         // MT sequential per actor ref
         if ( dead )
             throw new RuntimeException("received message on terminated dispatcher "+this);
-        if ( ! queue.offer(entry) ) {
+        if ( ! ((Actor)entry.getTarget()).__mailbox.offer(entry) ) {
             return true;
         }
         return false;
@@ -215,24 +236,72 @@ public class DispatcherThread extends Thread {
         instanceCount.decrementAndGet();
     }
 
+    int count = 0;
+    protected CallEntry pollQueues() {
+        if ( count >= queues.length ) {
+            count = 0;
+            if ( queues.length != queueList.size() ) {
+                applyQueueList();
+            }
+            if ( queues.length == 0 ) {
+                return null;
+            }
+        }
+        CallEntry res = (CallEntry) queues[count].poll();
+        count++;
+        return res;
+    }
+
+    private void applyQueueList() {
+        synchronized (queueList) {
+            queues = new Queue[queueList.size()];
+            for (int i = 0; i < queues.length; i++) {
+                queues[i] = queueList.get(i);
+            }
+        }
+    }
+
+
     // return true if msg was avaiable
     int profileCounter = 0;
+    int loadCounter=0; // counts load peaks in direct seq
     public boolean pollQs() {
         CallEntry poll = (CallEntry) cbQueue.poll();
         if (poll == null)
-            poll = (CallEntry) queue.poll();
+            poll = pollQueues();
         if (poll != null) {
             try {
                 Object invoke = null;
                 profileCounter++;
-                if ( (profileCounter&1023) == 0 && poll.getTarget() instanceof Actor) {
+                if ( (profileCounter&511) == 0 && poll.getTarget() instanceof Actor) {
                     long nanos = System.nanoTime();
                     invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
                     nanos = System.nanoTime()-nanos;
                     ((Actor)poll.getTarget()).__nanos += nanos;
-                    if ( (profileCounter & (1024*1024-1)) == 0 ) {
+                    if ( (profileCounter & (512*8-1)) == 0 ) {
                         profileCounter = 0;
-                        System.out.println("nanos "+poll.getTarget()+" "+((Actor)poll.getTarget()).__nanos);
+//                        System.out.println("nanos "+poll.getTarget()+" "+((Actor)poll.getTarget()).__nanos);
+                        int load = getLoad();
+//                        System.out.println("LOAD " + load);
+                        if ( load > 80 ) {
+                            loadCounter++;
+                            if ( loadCounter > 8  && instanceCount.get() < 8)
+                            {
+                                loadCounter = 0;
+                                System.out.println("SPLIT");
+                                DispatcherThread newOne = new DispatcherThread("Dummy");
+                                newOne.initNoStart(getDefaultQueueSize());
+                                for (int i = 0; i < queues.length; i+=2) {
+                                    Queue queue = queues[i];
+                                    newOne.queueList.add(queue);
+                                    queueList.remove(queue);
+                                }
+                                newOne.applyQueueList();
+                                applyQueueList();
+                                newOne.start();
+                            }
+                        }
+
                     }
                 } else {
                     invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
@@ -262,12 +331,28 @@ public class DispatcherThread extends Thread {
         return false;
     }
 
+    private int getLoad() {
+        int res = 0;
+        for (int i = 0; i < queues.length; i++) {
+            MpscConcurrentQueue queue = (MpscConcurrentQueue) queues[i];
+            int load = queue.size() * 100 / queue.getCapacity();
+            if ( load > res )
+                res = load;
+        }
+        return res;
+    }
+
     public static void yield(int count) {
         backOffStrategy.yield(count);
     }
 
     public int getQSize() {
-        return queue.size()+cbQueue.size(); // FIXME: bad for concurrentlinkedq
+        int res = 0;
+        for (int i = 0; i < queues.length; i++) {
+            Queue queue = queues[i];
+            res+=queue.size();
+        }
+        return res+cbQueue.size(); // FIXME: bad for concurrentlinkedq
     }
 
     /**

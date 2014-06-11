@@ -55,7 +55,7 @@ public class SchedulingTest {
         while( true ) {
             act.$tick();
             if ( (count%speed) == 0 ) {
-                LockSupport.parkNanos(1);
+//                LockSupport.parkNanos(1000);
             }
             count++;
             long diff = System.currentTimeMillis() - tim;

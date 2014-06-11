@@ -48,7 +48,7 @@ public class BasicTest {
         bench(b);
         long callsPerSec = bench(b);
         b.stop();
-        assertTrue(callsPerSec > 2 * 1000 * 1000);
+        assertTrue(callsPerSec > 1 * 1000 * 1000);
     }
 
     public static class BenchSub extends Bench {

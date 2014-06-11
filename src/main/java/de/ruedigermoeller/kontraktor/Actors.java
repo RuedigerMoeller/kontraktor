@@ -1,8 +1,10 @@
 package de.ruedigermoeller.kontraktor;
 
 import de.ruedigermoeller.kontraktor.impl.*;
+import io.jaq.mpsc.MpscConcurrentQueue;
 
 import java.lang.reflect.*;
+import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
@@ -220,11 +222,17 @@ public class Actors {
 
     protected Actor newProxy(Class<? extends Actor> clz, DispatcherThread disp ) {
         try {
+            int qs = disp.getQSize();
+            if ( disp.getQSize() <= 0 )
+                qs = disp.getDefaultQueueSize();
+
             Actor realActor = clz.newInstance();
             realActor.__dispatcher = disp;
+            realActor.__mailbox =  createQueue(qs);
 
             Actor selfproxy = getFactory().instantiateProxy(realActor);
             realActor.__self = selfproxy;
+            selfproxy.__mailbox = realActor.__mailbox;
 
             Actor seqproxy = getFactory().instantiateProxy(realActor);
             seqproxy.__isSeq = true;
@@ -239,6 +247,10 @@ public class Actors {
                 throw (RuntimeException)e;
             throw new RuntimeException(e);
         }
+    }
+
+    protected Queue createQueue(int qSize) {
+        return new MpscConcurrentQueue(qSize);
     }
 
     protected Actor newProxy(Class<? extends Actor> clz, int qsize) {

@@ -46,6 +46,10 @@ abstract class MpscConcurrentArrayQueueColdFields<E> extends MpscConcurrentArray
 		// pad data on either end with some empty slots.
 		buffer = (E[]) new Object[(this.capacity << SPARSE_SHIFT) + BUFFER_PAD * 2];
 	}
+
+    public int getCapacity() {
+        return capacity;
+    }
 }
 
 abstract class MpscConcurrentArrayQueueL1Pad<E> extends MpscConcurrentArrayQueueColdFields<E> {
