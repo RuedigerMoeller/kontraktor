@@ -84,26 +84,17 @@ public class Actor<SELF extends Actor> {
 
     // internal
     public Queue __mailbox;
+    public Queue __cbQueue;
+
     public long __nanos;
     public Actor __self;
     public Actor __seq;
     public boolean __isSeq = false;
-    DispatcherThread __dispatcher;
 
     /**
      * required by bytecode magic. Use Actors.Channel(..) to construct actor instances
      */
     public Actor() {
-    }
-
-    /**
-     * @return the DispatcherThread of this actor
-     */
-    public DispatcherThread getDispatcher() {
-        if ( __self == null && getActor() != this ) {
-            return getActor().getDispatcher();
-        }
-        return __dispatcher;
     }
 
     /**
@@ -133,7 +124,8 @@ public class Actor<SELF extends Actor> {
      * the dispatching thread will be terminated.
      */
     @CallerSideMethod public void stop() {
-        getDispatcher().actorStopped(this);
+        throw new RuntimeException("fixme");
+//        getDispatcher().actorStopped(this);
     }
 
     public void executeInActorThread( ActorRunnable toRun, Callback cb ) {
@@ -157,10 +149,6 @@ public class Actor<SELF extends Actor> {
     }
 
     ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
-
-    @CallerSideMethod public void __dispatcher( DispatcherThread d ) {
-        __dispatcher = d;
-    }
 
     protected ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
 

@@ -64,7 +64,7 @@ public class DispatcherThread extends Thread {
 
     ArrayList<Queue> queueList = new ArrayList<>();
     Queue queues[] = new Queue[0];
-    Queue cbQueue;
+    Queue cbQueues[]= new Queue[0];
     int instanceNum;
     private int defaultQueueSize = DEFAULT_QUEUE_SIZE;
     volatile
@@ -116,7 +116,12 @@ public class DispatcherThread extends Thread {
             if ( ! queue.isEmpty() )
                 return false;
         }
-        return cbQueue.isEmpty();
+        for (int i = 0; i < cbQueues.length; i++) {
+            Queue queue = cbQueues[i];
+            if ( ! queue.isEmpty() )
+                return false;
+        }
+        return true;
     }
 
     public InvocationHandler getInvoker(Object toWrap) {
@@ -132,7 +137,6 @@ public class DispatcherThread extends Thread {
         if (qSize<=0)
             qSize = DEFAULT_QUEUE_SIZE;
         defQSize = qSize;
-        cbQueue = new MpscConcurrentQueue<CallEntry>(qSize);
         instanceNum = instanceCount.incrementAndGet();
         StringWriter stringWriter = new StringWriter(1000);
         PrintWriter s = new PrintWriter(stringWriter);

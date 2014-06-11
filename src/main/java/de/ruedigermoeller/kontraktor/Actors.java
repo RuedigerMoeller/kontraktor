@@ -229,10 +229,12 @@ public class Actors {
             Actor realActor = clz.newInstance();
             realActor.__dispatcher = disp;
             realActor.__mailbox =  createQueue(qs);
+            realActor.__cbQueue =  createQueue(qs);
 
             Actor selfproxy = getFactory().instantiateProxy(realActor);
             realActor.__self = selfproxy;
             selfproxy.__mailbox = realActor.__mailbox;
+            selfproxy.__cbQueue = realActor.__cbQueue;
 
             Actor seqproxy = getFactory().instantiateProxy(realActor);
             seqproxy.__isSeq = true;
