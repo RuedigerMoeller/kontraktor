@@ -1,5 +1,6 @@
 package de.ruedigermoeller.kontraktor.impl;
 
+import de.ruedigermoeller.kontraktor.Actor;
 import de.ruedigermoeller.kontraktor.Callback;
 import de.ruedigermoeller.kontraktor.Filter;
 import de.ruedigermoeller.kontraktor.Future;
@@ -43,12 +44,12 @@ public class CallbackWrapper<T> implements Future<T> {
         }
     }
 
-    final DispatcherThread dispatcher;
+    final Actor targetActor;
     Callback<T> realCallback;
 
-    public CallbackWrapper(DispatcherThread dispatcher, Callback<T> realFuture) {
+    public CallbackWrapper(Actor targetQ, Callback<T> realFuture) {
         this.realCallback = realFuture;
-        this.dispatcher = dispatcher;
+        this.targetActor = targetQ;
     }
 
     @Override
@@ -56,7 +57,7 @@ public class CallbackWrapper<T> implements Future<T> {
         if ( realCallback == null ) {
             return;
         }
-        if ( dispatcher == null ) {
+        if ( targetActor == null ) {
             // call came from outside the actor world => use current thread => blocking the callback blocks actor, dont't !
             try {
                 receiveRes.invoke(realCallback, result, error);
@@ -64,11 +65,8 @@ public class CallbackWrapper<T> implements Future<T> {
                 e.printStackTrace();
             }
         } else {
-            CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error}, dispatcher);
-            int count = 0;
-            while (dispatcher.dispatchCallback( ce ) ) {
-                dispatcher.yield(count++);
-            }
+            CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error}, targetActor);
+            DispatcherThread.Put2QueuePolling(targetActor.__cbQueue, ce);
         }
     }
 

@@ -4,22 +4,23 @@ import de.ruedigermoeller.kontraktor.*;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Queue;
 
 /**
 * Created by ruedi on 18.05.14.
 */
 public class CallEntry<T> implements Message<T> {
-    final private T target;
+    final private T target;    // target and target actor are not necessary equal. E.g. target can be callback, but calls are put onto targetActor Q
     final private Method method;
     final private Object[] args;
     private Future futureCB;
-    private DispatcherThread dispatcher;
+    private Actor targetActor; // defines mailboxes but not necessary target
 
-    public CallEntry(T actor, Method method, Object[] args, DispatcherThread disp) {
-        this.target = actor;
+    public CallEntry(T target, Method method, Object[] args, Actor disp) {
+        this.target = target;
         this.method = method;
         this.args = args;
-        this.dispatcher = disp;
+        this.targetActor = disp;
     }
 
     public T getTarget() {
@@ -31,13 +32,13 @@ public class CallEntry<T> implements Message<T> {
     public Object[] getArgs() { return args; }
 
     @Override
-    public DispatcherThread getDispatcher() {
-        return dispatcher;
+    public Actor getTargetActor() {
+        return targetActor;
     }
 
     @Override
     public Future send() {
-        return DispatcherThread.pollDispatchOnObject(DispatcherThread.getThreadDispatcher(), this);
+        return DispatcherThread.Put2QueuePolling(this);
     }
 
     @Override
@@ -62,18 +63,18 @@ public class CallEntry<T> implements Message<T> {
     }
 
     public Message withTarget(T newTarget, boolean copyArgs) {
-        DispatcherThread newDispatcher = dispatcher;
+        Actor targetActor = null;
         if ( newTarget instanceof ActorProxy )
             newTarget = (T) ((ActorProxy) newTarget).getActor();
         if ( newTarget instanceof Actor) {
-            newDispatcher = ((Actor) newTarget).getDispatcher();
+            targetActor = (Actor) newTarget;
         }
         if ( copyArgs ) {
             Object argCopy[] = new Object[args.length];
             System.arraycopy(args, 0, argCopy, 0, args.length);
-            return new CallEntry(newTarget, method, argCopy, newDispatcher);
+            return new CallEntry(newTarget, method, argCopy, targetActor);
         } else {
-            return new CallEntry(newTarget, method, args, newDispatcher);
+            return new CallEntry(newTarget, method, args, targetActor);
         }
     }
 
@@ -95,7 +96,7 @@ public class CallEntry<T> implements Message<T> {
                 ", method=" + method +
                 ", args=" + Arrays.toString(args) +
                 ", futureCB=" + futureCB +
-                ", dispatcher=" + dispatcher +
+                ", disp=" + targetActor+
                 '}';
     }
 }

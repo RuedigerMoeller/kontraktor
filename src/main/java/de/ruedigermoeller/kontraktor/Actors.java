@@ -75,9 +75,9 @@ public class Actors {
      * @param <T>
      * @return
      */
-    public static <T> T InThread(T callback) {
+    public static <T> T InThread(Actor actor, T callback) {
         Class<?>[] interfaces = callback.getClass().getInterfaces();
-        InvocationHandler invoker = DispatcherThread.getThreadDispatcher().getInvoker(callback);
+        InvocationHandler invoker = DispatcherThread.getInvoker(actor, callback);
         if ( invoker == null ) // called from outside actor world
         {
             return callback; // callback in callee thread
@@ -135,9 +135,9 @@ public class Actors {
      * @param <T>
      * @return
      */
-    public static <T> Future<T> Async(final Callable<T> toCall) {
+    public static <T> Future<T> Async( Actor emitter, final Callable<T> toCall) {
         Promise<T> prom = new Promise<>();
-        instance.runBlockingCall(toCall,prom);
+        instance.runBlockingCall(emitter,toCall,prom);
         return prom;
     }
 
@@ -206,8 +206,8 @@ public class Actors {
         }, millis);
     }
 
-    protected <T> void runBlockingCall( final Callable<T> toCall, Callback<T> resultHandler ) {
-        final CallbackWrapper<T> resultWrapper = new CallbackWrapper<>(DispatcherThread.getThreadDispatcher(),resultHandler);
+    protected <T> void runBlockingCall( Actor emitter, final Callable<T> toCall, Callback<T> resultHandler ) {
+        final CallbackWrapper<T> resultWrapper = new CallbackWrapper<>(emitter,resultHandler);
         exec.execute(new Runnable() {
             @Override
             public void run() {
@@ -224,10 +224,9 @@ public class Actors {
         try {
             int qs = disp.getQSize();
             if ( disp.getQSize() <= 0 )
-                qs = disp.getDefaultQueueSize();
+                qs = disp.getQueueCapacity();
 
             Actor realActor = clz.newInstance();
-            realActor.__dispatcher = disp;
             realActor.__mailbox =  createQueue(qs);
             realActor.__cbQueue =  createQueue(qs);
 
@@ -241,6 +240,9 @@ public class Actors {
 
             realActor.__seq = seqproxy;
             selfproxy.__seq = seqproxy;
+
+            realActor.__currentDispatcher = disp;
+            selfproxy.__currentDispatcher = disp;
 
             disp.actorAdded(realActor);
             return selfproxy;
@@ -256,9 +258,10 @@ public class Actors {
     }
 
     protected Actor newProxy(Class<? extends Actor> clz, int qsize) {
-        if ( DispatcherThread.getThreadDispatcher() != null ) {
-            return newProxy( clz, DispatcherThread.getThreadDispatcher() );
-        } else {
+        if ( Thread.currentThread() instanceof DispatcherThread ) {
+            return newProxy( clz, (DispatcherThread) Thread.currentThread());
+        } else
+        {
             try {
                 return newProxy(clz, newDispatcher(qsize));
             } catch (Exception e) {

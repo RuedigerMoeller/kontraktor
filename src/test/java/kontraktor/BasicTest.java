@@ -38,7 +38,11 @@ public class BasicTest {
         }
         final long l = (numCalls / (System.currentTimeMillis() - tim)) * 1000;
         System.out.println("tim "+ l +" calls per sec");
-        actorA.getDispatcher().waitEmpty(3000*1000);
+        try {
+            Thread.sleep(3000 * 1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         return l;
     }
 
@@ -140,7 +144,7 @@ public class BasicTest {
         public void callbackTest() {
 
             final Thread callerThread = Thread.currentThread();
-            service.getString(InThread(new SomeCallbackHandler() {
+            service.getString(InThread(self(),new SomeCallbackHandler() {
                 @Override
                 public void callbackReceived(Object callback) {
                     if (callerThread != Thread.currentThread()) {
@@ -163,38 +167,38 @@ public class BasicTest {
                 }
             });
 
-            service.executeInActorThread(
-                    new ActorRunnable() {
-                        @Override
-                        public void run(Object actorAccess, Actor actorImpl, Callback resultReceiver) {
-                            if ( service.getDispatcher() == Thread.currentThread() ) {
-                                success++;
-                            } else {
-                                System.out.println("POKPOK err");
-                            }
-                            DataAccess access = (DataAccess) actorAccess;
-                            Iterator iterator = access.getMap().keySet().iterator();
-                            while( iterator.hasNext() ) {
-                                Object o = iterator.next();
-                                if ( "five".equals(o) ) {
-                                    resultReceiver.receiveResult(access.getMap().get(o),null);
-                                }
-                            }
-                        }
-                    },
-                    new Callback() {
-                        @Override
-                        public void receiveResult(Object result, Object error) {
-                            if (callerThread != Thread.currentThread()) {
-                                throw new RuntimeException("Dammit");
-                            } else {
-                                success++;
-                                System.out.println("Alles prima 2");
-                            }
-                            System.out.println("res "+result);
-                        }
-                    }
-            );
+//            service.executeInActorThread(
+//                    new ActorRunnable() {
+//                        @Override
+//                        public void run(Object actorAccess, Actor actorImpl, Callback resultReceiver) {
+//                            if ( service.getDispatcher() == Thread.currentThread() ) {
+//                                success++;
+//                            } else {
+//                                System.out.println("POKPOK err");
+//                            }
+//                            DataAccess access = (DataAccess) actorAccess;
+//                            Iterator iterator = access.getMap().keySet().iterator();
+//                            while( iterator.hasNext() ) {
+//                                Object o = iterator.next();
+//                                if ( "five".equals(o) ) {
+//                                    resultReceiver.receiveResult(access.getMap().get(o),null);
+//                                }
+//                            }
+//                        }
+//                    },
+//                    new Callback() {
+//                        @Override
+//                        public void receiveResult(Object result, Object error) {
+//                            if (callerThread != Thread.currentThread()) {
+//                                throw new RuntimeException("Dammit");
+//                            } else {
+//                                success++;
+//                                System.out.println("Alles prima 2");
+//                            }
+//                            System.out.println("res "+result);
+//                        }
+//                    }
+//            );
 
         }
     }
@@ -339,8 +343,8 @@ public class BasicTest {
 
         public Future<String> get( final String url ) {
             final Promise<String> content = new Promise();
-            final Thread myThread = getDispatcher();
-            Actors.Async(
+            final Thread myThread = Thread.currentThread();
+            Actors.Async( self(),
                     new Callable<String>() {
                         @Override
                         public String call() throws Exception {
@@ -348,16 +352,16 @@ public class BasicTest {
                         }
                     }
             ).then(
-                new Callback<String>() {
-                    @Override
-                    public void receiveResult(String result, Object error) {
-                        if ( Thread.currentThread() == myThread ) {
-                            content.receiveResult(result,null);
-                        } else {
-                            content.receiveResult(null, "wrong thread");
+                    new Callback<String>() {
+                        @Override
+                        public void receiveResult(String result, Object error) {
+                            if (Thread.currentThread() == myThread) {
+                                content.receiveResult(result, null);
+                            } else {
+                                content.receiveResult(null, "wrong thread");
+                            }
                         }
-                    }
-            });
+                    });
             return content;
         }
     }
@@ -452,15 +456,15 @@ public class BasicTest {
     public static class DelayedTest extends Actor<DelayedTest> {
 
         public void delay(long started) {
-            delay_threads.set(getDispatcher() == Thread.currentThread());
-            if (!delay_threads.get()) {
-                System.out.println("current thread " + Thread.currentThread().getName());
-                System.out.println("dispatcher " + getDispatcher().getName());
-            }
-            System.out.println("ThreadsCheck:" + delay_threads.get());
-            long l = System.currentTimeMillis() - started;
-            System.out.println("DELAY:" + l);
-            delay_time.set(l);
+//            delay_threads.set(getDispatcher() == Thread.currentThread());
+//            if (!delay_threads.get()) {
+//                System.out.println("current thread " + Thread.currentThread().getName());
+//                System.out.println("dispatcher " + getDispatcher().getName());
+//            }
+//            System.out.println("ThreadsCheck:" + delay_threads.get());
+//            long l = System.currentTimeMillis() - started;
+//            System.out.println("DELAY:" + l);
+//            delay_time.set(l);
         }
     }
 
@@ -583,7 +587,7 @@ public class BasicTest {
 
     @Test
     public void futureSequenceTest() throws InterruptedException {
-        FutureSequenceActor fut = SpawnActor(FutureSequenceActor.class);
+        final FutureSequenceActor fut = SpawnActor(FutureSequenceActor.class);
         final CountDownLatch latch = new CountDownLatch(1);
 
         fut.testFunc("A").then(new Callback<String>() {
@@ -601,7 +605,8 @@ public class BasicTest {
             public Future map(final Object result, Object error) {
                 System.out.println("map a in " + result);
                 Promise res = new Promise();
-                Async(new Callable<Object>() {
+                Async( fut,
+                    new Callable<Object>() {
                     @Override
                     public Object call() throws Exception {
                         return result + "_fa";

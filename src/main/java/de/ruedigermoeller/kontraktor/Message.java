@@ -3,6 +3,7 @@ package de.ruedigermoeller.kontraktor;
 import de.ruedigermoeller.kontraktor.impl.DispatcherThread;
 
 import java.lang.reflect.Method;
+import java.util.Queue;
 
 /**
  * Created by ruedi on 23.05.14.
@@ -20,7 +21,7 @@ public interface Message<T> {
      * if the array is modified, always copy before sending.
      */
     public Object[] getArgs();
-    public DispatcherThread getDispatcher();
+    public Actor getTargetActor();
     public Future send();
     public Future send(T target);
     public Future yield(T ... targets);

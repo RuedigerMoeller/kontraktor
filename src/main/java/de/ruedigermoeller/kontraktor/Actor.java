@@ -58,7 +58,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Actor<SELF extends Actor> {
 
-    static ThreadLocal<List<Message>> methodSequence = new ThreadLocal<List<Message>>() {
+    public static ThreadLocal<List<Message>> methodSequence = new ThreadLocal<List<Message>>() {
         @Override protected List<Message> initialValue() { return new ArrayList<>(); }
     };
 
@@ -85,6 +85,7 @@ public class Actor<SELF extends Actor> {
     // internal
     public Queue __mailbox;
     public Queue __cbQueue;
+    public Thread __currentDispatcher;
 
     public long __nanos;
     public Actor __self;
@@ -145,58 +146,14 @@ public class Actor<SELF extends Actor> {
     }
 
     protected <T> Future<T> async(Callable<T> callable) {
-        return Actors.Async(callable);
+        return Actors.Async(this,callable);
     }
 
     ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
-    protected ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
-
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread
     @CallerSideMethod public Object __dispatchCall( Actor receiver, String methodName, Object args[] ) {
-        // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
-        // here sender + receiver are known in a ST context
-        Actor actor = receiver.getActor();
-        Method method = getCachedMethod(methodName, actor);
-
-        int count = 0;
-        DispatcherThread threadDispatcher = DispatcherThread.getThreadDispatcher();
-        // scan for callbacks in arguments ..
-        for (int i = 0; i < args.length; i++) {
-            Object arg = args[i];
-            if ( arg instanceof Callback) {
-                DispatcherThread sender = threadDispatcher;
-                args[i] = new CallbackWrapper<>(sender,(Callback<Object>) arg);
-            }
-        }
-
-        CallEntry e = new CallEntry(
-                actor,
-                method,
-                args,
-                actor.getDispatcher()
-        );
-        if ( receiver.__isSeq ) {
-            methodSequence.get().add(e);
-            return null;
-        }
-        return DispatcherThread.pollDispatchOnObject(threadDispatcher, e);
-    }
-
-    private Method getCachedMethod(String methodName, Actor actor) {
-        Method method = methodCache.get(methodName);
-        if ( method == null ) {
-            Method[] methods = actor.getClass().getMethods();
-            for (int i = 0; i < methods.length; i++) {
-                Method m = methods[i];
-                if ( m.getName().equals(methodName) ) {
-                    methodCache.put(methodName,m);
-                    method = m;
-                    break;
-                }
-            }
-        }
-        return method;
+        return DispatcherThread.DispatchCall(this, receiver,methodName, args);
     }
 
 }

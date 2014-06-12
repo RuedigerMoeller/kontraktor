@@ -19,12 +19,10 @@ public class Promise<T> implements Future<T> {
     // of allocation. However for now stay safe and optimize
     // from a proven-working implementation
     AtomicBoolean lock = new AtomicBoolean(false);
-    Thread currentThread;
     String id;
     Future nextFuture;
 
     public Promise(T result, Object error) {
-        currentThread = Thread.currentThread();
         this.result = result;
         this.error = error;
         hadResult = true;
@@ -34,9 +32,7 @@ public class Promise<T> implements Future<T> {
         this(result,null);
     }
 
-    public Promise() {
-        currentThread = Thread.currentThread();
-    }
+    public Promise() {}
 
     public String getId() {
         return id;
@@ -86,10 +82,11 @@ public class Promise<T> implements Future<T> {
     @Override
     public final void receiveResult(Object res, Object error) {
         // ensure correct thread in case actor cascades futures
-        if ( Thread.currentThread() != currentThread && currentThread instanceof DispatcherThread) {
-            new CallbackWrapper((DispatcherThread) currentThread, this).receiveResult(res, error);
-        }
-        else {
+//        if ( Thread.currentThread() != currentThread && currentThread instanceof DispatcherThread) {
+//            new CallbackWrapper((DispatcherThread) currentThread, this).receiveResult(res, error);
+//        }
+//        else
+        {
             this.result = res;
             this.error = error;
             while( !lock.compareAndSet(false,true) ) {}

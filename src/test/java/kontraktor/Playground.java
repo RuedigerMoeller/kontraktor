@@ -32,13 +32,13 @@ public class Playground {
 
         public void doBlockingStuff( final String id ) {
             final Thread t = Thread.currentThread();
-            Actors.Async(
+            Actors.Async( self(),
                     new Callable<String>() {
                         public String call() throws Exception {
                             return "TEST"; //new Scanner(new URL("http://www.spiegel.de").openStream(), "UTF-8").useDelimiter("\\A").next();
                         }
                     }
-            ).then( new Callback<String>() {
+            ).then(new Callback<String>() {
                 public void receiveResult(String result, Object error) {
                     if (t != Thread.currentThread()) {
                         System.out.println("Ooops !");
@@ -82,7 +82,11 @@ public class Playground {
         for ( int i = 0; i < numCalls; i++ ) {
             actorA.emptyMethod("A", "B", "C");
         }
-        actorA.getDispatcher().waitEmpty(1000*1000);
+        try {
+            Thread.sleep(1000 * 1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         System.out.println("tim "+(numCalls/(System.currentTimeMillis()-tim))*1000+" calls per sec");
     }
 

@@ -130,7 +130,7 @@ public class ActorProxyFactory {
     }
 
     protected void defineProxyMethods(CtClass cc, CtClass orig) throws Exception {
-        cc.addMethod( CtMethod.make( "public void __setDispatcher( "+ DispatcherThread.class.getName()+" d ) { __target.__dispatcher(d); }", cc ) );
+//        cc.addMethod( CtMethod.make( "public void __setDispatcher( "+ DispatcherThread.class.getName()+" d ) { __target.__dispatcher(d); }", cc ) );
         CtMethod[] methods = getSortedPublicCtMethods(orig,false);
         for (int i = 0; i < methods.length; i++) {
             CtMethod method = methods[i];
