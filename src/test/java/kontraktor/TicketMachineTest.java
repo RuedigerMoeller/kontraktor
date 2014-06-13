@@ -20,7 +20,7 @@ public class TicketMachineTest {
 
         public Future $work(final long nanos) {
             Promise promise = new Promise<>();
-            Actors.Async( self(), new Callable<Object>() {
+            async( new Callable<Object>() {
                 @Override
                 public Object call() throws Exception {
                     LockSupport.parkNanos(nanos);

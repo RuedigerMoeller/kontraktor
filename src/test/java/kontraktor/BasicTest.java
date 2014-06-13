@@ -144,7 +144,7 @@ public class BasicTest {
         public void callbackTest() {
 
             final Thread callerThread = Thread.currentThread();
-            service.getString(InThread(self(),new SomeCallbackHandler() {
+            service.getString(inThread(new SomeCallbackHandler() {
                 @Override
                 public void callbackReceived(Object callback) {
                     if (callerThread != Thread.currentThread()) {
@@ -201,6 +201,7 @@ public class BasicTest {
 //            );
 
         }
+
     }
 
     @Test
@@ -344,11 +345,10 @@ public class BasicTest {
         public Future<String> get( final String url ) {
             final Promise<String> content = new Promise();
             final Thread myThread = Thread.currentThread();
-            Actors.Async( self(),
-                    new Callable<String>() {
+            async(  new Callable<String>() {
                         @Override
                         public String call() throws Exception {
-                            return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
+                        return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
                         }
                     }
             ).then(
@@ -476,7 +476,7 @@ public class BasicTest {
         public void delay() {
             final DelayedTest test = Actors.SpawnActor(DelayedTest.class);
             final long now = System.currentTimeMillis();
-            Actors.Delayed(100,new Runnable() {
+            delayed(100,new Runnable() {
                 @Override
                 public void run() {
                     test.delay(now);
@@ -605,8 +605,7 @@ public class BasicTest {
             public Future map(final Object result, Object error) {
                 System.out.println("map a in " + result);
                 Promise res = new Promise();
-                Async( fut,
-                    new Callable<Object>() {
+                fut.async( new Callable<Object>() {
                     @Override
                     public Object call() throws Exception {
                         return result + "_fa";

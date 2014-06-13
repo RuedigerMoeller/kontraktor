@@ -27,10 +27,11 @@ public class SchedulingTest {
     public static class SchedAct extends Actor<SchedAct> {
 
         HoardeAct test[];
+        int count = 0;
 
         public void $init() {
 
-            test = new HoardeAct[10];
+            test = new HoardeAct[8];
             for ( int i = 0; i < test.length; i++ ) {
                 test[i] = Actors.AsActor(HoardeAct.class);
             }
@@ -38,10 +39,10 @@ public class SchedulingTest {
         }
 
         public void $tick() {
-            for (int i = 0; i < test.length; i++) {
-                HoardeAct hoardeAct = test[i];
-                hoardeAct.$generateLoad(i*2000);
-            }
+            test[count].$generateLoad(2000);
+            count++;
+            if ( count >= test.length )
+                count = 0;
         }
 
     }
@@ -55,7 +56,7 @@ public class SchedulingTest {
         while( true ) {
             act.$tick();
             if ( (count%speed) == 0 ) {
-//                LockSupport.parkNanos(1000*1000);
+                LockSupport.parkNanos(10);
             }
             count++;
             long diff = System.currentTimeMillis() - tim;
@@ -63,6 +64,7 @@ public class SchedulingTest {
                 System.out.println("Count:" + count * 1000 / diff + " " + diff + " spd " + speed);
                 count = 0;
                 tim = System.currentTimeMillis();
+                speed++;
             }
         }
     }

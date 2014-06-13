@@ -32,18 +32,15 @@ public class Playground {
 
         public void doBlockingStuff( final String id ) {
             final Thread t = Thread.currentThread();
-            Actors.Async( self(),
-                    new Callable<String>() {
+            async( new Callable<String>() {
                         public String call() throws Exception {
-                            return "TEST"; //new Scanner(new URL("http://www.spiegel.de").openStream(), "UTF-8").useDelimiter("\\A").next();
-                        }
-                    }
-            ).then(new Callback<String>() {
+                return "TEST"; //new Scanner(new URL("http://www.spiegel.de").openStream(), "UTF-8").useDelimiter("\\A").next();
+            }              }).then(new Callback<String>() {
                 public void receiveResult(String result, Object error) {
-                    if (t != Thread.currentThread()) {
-                        System.out.println("Ooops !");
-                    }
-                    System.out.println("received website id:" + id + " size:" + result.length());
+                if (t != Thread.currentThread()) {
+                    System.out.println("Ooops !");
+                }
+                System.out.println("received website id:" + id + " size:" + result.length());
                 }
             });
         }

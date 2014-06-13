@@ -26,12 +26,10 @@ package de.ruedigermoeller.kontraktor;
 import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
 import de.ruedigermoeller.kontraktor.impl.*;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
@@ -86,6 +84,7 @@ public class Actor<SELF extends Actor> {
     public Queue __mailbox;
     public Queue __cbQueue;
     public Thread __currentDispatcher;
+    public Scheduler __scheduler;
 
     public long __nanos;
     public Actor __self;
@@ -133,27 +132,54 @@ public class Actor<SELF extends Actor> {
         toRun.run(getActorAccess(), getActor(), cb);
     }
 
-    protected Object getActorAccess() {
-        return null;
-    }
-
     public boolean isProxy() {
         return getActor() != this;
     }
 
+    protected Object getActorAccess() {
+        return null;
+    }
+
     protected Future<Future[]> yield(Future... futures) {
-        return Actors.Yield(futures);
+        return __scheduler.yield(futures);
     }
 
-    protected <T> Future<T> async(Callable<T> callable) {
-        return Actors.Async(this,callable);
+    /**
+     * execute a callable asynchronously (in a different thread) and return a future
+     * of the result (delivered in caller thread)
+     * @param callable
+     * @param <T>
+     * @return
+     */
+    @CallerSideMethod public <T> Future<T> async(Callable<T> callable) {
+        Promise<T> prom = new Promise<>();
+        __scheduler.runBlockingCall(self(),callable,prom);
+        return prom;
     }
 
-    ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
+    protected <T> T inThread(T cbInterface) {
+        return __scheduler.inThread(self(), cbInterface);
+    }
+
+    /**
+     * schedule an action or call delayed.
+     * typical use case:
+     * delayed( 100, () -> { self().doAction( x, y,  ); } );
+     *
+     */
+    protected void delayed( int millis, final Runnable toRun ) {
+        __scheduler.delayedCall( millis, toRun);
+    }
+
+    public Scheduler getScheduler() {
+        return __scheduler;
+    }
+
+////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread
     @CallerSideMethod public Object __dispatchCall( Actor receiver, String methodName, Object args[] ) {
-        return DispatcherThread.DispatchCall(this, receiver,methodName, args);
+        return __scheduler.dispatchCall(this, receiver, methodName, args);
     }
 
 }

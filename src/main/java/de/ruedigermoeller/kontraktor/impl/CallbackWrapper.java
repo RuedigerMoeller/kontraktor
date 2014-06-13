@@ -66,7 +66,7 @@ public class CallbackWrapper<T> implements Future<T> {
             }
         } else {
             CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error}, targetActor);
-            DispatcherThread.Put2QueuePolling(targetActor.__cbQueue, ce);
+            targetActor.__scheduler.put2QueuePolling(targetActor.__cbQueue, ce);
         }
     }
 

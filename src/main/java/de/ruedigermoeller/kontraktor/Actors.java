@@ -39,10 +39,6 @@ public class Actors {
     //
     // static API
 
-    public static void SetDefaultQueueSize(int siz) {
-        DispatcherThread.DEFAULT_QUEUE_SIZE = siz;
-    }
-
     /**
      * create an new actor. If this is called outside an actor, a new DispatcherThread will be scheduled. If
      * called from inside actor code, the new actor will share the thread+queue with the caller.
@@ -52,7 +48,7 @@ public class Actors {
      * @return
      */
     public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz) {
-        return (T) instance.newProxy(actorClazz,-1);
+        return (T) instance.newProxy(actorClazz, -1);
     }
 
     /**
@@ -65,24 +61,6 @@ public class Actors {
      */
     public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz, int qSize) {
         return (T) instance.newProxy(actorClazz, qSize);
-    }
-
-    /**
-     * Creates a wrapper on the given object enqueuing all calls to INTERFACE methods of the given object to the calling actors's queue.
-     * This is used to enable processing of resulting callback's in the callers thread.
-     * see also @InThread annotation.
-     * @param callback
-     * @param <T>
-     * @return
-     */
-    public static <T> T InThread(Actor actor, T callback) {
-        Class<?>[] interfaces = callback.getClass().getInterfaces();
-        InvocationHandler invoker = DispatcherThread.getInvoker(actor, callback);
-        if ( invoker == null ) // called from outside actor world
-        {
-            return callback; // callback in callee thread
-        }
-        return (T) Proxy.newProxyInstance(callback.getClass().getClassLoader(), interfaces, invoker);
     }
 
     /**
@@ -128,64 +106,11 @@ public class Actors {
         return (T) instance.newProxy(actorClazz, instance.newDispatcher(qSiz) );
     }
 
-    /**
-     * execute a callable asynchronously (in a different thread) and return a future
-     * of the result (delivered in caller thread)
-     * @param toCall
-     * @param <T>
-     * @return
-     */
-    public static <T> Future<T> Async( Actor emitter, final Callable<T> toCall) {
-        Promise<T> prom = new Promise<>();
-        instance.runBlockingCall(emitter,toCall,prom);
-        return prom;
-    }
-
-    /**
-     * schedule an action or call delayed.
-     *
-     * typical use case:
-     *
-     * Actors.Delayed( 100, () -> { self().doAction( x, y,  ); } );
-     *
-     * @param <T>
-     */
-    public static <T> void Delayed( int millis, final Runnable toRun ) {
-        instance.delayedCall(millis, toRun);
-    }
-
-    /**
-     * wait for all futures to complete and return an array of fulfilled futures
-     *
-     * e.g. Yield( f1, f2 ).then( (f,e) -> System.out.println( f[0].getResult() + f[1].getResult() ) );
-     * @param futures
-     * @return
-     */
-    public static Future<Future[]> Yield(Future... futures) {
-        Promise res = new Promise();
-        Yield(futures, 0, res);
-        return res;
-    }
-
     // end static API
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static void Yield(final Future futures[], final int index, final Future result) {
-        if ( index < futures.length ) {
-            futures[index].then(new Callback() {
-                @Override
-                public void receiveResult(Object res, Object error) {
-                    Yield(futures, index + 1, result);
-                }
-            });
-        } else {
-            result.receiveResult(futures, null);
-        }
-    }
-
-    protected ExecutorService exec = Executors.newCachedThreadPool();
-    protected Timer delayedCalls = new Timer();
+    protected Scheduler scheduler = new SchedulerImpl();
 
     protected Actors() {
         factory = new ActorProxyFactory();
@@ -195,29 +120,6 @@ public class Actors {
 
     protected ActorProxyFactory getFactory() {
         return factory;
-    }
-
-    protected <T> void delayedCall( int millis, final Runnable toRun ) {
-        delayedCalls.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                toRun.run();
-            }
-        }, millis);
-    }
-
-    protected <T> void runBlockingCall( Actor emitter, final Callable<T> toCall, Callback<T> resultHandler ) {
-        final CallbackWrapper<T> resultWrapper = new CallbackWrapper<>(emitter,resultHandler);
-        exec.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    resultWrapper.receiveResult(toCall.call(),null);
-                } catch (Throwable th) {
-                    resultWrapper.receiveResult(null, th);
-                }
-            }
-        });
     }
 
     protected Actor newProxy(Class<? extends Actor> clz, DispatcherThread disp ) {
@@ -240,6 +142,8 @@ public class Actors {
 
             realActor.__seq = seqproxy;
             selfproxy.__seq = seqproxy;
+            realActor.__scheduler = scheduler;
+            selfproxy.__scheduler = scheduler;
 
             realActor.__currentDispatcher = disp;
             selfproxy.__currentDispatcher = disp;

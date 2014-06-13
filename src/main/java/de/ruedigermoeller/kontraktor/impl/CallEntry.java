@@ -4,7 +4,6 @@ import de.ruedigermoeller.kontraktor.*;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Queue;
 
 /**
 * Created by ruedi on 18.05.14.
@@ -38,7 +37,7 @@ public class CallEntry<T> implements Message<T> {
 
     @Override
     public Future send() {
-        return DispatcherThread.Put2QueuePolling(this);
+        return targetActor.__scheduler.put2QueuePolling(this);
     }
 
     @Override
@@ -47,7 +46,7 @@ public class CallEntry<T> implements Message<T> {
     }
 
     public Future yield(T... targets) {
-        return new MessageSequence(this, targets).yield();
+        return new MessageSequence(this, targets).yield(targetActor);
     }
 
     public Future exec(T... targets) {

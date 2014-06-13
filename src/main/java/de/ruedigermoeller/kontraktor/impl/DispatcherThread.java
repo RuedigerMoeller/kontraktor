@@ -1,14 +1,13 @@
 package de.ruedigermoeller.kontraktor.impl;
 
 import de.ruedigermoeller.kontraktor.*;
-import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
 import io.jaq.mpsc.MpscConcurrentQueue;
 
 import java.lang.reflect.*;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -53,81 +52,8 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class DispatcherThread extends Thread {
 
-    // FIXME: static stuff to be moved to instance, hold a scheduler with each actor. reuqires a scheduler to be split from dispatcherthread
 
-    public static AtomicInteger instanceCount = new AtomicInteger(0);
-    public static int DEFAULT_QUEUE_SIZE = 30000;
-
-    public static Future Put2QueuePolling(CallEntry e) {
-        final Future fut;
-        if (e.hasFutureResult()) {
-            fut = new Promise();
-            e.setFutureCB(new CallbackWrapper( e.getTargetActor() ,new Callback() {
-                @Override
-                public void receiveResult(Object result, Object error) {
-                    fut.receiveResult(result,error);
-                }
-            }));
-        } else
-            fut = null;
-        Put2QueuePolling(e.getTargetActor().__mailbox,e);
-        return fut;
-    }
-
-    public static void Put2QueuePolling(Queue q, Object o) {
-        int count = 0;
-        while ( ! q.offer(o) ) {
-            yield(count++);
-        }
-    }
-
-    static ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
-
-    static Method getCachedMethod(String methodName, Actor actor) {
-        Method method = methodCache.get(methodName);
-        if ( method == null ) {
-            Method[] methods = actor.getClass().getMethods();
-            for (int i = 0; i < methods.length; i++) {
-                Method m = methods[i];
-                if ( m.getName().equals(methodName) ) {
-                    methodCache.put(methodName,m);
-                    method = m;
-                    break;
-                }
-            }
-        }
-        return method;
-    }
-
-
-    public static Object DispatchCall( Actor sendingActor, Actor receiver, String methodName, Object args[] ) {
-        // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
-        // here sender + receiver are known in a ST context
-        Actor actor = receiver.getActor();
-        Method method = getCachedMethod(methodName, actor);
-
-        int count = 0;
-        // scan for callbacks in arguments ..
-        for (int i = 0; i < args.length; i++) {
-            Object arg = args[i];
-            if ( arg instanceof Callback) {
-                args[i] = new CallbackWrapper<>(receiver,(Callback<Object>) arg);
-            }
-        }
-
-        CallEntry e = new CallEntry(
-                actor,
-                method,
-                args,
-                actor
-        );
-        if ( receiver.__isSeq ) {
-            sendingActor.methodSequence.get().add(e);
-            return null;
-        }
-        return Put2QueuePolling(e);
-    }
-
+    Scheduler scheduler = new SchedulerImpl();
 
     /**
      * defines the strategy applied when idling
@@ -137,7 +63,6 @@ public class DispatcherThread extends Thread {
     Queue cbQueues[]= new Queue[0];
 
     protected int instanceNum;
-    static protected BackOffStrategy backOffStrategy = new BackOffStrategy(); // FIXME: should not be static
 
     protected boolean shutDown = false;
     protected int defQSize;
@@ -156,9 +81,9 @@ public class DispatcherThread extends Thread {
 
     public void initNoStart(int qSize) {
         if (qSize<=0)
-            qSize = DEFAULT_QUEUE_SIZE;
+            qSize = scheduler.getDefaultQSize();
         defQSize = qSize;
-        instanceNum = instanceCount.incrementAndGet();
+        instanceNum = scheduler.incThreadCount();
         setName("ActorDisp spawned from [" + Thread.currentThread().getName() + "] " + System.identityHashCode(this));
     }
 
@@ -191,12 +116,12 @@ public class DispatcherThread extends Thread {
             }
             else {
                 emptyCount++;
-                DispatcherThread.this.yield(emptyCount);
+                scheduler.yield(emptyCount);
                 if (shutDown) // access volatile only when idle
                     isShutDown = true;
             }
         }
-        instanceCount.decrementAndGet();
+        scheduler.decThreadCount();
     }
 
     // if list of queues to schedule has changed,
@@ -235,46 +160,20 @@ public class DispatcherThread extends Thread {
 
     // return true if msg was avaiable
     int profileCounter = 0;
+    int schedCounter = 0;
     int loadCounter=0; // counts load peaks in direct seq
+    int nextProfile = 511;
+    long created = System.currentTimeMillis();
+
     public boolean pollQs() {
         CallEntry poll = pollQueues(cbQueues, queues); // first callback queues
         if (poll != null) {
             try {
                 Object invoke = null;
                 profileCounter++;
-                if ( (profileCounter&511) == 0 && poll.getTarget() instanceof Actor) {
-                    long nanos = System.nanoTime();
-                    invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
-                    nanos = System.nanoTime()-nanos;
-                    ((Actor)poll.getTarget()).__nanos += nanos;
-                    if ( (profileCounter & (512*8-1)) == 0 ) {
-                        profileCounter = 0;
-//                        System.out.println("nanos "+poll.getTarget()+" "+((Actor)poll.getTarget()).__nanos);
-                        int load = getLoad();
-//                        System.out.println("LOAD " + load);
-                        if ( load > 80 ) {
-                            loadCounter++;
-                            if ( loadCounter > 8  && instanceCount.get() < 8)
-                            {
-                                loadCounter = 0;
-                                System.out.println("SPLIT");
-                                DispatcherThread newOne = new DispatcherThread();
-                                newOne.initNoStart(getQueueCapacity());
-                                synchronized (queueList) {
-                                    for (int i = 0; i < queueList.size(); i += 2) {
-                                        Actor act = queueList.get(i);
-                                        newOne.queueList.add(act);
-                                        queueList.remove(act);
-                                        i--;
-                                    }
-                                    applyQueueList();
-                                    newOne.applyQueueList();
-                                }
-                                newOne.start();
-                            }
-                        }
-
-                    }
+                if (  profileCounter > nextProfile && queueList.size() > 1 && poll.getTarget() instanceof Actor ) {
+                    profileCounter = 0;
+                    invoke = profiledCall(poll);
                 } else {
                     invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
                 }
@@ -303,6 +202,79 @@ public class DispatcherThread extends Thread {
         return false;
     }
 
+    private Object profiledCall(CallEntry poll) throws IllegalAccessException, InvocationTargetException {
+        nextProfile = (int) (255 + Math.random() * 13);
+        schedCounter++;
+
+        long nanos = System.nanoTime();
+        Object invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
+        nanos = System.nanoTime() - nanos;
+        ((Actor) poll.getTarget()).__nanos = (((Actor) poll.getTarget()).__nanos * 7 + nanos) / 8;
+
+        if (schedCounter > 64) {
+            schedCounter = 0;
+            checkForSplit();
+        }
+        return invoke;
+    }
+
+    private void checkForSplit() {
+        int load = getLoad();
+        if (load > 80 && queueList.size() > 1 && System.currentTimeMillis()-created > 100 ) {
+            loadCounter++;
+            if (loadCounter > 2 && scheduler.getThreadCount() < scheduler.getMaxThreads()) {
+                loadCounter = 0;
+                doSplit();
+            }
+        }
+    }
+
+    private void doSplit() {
+        System.out.println("SPLIT " + scheduler.getMaxThreads());
+        synchronized (queueList) {
+            long myTime = 0;
+            long otherTime = 0;
+            Collections.sort(queueList, new Comparator<Actor>() {
+                @Override
+                public int compare(Actor o1, Actor o2) {
+                    return (o1.__nanos - o2.__nanos) > 0 ? -1 : 1;
+                }
+            });
+            for (int i = 0; i < queueList.size(); i++) {
+                Actor act = queueList.get(i);
+                long nan = act.__nanos;
+                if (otherTime < myTime) {
+                    otherTime += nan;
+                } else {
+                    myTime += nan;
+                }
+            }
+            //if ( 8*myTime > otherTime && 8*otherTime > myTime )
+            //                                    {
+            myTime = otherTime = 0;
+            DispatcherThread newOne = new DispatcherThread();
+            newOne.initNoStart(getQueueCapacity());
+            for (int i = 0; i < queueList.size(); i++) {
+                Actor act = queueList.get(i);
+                long nan = act.__nanos;
+                if (otherTime < myTime) {
+                    newOne.queueList.add(act);
+                    queueList.remove(act);
+                    i--;
+                    otherTime += nan;
+                    act.__currentDispatcher = newOne;
+                } else {
+                    myTime += nan;
+                }
+            }
+            System.out.println("distributeion " + myTime + ":" + otherTime + " actors " + queues.length);
+            created = System.currentTimeMillis();
+            applyQueueList();
+            newOne.applyQueueList();
+            newOne.start();
+        }
+    }
+
     private int getLoad() {
         int res = 0;
         for (int i = 0; i < queues.length; i++) {
@@ -312,10 +284,6 @@ public class DispatcherThread extends Thread {
                 res = load;
         }
         return res;
-    }
-
-    public static void yield(int count) {
-        backOffStrategy.yield(count);
     }
 
     // FIXME: bad for concurrentlinkedq
@@ -377,33 +345,6 @@ public class DispatcherThread extends Thread {
 
     public int getQueueCapacity() {
         return defQSize;
-    }
-
-
-    static class CallbackInvokeHandler implements InvocationHandler {
-
-        final Object target;
-        final Actor targetActor;
-
-        public CallbackInvokeHandler(Object target, Actor act) {
-            this.target = target;
-            this.targetActor = act;
-        }
-
-        @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            if ( method.getDeclaringClass() == Object.class )
-                return method.invoke(proxy,args); // toString, hashCode etc. invoke sync (danger if hashcode access local state)
-            if ( target != null ) {
-                CallEntry ce = new CallEntry(target,method,args, targetActor);
-                Put2QueuePolling(targetActor.__cbQueue, ce);
-            }
-            return null;
-        }
-    }
-
-    public static InvocationHandler getInvoker(Actor dispatcher, Object toWrap) {
-        return new CallbackInvokeHandler(toWrap, dispatcher);
     }
 
 

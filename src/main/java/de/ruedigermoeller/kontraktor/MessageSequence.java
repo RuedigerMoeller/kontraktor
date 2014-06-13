@@ -24,7 +24,7 @@ public class MessageSequence {
         }
     }
 
-    public Future<Future[]> yield() {
+    public Future<Future[]> yield(Actor sender) {
         Future[] res = new Future[messages.size()];
         for (int i = 0; i < messages.size(); i++) {
             Message message = messages.get(i);
@@ -35,7 +35,7 @@ public class MessageSequence {
                 res[i] = message.send();
             }
         }
-        return Actors.Yield(res);
+        return sender.__scheduler.yield(res);
     }
 
     public int size() {
