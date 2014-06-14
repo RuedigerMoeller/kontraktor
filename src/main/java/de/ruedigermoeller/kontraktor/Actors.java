@@ -3,11 +3,7 @@ package de.ruedigermoeller.kontraktor;
 import de.ruedigermoeller.kontraktor.impl.*;
 import io.jaq.mpsc.MpscConcurrentQueue;
 
-import java.lang.reflect.*;
 import java.util.Queue;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.*;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -110,7 +106,7 @@ public class Actors {
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    protected Scheduler scheduler = new SchedulerImpl();
+    protected Scheduler scheduler = new ElasticScheduler(8,10000);
 
     protected Actors() {
         factory = new ActorProxyFactory();
@@ -184,7 +180,9 @@ public class Actors {
      * @return
      */
     protected DispatcherThread newDispatcher(int qSize) {
-        return new DispatcherThread(qSize);
+        DispatcherThread dispatcherThread = new DispatcherThread(scheduler, qSize);
+        dispatcherThread.start();
+        return dispatcherThread;
     }
 
 }

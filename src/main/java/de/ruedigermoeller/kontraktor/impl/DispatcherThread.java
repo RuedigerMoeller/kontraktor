@@ -53,7 +53,7 @@ import java.util.concurrent.locks.LockSupport;
 public class DispatcherThread extends Thread {
 
 
-    Scheduler scheduler = new SchedulerImpl();
+    Scheduler scheduler;
 
     /**
      * defines the strategy applied when idling
@@ -67,19 +67,16 @@ public class DispatcherThread extends Thread {
     protected boolean shutDown = false;
     protected int defQSize;
 
-    public DispatcherThread() {
+    public DispatcherThread(Scheduler scheduler) {
+        this.scheduler = scheduler;
     }
 
-    public DispatcherThread(int qSize) {
+    public DispatcherThread(Scheduler scheduler, int qSize) {
+        this.scheduler = scheduler;
         init(qSize);
     }
 
     public void init(int qSize) {
-        initNoStart(qSize);
-        start();
-    }
-
-    public void initNoStart(int qSize) {
         if (qSize<=0)
             qSize = scheduler.getDefaultQSize();
         defQSize = qSize;
@@ -252,8 +249,7 @@ public class DispatcherThread extends Thread {
             //if ( 8*myTime > otherTime && 8*otherTime > myTime )
             //                                    {
             myTime = otherTime = 0;
-            DispatcherThread newOne = new DispatcherThread();
-            newOne.initNoStart(getQueueCapacity());
+            DispatcherThread newOne = new DispatcherThread(scheduler,getQueueCapacity());
             for (int i = 0; i < queueList.size(); i++) {
                 Actor act = queueList.get(i);
                 long nan = act.__nanos;

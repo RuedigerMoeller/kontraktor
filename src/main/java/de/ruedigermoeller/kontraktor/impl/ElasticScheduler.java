@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by ruedi on 13.06.14.
  */
-public class SchedulerImpl implements Scheduler {
+public class ElasticScheduler implements Scheduler {
 
     int MAX_THREADS = 8; // Runtime.getRuntime().availableProcessors();
     protected BackOffStrategy backOffStrategy = new BackOffStrategy(); // FIXME: should not be static
@@ -28,6 +28,11 @@ public class SchedulerImpl implements Scheduler {
     AtomicInteger instanceCount = new AtomicInteger(0);
     protected ExecutorService exec = Executors.newCachedThreadPool();
     protected Timer delayedCalls = new Timer();
+
+    public ElasticScheduler(int maxThreads, int defQSize) {
+        this.MAX_THREADS = maxThreads;
+        this.DEFAULT_QUEUE_SIZE = defQSize;
+    }
 
     @Override
     public int getMaxThreads() {
