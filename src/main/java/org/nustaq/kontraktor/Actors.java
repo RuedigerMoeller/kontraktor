@@ -101,7 +101,7 @@ public class Actors {
         return factory;
     }
 
-    protected Actor newProxy(Class<? extends Actor> clz, DispatcherThread disp, int qs ) {
+    protected Actor makeProxy(Class<? extends Actor> clz, DispatcherThread disp, int qs) {
         try {
             if ( qs <= 100 )
                 qs = disp.getScheduler().getDefaultQSize();
@@ -137,21 +137,24 @@ public class Actors {
     }
 
     protected Actor newProxy(Class<? extends Actor> clz, Scheduler sched, int qsize) {
-        if ( sched == null && Thread.currentThread() instanceof DispatcherThread ) {
-            return newProxy( clz, (DispatcherThread) Thread.currentThread(), qsize);
-        } else
-        {
-            try {
-                if ( sched == null )
-                    sched = scheduler;
-                if ( qsize <= 100 )
-                    qsize = sched.getDefaultQSize();
-                return newProxy(clz, sched.newDispatcher(qsize), qsize);
-            } catch (Exception e) {
-                if ( e instanceof RuntimeException)
-                    throw (RuntimeException)e;
-                throw new RuntimeException(e);
+        if ( sched == null ) {
+            if (Thread.currentThread() instanceof DispatcherThread) {
+                sched = ((DispatcherThread) Thread.currentThread()).getScheduler();
+            } else {
+                sched = scheduler;
             }
+
+        }
+        try {
+            if ( sched == null )
+                sched = scheduler;
+            if ( qsize <= 100 )
+                qsize = sched.getDefaultQSize();
+            return makeProxy(clz, sched.newDispatcher(qsize), qsize);
+        } catch (Exception e) {
+            if ( e instanceof RuntimeException)
+                throw (RuntimeException)e;
+            throw new RuntimeException(e);
         }
     }
 

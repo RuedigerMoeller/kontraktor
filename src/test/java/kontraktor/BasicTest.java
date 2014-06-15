@@ -207,10 +207,11 @@ public class BasicTest {
 
     @Test
     public void inThreadTest() throws InterruptedException {
-        ServiceActor service = AsActor(ServiceActor.class);
+        ElasticScheduler scheduler = new ElasticScheduler(1, 10000);
+        ServiceActor service = AsActor(ServiceActor.class, scheduler);
         service.init();
 
-        MyActor cbActor = AsActor(MyActor.class);
+        MyActor cbActor = AsActor(MyActor.class, scheduler);
         cbActor.init(service);
         cbActor.callbackTest();
 

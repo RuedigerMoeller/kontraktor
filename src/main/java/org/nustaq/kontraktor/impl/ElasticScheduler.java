@@ -213,12 +213,12 @@ public class ElasticScheduler implements Scheduler {
     @Override
     public DispatcherThread newDispatcher(int qSiz) {
         if ( primary != null ) {
-            return primary;
+            if ( ! primary.shutDown )
+                return primary;
+            primary = null;
         }
         DispatcherThread dispatcherThread = new DispatcherThread(this);
-        if ( primary == null ) {
-            primary = dispatcherThread;
-        }
+        primary = dispatcherThread;
         dispatcherThread.start();
         return dispatcherThread;
     }
