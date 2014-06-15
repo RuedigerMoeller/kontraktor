@@ -1,10 +1,9 @@
 package kontraktor;
 
-import de.ruedigermoeller.kontraktor.*;
-import de.ruedigermoeller.kontraktor.Future;
-import de.ruedigermoeller.kontraktor.annotations.*;
-import de.ruedigermoeller.kontraktor.Promise;
-import kontraktor.BasicTest.ServiceActor.*;
+import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.annotations.*;
+import org.nustaq.kontraktor.Promise;
 import org.junit.Test;
 
 import java.net.URL;
@@ -15,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static de.ruedigermoeller.kontraktor.Actors.*;
+import static org.nustaq.kontraktor.Actors.*;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -39,7 +38,7 @@ public class BasicTest {
         final long l = (numCalls / (System.currentTimeMillis() - tim)) * 1000;
         System.out.println("tim "+ l +" calls per sec");
         try {
-            Thread.sleep(3000 * 1000);
+            Thread.sleep(3 * 1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -48,10 +47,10 @@ public class BasicTest {
 
     @Test
     public void callBench() {
-        Bench b = SpawnActor(Bench.class);
+        Bench b = AsActor(Bench.class);
         bench(b);
         long callsPerSec = bench(b);
-        b.stop();
+        b.$stop();
         assertTrue(callsPerSec > 1 * 1000 * 1000);
     }
 
@@ -68,7 +67,7 @@ public class BasicTest {
 
     @Test
     public void testInheritance() {
-        final BenchSub bs = SpawnActor(BenchSub.class);
+        final BenchSub bs = AsActor(BenchSub.class);
         for (int i : new int[10] ) {
             bs.benchCall("u", "o", null);
         }
@@ -77,7 +76,7 @@ public class BasicTest {
             @Override
             public void receiveResult(Integer result, Object error) {
                 assertTrue(result.intValue()==10);
-                bs.stop();
+                bs.$stop();
                 latch.countDown();
             }
         });
@@ -167,39 +166,39 @@ public class BasicTest {
                 }
             });
 
-//            service.executeInActorThread(
-//                    new ActorRunnable() {
-//                        @Override
-//                        public void run(Object actorAccess, Actor actorImpl, Callback resultReceiver) {
-//                            if ( service.getDispatcher() == Thread.currentThread() ) {
-//                                success++;
-//                            } else {
-//                                System.out.println("POKPOK err");
-//                            }
-//                            DataAccess access = (DataAccess) actorAccess;
-//                            Iterator iterator = access.getMap().keySet().iterator();
-//                            while( iterator.hasNext() ) {
-//                                Object o = iterator.next();
-//                                if ( "five".equals(o) ) {
-//                                    resultReceiver.receiveResult(access.getMap().get(o),null);
-//                                }
-//                            }
-//                        }
-//                    },
-//                    new Callback() {
-//                        @Override
-//                        public void receiveResult(Object result, Object error) {
-//                            if (callerThread != Thread.currentThread()) {
-//                                throw new RuntimeException("Dammit");
-//                            } else {
-//                                success++;
-//                                System.out.println("Alles prima 2");
-//                            }
-//                            System.out.println("res "+result);
-//                        }
-//                    }
-//            );
-
+            service.executeInActorThread(
+                    new ActorRunnable() {
+                        @Override
+                        public void run(Object actorAccess, Actor actorImpl, Callback resultReceiver) {
+                            if ( service.__currentDispatcher == Thread.currentThread() ) {
+                                success++;
+                            } else {
+                                System.out.println("POKPOK err");
+                            }
+                            ServiceActor.DataAccess access = (ServiceActor.DataAccess) actorAccess;
+                            Iterator iterator = access.getMap().keySet().iterator();
+                            while( iterator.hasNext() ) {
+                                Object o = iterator.next();
+                                if ( "five".equals(o) ) {
+                                    resultReceiver.receiveResult(access.getMap().get(o),null);
+                                }
+                            }
+                        }
+                    },
+                    new Callback() {
+                        @Override
+                        public void receiveResult(Object result, Object error) {
+                            if (callerThread != Thread.currentThread()) {
+                                throw new RuntimeException("Dammit");
+                            } else {
+                                success++;
+                                System.out.println("Alles prima 2");
+                            }
+                            System.out.println("res "+result);
+                        }
+                    }
+            );
+//
         }
 
     }
@@ -215,9 +214,9 @@ public class BasicTest {
 
         Thread.sleep(1000);
 
-        cbActor.stop();
+        cbActor.$stop();
         assertTrue(((MyActor)cbActor.getActor()).success == 4);
-        service.stop();
+        service.$stop();
 
     }
 
@@ -294,7 +293,7 @@ public class BasicTest {
             act = new SleepActor[10];
             results = new Future[act.length];
             for (int i = 0; i < act.length; i++) {
-                act[i] = Actors.SpawnActor(SleepActor.class);
+                act[i] = Actors.AsActor(SleepActor.class);
                 act[i].init("("+i+")");
             }
 
@@ -315,11 +314,11 @@ public class BasicTest {
 
         }
 
-        public void stop() {
+        public void $stop() {
             for (int i = 0; i < act.length; i++) {
-                act[i].stop();
+                act[i].$stop();
             }
-             super.stop();
+             super.$stop();
         }
 
 
@@ -329,7 +328,7 @@ public class BasicTest {
     @Test
     public void testYield() {
 
-        SleepCallerActor act = Actors.SpawnActor(SleepCallerActor.class);
+        SleepCallerActor act = Actors.AsActor(SleepCallerActor.class);
         System.out.println("now "+System.currentTimeMillis());
         act.test();
         try {
@@ -337,7 +336,7 @@ public class BasicTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        act.stop();
+        act.$stop();
     }
 
     public static class TestBlockingAPI extends Actor<TestBlockingAPI> {
@@ -345,12 +344,12 @@ public class BasicTest {
         public Future<String> get( final String url ) {
             final Promise<String> content = new Promise();
             final Thread myThread = Thread.currentThread();
-            async(  new Callable<String>() {
-                        @Override
-                        public String call() throws Exception {
-                        return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
-                        }
-                    }
+            async(new Callable<String>() {
+                      @Override
+                      public String call() throws Exception {
+                          return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
+                      }
+                  }
             ).then(
                     new Callback<String>() {
                         @Override
@@ -379,7 +378,7 @@ public class BasicTest {
         FutureTest ft;
 
         public void init() {
-            ft = Actors.SpawnActor(FutureTest.class);
+            ft = Actors.AsActor(FutureTest.class);
         }
 
         public Future<String> doTestCall() {
@@ -407,7 +406,7 @@ public class BasicTest {
 
     @Test
     public void testFuture() {
-        FutureTest ft = Actors.SpawnActor(FutureTest.class);
+        FutureTest ft = Actors.AsActor(FutureTest.class);
         final AtomicReference<String> outerresult0 = new AtomicReference<>();
         ft.getString("oj").then(new Callback<String>() {
             @Override
@@ -417,7 +416,7 @@ public class BasicTest {
             }
         });
 
-        FutureTestCaller test = Actors.SpawnActor(FutureTestCaller.class);
+        FutureTestCaller test = Actors.AsActor(FutureTestCaller.class);
         test.init();
 
         final AtomicReference<String> outerresult = new AtomicReference<>();
@@ -456,15 +455,15 @@ public class BasicTest {
     public static class DelayedTest extends Actor<DelayedTest> {
 
         public void delay(long started) {
-//            delay_threads.set(getDispatcher() == Thread.currentThread());
-//            if (!delay_threads.get()) {
-//                System.out.println("current thread " + Thread.currentThread().getName());
-//                System.out.println("dispatcher " + getDispatcher().getName());
-//            }
-//            System.out.println("ThreadsCheck:" + delay_threads.get());
-//            long l = System.currentTimeMillis() - started;
-//            System.out.println("DELAY:" + l);
-//            delay_time.set(l);
+            delay_threads.set(__currentDispatcher == Thread.currentThread());
+            if (!delay_threads.get()) {
+                System.out.println("current thread " + Thread.currentThread().getName());
+                System.out.println("dispatcher " + __currentDispatcher.getName());
+            }
+            System.out.println("ThreadsCheck:" + delay_threads.get());
+            long l = System.currentTimeMillis() - started;
+            System.out.println("DELAY:" + l);
+            delay_time.set(l);
         }
     }
 
@@ -474,9 +473,9 @@ public class BasicTest {
     public static class DelayedCaller extends Actor {
 
         public void delay() {
-            final DelayedTest test = Actors.SpawnActor(DelayedTest.class);
+            final DelayedTest test = Actors.AsActor(DelayedTest.class);
             final long now = System.currentTimeMillis();
-            delayed(100,new Runnable() {
+            delayed(100, new Runnable() {
                 @Override
                 public void run() {
                     test.delay(now);
@@ -487,7 +486,7 @@ public class BasicTest {
 
     @Test
     public void testDelayed() {
-        DelayedCaller caller = Actors.SpawnActor(DelayedCaller.class);
+        DelayedCaller caller = Actors.AsActor(DelayedCaller.class);
         caller.delay();
         try {
             Thread.sleep(1000);
@@ -517,146 +516,6 @@ public class BasicTest {
             e.printStackTrace();
         }
         assertTrue(success.get()!=1); // if no response (proxy etc) also return true
-    }
-
-
-    public static class FutureSequenceActor extends Actor<FutureSequenceActor> {
-
-        public Future run() {
-
-            final Promise mresult = new Promise();
-
-            final SleepActor sleepers[] = new SleepActor[4];
-            for (int i = 0; i < sleepers.length; i++) {
-                sleepers[i] = SpawnActor(SleepActor.class);
-            }
-
-
-
-            final Future<Future[]> finished = new Promise<>();
-
-            msg($$(SleepActor.class).init("saved message"))
-            .yield(sleepers)
-            .then(new Callback<Future[]>() {
-                @Override
-                public void receiveResult(Future[] result, Object error) {
-                    System.out.println("yield done");
-                }
-            }).then(new Callback() {
-                @Override
-                public void receiveResult(Object result, Object error) {
-                    System.out.println("start getting names");
-//                    yield( sleepers[0].getName(),
-//                           sleepers[1].getName(),
-//                           sleepers[2].getName(),
-//                           sleepers[3].getName()
-//                         ).then(finished);
-                    // same:
-                    msg( $$(SleepActor.class).getName() ).yield( sleepers ).then( finished );
-                }
-            });
-
-            finished.then(new Callback<Future[]>() {
-                @Override
-                public void receiveResult(Future[] result, Object error) {
-                    System.out.println("finished, checking results");
-                    for (int i = 0; i < result.length; i++) {
-                        Future future = result[i];
-                        assertTrue("saved message".equals(future.getResult()));
-                    }
-                }
-            }).then(new Callback() {
-                @Override
-                public void receiveResult(Object result, Object error) {
-                    mresult.receiveResult("void",null);
-                    for (int i = 0; i < sleepers.length; i++) {
-                        SleepActor sleeper = sleepers[i];
-                        sleeper.stop();
-                    }
-                    System.out.println("--stopped--");
-                }
-            });
-            return mresult;
-        }
-
-        public Future<String> testFunc(String s) {
-            return new Promise(s+s);
-        }
-    }
-
-
-    @Test
-    public void futureSequenceTest() throws InterruptedException {
-        final FutureSequenceActor fut = SpawnActor(FutureSequenceActor.class);
-        final CountDownLatch latch = new CountDownLatch(1);
-
-        fut.testFunc("A").then(new Callback<String>() {
-            @Override
-            public void receiveResult(String result, Object error) {
-                System.out.println("received:"+result);
-            }
-        }).then(new Callback() {
-            @Override
-            public void receiveResult(Object result, Object error) {
-                System.out.println("received 1:"+result);
-            }
-        }).map(new Filter() {
-            @Override
-            public Future map(final Object result, Object error) {
-                System.out.println("map a in " + result);
-                Promise res = new Promise();
-                fut.async( new Callable<Object>() {
-                    @Override
-                    public Object call() throws Exception {
-                        return result + "_fa";
-                    }
-                }).then(res);
-                return res;
-            }
-        }).map(new Filter() {
-            @Override
-            public Future map(Object result, Object error) {
-                System.out.println("map b in " + result);
-                return new Promise(result + "_fb");
-            }
-        }).then(new Callback() {
-            @Override
-            public void receiveResult(Object result, Object error) {
-                System.out.println("finally "+result);
-            }
-        });
-
-        fut.run().then(new Callback() {
-            @Override
-            public void receiveResult(Object result, Object error) {
-                latch.countDown();
-            }
-        });
-        latch.await();
-    }
-
-    @Test
-    public void lockStratTest() {
-//        Executor ex = Executors.newCachedThreadPool();
-//        for ( int iii : new int[3] ) {
-//            ex.execute( new Runnable() {
-//                @Override
-//                public void run() {
-//                    BackOffStrategy backOffStrategy = new BackOffStrategy();
-//                    for (int i = 0; i < 1000; i++) {
-//                        for (int ii = 0; ii < 160000; ii++) {
-//                            backOffStrategy.yield(ii);
-//                        }
-//                        System.out.println("plop");
-//                    }
-//                }
-//            });
-//        }
-//        try {
-//            Thread.sleep(60000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
     }
 
 

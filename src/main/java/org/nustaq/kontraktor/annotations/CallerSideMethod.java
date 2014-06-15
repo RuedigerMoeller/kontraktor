@@ -1,4 +1,4 @@
-package de.ruedigermoeller.kontraktor.annotations;
+package org.nustaq.kontraktor.annotations;
 
 
 import java.lang.annotation.ElementType;

@@ -1,6 +1,6 @@
-package de.ruedigermoeller.kontraktor.impl;
+package org.nustaq.kontraktor.impl;
 
-import de.ruedigermoeller.kontraktor.*;
+import org.nustaq.kontraktor.*;
 import io.jaq.mpsc.MpscConcurrentQueue;
 
 import java.lang.reflect.*;
@@ -65,21 +65,12 @@ public class DispatcherThread extends Thread {
     protected int instanceNum;
 
     protected boolean shutDown = false;
-    protected int defQSize;
 
     public DispatcherThread(Scheduler scheduler) {
         this.scheduler = scheduler;
     }
 
-    public DispatcherThread(Scheduler scheduler, int qSize) {
-        this.scheduler = scheduler;
-        init(qSize);
-    }
-
-    public void init(int qSize) {
-        if (qSize<=0)
-            qSize = scheduler.getDefaultQSize();
-        defQSize = qSize;
+    public void init() {
         instanceNum = scheduler.incThreadCount();
         setName("ActorDisp spawned from [" + Thread.currentThread().getName() + "] " + System.identityHashCode(this));
     }
@@ -125,6 +116,8 @@ public class DispatcherThread extends Thread {
     // apply the change. needs to be done in thread
     private void applyQueueList() {
         synchronized (queueList) {
+            if ( queueList.size() == 0 )
+                shutDown = true;
             queues = new Queue[queueList.size()];
             cbQueues = new Queue[queueList.size()];
             for (int i = 0; i < queues.length; i++) {
@@ -150,6 +143,10 @@ public class DispatcherThread extends Thread {
         CallEntry res = (CallEntry) cbQueues[count].poll();
         if ( res == null )
             res = (CallEntry) queueArr[count].poll();
+        else {
+            int debug = 1;
+        }
+
         count++;
         return res;
     }
@@ -166,6 +163,7 @@ public class DispatcherThread extends Thread {
         CallEntry poll = pollQueues(cbQueues, queues); // first callback queues
         if (poll != null) {
             try {
+                Actor.sender.set(poll.getTargetActor());
                 Object invoke = null;
                 profileCounter++;
                 if (  profileCounter > nextProfile && queueList.size() > 1 && poll.getTarget() instanceof Actor ) {
@@ -187,7 +185,12 @@ public class DispatcherThread extends Thread {
                         );
                 }
                 return true;
-            } catch (Exception e) {
+            } catch ( Exception e) {
+                if ( e instanceof InvocationTargetException && ((InvocationTargetException) e).getTargetException() == ActorStoppedException.Instance ) {
+                    queueList.remove(poll.getTarget());
+                    applyQueueList();
+                    return true;
+                }
                 if (poll.getFutureCB() != null)
                     poll.getFutureCB().receiveResult(null, e);
                 if (e.getCause() != null)
@@ -249,7 +252,7 @@ public class DispatcherThread extends Thread {
             //if ( 8*myTime > otherTime && 8*otherTime > myTime )
             //                                    {
             myTime = otherTime = 0;
-            DispatcherThread newOne = new DispatcherThread(scheduler,getQueueCapacity());
+            DispatcherThread newOne = new DispatcherThread(scheduler);
             for (int i = 0; i < queueList.size(); i++) {
                 Actor act = queueList.get(i);
                 long nan = act.__nanos;
@@ -339,9 +342,7 @@ public class DispatcherThread extends Thread {
             LockSupport.parkNanos(nanos);
     }
 
-    public int getQueueCapacity() {
-        return defQSize;
+    public Scheduler getScheduler() {
+        return scheduler;
     }
-
-
 }

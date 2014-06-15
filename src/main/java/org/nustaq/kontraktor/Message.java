@@ -1,9 +1,6 @@
-package de.ruedigermoeller.kontraktor;
-
-import de.ruedigermoeller.kontraktor.impl.DispatcherThread;
+package org.nustaq.kontraktor;
 
 import java.lang.reflect.Method;
-import java.util.Queue;
 
 /**
  * Created by ruedi on 23.05.14.
@@ -21,24 +18,20 @@ public interface Message<T> {
      * if the array is modified, always copy before sending.
      */
     public Object[] getArgs();
-    public Actor getTargetActor();
-    public Future send();
-    public Future send(T target);
-    public Future yield(T ... targets);
-    public Future exec(T ... targets);
+    public Actor getSendingActor();
 
     /**
      * @return the same message, but with copied argument array.
      * I arguments are modified, always use copy before sending, else
      * unpredictable side effects will happen: e.g. msg.copy().send();
      */
-    public Message copy();
+//    public Message copy();
 
     /**
      * @param newTarget
      * @return a shallow copy of this message with a new target set.
      * In case an actorProxy is passed, it is automatically resolved to the underlying actor
      */
-    public Message withTarget(T newTarget);
-    public Message withTarget(T newTarget, boolean copyArgs);
+//    public Message withTarget(T newTarget);
+//    public Message withTarget(T newTarget, boolean copyArgs);
 }

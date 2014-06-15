@@ -1,7 +1,7 @@
 package org.nustaq.machnetz;
 
-import de.ruedigermoeller.kontraktor.Actor;
-import de.ruedigermoeller.kontraktor.annotations.*;
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.annotations.*;
 import io.netty.channel.ChannelHandlerContext;
 import org.nustaq.webserver.ClientSession;
 

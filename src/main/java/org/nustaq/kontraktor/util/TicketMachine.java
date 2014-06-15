@@ -1,8 +1,8 @@
-package de.ruedigermoeller.kontraktor.util;
+package org.nustaq.kontraktor.util;
 
-import de.ruedigermoeller.kontraktor.Callback;
-import de.ruedigermoeller.kontraktor.Future;
-import de.ruedigermoeller.kontraktor.Promise;
+import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.Promise;
 
 import java.util.HashMap;
 import java.util.LinkedList;

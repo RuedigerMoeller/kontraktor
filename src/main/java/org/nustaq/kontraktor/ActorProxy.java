@@ -1,4 +1,4 @@
-package de.ruedigermoeller.kontraktor;
+package org.nustaq.kontraktor;
 
 /**
 * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -23,7 +23,7 @@ package de.ruedigermoeller.kontraktor;
 * To change this template use File | Settings | File Templates.
 */
 
-import de.ruedigermoeller.kontraktor.impl.DispatcherThread;
+import org.nustaq.kontraktor.impl.DispatcherThread;
 
 /**
  * tagging interface. 

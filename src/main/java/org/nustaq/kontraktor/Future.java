@@ -1,4 +1,4 @@
-package de.ruedigermoeller.kontraktor;
+package org.nustaq.kontraktor;
 
 /**
  * Created by moelrue on 20.05.2014.

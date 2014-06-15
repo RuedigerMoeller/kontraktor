@@ -1,8 +1,8 @@
 package kontraktor;
 
-import de.ruedigermoeller.kontraktor.*;
-import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
-import de.ruedigermoeller.kontraktor.util.TicketMachine;
+import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.util.TicketMachine;
 import junit.framework.Assert;
 import org.junit.Test;
 
@@ -40,7 +40,7 @@ public class TicketMachineTest {
 
         public void $init() {
             machine = new TicketMachine();
-            worker = Actors.SpawnActor(AsyncWork.class);
+            worker = Actors.AsActor(AsyncWork.class);
             seqTracker = new HashMap<>();
         }
 

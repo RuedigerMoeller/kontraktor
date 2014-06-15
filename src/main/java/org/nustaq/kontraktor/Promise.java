@@ -1,7 +1,4 @@
-package de.ruedigermoeller.kontraktor;
-
-import de.ruedigermoeller.kontraktor.impl.CallbackWrapper;
-import de.ruedigermoeller.kontraktor.impl.DispatcherThread;
+package org.nustaq.kontraktor;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

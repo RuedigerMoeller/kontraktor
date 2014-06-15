@@ -1,4 +1,4 @@
-package de.ruedigermoeller.kontraktor;
+package org.nustaq.kontraktor;
 
 /**
  * Created by ruedi on 23.05.14.

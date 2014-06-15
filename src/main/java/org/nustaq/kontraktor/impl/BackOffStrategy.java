@@ -1,4 +1,4 @@
-package de.ruedigermoeller.kontraktor.impl;
+package org.nustaq.kontraktor.impl;
 
 import java.util.concurrent.locks.*;
 

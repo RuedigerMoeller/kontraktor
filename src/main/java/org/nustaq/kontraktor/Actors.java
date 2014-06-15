@@ -1,6 +1,6 @@
-package de.ruedigermoeller.kontraktor;
+package org.nustaq.kontraktor;
 
-import de.ruedigermoeller.kontraktor.impl.*;
+import org.nustaq.kontraktor.impl.*;
 import io.jaq.mpsc.MpscConcurrentQueue;
 
 import java.util.Queue;
@@ -29,7 +29,7 @@ import java.util.Queue;
  */
 public class Actors {
 
-    static Actors instance = new Actors();
+    public static Actors instance = new Actors(); // public for testing
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
@@ -44,7 +44,7 @@ public class Actors {
      * @return
      */
     public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz) {
-        return (T) instance.newProxy(actorClazz, -1);
+        return (T) instance.newProxy(actorClazz, (Scheduler) null, -1);
     }
 
     /**
@@ -56,7 +56,7 @@ public class Actors {
      * @return
      */
     public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz, int qSize) {
-        return (T) instance.newProxy(actorClazz, qSize);
+        return (T) instance.newProxy(actorClazz, (Scheduler)null, qSize);
     }
 
     /**
@@ -66,47 +66,30 @@ public class Actors {
      * @param <T>
      * @return
      */
-    public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz, DispatcherThread disp) {
-        return (T) instance.newProxy(actorClazz,disp);
+    public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz, Scheduler scheduler) {
+        return (T) instance.newProxy(actorClazz,scheduler,-1);
     }
 
     /**
-     * create a new actor with a newly created DispatcherThread
+     * create an new actor dispatched in the given DispatcherThread
+     *
      * @param actorClazz
      * @param <T>
      * @return
      */
-    public static <T extends Actor> T SpawnActor(Class<? extends Actor> actorClazz) {
-        return (T) instance.newProxy(actorClazz, instance.newDispatcher(-1) );
-    }
-
-    public static <T extends Actor> T $$( Class<T> clz ) {
-        try {
-            T seqproxy = instance.getFactory().instantiateProxy(clz.newInstance());
-            seqproxy.__isSeq = true;
-            return seqproxy;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    /**
-     * create a new actor with a newly created DispatcherThread
-     * @param actorClazz
-     * @param <T>
-     * @param qSiz - size of mailbox queue
-     * @return
-     */
-    public static <T extends Actor> T SpawnActor(Class<? extends Actor> actorClazz, int qSiz) {
-        return (T) instance.newProxy(actorClazz, instance.newDispatcher(qSiz) );
+    public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz, Scheduler scheduler, int qsize) {
+        return (T) instance.newProxy(actorClazz,scheduler,qsize);
     }
 
     // end static API
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    protected Scheduler scheduler = new ElasticScheduler(8,10000);
+    protected Scheduler scheduler = new ElasticScheduler(Runtime.getRuntime().availableProcessors(),10000);
+
+    public Scheduler __testGetScheduler() {
+        return scheduler;
+    }
 
     protected Actors() {
         factory = new ActorProxyFactory();
@@ -118,11 +101,10 @@ public class Actors {
         return factory;
     }
 
-    protected Actor newProxy(Class<? extends Actor> clz, DispatcherThread disp ) {
+    protected Actor newProxy(Class<? extends Actor> clz, DispatcherThread disp, int qs ) {
         try {
-            int qs = disp.getQSize();
-            if ( disp.getQSize() <= 0 )
-                qs = disp.getQueueCapacity();
+            if ( qs <= 100 )
+                qs = disp.getScheduler().getDefaultQSize();
 
             Actor realActor = clz.newInstance();
             realActor.__mailbox =  createQueue(qs);
@@ -130,16 +112,13 @@ public class Actors {
 
             Actor selfproxy = getFactory().instantiateProxy(realActor);
             realActor.__self = selfproxy;
+            selfproxy.__self = selfproxy;
+
             selfproxy.__mailbox = realActor.__mailbox;
             selfproxy.__cbQueue = realActor.__cbQueue;
 
-            Actor seqproxy = getFactory().instantiateProxy(realActor);
-            seqproxy.__isSeq = true;
-
-            realActor.__seq = seqproxy;
-            selfproxy.__seq = seqproxy;
-            realActor.__scheduler = scheduler;
-            selfproxy.__scheduler = scheduler;
+            realActor.__scheduler = disp.getScheduler();
+            selfproxy.__scheduler = disp.getScheduler();
 
             realActor.__currentDispatcher = disp;
             selfproxy.__currentDispatcher = disp;
@@ -157,32 +136,23 @@ public class Actors {
         return new MpscConcurrentQueue(qSize);
     }
 
-    protected Actor newProxy(Class<? extends Actor> clz, int qsize) {
-        if ( Thread.currentThread() instanceof DispatcherThread ) {
-            return newProxy( clz, (DispatcherThread) Thread.currentThread());
+    protected Actor newProxy(Class<? extends Actor> clz, Scheduler sched, int qsize) {
+        if ( sched == null && Thread.currentThread() instanceof DispatcherThread ) {
+            return newProxy( clz, (DispatcherThread) Thread.currentThread(), qsize);
         } else
         {
             try {
-                return newProxy(clz, newDispatcher(qsize));
+                if ( sched == null )
+                    sched = scheduler;
+                if ( qsize <= 100 )
+                    qsize = sched.getDefaultQSize();
+                return newProxy(clz, sched.newDispatcher(qsize), qsize);
             } catch (Exception e) {
                 if ( e instanceof RuntimeException)
                     throw (RuntimeException)e;
                 throw new RuntimeException(e);
             }
         }
-    }
-
-    /**
-     * return a new dispatcher backed by a new thread. Overriding classes should *not*
-     * return existing dispatchers here, as this can be used to isolate blocking code from the actor flow.
-     *
-     * if qSiz lesser or equal 0 use default size
-     * @return
-     */
-    protected DispatcherThread newDispatcher(int qSize) {
-        DispatcherThread dispatcherThread = new DispatcherThread(scheduler, qSize);
-        dispatcherThread.start();
-        return dispatcherThread;
     }
 
 }

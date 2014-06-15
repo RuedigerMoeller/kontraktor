@@ -2,8 +2,7 @@ package org.nustaq.machnetz;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
-import de.ruedigermoeller.kontraktor.Actors;
-import de.ruedigermoeller.kontraktor.impl.DispatcherThread;
+import org.nustaq.kontraktor.impl.DispatcherThread;
 import io.netty.channel.ChannelHandlerContext;
 import org.nustaq.netty2go.NettyWSHttpServer;
 import org.nustaq.webserver.ClientSession;
@@ -27,7 +26,7 @@ public class MachNetz extends WebSocketHttpServer {
     public MachNetz(File contentRoot) {
         super(contentRoot);
         for (int i = 0; i < dispatchers.length; i++) {
-            dispatchers[i] = new DispatcherThread(CLIENTQ_SIZE);
+//            dispatchers[i] = new DispatcherThread(CLIENTQ_SIZE);
         }
     }
 
@@ -81,7 +80,7 @@ public class MachNetz extends WebSocketHttpServer {
     AtomicInteger sessionid = new AtomicInteger(1);
     @Override
     protected ClientSession createNewSession() {
-        MNClientSession session = Actors.AsActor(MNClientSession.class,chooseDispatcher());
+        MNClientSession session = null;//Actors.AsActor(MNClientSession.class,chooseDispatcher(),-1);
         session.$init(this,sessionid.incrementAndGet());
         return session;
     }

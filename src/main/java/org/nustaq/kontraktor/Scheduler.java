@@ -1,6 +1,7 @@
-package de.ruedigermoeller.kontraktor;
+package org.nustaq.kontraktor;
 
-import de.ruedigermoeller.kontraktor.impl.CallEntry;
+import org.nustaq.kontraktor.impl.CallEntry;
+import org.nustaq.kontraktor.impl.DispatcherThread;
 
 import java.lang.reflect.InvocationHandler;
 import java.util.Queue;
@@ -10,6 +11,7 @@ import java.util.concurrent.Callable;
  * Created by ruedi on 14.06.14.
  */
 public interface Scheduler {
+
     int getMaxThreads();
 
     int getDefaultQSize();
@@ -52,4 +54,8 @@ public interface Scheduler {
      * @return
      */
     Future<Future[]> yield(Future... futures);
+
+    public DispatcherThread newDispatcher();
+    public DispatcherThread newDispatcher(int qSiz);
+    public DispatcherThread getPrimary();
 }

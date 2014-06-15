@@ -1,9 +1,9 @@
-package de.ruedigermoeller.kontraktor.impl;
+package org.nustaq.kontraktor.impl;
 
-import de.ruedigermoeller.kontraktor.Actor;
-import de.ruedigermoeller.kontraktor.Callback;
-import de.ruedigermoeller.kontraktor.Filter;
-import de.ruedigermoeller.kontraktor.Future;
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.Filter;
+import org.nustaq.kontraktor.Future;
 
 import java.lang.reflect.Method;
 
@@ -65,7 +65,7 @@ public class CallbackWrapper<T> implements Future<T> {
                 e.printStackTrace();
             }
         } else {
-            CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error}, targetActor);
+            CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error}, Actor.sender.get(), targetActor);
             targetActor.__scheduler.put2QueuePolling(targetActor.__cbQueue, ce);
         }
     }

@@ -1,7 +1,7 @@
-package de.ruedigermoeller.kontraktor.impl;
+package org.nustaq.kontraktor.impl;
 
-import de.ruedigermoeller.kontraktor.*;
-import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import javassist.*;
 import javassist.bytecode.AccessFlag;
 
@@ -156,7 +156,7 @@ public class ActorProxyFactory {
             allowed &= !originalMethod.getDeclaringClass().getName().equals(Object.class.getName()) &&
                        !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName()) ;
 
-            if ( originalMethod.getName().equals("executeInActorThread") ) {
+            if ( originalMethod.getName().equals("executeInActorThread") || originalMethod.getName().equals("$stop") ) {
                 allowed = true;
             }
 
@@ -180,7 +180,7 @@ public class ActorProxyFactory {
                                 }
                                 if ( ! parameterTypes[j].isInterface() )
                                     throw new RuntimeException("@InThread can be used on interfaces only");
-                                conversion += "args[" + j + "] = de.ruedigermoeller.kontraktor.Actors.InThread(args[" + j + "]);";
+                                conversion += "args[" + j + "] = ((org.nustaq.kontraktor.Actor)sender.get()).inThread(args[" + j + "]);";
                                 break;
                             }
                         }

@@ -1,6 +1,6 @@
-package de.ruedigermoeller.kontraktor.impl;
+package org.nustaq.kontraktor.impl;
 
-import de.ruedigermoeller.kontraktor.*;
+import org.nustaq.kontraktor.*;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -19,34 +19,32 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ElasticScheduler implements Scheduler {
 
-    int MAX_THREADS = 8; // Runtime.getRuntime().availableProcessors();
+    int maxThread = 8; // Runtime.getRuntime().availableProcessors();
     protected BackOffStrategy backOffStrategy = new BackOffStrategy(); // FIXME: should not be static
+    DispatcherThread primary;
 
-    // FIXME: static stuff to be moved to instance, hold a scheduler with each actor. reuqires a scheduler to be split from dispatcherthread
-
-    int DEFAULT_QUEUE_SIZE = 30000;
-    AtomicInteger instanceCount = new AtomicInteger(0);
+    int defQSize = 30000;
+    AtomicInteger threadCount = new AtomicInteger(0);
     protected ExecutorService exec = Executors.newCachedThreadPool();
     protected Timer delayedCalls = new Timer();
 
     public ElasticScheduler(int maxThreads, int defQSize) {
-        this.MAX_THREADS = maxThreads;
-        this.DEFAULT_QUEUE_SIZE = defQSize;
+        this.maxThread = maxThreads;
+        this.defQSize = defQSize;
     }
 
     @Override
     public int getMaxThreads() {
-        return MAX_THREADS;
+        return maxThread;
     }
 
     @Override
     public int getDefaultQSize() {
-        return DEFAULT_QUEUE_SIZE;
+        return defQSize;
     }
 
-    @Override
     public int incThreadCount() {
-        return instanceCount.incrementAndGet();
+        return threadCount.incrementAndGet();
     }
 
     @Override
@@ -54,7 +52,7 @@ public class ElasticScheduler implements Scheduler {
         final Future fut;
         if (e.hasFutureResult()) {
             fut = new Promise();
-            e.setFutureCB(new CallbackWrapper( e.getTargetActor() ,new Callback() {
+            e.setFutureCB(new CallbackWrapper( e.getSendingActor() ,new Callback() {
                 @Override
                 public void receiveResult(Object result, Object error) {
                     fut.receiveResult(result,error);
@@ -79,36 +77,19 @@ public class ElasticScheduler implements Scheduler {
         }
     }
 
-    ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
-    Method getCachedMethod(String methodName, Actor actor) {
-        Method method = methodCache.get(methodName);
-        if ( method == null ) {
-            Method[] methods = actor.getClass().getMethods();
-            for (int i = 0; i < methods.length; i++) {
-                Method m = methods[i];
-                if ( m.getName().equals(methodName) ) {
-                    methodCache.put(methodName,m);
-                    method = m;
-                    break;
-                }
-            }
-        }
-        return method;
-    }
-
     @Override
     public Object dispatchCall(Actor sendingActor, Actor receiver, String methodName, Object args[]) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
         Actor actor = receiver.getActor();
-        Method method = getCachedMethod(methodName, actor);
+        Method method = actor.getCachedMethod(methodName, actor);
 
         int count = 0;
         // scan for callbacks in arguments ..
         for (int i = 0; i < args.length; i++) {
             Object arg = args[i];
             if ( arg instanceof Callback) {
-                args[i] = new CallbackWrapper<>(receiver,(Callback<Object>) arg);
+                args[i] = new CallbackWrapper<>(sendingActor,(Callback<Object>) arg);
             }
         }
 
@@ -116,23 +97,19 @@ public class ElasticScheduler implements Scheduler {
                 actor, // target
                 method,
                 args,
-                actor // enqueuer
+                Actor.sender.get(), // enqueuer
+                actor
         );
-        if ( receiver.__isSeq ) {
-            sendingActor.methodSequence.get().add(e);
-            return null;
-        }
         return put2QueuePolling(e);
     }
 
-    @Override
     public void decThreadCount() {
-        instanceCount.decrementAndGet();
+        threadCount.decrementAndGet();
     }
 
     @Override
     public int getThreadCount() {
-        return instanceCount.get();
+        return threadCount.get();
     }
 
     class CallbackInvokeHandler implements InvocationHandler {
@@ -150,7 +127,7 @@ public class ElasticScheduler implements Scheduler {
             if ( method.getDeclaringClass() == Object.class )
                 return method.invoke(proxy,args); // toString, hashCode etc. invoke sync (danger if hashcode access local state)
             if ( target != null ) {
-                CallEntry ce = new CallEntry(target,method,args, targetActor);
+                CallEntry ce = new CallEntry(target,method,args, Actor.sender.get(), targetActor);
                 put2QueuePolling(targetActor.__cbQueue, ce);
             }
             return null;
@@ -220,6 +197,32 @@ public class ElasticScheduler implements Scheduler {
         return res;
     }
 
+    @Override
+    public DispatcherThread newDispatcher() {
+        if ( primary != null ) {
+            return primary;
+        }
+        DispatcherThread dispatcherThread = new DispatcherThread(this);
+        if ( primary == null ) {
+            primary = dispatcherThread;
+        }
+        dispatcherThread.start();
+        return dispatcherThread;
+    }
+
+    @Override
+    public DispatcherThread newDispatcher(int qSiz) {
+        if ( primary != null ) {
+            return primary;
+        }
+        DispatcherThread dispatcherThread = new DispatcherThread(this);
+        if ( primary == null ) {
+            primary = dispatcherThread;
+        }
+        dispatcherThread.start();
+        return dispatcherThread;
+    }
+
     private void yield(final Future futures[], final int index, final Future result) {
         if ( index < futures.length ) {
             futures[index].then(new Callback() {
@@ -233,5 +236,9 @@ public class ElasticScheduler implements Scheduler {
         }
     }
 
+    @Override
+    public DispatcherThread getPrimary() {
+        return primary;
+    }
 
 }

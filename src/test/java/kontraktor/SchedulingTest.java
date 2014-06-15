@@ -1,7 +1,7 @@
 package kontraktor;
 
-import de.ruedigermoeller.kontraktor.Actor;
-import de.ruedigermoeller.kontraktor.Actors;
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Actors;
 
 import java.util.concurrent.locks.LockSupport;
 

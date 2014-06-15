@@ -1,7 +1,7 @@
 package kontraktor;
 
-import de.ruedigermoeller.kontraktor.*;
-import de.ruedigermoeller.kontraktor.Promise;
+import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.Promise;
 
 import java.util.concurrent.Callable;
 
@@ -34,7 +34,7 @@ public class Playground {
             final Thread t = Thread.currentThread();
             async( new Callable<String>() {
                         public String call() throws Exception {
-                return "TEST"; //new Scanner(new URL("http://www.spiegel.de").openStream(), "UTF-8").useDelimiter("\\A").next();
+                return "TEST"; //new Scanner(new URL("http://www.spiegel.org").openStream(), "UTF-8").useDelimiter("\\A").next();
             }              }).then(new Callback<String>() {
                 public void receiveResult(String result, Object error) {
                 if (t != Thread.currentThread()) {
@@ -119,7 +119,7 @@ public class Playground {
             });
             actorB.doBlockingStuff(""+count++);
         }
-        actorA.stop(); actorB.stop();
+        actorA.$stop(); actorB.$stop();
         Thread.sleep(2000);
     }
 

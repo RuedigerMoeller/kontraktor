@@ -1,4 +1,4 @@
-package de.ruedigermoeller.kontraktor;
+package org.nustaq.kontraktor;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.

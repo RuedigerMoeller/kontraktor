@@ -1,4 +1,4 @@
-package de.ruedigermoeller.kontraktor;
+package org.nustaq.kontraktor;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -23,13 +23,13 @@ package de.ruedigermoeller.kontraktor;
  * To change this template use File | Settings | File Templates.
  */
 
-import de.ruedigermoeller.kontraktor.annotations.CallerSideMethod;
-import de.ruedigermoeller.kontraktor.impl.*;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.impl.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.reflect.Method;
 import java.util.Queue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
@@ -56,29 +56,7 @@ import java.util.concurrent.Callable;
  */
 public class Actor<SELF extends Actor> {
 
-    public static ThreadLocal<List<Message>> methodSequence = new ThreadLocal<List<Message>>() {
-        @Override protected List<Message> initialValue() { return new ArrayList<>(); }
-    };
-
-    public static MessageSequence currentSequence() {
-        List<Message> res = methodSequence.get();
-        methodSequence.set(new ArrayList<Message>());
-        return new MessageSequence(res);
-    }
-
-    public static Message currentMsg() {
-        return currentSequence().first();
-    }
-
-    public static Message msg( Future call ) {
-        return currentSequence().first();
-    }
-
-    public static MessageSequence seq( Future... calls ) {
-        List<Message> res = methodSequence.get();
-        methodSequence.set(new ArrayList<Message>());
-        return new MessageSequence(res);
-    }
+    public static ThreadLocal<Actor> sender = new ThreadLocal<>();
 
     // internal
     public Queue __mailbox;
@@ -88,8 +66,6 @@ public class Actor<SELF extends Actor> {
 
     public long __nanos;
     public Actor __self;
-    public Actor __seq;
-    public boolean __isSeq = false;
 
     /**
      * required by bytecode magic. Use Actors.Channel(..) to construct actor instances
@@ -106,8 +82,6 @@ public class Actor<SELF extends Actor> {
         return (SELF)__self;
     }
 
-    public SELF $() { return (SELF) __seq; }
-
     public ActorProxyFactory getFactory() {
         return Actors.instance.getFactory();
     }
@@ -120,12 +94,11 @@ public class Actor<SELF extends Actor> {
     }
 
     /**
-     * stop receiving events. If there are no actors left on the underlying dispatcher,
+     * $$stop receiving events. If there are no actors left on the underlying dispatcher,
      * the dispatching thread will be terminated.
      */
-    @CallerSideMethod public void stop() {
-        throw new RuntimeException("fixme");
-//        getDispatcher().actorStopped(this);
+    public void $stop() {
+        throw ActorStoppedException.Instance;
     }
 
     public void executeInActorThread( ActorRunnable toRun, Callback cb ) {
@@ -157,7 +130,7 @@ public class Actor<SELF extends Actor> {
         return prom;
     }
 
-    protected <T> T inThread(T cbInterface) {
+    @CallerSideMethod public <T> T inThread(T cbInterface) {
         return __scheduler.inThread(self(), cbInterface);
     }
 
@@ -179,7 +152,25 @@ public class Actor<SELF extends Actor> {
 
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread
     @CallerSideMethod public Object __dispatchCall( Actor receiver, String methodName, Object args[] ) {
-        return __scheduler.dispatchCall(this, receiver, methodName, args);
+        return __scheduler.dispatchCall(sender.get(), receiver, methodName, args);
     }
+
+    ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
+    @CallerSideMethod public Method getCachedMethod(String methodName, Actor actor) {
+        Method method = methodCache.get(methodName);
+        if ( method == null ) {
+            Method[] methods = actor.getClass().getMethods();
+            for (int i = 0; i < methods.length; i++) {
+                Method m = methods[i];
+                if ( m.getName().equals(methodName) ) {
+                    methodCache.put(methodName,m);
+                    method = m;
+                    break;
+                }
+            }
+        }
+        return method;
+    }
+
 
 }
