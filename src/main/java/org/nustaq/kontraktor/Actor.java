@@ -141,7 +141,7 @@ public class Actor<SELF extends Actor> {
      *
      */
     protected void delayed( int millis, final Runnable toRun ) {
-        __scheduler.delayedCall( millis, toRun);
+        __scheduler.delayedCall( millis, inThread(toRun) );
     }
 
     public Scheduler getScheduler() {

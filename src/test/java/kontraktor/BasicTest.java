@@ -1,10 +1,12 @@
 package kontraktor;
 
+import org.junit.Ignore;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.Promise;
 import org.junit.Test;
+import org.nustaq.kontraktor.impl.ElasticScheduler;
 
 import java.net.URL;
 import java.util.*;
@@ -214,8 +216,8 @@ public class BasicTest {
 
         Thread.sleep(1000);
 
-        cbActor.$stop();
         assertTrue(((MyActor)cbActor.getActor()).success == 4);
+        cbActor.$stop();
         service.$stop();
 
     }
@@ -454,7 +456,7 @@ public class BasicTest {
 
     public static class DelayedTest extends Actor<DelayedTest> {
 
-        public void delay(long started) {
+        public void $delay(long started) {
             delay_threads.set(__currentDispatcher == Thread.currentThread());
             if (!delay_threads.get()) {
                 System.out.println("current thread " + Thread.currentThread().getName());
@@ -469,16 +471,20 @@ public class BasicTest {
 
     final static AtomicBoolean delay_threads = new AtomicBoolean(false);
     final static AtomicLong delay_time = new AtomicLong(0);
+    final static AtomicLong delay_err = new AtomicLong(0);
 
     public static class DelayedCaller extends Actor {
 
-        public void delay() {
+        public void $delay() {
             final DelayedTest test = Actors.AsActor(DelayedTest.class);
             final long now = System.currentTimeMillis();
             delayed(100, new Runnable() {
                 @Override
                 public void run() {
-                    test.delay(now);
+                    if ( Thread.currentThread() != __currentDispatcher )
+                        delay_err.incrementAndGet();
+                    test.$delay(now);
+                    test.$stop();
                 }
             });
         }
@@ -486,21 +492,23 @@ public class BasicTest {
 
     @Test
     public void testDelayed() {
-        DelayedCaller caller = Actors.AsActor(DelayedCaller.class);
-        caller.delay();
+        DelayedCaller caller = Actors.AsActor(DelayedCaller.class, new ElasticScheduler(1,10000));
+        caller.$delay();
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         assertTrue(delay_threads.get());
+        assertTrue(delay_err.get()==0);
         assertTrue(delay_time.get() >= 100 && delay_time.get() < 120);
+        caller.$stop();
     }
 
-    @Test
+    @Test @Ignore
     public void testBlockingCall() {
         final AtomicInteger success = new AtomicInteger(0);
-        TestBlockingAPI actor = AsActor(TestBlockingAPI.class);
+        TestBlockingAPI actor = AsActor(TestBlockingAPI.class, new ElasticScheduler(1,10000));
         actor.get("http://www.google.com" ).then( new Callback<String>() {
             @Override
             public void receiveResult(String result, Object error) {
@@ -516,6 +524,7 @@ public class BasicTest {
             e.printStackTrace();
         }
         assertTrue(success.get()!=1); // if no response (proxy etc) also return true
+        actor.$stop();
     }
 
 
