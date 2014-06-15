@@ -506,7 +506,7 @@ public class BasicTest {
         caller.$stop();
     }
 
-    @Test @Ignore
+    @Test
     public void testBlockingCall() {
         final AtomicInteger success = new AtomicInteger(0);
         TestBlockingAPI actor = AsActor(TestBlockingAPI.class, new ElasticScheduler(1,10000));
