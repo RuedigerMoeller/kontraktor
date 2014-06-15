@@ -207,11 +207,10 @@ public class BasicTest {
 
     @Test
     public void inThreadTest() throws InterruptedException {
-        ElasticScheduler scheduler = new ElasticScheduler(1, 10000);
-        ServiceActor service = AsActor(ServiceActor.class, scheduler);
+        ServiceActor service = AsActor(ServiceActor.class);
         service.init();
 
-        MyActor cbActor = AsActor(MyActor.class, scheduler);
+        MyActor cbActor = AsActor(MyActor.class);
         cbActor.init(service);
         cbActor.callbackTest();
 
@@ -493,7 +492,7 @@ public class BasicTest {
 
     @Test
     public void testDelayed() {
-        DelayedCaller caller = Actors.AsActor(DelayedCaller.class, new ElasticScheduler(1,10000));
+        DelayedCaller caller = Actors.AsActor(DelayedCaller.class);
         caller.$delay();
         try {
             Thread.sleep(1000);
@@ -509,7 +508,7 @@ public class BasicTest {
     @Test
     public void testBlockingCall() {
         final AtomicInteger success = new AtomicInteger(0);
-        TestBlockingAPI actor = AsActor(TestBlockingAPI.class, new ElasticScheduler(1,10000));
+        TestBlockingAPI actor = AsActor(TestBlockingAPI.class);
         actor.get("http://www.google.com" ).then( new Callback<String>() {
             @Override
             public void receiveResult(String result, Object error) {
