@@ -152,7 +152,7 @@ public class Actor<SELF extends Actor> {
     }
 
     ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
-    @CallerSideMethod public Method getCachedMethod(String methodName, Actor actor) {
+    @CallerSideMethod public Method __getCachedMethod(String methodName, Actor actor) {
         Method method = methodCache.get(methodName);
         if ( method == null ) {
             Method[] methods = actor.getClass().getMethods();

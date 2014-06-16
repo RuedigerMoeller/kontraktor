@@ -23,8 +23,6 @@ package org.nustaq.kontraktor;
 * To change this template use File | Settings | File Templates.
 */
 
-import org.nustaq.kontraktor.impl.DispatcherThread;
-
 /**
  * tagging interface. 
  * Using Actors.AsActor() actually returns a proxy which enqueues each method call to the 'real' actor instance.
@@ -34,13 +32,6 @@ import org.nustaq.kontraktor.impl.DispatcherThread;
  */
 public interface ActorProxy<T extends Actor> {
 
-    /**
-     * for internal use only
-     * @param disp
-     */
-    public void __setDispatcher(DispatcherThread disp);
-
-    public DispatcherThread getDispatcher();
     public Actor getActor();
 
 }

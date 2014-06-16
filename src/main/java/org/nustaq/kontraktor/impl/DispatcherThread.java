@@ -53,6 +53,8 @@ import java.util.concurrent.locks.LockSupport;
 public class DispatcherThread extends Thread {
 
 
+    public static final int PROFILE_INTERVAL = 255;
+    public static final int SCHEDULE_PER_PROFILE = 64;
     Scheduler scheduler;
 
     /**
@@ -143,9 +145,6 @@ public class DispatcherThread extends Thread {
         CallEntry res = (CallEntry) cbQueues[count].poll();
         if ( res == null )
             res = (CallEntry) queueArr[count].poll();
-        else {
-            int debug = 1;
-        }
 
         count++;
         return res;
@@ -203,7 +202,7 @@ public class DispatcherThread extends Thread {
     }
 
     private Object profiledCall(CallEntry poll) throws IllegalAccessException, InvocationTargetException {
-        nextProfile = (int) (255 + Math.random() * 13);
+        nextProfile = (int) (PROFILE_INTERVAL + Math.random() * 13);
         schedCounter++;
 
         long nanos = System.nanoTime();
@@ -211,7 +210,7 @@ public class DispatcherThread extends Thread {
         nanos = System.nanoTime() - nanos;
         ((Actor) poll.getTarget()).__nanos = (((Actor) poll.getTarget()).__nanos * 7 + nanos) / 8;
 
-        if (schedCounter > 64) {
+        if (schedCounter > SCHEDULE_PER_PROFILE) {
             schedCounter = 0;
             checkForSplit();
         }

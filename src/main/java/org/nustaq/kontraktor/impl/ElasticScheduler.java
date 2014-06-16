@@ -9,7 +9,6 @@ import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -82,7 +81,7 @@ public class ElasticScheduler implements Scheduler {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
         Actor actor = receiver.getActor();
-        Method method = actor.getCachedMethod(methodName, actor);
+        Method method = actor.__getCachedMethod(methodName, actor);
 
         int count = 0;
         // scan for callbacks in arguments ..
