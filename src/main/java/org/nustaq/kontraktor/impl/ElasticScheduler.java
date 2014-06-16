@@ -46,7 +46,7 @@ public class ElasticScheduler implements Scheduler {
         return threadCount.incrementAndGet();
     }
 
-    @Override
+//    @Override
     public Future put2QueuePolling(CallEntry e) {
         final Future fut;
         if (e.hasFutureResult()) {
@@ -200,7 +200,7 @@ public class ElasticScheduler implements Scheduler {
     }
 
     @Override
-    public DispatcherThread newDispatcher() {
+    public DispatcherThread assignDispatcher() {
         if ( primary != null ) {
             if ( ! primary.shutDown )
                 return primary;

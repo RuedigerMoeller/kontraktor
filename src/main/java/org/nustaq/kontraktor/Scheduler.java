@@ -18,7 +18,7 @@ public interface Scheduler {
 
     int incThreadCount();
 
-    Future put2QueuePolling(CallEntry e);
+//    Future put2QueuePolling(CallEntry e);
 
     void yield(int count);
 
@@ -55,6 +55,6 @@ public interface Scheduler {
      */
     Future<Future[]> yield(Future... futures);
 
-    public DispatcherThread newDispatcher();
+    public DispatcherThread assignDispatcher();
     public DispatcherThread getPrimary();
 }

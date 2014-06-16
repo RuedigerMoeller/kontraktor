@@ -203,9 +203,9 @@ public class ActorProxyFactory {
             {
                 if (isCallerSide || method.getName().equals("toString")) {
                     // do nothing
-                } else if ( method.getName().equals("getDispatcher") ) {
-                    method.setBody(" return __target.getDispatcher();");
-                    cc.addMethod(method);
+//                } else if ( method.getName().equals("assignDispatcher") ) {
+//                    method.setBody(" return __target.assignDispatcher();");
+//                    cc.addMethod(method);
 //                    System.out.println("patch method 1 "+method.getName());
                 } else if ( ! method.getName().equals("getActor") ) {
                     method.setBody("throw new RuntimeException(\"can only call public methods on actor ref\");");
