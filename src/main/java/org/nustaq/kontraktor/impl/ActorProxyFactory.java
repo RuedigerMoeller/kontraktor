@@ -180,7 +180,9 @@ public class ActorProxyFactory {
                                 }
                                 if ( ! parameterTypes[j].isInterface() )
                                     throw new RuntimeException("@InThread can be used on interfaces only");
-                                conversion += "args[" + j + "] = ((org.nustaq.kontraktor.Actor)sender.get()).inThread(args[" + j + "]);";
+                                String an = Actor.class.getName();
+                                conversion += an+" sender=("+an+")sender.get();";
+                                conversion += "args[" + j + "] = sender.__scheduler.inThread(sender.__self, args[" + j + "]);";
                                 break;
                             }
                         }

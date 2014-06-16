@@ -104,7 +104,10 @@ public class ElasticScheduler implements Scheduler {
     }
 
     public void decThreadCount() {
-        threadCount.decrementAndGet();
+        if (threadCount.decrementAndGet() == 0 ) {
+            primary.shutDown = true;
+            primary = null;
+        }
     }
 
     @Override
@@ -199,19 +202,6 @@ public class ElasticScheduler implements Scheduler {
 
     @Override
     public DispatcherThread newDispatcher() {
-        if ( primary != null ) {
-            return primary;
-        }
-        DispatcherThread dispatcherThread = new DispatcherThread(this);
-        if ( primary == null ) {
-            primary = dispatcherThread;
-        }
-        dispatcherThread.start();
-        return dispatcherThread;
-    }
-
-    @Override
-    public DispatcherThread newDispatcher(int qSiz) {
         if ( primary != null ) {
             if ( ! primary.shutDown )
                 return primary;

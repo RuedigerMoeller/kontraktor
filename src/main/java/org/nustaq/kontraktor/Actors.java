@@ -150,7 +150,7 @@ public class Actors {
                 sched = scheduler;
             if ( qsize <= 100 )
                 qsize = sched.getDefaultQSize();
-            return makeProxy(clz, sched.newDispatcher(qsize), qsize);
+            return makeProxy(clz, sched.newDispatcher(), qsize);
         } catch (Exception e) {
             if ( e instanceof RuntimeException)
                 throw (RuntimeException)e;

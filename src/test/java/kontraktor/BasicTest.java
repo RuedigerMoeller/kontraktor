@@ -167,39 +167,6 @@ public class BasicTest {
                     }
                 }
             });
-
-            service.executeInActorThread(
-                    new ActorRunnable() {
-                        @Override
-                        public void run(Object actorAccess, Actor actorImpl, Callback resultReceiver) {
-                            if ( service.__currentDispatcher == Thread.currentThread() ) {
-                                success++;
-                            } else {
-                                System.out.println("POKPOK err");
-                            }
-                            ServiceActor.DataAccess access = (ServiceActor.DataAccess) actorAccess;
-                            Iterator iterator = access.getMap().keySet().iterator();
-                            while( iterator.hasNext() ) {
-                                Object o = iterator.next();
-                                if ( "five".equals(o) ) {
-                                    resultReceiver.receiveResult(access.getMap().get(o),null);
-                                }
-                            }
-                        }
-                    },
-                    new Callback() {
-                        @Override
-                        public void receiveResult(Object result, Object error) {
-                            if (callerThread != Thread.currentThread()) {
-                                throw new RuntimeException("Dammit");
-                            } else {
-                                success++;
-                                System.out.println("Alles prima 2");
-                            }
-                            System.out.println("res "+result);
-                        }
-                    }
-            );
 //
         }
 
@@ -216,7 +183,7 @@ public class BasicTest {
 
         Thread.sleep(1000);
 
-        assertTrue(((MyActor)cbActor.getActor()).success == 4);
+        assertTrue(((MyActor)cbActor.getActor()).success == 2);
         cbActor.$stop();
         service.$stop();
 

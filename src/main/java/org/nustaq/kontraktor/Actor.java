@@ -101,10 +101,6 @@ public class Actor<SELF extends Actor> {
         throw ActorStoppedException.Instance;
     }
 
-    public void executeInActorThread( ActorRunnable toRun, Callback cb ) {
-        toRun.run(getActorAccess(), getActor(), cb);
-    }
-
     public boolean isProxy() {
         return getActor() != this;
     }
@@ -124,13 +120,13 @@ public class Actor<SELF extends Actor> {
      * @param <T>
      * @return
      */
-    @CallerSideMethod public <T> Future<T> async(Callable<T> callable) {
+    protected <T> Future<T> async(Callable<T> callable) {
         Promise<T> prom = new Promise<>();
         __scheduler.runBlockingCall(self(),callable,prom);
         return prom;
     }
 
-    @CallerSideMethod public <T> T inThread(T cbInterface) {
+    protected <T> T inThread(T cbInterface) {
         return __scheduler.inThread(self(), cbInterface);
     }
 

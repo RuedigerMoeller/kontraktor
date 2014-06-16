@@ -56,6 +56,5 @@ public interface Scheduler {
     Future<Future[]> yield(Future... futures);
 
     public DispatcherThread newDispatcher();
-    public DispatcherThread newDispatcher(int qSiz);
     public DispatcherThread getPrimary();
 }
