@@ -183,7 +183,7 @@ public class BasicTest {
 
         Thread.sleep(1000);
 
-        assertTrue(((MyActor)cbActor.getActor()).success == 2);
+        assertTrue(cbActor.getActor().success == 2);
         cbActor.$stop();
         service.$stop();
 

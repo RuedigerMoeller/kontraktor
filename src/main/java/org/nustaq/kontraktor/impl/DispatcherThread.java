@@ -111,7 +111,7 @@ public class DispatcherThread extends Thread {
                     isShutDown = true;
             }
         }
-        scheduler.decThreadCount();
+        scheduler.threadStopped();
     }
 
     // if list of queues to schedule has changed,

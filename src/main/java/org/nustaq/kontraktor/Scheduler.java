@@ -16,19 +16,13 @@ public interface Scheduler {
 
     int getDefaultQSize();
 
-    int incThreadCount();
-
-//    Future put2QueuePolling(CallEntry e);
-
     void yield(int count);
 
     void put2QueuePolling(Queue q, Object o);
 
     Object dispatchCall(Actor sendingActor, Actor receiver, String methodName, Object args[]);
 
-    void decThreadCount();
-
-    int getThreadCount();
+    void threadStopped(DispatcherThread th);
 
     InvocationHandler getInvoker(Actor dispatcher, Object toWrap);
 

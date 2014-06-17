@@ -20,16 +20,16 @@ public class ElasticScheduler implements Scheduler {
 
     int maxThread = 8; // Runtime.getRuntime().availableProcessors();
     protected BackOffStrategy backOffStrategy = new BackOffStrategy(); // FIXME: should not be static
-    DispatcherThread primary;
+    DispatcherThread threads[];
 
     int defQSize = 30000;
-    AtomicInteger threadCount = new AtomicInteger(0);
     protected ExecutorService exec = Executors.newCachedThreadPool();
     protected Timer delayedCalls = new Timer();
 
     public ElasticScheduler(int maxThreads, int defQSize) {
         this.maxThread = maxThreads;
         this.defQSize = defQSize;
+        threads = new DispatcherThread[maxThreads];
     }
 
     @Override
@@ -40,10 +40,6 @@ public class ElasticScheduler implements Scheduler {
     @Override
     public int getDefaultQSize() {
         return defQSize;
-    }
-
-    public int incThreadCount() {
-        return threadCount.incrementAndGet();
     }
 
 //    @Override
@@ -102,16 +98,14 @@ public class ElasticScheduler implements Scheduler {
         return put2QueuePolling(e);
     }
 
-    public void decThreadCount() {
-        if (threadCount.decrementAndGet() == 0 ) {
-            primary.shutDown = true;
-            primary = null;
+    public void threadStopped(DispatcherThread th) {
+        for (int i = 0; i < threads.length; i++) {
+            if ( threads[i] == th ) {
+                threads[i] = null;
+                return;
+            }
         }
-    }
-
-    @Override
-    public int getThreadCount() {
-        return threadCount.get();
+        throw new RuntimeException("Oops. Unknown Thread");
     }
 
     class CallbackInvokeHandler implements InvocationHandler {
