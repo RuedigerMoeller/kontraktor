@@ -54,7 +54,7 @@ public class DispatcherThread extends Thread {
 
 
     public static final int PROFILE_INTERVAL = 255;
-    public static final int SCHEDULE_PER_PROFILE = 64;
+    public static final int SCHEDULE_PER_PROFILE = 10;
     Scheduler scheduler;
 
     /**
@@ -72,11 +72,6 @@ public class DispatcherThread extends Thread {
         this.scheduler = scheduler;
     }
 
-    public void init() {
-        instanceNum = scheduler.incThreadCount();
-        setName("ActorDisp spawned from [" + Thread.currentThread().getName() + "] " + System.identityHashCode(this));
-    }
-
     @Override
     public String toString() {
         return "DispatcherThread{" +
@@ -84,13 +79,13 @@ public class DispatcherThread extends Thread {
                 '}';
     }
 
-    public void actorAdded(Actor a) {
+    public void addActor(Actor a) {
         synchronized (queueList) {
             queueList.add(a);
         }
     }
 
-    public void actorStopped(Actor a) {
+    public void removeActor(Actor a) {
         synchronized (queueList) {
             queueList.remove(a);
         }
@@ -111,12 +106,12 @@ public class DispatcherThread extends Thread {
                     isShutDown = true;
             }
         }
-        scheduler.threadStopped();
+        scheduler.threadStopped(this);
     }
 
     // if list of queues to schedule has changed,
     // apply the change. needs to be done in thread
-    private void applyQueueList() {
+    public void applyQueueList() {
         synchronized (queueList) {
             if ( queueList.size() == 0 )
                 shutDown = true;
@@ -186,7 +181,7 @@ public class DispatcherThread extends Thread {
                 return true;
             } catch ( Exception e) {
                 if ( e instanceof InvocationTargetException && ((InvocationTargetException) e).getTargetException() == ActorStoppedException.Instance ) {
-                    queueList.remove(poll.getTarget());
+                    removeActor((Actor) poll.getTarget());
                     applyQueueList();
                     return true;
                 }
@@ -221,7 +216,7 @@ public class DispatcherThread extends Thread {
         int load = getLoad();
         if (load > 80 && queueList.size() > 1 && System.currentTimeMillis()-created > 100 ) {
             loadCounter++;
-            if (loadCounter > 2 && scheduler.getThreadCount() < scheduler.getMaxThreads()) {
+            if (loadCounter > 2) {
                 loadCounter = 0;
                 doSplit();
             }
@@ -229,6 +224,11 @@ public class DispatcherThread extends Thread {
     }
 
     private void doSplit() {
+        scheduler.rebalance(this);
+    }
+
+    // must be called in thread
+    public void splitTo( DispatcherThread newOne ) {
         System.out.println("SPLIT " + scheduler.getMaxThreads());
         synchronized (queueList) {
             long myTime = 0;
@@ -251,7 +251,6 @@ public class DispatcherThread extends Thread {
             //if ( 8*myTime > otherTime && 8*otherTime > myTime )
             //                                    {
             myTime = otherTime = 0;
-            DispatcherThread newOne = new DispatcherThread(scheduler);
             for (int i = 0; i < queueList.size(); i++) {
                 Actor act = queueList.get(i);
                 long nan = act.__nanos;
@@ -269,11 +268,10 @@ public class DispatcherThread extends Thread {
             created = System.currentTimeMillis();
             applyQueueList();
             newOne.applyQueueList();
-            newOne.start();
         }
     }
 
-    private int getLoad() {
+    public int getLoad() {
         int res = 0;
         for (int i = 0; i < queues.length; i++) {
             MpscConcurrentQueue queue = (MpscConcurrentQueue) queues[i];

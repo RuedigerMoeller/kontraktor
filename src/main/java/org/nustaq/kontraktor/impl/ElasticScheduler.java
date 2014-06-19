@@ -11,7 +11,6 @@ import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by ruedi on 13.06.14.
@@ -99,10 +98,12 @@ public class ElasticScheduler implements Scheduler {
     }
 
     public void threadStopped(DispatcherThread th) {
-        for (int i = 0; i < threads.length; i++) {
-            if ( threads[i] == th ) {
-                threads[i] = null;
-                return;
+        synchronized(threads) {
+            for (int i = 0; i < threads.length; i++) {
+                if (threads[i] == th) {
+                    threads[i] = null;
+                    return;
+                }
             }
         }
         throw new RuntimeException("Oops. Unknown Thread");
@@ -195,15 +196,90 @@ public class ElasticScheduler implements Scheduler {
 
     @Override
     public DispatcherThread assignDispatcher() {
-        if ( primary != null ) {
-            if ( ! primary.shutDown )
-                return primary;
-            primary = null;
+        synchronized (threads) { // FIXME race condition if thread terminates inbetween returning and new assignment
+            int minLoad = Integer.MAX_VALUE;
+            DispatcherThread minThread = findMinLoadThread(minLoad);
+            if ( minThread != null ) {
+                return minThread;
+            }
+            DispatcherThread newThreadIfPossible = createNewThreadIfPossible();
+            if ( newThreadIfPossible != null ) {
+                newThreadIfPossible.start();
+                return newThreadIfPossible;
+            }
         }
-        DispatcherThread dispatcherThread = new DispatcherThread(this);
-        primary = dispatcherThread;
-        dispatcherThread.start();
-        return dispatcherThread;
+        throw new RuntimeException("could not assign thread. This is a severe error");
+    }
+
+    private DispatcherThread findMinLoadThread(int minLoad) {
+        synchronized (threads) {
+            DispatcherThread minThread = null;
+            for (int i = 0; i < threads.length; i++) {
+                DispatcherThread thread = threads[i];
+                if (thread != null) {
+                    int load = thread.getLoad();
+                    if (load < minLoad) {
+                        minLoad = load;
+                        minThread = thread;
+                    }
+                }
+            }
+            return minThread;
+        }
+    }
+
+    private DispatcherThread createNewThreadIfPossible() {
+        synchronized (threads) {
+            for (int i = 0; i < threads.length; i++) {
+                DispatcherThread thread = threads[i];
+                if (thread == null) {
+                    DispatcherThread th = new DispatcherThread(this);
+                    threads[i] = th;
+                    return th;
+                }
+            }
+        }
+        return null;
+    }
+
+    /** called from inside overloaded thread with load
+     * all actors assigned to the calling thread therefore can be safely moved
+     * @param dispatcherThread
+     */
+    @Override
+    public void rebalance(DispatcherThread dispatcherThread) {
+        int load = dispatcherThread.getLoad();
+        DispatcherThread minLoadThread = createNewThreadIfPossible();
+        if ( minLoadThread != null ) {
+            // split
+            dispatcherThread.splitTo(minLoadThread);
+            minLoadThread.start();
+            return;
+        }
+        minLoadThread = findMinLoadThread(load / 4);
+        if ( minLoadThread == null ) {
+            // does not pay off. stay on current
+//            System.out.println("no rebalance possible");
+            return;
+        }
+        // move cheapest actor up to half load
+        synchronized (dispatcherThread.queueList) {
+            long minNanos = Long.MAX_VALUE;
+            Actor minActor = null;
+            for (int i = 0; i < dispatcherThread.queueList.size(); i++) {
+                Actor actor = dispatcherThread.queueList.get(i);
+                if (actor.__nanos < minNanos) {
+                    minNanos = actor.__nanos;
+                    minActor = actor;
+                }
+            }
+            if (minActor != null) {
+                //                System.out.println("move "+minActor+" from "+dispatcherThread+" to "+minLoadThread);
+                dispatcherThread.removeActor(minActor);
+                minLoadThread.addActor(minActor);
+                dispatcherThread.applyQueueList();
+            }
+        }
     }
 
     private void yield(final Future futures[], final int index, final Future result) {
@@ -217,11 +293,6 @@ public class ElasticScheduler implements Scheduler {
         } else {
             result.receiveResult(futures, null);
         }
-    }
-
-    @Override
-    public DispatcherThread getPrimary() {
-        return primary;
     }
 
 }

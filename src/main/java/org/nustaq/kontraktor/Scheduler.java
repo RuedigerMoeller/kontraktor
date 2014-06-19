@@ -50,5 +50,10 @@ public interface Scheduler {
     Future<Future[]> yield(Future... futures);
 
     public DispatcherThread assignDispatcher();
-    public DispatcherThread getPrimary();
+
+    /** called from inside overloaded thread with load
+     * all actors assigned to the calling thread therefore can be safely moved
+     * @param dispatcherThread
+     */
+    void rebalance(DispatcherThread dispatcherThread);
 }

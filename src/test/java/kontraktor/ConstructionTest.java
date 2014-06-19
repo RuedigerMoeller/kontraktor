@@ -50,18 +50,15 @@ public class ConstructionTest {
     public void creationTest() throws InterruptedException {
 
         ConstructionSampleActor act = Actors.AsActor(ConstructionSampleActor.class);
-        act.$test( 16384, Actors.instance.__testGetScheduler() );
+        act.$test( 32768, Actors.instance.__testGetScheduler() );
         ConstructionSampleActor act1 = Actors.AsActor(ConstructionSampleActor.class);
         act1.$sameThread(act.__currentDispatcher);
-        act1.$test( 16384, act.__scheduler);
+        act1.$test( 32768, act.__scheduler);
 
         ElasticScheduler scheduler = new ElasticScheduler(1, 7000);
         ConstructionSampleActor act2 = Actors.AsActor(ConstructionSampleActor.class, scheduler);
         act2.$notSameThread(act.__currentDispatcher);
         act2.$test(8192,scheduler);
-
-        ConstructionSampleActor act3 = Actors.AsActor(ConstructionSampleActor.class, 30000);
-        act3.$test(32768,act.__scheduler);
 
         ConstructionSampleActor act4 = Actors.AsActor(ConstructionSampleActor.class, scheduler, 60000);
         act4.$test(65536,scheduler);

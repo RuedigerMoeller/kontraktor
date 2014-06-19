@@ -85,7 +85,7 @@ public class Actors {
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    protected Scheduler scheduler = new ElasticScheduler(Runtime.getRuntime().availableProcessors(),10000);
+    protected Scheduler scheduler = new ElasticScheduler(Runtime.getRuntime().availableProcessors(),30000);
 
     public Scheduler __testGetScheduler() {
         return scheduler;
@@ -123,7 +123,7 @@ public class Actors {
             realActor.__currentDispatcher = disp;
             selfproxy.__currentDispatcher = disp;
 
-            disp.actorAdded(realActor);
+            disp.addActor(realActor);
             return selfproxy;
         } catch (Exception e) {
             if ( e instanceof RuntimeException)
