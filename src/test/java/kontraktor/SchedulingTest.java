@@ -82,25 +82,25 @@ public class SchedulingTest {
                 @Override
                 public void receiveResult(Future[] results, Object error) {
                     boolean hadDiff = false;
-                    int prev = (int) results[0].getResult();
+                    long prev = (long) results[0].getResult();
                     for (int i = 0; i < results.length; i++) {
-                        int r = (int) results[i].getResult();
+                        long r = (long) results[i].getResult();
+                        System.out.println("" + i + " - " + r);
                         if ( r != prev ) {
                             if (hadDiff) {
                                 System.out.println("fatal error 1");
                                 System.exit(0);
                             }
-                            if ( r == prev+1 ) {
+                            if ( r == prev-1 ) {
                                 prev = r;
                                 hadDiff = true;
                             } else {
-                                System.out.println("fatal error 0");
+                                System.out.println("fatal error 0 "+r);
                                 System.exit(0);
                             }
                         }
-                        System.out.println("" + i + " - " + r);
-                        done.receiveResult("void",null);
                     }
+                    done.receiveResult("void",null);
                 }
             });
             return done;
@@ -127,7 +127,10 @@ public class SchedulingTest {
                     count = 0;
                     tim = System.currentTimeMillis();
                     speed++;
-                    if (speed > 100)
+                    speed++;
+//                    speed++;
+//                    speed++;
+                    if (speed > 200)
                         break;
                 }
             }
