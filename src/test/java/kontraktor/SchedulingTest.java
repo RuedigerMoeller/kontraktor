@@ -16,13 +16,19 @@ public class SchedulingTest {
         volatile boolean threadIn = false;
         long sim[] = new long[64];
         long callsReceived = 0;
+        long lastSequence = 0;
 
-        public void $generateLoad(int count) {
+        public void $generateLoad(int count, long sequence) {
             if ( threadIn ) {
                 System.out.println("fatal");
                 System.exit(0);
             }
             threadIn = true;
+            if ( lastSequence != 0 && lastSequence != sequence-32 ) {
+                System.out.println("fatal sequence error");
+                System.exit(0);
+            }
+            lastSequence = sequence;
             long sum = 0;
             long max = count;
             for (int i = 0; i < max; i++ ) {
@@ -50,6 +56,7 @@ public class SchedulingTest {
 
         HoardeAct test[];
         int count = 0;
+        long sequence = 0;
 
         public void $init() {
 
@@ -88,7 +95,7 @@ public class SchedulingTest {
         }
 
         public void $tick() {
-            test[count].$generateLoad(2000*(count+1));
+            test[count].$generateLoad(2000*(count+1), sequence++);
             count++;
             if ( count >= test.length )
                 count = 0;
@@ -142,7 +149,7 @@ public class SchedulingTest {
         while (true) {
             act.$tick();
             if ((count % (Math.max(1,speed))) == 0) {
-                LockSupport.parkNanos(10);
+                LockSupport.parkNanos(100000);
             }
             count++;
             long diff = System.currentTimeMillis() - tim;

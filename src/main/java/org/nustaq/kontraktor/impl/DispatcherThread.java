@@ -50,8 +50,12 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class DispatcherThread extends Thread {
 
-    public static final int PROFILE_INTERVAL = 255;
-    public static final int SCHEDULE_PER_PROFILE = 32;
+    public static int PROFILE_INTERVAL = 255;
+    public static int SCHEDULE_PER_PROFILE = 32;
+    public static int QUEUE_PERCENTAGE_TRIGGERING_REBALANCE = 80;      // if queue is X % full, consider rebalance
+    public static int MILLIS_AFTER_CREATION_BEFORE_REBALANCING = 1000; // give JIT + OS a chance to get things going before rebalancing
+    public static int TRIGGER_REBALANCE_COUNTER = 2; // how many times in a row rebalance conditions must be true before acting
+
     private Scheduler scheduler;
 
     /**
@@ -125,15 +129,17 @@ public class DispatcherThread extends Thread {
             }
         }
         scheduler.threadStopped(this);
-        for ( int i = 0; i < 100; i++ ) {
+        for ( int i = 0; i < 100; i++ ) { // FIXME: umh .. works in practice
             LockSupport.parkNanos(1000*1000*5);
             if ( actors.length > 0 ) {
-                System.out.println("Severe: zombie dispatcher thread detected");
+                if ( ElasticScheduler.DEBUG_SCHEDULING)
+                    System.out.println("Severe: zombie dispatcher thread detected");
                 scheduler.tryStopThread(this);
                 i = 0;
             }
         }
-        System.out.println("thread died");
+        if ( ElasticScheduler.DEBUG_SCHEDULING)
+            System.out.println("thread died");
     }
 
     private void schedulePendingAdds() {
@@ -180,7 +186,7 @@ public class DispatcherThread extends Thread {
     long created = System.currentTimeMillis();
 
     public boolean pollQs() {
-        CallEntry poll = pollQueues(actors); // first callback actors
+        CallEntry poll = pollQueues(actors);
         if (poll != null) {
             try {
                 Actor.sender.set(poll.getTargetActor());
@@ -241,9 +247,12 @@ public class DispatcherThread extends Thread {
 
     private void checkForSplit() {
         int load = getLoad();
-        if (load > 80 && actors.length > 1 && System.currentTimeMillis()-created > 1000 ) { // FIXME: constant
+        if (load > QUEUE_PERCENTAGE_TRIGGERING_REBALANCE &&
+            actors.length > 1 &&
+            System.currentTimeMillis()-created > MILLIS_AFTER_CREATION_BEFORE_REBALANCING )
+        {
             loadCounter++;
-            if (loadCounter > 2) { // FIXME: constant
+            if (loadCounter > TRIGGER_REBALANCE_COUNTER) {
                 loadCounter = 0;
                 scheduler.rebalance(this);
             }
@@ -252,7 +261,8 @@ public class DispatcherThread extends Thread {
 
     // must be called in thread. newOne is expected to not yet started
     void splitTo( DispatcherThread newOne ) {
-        System.out.println("SPLIT " + scheduler.getMaxThreads());
+        if ( ElasticScheduler.DEBUG_SCHEDULING )
+            System.out.println("SPLIT " + scheduler.getMaxThreads());
         long myTime = 0;
         long otherTime = 0;
         Arrays.sort(actors, new Comparator() {
@@ -291,7 +301,8 @@ public class DispatcherThread extends Thread {
         new2ScheduleOnMe.toArray(actors);
         newOne.actors = new Actor[new2ScheduleOnOther.size()];
         new2ScheduleOnOther.toArray(newOne.actors);
-        System.out.println("distributeion " + myTime + ":" + otherTime + " actors " + actors.length);
+        if ( ElasticScheduler.DEBUG_SCHEDULING )
+            System.out.println("split distribution " + myTime + ":" + otherTime + " actors " + actors.length);
         created = System.currentTimeMillis();
     }
 
@@ -311,7 +322,7 @@ public class DispatcherThread extends Thread {
     }
 
     /**
-     * @return profiling based load
+     * @return profiling based measured load
      */
     public long getLoadNanos() {
         long res = 0;
@@ -324,6 +335,10 @@ public class DispatcherThread extends Thread {
     }
 
     // FIXME: bad for concurrentlinkedq
+
+    /**
+     * @return accumulated q size of all dispatched actors
+     */
     public int getQSize() {
         int res = 0;
         final Actor actors[] = this.actors;
@@ -377,6 +392,9 @@ public class DispatcherThread extends Thread {
         return scheduler;
     }
 
+    /**
+     * @return a copy of actors used
+     */
     public Actor[] getActors() {
         Actor actors[] = this.actors;
         Actor res[] = new Actor[actors.length];

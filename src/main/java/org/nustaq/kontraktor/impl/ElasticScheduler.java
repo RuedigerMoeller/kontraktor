@@ -5,7 +5,6 @@ import org.nustaq.kontraktor.*;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.ArrayList;
 import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -15,13 +14,20 @@ import java.util.concurrent.Executors;
 
 /**
  * Created by ruedi on 13.06.14.
+ *
+ * A scheduler implementing "vertical" scaling. Instead of distributing load amongs
+ * a given set of threads, it increases the number of threads/cores with load.
+ * This way an actor has an dedicated thread executing it instead of random thread hopping
+ * when using an executor to schedule actor messages.
+ * Additionally this way I can use spin locks without going to 800% CPU if threadmax = 8.
  */
 public class ElasticScheduler implements Scheduler {
 
     public static final int DEFQSIZE = 16384;
+    public static final boolean DEBUG_SCHEDULING = false;
 
-    int maxThread = 8; // Runtime.getRuntime().availableProcessors();
-    protected BackOffStrategy backOffStrategy = new BackOffStrategy(); // FIXME: should not be static
+    int maxThread = Runtime.getRuntime().availableProcessors();
+    protected BackOffStrategy backOffStrategy = new BackOffStrategy();
     volatile DispatcherThread threads[];
 
     int defQSize = DEFQSIZE;
@@ -140,7 +146,7 @@ public class ElasticScheduler implements Scheduler {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             if ( method.getDeclaringClass() == Object.class )
-                return method.invoke(proxy,args); // toString, hashCode etc. invoke sync (danger if hashcode access local state)
+                return method.invoke(proxy,args); // toString, hashCode etc. invoke sync (DANGER if hashcode accesses local state)
             if ( target != null ) {
                 CallEntry ce = new CallEntry(target,method,args, Actor.sender.get(), targetActor);
                 put2QueuePolling(targetActor.__cbQueue, ce);
@@ -214,7 +220,7 @@ public class ElasticScheduler implements Scheduler {
 
     @Override
     public DispatcherThread assignDispatcher() {
-        synchronized (threads) { // FIXME race condition if thread terminates inbetween returning and new assignment
+        synchronized (threads) {
             int minLoad = Integer.MAX_VALUE;
             DispatcherThread minThread = findMinLoadThread(minLoad, null);
             if ( minThread != null ) {
@@ -262,7 +268,7 @@ public class ElasticScheduler implements Scheduler {
 
     Object balanceLock = new Object();
 
-    /** called from inside overloaded thread with load
+    /** called from inside overloaded thread.
      * all actors assigned to the calling thread therefore can be safely moved
      * @param dispatcherThread
      */
@@ -280,7 +286,7 @@ public class ElasticScheduler implements Scheduler {
             minLoadThread = findMinLoadThread(load, dispatcherThread);
             if (minLoadThread == null) {
                 // does not pay off. stay on current
-                //            System.out.println("no rebalance possible");
+                //System.out.println("no rebalance possible");
                 return;
             }
             // move cheapest actor
@@ -291,7 +297,8 @@ public class ElasticScheduler implements Scheduler {
                 if (otherLoad + actor.__nanos < load - actor.__nanos) {
                     otherLoad += actor.__nanos;
                     load -= actor.__nanos;
-                    System.out.println("move " + actor.__nanos + " myload " + load + " otherlOad " + otherLoad);
+                    if (DEBUG_SCHEDULING)
+                        System.out.println("move " + actor.__nanos + " myload " + load + " otherlOad " + otherLoad);
                     dispatcherThread.removeActorImmediate(actor);
                     minLoadThread.addActor(actor);
                 }
@@ -310,7 +317,8 @@ public class ElasticScheduler implements Scheduler {
                 Actor actor = qList[i];
                 dispatcherThread.removeActorImmediate(actor);
                 minLoadThread.addActor(actor);
-//                System.out.println("move for idle " + actor.__nanos + " myload " + dispatcherThread.getLoadNanos() + " actors " + qList.length);
+                if (DEBUG_SCHEDULING)
+                    System.out.println("move for idle " + actor.__nanos + " myload " + dispatcherThread.getLoadNanos() + " actors " + qList.length);
             }
         }
     }
