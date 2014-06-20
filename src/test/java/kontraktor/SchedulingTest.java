@@ -141,7 +141,7 @@ public class SchedulingTest {
         int direction = 2;
         while (true) {
             act.$tick();
-            if ((count % speed) == 0) {
+            if ((count % (Math.max(1,speed))) == 0) {
                 LockSupport.parkNanos(10);
             }
             count++;
@@ -155,7 +155,7 @@ public class SchedulingTest {
                     if ( direction > 0 )
                         direction = -2 * direction;
                 }
-                if (speed < 1) {
+                if (speed < -100) {
                     break;
                 }
             }

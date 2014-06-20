@@ -4,10 +4,8 @@ import org.nustaq.kontraktor.*;
 import io.jaq.mpsc.MpscConcurrentQueue;
 
 import java.lang.reflect.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Queue;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -52,19 +50,15 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class DispatcherThread extends Thread {
 
-
     public static final int PROFILE_INTERVAL = 255;
     public static final int SCHEDULE_PER_PROFILE = 32;
-    Scheduler scheduler;
+    private Scheduler scheduler;
 
     /**
      * defines the strategy applied when idling
      */
-    ArrayList<Actor> queueList = new ArrayList<>();
-    Queue queues[] = new Queue[0];
-    Queue cbQueues[]= new Queue[0];
-
-    protected int instanceNum;
+    private Actor actors[] = new Actor[0];
+    ConcurrentLinkedQueue<Actor> toAdd = new ConcurrentLinkedQueue<>();
 
     protected boolean shutDown = false;
 
@@ -79,36 +73,53 @@ public class DispatcherThread extends Thread {
                 '}';
     }
 
-    public void addActor(Actor a) {
-        synchronized (queueList) {
-            queueList.add(a);
-        }
+    public void addActor(Actor act) {
+        toAdd.offer(act);
     }
 
-    public void removeActor(Actor a) {
-        synchronized (queueList) {
-            queueList.remove(a);
+    // removes immediate must be called from this thread
+    void removeActorImmediate(Actor act) {
+        if ( Thread.currentThread() != this )
+            throw new RuntimeException("wrong thread");
+        Actor newAct[] = new Actor[actors.length-1];
+        int idx = 0;
+        for (int i = 0; i < actors.length; i++) {
+            Actor actor = actors[i];
+            if ( actor != act)
+                newAct[idx++] = actor;
         }
+        if ( idx != newAct.length )
+            throw new RuntimeException("could not remove actor");
+        actors = newAct;
     }
 
     public void run() {
         int emptyCount = 0;
+        int scheduleNewActorCount = 0;
         boolean isShutDown = false;
         while( ! isShutDown ) {
-
             if ( pollQs() ) {
                 emptyCount = 0;
+                scheduleNewActorCount++;
+                if ( scheduleNewActorCount > 500 ) {
+                    scheduleNewActorCount = 0;
+                    schedulePendingAdds();
+                }
             }
             else {
                 emptyCount++;
                 scheduler.yield(emptyCount);
                 if (shutDown) // access volatile only when idle
                     isShutDown = true;
-                if ( scheduler.getBackoffStrategy().isSleeping(emptyCount) && System.currentTimeMillis()-created > 3000 ) {
-                    if ( queueList.size() == 0 ) {
-                        shutDown = true;
-                    } else {
-                        scheduler.tryStopThread(this);
+                if ( scheduler.getBackoffStrategy().isSleeping(emptyCount) ) {
+                    scheduleNewActorCount = 0;
+                    schedulePendingAdds();
+                    if ( System.currentTimeMillis()-created > 3000 ) {
+                        if ( actors.length == 0 && toAdd.peek() == null ) {
+                            shutDown();
+                        } else {
+                            scheduler.tryStopThread(this);
+                        }
                     }
                 }
             }
@@ -116,47 +127,46 @@ public class DispatcherThread extends Thread {
         scheduler.threadStopped(this);
         for ( int i = 0; i < 100; i++ ) {
             LockSupport.parkNanos(1000*1000*5);
-            if ( queueList.size() > 0 ) {
+            if ( actors.length > 0 ) {
                 System.out.println("Severe: zombie dispatcher thread detected");
-                run(); // for now keep things going ..
-                break;
+                scheduler.tryStopThread(this);
+                i = 0;
             }
         }
         System.out.println("thread died");
     }
 
-    // if list of queues to schedule has changed,
-    // apply the change. needs to be done in thread
-    void applyQueueList() {
-        synchronized (queueList) {
-            Queue queues[] = new Queue[queueList.size()];
-            Queue cbQueues[] = new Queue[queueList.size()];
-            for (int i = 0; i < queues.length; i++) {
-                queues[i] = queueList.get(i).__mailbox;
-                cbQueues[i] = queueList.get(i).__cbQueue;
-            }
-            this.queues = queues;
-            this.cbQueues = cbQueues;
+    private void schedulePendingAdds() {
+        ArrayList<Actor> newOnes = new ArrayList<>();
+        Actor a;
+        while ( (a=toAdd.poll()) != null ) {
+            newOnes.add(a);
         }
+        if ( newOnes.size() > 0 ) {
+            Actor newQueue[] = new Actor[newOnes.size()+actors.length];
+            System.arraycopy(actors,0,newQueue,0,actors.length);
+            for (int i = 0; i < newOnes.size(); i++) {
+                Actor actor = newOnes.get(i);
+                newQueue[actors.length+i] = actor;
+            }
+            actors = newQueue;
+        }
+
     }
 
-    // poll all queues in queue arr round robin
+    // poll all actors in queue arr round robin
     int count = 0;
-    protected CallEntry pollQueues(Queue[] cbQueues, Queue[] queueArr) {
-        if ( count >= queueArr.length ) {
+    protected CallEntry pollQueues(Actor[] actors) {
+        if ( count >= actors.length ) {
             // check for changed queueList each run FIXME: too often !
             count = 0;
-            if ( queueArr.length != queueList.size() ) {
-                applyQueueList();
-            }
-            if ( queueArr.length == 0 ) {
+            if ( actors.length == 0 ) {
                 return null;
             }
         }
-        CallEntry res = (CallEntry) cbQueues[count].poll();
+        CallEntry res = (CallEntry) actors[count].__cbQueue.poll();
         if ( res == null )
-            res = (CallEntry) queueArr[count].poll();
-
+            res = (CallEntry) actors[count].__mailbox.poll();
         count++;
         return res;
     }
@@ -170,13 +180,13 @@ public class DispatcherThread extends Thread {
     long created = System.currentTimeMillis();
 
     public boolean pollQs() {
-        CallEntry poll = pollQueues(cbQueues, queues); // first callback queues
+        CallEntry poll = pollQueues(actors); // first callback actors
         if (poll != null) {
             try {
                 Actor.sender.set(poll.getTargetActor());
                 Object invoke = null;
                 profileCounter++;
-                if (  profileCounter > nextProfile && queueList.size() > 1 && poll.getTarget() instanceof Actor ) {
+                if (  profileCounter > nextProfile && poll.getTarget() instanceof Actor ) {
                     profileCounter = 0;
                     invoke = profiledCall(poll);
                 } else {
@@ -199,8 +209,7 @@ public class DispatcherThread extends Thread {
                 if ( e instanceof InvocationTargetException && ((InvocationTargetException) e).getTargetException() == ActorStoppedException.Instance ) {
                     Actor actor = (Actor) poll.getTarget();
                     actor.__stopped = true;
-                    removeActor(actor);
-                    applyQueueList();
+                    removeActorImmediate(actor);
                     return true;
                 }
                 if (poll.getFutureCB() != null)
@@ -232,57 +241,58 @@ public class DispatcherThread extends Thread {
 
     private void checkForSplit() {
         int load = getLoad();
-        if (load > 80 && queueList.size() > 1 && System.currentTimeMillis()-created > 1000 ) {
+        if (load > 80 && actors.length > 1 && System.currentTimeMillis()-created > 1000 ) { // FIXME: constant
             loadCounter++;
-            if (loadCounter > 2) {
+            if (loadCounter > 2) { // FIXME: constant
                 loadCounter = 0;
                 scheduler.rebalance(this);
             }
         }
     }
 
-    // must be called in thread
-    public void splitTo( DispatcherThread newOne ) {
+    // must be called in thread. newOne is expected to not yet started
+    void splitTo( DispatcherThread newOne ) {
         System.out.println("SPLIT " + scheduler.getMaxThreads());
-        synchronized (queueList) {
-            long myTime = 0;
-            long otherTime = 0;
-            Collections.sort(queueList, new Comparator<Actor>() {
-                @Override
-                public int compare(Actor o1, Actor o2) {
-                    return (o1.__nanos - o2.__nanos) > 0 ? -1 : 1;
-                }
-            });
-            for (int i = 0; i < queueList.size(); i++) {
-                Actor act = queueList.get(i);
-                long nan = act.__nanos;
-                if (otherTime < myTime) {
-                    otherTime += nan;
-                } else {
-                    myTime += nan;
-                }
+        long myTime = 0;
+        long otherTime = 0;
+        Arrays.sort(actors, new Comparator() {
+            @Override
+            public int compare(Object o1, Object o2) {
+                return (((Actor)o1).__nanos - ((Actor)o2).__nanos) > 0 ? -1 : 1;
             }
-            //if ( 8*myTime > otherTime && 8*otherTime > myTime )
-            //                                    {
-            myTime = otherTime = 0;
-            for (int i = 0; i < queueList.size(); i++) {
-                Actor act = queueList.get(i);
-                long nan = act.__nanos;
-                if (otherTime < myTime) {
-                    newOne.queueList.add(act);
-                    queueList.remove(act);
-                    i--;
-                    otherTime += nan;
-                    act.__currentDispatcher = newOne;
-                } else {
-                    myTime += nan;
-                }
+        });
+        for (int i = 0; i < actors.length; i++) {
+            Actor act = (Actor) actors[i];
+            long nan = act.__nanos;
+            if (otherTime < myTime) {
+                otherTime += nan;
+            } else {
+                myTime += nan;
             }
-            System.out.println("distributeion " + myTime + ":" + otherTime + " actors " + queues.length);
-            created = System.currentTimeMillis();
-            applyQueueList();
-            newOne.applyQueueList();
         }
+        //if ( 8*myTime > otherTime && 8*otherTime > myTime )
+        //                                    {
+        myTime = otherTime = 0;
+        ArrayList<Actor> new2ScheduleOnMe = new ArrayList<>();
+        ArrayList<Actor> new2ScheduleOnOther = new ArrayList<>();
+        for (int i = 0; i < actors.length; i++) {
+            Actor act = (Actor) actors[i];
+            long nan = act.__nanos;
+            if (otherTime < myTime) {
+                new2ScheduleOnOther.add(act);
+                otherTime += nan;
+                act.__currentDispatcher = newOne;
+            } else {
+                new2ScheduleOnMe.add(act);
+                myTime += nan;
+            }
+        }
+        actors = new Actor[new2ScheduleOnMe.size()];
+        new2ScheduleOnMe.toArray(actors);
+        newOne.actors = new Actor[new2ScheduleOnOther.size()];
+        new2ScheduleOnOther.toArray(newOne.actors);
+        System.out.println("distributeion " + myTime + ":" + otherTime + " actors " + actors.length);
+        created = System.currentTimeMillis();
     }
 
     /**
@@ -290,8 +300,9 @@ public class DispatcherThread extends Thread {
      */
     public int getLoad() {
         int res = 0;
-        for (int i = 0; i < queues.length; i++) {
-            MpscConcurrentQueue queue = (MpscConcurrentQueue) queues[i];
+        final Actor actors[] = this.actors;
+        for (int i = 0; i < actors.length; i++) {
+            MpscConcurrentQueue queue = (MpscConcurrentQueue) actors[i].__mailbox;
             int load = queue.size() * 100 / queue.getCapacity();
             if ( load > res )
                 res = load;
@@ -304,8 +315,9 @@ public class DispatcherThread extends Thread {
      */
     public long getLoadNanos() {
         long res = 0;
-        for (int i = 0; i < queueList.size(); i++) {
-            Actor a = queueList.get(i);
+        final Actor actors[] = this.actors;
+        for (int i = 0; i < actors.length; i++) {
+            Actor a = actors[i];
             res += a.__nanos;
         }
         return res;
@@ -314,13 +326,11 @@ public class DispatcherThread extends Thread {
     // FIXME: bad for concurrentlinkedq
     public int getQSize() {
         int res = 0;
-        for (int i = 0; i < queues.length; i++) {
-            Queue queue = queues[i];
-            res+=queue.size();
-        }
-        for (int i = 0; i < queues.length; i++) {
-            Queue queue = cbQueues[i];
-            res+=queue.size();
+        final Actor actors[] = this.actors;
+        for (int i = 0; i < actors.length; i++) {
+            Actor a = actors[i];
+            res+=a.__mailbox.size();
+            res+=a.__cbQueue.size();
         }
         return res;
     }
@@ -347,14 +357,9 @@ public class DispatcherThread extends Thread {
     }
 
     public boolean isEmpty() {
-        for (int i = 0; i < queues.length; i++) {
-            Queue queue = queues[i];
-            if ( ! queue.isEmpty() )
-                return false;
-        }
-        for (int i = 0; i < cbQueues.length; i++) {
-            Queue queue = cbQueues[i];
-            if ( ! queue.isEmpty() )
+        for (int i = 0; i < actors.length; i++) {
+            Actor act = actors[i];
+            if ( ! act.__mailbox.isEmpty() || ! act.__cbQueue.isEmpty() )
                 return false;
         }
         return true;
@@ -370,5 +375,12 @@ public class DispatcherThread extends Thread {
 
     public Scheduler getScheduler() {
         return scheduler;
+    }
+
+    public Actor[] getActors() {
+        Actor actors[] = this.actors;
+        Actor res[] = new Actor[actors.length];
+        System.arraycopy(actors,0,res,0,res.length);
+        return res;
     }
 }

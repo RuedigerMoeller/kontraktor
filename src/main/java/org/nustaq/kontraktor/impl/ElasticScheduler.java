@@ -277,26 +277,23 @@ public class ElasticScheduler implements Scheduler {
                 minLoadThread.start();
                 return;
             }
-            minLoadThread = findMinLoadThread(2 * load / 3, null);
-            if (minLoadThread == null || minLoadThread == dispatcherThread) {
+            minLoadThread = findMinLoadThread(load, dispatcherThread);
+            if (minLoadThread == null) {
                 // does not pay off. stay on current
                 //            System.out.println("no rebalance possible");
                 return;
             }
             // move cheapest actor
-            synchronized (dispatcherThread.queueList) {
-                ArrayList<Actor> qList = new ArrayList<>(dispatcherThread.queueList);
-                long otherLoad = minLoadThread.getLoadNanos();
-                for (int i = 0; i < qList.size(); i++) {
-                    Actor actor = qList.get(i);
-                    if (otherLoad + actor.__nanos < load - actor.__nanos) {
-                        otherLoad += actor.__nanos;
-                        load -= actor.__nanos;
-                        System.out.println("move for idle " + actor.__nanos + " myload " + load + " otherlOad " + otherLoad);
-                        dispatcherThread.removeActor(actor);
-                        minLoadThread.addActor(actor);
-                        dispatcherThread.applyQueueList();
-                    }
+            Actor[] qList = dispatcherThread.getActors();
+            long otherLoad = minLoadThread.getLoadNanos();
+            for (int i = 0; i < qList.length; i++) {
+                Actor actor = qList[i];
+                if (otherLoad + actor.__nanos < load - actor.__nanos) {
+                    otherLoad += actor.__nanos;
+                    load -= actor.__nanos;
+                    System.out.println("move " + actor.__nanos + " myload " + load + " otherlOad " + otherLoad);
+                    dispatcherThread.removeActorImmediate(actor);
+                    minLoadThread.addActor(actor);
                 }
             }
         }
@@ -305,17 +302,15 @@ public class ElasticScheduler implements Scheduler {
     public void tryStopThread(DispatcherThread dispatcherThread) {
         synchronized (balanceLock) {
             // move cheapest actor
-            synchronized (dispatcherThread.queueList) {
-                ArrayList<Actor> qList = new ArrayList<>(dispatcherThread.queueList);
-                DispatcherThread minLoadThread = findMinLoadThread(Long.MAX_VALUE, dispatcherThread);
-                if (minLoadThread == null)
-                    return;
-                for (int i = 0; i < qList.size(); i++) {
-                    Actor actor = qList.get(i);
-                    dispatcherThread.removeActor(actor);
-                    minLoadThread.addActor(actor);
-                    dispatcherThread.applyQueueList();
-                }
+            Actor qList[] = dispatcherThread.getActors();
+            DispatcherThread minLoadThread = findMinLoadThread(Long.MAX_VALUE, dispatcherThread);
+            if (minLoadThread == null)
+                return;
+            for (int i = 0; i < qList.length; i++) {
+                Actor actor = qList[i];
+                dispatcherThread.removeActorImmediate(actor);
+                minLoadThread.addActor(actor);
+//                System.out.println("move for idle " + actor.__nanos + " myload " + dispatcherThread.getLoadNanos() + " actors " + qList.length);
             }
         }
     }
