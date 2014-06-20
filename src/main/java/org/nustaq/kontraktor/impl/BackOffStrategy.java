@@ -56,5 +56,8 @@ public class BackOffStrategy {
         }
     }
 
+    public boolean isSleeping(int yieldCount) {
+        return yieldCount > sleepCount;
+    }
 
 }

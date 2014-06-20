@@ -85,7 +85,7 @@ public class Actors {
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    protected Scheduler scheduler = new ElasticScheduler(Runtime.getRuntime().availableProcessors(),30000);
+    protected Scheduler scheduler = new ElasticScheduler(Runtime.getRuntime().availableProcessors());
 
     public Scheduler __testGetScheduler() {
         return scheduler;

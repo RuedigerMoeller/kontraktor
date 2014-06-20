@@ -10,6 +10,7 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class SchedulingTest {
 
+
     public static class HoardeAct extends Actor<SchedAct> {
 
         volatile boolean threadIn = false;
@@ -42,6 +43,9 @@ public class SchedulingTest {
 
     }
 
+    static boolean THREADCOMPARE = false;
+    static boolean OPTIMAL = true;
+    static boolean THREADPERACT = false;
     public static class SchedAct extends Actor<SchedAct> {
 
         HoardeAct test[];
@@ -49,9 +53,28 @@ public class SchedulingTest {
 
         public void $init() {
 
-            test = new HoardeAct[16];
+            test = new HoardeAct[32];
+            ElasticScheduler scheds[] = new ElasticScheduler[8];
+            if ( THREADCOMPARE && ! THREADPERACT) {
+                for (int i = 0; i < scheds.length; i++) {
+                    scheds[i] = new ElasticScheduler(1, DEF_Q_SIZE);
+                }
+            }
             for ( int i = 0; i < test.length; i++ ) {
-                test[i] = Actors.AsActor(HoardeAct.class);
+                if ( THREADCOMPARE ) {
+                    if ( THREADPERACT ) {
+                        test[i] = Actors.AsActor(HoardeAct.class, new ElasticScheduler(1, DEF_Q_SIZE) );
+                    } else
+                    if ( OPTIMAL ) {
+                        if ((i & 1) == 0)
+                            test[i] = Actors.AsActor(HoardeAct.class, scheds[i / 4]);
+                        if ((i & 1) == 1)
+                            test[i] = Actors.AsActor(HoardeAct.class, scheds[7 - i / 4]);
+                    } else {
+                        test[i] = Actors.AsActor(HoardeAct.class, scheds[i / 4]);
+                    }
+                } else
+                    test[i] = Actors.AsActor(HoardeAct.class,scheduler);
             }
 
         }
@@ -107,47 +130,59 @@ public class SchedulingTest {
         }
     }
 
-    static ElasticScheduler scheduler = new ElasticScheduler(8, 30000);
+    public static final int DEF_Q_SIZE = 10000;
+    static ElasticScheduler scheduler = new ElasticScheduler(8, DEF_Q_SIZE);
     public static void main(String a[]) throws InterruptedException {
-        while( true ) {
-            final SchedAct act = Actors.AsActor(SchedAct.class, scheduler);
-            act.$init();
-            long tim = System.currentTimeMillis();
-            long count = 0;
-            int speed = 1;
-            while (true) {
-                act.$tick();
-                if ((count % speed) == 0) {
-                    LockSupport.parkNanos(10);
+        final SchedAct act = Actors.AsActor(SchedAct.class, new ElasticScheduler(1, DEF_Q_SIZE));
+        act.$init();
+        long tim = System.currentTimeMillis();
+        long count = 0;
+        int speed = 1;
+        int direction = 2;
+        while (true) {
+            act.$tick();
+            if ((count % speed) == 0) {
+                LockSupport.parkNanos(10);
+            }
+            count++;
+            long diff = System.currentTimeMillis() - tim;
+            if (diff > 1000) {
+                System.out.println("Count:" + count * 1000 / diff + " " + diff + " spd " + speed);
+                count = 0;
+                tim = System.currentTimeMillis();
+                speed+=direction;
+                if (speed > 200) {
+                    if ( direction > 0 )
+                        direction = -2 * direction;
                 }
-                count++;
-                long diff = System.currentTimeMillis() - tim;
-                if (diff > 1000) {
-                    System.out.println("Count:" + count * 1000 / diff + " " + diff + " spd " + speed);
-                    count = 0;
-                    tim = System.currentTimeMillis();
-                    speed++;
-                    speed++;
-//                    speed++;
-//                    speed++;
-                    if (speed > 200)
-                        break;
+                if (speed < 1) {
+                    break;
                 }
             }
-            Thread.sleep(2000);
-            act.$dumpCalls().then(new Callback() {
-                @Override
-                public void receiveResult(Object result, Object error) {
-                    act.$stop();
-                        new Thread() { public void run() {
-                            try {
-                                main(null);
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                        }}.start();
-                }
-            });
         }
+        while( scheduler.getActiveThreads() > 1 ) {
+            Thread.sleep(1000);
+            System.out.println("waiting for end "+scheduler.getActiveThreads());
+        }
+        act.$dumpCalls().then(new Callback() {
+            @Override
+            public void receiveResult(Object result, Object error) {
+                act.$stop();
+                    new Thread() { public void run() {
+                        try {
+                            while( scheduler.getActiveThreads() > 0 ) {
+                                Thread.sleep(1000);
+                                System.out.println("waiting "+scheduler.getActiveThreads());
+                            }
+                            System.out.println("finished waiting .. restart in 5 sec");
+                            Thread.sleep(5000);
+                            System.out.println(".. restart");
+                            main(null);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }}.start();
+            }
+        });
     }
 }

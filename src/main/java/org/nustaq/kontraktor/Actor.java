@@ -58,14 +58,15 @@ public class Actor<SELF extends Actor> {
 
     public static ThreadLocal<Actor> sender = new ThreadLocal<>();
 
-    // internal
+    // internal ->
     public Queue __mailbox;
     public Queue __cbQueue;
     public Thread __currentDispatcher;
     public Scheduler __scheduler;
-
+    public boolean __stopped = false;
     public long __nanos;
     public Actor __self;
+    // <- internal
 
     /**
      * required by bytecode magic. Use Actors.Channel(..) to construct actor instances
@@ -148,6 +149,8 @@ public class Actor<SELF extends Actor> {
 
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread
     @CallerSideMethod public Object __dispatchCall( Actor receiver, String methodName, Object args[] ) {
+        if ( __stopped )
+            throw new RuntimeException("Actor "+this+" received message after being stopped "+methodName );
         return __scheduler.dispatchCall(sender.get(), receiver, methodName, args);
     }
 

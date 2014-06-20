@@ -54,7 +54,7 @@ public class DispatcherThread extends Thread {
 
 
     public static final int PROFILE_INTERVAL = 255;
-    public static final int SCHEDULE_PER_PROFILE = 10;
+    public static final int SCHEDULE_PER_PROFILE = 32;
     Scheduler scheduler;
 
     /**
@@ -104,23 +104,39 @@ public class DispatcherThread extends Thread {
                 scheduler.yield(emptyCount);
                 if (shutDown) // access volatile only when idle
                     isShutDown = true;
+                if ( scheduler.getBackoffStrategy().isSleeping(emptyCount) && System.currentTimeMillis()-created > 3000 ) {
+                    if ( queueList.size() == 0 ) {
+                        shutDown = true;
+                    } else {
+                        scheduler.tryStopThread(this);
+                    }
+                }
             }
         }
         scheduler.threadStopped(this);
+        for ( int i = 0; i < 100; i++ ) {
+            LockSupport.parkNanos(1000*1000*5);
+            if ( queueList.size() > 0 ) {
+                System.out.println("Severe: zombie dispatcher thread detected");
+                run(); // for now keep things going ..
+                break;
+            }
+        }
+        System.out.println("thread died");
     }
 
     // if list of queues to schedule has changed,
     // apply the change. needs to be done in thread
-    public void applyQueueList() {
+    void applyQueueList() {
         synchronized (queueList) {
-            if ( queueList.size() == 0 )
-                shutDown = true;
-            queues = new Queue[queueList.size()];
-            cbQueues = new Queue[queueList.size()];
+            Queue queues[] = new Queue[queueList.size()];
+            Queue cbQueues[] = new Queue[queueList.size()];
             for (int i = 0; i < queues.length; i++) {
                 queues[i] = queueList.get(i).__mailbox;
                 cbQueues[i] = queueList.get(i).__cbQueue;
             }
+            this.queues = queues;
+            this.cbQueues = cbQueues;
         }
     }
 
@@ -181,7 +197,9 @@ public class DispatcherThread extends Thread {
                 return true;
             } catch ( Exception e) {
                 if ( e instanceof InvocationTargetException && ((InvocationTargetException) e).getTargetException() == ActorStoppedException.Instance ) {
-                    removeActor((Actor) poll.getTarget());
+                    Actor actor = (Actor) poll.getTarget();
+                    actor.__stopped = true;
+                    removeActor(actor);
                     applyQueueList();
                     return true;
                 }
@@ -203,7 +221,7 @@ public class DispatcherThread extends Thread {
         long nanos = System.nanoTime();
         Object invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
         nanos = System.nanoTime() - nanos;
-        ((Actor) poll.getTarget()).__nanos = (((Actor) poll.getTarget()).__nanos * 7 + nanos) / 8;
+        ((Actor) poll.getTarget()).__nanos = (((Actor) poll.getTarget()).__nanos * 31 + nanos) / 32;
 
         if (schedCounter > SCHEDULE_PER_PROFILE) {
             schedCounter = 0;
@@ -214,17 +232,13 @@ public class DispatcherThread extends Thread {
 
     private void checkForSplit() {
         int load = getLoad();
-        if (load > 80 && queueList.size() > 1 && System.currentTimeMillis()-created > 100 ) {
+        if (load > 80 && queueList.size() > 1 && System.currentTimeMillis()-created > 1000 ) {
             loadCounter++;
             if (loadCounter > 2) {
                 loadCounter = 0;
-                doSplit();
+                scheduler.rebalance(this);
             }
         }
-    }
-
-    private void doSplit() {
-        scheduler.rebalance(this);
     }
 
     // must be called in thread
@@ -271,6 +285,9 @@ public class DispatcherThread extends Thread {
         }
     }
 
+    /**
+     * @return percentage of queue fill of max actor
+     */
     public int getLoad() {
         int res = 0;
         for (int i = 0; i < queues.length; i++) {
@@ -278,6 +295,18 @@ public class DispatcherThread extends Thread {
             int load = queue.size() * 100 / queue.getCapacity();
             if ( load > res )
                 res = load;
+        }
+        return res;
+    }
+
+    /**
+     * @return profiling based load
+     */
+    public long getLoadNanos() {
+        long res = 0;
+        for (int i = 0; i < queueList.size(); i++) {
+            Actor a = queueList.get(i);
+            res += a.__nanos;
         }
         return res;
     }

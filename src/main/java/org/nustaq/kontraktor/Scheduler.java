@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor;
 
+import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 
@@ -56,4 +57,8 @@ public interface Scheduler {
      * @param dispatcherThread
      */
     void rebalance(DispatcherThread dispatcherThread);
+
+    BackOffStrategy getBackoffStrategy();
+
+    void tryStopThread(DispatcherThread dispatcherThread);
 }
