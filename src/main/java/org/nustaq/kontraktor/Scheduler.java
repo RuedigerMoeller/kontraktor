@@ -44,7 +44,7 @@ public interface Scheduler {
     /**
      * wait for all futures to complete and return an array of fulfilled futures
      *
-     * e.g. Yield( f1, f2 ).then( (f,e) -> System.out.println( f[0].getResult() + f[1].getResult() ) );
+     * e.g. yield( f1, f2 ).then( (f,e) -> System.out.println( f[0].getResult() + f[1].getResult() ) );
      * @param futures
      * @return
      */

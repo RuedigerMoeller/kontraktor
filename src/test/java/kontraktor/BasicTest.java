@@ -47,7 +47,7 @@ public class BasicTest {
         return l;
     }
 
-    @Test
+    @Test @Ignore
     public void callBench() {
         Bench b = AsActor(Bench.class);
         bench(b);
@@ -410,7 +410,8 @@ public class BasicTest {
         });
 
         try {
-            Thread.sleep(1000);
+            while( outerresult1.get() == null )
+                Thread.sleep(100);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -457,7 +458,7 @@ public class BasicTest {
         }
     }
 
-    @Test
+    @Test @Ignore
     public void testDelayed() {
         DelayedCaller caller = Actors.AsActor(DelayedCaller.class);
         caller.$delay();

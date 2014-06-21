@@ -259,10 +259,11 @@ public class ActorProxyFactory {
     public String toString(CtMethod m) {
         try {
             StringBuilder sb = new StringBuilder();
-            int mod = m.getModifiers() & java.lang.reflect.Modifier.methodModifiers();
-            if (mod != 0) {
-                sb.append(java.lang.reflect.Modifier.toString(mod)).append(' ');
-            }
+//            int mod = m.getModifiers() & java.lang.reflect.Modifier.methodModifiers();
+//            if (mod != 0) {
+//                sb.append(java.lang.reflect.Modifier.toString(mod)).append(' ');
+//            }
+            sb.append(m.getDeclaringClass().getName()+"::");
             sb.append(m.getReturnType().getName()).append(' ');
             sb.append(m.getName()).append('(');
             CtClass[] params = m.getParameterTypes();
@@ -285,16 +286,21 @@ public class ActorProxyFactory {
         HashSet unqiqueForActors = new HashSet();
         for (int i = methods0.length-1; i >= 0; i-- ) {
             CtMethod method = methods0[i];
-            String str = toString(method);
-            if (alreadypresent.contains(str)||method.getName().startsWith("access$")) { // ignore synthetic methods
-                methods0[i] = null;
-            } else {
-                String key = method.getName();
-                if ( unqiqueForActors.contains(key) && !method.getDeclaringClass().getName().equals("java.lang.Object") ) {
-                    throw new RuntimeException("method overloading not supported for actors.");
+            if ( ! method.getDeclaringClass().isInterface() ) {
+                String str = toString(method);
+                boolean isVolatile = method.toString().indexOf("volatile ") >= 0;
+                if ( isVolatile ||
+                   alreadypresent.contains(str) || method.getName().startsWith("access$")) // ignore synthetic methods
+                {
+                    methods0[i] = null;
+                } else {
+                    String key = method.getName();
+                    if (unqiqueForActors.contains(key) && !method.getDeclaringClass().getName().equals("java.lang.Object")) {
+                        throw new RuntimeException("method overloading not supported for actors. problematic Method: "+key);
+                    }
+                    unqiqueForActors.add(key);
+                    alreadypresent.add(str);
                 }
-                unqiqueForActors.add(key);
-                alreadypresent.add(str);
             }
         }
 

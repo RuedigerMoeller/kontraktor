@@ -8,8 +8,10 @@ import org.nustaq.webserver.ClientSession;
 /**
  * Created by ruedi on 25.05.14.
  */
-public class MNClientSession extends Actor<MNClientSession> implements ClientSession {
-    MachNetz server; // FIXME: iface
+public class MNClientSession<T extends MNClientSession> extends Actor<T> implements ClientSession {
+
+    protected MachNetz server; // FIXME: iface
+
     int sessionId;
 
     public void $init(MachNetz machNetz, int sessionId) {
@@ -24,7 +26,7 @@ public class MNClientSession extends Actor<MNClientSession> implements ClientSes
     }
 
     public void $onClose(ChannelHandlerContext ctx) {
-
+        self().$stop();
     }
 
     public void $onTextMessage(ChannelHandlerContext ctx, String text) {

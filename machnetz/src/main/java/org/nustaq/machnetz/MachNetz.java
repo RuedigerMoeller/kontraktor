@@ -2,8 +2,11 @@ package org.nustaq.machnetz;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.Scheduler;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 import io.netty.channel.ChannelHandlerContext;
+import org.nustaq.kontraktor.impl.ElasticScheduler;
 import org.nustaq.netty2go.NettyWSHttpServer;
 import org.nustaq.webserver.ClientSession;
 import org.nustaq.webserver.WebSocketHttpServer;
@@ -16,18 +19,16 @@ import java.util.concurrent.atomic.*;
  */
 public class MachNetz extends WebSocketHttpServer {
 
-    // don't buffer too much.
     // FIXME: need exception mode for blocking clients
-    private static final int CLIENTQ_SIZE = 5000;
-    static int NUM_DISPATCHERS = 1;
 
-    DispatcherThread dispatchers[] = new DispatcherThread[NUM_DISPATCHERS];
+    // don't buffer too much.
+    public static int CLIENTQ_SIZE = 1000;
+    public static int MAX_THREADS = 8;
+
+    Scheduler clientScheduler = new ElasticScheduler(MAX_THREADS, CLIENTQ_SIZE);
 
     public MachNetz(File contentRoot) {
         super(contentRoot);
-        for (int i = 0; i < dispatchers.length; i++) {
-//            dispatchers[i] = new DispatcherThread(CLIENTQ_SIZE);
-        }
     }
 
 
@@ -80,20 +81,16 @@ public class MachNetz extends WebSocketHttpServer {
     AtomicInteger sessionid = new AtomicInteger(1);
     @Override
     protected ClientSession createNewSession() {
-        MNClientSession session = null;//Actors.AsActor(MNClientSession.class,chooseDispatcher(),-1);
+        MNClientSession session = Actors.AsActor(MNClientSession.class, clientScheduler );
         session.$init(this,sessionid.incrementAndGet());
         return session;
-    }
-
-    protected DispatcherThread chooseDispatcher() {
-        return dispatchers[((int) (Math.random() * dispatchers.length))];
     }
 
     public static class CmdLine {
         @Parameter(names = {"-port", "-p"}, description = "port to listen")
         Integer port = 8887;
 
-        @Parameter(names = {"-cr", "-contentRoot"}, description = "directory to server files from")
+        @Parameter(names = {"-cr", "-contentRoot"}, description = "directory to serve files from")
         String contentRoot = ".";
     }
 

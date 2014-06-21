@@ -207,15 +207,13 @@ public class ElasticScheduler implements Scheduler {
     /**
      * wait for all futures to complete and return an array of fulfilled futures
      *
-     * e.g. Yield( f1, f2 ).then( (f,e) -> System.out.println( f[0].getResult() + f[1].getResult() ) );
+     * e.g. yield( f1, f2 ).then( (f,e) -> System.out.println( f[0].getResult() + f[1].getResult() ) );
      * @param futures
      * @return
      */
     @Override
     public Future<Future[]> yield(Future... futures) {
-        Promise res = new Promise();
-        yield(futures, 0, res);
-        return res;
+        return Actors.yield(futures);
     }
 
     @Override
@@ -328,17 +326,5 @@ public class ElasticScheduler implements Scheduler {
         return backOffStrategy;
     }
 
-    private void yield(final Future futures[], final int index, final Future result) {
-        if ( index < futures.length ) {
-            futures[index].then(new Callback() {
-                @Override
-                public void receiveResult(Object res, Object error) {
-                    yield(futures, index + 1, result);
-                }
-            });
-        } else {
-            result.receiveResult(futures, null);
-        }
-    }
 
 }

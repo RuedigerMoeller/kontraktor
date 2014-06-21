@@ -81,6 +81,12 @@ public class Actors {
         return (T) instance.newProxy(actorClazz,scheduler,qsize);
     }
 
+    public static Future<Future[]> yield(Future... futures) {
+        Promise res = new Promise();
+        yield(futures, 0, res);
+        return res;
+    }
+
     // end static API
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -157,5 +163,19 @@ public class Actors {
             throw new RuntimeException(e);
         }
     }
+
+    private static void yield(final Future futures[], final int index, final Future result) {
+        if ( index < futures.length ) {
+            futures[index].then(new Callback() {
+                @Override
+                public void receiveResult(Object res, Object error) {
+                    yield(futures, index + 1, result);
+                }
+            });
+        } else {
+            result.receiveResult(futures, null);
+        }
+    }
+
 
 }
