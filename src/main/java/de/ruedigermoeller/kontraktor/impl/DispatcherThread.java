@@ -83,7 +83,9 @@ public class DispatcherThread extends Thread {
                 return method.invoke(proxy,args);
             if ( target != null ) {
                 CallEntry ce = new CallEntry(target,method,args,DispatcherThread.this);
-                return dispatchCallback(ce);
+                while (dispatchCallback(ce)) {
+                    //w empty
+                }
             }
             return null;
         }
