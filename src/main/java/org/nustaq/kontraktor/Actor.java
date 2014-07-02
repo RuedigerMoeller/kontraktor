@@ -145,6 +145,24 @@ public class Actor<SELF extends Actor> {
         return __scheduler;
     }
 
+    /**
+     * @return an estimation on the queued up entries in the mailbox. Can be used for bogus flow control
+     */
+    public int getMailboxSize() {
+        if ( ! isProxy() )
+            return self().getMailboxSize();
+        return __mailbox.size();
+    }
+
+    /**
+     * @return an estimation on the queued up callback entries. Can be used for bogus flow control.
+     */
+    public int getCalbackSize() {
+        if ( ! isProxy() )
+            return self().getCalbackSize();
+        return __cbQueue.size();
+    }
+
 ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread
