@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.*;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.List;
 import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -212,7 +213,12 @@ public class ElasticScheduler implements Scheduler {
      * @return
      */
     @Override
-    public Future<Future[]> yield(Future... futures) {
+    public Future<Future[]> yield(Future ... futures) {
+        return Actors.yield(futures);
+    }
+
+    @Override
+    public <T> Future<List<Future<T>>>  yield(List<Future<T>> futures) {
         return Actors.yield(futures);
     }
 

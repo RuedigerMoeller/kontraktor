@@ -27,6 +27,9 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.impl.*;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -102,7 +105,7 @@ public class Actor<SELF extends Actor> {
         throw ActorStoppedException.Instance;
     }
 
-    public boolean isProxy() {
+    @CallerSideMethod public boolean isProxy() {
         return getActor() != this;
     }
 
@@ -111,6 +114,10 @@ public class Actor<SELF extends Actor> {
     }
 
     protected Future<Future[]> yield(Future... futures) {
+        return __scheduler.yield(futures);
+    }
+
+    protected <T> Future<List<Future<T>>> yieldList( List<Future<T>> futures) {
         return __scheduler.yield(futures);
     }
 
@@ -141,7 +148,7 @@ public class Actor<SELF extends Actor> {
         __scheduler.delayedCall( millis, inThread(toRun) );
     }
 
-    public Scheduler getScheduler() {
+    @CallerSideMethod public Scheduler getScheduler() {
         return __scheduler;
     }
 

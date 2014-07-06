@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 
 import java.lang.reflect.InvocationHandler;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 
@@ -49,6 +50,7 @@ public interface Scheduler {
      * @return
      */
     Future<Future[]> yield(Future... futures);
+    <T> Future<List<Future<T>>> yield(List<Future<T>> futures);
 
     public DispatcherThread assignDispatcher();
 

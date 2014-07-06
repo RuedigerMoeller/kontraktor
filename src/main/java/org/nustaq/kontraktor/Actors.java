@@ -3,6 +3,7 @@ package org.nustaq.kontraktor;
 import org.nustaq.kontraktor.impl.*;
 import io.jaq.mpsc.MpscConcurrentQueue;
 
+import java.util.List;
 import java.util.Queue;
 
 /**
@@ -82,6 +83,12 @@ public class Actors {
     }
 
     public static Future<Future[]> yield(Future... futures) {
+        Promise res = new Promise();
+        yield(futures, 0, res);
+        return res;
+    }
+
+    public static <T> Future<List<Future<T>>> yield(List<Future<T>> futures) {
         Promise res = new Promise();
         yield(futures, 0, res);
         return res;
@@ -177,5 +184,17 @@ public class Actors {
         }
     }
 
+    private static <T> void yield(final List<Future<T>> futures, final int index, final Future result) {
+        if ( index < futures.size() ) {
+            futures.get(index).then(new Callback() {
+                @Override
+                public void receiveResult(Object res, Object error) {
+                    yield(futures, index + 1, result);
+                }
+            });
+        } else {
+            result.receiveResult(futures, null);
+        }
+    }
 
 }
