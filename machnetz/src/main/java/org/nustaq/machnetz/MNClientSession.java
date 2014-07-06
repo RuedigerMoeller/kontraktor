@@ -30,11 +30,9 @@ public class MNClientSession<T extends MNClientSession> extends Actor<T> impleme
     }
 
     public void $onTextMessage(ChannelHandlerContext ctx, String text) {
-
     }
 
     public void $onBinaryMessage(ChannelHandlerContext ctx, byte[] buffer) {
-
     }
 
 }
