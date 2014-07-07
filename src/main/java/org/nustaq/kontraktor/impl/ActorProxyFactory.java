@@ -182,7 +182,7 @@ public class ActorProxyFactory {
                                     throw new RuntimeException("@InThread can be used on interfaces only");
                                 String an = Actor.class.getName();
                                 conversion += an+" sender=("+an+")sender.get();";
-                                conversion += "args[" + j + "] = sender.__scheduler.inThread(sender.__self, args[" + j + "]);";
+                                conversion += "if ( sender != null ) { args[" + j + "] = sender.__scheduler.inThread(sender.__self, args[" + j + "]); }";
                                 break;
                             }
                         }
