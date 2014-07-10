@@ -46,7 +46,7 @@ public class BackOffStrategy {
     }
 
     public void yield(int count) {
-        if ( count > sleepCount) {
+        if ( count > sleepCount || count < 0 ) {
             LockSupport.parkNanos(nanosToPark);
         } else if ( count > parkCount) {
             LockSupport.parkNanos(1);
