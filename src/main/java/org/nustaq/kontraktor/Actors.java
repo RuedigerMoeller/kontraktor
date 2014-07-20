@@ -49,6 +49,17 @@ public class Actors {
     }
 
     /**
+     * run an actor with a dedicated thread.
+     *
+     * @param actorClazz
+     * @param <T>
+     * @return
+     */
+    public static <T extends Actor> T SpawnActor(Class<? extends Actor> actorClazz) {
+        return (T) instance.newProxy(actorClazz, new ElasticScheduler(1), -1);
+    }
+
+    /**
      * create an new actor. If this is called outside an actor, a new DispatcherThread will be scheduled. If
      * called from inside actor code, the new actor will share the thread+queue with the caller.
      *
