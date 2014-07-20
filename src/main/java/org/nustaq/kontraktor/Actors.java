@@ -49,17 +49,6 @@ public class Actors {
     }
 
     /**
-     * run an actor with a dedicated thread.
-     *
-     * @param actorClazz
-     * @param <T>
-     * @return
-     */
-    public static <T extends Actor> T SpawnActor(Class<? extends Actor> actorClazz) {
-        return (T) instance.newProxy(actorClazz, new ElasticScheduler(1), -1);
-    }
-
-    /**
      * create an new actor. If this is called outside an actor, a new DispatcherThread will be scheduled. If
      * called from inside actor code, the new actor will share the thread+queue with the caller.
      *
@@ -108,12 +97,6 @@ public class Actors {
     // end static API
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    protected Scheduler scheduler = new ElasticScheduler(Runtime.getRuntime().availableProcessors());
-
-    public Scheduler __testGetScheduler() {
-        return scheduler;
-    }
 
     protected Actors() {
         factory = new ActorProxyFactory();
@@ -164,15 +147,12 @@ public class Actors {
         if ( sched == null ) {
             if (Thread.currentThread() instanceof DispatcherThread) {
                 sched = ((DispatcherThread) Thread.currentThread()).getScheduler();
-            } else {
-                sched = scheduler;
             }
-
         }
         try {
             if ( sched == null )
-                sched = scheduler;
-            if ( qsize <= 100 )
+                sched = new ElasticScheduler(1,qsize);
+            if ( qsize < 1 )
                 qsize = sched.getDefaultQSize();
             return makeProxy(clz, sched.assignDispatcher(), qsize);
         } catch (Exception e) {

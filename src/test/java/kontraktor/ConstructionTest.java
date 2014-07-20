@@ -50,10 +50,10 @@ public class ConstructionTest {
     public void creationTest() throws InterruptedException {
 
         ConstructionSampleActor act = Actors.AsActor(ConstructionSampleActor.class);
-        act.$test( ElasticScheduler.DEFQSIZE, Actors.instance.__testGetScheduler() );
+        act.$test( ElasticScheduler.DEFQSIZE, act.__scheduler );
         ConstructionSampleActor act1 = Actors.AsActor(ConstructionSampleActor.class);
-        act1.$sameThread(act.__currentDispatcher);
-        act1.$test( ElasticScheduler.DEFQSIZE, act.__scheduler);
+        act1.$sameThread(act1.__currentDispatcher);
+        act1.$test( ElasticScheduler.DEFQSIZE, act1.__scheduler);
 
         ElasticScheduler scheduler = new ElasticScheduler(1, 7000);
         ConstructionSampleActor act2 = Actors.AsActor(ConstructionSampleActor.class, scheduler);

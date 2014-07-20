@@ -68,7 +68,7 @@ public class CallbackTest {
                     assertTrue(__currentDispatcher == Thread.currentThread());
                 }
             });
-            cbt.$customCB1(inThread(new MyCB() {
+            cbt.$customCB1(inThread(self(),new MyCB() {
                 @Override
                 public void cb(Object o) {
                     assertTrue(__currentDispatcher == Thread.currentThread());

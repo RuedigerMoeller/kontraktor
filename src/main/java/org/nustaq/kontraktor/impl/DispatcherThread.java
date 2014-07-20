@@ -65,9 +65,11 @@ public class DispatcherThread extends Thread {
     ConcurrentLinkedQueue<Actor> toAdd = new ConcurrentLinkedQueue<>();
 
     protected boolean shutDown = false;
+    private int maxThreads;
 
     public DispatcherThread(Scheduler scheduler) {
         this.scheduler = scheduler;
+        maxThreads = scheduler.getMaxThreads();
     }
 
     @Override
@@ -191,10 +193,14 @@ public class DispatcherThread extends Thread {
             try {
                 Actor.sender.set(poll.getTargetActor());
                 Object invoke = null;
-                profileCounter++;
-                if (  profileCounter > nextProfile && poll.getTarget() instanceof Actor ) {
-                    profileCounter = 0;
-                    invoke = profiledCall(poll);
+                if ( maxThreads > 1 ) {
+                    profileCounter++;
+                    if (profileCounter > nextProfile && poll.getTarget() instanceof Actor) {
+                        profileCounter = 0;
+                        invoke = profiledCall(poll);
+                    } else {
+                        invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
+                    }
                 } else {
                     invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
                 }
@@ -203,12 +209,12 @@ public class DispatcherThread extends Thread {
                     final Promise invokeResult = (Promise) invoke;  // the future returned sync from call
                     invokeResult.then(
                         new Callback() {
-                               @Override
-                               public void receiveResult(Object result, Object error) {
-                                   futureCB.receiveResult(result, error );
-                               }
-                           }
-                        );
+                            @Override
+                            public void receiveResult(Object result, Object error) {
+                                futureCB.receiveResult(result, error);
+                            }
+                        }
+                    );
                 }
                 return true;
             } catch ( Exception e) {

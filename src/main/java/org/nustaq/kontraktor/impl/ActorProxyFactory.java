@@ -149,6 +149,25 @@ public class ActorProxyFactory {
             boolean isCallerSide = // don't touch
                     originalMethod.getAnnotation(CallerSideMethod.class) != null ||
                     (originalMethod.getName().equals("self") || originalMethod.getName().equals("future"));
+
+
+            if ( isCallerSide ) {
+                // verify callerside and inthread are not used
+                Object[][] availableParameterAnnotations = originalMethod.getAvailableParameterAnnotations();
+                CtClass[] parameterTypes = originalMethod.getParameterTypes();
+                for (int j = 0; j < availableParameterAnnotations.length; j++) {
+                    Object[] availableParameterAnnotation = availableParameterAnnotations[j];
+                    if ( availableParameterAnnotation.length > 0 ) {
+                        for (int k = 0; k < availableParameterAnnotation.length; k++) {
+                            Object annot = availableParameterAnnotation[k];
+                            if ( annot.toString().indexOf("kontraktor.annotations.InThread") > 0 ) {
+                                throw new RuntimeException("cannot combine @CallerSide and @InThread, manually wrap callback using inThread(). method:"+originalMethod+" clz:"+orig);
+                            }
+                        }
+                    }
+                }
+            }
+
             boolean allowed = ((method.getModifiers() & AccessFlag.ABSTRACT) == 0 ) &&
                     (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 &&
                     (method.getModifiers() & AccessFlag.PUBLIC) != 0 &&
@@ -175,7 +194,7 @@ public class ActorProxyFactory {
                             Object annot = availableParameterAnnotation[k];
                             if ( annot.toString().indexOf("kontraktor.annotations.InThread") > 0 ) {
                                 if ( parameterTypes[j].getName().equals(Callback.class.getName()) ) {
-                                    System.out.println("InThread unnecessary when using built in Callback class");
+                                    System.out.println("InThread unnecessary when using built in Callback class. method:"+originalMethod+" clz:"+orig);
                                     continue;
                                 }
                                 if ( ! parameterTypes[j].isInterface() )

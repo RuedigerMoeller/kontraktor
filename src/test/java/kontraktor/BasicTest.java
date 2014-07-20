@@ -145,7 +145,7 @@ public class BasicTest {
         public void callbackTest() {
 
             final Thread callerThread = Thread.currentThread();
-            service.getString(inThread(new SomeCallbackHandler() {
+            service.getString(inThread(self(),new SomeCallbackHandler() {
                 @Override
                 public void callbackReceived(Object callback) {
                     if (callerThread != Thread.currentThread()) {

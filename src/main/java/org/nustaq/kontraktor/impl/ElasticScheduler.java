@@ -42,6 +42,8 @@ public class ElasticScheduler implements Scheduler {
     public ElasticScheduler(int maxThreads, int defQSize) {
         this.maxThread = maxThreads;
         this.defQSize = defQSize;
+        if ( defQSize <= 1 )
+            this.defQSize = DEFQSIZE;
         threads = new DispatcherThread[maxThreads];
     }
 

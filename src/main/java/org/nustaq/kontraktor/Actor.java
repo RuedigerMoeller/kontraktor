@@ -134,8 +134,9 @@ public class Actor<SELF extends Actor> {
         return prom;
     }
 
-    protected <T> T inThread(T cbInterface) {
-        return __scheduler.inThread(self(), cbInterface);
+    @CallerSideMethod
+    protected <T> T inThread(Actor proxy, T cbInterface) {
+        return __scheduler.inThread(proxy, cbInterface);
     }
 
     /**
@@ -145,7 +146,7 @@ public class Actor<SELF extends Actor> {
      *
      */
     protected void delayed( int millis, final Runnable toRun ) {
-        __scheduler.delayedCall( millis, inThread(toRun) );
+        __scheduler.delayedCall( millis, inThread(self(),toRun) );
     }
 
     @CallerSideMethod public Scheduler getScheduler() {
