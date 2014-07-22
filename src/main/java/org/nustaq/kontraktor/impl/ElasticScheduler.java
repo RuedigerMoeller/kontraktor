@@ -25,7 +25,7 @@ import java.util.concurrent.Executors;
 public class ElasticScheduler implements Scheduler {
 
     public static final int DEFQSIZE = 16384;
-    public static final boolean DEBUG_SCHEDULING = false;
+    public static final boolean DEBUG_SCHEDULING = true;
 
     int maxThread = Runtime.getRuntime().availableProcessors();
     protected BackOffStrategy backOffStrategy = new BackOffStrategy();

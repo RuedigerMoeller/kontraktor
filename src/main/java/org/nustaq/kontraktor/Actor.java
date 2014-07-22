@@ -171,6 +171,17 @@ public class Actor<SELF extends Actor> {
         return __cbQueue.size();
     }
 
+    Thread _t;
+    protected final void checkThread() {
+        if (_t==null) {
+            _t = Thread.currentThread();
+        } else {
+            if ( _t != Thread.currentThread() ) {
+                throw new RuntimeException("Wrong Thread");
+            }
+        }
+    }
+
 ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread

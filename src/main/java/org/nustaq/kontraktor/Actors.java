@@ -45,7 +45,7 @@ public class Actors {
      * @return
      */
     public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz) {
-        return (T) instance.newProxy(actorClazz, (Scheduler) null, -1);
+        return (T) instance.newProxy(actorClazz, new ElasticScheduler(1), -1);
     }
 
     /**
@@ -57,7 +57,7 @@ public class Actors {
      * @return
      */
     public static <T extends Actor> T AsActor(Class<? extends Actor> actorClazz, int qSize) {
-        return (T) instance.newProxy(actorClazz, (Scheduler)null, qSize);
+        return (T) instance.newProxy(actorClazz, new ElasticScheduler(1), qSize);
     }
 
     /**
