@@ -7,14 +7,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class Promise<T> implements Future<T> {
 
+    // fixme: volatile ? (assumption: lock triggers cache coherence. unsure, no errors until now)
     protected Object result;
     protected Object error;
-    protected Callback resultReceiver; // fixme: volatile ?
+    protected Callback resultReceiver;
     protected boolean hadResult;
-    protected boolean hasFired = false;
+    protected boolean hasFired;
     // not necessary in many cases and also increases cost
     // of allocation. However for now stay safe and optimize
     // from a proven-working implementation
+    // note: if removed some field must set to volatile
     AtomicBoolean lock = new AtomicBoolean(false);
     String id;
     Future nextFuture;
@@ -112,6 +114,11 @@ public class Promise<T> implements Future<T> {
 
     public T getResult() {
         return (T) result;
+    }
+
+    @Override
+    public void signal() {
+        receiveResult(null,null);
     }
 
     public Object getError() {

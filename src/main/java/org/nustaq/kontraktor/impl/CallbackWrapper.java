@@ -93,4 +93,9 @@ public class CallbackWrapper<T> implements Future<T> {
         else
             return (T) ((Future)realCallback).getResult();
     }
+
+    @Override
+    public void signal() {
+        receiveResult(null,null);
+    }
 }
