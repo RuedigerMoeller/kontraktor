@@ -263,13 +263,17 @@ public class ElasticScheduler implements Scheduler {
             for (int i = 0; i < threads.length; i++) {
                 DispatcherThread thread = threads[i];
                 if (thread == null) {
-                    DispatcherThread th = new DispatcherThread(this);
+                    DispatcherThread th = createDispatcherThread();
                     threads[i] = th;
                     return th;
                 }
             }
         }
         return null;
+    }
+
+    protected DispatcherThread createDispatcherThread() {
+        return new DispatcherThread(this);
     }
 
     Object balanceLock = new Object();

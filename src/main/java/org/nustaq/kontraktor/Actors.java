@@ -104,7 +104,7 @@ public class Actors {
 
     protected ActorProxyFactory factory;
 
-    protected ActorProxyFactory getFactory() {
+    public ActorProxyFactory getFactory() {
         return factory;
     }
 

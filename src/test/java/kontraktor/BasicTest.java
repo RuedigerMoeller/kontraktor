@@ -120,16 +120,6 @@ public class BasicTest {
             callback.callbackReceived("Hallo");
         }
 
-        @Override
-        protected Object getActorAccess() {
-            return new DataAccess() {
-                @Override
-                public HashMap getMap() {
-                    return myPrivateData;
-                }
-            };
-        }
-
     }
 
     public static class MyActor extends Actor<MyActor> {

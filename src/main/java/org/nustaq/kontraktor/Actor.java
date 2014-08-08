@@ -27,8 +27,6 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.impl.*;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
@@ -69,6 +67,8 @@ public class Actor<SELF extends Actor> {
     public boolean __stopped = false;
     public long __nanos;
     public Actor __self;
+    public int __remoteId;
+    public Object __remotingImpl;
     // <- internal
 
     /**
@@ -107,10 +107,6 @@ public class Actor<SELF extends Actor> {
 
     @CallerSideMethod public boolean isProxy() {
         return getActor() != this;
-    }
-
-    protected Object getActorAccess() {
-        return null;
     }
 
     protected Future<Future[]> yield(Future... futures) {
@@ -165,9 +161,9 @@ public class Actor<SELF extends Actor> {
     /**
      * @return an estimation on the queued up callback entries. Can be used for bogus flow control.
      */
-    public int getCalbackSize() {
+    public int getCallbackSize() {
         if ( ! isProxy() )
-            return self().getCalbackSize();
+            return self().getCallbackSize();
         return __cbQueue.size();
     }
 
@@ -180,6 +176,10 @@ public class Actor<SELF extends Actor> {
                 throw new RuntimeException("Wrong Thread");
             }
         }
+    }
+
+    @CallerSideMethod public Actor getActorRef() {
+        return __self;
     }
 
 ////////////////////////////// internals ///////////////////////////////////////////////////////////////////

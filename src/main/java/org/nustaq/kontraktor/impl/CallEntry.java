@@ -9,12 +9,13 @@ import java.util.Arrays;
 * Created by ruedi on 18.05.14.
 */
 public class CallEntry<T> implements Message<T> {
-    final private T target;    // target and target actor are not necessary equal. E.g. target can be callback, but calls are put onto sendingActor Q
+
+    transient final private T target;    // target and target actor are not necessary equal. E.g. target can be callback, but calls are put onto sendingActor Q
     final private Method method;
     final private Object[] args;
     private Future futureCB;
-    private Actor sendingActor; // defines the sender of this message. null in case of outside call
-    private Actor targetActor;  // defines actor assignment in case target is callback
+    transient private Actor sendingActor; // defines the sender of this message. null in case of outside call
+    transient private Actor targetActor;  // defines actor assignment in case target is callback
 
     public CallEntry(T target, Method method, Object[] args, Actor sender, Actor targetActor) {
         this.target = target;
@@ -23,6 +24,7 @@ public class CallEntry<T> implements Message<T> {
         this.sendingActor = sender;
         this.targetActor = targetActor;
     }
+
 
     public Actor getTargetActor() {
         return targetActor;

@@ -1,11 +1,12 @@
 package org.nustaq.kontraktor;
 
+import java.io.Serializable;
 import java.lang.reflect.Method;
 
 /**
  * Created by ruedi on 23.05.14.
  */
-public interface Message<T> {
+public interface Message<T> extends Serializable {
     /**
      * @return the target of this call. In case of actors this is *NOT* the
      * actor reference/proxy but the real actor object.
