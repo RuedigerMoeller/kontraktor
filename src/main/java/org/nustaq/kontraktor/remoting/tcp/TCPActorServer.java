@@ -12,26 +12,21 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by ruedi on 08.08.14.
  */
-public class TCPActorServer {
+public class TCPActorServer extends RemoteRefRegistry {
 
     Actor facade;
-    ConcurrentHashMap<Integer, Actor> actorMapping = new ConcurrentHashMap<>();
-    ConcurrentHashMap<Actor, Integer> actorMappingReverse = new ConcurrentHashMap<>();
 
-    BackOffStrategy backOffStrategy = new BackOffStrategy();
     int port;
     ActorServer server;
-    RemoteRefRegistry reg = new RemoteRefRegistry();
 
     public TCPActorServer(ActorProxy proxy, int port) throws IOException {
         this.port = port;
         this.facade = (Actor) proxy;
-        reg.getPublishedActorId(facade); // so facade is always 1
+        registerPublishedActor(facade); // so facade is always 1
     }
 
     public void start() throws IOException {
@@ -54,9 +49,14 @@ public class TCPActorServer {
                 DataInputStream inputStream = new DataInputStream(connectionSocket.getInputStream());
                 new Thread(() -> {
                     try {
-                        while (true) {
-                            readInput(inputStream);
-                        }
+                        receiveLoop(inputStream);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }).start();
+                new Thread(() -> {
+                    try {
+                        sendLoop(outputStream);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
@@ -64,31 +64,12 @@ public class TCPActorServer {
             }
         }
 
-        private void readInput(DataInputStream inputStream) throws IOException, ClassNotFoundException {
-            while( true ) {
-                // read object
-                RemoteCallEntry read = (RemoteCallEntry) reg.readObjectFromStream(inputStream);
-//                System.out.println("received " + read);
-                if (read.getQueue() == read.MAILBOX) {
-                    Actor targetActor = reg.getPublishedActor(read.getReceiverKey());
-                    targetActor.getScheduler().dispatchCall(null, facade,read.getMethod(),read.getArgs());
-                } else if (read.getQueue() == read.CBQ) {
-                    int count = 0;
-                    while (!facade.__cbQueue.offer(read)) {
-                        backOffStrategy.yield(count++);
-                    }
-                }
-            }
-
-        }
-
-        private void writeOutput(DataInputStream inputStream) throws IOException, ClassNotFoundException {
-            // read object
-            RemoteCallEntry read = (RemoteCallEntry) reg.readObjectFromStream(inputStream);
-            if ( read.getQueue() == read.MAILBOX ) {
-
-            }
-            System.out.println("received "+read);
+        private void writeOutput(DataOutputStream outputStream) throws IOException, ClassNotFoundException {
+//            for (Iterator<Actor> iterator = getRemoteActors().iterator(); iterator.hasNext(); ) {
+//                Actor next = iterator.next();
+//
+//            }
+//            System.out.println("received "+read);
         }
 
     }

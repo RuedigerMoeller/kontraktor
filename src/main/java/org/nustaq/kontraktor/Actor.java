@@ -26,6 +26,7 @@ package org.nustaq.kontraktor;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.impl.*;
 
+import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Queue;
@@ -55,7 +56,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Use Actors.Exec in case you need to do blocking calls (e.g. synchronous requests)
  *
  */
-public class Actor<SELF extends Actor> {
+public class Actor<SELF extends Actor> implements Serializable {
 
     public static ThreadLocal<Actor> sender = new ThreadLocal<>();
 

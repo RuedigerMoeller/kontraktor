@@ -34,19 +34,16 @@ public class ActorRefSerializer extends FSTBasicObjectSerializer {
         // fixme: detect local actors returned from foreign
         int id = in.readInt();
         Class actorClz = in.readClass().getClazz();
-        Actor res = Actors.AsActor(actorClz, reg.getScheduler() );
-        res.__remoteId = id;
-        res.__remotingImpl = reg;
-        in.registerObject(res,streamPositioin,serializationInfo,referencee);
-        reg.registerRemoteRef(res);
-        return res;
+        Actor actorRef = reg.registerRemoteRef(actorClz, id, null);
+        in.registerObject(actorRef, streamPositioin, serializationInfo, referencee);
+        return actorRef;
     }
 
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
         // fixme: catch republish of foreign actor
         Actor act = (Actor) toWrite;
-        int id = reg.getPublishedActorId(act); // register published host side
+        int id = reg.registerPublishedActor(act); // register published host side
         out.writeInt(id);
         out.writeClassTag(act.getActor().getClass());
     }
