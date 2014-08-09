@@ -3,13 +3,9 @@ package org.nustaq.kontraktor.remoting.tcp;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.impl.BackOffStrategy;
-import org.nustaq.kontraktor.remoting.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -45,10 +41,11 @@ public class TCPActorServer extends RemoteRefRegistry {
         public void start() throws IOException {
             while( true ) {
                 Socket connectionSocket = welcomeSocket.accept();
-                DataOutputStream outputStream = new DataOutputStream(connectionSocket.getOutputStream());
-                DataInputStream inputStream = new DataInputStream(connectionSocket.getInputStream());
+                OutputStream outputStream = new BufferedOutputStream(connectionSocket.getOutputStream(), 64000);
+                InputStream inputStream = new BufferedInputStream(connectionSocket.getInputStream(),64000);
                 new Thread(() -> {
                     try {
+                        currentOutput.set(outputStream);
                         receiveLoop(inputStream);
                     } catch (Exception ex) {
                         ex.printStackTrace();

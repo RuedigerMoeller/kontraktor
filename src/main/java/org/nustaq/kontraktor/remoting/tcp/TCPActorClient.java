@@ -4,14 +4,10 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.impl.BackOffStrategy;
-import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
-import org.nustaq.kontraktor.remoting.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 
 /**
@@ -44,15 +40,16 @@ public class TCPActorClient extends RemoteRefRegistry {
     public class ActorClient {
 
         Socket clientSocket;
-        DataOutputStream outputStream;
-        DataInputStream inputStream;
+        OutputStream outputStream;
+        InputStream inputStream;
 
         public ActorClient() throws IOException {
             clientSocket = new Socket(host, port);
-            outputStream = new DataOutputStream(clientSocket.getOutputStream());
-            inputStream  = new DataInputStream(clientSocket.getInputStream());
+            outputStream = new BufferedOutputStream(clientSocket.getOutputStream(),64000);
+            inputStream  = new BufferedInputStream(clientSocket.getInputStream(), 64000);
             new Thread(
                 () -> {
+                    currentOutput.set(outputStream);
                     sendLoop(outputStream);
                 },
                 "sender"
@@ -78,9 +75,19 @@ public class TCPActorClient extends RemoteRefRegistry {
         ClientSideActor csa = Actors.AsActor(ClientSideActor.class);
 
         TCPActorClient client = new TCPActorClient((ActorProxy) test,"localhost",7777);
-        while( true ) {
-            test.$testCall("Hello", csa);
-            Thread.sleep(1000);
+        boolean bench = true;
+        if ( bench ) {
+            while( true ) {
+//                test.$benchMark(13, "this is a longish string");
+                test.$benchMark(13, null);
+            }
+        } else {
+            while (true) {
+                test.$testCall("Hello", csa);
+                Thread.sleep(1000);
+                test.$testCallWithCB(System.currentTimeMillis(), (r, e) -> System.out.println(r));
+                Thread.sleep(1000);
+            }
         }
     }
 }

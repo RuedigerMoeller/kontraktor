@@ -1,21 +1,22 @@
 package org.nustaq.kontraktor.remoting;
 
-import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.serialization.FSTBasicObjectSerializer;
 import org.nustaq.serialization.FSTClazzInfo;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import java.io.IOException;
+import java.io.OutputStream;
 
 /**
- * Created by ruedi on 08.08.14.
+ * Created by ruedi on 09.08.14.
  */
-public class ActorRefSerializer extends FSTBasicObjectSerializer {
+public class CallbackRefSerializer extends FSTBasicObjectSerializer {
 
     RemoteRefRegistry reg;
 
-    public ActorRefSerializer(RemoteRefRegistry reg) {
+    public CallbackRefSerializer(RemoteRefRegistry reg) {
         this.reg = reg;
     }
 
@@ -32,18 +33,26 @@ public class ActorRefSerializer extends FSTBasicObjectSerializer {
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
         // fixme: detect local actors returned from foreign
         int id = in.readInt();
-        Class actorClz = in.readClass().getClazz();
-        Actor actorRef = reg.registerRemoteActorRef(actorClz, id, null);
-        in.registerObject(actorRef, streamPositioin, serializationInfo, referencee);
-        return actorRef;
+        OutputStream out = reg.currentOutput.get();
+        Callback cb = new Callback() {
+            @Override
+            public void receiveResult(Object result, Object error) {
+                try {
+                    reg.receiveCBResult(out,id,result,error);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+        in.registerObject(cb, streamPositioin, serializationInfo, referencee);
+        return cb;
     }
 
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
         // fixme: catch republish of foreign actor
-        Actor act = (Actor) toWrite;
-        int id = reg.registerPublishedActor(act); // register published host side
+        int id = reg.registerPublishedCallback((Callback) toWrite); // register published host side
         out.writeInt(id);
-        out.writeClassTag(act.getActor().getClass());
     }
+
 }

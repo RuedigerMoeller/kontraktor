@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.Filter;
 import org.nustaq.kontraktor.Future;
 
+import java.io.Serializable;
 import java.lang.reflect.Method;
 
 /**
@@ -32,7 +33,7 @@ import java.lang.reflect.Method;
 /**
  * ..
  */
-public class CallbackWrapper<T> implements Future<T> {
+public class CallbackWrapper<T> implements Future<T>, Serializable {
 
     static Method receiveRes;
 
