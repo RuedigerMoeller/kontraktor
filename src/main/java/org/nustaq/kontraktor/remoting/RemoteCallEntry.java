@@ -10,15 +10,15 @@ public class RemoteCallEntry implements Serializable {
     public static final int MAILBOX = 0;
     public static final int CBQ = 1;
 
-    int receiverKey;
-    int senderKey;
+    int receiverKey; // id of published actor in host
+    int futureKey; // id of future if any
     String method;
     Object args[];
     int queue;
 
-    public RemoteCallEntry(int senderKey, int receiverKey, String method, Object[] args) {
+    public RemoteCallEntry(int futureKey, int receiverKey, String method, Object[] args) {
         this.receiverKey = receiverKey;
-        this.senderKey = senderKey;
+        this.futureKey = futureKey;
         this.method = method;
         this.args = args;
     }
@@ -39,12 +39,12 @@ public class RemoteCallEntry implements Serializable {
         this.receiverKey = receiverKey;
     }
 
-    public int getSenderKey() {
-        return senderKey;
+    public int getFutureKey() {
+        return futureKey;
     }
 
-    public void setSenderKey(int senderKey) {
-        this.senderKey = senderKey;
+    public void setFutureKey(int futureKey) {
+        this.futureKey = futureKey;
     }
 
     public String getMethod() {

@@ -47,6 +47,8 @@ public class TCPActorClient extends RemoteRefRegistry {
             clientSocket = new Socket(host, port);
             outputStream = new BufferedOutputStream(clientSocket.getOutputStream(),64000);
             inputStream  = new BufferedInputStream(clientSocket.getInputStream(), 64000);
+//            outputStream = new DataOutputStream(clientSocket.getOutputStream());
+//            inputStream  = new DataInputStream(clientSocket.getInputStream());
             new Thread(
                 () -> {
                     currentOutput.set(outputStream);
@@ -56,9 +58,10 @@ public class TCPActorClient extends RemoteRefRegistry {
             ).start();
             new Thread(
                 () -> {
-                    receiveLoop(inputStream);
+                    currentOutput.set(outputStream);
+                    receiveLoop(inputStream,outputStream);
                 },
-                "sender"
+                "receiver"
             ).start();
         }
 
@@ -67,6 +70,24 @@ public class TCPActorClient extends RemoteRefRegistry {
         }
     }
 
+    public static class TA extends Actor<TA> {
+        public void $run(ServerTestFacade test, ClientSideActor csa) {
+            delayed(1000, () -> {
+                test.$testCall("Hello", csa);
+            });
+            delayed(1000, () -> {
+                test.$testCallWithCB(System.currentTimeMillis(), (r, e) -> {
+                    System.out.println(r+" "+Thread.currentThread().getName());
+                });
+            });
+            delayed(1000, () -> {
+                test.$doubleMe("ToBeDoubled").then( (r,e) -> {
+                    System.out.println(r+" "+Thread.currentThread().getName());
+                    self().$run(test,csa);
+                });
+            });
+        }
+    }
 
     public static void main( String arg[] ) throws IOException, InterruptedException {
         ServerTestFacade test = Actors.AsActor(ServerTestFacade.class, new RemoteScheduler());
@@ -75,19 +96,15 @@ public class TCPActorClient extends RemoteRefRegistry {
         ClientSideActor csa = Actors.AsActor(ClientSideActor.class);
 
         TCPActorClient client = new TCPActorClient((ActorProxy) test,"localhost",7777);
-        boolean bench = true;
+        boolean bench = false;
         if ( bench ) {
             while( true ) {
 //                test.$benchMark(13, "this is a longish string");
                 test.$benchMark(13, null);
             }
         } else {
-            while (true) {
-                test.$testCall("Hello", csa);
-                Thread.sleep(1000);
-                test.$testCallWithCB(System.currentTimeMillis(), (r, e) -> System.out.println(r));
-                Thread.sleep(1000);
-            }
+            TA t = Actors.AsActor(TA.class);
+            t.$run(test,csa);
         }
     }
 }

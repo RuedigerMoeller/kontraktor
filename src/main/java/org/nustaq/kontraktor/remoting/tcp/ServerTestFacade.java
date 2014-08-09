@@ -2,6 +2,8 @@ package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.RateMeasure;
 
 import java.util.Date;
@@ -23,6 +25,10 @@ public class ServerTestFacade extends Actor<ServerTestFacade> {
     RateMeasure measure = new RateMeasure("calls",1000);
     public void $benchMark(int someVal, String someString) {
         measure.count();
+    }
+
+    public Future<String> $doubleMe( String s ) {
+        return new Promise<>(s+" "+s);
     }
 
 }

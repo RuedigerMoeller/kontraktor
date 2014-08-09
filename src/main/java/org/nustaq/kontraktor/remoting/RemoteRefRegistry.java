@@ -3,18 +3,17 @@ package org.nustaq.kontraktor.remoting;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
+import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectOutput;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -118,7 +117,6 @@ public class RemoteRefRegistry {
         }
     }
 
-
     public void registerRemoteRefDirect(Actor act) {
         act = act.getActorRef();
         remoteActorSet.put(act.__remoteId,act);
@@ -149,25 +147,30 @@ public class RemoteRefRegistry {
         }
     }
 
-    protected void receiveLoop(InputStream inputStream) {
+    protected void receiveLoop(InputStream inputStream, OutputStream out) {
         try {
             while( true ) {
                 // read object
                 RemoteCallEntry read = (RemoteCallEntry) readObjectFromStream(inputStream);
-                if ( this instanceof TCPActorClient ) {
-                    System.out.println("POK");
+                if ( this instanceof TCPActorServer) {
+                    int x = 99;
                 }
                 if (read.getQueue() == read.MAILBOX) {
                     Actor targetActor = getPublishedActor(read.getReceiverKey());
-                    targetActor.getScheduler().dispatchCall(null, targetActor,read.getMethod(),read.getArgs());
+                    Object future = targetActor.getScheduler().dispatchCall(null, targetActor, read.getMethod(), read.getArgs());
+                    if ( future instanceof Future ) {
+                        ((Future) future).then( (r,e) -> {
+                            try {
+                                receiveCBResult(out, read.getFutureKey(), r, e);
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            }
+                        });
+                    }
                 } else if (read.getQueue() == read.CBQ) {
                     Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
-                    publishedCallback.receiveResult(read.getArgs()[0],read.getArgs()[1]);
+                    publishedCallback.receiveResult(read.getArgs()[0],read.getArgs()[1]); // is a wrapper enqueuing in caller
                     removePublishedObject(read.getReceiverKey());
-                    //                    int count = 0;
-    //                    while (!facade.__cbQueue.offer(read)) {
-    //                        backOffStrategy.yield(count++);
-    //                    }
                 }
             }
         } catch (Exception e) {
@@ -180,23 +183,22 @@ public class RemoteRefRegistry {
      * @param out
      */
     public boolean singleSendLoop(OutputStream out) {
+        if ( this instanceof TCPActorClient ) {
+            int y = 99;
+        }
         boolean res = false;
+        int sumQueued = 0;
         for (Iterator<Actor> iterator = remoteActors.iterator(); iterator.hasNext(); ) {
             Actor remoteActor = iterator.next();
             try {
-                CallEntry ce = null;
-                // cbqueue unused at client side (direct cb)
-//                ce = (CallEntry) remoteActor.__cbQueue.poll();
-//                if ( ce != null ) {
-//                    RemoteCallEntry rce = new RemoteCallEntry(0, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs());
-//                    rce.setQueue(rce.CBQ);
-//                    writeObjectToStream(out, rce);
-//                    res = true;
-//                }
-
-                ce = (CallEntry) remoteActor.__mailbox.poll();
+                CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
                 if ( ce != null) {
-                    RemoteCallEntry rce = new RemoteCallEntry(0, remoteActor.__remoteId,ce.getMethod().getName(),ce.getArgs());
+                    sumQueued += remoteActor.__mailbox.size();
+                    int futId = 0;
+                    if ( ce.hasFutureResult() ) {
+                        futId = registerPublishedCallback(ce.getFutureCB());
+                    }
+                    RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId,ce.getMethod().getName(),ce.getArgs());
                     rce.setQueue(rce.MAILBOX);
                     writeObjectToStream(out, rce);
                     res = true;
@@ -205,6 +207,14 @@ public class RemoteRefRegistry {
                 System.out.println("connection closed");
                 ex.printStackTrace();
                 break;
+            }
+        }
+        if ( sumQueued < 100 )
+        {
+            try {
+                out.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
         return res;

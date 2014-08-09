@@ -43,21 +43,24 @@ public class TCPActorServer extends RemoteRefRegistry {
                 Socket connectionSocket = welcomeSocket.accept();
                 OutputStream outputStream = new BufferedOutputStream(connectionSocket.getOutputStream(), 64000);
                 InputStream inputStream = new BufferedInputStream(connectionSocket.getInputStream(),64000);
+//                OutputStream outputStream = new DataOutputStream(connectionSocket.getOutputStream());
+//                InputStream inputStream  = new DataInputStream(connectionSocket.getInputStream());
                 new Thread(() -> {
                     try {
                         currentOutput.set(outputStream);
-                        receiveLoop(inputStream);
+                        receiveLoop(inputStream,outputStream);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
-                }).start();
+                }, "receiver").start();
                 new Thread(() -> {
                     try {
+                        currentOutput.set(outputStream);
                         sendLoop(outputStream);
                     } catch (Exception ex) {
                         ex.printStackTrace();
                     }
-                }).start();
+                }, "sender").start();
             }
         }
 

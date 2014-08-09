@@ -8,7 +8,7 @@ import org.nustaq.kontraktor.Actor;
 public class ClientSideActor extends Actor<ClientSideActor> {
 
     public void $alsoHello( String x, int y ) {
-        System.out.println("x:"+x+" y:"+y);
+        System.out.println("x:"+x+" y:"+y+" "+Thread.currentThread().getName());
     }
 
 }
