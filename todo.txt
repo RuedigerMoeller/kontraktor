@@ -1,0 +1,4 @@
+- error/disconnect handlin
+- interop: minbin/js
+- interop: rest
+- websocket transport

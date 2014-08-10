@@ -9,7 +9,6 @@ import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
-import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectOutput;
 
@@ -25,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RemoteRefRegistry {
 
     RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
-    FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+    protected FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
 
     // holds published actors, futures and callbacks of this process
     AtomicInteger actorIdCount = new AtomicInteger(0);
@@ -38,7 +37,7 @@ public class RemoteRefRegistry {
     ConcurrentLinkedQueue<Actor> remoteActors = new ConcurrentLinkedQueue<>();
     ConcurrentHashMap<Integer,Actor> remoteActorSet = new ConcurrentHashMap<>();
 
-    protected ThreadLocal<OutputStream> currentOutput = new ThreadLocal<>();
+    protected ThreadLocal<ObjectRemotingChannel> currentChannel = new ThreadLocal<>();
 
     public RemoteRefRegistry() {
         conf.registerSerializer(Actor.class,new ActorRefSerializer(this),true);
@@ -52,34 +51,6 @@ public class RemoteRefRegistry {
 
     public Callback getPublishedCallback(int id) {
         return (Callback) publishedActorMapping.get(id);
-    }
-
-    public Object readObjectFromStream(InputStream inputStream) throws Exception {
-
-        int ch1 = (inputStream.read() + 256) & 0xff;
-        int ch2 = (inputStream.read()+ 256) & 0xff;
-        int ch3 = (inputStream.read() + 256) & 0xff;
-        int ch4 = (inputStream.read() + 256) & 0xff;
-        int len = (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0);
-
-        byte buffer[] = new byte[len]; // this could be reused !
-        while (len > 0)
-            len -= inputStream.read(buffer, buffer.length - len, len);
-        return conf.getObjectInput(buffer).readObject();
-    }
-
-    public void writeObjectToStream(OutputStream outputStream, Object toWrite) throws Exception {
-        FSTObjectOutput objectOutput = conf.getObjectOutput(); // could also do new with minor perf impact
-        objectOutput.writeObject(toWrite);
-
-        int written = objectOutput.getWritten();
-        outputStream.write((written >>> 0) & 0xFF);
-        outputStream.write((written >>> 8) & 0xFF);
-        outputStream.write((written >>> 16) & 0xFF);
-        outputStream.write((written >>> 24) & 0xFF);
-
-        outputStream.write(objectOutput.getBuffer(), 0, written);
-        objectOutput.flush();
     }
 
     public RemoteScheduler getScheduler() {
@@ -137,31 +108,28 @@ public class RemoteRefRegistry {
         return actorRef;
     }
 
-    protected void sendLoop(OutputStream outputStream) {
+    protected void sendLoop(ObjectRemotingChannel channel) {
         int count = 0;
         while (true) {
-            if ( singleSendLoop(outputStream) ) {
+            if ( singleSendLoop(channel) ) {
                 count = 0;
             }
             backOffStrategy.yield(count++);
         }
     }
 
-    protected void receiveLoop(InputStream inputStream, OutputStream out) {
+    protected void receiveLoop(ObjectRemotingChannel channel) {
         try {
             while( true ) {
                 // read object
-                RemoteCallEntry read = (RemoteCallEntry) readObjectFromStream(inputStream);
-                if ( this instanceof TCPActorServer) {
-                    int x = 99;
-                }
+                RemoteCallEntry read = (RemoteCallEntry) channel.readObject();
                 if (read.getQueue() == read.MAILBOX) {
                     Actor targetActor = getPublishedActor(read.getReceiverKey());
                     Object future = targetActor.getScheduler().dispatchCall(null, targetActor, read.getMethod(), read.getArgs());
                     if ( future instanceof Future ) {
                         ((Future) future).then( (r,e) -> {
                             try {
-                                receiveCBResult(out, read.getFutureKey(), r, e);
+                                receiveCBResult(channel, read.getFutureKey(), r, e);
                             } catch (Exception ex) {
                                 ex.printStackTrace();
                             }
@@ -180,9 +148,9 @@ public class RemoteRefRegistry {
 
     /**
      * poll remote actor proxies and send. return true if there was at least one method
-     * @param out
+     * @param chan
      */
-    public boolean singleSendLoop(OutputStream out) {
+    public boolean singleSendLoop(ObjectRemotingChannel chan) {
         if ( this instanceof TCPActorClient ) {
             int y = 99;
         }
@@ -200,7 +168,7 @@ public class RemoteRefRegistry {
                     }
                     RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId,ce.getMethod().getName(),ce.getArgs());
                     rce.setQueue(rce.MAILBOX);
-                    writeObjectToStream(out, rce);
+                    chan.writeObject(rce);
                     res = true;
                 }
             } catch (Exception ex) {
@@ -212,17 +180,17 @@ public class RemoteRefRegistry {
         if ( sumQueued < 100 )
         {
             try {
-                out.flush();
-            } catch (IOException e) {
+                chan.flush();
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
         return res;
     }
 
-    public void receiveCBResult(OutputStream out, int id, Object result, Object error) throws Exception {
+    public void receiveCBResult(ObjectRemotingChannel chan, int id, Object result, Object error) throws Exception {
         RemoteCallEntry rce = new RemoteCallEntry(0, id, null, new Object[] {result,error});
         rce.setQueue(rce.CBQ);
-        writeObjectToStream(out, rce);
+        chan.writeObject(rce);
     }
 }

@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
+import org.nustaq.kontraktor.remoting.ObjectRemotingChannel;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 
 import java.io.*;
@@ -49,17 +50,18 @@ public class TCPActorClient extends RemoteRefRegistry {
             inputStream  = new BufferedInputStream(clientSocket.getInputStream(), 64000);
 //            outputStream = new DataOutputStream(clientSocket.getOutputStream());
 //            inputStream  = new DataInputStream(clientSocket.getInputStream());
+            ObjectRemotingChannel chan = new TCPObjectChannel(inputStream,outputStream,conf);
             new Thread(
                 () -> {
-                    currentOutput.set(outputStream);
-                    sendLoop(outputStream);
+                    currentChannel.set(chan);
+                    sendLoop(chan);
                 },
                 "sender"
             ).start();
             new Thread(
                 () -> {
-                    currentOutput.set(outputStream);
-                    receiveLoop(inputStream,outputStream);
+                    currentChannel.set(chan);
+                    receiveLoop(chan);
                 },
                 "receiver"
             ).start();
@@ -96,7 +98,7 @@ public class TCPActorClient extends RemoteRefRegistry {
         ClientSideActor csa = Actors.AsActor(ClientSideActor.class);
 
         TCPActorClient client = new TCPActorClient((ActorProxy) test,"localhost",7777);
-        boolean bench = false;
+        boolean bench = true;
         if ( bench ) {
             while( true ) {
 //                test.$benchMark(13, "this is a longish string");
