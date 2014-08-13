@@ -18,7 +18,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
 
     public static <T extends Actor> Future<T> Connect( Class<T> clz, String host, int port ) throws IOException {
         Promise<T> res = new Promise<>();
-        TCPActorClient<ServerTestFacade> client = new TCPActorClient<>( clz, host, port);
+        TCPActorClient<T> client = new TCPActorClient<>( clz, host, port);
         new Thread(() -> {
             try {
                 client.connect();
@@ -88,7 +88,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
     }
 
     /**
-     * FIXME: slowish (for a starting ..)
+     *
      */
     public class ActorClient {
 
@@ -126,42 +126,4 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
         }
     }
 
-    public static class TA extends Actor<TA> {
-        public void $run(ServerTestFacade test, ClientSideActor csa) {
-            delayed(1000, () -> {
-                test.$testCall("Hello", csa);
-            });
-            delayed(1000, () -> {
-                test.$testCallWithCB(System.currentTimeMillis(), (r, e) -> {
-                    System.out.println(r+" "+Thread.currentThread().getName());
-                });
-            });
-            delayed(1000, () -> {
-                test.$doubleMe("ToBeDoubled").then( (r,e) -> {
-                    System.out.println(r+" "+Thread.currentThread().getName());
-                    self().$run(test,csa);
-                });
-            });
-        }
-    }
-
-    public static void main( String arg[] ) throws IOException, InterruptedException {
-
-        TCPActorClient.Connect(ServerTestFacade.class,"localhost",7777).then( (test, err) -> {
-            if (test != null) {
-                ClientSideActor csa = Actors.AsActor(ClientSideActor.class);
-                boolean bench = false;
-                if (bench) {
-                    while (true) {
-                        // test.$benchMark(13, "this is a longish string");
-                        test.$benchMark(13, null);
-                    }
-                } else {
-                    TA t = Actors.AsActor(TA.class);
-                    t.$run(test, csa);
-                }
-            }
-        });
-
-    }
 }

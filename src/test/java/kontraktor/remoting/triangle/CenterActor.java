@@ -1,0 +1,28 @@
+package kontraktor.remoting.triangle;
+
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
+
+import java.io.IOException;
+import java.util.HashMap;
+
+/**
+ * Created by ruedi on 13.08.2014.
+ */
+public class CenterActor extends Actor<CenterActor> {
+
+    HashMap<Integer,OuterActor> registry = new HashMap<>();
+
+    public void $registerRemoteRef( int id, OuterActor outer ) {
+        registry.put(id,outer);
+    }
+
+    public Future<OuterActor> $getOuter(int id) {
+        return new Promise<>(registry.get(id));
+    }
+
+
+}

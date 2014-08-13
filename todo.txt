@@ -6,3 +6,4 @@
 - interop: minbin/js
 - interop: rest
 - websocket transport
+- sanity check required: clientside calls + getActor not possible with remoting

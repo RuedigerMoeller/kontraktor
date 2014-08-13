@@ -183,6 +183,10 @@ public class Actor<SELF extends Actor> implements Serializable {
         return __self;
     }
 
+    @CallerSideMethod public boolean isRemote() {
+        return __remoteId != 0;
+    }
+
 ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread

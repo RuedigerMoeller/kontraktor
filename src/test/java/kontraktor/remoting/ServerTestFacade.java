@@ -1,11 +1,10 @@
-package org.nustaq.kontraktor.remoting.tcp;
+package kontraktor.remoting;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.Future;
-import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
 import org.nustaq.kontraktor.util.RateMeasure;
 
+import java.io.IOException;
 import java.util.Date;
 
 /**
@@ -29,6 +28,11 @@ public class ServerTestFacade extends Actor<ServerTestFacade> {
 
     public Future<String> $doubleMe( String s ) {
         return new Promise<>(s+" "+s);
+    }
+
+
+    public static void main(String arg[]) throws IOException {
+        TCPActorServer.Publish( Actors.AsActor(ServerTestFacade.class), 7777 );
     }
 
 }

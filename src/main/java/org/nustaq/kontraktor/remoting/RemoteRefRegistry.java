@@ -23,8 +23,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class RemoteRefRegistry {
 
-    RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
     protected FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+
+    RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
 
     // holds published actors, futures and callbacks of this process
     AtomicInteger actorIdCount = new AtomicInteger(0);

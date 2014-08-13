@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by ruedi on 11.08.2014.
@@ -20,6 +21,9 @@ public class TCPObjectSocket implements ObjectSocket {
     Socket socket;
     Exception lastErr;
     boolean stopped;
+
+    AtomicBoolean readLock = new AtomicBoolean(false);
+    AtomicBoolean writeLock = new AtomicBoolean(false);
 
     public TCPObjectSocket(InputStream in, OutputStream out, Socket socket, FSTConfiguration conf) {
         this.in = in;
@@ -38,36 +42,56 @@ public class TCPObjectSocket implements ObjectSocket {
 
     @Override
     public Object readObject() throws Exception {
-        int ch1 = (in.read() + 256) & 0xff;
-        int ch2 = (in.read()+ 256) & 0xff;
-        int ch3 = (in.read() + 256) & 0xff;
-        int ch4 = (in.read() + 256) & 0xff;
-        int len = (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0);
-        int orglen = len;
-        byte buffer[] = new byte[len]; // this could be reused !
-        while (len > 0)
-            len -= in.read(buffer, buffer.length - len, len);
         try {
-            return conf.getObjectInput(buffer).readObject();
-        } catch (Exception e) {
-            System.out.println("orglen: "+orglen);
-            throw e;
+            while ( !readLock.compareAndSet(false,true) );
+//            int tag = in.read();
+            int ch1 = (in.read() + 256) & 0xff;
+            int ch2 = (in.read()+ 256) & 0xff;
+            int ch3 = (in.read() + 256) & 0xff;
+            int ch4 = (in.read() + 256) & 0xff;
+            int len = (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0);
+//            int tag1 = in.read();
+
+//            if ( tag != 77 || tag1!= tag ) {
+//                throw new RuntimeException("ERROR!");
+//            }
+            int orglen = len;
+            byte buffer[] = new byte[len]; // this could be reused !
+    //        System.out.println("LEN:"+len);
+            while (len > 0)
+                len -= in.read(buffer, buffer.length - len, len);
+            try {
+                return conf.getObjectInput(buffer).readObject();
+            } catch (Exception e) {
+                System.out.println("orglen: "+orglen+" "+new String(buffer,0));
+                final Object retry = conf.getObjectInput(buffer).readObject();
+                throw e;
+            }
+        } finally {
+            readLock.set(false);
         }
     }
 
     @Override
     public void writeObject(Object toWrite) throws Exception {
-        FSTObjectOutput objectOutput = conf.getObjectOutput(); // could also do new with minor perf impact
-        objectOutput.writeObject(toWrite);
+        try {
+            while ( !writeLock.compareAndSet(false,true) );
+            FSTObjectOutput objectOutput = conf.getObjectOutput(); // could also do new with minor perf impact
+            objectOutput.writeObject(toWrite);
 
-        int written = objectOutput.getWritten();
-        out.write((written >>> 0) & 0xFF);
-        out.write((written >>> 8) & 0xFF);
-        out.write((written >>> 16) & 0xFF);
-        out.write((written >>> 24) & 0xFF);
+            int written = objectOutput.getWritten();
+//            out.write(77); // debug tag
+            out.write((written >>> 0) & 0xFF);
+            out.write((written >>> 8) & 0xFF);
+            out.write((written >>> 16) & 0xFF);
+            out.write((written >>> 24) & 0xFF);
+//            out.write(77);
 
-        out.write(objectOutput.getBuffer(), 0, written);
-        objectOutput.flush();
+            out.write(objectOutput.getBuffer(), 0, written);
+            objectOutput.flush();
+        } finally {
+            writeLock.set(false);
+        }
     }
 
     @Override
