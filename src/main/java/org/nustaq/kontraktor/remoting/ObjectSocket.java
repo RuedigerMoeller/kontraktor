@@ -9,7 +9,7 @@ import java.io.OutputStream;
 /**
  * Created by ruedi on 11.08.2014.
  */
-public interface ObjectRemotingChannel {
+public interface ObjectSocket {
 
     // blocking
     public Object readObject() throws Exception;
@@ -17,4 +17,6 @@ public interface ObjectRemotingChannel {
     public void writeObject(Object toWrite) throws Exception;
 
     public void flush() throws IOException;
+
+    void setLastError(Exception ex);
 }

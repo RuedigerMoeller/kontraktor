@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.remoting.tcp;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 
 import java.io.*;
@@ -14,6 +15,14 @@ import java.net.Socket;
  */
 public class TCPActorServer extends RemoteRefRegistry {
 
+    public static int BUFFER_SIZE = 64000;
+
+    public static TCPActorServer Publish(Actor act, int port) throws IOException {
+        TCPActorServer server = new TCPActorServer((ActorProxy) act, port);
+        server.start();
+        return server;
+    }
+
     Actor facade;
 
     int port;
@@ -22,7 +31,7 @@ public class TCPActorServer extends RemoteRefRegistry {
     public TCPActorServer(ActorProxy proxy, int port) throws IOException {
         this.port = port;
         this.facade = (Actor) proxy;
-        registerPublishedActor(facade); // so facade is always 1
+        publishActor(facade); // so facade is always 1
     }
 
     public void start() throws IOException {
@@ -41,11 +50,9 @@ public class TCPActorServer extends RemoteRefRegistry {
         public void start() throws IOException {
             while( true ) {
                 Socket connectionSocket = welcomeSocket.accept();
-                OutputStream outputStream = new BufferedOutputStream(connectionSocket.getOutputStream(), 64000);
-                InputStream inputStream = new BufferedInputStream(connectionSocket.getInputStream(),64000);
-//                OutputStream outputStream = new DataOutputStream(connectionSocket.getOutputStream());
-//                InputStream inputStream  = new DataInputStream(connectionSocket.getInputStream());
-                TCPObjectChannel channel = new TCPObjectChannel(inputStream,outputStream,conf);
+                OutputStream outputStream = new BufferedOutputStream(connectionSocket.getOutputStream(), BUFFER_SIZE);
+                InputStream inputStream = new BufferedInputStream(connectionSocket.getInputStream(),BUFFER_SIZE);
+                TCPObjectSocket channel = new TCPObjectSocket(inputStream,outputStream,connectionSocket,conf);
                 new Thread(() -> {
                     try {
                         currentChannel.set(channel);
@@ -65,19 +72,9 @@ public class TCPActorServer extends RemoteRefRegistry {
             }
         }
 
-        private void writeOutput(DataOutputStream outputStream) throws IOException, ClassNotFoundException {
-//            for (Iterator<Actor> iterator = getRemoteActors().iterator(); iterator.hasNext(); ) {
-//                Actor next = iterator.next();
-//
-//            }
-//            System.out.println("received "+read);
-        }
-
     }
 
     public static void main(String arg[]) throws IOException {
-        ServerTestFacade act = Actors.AsActor(ServerTestFacade.class);
-        TCPActorServer server = new TCPActorServer((ActorProxy) act,7777);
-        server.start();
+        Publish( Actors.AsActor(ServerTestFacade.class), 7777 );
     }
 }

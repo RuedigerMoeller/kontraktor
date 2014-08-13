@@ -33,7 +33,7 @@ public class ElasticScheduler implements Scheduler {
 
     int defQSize = DEFQSIZE;
     protected ExecutorService exec = Executors.newCachedThreadPool();
-    protected Timer delayedCalls = new Timer();
+    protected static Timer delayedCalls = new Timer();
 
     public ElasticScheduler(int maxThreads) {
         this(maxThreads, DEFQSIZE);

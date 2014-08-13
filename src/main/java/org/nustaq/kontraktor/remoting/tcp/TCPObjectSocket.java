@@ -1,26 +1,39 @@
 package org.nustaq.kontraktor.remoting.tcp;
 
-import org.nustaq.kontraktor.remoting.ObjectRemotingChannel;
+import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.Socket;
 
 /**
  * Created by ruedi on 11.08.2014.
  */
-public class TCPObjectChannel implements ObjectRemotingChannel {
+public class TCPObjectSocket implements ObjectSocket {
 
     InputStream in;
     OutputStream out;
     FSTConfiguration conf;
+    Socket socket;
+    Exception lastErr;
+    boolean stopped;
 
-    public TCPObjectChannel(InputStream in, OutputStream out, FSTConfiguration conf) {
+    public TCPObjectSocket(InputStream in, OutputStream out, Socket socket, FSTConfiguration conf) {
         this.in = in;
         this.out = out;
         this.conf = conf;
+        this.socket = socket;
+    }
+
+    public Exception getLastErr() {
+        return lastErr;
+    }
+
+    public boolean isStopped() {
+        return stopped;
     }
 
     @Override
@@ -30,11 +43,16 @@ public class TCPObjectChannel implements ObjectRemotingChannel {
         int ch3 = (in.read() + 256) & 0xff;
         int ch4 = (in.read() + 256) & 0xff;
         int len = (ch4 << 24) + (ch3 << 16) + (ch2 << 8) + (ch1 << 0);
-
+        int orglen = len;
         byte buffer[] = new byte[len]; // this could be reused !
         while (len > 0)
             len -= in.read(buffer, buffer.length - len, len);
-        return conf.getObjectInput(buffer).readObject();
+        try {
+            return conf.getObjectInput(buffer).readObject();
+        } catch (Exception e) {
+            System.out.println("orglen: "+orglen);
+            throw e;
+        }
     }
 
     @Override
@@ -55,6 +73,12 @@ public class TCPObjectChannel implements ObjectRemotingChannel {
     @Override
     public void flush() throws IOException {
         out.flush();
+    }
+
+    @Override
+    public void setLastError(Exception ex) {
+        stopped = true;
+        lastErr = ex;
     }
 
 }

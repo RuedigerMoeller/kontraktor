@@ -10,9 +10,9 @@ import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 import org.nustaq.serialization.FSTConfiguration;
-import org.nustaq.serialization.FSTObjectOutput;
 
-import java.io.*;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -37,7 +37,7 @@ public class RemoteRefRegistry {
     ConcurrentLinkedQueue<Actor> remoteActors = new ConcurrentLinkedQueue<>();
     ConcurrentHashMap<Integer,Actor> remoteActorSet = new ConcurrentHashMap<>();
 
-    protected ThreadLocal<ObjectRemotingChannel> currentChannel = new ThreadLocal<>();
+    protected ThreadLocal<ObjectSocket> currentChannel = new ThreadLocal<>();
 
     public RemoteRefRegistry() {
         conf.registerSerializer(Actor.class,new ActorRefSerializer(this),true);
@@ -61,7 +61,7 @@ public class RemoteRefRegistry {
         return remoteActors;
     }
 
-    public int registerPublishedActor(Actor act) {
+    public int publishActor(Actor act) {
         Integer integer = publishedActorMappingReverse.get(act.getActorRef());
         if ( integer == null ) {
             integer = actorIdCount.incrementAndGet();
@@ -70,6 +70,15 @@ public class RemoteRefRegistry {
         }
         return integer;
     }
+
+    public void unpublishActor(Actor act) {
+        Integer integer = publishedActorMappingReverse.get(act.getActorRef());
+        if ( integer != null ) {
+            publishedActorMapping.remove(integer);
+            publishedActorMappingReverse.remove(act.getActorRef());
+        }
+    }
+
 
     public int registerPublishedCallback(Callback cb) {
         Integer integer = publishedActorMappingReverse.get(cb);
@@ -95,12 +104,10 @@ public class RemoteRefRegistry {
     }
 
     public Actor registerRemoteActorRef(Class actorClazz, int remoteId, Object client) {
-        // fixme: requires client id in the key also
         Actor actorRef = remoteActorSet.get(remoteId);
         if ( actorRef == null ) {
             Actor res = Actors.AsActor(actorClazz, getScheduler());
             res.__remoteId = remoteId;
-            res.__remotingImpl = this;
             remoteActorSet.put(remoteId,res);
             remoteActors.add(res);
             return res;
@@ -108,7 +115,12 @@ public class RemoteRefRegistry {
         return actorRef;
     }
 
-    protected void sendLoop(ObjectRemotingChannel channel) {
+    private void removeRemoteActor(Actor act) {
+        remoteActorSet.remove(act.__remoteId);
+        remoteActors.add(act);
+    }
+
+    protected void sendLoop(ObjectSocket channel) throws IOException {
         int count = 0;
         while (true) {
             if ( singleSendLoop(channel) ) {
@@ -118,13 +130,17 @@ public class RemoteRefRegistry {
         }
     }
 
-    protected void receiveLoop(ObjectRemotingChannel channel) {
+    protected void receiveLoop(ObjectSocket channel) {
         try {
             while( true ) {
                 // read object
                 RemoteCallEntry read = (RemoteCallEntry) channel.readObject();
                 if (read.getQueue() == read.MAILBOX) {
                     Actor targetActor = getPublishedActor(read.getReceiverKey());
+                    if (targetActor==null) {
+                        System.out.println("no actor found for key "+read);
+                        continue;
+                    }
                     Object future = targetActor.getScheduler().dispatchCall(null, targetActor, read.getMethod(), read.getArgs());
                     if ( future instanceof Future ) {
                         ((Future) future).then( (r,e) -> {
@@ -150,15 +166,15 @@ public class RemoteRefRegistry {
      * poll remote actor proxies and send. return true if there was at least one method
      * @param chan
      */
-    public boolean singleSendLoop(ObjectRemotingChannel chan) {
+    public boolean singleSendLoop(ObjectSocket chan) throws IOException {
         if ( this instanceof TCPActorClient ) {
             int y = 99;
         }
         boolean res = false;
         int sumQueued = 0;
+        ArrayList<Actor> toRemove = null;
         for (Iterator<Actor> iterator = remoteActors.iterator(); iterator.hasNext(); ) {
             Actor remoteActor = iterator.next();
-            try {
                 CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
                 if ( ce != null) {
                     sumQueued += remoteActor.__mailbox.size();
@@ -166,29 +182,34 @@ public class RemoteRefRegistry {
                     if ( ce.hasFutureResult() ) {
                         futId = registerPublishedCallback(ce.getFutureCB());
                     }
-                    RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId,ce.getMethod().getName(),ce.getArgs());
-                    rce.setQueue(rce.MAILBOX);
-                    chan.writeObject(rce);
-                    res = true;
+                    try {
+                        RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId,ce.getMethod().getName(),ce.getArgs());
+                        rce.setQueue(rce.MAILBOX);
+                        chan.writeObject(rce);
+                        res = true;
+                    } catch (Exception ex) {
+                        chan.setLastError(ex);
+                        if (toRemove==null)
+                            toRemove = new ArrayList();
+                        toRemove.add(remoteActor);
+                        remoteActor.$stop();
+                        System.out.println("connection closed");
+                        ex.printStackTrace();
+                        break;
+                    }
                 }
-            } catch (Exception ex) {
-                System.out.println("connection closed");
-                ex.printStackTrace();
-                break;
-            }
+        }
+        if (toRemove!=null) {
+            toRemove.forEach( (act) -> removeRemoteActor(act) );
         }
         if ( sumQueued < 100 )
         {
-            try {
-                chan.flush();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            chan.flush();
         }
         return res;
     }
 
-    public void receiveCBResult(ObjectRemotingChannel chan, int id, Object result, Object error) throws Exception {
+    public void receiveCBResult(ObjectSocket chan, int id, Object result, Object error) throws Exception {
         RemoteCallEntry rce = new RemoteCallEntry(0, id, null, new Object[] {result,error});
         rce.setQueue(rce.CBQ);
         chan.writeObject(rce);

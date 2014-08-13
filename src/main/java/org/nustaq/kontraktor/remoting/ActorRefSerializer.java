@@ -42,7 +42,7 @@ public class ActorRefSerializer extends FSTBasicObjectSerializer {
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
         // fixme: catch republish of foreign actor
         Actor act = (Actor) toWrite;
-        int id = reg.registerPublishedActor(act); // register published host side
+        int id = reg.publishActor(act); // register published host side
         out.writeInt(id);
         out.writeClassTag(act.getActor().getClass());
     }

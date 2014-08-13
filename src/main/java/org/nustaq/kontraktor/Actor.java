@@ -69,7 +69,7 @@ public class Actor<SELF extends Actor> implements Serializable {
     public long __nanos;
     public Actor __self;
     public int __remoteId;
-    public Object __remotingImpl;
+//    public Object __remotingImpl; a list is required to be notified on stop
     // <- internal
 
     /**

@@ -4,7 +4,7 @@ package org.nustaq.kontraktor;
  * Created by moelrue on 20.05.2014.
  */
 public interface Future<T> extends Callback<T> {
-    public Future then( Callback<T> result );
+    public Future<T> then( Callback<T> result );
     public <OUT> Future<OUT> map(final Filter<T, OUT> filter);
 
     /**

@@ -1,11 +1,9 @@
 package org.nustaq.kontraktor.remoting.tcp;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.ActorProxy;
-import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
-import org.nustaq.kontraktor.remoting.ObjectRemotingChannel;
+import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 
 import java.io.*;
@@ -14,25 +12,79 @@ import java.net.Socket;
 /**
  * Created by ruedi on 08.08.14.
  */
-public class TCPActorClient extends RemoteRefRegistry {
+public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
 
-    Actor facadeProxy;
+    public static int BUFFER_SIZE = 64000;
+
+    public static <T extends Actor> Future<T> Connect( Class<T> clz, String host, int port ) throws IOException {
+        Promise<T> res = new Promise<>();
+        TCPActorClient<ServerTestFacade> client = new TCPActorClient<>( clz, host, port);
+        new Thread(() -> {
+            try {
+                client.connect();
+                res.receiveResult(client.getFacadeProxy(),null);
+            } catch (IOException e) {
+                e.printStackTrace();
+                res.receiveResult(null, e);
+            }
+        }, "connect "+client.getDescriptionString()).start();
+        return res;
+    }
+
+    Class<? extends Actor> actorClazz;
+    T facadeProxy;
     BackOffStrategy backOffStrategy = new BackOffStrategy();
 
     String host;
     int port;
     ActorClient client;
+    int maxTrialConnect = 60; // number of trials on initial connect (each second)
+    volatile boolean connected = false;
 
-    public TCPActorClient(ActorProxy proxy, String host, int port) throws IOException {
+    public TCPActorClient(Class<? extends Actor> clz, String host, int port) throws IOException {
         this.host = host;
         this.port = port;
-        this.facadeProxy = (Actor) proxy;
+        actorClazz = clz;
+        facadeProxy = Actors.AsActor( actorClazz, new RemoteScheduler() );
+        facadeProxy.__remoteId = 1;
         registerRemoteRefDirect(facadeProxy);
-        connect();
     }
 
-    void connect() throws IOException {
-        client = new ActorClient();
+    public T getFacadeProxy() {
+        return facadeProxy;
+    }
+
+    public int getMaxTrialConnect() {
+        return maxTrialConnect;
+    }
+
+    public void setMaxTrialConnect(int maxTrialConnect) {
+        this.maxTrialConnect = maxTrialConnect;
+    }
+
+    public void connect() throws IOException {
+        int count = 0;
+        while (count < maxTrialConnect && ! connected ) {
+            try {
+                client = new ActorClient();
+                connected = true;
+            } catch (Exception ex) {
+                count++;
+                System.out.println("connection to " + getDescriptionString() + " failed, retry " + count + " of " + maxTrialConnect);
+                if ( count >= maxTrialConnect ) {
+                    System.out.println("connection failed. giving up");
+                    throw ex;
+                }
+            }
+        }
+    }
+
+    private String getDescriptionString() {
+        return actorClazz.getSimpleName() + "@" + host + ":" + port;
+    }
+
+    public boolean isConnected() {
+        return connected;
     }
 
     /**
@@ -46,15 +98,17 @@ public class TCPActorClient extends RemoteRefRegistry {
 
         public ActorClient() throws IOException {
             clientSocket = new Socket(host, port);
-            outputStream = new BufferedOutputStream(clientSocket.getOutputStream(),64000);
-            inputStream  = new BufferedInputStream(clientSocket.getInputStream(), 64000);
-//            outputStream = new DataOutputStream(clientSocket.getOutputStream());
-//            inputStream  = new DataInputStream(clientSocket.getInputStream());
-            ObjectRemotingChannel chan = new TCPObjectChannel(inputStream,outputStream,conf);
+            outputStream = new BufferedOutputStream(clientSocket.getOutputStream(), BUFFER_SIZE);
+            inputStream  = new BufferedInputStream(clientSocket.getInputStream(), BUFFER_SIZE);
+            ObjectSocket chan = new TCPObjectSocket(inputStream,outputStream,clientSocket,conf);
             new Thread(
                 () -> {
                     currentChannel.set(chan);
-                    sendLoop(chan);
+                    try {
+                        sendLoop(chan);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 },
                 "sender"
             ).start();
@@ -92,21 +146,22 @@ public class TCPActorClient extends RemoteRefRegistry {
     }
 
     public static void main( String arg[] ) throws IOException, InterruptedException {
-        ServerTestFacade test = Actors.AsActor(ServerTestFacade.class, new RemoteScheduler());
-        test.__remoteId = 1; // facade is always 1
 
-        ClientSideActor csa = Actors.AsActor(ClientSideActor.class);
-
-        TCPActorClient client = new TCPActorClient((ActorProxy) test,"localhost",7777);
-        boolean bench = true;
-        if ( bench ) {
-            while( true ) {
-//                test.$benchMark(13, "this is a longish string");
-                test.$benchMark(13, null);
+        TCPActorClient.Connect(ServerTestFacade.class,"localhost",7777).then( (test, err) -> {
+            if (test != null) {
+                ClientSideActor csa = Actors.AsActor(ClientSideActor.class);
+                boolean bench = false;
+                if (bench) {
+                    while (true) {
+                        // test.$benchMark(13, "this is a longish string");
+                        test.$benchMark(13, null);
+                    }
+                } else {
+                    TA t = Actors.AsActor(TA.class);
+                    t.$run(test, csa);
+                }
             }
-        } else {
-            TA t = Actors.AsActor(TA.class);
-            t.$run(test,csa);
-        }
+        });
+
     }
 }

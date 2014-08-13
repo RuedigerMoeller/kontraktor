@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.remoting;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * Created by ruedi on 08.08.14.
@@ -62,4 +63,16 @@ public class RemoteCallEntry implements Serializable {
     public void setArgs(Object[] args) {
         this.args = args;
     }
+
+    @Override
+    public String toString() {
+        return "RemoteCallEntry{" +
+                "receiverKey=" + receiverKey +
+                ", futureKey=" + futureKey +
+                ", method='" + method + '\'' +
+                ", args=" + Arrays.toString(args) +
+                ", queue=" + queue +
+                '}';
+    }
 }
+
