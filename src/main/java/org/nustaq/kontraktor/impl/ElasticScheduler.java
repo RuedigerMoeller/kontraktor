@@ -99,7 +99,7 @@ public class ElasticScheduler implements Scheduler {
     }
 
     @Override
-    public Object dispatchCall(Actor sendingActor, Actor receiver, String methodName, Object args[]) {
+    public Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object args[]) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
         Actor actor = receiver.getActor();

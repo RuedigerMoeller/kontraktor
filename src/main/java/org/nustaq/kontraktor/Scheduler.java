@@ -22,7 +22,7 @@ public interface Scheduler {
 
     void put2QueuePolling(Queue q, Object o);
 
-    Object dispatchCall(Actor sendingActor, Actor receiver, String methodName, Object args[]);
+    Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object args[]);
 
     void threadStopped(DispatcherThread th);
 

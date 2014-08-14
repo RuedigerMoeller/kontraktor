@@ -1,5 +1,5 @@
 - error/disconnect handling
-- komplexe setups: mehrere clients in 1 vm. mehrere server in 1 vm. weitergabe von remote refs an remote
+OK - komplexe setups: mehrere clients in 1 vm. mehrere server in 1 vm. weitergabe von remote refs an remote
 - double publish
 - add remove of objects (check stop in poll-loop)
 - streaming callbacks ..

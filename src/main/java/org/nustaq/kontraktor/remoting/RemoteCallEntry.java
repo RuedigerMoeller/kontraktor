@@ -1,5 +1,7 @@
 package org.nustaq.kontraktor.remoting;
 
+import org.nustaq.serialization.annotations.ArgTypes;
+
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -14,7 +16,7 @@ public class RemoteCallEntry implements Serializable {
     int receiverKey; // id of published actor in host
     int futureKey; // id of future if any
     String method;
-    Object args[];
+    @ArgTypes Object args[];
     int queue;
 
     public RemoteCallEntry(int futureKey, int receiverKey, String method, Object[] args) {

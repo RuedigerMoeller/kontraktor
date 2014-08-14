@@ -190,10 +190,10 @@ public class Actor<SELF extends Actor> implements Serializable {
 ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread
-    @CallerSideMethod public Object __dispatchCall( Actor receiver, String methodName, Object args[] ) {
+    @CallerSideMethod public Object __enqueueCall( Actor receiver, String methodName, Object args[] ) {
         if ( __stopped )
             throw new RuntimeException("Actor "+this+" received message after being stopped "+methodName );
-        return __scheduler.dispatchCall(sender.get(), receiver, methodName, args);
+        return __scheduler.enqueueCall(sender.get(), receiver, methodName, args);
     }
 
     ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();

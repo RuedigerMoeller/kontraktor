@@ -207,7 +207,7 @@ public class ActorProxyFactory {
                         }
                     }
                 }
-                String call = "__target.__dispatchCall( this, \""+method.getName()+"\", args );";
+                String call = "__target.__enqueueCall( this, \""+method.getName()+"\", args );";
                 if ( ! isVoid ) {
                     call = "return ("+originalMethod.getReturnType().getName()+") (Object)"+call;
                 }

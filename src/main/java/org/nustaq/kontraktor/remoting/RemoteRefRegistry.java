@@ -142,7 +142,7 @@ public class RemoteRefRegistry {
                         System.out.println("no actor found for key "+read);
                         continue;
                     }
-                    Object future = targetActor.getScheduler().dispatchCall(null, targetActor, read.getMethod(), read.getArgs());
+                    Object future = targetActor.getScheduler().enqueueCall(null, targetActor, read.getMethod(), read.getArgs());
                     if ( future instanceof Future ) {
                         ((Future) future).then( (r,e) -> {
                             try {
