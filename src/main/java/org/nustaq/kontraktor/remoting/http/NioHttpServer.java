@@ -95,6 +95,11 @@ public class NioHttpServer extends Actor<NioHttpServer> {
     }
 
     protected void service(final SelectionKey key, final SocketChannel client) throws IOException {
+        if (!client.isOpen()) {
+            key.cancel();
+            client.close();
+            return;
+        }
         int bytesread = client.read(buffer);
         if (bytesread == -1) {
             key.cancel();

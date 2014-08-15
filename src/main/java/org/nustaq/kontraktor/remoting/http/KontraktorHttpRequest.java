@@ -23,7 +23,6 @@ public class KontraktorHttpRequest // avoid clash with servlet api
         // FIXME: whole class should be pooled
         bytes = new byte[len];
         buffer.get(bytes);
-        text = new String(bytes);
         parseHeader();
     }
 
@@ -79,6 +78,7 @@ public class KontraktorHttpRequest // avoid clash with servlet api
                 }
             }
         }
+        text = new String(bytes,0, idx,bytes.length-idx); // fixme utf-8
     }
 
     public String getText() {

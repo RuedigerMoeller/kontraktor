@@ -8,7 +8,6 @@ import org.nustaq.kson.Kson;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -33,9 +32,14 @@ public class RestActorServer {
                     enqueueCall(target, req, response);
                 }
             } else if (req.isPOST() ) {
-                response.receiveResult(RequestResponse.MSG_404, null);
-                response.receiveResult(null, FINISHED);
-
+                String actor = req.getPath(0);
+                final Actor target = publishedActors.get(actor);
+                if ( target == null ) {
+                    response.receiveResult(RequestResponse.MSG_404, null);
+                    response.receiveResult(null, FINISHED);
+                } else {
+                    enqueueCall(target, req.getText(), req, response);
+                }
             } else {
                 response.receiveResult(RequestResponse.MSG_404, null);
                 response.receiveResult(null, FINISHED);
@@ -56,7 +60,7 @@ public class RestActorServer {
         final Method m = target.__getCachedMethod(req.getPath(1), target);
         int args = m.getParameterCount();
         final Class<?>[] parameterTypes = m.getParameterTypes();
-        String json = "{ method: "+req.getPath(1)+" args: [ ";
+        String json = "[ { method: "+req.getPath(1)+" args: [ ";
         for (int i=0; i < args; i++) {
             String path = req.getPath(i + 2);
             if ( parameterTypes[i] == String.class && ! path.startsWith("'"))
@@ -65,64 +69,72 @@ public class RestActorServer {
                 path = "null";
             json += path + " ";
         }
-        json+="] }";
+        json+="] } ]";
         enqueueCall(target, json, req, response);
     }
 
     protected void enqueueCall(Actor target, String jsonString, KontraktorHttpRequest req, Callback<RequestResponse> response) {
         try {
-            Kson kson = new Kson().map("call", RemoteCallEntry.class);
+            Kson kson = new Kson().map("call", RemoteCallEntry.class).map("calls", RemoteCallEntry[].class);
 
             ArgTypesResolver res = new ArgTypesResolver( target.getActor().getClass() );
 //            System.out.println(jsonString);
-            RemoteCallEntry call = (RemoteCallEntry) kson.readObject(jsonString, "call", res);
-//            System.out.println(call);
-            final Method m = target.__getCachedMethod(call.getMethod(), target);
+            final RemoteCallEntry[] calls = (RemoteCallEntry[])kson.readObject(jsonString, "calls", res);
+            for (int i = 0; i < calls.length; i++) {
+                RemoteCallEntry call = calls[i];
 
-            Callback cb = (r,e) -> {
-                try {
-                    if ( e == null ) {
+                final Method m = target.__getCachedMethod(call.getMethod(), target);
+
+                Callback cb = (r, e) -> {
+                    RemoteCallEntry resCall = new RemoteCallEntry(call.getFutureKey(), call.getReceiverKey(), "receiveResult", new Object[]{r, "" + e});
+                    try {
                         response.receiveResult(RequestResponse.MSG_200, null);
                         if (useKson) {
-                            response.receiveResult(new RequestResponse(kson.writeObject(r)), RequestProcessor.FINISHED);
+                            response.receiveResult(new RequestResponse(kson.writeObject(resCall)), RequestProcessor.FINISHED);
                         } else {
-                            response.receiveResult(new RequestResponse(kson.writeJSonObject(r, false)), RequestProcessor.FINISHED);
+                            response.receiveResult(new RequestResponse(kson.writeJSonObject(resCall, false)), RequestProcessor.FINISHED);
                         }
-                    }
-                    else {
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
                         response.receiveResult(RequestResponse.MSG_500, null);
-                        response.receiveResult(new RequestResponse(e.toString()),RequestProcessor.FINISHED);
+                        response.receiveResult(new RequestResponse(ex.toString()), RequestProcessor.FINISHED);
                     }
+                };
 
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-            };
-
-            final Class<?>[] parameterTypes = m.getParameterTypes();
-            int cbCount = 0;
-            for (int i = 0; i < parameterTypes.length; i++) {
-                Class<?> parameterType = parameterTypes[i];
-                if ( Callback.class.isAssignableFrom(parameterType) ) {
-                    if ( cbCount>0 || Future.class.isAssignableFrom(m.getReturnType()) ) {
+                final Class<?>[] parameterTypes = m.getParameterTypes();
+                int cbCount = 0;
+                for (int ii = 0; ii < parameterTypes.length; ii++) {
+                    Class<?> parameterType = parameterTypes[ii];
+                    if (Actor.class.isAssignableFrom(parameterType)) {
                         response.receiveResult(RequestResponse.MSG_500, null);
                         response.receiveResult(new RequestResponse(
-                            "method not http enabled, more than one callback " +
-                            "object in args, or callback and also returns future"),
+                            "method not http enabled, actor remote references " +
+                            "cannot be supported for Http based REST (use TCP stack)"),
                             RequestProcessor.FINISHED
                         );
                         return;
                     }
-                    cbCount++;
-                    call.getArgs()[i] = cb;
+                    if (Callback.class.isAssignableFrom(parameterType)) {
+                        if (cbCount > 0 || Future.class.isAssignableFrom(m.getReturnType())) {
+                            response.receiveResult(RequestResponse.MSG_500, null);
+                            response.receiveResult(new RequestResponse(
+                                "method not http enabled, more than one callback " +
+                                "object in args, or callback and also returns future"),
+                                RequestProcessor.FINISHED
+                            );
+                            return;
+                        }
+                        cbCount++;
+                        call.getArgs()[ii] = cb;
+                    }
                 }
-            }
 
-            Object future = target.__scheduler.enqueueCall(null,target,call.getMethod(),call.getArgs());
-            if ( future instanceof Future ) {
-                ((Future) future).then( cb );
-            } else if (m.getReturnType() == void.class && cbCount == 0 ) {
-                response.receiveResult( RequestResponse.MSG_200, RequestProcessor.FINISHED );
+                Object future = target.__scheduler.enqueueCall(null, target, call.getMethod(), call.getArgs());
+                if (future instanceof Future) {
+                    ((Future) future).then(cb);
+                } else if (m.getReturnType() == void.class && cbCount == 0) {
+                    response.receiveResult(RequestResponse.MSG_200, RequestProcessor.FINISHED);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -190,7 +202,6 @@ public class RestActorServer {
         RestActorServer sv = new RestActorServer().setUseKson(true);
         sv.publish("rest",Actors.AsActor(RESTActor.class));
         sv.startServer();
-
     }
 
 }

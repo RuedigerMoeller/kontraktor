@@ -168,37 +168,34 @@ public class RemoteRefRegistry {
      * @param chan
      */
     public boolean singleSendLoop(ObjectSocket chan) throws IOException {
-        if ( this instanceof TCPActorClient ) {
-            int y = 99;
-        }
         boolean res = false;
         int sumQueued = 0;
         ArrayList<Actor> toRemove = null;
         for (Iterator<Actor> iterator = remoteActors.iterator(); iterator.hasNext(); ) {
             Actor remoteActor = iterator.next();
-                CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
-                if ( ce != null) {
-                    sumQueued += remoteActor.__mailbox.size();
-                    int futId = 0;
-                    if ( ce.hasFutureResult() ) {
-                        futId = registerPublishedCallback(ce.getFutureCB());
-                    }
-                    try {
-                        RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId,ce.getMethod().getName(),ce.getArgs());
-                        rce.setQueue(rce.MAILBOX);
-                        chan.writeObject(rce);
-                        res = true;
-                    } catch (Exception ex) {
-                        chan.setLastError(ex);
-                        if (toRemove==null)
-                            toRemove = new ArrayList();
-                        toRemove.add(remoteActor);
-                        remoteActor.$stop();
-                        System.out.println("connection closed");
-                        ex.printStackTrace();
-                        break;
-                    }
+            CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
+            if ( ce != null) {
+                sumQueued += remoteActor.__mailbox.size();
+                int futId = 0;
+                if ( ce.hasFutureResult() ) {
+                    futId = registerPublishedCallback(ce.getFutureCB());
                 }
+                try {
+                    RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId,ce.getMethod().getName(),ce.getArgs());
+                    rce.setQueue(rce.MAILBOX);
+                    chan.writeObject(rce);
+                    res = true;
+                } catch (Exception ex) {
+                    chan.setLastError(ex);
+                    if (toRemove==null)
+                        toRemove = new ArrayList();
+                    toRemove.add(remoteActor);
+                    remoteActor.$stop();
+                    System.out.println("connection closed");
+                    ex.printStackTrace();
+                    break;
+                }
+            }
         }
         if (toRemove!=null) {
             toRemove.forEach( (act) -> removeRemoteActor(act) );
