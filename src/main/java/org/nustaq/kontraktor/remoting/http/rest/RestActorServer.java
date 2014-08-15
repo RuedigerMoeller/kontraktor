@@ -21,7 +21,6 @@ public class RestActorServer {
 
     NioHttpServer server;
     ConcurrentHashMap<String,Actor> publishedActors = new ConcurrentHashMap<>();
-    private boolean useKson = false;
 
     RateMeasure respPerS = new RateMeasure("responaes/s", 1000);
     class RestProcessor implements RequestProcessor {
@@ -50,15 +49,6 @@ public class RestActorServer {
                 response.receiveResult(null, FINISHED);
             }
         }
-    }
-
-    public boolean isUseKson() {
-        return useKson;
-    }
-
-    public RestActorServer setUseKson(boolean useKson) {
-        this.useKson = useKson;
-        return this;
     }
 
     protected void enqueueCall(Actor target, KontraktorHttpRequest req, Callback<RequestResponse> response) {
@@ -98,10 +88,12 @@ public class RestActorServer {
                     RemoteCallEntry resCall = new RemoteCallEntry(0, call.getFutureKey(), "receiveResult", new Object[]{r, "" + e});
                     resCall.setQueue(resCall.CBQ);
                     try {
-                        if (useKson) {
+                        if ( req.getAccept() == req.KSON ) {
                             response.receiveResult(new RequestResponse(kson.writeObject(resCall)), fin);
-                        } else {
+                        } else if ( req.getAccept() == req.JSON ) {
                             response.receiveResult(new RequestResponse(kson.writeJSonObject(resCall, false)), fin);
+                        } else if ( req.getAccept() == req.PLAIN_JSON ) {
+                            response.receiveResult(new RequestResponse(kson.writePlainJSonObject(resCall)), fin);
                         }
                     } catch (Exception ex) {
                         ex.printStackTrace();
@@ -143,11 +135,13 @@ public class RestActorServer {
                     ((Future) future).then(cb);
                 } else if (m.getReturnType() == void.class && cbCount == 0) {
                     respPerS.count();
-                    response.receiveResult(null, countDown.decrementAndGet() == 0 ? RequestProcessor.FINISHED : null);
+                    if ( countDown.decrementAndGet() == 0 )
+                        response.receiveResult(null, RequestProcessor.FINISHED);
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
+            response.receiveResult(RequestResponse.MSG_500, ""+e);
         }
     }
 
@@ -192,7 +186,7 @@ public class RestActorServer {
     public static class RESTActor extends Actor<RESTActor> {
 
         public void simpleCall(String a, String b, int c) {
-            System.out.println("simpleCall "+a+b+c);
+//            System.out.println("simpleCall "+a+b+c);
         }
 
         public void withCB(String a, String b, int c, Callback cb) {
@@ -221,7 +215,7 @@ public class RestActorServer {
     }
 
     public static void main(String arg[]) {
-        RestActorServer sv = new RestActorServer().setUseKson(true);
+        RestActorServer sv = new RestActorServer();
         sv.publish("rest",Actors.AsActor(RESTActor.class,65000));
         sv.startServer();
     }

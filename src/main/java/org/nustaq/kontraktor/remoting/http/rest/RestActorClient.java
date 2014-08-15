@@ -61,10 +61,10 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
         while( true )
         {
 //            proxy.simpleCall("A", "B", 133);
-//            proxy.simpleCall("C", "D", 133);
-            proxy.simpleFut("a","b",31).then((r,e)-> {
+            proxy.simpleCall("C", "D", 133);
+//            proxy.simpleFut("a","b",31).then((r,e)-> {
 //                System.out.println("result:"+r+", "+e);
-            });
+//            });
             count++;
             if ( (count%5) == 1 )
                 LockSupport.parkNanos(1000 * 1000 * 1L);

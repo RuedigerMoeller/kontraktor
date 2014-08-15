@@ -8,6 +8,13 @@ import java.nio.ByteBuffer;
  */
 public class KontraktorHttpRequest // avoid clash with servlet api
 {
+
+    final public int JSON = 1; //type-tagged
+    final public int KSON = 2;
+    final public int MINBIN = 3;
+    final public int BINARY = 4;
+    final public int PLAIN_JSON = 5;
+
     byte[] bytes;
     StringBuilder text = new StringBuilder(1000);
     StringBuilder methodString = new StringBuilder();
@@ -15,6 +22,7 @@ public class KontraktorHttpRequest // avoid clash with servlet api
     String splitPath[];
     int contentStart;
     int contentLength;
+    int accept = PLAIN_JSON;
     boolean isComplete = false;
 
     /**
@@ -33,17 +41,21 @@ public class KontraktorHttpRequest // avoid clash with servlet api
     public void append(ByteBuffer buf, int len) {
         System.out.println("PARTIAL READ");
         if ( !hadHeader()) {
+            System.out.println("..complete header");
             byte[] newbytes = new byte[bytes.length + len];
             System.arraycopy(bytes, 0, newbytes, 0, bytes.length);
             buf.get(newbytes, bytes.length, len);
             bytes = newbytes;
             checkComplete();
+            System.out.println("..complete:" + isComplete());
         } else {
+            System.out.println("..complete body");
             byte[] tmp = new byte[len];
             buf.get(tmp);
             try {
                 text.append(new String(tmp,"UTF-8"));
-                isComplete = text.length() == contentLength;
+                isComplete = text.length() >= contentLength;
+                System.out.println("..complete:"+isComplete()+" text:"+text.length()+" cont:"+contentLength);
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
                 isComplete = true;
@@ -125,6 +137,12 @@ public class KontraktorHttpRequest // avoid clash with servlet api
 //                    System.out.println("=> "+keyString+":"+valString);
                     if (keyString.toString().equalsIgnoreCase("CONTENT-LENGTH")) {
                         contentLength = Integer.parseInt(valString.toString().trim());
+                    } else if ( keyString.toString().equalsIgnoreCase("ACCEPT")) {
+                        if ( valString.indexOf("text/kson") >= 0 )
+                            accept = KSON;
+                        else if (valString.indexOf("text/tagged-json")>=0) {
+                            accept = JSON;
+                        }
                     }
                     keyString.setLength(0);
                     valString.setLength(0);
@@ -132,6 +150,10 @@ public class KontraktorHttpRequest // avoid clash with servlet api
                 }
             }
         }
+    }
+
+    public int getAccept() {
+        return accept;
     }
 
     public StringBuilder getText() {

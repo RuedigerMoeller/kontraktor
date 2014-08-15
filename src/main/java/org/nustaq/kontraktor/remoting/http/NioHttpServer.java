@@ -73,7 +73,13 @@ public class NioHttpServer extends Actor<NioHttpServer> {
                         SocketChannel client = (SocketChannel) key.channel();
                         if (key.isReadable()) {
                             iterator.remove();
-                            service(key, client);
+                            try {
+                                service(key, client);
+                            } catch (IOException ioe) {
+                                key.cancel();
+                                client.close();
+                                throw ioe;
+                            }
                         }
                     }
                 } catch (Throwable e) {
@@ -94,6 +100,8 @@ public class NioHttpServer extends Actor<NioHttpServer> {
     public void $stopService() {
         shouldTerminate = true;
     }
+
+
 
     RateMeasure reqPerS = new RateMeasure("req/s", 5000);
     protected void service(final SelectionKey key, final SocketChannel client) throws IOException {
@@ -126,8 +134,9 @@ public class NioHttpServer extends Actor<NioHttpServer> {
 
                                 if (error == null || error == RequestProcessor.FINISHED) {
                                     try {
-                                        if (result!=null)
-                                            client.write(ByteBuffer.wrap(result.toString().getBytes())); //fixme
+                                        if (result!=null) {
+                                            writeClient(client, ByteBuffer.wrap(result.toString().getBytes()));
+                                        }
                                     } catch (Exception e) {
                                         e.printStackTrace();
                                     }
@@ -135,8 +144,8 @@ public class NioHttpServer extends Actor<NioHttpServer> {
                                 if (error != null) {
                                     try {
                                         if (error != RequestProcessor.FINISHED) {
-                                            result = RequestResponse.MSG_500;
-                                            client.write(ByteBuffer.wrap(RequestResponse.MSG_500.toString().getBytes())); //fixme
+                                            result = RequestResponse.MSG_500; // fixme: processor already sent 200 ok
+                                            writeClient(client, ByteBuffer.wrap(RequestResponse.MSG_500.toString().getBytes()));
                                         }
                                         key.cancel();
                                         client.close();
@@ -157,6 +166,11 @@ public class NioHttpServer extends Actor<NioHttpServer> {
             }
             buffer.clear();
         }
+    }
+
+    private void writeClient(SocketChannel client, ByteBuffer wrap) throws IOException {
+        while ( wrap.remaining() > 0 )
+            client.write(wrap);
     }
 
     static class SimpleProcessor implements RequestProcessor {

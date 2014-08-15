@@ -78,6 +78,7 @@ public class HttpObjectSocket implements ObjectSocket {
 //                        if (resp > 1)
 //                            System.out.println("bundled "+resp);
                     }
+                    socket.close();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -115,6 +116,7 @@ public class HttpObjectSocket implements ObjectSocket {
         BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF8"));
         bw.write("POST " + path + " HTTP/1.0\n");
         bw.write("Content-Length: " + post.length() + "\n");
+        bw.write("Accept: text/kson\n"); // always use kson for internal traffic
         bw.write("Content-Type: application/json\n");
         bw.write("\n");
         bw.write(post);
