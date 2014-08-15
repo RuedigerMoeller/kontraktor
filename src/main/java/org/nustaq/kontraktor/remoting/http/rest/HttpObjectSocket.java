@@ -4,6 +4,8 @@ import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.http.ArgTypesResolver;
 import org.nustaq.kson.Kson;
+import org.nustaq.kson.KsonDeserializer;
+import org.nustaq.kson.KsonStringCharInput;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -35,38 +37,52 @@ public class HttpObjectSocket implements ObjectSocket {
     }
 
     protected void init() {
-        kson = new Kson().map("call", RemoteCallEntry.class).map("calls", RemoteCallEntry[].class);
+        kson = new Kson().map("call", RemoteCallEntry.class).map("calls", RemoteCallEntry[].class).map(RestActorServer.MDesc.class);
         resolver = new ArgTypesResolver(actorClz);
+
         httpReqQueue = new LinkedBlockingQueue<>();
         httpRespQueue = new LinkedBlockingQueue<>();
         new Thread( ()->{
             ArrayList<String> calls = new ArrayList<>();
+            StringBuilder sb = new StringBuilder(100);
             while(true) {
                 try {
                     calls.add(httpReqQueue.take());
                     httpReqQueue.drainTo(calls);
-                    Socket socket = post(calls);
+                    Socket socket = post(calls); //fixme: retry immediately in case of failure (no take)
                     calls.clear();
 
                     BufferedReader read = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF8"));
                     String head = read.readLine();
                     read.readLine(); // empty line after header
                     // fixme: check error
-                    StringBuilder sb = new StringBuilder(100);
                     int ch;
+                    sb.setLength(0);
                     while ( (ch=read.read()) > 0 ) {
                         sb.append((char)ch);
                     }
-                    final String kson = sb.toString();
-                    if (kson.length() > 0 ) {
-                        Object o = this.kson.readObject(kson);
-                        httpRespQueue.add(o);
+                    final String ksonString = sb.toString();
+//                    System.out.println(ksonString);
+                    if (ksonString.length() > 0 ) {
+                        int resp = 0;
+                        KsonStringCharInput in = new KsonStringCharInput(ksonString);
+                        final KsonDeserializer deserializer = new KsonDeserializer(in, kson.getMapper());
+                        while (in.position()<ksonString.length()) {
+                            Object o = deserializer.readObject(RemoteCallEntry.class, String.class, null);
+                            if ( o != null ) {
+                                httpRespQueue.put(o);
+                                resp++;
+                            }
+                            deserializer.skipWS();
+                        }
+//                        if (resp > 1)
+//                            System.out.println("bundled "+resp);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-        }, host+":"+port+actorPath ).start();
+        }, "ObjectSocket:"+host+":"+port+actorPath ).start();
     }
 
     @Override
@@ -78,7 +94,7 @@ public class HttpObjectSocket implements ObjectSocket {
     public void writeObject(Object toWrite) throws Exception {
         // expect callentry
         String sendString = kson.writeObject(toWrite,false);
-        httpReqQueue.add(sendString);
+        httpReqQueue.put(sendString);
     }
 
     @Override
@@ -88,7 +104,7 @@ public class HttpObjectSocket implements ObjectSocket {
     private Socket post(ArrayList<String> requests) throws IOException {
         InetAddress addr = InetAddress.getByName(host);
 
-        String post = "calls [\n"; // fixme json
+        String post = "[\n"; // fixme json
         for (int i = 0; i < requests.size(); i++) {
             post += requests.get(i);
         }
@@ -100,7 +116,6 @@ public class HttpObjectSocket implements ObjectSocket {
         bw.write("POST " + path + " HTTP/1.0\n");
         bw.write("Content-Length: " + post.length() + "\n");
         bw.write("Content-Type: application/json\n");
-        bw.write("\n");
         bw.write("\n");
         bw.write(post);
         bw.flush();

@@ -135,7 +135,10 @@ public class RemoteRefRegistry {
         try {
             while( true ) {
                 // read object
-                RemoteCallEntry read = (RemoteCallEntry) channel.readObject();
+                final Object response = channel.readObject();
+                if ( response instanceof String )
+                    System.out.println(response);
+                RemoteCallEntry read = (RemoteCallEntry) response;
                 if (read.getQueue() == read.MAILBOX) {
                     Actor targetActor = getPublishedActor(read.getReceiverKey());
                     if (targetActor==null) {

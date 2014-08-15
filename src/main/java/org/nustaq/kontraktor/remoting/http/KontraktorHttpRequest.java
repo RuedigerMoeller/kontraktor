@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.remoting.http;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
 /**
@@ -7,11 +8,14 @@ import java.nio.ByteBuffer;
  */
 public class KontraktorHttpRequest // avoid clash with servlet api
 {
-    final byte[] bytes;
-    String text;
-    StringBuffer methodString = new StringBuffer();
-    StringBuffer pathString = new StringBuffer();
+    byte[] bytes;
+    StringBuilder text = new StringBuilder(1000);
+    StringBuilder methodString = new StringBuilder();
+    StringBuilder pathString = new StringBuilder();
     String splitPath[];
+    int contentStart;
+    int contentLength;
+    boolean isComplete = false;
 
     /**
      * WARNING: the buffer must be processed synchronous or copied as the buffer is reused.
@@ -23,7 +27,54 @@ public class KontraktorHttpRequest // avoid clash with servlet api
         // FIXME: whole class should be pooled
         bytes = new byte[len];
         buffer.get(bytes);
-        parseHeader();
+        checkComplete();
+    }
+
+    public void append(ByteBuffer buf, int len) {
+        System.out.println("PARTIAL READ");
+        if ( !hadHeader()) {
+            byte[] newbytes = new byte[bytes.length + len];
+            System.arraycopy(bytes, 0, newbytes, 0, bytes.length);
+            buf.get(newbytes, bytes.length, len);
+            bytes = newbytes;
+            checkComplete();
+        } else {
+            byte[] tmp = new byte[len];
+            buf.get(tmp);
+            try {
+                text.append(new String(tmp,"UTF-8"));
+                isComplete = text.length() == contentLength;
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+                isComplete = true;
+            }
+        }
+    }
+
+    protected boolean hadHeader() {
+        return contentStart != 0;
+    }
+
+    private void checkComplete() {
+        for (int i = 4; i < bytes.length; i++) {
+            if ( (bytes[i] == '\n' && bytes[i-1] == '\n') || (bytes[i] == 0xa && bytes[i-1] == 0xd && bytes[i-2] == 0xa && bytes[i-3] == 0xd) ) {
+                contentStart = i+1;
+                parseHeader();
+                try {
+                    text.append(new String(bytes,contentStart,bytes.length-contentStart,"UTF-8"));
+                    isComplete = text.length() >= contentLength;
+                    bytes = null; // free headerbytes
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                    isComplete = true;
+                }
+                return;
+            }
+        }
+    }
+
+    public boolean isComplete() {
+        return isComplete;
     }
 
     private void parseHeader() {
@@ -43,7 +94,7 @@ public class KontraktorHttpRequest // avoid clash with servlet api
             if ( key ) {
                 if ( b=='\n') {
                     if ( method ) {
-                        System.out.println("Method/Path "+methodString+" / "+pathString);
+//                        System.out.println("Method/Path "+methodString+" / "+pathString);
                         keyString.setLength(0);
                         method = false;
                     } else
@@ -71,17 +122,19 @@ public class KontraktorHttpRequest // avoid clash with servlet api
                 if ( b != '\n' ) {
                     valString.append((char)b);
                 } else {
-                    System.out.println("=> "+keyString+":"+valString);
+//                    System.out.println("=> "+keyString+":"+valString);
+                    if (keyString.toString().equalsIgnoreCase("CONTENT-LENGTH")) {
+                        contentLength = Integer.parseInt(valString.toString().trim());
+                    }
                     keyString.setLength(0);
                     valString.setLength(0);
                     key = true;
                 }
             }
         }
-        text = new String(bytes,0, idx,bytes.length-idx); // fixme utf-8
     }
 
-    public String getText() {
+    public StringBuilder getText() {
         return text;
     }
 
@@ -102,7 +155,6 @@ public class KontraktorHttpRequest // avoid clash with servlet api
     public boolean isPOST() {
         return methodString.charAt(0) == 'P';
     }
-
     public int getPathLen() {
         return splitPath.length-1;
     }

@@ -3,12 +3,16 @@ package org.nustaq.kontraktor.remoting.http.rest;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.http.*;
+import org.nustaq.kontraktor.util.RateMeasure;
 import org.nustaq.kson.Kson;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by ruedi on 14.08.2014.
@@ -19,6 +23,7 @@ public class RestActorServer {
     ConcurrentHashMap<String,Actor> publishedActors = new ConcurrentHashMap<>();
     private boolean useKson = false;
 
+    RateMeasure respPerS = new RateMeasure("responaes/s", 1000);
     class RestProcessor implements RequestProcessor {
         @Override
         public void processRequest(KontraktorHttpRequest req, Callback<RequestResponse> response) {
@@ -38,7 +43,7 @@ public class RestActorServer {
                     response.receiveResult(RequestResponse.MSG_404, null);
                     response.receiveResult(null, FINISHED);
                 } else {
-                    enqueueCall(target, req.getText(), req, response);
+                    enqueueCall(target, req.getText().toString(), req, response);
                 }
             } else {
                 response.receiveResult(RequestResponse.MSG_404, null);
@@ -80,33 +85,37 @@ public class RestActorServer {
             ArgTypesResolver res = new ArgTypesResolver( target.getActor().getClass() );
 //            System.out.println(jsonString);
             final RemoteCallEntry[] calls = (RemoteCallEntry[])kson.readObject(jsonString, "calls", res);
+            response.receiveResult(RequestResponse.MSG_200, null);
+            AtomicInteger countDown = new AtomicInteger(calls.length);
             for (int i = 0; i < calls.length; i++) {
                 RemoteCallEntry call = calls[i];
 
                 final Method m = target.__getCachedMethod(call.getMethod(), target);
 
                 Callback cb = (r, e) -> {
-                    RemoteCallEntry resCall = new RemoteCallEntry(call.getFutureKey(), call.getReceiverKey(), "receiveResult", new Object[]{r, "" + e});
+                    respPerS.count();
+                    String fin = countDown.decrementAndGet() == 0 ? RequestProcessor.FINISHED : null;
+                    RemoteCallEntry resCall = new RemoteCallEntry(0, call.getFutureKey(), "receiveResult", new Object[]{r, "" + e});
+                    resCall.setQueue(resCall.CBQ);
                     try {
-                        response.receiveResult(RequestResponse.MSG_200, null);
                         if (useKson) {
-                            response.receiveResult(new RequestResponse(kson.writeObject(resCall)), RequestProcessor.FINISHED);
+                            response.receiveResult(new RequestResponse(kson.writeObject(resCall)), fin);
                         } else {
-                            response.receiveResult(new RequestResponse(kson.writeJSonObject(resCall, false)), RequestProcessor.FINISHED);
+                            response.receiveResult(new RequestResponse(kson.writeJSonObject(resCall, false)), fin);
                         }
                     } catch (Exception ex) {
                         ex.printStackTrace();
-                        response.receiveResult(RequestResponse.MSG_500, null);
-                        response.receiveResult(new RequestResponse(ex.toString()), RequestProcessor.FINISHED);
+//                        response.receiveResult(RequestResponse.MSG_500, null);
+                        response.receiveResult(new RequestResponse(ex.toString()), fin);
                     }
                 };
 
                 final Class<?>[] parameterTypes = m.getParameterTypes();
-                int cbCount = 0;
+                int cbCount = 0; // number of callbacks in args
                 for (int ii = 0; ii < parameterTypes.length; ii++) {
                     Class<?> parameterType = parameterTypes[ii];
                     if (Actor.class.isAssignableFrom(parameterType)) {
-                        response.receiveResult(RequestResponse.MSG_500, null);
+//                        response.receiveResult(RequestResponse.MSG_500, null);
                         response.receiveResult(new RequestResponse(
                             "method not http enabled, actor remote references " +
                             "cannot be supported for Http based REST (use TCP stack)"),
@@ -116,7 +125,7 @@ public class RestActorServer {
                     }
                     if (Callback.class.isAssignableFrom(parameterType)) {
                         if (cbCount > 0 || Future.class.isAssignableFrom(m.getReturnType())) {
-                            response.receiveResult(RequestResponse.MSG_500, null);
+//                            response.receiveResult(RequestResponse.MSG_500, null);
                             response.receiveResult(new RequestResponse(
                                 "method not http enabled, more than one callback " +
                                 "object in args, or callback and also returns future"),
@@ -129,11 +138,12 @@ public class RestActorServer {
                     }
                 }
 
-                Object future = target.__scheduler.enqueueCall(null, target, call.getMethod(), call.getArgs());
+                Object future = target.__scheduler.enqueueCall(server, target, call.getMethod(), call.getArgs());
                 if (future instanceof Future) {
                     ((Future) future).then(cb);
                 } else if (m.getReturnType() == void.class && cbCount == 0) {
-                    response.receiveResult(RequestResponse.MSG_200, RequestProcessor.FINISHED);
+                    respPerS.count();
+                    response.receiveResult(null, countDown.decrementAndGet() == 0 ? RequestProcessor.FINISHED : null);
                 }
             }
         } catch (Exception e) {
@@ -142,8 +152,7 @@ public class RestActorServer {
     }
 
     void startServer() {
-        server = Actors.AsActor(NioHttpServer.class);
-
+        server = Actors.AsActor(NioHttpServer.class,64000);
         server.$init(9999, new RestProcessor());
         server.$receive();
     }
@@ -161,10 +170,22 @@ public class RestActorServer {
         String returnType;
         String args[];
 
+        public MDesc() {
+        }
+
         public MDesc(String name, String returnType, String[] args) {
             this.name = name;
             this.returnType = returnType;
             this.args = args;
+        }
+
+        @Override
+        public String toString() {
+            return "MDesc{" +
+                    "name='" + name + '\'' +
+                    ", returnType='" + returnType + '\'' +
+                    ", args=" + Arrays.toString(args) +
+                    '}';
         }
     }
 
@@ -178,7 +199,8 @@ public class RestActorServer {
             cb.receiveResult("withCB "+a+b+c,null);
         }
 
-        public Future future(String a, String b, int c) {
+        public Future simpleFut(String a, String b, int c) {
+            Thread.currentThread().setName("RESTActor");
             final Method[] methods = getClass().getMethods();
             ArrayList res = new ArrayList();
             for (int i = 0; i < methods.length; i++) {
@@ -200,7 +222,7 @@ public class RestActorServer {
 
     public static void main(String arg[]) {
         RestActorServer sv = new RestActorServer().setUseKson(true);
-        sv.publish("rest",Actors.AsActor(RESTActor.class));
+        sv.publish("rest",Actors.AsActor(RESTActor.class,65000));
         sv.startServer();
     }
 

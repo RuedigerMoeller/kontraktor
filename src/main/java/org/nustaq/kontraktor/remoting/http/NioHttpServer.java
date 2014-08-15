@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.remoting.http;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.util.RateMeasure;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -28,6 +29,7 @@ public class NioHttpServer extends Actor<NioHttpServer> {
     long lastRequest;
 
     public void $init( int port, RequestProcessor processor) {
+        Thread.currentThread().setName("NioHttp");
         this.port = port;
         this.processor = processor;
         try {
@@ -64,7 +66,6 @@ public class NioHttpServer extends Actor<NioHttpServer> {
                             if (accept != null) {
                                 accept.configureBlocking(false);
                                 SelectionKey register = accept.register(selector, SelectionKey.OP_READ);
-                                register.attach(0);
                                 lastRequest = System.currentTimeMillis();
                             }
                         }
@@ -94,6 +95,7 @@ public class NioHttpServer extends Actor<NioHttpServer> {
         shouldTerminate = true;
     }
 
+    RateMeasure reqPerS = new RateMeasure("req/s", 5000);
     protected void service(final SelectionKey key, final SocketChannel client) throws IOException {
         if (!client.isOpen()) {
             key.cancel();
@@ -106,56 +108,62 @@ public class NioHttpServer extends Actor<NioHttpServer> {
             client.close();
         } else {
             buffer.flip();
-            KontraktorHttpRequest request = decode(buffer,bytesread);
-            System.out.println("=>");
-            System.out.println(request.getText());
-            System.out.println("<=");
-            if (processor!=null) {
-                processor.processRequest(request,
-                        (result, error) -> {
-                            if ( error == null || error == RequestProcessor.FINISHED ) {
-                                try {
-                                    client.write(ByteBuffer.wrap(result.toString().getBytes())); //fixme
-                                    key.attach((int) key.attachment() + 1);
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                            if (error != null) {
-                                try {
-                                    if ( error != RequestProcessor.FINISHED ) {
-                                        result = RequestResponse.MSG_500;
-                                        client.write(ByteBuffer.wrap(RequestResponse.MSG_500.toString().getBytes())); //fixme
-                                    }
-                                    key.cancel();
-                                    client.close();
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }
-                );
+            reqPerS.count();
+            KontraktorHttpRequest request = (KontraktorHttpRequest) key.attachment();
+            if (request==null) {
+                request = new KontraktorHttpRequest(buffer, bytesread);
+            }
+            else {
+                request.append(buffer, bytesread);
+            }
+            if ( ! request.isComplete() ) {
+                key.attach(request);
             } else {
-                key.cancel();
-                try {
-                    client.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                key.attach(null);
+                if (processor != null) {
+                    processor.processRequest(request,
+                            (result, error) -> {
+
+                                if (error == null || error == RequestProcessor.FINISHED) {
+                                    try {
+                                        if (result!=null)
+                                            client.write(ByteBuffer.wrap(result.toString().getBytes())); //fixme
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                                if (error != null) {
+                                    try {
+                                        if (error != RequestProcessor.FINISHED) {
+                                            result = RequestResponse.MSG_500;
+                                            client.write(ByteBuffer.wrap(RequestResponse.MSG_500.toString().getBytes())); //fixme
+                                        }
+                                        key.cancel();
+                                        client.close();
+                                    } catch (IOException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                    );
+                } else {
+                    key.cancel();
+                    try {
+                        client.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
             buffer.clear();
         }
     }
 
-    protected KontraktorHttpRequest decode(ByteBuffer buffer, int len) {
-        return new KontraktorHttpRequest(buffer,len);
-    }
-
     static class SimpleProcessor implements RequestProcessor {
 
         @Override
         public void processRequest(KontraktorHttpRequest req, Callback response) {
-            response.receiveResult("HTTP/1.0 200 OK\n\n"+req.getText(), null);
+            response.receiveResult( new RequestResponse( "HTTP/1.0 200 OK\n\n"+req.getText()), null);
             response.receiveResult(null,FINISHED);
         }
     }

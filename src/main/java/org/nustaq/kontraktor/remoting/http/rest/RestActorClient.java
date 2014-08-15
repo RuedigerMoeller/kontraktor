@@ -25,7 +25,7 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
         this.actorPath = actorPath;
         this.actorClazz = clz;
         facadeProxy = Actors.AsActor(actorClazz, new RemoteScheduler());
-        facadeProxy.__remoteId = 1;
+        facadeProxy.__remoteId = 0;
         registerRemoteRefDirect(facadeProxy);
     }
 
@@ -57,10 +57,17 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
         RestActorClient<RestActorServer.RESTActor> cl = new RestActorClient("localhost", 9999, "/rest", RestActorServer.RESTActor.class);
         cl.connect();
         final RestActorServer.RESTActor proxy = cl.getFacadeProxy();
+        int count =0;
         while( true )
         {
-            proxy.simpleCall("A", "B", 133);
-            LockSupport.parkNanos(1000*1000*1000l*3);
+//            proxy.simpleCall("A", "B", 133);
+//            proxy.simpleCall("C", "D", 133);
+            proxy.simpleFut("a","b",31).then((r,e)-> {
+//                System.out.println("result:"+r+", "+e);
+            });
+            count++;
+            if ( (count%5) == 1 )
+                LockSupport.parkNanos(1000 * 1000 * 1L);
         }
     }
 }
