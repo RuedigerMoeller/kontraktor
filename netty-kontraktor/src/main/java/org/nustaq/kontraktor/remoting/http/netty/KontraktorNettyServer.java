@@ -4,12 +4,10 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.DefaultChannelPromise;
 import io.netty.handler.codec.http.*;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.remoting.http.NioHttpServer;
-import org.nustaq.kontraktor.remoting.http.NioHttpServerImpl;
 import org.nustaq.kontraktor.remoting.http.RequestProcessor;
 import org.nustaq.kontraktor.remoting.http.RequestResponse;
 import org.nustaq.kontraktor.remoting.http.rest.RestActorServer;
@@ -18,19 +16,17 @@ import org.nustaq.webserver.ClientSession;
 import org.nustaq.webserver.WebSocketHttpServer;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_0;
-import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 /**
  * Created by ruedi on 18.08.14.
  */
 public class KontraktorNettyServer extends WebSocketHttpServer implements NioHttpServer {
 
+    NettyWSHttpServer nettyWSHttpServer;
     RequestProcessor processor;
 
     public KontraktorNettyServer() {
@@ -96,8 +92,6 @@ public class KontraktorNettyServer extends WebSocketHttpServer implements NioHtt
         return null;
     }
 
-    NettyWSHttpServer nettyWSHttpServer;
-
     @Override
     public void $init(int port, RequestProcessor restProcessor) {
         nettyWSHttpServer = new NettyWSHttpServer(port, this);
@@ -122,13 +116,9 @@ public class KontraktorNettyServer extends WebSocketHttpServer implements NioHtt
     }
 
     public static void main(String[] args) throws Exception {
-
-
         RestActorServer sv = new RestActorServer().map(RestActorServer.MDesc.class);
         sv.publish("rest",Actors.AsActor(RestActorServer.RESTActor.class,65000));
-        KontraktorNettyServer kserver = new KontraktorNettyServer();
-        sv.startServer(9999,kserver);
-
+        sv.startServer(9999,new KontraktorNettyServer());
     }
 
 }

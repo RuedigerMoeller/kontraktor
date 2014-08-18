@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.remoting.http;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.util.RateMeasure;
 
 import java.io.IOException;
@@ -103,7 +104,7 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
         }
     }
 
-    @Override
+    @Override @CallerSideMethod
     public Actor getServingActor() {
         return this;
     }
@@ -111,8 +112,6 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
     public void $stopService() {
         shouldTerminate = true;
     }
-
-
 
     RateMeasure reqPerS = new RateMeasure("req/s", 5000);
     protected void service(final SelectionKey key, final SocketChannel client) throws IOException {

@@ -50,9 +50,17 @@ public class HttpObjectSocket implements ObjectSocket {
             while(true) {
                 try {
                     calls.add(httpReqQueue.take());
-                    httpReqQueue.drainTo(calls);
-                    Socket socket = post(calls); //fixme: retry immediately in case of failure (no take)
-                    calls.clear();
+                    httpReqQueue.drainTo(calls,MAX_BATCHED_REQUESTS);
+                    Socket socket = null;
+                    while( calls.size() > 0 ) {
+                        try {
+                            socket = post(calls); //fixme: retry immediately in case of failure (no take)
+                            calls.clear();
+                        } catch (Exception ex) {
+                            // fixme: add sequencing to avoid double execution
+                            Thread.sleep(100); // retry after 100 millis
+                        }
+                    }
 
                     BufferedReader read = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF8"));
                     String head = read.readLine();
@@ -108,7 +116,7 @@ public class HttpObjectSocket implements ObjectSocket {
         InetAddress addr = InetAddress.getByName(host);
 
         String post = "[\n"; // fixme json
-        int min = Math.min(MAX_BATCHED_REQUESTS, requests.size());
+        int min = requests.size();
         for (int i = 0; i < min; i++) {
             post += requests.get(i);
         }
