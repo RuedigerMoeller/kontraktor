@@ -3,14 +3,14 @@ package org.nustaq.kontraktor.remoting.http.rest;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.http.*;
+import org.nustaq.kontraktor.remoting.http.rest.encoding.JSonMsgCoder;
+import org.nustaq.kontraktor.remoting.http.rest.encoding.KsonMsgCoder;
+import org.nustaq.kontraktor.remoting.http.rest.encoding.PlainJSonCoder;
 import org.nustaq.kontraktor.util.RateMeasure;
-import org.nustaq.kson.Kson;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,39 +20,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RestActorServer {
 
     NioHttpServer server;
-    ConcurrentHashMap<String,Actor> publishedActors = new ConcurrentHashMap<>();
+    ConcurrentHashMap<String,PublishedActor> publishedActors = new ConcurrentHashMap<>();
 
-    RateMeasure respPerS = new RateMeasure("responaes/s", 1000);
-    class RestProcessor implements RequestProcessor {
-        @Override
-        public void processRequest(KontraktorHttpRequest req, Callback<RequestResponse> response) {
-            if ( req.isGET() ) {
-                String actor = req.getPath(0);
-                final Actor target = publishedActors.get(actor);
-                if ( target == null ) {
-                    response.receiveResult(RequestResponse.MSG_404, null);
-                    response.receiveResult(null, FINISHED);
-                } else {
-                    enqueueCall(target, req, response);
-                }
-            } else if (req.isPOST() ) {
-                String actor = req.getPath(0);
-                final Actor target = publishedActors.get(actor);
-                if ( target == null ) {
-                    response.receiveResult(RequestResponse.MSG_404, null);
-                    response.receiveResult(null, FINISHED);
-                } else {
-                    enqueueCall(target, req.getText().toString(), req, response);
-                }
-            } else {
-                response.receiveResult(RequestResponse.MSG_404, null);
-                response.receiveResult(null, FINISHED);
-            }
-        }
+    public RestActorServer() {
     }
 
-    protected void enqueueCall(Actor target, KontraktorHttpRequest req, Callback<RequestResponse> response) {
-        final Method m = target.__getCachedMethod(req.getPath(1), target);
+    RateMeasure respPerS = new RateMeasure("responaes/s", 1000);
+    protected void enqueueCall(PublishedActor target, KontraktorHttpRequest req, Callback<RequestResponse> response) {
+        final Method m = target.getActor().__getCachedMethod(req.getPath(1), target.getActor());
         int args = m.getParameterCount();
         final Class<?>[] parameterTypes = m.getParameterTypes();
         String json = "[ { method: "+req.getPath(1)+" args: [ ";
@@ -60,41 +35,44 @@ public class RestActorServer {
             String path = req.getPath(i + 2);
             if ( parameterTypes[i] == String.class && ! path.startsWith("'"))
                 path = "'"+path+"'";
-            if ( path.equals("") )
-                path = "null";
+            if ( path.equals("") ) {
+                if ( parameterTypes[i].isPrimitive() ) {
+                    Class<?> par = parameterTypes[i];
+                    if (par == byte.class || par == short.class || par == char.class || par == int.class || par == long.class ) {
+                        path = "0";
+                    } else if ( par == float.class || par == double.class ) {
+                        path = "0.0";
+                    } else if ( par == boolean.class )
+                        path = "false";
+                    else
+                        path = "null";
+                } else {
+                    path = "null";
+                }
+            }
             json += path + " ";
         }
         json+="] } ]";
         enqueueCall(target, json, req, response);
     }
 
-    protected void enqueueCall(Actor target, String jsonString, KontraktorHttpRequest req, Callback<RequestResponse> response) {
+    protected void enqueueCall(PublishedActor target, String content, KontraktorHttpRequest req, Callback<RequestResponse> response) {
         try {
-            Kson kson = new Kson().map("call", RemoteCallEntry.class).map("calls", RemoteCallEntry[].class);
-
-            ArgTypesResolver res = new ArgTypesResolver( target.getActor().getClass() );
-//            System.out.println(jsonString);
-            final RemoteCallEntry[] calls = (RemoteCallEntry[])kson.readObject(jsonString, "calls", res);
+            HttpMsgCoder coder = target.getCoder(req.getAccept()) == null ? target.getCoder("text/json") : target.getCoder(req.getAccept());
+            final RemoteCallEntry[] calls = coder.decodeFrom(content, req);
             response.receiveResult(RequestResponse.MSG_200, null);
             AtomicInteger countDown = new AtomicInteger(calls.length);
             for (int i = 0; i < calls.length; i++) {
                 RemoteCallEntry call = calls[i];
 
-                final Method m = target.__getCachedMethod(call.getMethod(), target);
-
+                final Method m = target.getActor().__getCachedMethod(call.getMethod(), target.getActor());
                 Callback cb = (r, e) -> {
                     respPerS.count();
                     String fin = countDown.decrementAndGet() == 0 ? RequestProcessor.FINISHED : null;
                     RemoteCallEntry resCall = new RemoteCallEntry(0, call.getFutureKey(), "receiveResult", new Object[]{r, "" + e});
                     resCall.setQueue(resCall.CBQ);
                     try {
-                        if ( req.getAccept() == req.KSON ) {
-                            response.receiveResult(new RequestResponse(kson.writeObject(resCall)), fin);
-                        } else if ( req.getAccept() == req.JSON ) {
-                            response.receiveResult(new RequestResponse(kson.writeJSonObject(resCall, false)), fin);
-                        } else if ( req.getAccept() == req.PLAIN_JSON ) {
-                            response.receiveResult(new RequestResponse(kson.writePlainJSonObject(resCall)), fin);
-                        }
+                        response.receiveResult(new RequestResponse(coder.encode(resCall)), fin);
                     } catch (Exception ex) {
                         ex.printStackTrace();
 //                        response.receiveResult(RequestResponse.MSG_500, null);
@@ -130,7 +108,7 @@ public class RestActorServer {
                     }
                 }
 
-                Object future = target.__scheduler.enqueueCall(server, target, call.getMethod(), call.getArgs());
+                Object future = target.getActor().__scheduler.enqueueCall(server.getServingActor(), target.getActor(), call.getMethod(), call.getArgs());
                 if (future instanceof Future) {
                     ((Future) future).then(cb);
                 } else if (m.getReturnType() == void.class && cbCount == 0) {
@@ -145,19 +123,103 @@ public class RestActorServer {
         }
     }
 
-    void startServer() {
-        server = Actors.AsActor(NioHttpServer.class,64000);
-        server.$init(9999, new RestProcessor());
+    public void startServer(int port, NioHttpServer server) {
+        this.server = server;
+        server.$init(port, new RestProcessor());
         server.$receive();
     }
 
-    public void publish( String name, Actor obj ) {
-        publishedActors.put(name,obj);
+    public PublishedActor publish( String name, Actor obj ) {
+        PublishedActor pa = new PublishedActor(obj,classNameMappings);
+        publishedActors.put(name, pa);
+        return pa;
     }
 
     public void unpublish( String name ) {
         publishedActors.remove(name);
     }
+
+    public class RestProcessor implements RequestProcessor {
+
+        @Override
+        public void processRequest(KontraktorHttpRequest req, Callback<RequestResponse> response) {
+            if ( req.isGET() ) {
+                String actor = req.getPath(0);
+                final PublishedActor target = publishedActors.get(actor);
+                if ( target == null ) {
+                    response.receiveResult(RequestResponse.MSG_404, null);
+                    response.receiveResult(null, FINISHED);
+                } else {
+                    enqueueCall(target, req, response);
+                }
+            } else if (req.isPOST() ) {
+                String actor = req.getPath(0);
+                final PublishedActor target = publishedActors.get(actor);
+                if ( target == null ) {
+                    response.receiveResult(RequestResponse.MSG_404, null);
+                    response.receiveResult(null, FINISHED);
+                } else {
+                    enqueueCall(target, req.getText().toString(), req, response);
+                }
+            } else {
+                response.receiveResult(RequestResponse.MSG_404, null);
+                response.receiveResult(null, FINISHED);
+            }
+        }
+    }
+
+    ConcurrentHashMap<String,Class> classNameMappings = new ConcurrentHashMap<>();
+
+    public RestActorServer map( String s, Class clz ) {
+        classNameMappings.put(s,clz);
+        return this;
+    }
+
+    public RestActorServer map( Class ... clz ) {
+        for (int i = 0; i < clz.length; i++) {
+            Class aClass = clz[i];
+            map(clz[i].getSimpleName(),clz[i]);
+        }
+        return this;
+    }
+
+    public static class PublishedActor {
+
+        Actor actor;
+        HashMap<String,HttpMsgCoder> coders = new HashMap<>();
+
+        public PublishedActor(Actor actor, Map<String,Class> mappings) {
+            this.actor = actor;
+            KsonMsgCoder kson = new KsonMsgCoder(actor.getActor().getClass());
+            KsonMsgCoder json = new JSonMsgCoder(actor.getActor().getClass());
+            KsonMsgCoder plainJson = new PlainJSonCoder(actor.getActor().getClass());
+
+            mappings.forEach( (name,clz) -> {
+                kson.map(name,clz);
+                json.map(name,clz);
+                plainJson.map(name,clz);
+            });
+
+            coders.put("text/kson", kson);
+            coders.put("text/json", plainJson);
+            coders.put("text/json-tagged", json);
+        }
+
+        public PublishedActor putCoder(String name, HttpMsgCoder coder) {
+            coders.put(name, coder);
+            return this;
+        }
+
+        public HttpMsgCoder getCoder(String name) {
+            return coders.get(name);
+        }
+
+        public Actor getActor() {
+            return actor;
+        }
+    }
+
+///////////////////////// test //////////////////////////////////////////////////////////////////////////////////////////
 
     public static class MDesc {
         String name;
@@ -176,10 +238,10 @@ public class RestActorServer {
         @Override
         public String toString() {
             return "MDesc{" +
-                    "name='" + name + '\'' +
-                    ", returnType='" + returnType + '\'' +
-                    ", args=" + Arrays.toString(args) +
-                    '}';
+                "name='" + name + '\'' +
+                ", returnType='" + returnType + '\'' +
+                ", args=" + Arrays.toString(args) +
+                '}';
         }
     }
 
@@ -215,9 +277,9 @@ public class RestActorServer {
     }
 
     public static void main(String arg[]) {
-        RestActorServer sv = new RestActorServer();
+        RestActorServer sv = new RestActorServer().map(MDesc.class);
         sv.publish("rest",Actors.AsActor(RESTActor.class,65000));
-        sv.startServer();
+        sv.startServer(9999,Actors.AsActor(NioHttpServerImpl.class,64000));
     }
 
 }

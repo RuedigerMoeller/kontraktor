@@ -18,6 +18,8 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class HttpObjectSocket implements ObjectSocket {
 
+    public static final int MAX_BATCHED_REQUESTS = 500;
+
     Class actorClz;
     int port = 9999;
     String host;
@@ -106,7 +108,8 @@ public class HttpObjectSocket implements ObjectSocket {
         InetAddress addr = InetAddress.getByName(host);
 
         String post = "[\n"; // fixme json
-        for (int i = 0; i < requests.size(); i++) {
+        int min = Math.min(MAX_BATCHED_REQUESTS, requests.size());
+        for (int i = 0; i < min; i++) {
             post += requests.get(i);
         }
         post += "]";
