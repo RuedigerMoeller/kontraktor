@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.util.RateMeasure;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -155,7 +156,13 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
                              if (error != null) {
                                  try {
                                      if (error != RequestProcessor.FINISHED) {
-                                         writeClient(client, ByteBuffer.wrap(error.toString().getBytes()));
+                                         if ( error instanceof Throwable ) {
+                                             writeClient(
+                                                 client,
+                                                 ByteBuffer.wrap(FSTUtil.toString(((Throwable) error)).getBytes())
+                                              );
+                                         } else
+                                            writeClient(client, ByteBuffer.wrap(error.toString().getBytes()));
                                      }
                                      key.cancel();
                                      client.close();
@@ -165,7 +172,7 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
                              }
                         });
                     } catch (Exception ex) {
-                        writeClient(client, ByteBuffer.wrap(ex.toString().getBytes()));
+                        writeClient(client, ByteBuffer.wrap(FSTUtil.toString((ex)).getBytes()));
                         key.cancel();
                         client.close();
                     }
@@ -198,7 +205,6 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
 
     public static void main( String arg[] ) throws InterruptedException {
         NioHttpServerImpl server = Actors.AsActor(NioHttpServerImpl.class);
-
         server.$init(9999, new SimpleProcessor());
         server.$receive();
     }

@@ -30,7 +30,7 @@ package org.nustaq.kontraktor;
  */
 public interface Callback<T>  // do not use interface, slows down instanceof significantly
 {
-
+    public final String CONTINUE = "..";
     public void receiveResult(T result, Object error );
 
 }

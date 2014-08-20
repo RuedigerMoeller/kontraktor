@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.remoting.http.rest.encoding.JSonMsgCoder;
 import org.nustaq.kontraktor.remoting.http.rest.encoding.KsonMsgCoder;
 import org.nustaq.kontraktor.remoting.http.rest.encoding.PlainJSonCoder;
 import org.nustaq.kontraktor.util.RateMeasure;
+import org.nustaq.kson.Kson;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -28,12 +29,16 @@ public class RestActorServer {
     RateMeasure respPerS = new RateMeasure("responaes/s", 1000);
     protected void enqueueCall(PublishedActor target, KontraktorHttpRequest req, Callback<RequestResponse> response) {
         final Method m = target.getActor().__getCachedMethod(req.getPath(1), target.getActor());
+        if ( m == null ) {
+            throw new RuntimeException("no such method '"+req.getPath(1)+"' on "+target.getActor().getClass().getSimpleName());
+        }
         int args = m.getParameterCount();
         final Class<?>[] parameterTypes = m.getParameterTypes();
         String json = "[ { method: "+req.getPath(1)+" args: [ ";
         for (int i=0; i < args; i++) {
             String path = req.getPath(i + 2);
-            if ( parameterTypes[i] == String.class && ! path.startsWith("'"))
+            if ( (!parameterTypes[i].isPrimitive() || !Number.class.isAssignableFrom(parameterTypes[i]))
+                && ! path.startsWith("'") && path.startsWith("{"))
                 path = "'"+path+"'";
             if ( path.equals("") ) {
                 if ( parameterTypes[i].isPrimitive() ) {
@@ -67,12 +72,13 @@ public class RestActorServer {
 
                 final Method m = target.getActor().__getCachedMethod(call.getMethod(), target.getActor());
                 Callback cb = (r, e) -> {
+                    boolean isContinue = Callback.CONTINUE == e;
                     respPerS.count();
-                    String fin = countDown.decrementAndGet() == 0 ? RequestProcessor.FINISHED : null;
+                    String fin = countDown.decrementAndGet() <= 0 ? RequestProcessor.FINISHED : null;
                     RemoteCallEntry resCall = new RemoteCallEntry(0, call.getFutureKey(), "receiveResult", new Object[]{r, "" + e});
                     resCall.setQueue(resCall.CBQ);
                     try {
-                        response.receiveResult(new RequestResponse(coder.encode(resCall)), fin);
+                        response.receiveResult(new RequestResponse(coder.encode(resCall)), isContinue ? null : fin);
                     } catch (Exception ex) {
                         ex.printStackTrace();
 //                        response.receiveResult(RequestResponse.MSG_500, null);
@@ -123,7 +129,7 @@ public class RestActorServer {
         }
     }
 
-    public void startServer(int port, NioHttpServer server) {
+    public void startOnServer(int port, NioHttpServer server) {
         this.server = server;
         server.$init(port, new RestProcessor());
         server.$receive();
@@ -279,7 +285,7 @@ public class RestActorServer {
     public static void main(String arg[]) {
         RestActorServer sv = new RestActorServer().map(MDesc.class);
         sv.publish("rest",Actors.AsActor(RESTActor.class,65000));
-        sv.startServer(9999,Actors.AsActor(NioHttpServerImpl.class,64000));
+        sv.startOnServer(9999, Actors.AsActor(NioHttpServerImpl.class, 64000));
     }
 
 }

@@ -39,6 +39,7 @@ public class RemoteRefRegistry {
     ConcurrentHashMap<Integer,Actor> remoteActorSet = new ConcurrentHashMap<>();
 
     protected ThreadLocal<ObjectSocket> currentChannel = new ThreadLocal<>();
+    protected volatile boolean terminated = false;
 
     public RemoteRefRegistry() {
         conf.registerSerializer(Actor.class,new ActorRefSerializer(this),true);
@@ -60,6 +61,14 @@ public class RemoteRefRegistry {
 
     public ConcurrentLinkedQueue<Actor> getRemoteActors() {
         return remoteActors;
+    }
+
+    public boolean isTerminated() {
+        return terminated;
+    }
+
+    public void setTerminated(boolean terminated) {
+        this.terminated = terminated;
     }
 
     public int publishActor(Actor act) {
@@ -123,7 +132,7 @@ public class RemoteRefRegistry {
 
     protected void sendLoop(ObjectSocket channel) throws IOException {
         int count = 0;
-        while (true) {
+        while (!isTerminated()) {
             if ( singleSendLoop(channel) ) {
                 count = 0;
             }
@@ -133,20 +142,24 @@ public class RemoteRefRegistry {
 
     protected void receiveLoop(ObjectSocket channel) {
         try {
-            while( true ) {
+            while( !isTerminated() ) {
                 // read object
                 final Object response = channel.readObject();
                 if (response instanceof RemoteCallEntry == false) {
-                    System.out.println(response);
+                    System.out.println(response); // fixme
                     continue;
                 }
                 RemoteCallEntry read = (RemoteCallEntry) response;
+                boolean isContinue = Callback.CONTINUE.equals(read.getArgs()[1]);
+                if ( isContinue )
+                    read.getArgs()[1] = Callback.CONTINUE; // enable ==
                 if (read.getQueue() == read.MAILBOX) {
                     Actor targetActor = getPublishedActor(read.getReceiverKey());
                     if (targetActor==null) {
                         System.out.println("no actor found for key "+read);
                         continue;
                     }
+
                     Object future = targetActor.getScheduler().enqueueCall(null, targetActor, read.getMethod(), read.getArgs());
                     if ( future instanceof Future ) {
                         ((Future) future).then( (r,e) -> {
@@ -160,7 +173,8 @@ public class RemoteRefRegistry {
                 } else if (read.getQueue() == read.CBQ) {
                     Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
                     publishedCallback.receiveResult(read.getArgs()[0],read.getArgs()[1]); // is a wrapper enqueuing in caller
-                    removePublishedObject(read.getReceiverKey());
+                    if (!isContinue)
+                        removePublishedObject(read.getReceiverKey());
                 }
             }
         } catch (Exception e) {

@@ -7,3 +7,4 @@ OK - komplexe setups: mehrere clients in 1 vm. mehrere server in 1 vm. weitergab
 - interop: rest
 - websocket transport
 - sanity check required: clientside calls + getActor not possible with remoting
+- not all methods should be public via webservice e.g. $stop() :-)

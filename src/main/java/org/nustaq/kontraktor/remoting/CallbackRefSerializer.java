@@ -33,14 +33,11 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
         // fixme: detect local actors returned from foreign
         int id = in.readInt();
         ObjectSocket chan = reg.currentChannel.get();
-        Callback cb = new Callback() {
-            @Override
-            public void receiveResult(Object result, Object error) {
-                try {
-                    reg.receiveCBResult(chan,id,result,error);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        Callback cb = (Object result, Object error) -> {
+            try {
+                reg.receiveCBResult(chan,id,result,error);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         };
         in.registerObject(cb, streamPositioin, serializationInfo, referencee);

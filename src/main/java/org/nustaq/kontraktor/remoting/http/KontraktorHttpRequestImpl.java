@@ -105,7 +105,7 @@ public class KontraktorHttpRequestImpl implements KontraktorHttpRequest // avoid
                         method = false;
                     } else
                         break;
-                } else if (b != ':') {
+                } else if (b != ':' || path) {
                     if (method) {
                         if ( Character.isWhitespace(b) && !path ) {
                             path = true;
@@ -158,7 +158,11 @@ public class KontraktorHttpRequestImpl implements KontraktorHttpRequest // avoid
             splitPath = pathString.toString().split("/");
         }
         if ( i+1 < splitPath.length ) {
-            return splitPath[i+1];
+            try {
+                return java.net.URLDecoder.decode(splitPath[i+1], "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                return "url decoding failed";
+            }
         }
         return "";
     }

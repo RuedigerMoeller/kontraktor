@@ -38,6 +38,7 @@ public class KontraktorNettyServer extends WebSocketHttpServer implements NioHtt
         if ( req.getMethod() == HttpMethod.GET || req.getMethod() == HttpMethod.POST ) {
             NettyKontraktorHttpRequest kreq = new NettyKontraktorHttpRequest(req);
             processor.processRequest(kreq, (result,error) -> {
+                // quirksmode as I cannot directly write http header with netty (or did not figure out how to do that)
                 if ( result == RequestResponse.MSG_200 ) {
                     ctx.write(new DefaultHttpResponse(HTTP_1_0, HttpResponseStatus.OK));
                     return;
@@ -118,7 +119,7 @@ public class KontraktorNettyServer extends WebSocketHttpServer implements NioHtt
     public static void main(String[] args) throws Exception {
         RestActorServer sv = new RestActorServer().map(RestActorServer.MDesc.class);
         sv.publish("rest",Actors.AsActor(RestActorServer.RESTActor.class,65000));
-        sv.startServer(9999,new KontraktorNettyServer());
+        sv.startOnServer(9999, new KontraktorNettyServer());
     }
 
 }

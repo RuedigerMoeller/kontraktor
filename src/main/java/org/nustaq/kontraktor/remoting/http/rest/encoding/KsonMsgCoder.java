@@ -20,6 +20,10 @@ public class KsonMsgCoder implements HttpMsgCoder {
         kson = new Kson().map("call", RemoteCallEntry.class).map("calls", RemoteCallEntry[].class);
     }
 
+    public Kson getKson() {
+        return kson;
+    }
+
     public KsonMsgCoder map( String s, Class clz ) {
         kson.map(s,clz);
         return this;
