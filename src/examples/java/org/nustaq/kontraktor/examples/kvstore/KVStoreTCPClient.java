@@ -21,6 +21,9 @@ public class KVStoreTCPClient {
                 store.$put("TCP_Value", new SampleRecord(new URL("http://ruedigermoeller.github.io/"), 13, 1, "n/a"));
                 store.$get("TCP_Value").then((r, e) -> System.out.println(r));
                 store.$get("Null").then( (r,e) -> System.out.println("null:"+r) );
+
+                Thread.sleep(2000);
+                store.$stop(); // disconnects !
             } catch (Exception e) {
                 e.printStackTrace();
             }

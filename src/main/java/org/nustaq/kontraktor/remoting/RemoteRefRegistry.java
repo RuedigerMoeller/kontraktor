@@ -4,10 +4,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.Future;
-import org.nustaq.kontraktor.impl.BackOffStrategy;
-import org.nustaq.kontraktor.impl.CallEntry;
-import org.nustaq.kontraktor.impl.CallbackWrapper;
-import org.nustaq.kontraktor.impl.RemoteScheduler;
+import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 import org.nustaq.serialization.FSTConfiguration;
 
@@ -16,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -89,7 +87,6 @@ public class RemoteRefRegistry {
         }
     }
 
-
     public int registerPublishedCallback(Callback cb) {
         Integer integer = publishedActorMappingReverse.get(cb);
         if ( integer == null ) {
@@ -111,6 +108,9 @@ public class RemoteRefRegistry {
         act = act.getActorRef();
         remoteActorSet.put(act.__remoteId,act);
         remoteActors.add(act);
+        act.__addStopHandler((actor, err) -> {
+            remoteRefStopped((Actor) actor);
+        });
     }
 
     public Actor registerRemoteActorRef(Class actorClazz, int remoteId, Object client) {
@@ -120,14 +120,32 @@ public class RemoteRefRegistry {
             res.__remoteId = remoteId;
             remoteActorSet.put(remoteId,res);
             remoteActors.add(res);
+            res.__addStopHandler( (actor,err) -> {
+                remoteRefStopped((Actor) actor);
+            });
             return res;
         }
         return actorRef;
     }
 
+    /**
+     * warning: MThreaded
+     * @param actor
+     */
+    protected void remoteRefStopped(Actor actor) {
+    }
+
+    protected void stopRemoteRefs() {
+        new ArrayList<>(remoteActors).forEach( (actor) -> {
+            removeRemoteActor(actor);
+            actor.getActorRef().__stopped = true;
+            actor.getActor().__stopped = true;
+        });
+    }
+
     private void removeRemoteActor(Actor act) {
         remoteActorSet.remove(act.__remoteId);
-        remoteActors.add(act);
+        remoteActors.remove(act);
     }
 
     protected void sendLoop(ObjectSocket channel) throws IOException {
@@ -178,7 +196,8 @@ public class RemoteRefRegistry {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e);
+//            e.printStackTrace();
         }
     }
 
@@ -194,25 +213,33 @@ public class RemoteRefRegistry {
             Actor remoteActor = iterator.next();
             CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
             if ( ce != null) {
-                sumQueued += remoteActor.__mailbox.size();
-                int futId = 0;
-                if ( ce.hasFutureResult() ) {
-                    futId = registerPublishedCallback(ce.getFutureCB());
-                }
-                try {
-                    RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId,ce.getMethod().getName(),ce.getArgs());
-                    rce.setQueue(rce.MAILBOX);
-                    writeObject(chan, rce);
-                    res = true;
-                } catch (Exception ex) {
-                    chan.setLastError(ex);
-                    if (toRemove==null)
-                        toRemove = new ArrayList();
-                    toRemove.add(remoteActor);
-                    remoteActor.$stop();
-                    System.out.println("connection closed");
-                    ex.printStackTrace();
-                    break;
+                if ( ce.getMethod().getName().equals("$stop") ) {
+                    new Thread( () -> {
+                        try {
+                            remoteActor.getActor().$stop();
+                        } catch (ActorStoppedException ex) {}
+                    }, "stopper thread").start();
+                } else {
+                    sumQueued += remoteActor.__mailbox.size();
+                    int futId = 0;
+                    if (ce.hasFutureResult()) {
+                        futId = registerPublishedCallback(ce.getFutureCB());
+                    }
+                    try {
+                        RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs());
+                        rce.setQueue(rce.MAILBOX);
+                        writeObject(chan, rce);
+                        res = true;
+                    } catch (Exception ex) {
+                        chan.setLastError(ex);
+                        if (toRemove == null)
+                            toRemove = new ArrayList();
+                        toRemove.add(remoteActor);
+                        remoteActor.$stop();
+                        System.out.println("connection closed");
+                        ex.printStackTrace();
+                        break;
+                    }
                 }
             }
         }

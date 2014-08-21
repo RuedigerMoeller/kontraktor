@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
@@ -65,7 +66,7 @@ public class Actor<SELF extends Actor> implements Serializable {
     public Queue __cbQueue;
     public Thread __currentDispatcher;
     public Scheduler __scheduler;
-    public boolean __stopped = false;
+    public volatile boolean __stopped = false;
     public long __nanos;
     public Actor __self;
     public int __remoteId;
@@ -103,9 +104,18 @@ public class Actor<SELF extends Actor> implements Serializable {
      * the dispatching thread will be terminated.
      */
     public void $stop() {
+        getActorRef().__stopped = true;
+        getActor().__stopped = true;
+        if (__stopHandlers!=null) {
+            __stopHandlers.forEach( (cb) -> cb.receiveResult(self(),null) );
+            __stopHandlers.clear();
+        }
         throw ActorStoppedException.Instance;
     }
 
+    @CallerSideMethod public boolean isStopped() {
+        return __stopped;
+    }
     @CallerSideMethod public boolean isProxy() {
         return getActor() != this;
     }
@@ -188,6 +198,16 @@ public class Actor<SELF extends Actor> implements Serializable {
     }
 
 ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
+
+    // register callbacks notified on stop
+    ConcurrentLinkedQueue<Callback<SELF>> __stopHandlers;
+    @CallerSideMethod public void __addStopHandler( Callback<SELF> cb ) {
+        if ( __stopHandlers == null ) {
+            getActorRef().__stopHandlers = new ConcurrentLinkedQueue();
+            getActor().__stopHandlers = getActorRef().__stopHandlers;
+        }
+        __stopHandlers.add(cb);
+    }
 
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread
     @CallerSideMethod public Object __enqueueCall( Actor receiver, String methodName, Object args[] ) {

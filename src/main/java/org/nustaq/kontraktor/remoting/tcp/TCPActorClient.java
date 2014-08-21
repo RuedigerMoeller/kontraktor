@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by ruedi on 08.08.14.
@@ -122,7 +123,23 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
         }
 
         public void close() throws IOException {
+            setTerminated(true);
             clientSocket.close();
+        }
+    }
+
+    @Override
+    protected void remoteRefStopped(Actor actor) {
+        super.remoteRefStopped(actor);
+        if (actor.getActorRef() == facadeProxy.getActorRef() ) {
+            // connection closed => close connection and stop all remoteRefs
+            setTerminated(true);
+            stopRemoteRefs();
+            try {
+                client.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 

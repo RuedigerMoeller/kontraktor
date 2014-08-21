@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectOutput;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -55,6 +56,8 @@ public class TCPObjectSocket implements ObjectSocket {
 //            if ( tag != 77 || tag1!= tag ) {
 //                throw new RuntimeException("ERROR!");
 //            }
+            if ( len <= 0 )
+                throw new EOFException("client closed");
             int orglen = len;
             byte buffer[] = new byte[len]; // this could be reused !
     //        System.out.println("LEN:"+len);
