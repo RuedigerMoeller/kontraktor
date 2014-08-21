@@ -14,6 +14,10 @@ import java.io.Serializable;
 
 /**
  * Created by ruedi on 20.08.14.
+ *
+ * Implements a persistent key value storage service reachaböe via
+ * - tcp (high perf binary encoding)
+ * - json webservice
  */
 public class KVStore extends Actor<KVStore> {
 
@@ -51,7 +55,7 @@ public class KVStore extends Actor<KVStore> {
 
     public void $streamValues( Callback cb ) {
         store.values().forEachRemaining((v) -> cb.receiveResult(v, cb.CONTINUE));
-        cb.receiveResult("FINISHED", null ); // required to unregister cb
+        cb.receiveResult("EOT", null ); // required to unregister cb
     }
 
     @Override

@@ -7,7 +7,7 @@ import org.nustaq.kontraktor.remoting.http.rest.encoding.JSonMsgCoder;
 import org.nustaq.kontraktor.remoting.http.rest.encoding.KsonMsgCoder;
 import org.nustaq.kontraktor.remoting.http.rest.encoding.PlainJSonCoder;
 import org.nustaq.kontraktor.util.RateMeasure;
-import org.nustaq.kson.Kson;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -70,19 +70,39 @@ public class RestActorServer {
             for (int i = 0; i < calls.length; i++) {
                 RemoteCallEntry call = calls[i];
 
+                // find cbid for callbacks
+                int cbid = call.getFutureKey();
+                final Object[] args = call.getArgs();
+                for (int ii = 0; ii < args.length; ii++) {
+                    Object o = args[ii];
+                    if ( o instanceof Actor ) {
+                        throw new RuntimeException("remote actor references are not supported via http, use TCP stack");
+                    } else
+                    if ( o instanceof HttpRemotedCB ) {
+                        cbid = ((HttpRemotedCB) o).getCbid();
+                    }
+                }
+
+                int finalCB = cbid;
                 final Method m = target.getActor().__getCachedMethod(call.getMethod(), target.getActor());
                 Callback cb = (r, e) -> {
                     boolean isContinue = Callback.CONTINUE == e;
                     respPerS.count();
-                    String fin = countDown.decrementAndGet() <= 0 ? RequestProcessor.FINISHED : null;
-                    RemoteCallEntry resCall = new RemoteCallEntry(0, call.getFutureKey(), "receiveResult", new Object[]{r, "" + e});
+                    if ( !isContinue ) {
+                        countDown.decrementAndGet();
+                    }
+                    String fin = countDown.get() <= 0 ? RequestProcessor.FINISHED : null;
+                    RemoteCallEntry resCall = new RemoteCallEntry(0, finalCB, "receiveResult", new Object[]{r, "" + e});
                     resCall.setQueue(resCall.CBQ);
+
                     try {
-                        response.receiveResult(new RequestResponse(coder.encode(resCall)), isContinue ? null : fin);
+                        final String encode = coder.encode(resCall);
+//                        System.out.println("resp:\n"+encode);
+                        response.receiveResult(new RequestResponse(encode), isContinue ? null : fin);
                     } catch (Exception ex) {
                         ex.printStackTrace();
 //                        response.receiveResult(RequestResponse.MSG_500, null);
-                        response.receiveResult(new RequestResponse(ex.toString()), fin);
+                        response.receiveResult(new RequestResponse(FSTUtil.toString(ex)), fin);
                     }
                 };
 
@@ -119,8 +139,9 @@ public class RestActorServer {
                     ((Future) future).then(cb);
                 } else if (m.getReturnType() == void.class && cbCount == 0) {
                     respPerS.count();
-                    if ( countDown.decrementAndGet() == 0 )
+                    if ( countDown.decrementAndGet() == 0 ) {
                         response.receiveResult(null, RequestProcessor.FINISHED);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -225,67 +246,10 @@ public class RestActorServer {
         }
     }
 
-///////////////////////// test //////////////////////////////////////////////////////////////////////////////////////////
-
-    public static class MDesc {
-        String name;
-        String returnType;
-        String args[];
-
-        public MDesc() {
-        }
-
-        public MDesc(String name, String returnType, String[] args) {
-            this.name = name;
-            this.returnType = returnType;
-            this.args = args;
-        }
-
-        @Override
-        public String toString() {
-            return "MDesc{" +
-                "name='" + name + '\'' +
-                ", returnType='" + returnType + '\'' +
-                ", args=" + Arrays.toString(args) +
-                '}';
-        }
-    }
-
-    public static class RESTActor extends Actor<RESTActor> {
-
-        public void simpleCall(String a, String b, int c) {
-//            System.out.println("simpleCall "+a+b+c);
-        }
-
-        public void withCB(String a, String b, int c, Callback cb) {
-            cb.receiveResult("withCB "+a+b+c,null);
-        }
-
-        public Future simpleFut(String a, String b, int c) {
-            Thread.currentThread().setName("RESTActor");
-            final Method[] methods = getClass().getMethods();
-            ArrayList res = new ArrayList();
-            for (int i = 0; i < methods.length; i++) {
-                Method method = methods[i];
-                final int mods = method.getModifiers();
-                if ( !Modifier.isStatic(mods) && ! Modifier.isAbstract(mods) && Modifier.isPublic(mods)
-                        && method.getDeclaringClass() != Object.class && method.getDeclaringClass() != Actor.class ) {
-                    final Class<?>[] parms = method.getParameterTypes();
-                    String parmTypes[] = new String[parms.length];
-                    for (int j = 0; j < parmTypes.length; j++) {
-                        parmTypes[j] = parms[j].getSimpleName();
-                    }
-                    res.add( new MDesc(method.getName(),method.getReturnType().getSimpleName(),parmTypes) );
-                }
-            }
-            return new Promise<>(res);
-        }
-    }
-
-    public static void main(String arg[]) {
-        RestActorServer sv = new RestActorServer().map(MDesc.class);
-        sv.publish("rest",Actors.AsActor(RESTActor.class,65000));
-        sv.startOnServer(9999, Actors.AsActor(NioHttpServerImpl.class, 64000));
-    }
+//    public static void main(String arg[]) {
+//        RestActorServer sv = new RestActorServer().map(MDesc.class);
+//        sv.publish("rest",Actors.AsActor(RESTActor.class,65000));
+//        sv.startOnServer(9999, Actors.AsActor(NioHttpServerImpl.class, 64000));
+//    }
 
 }

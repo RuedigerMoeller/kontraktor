@@ -39,7 +39,11 @@ public class HttpObjectSocket implements ObjectSocket {
     }
 
     protected void init() {
-        kson = new Kson().map("call", RemoteCallEntry.class).map("calls", RemoteCallEntry[].class).map(RestActorServer.MDesc.class);
+        kson = new Kson()
+                .map("call", RemoteCallEntry.class)
+                .map("calls", RemoteCallEntry[].class)
+                .map("rcb", HttpRemotedCB.class);
+        kson.getMapper().setUseSimplClzName(false);
         resolver = new ArgTypesResolver(actorClz);
 
         httpReqQueue = new LinkedBlockingQueue<>();
@@ -89,11 +93,16 @@ public class HttpObjectSocket implements ObjectSocket {
 //                            System.out.println("bundled "+resp);
                     }
                     socket.close();
+                    System.out.println("req fin");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }, "ObjectSocket:"+host+":"+port+actorPath ).start();
+    }
+
+    public Kson getKson() {
+        return kson;
     }
 
     @Override
@@ -128,7 +137,7 @@ public class HttpObjectSocket implements ObjectSocket {
         bw.write("POST " + path + " HTTP/1.0\n");
         bw.write("Content-Length: " + post.length() + "\n");
         bw.write("Accept: text/kson\n"); // always use kson for internal traffic
-        bw.write("Content-Type: application/json\n");
+        bw.write("Content-Type: application/kson\n");
         bw.write("\n");
         bw.write(post);
         bw.flush();

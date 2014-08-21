@@ -150,7 +150,7 @@ public class RemoteRefRegistry {
                     continue;
                 }
                 RemoteCallEntry read = (RemoteCallEntry) response;
-                boolean isContinue = Callback.CONTINUE.equals(read.getArgs()[1]);
+                boolean isContinue = read.getArgs().length > 1 && Callback.CONTINUE.equals(read.getArgs()[1]);
                 if ( isContinue )
                     read.getArgs()[1] = Callback.CONTINUE; // enable ==
                 if (read.getQueue() == read.MAILBOX) {
@@ -202,7 +202,7 @@ public class RemoteRefRegistry {
                 try {
                     RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId,ce.getMethod().getName(),ce.getArgs());
                     rce.setQueue(rce.MAILBOX);
-                    chan.writeObject(rce);
+                    writeObject(chan, rce);
                     res = true;
                 } catch (Exception ex) {
                     chan.setLastError(ex);
@@ -226,9 +226,13 @@ public class RemoteRefRegistry {
         return res;
     }
 
+    protected void writeObject(ObjectSocket chan, RemoteCallEntry rce) throws Exception {
+        chan.writeObject(rce);
+    }
+
     public void receiveCBResult(ObjectSocket chan, int id, Object result, Object error) throws Exception {
         RemoteCallEntry rce = new RemoteCallEntry(0, id, null, new Object[] {result,error});
         rce.setQueue(rce.CBQ);
-        chan.writeObject(rce);
+        writeObject(chan, rce);
     }
 }

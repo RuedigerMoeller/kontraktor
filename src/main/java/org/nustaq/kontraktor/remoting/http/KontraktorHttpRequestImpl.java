@@ -103,6 +103,7 @@ public class KontraktorHttpRequestImpl implements KontraktorHttpRequest // avoid
 //                        System.out.println("Method/Path "+methodString+" / "+pathString);
                         keyString.setLength(0);
                         method = false;
+                        path = false;
                     } else
                         break;
                 } else if (b != ':' || path) {
@@ -131,7 +132,7 @@ public class KontraktorHttpRequestImpl implements KontraktorHttpRequest // avoid
                     if (keyString.toString().equalsIgnoreCase("CONTENT-LENGTH")) {
                         contentLength = Integer.parseInt(valString.toString().trim());
                     } else if ( keyString.toString().equalsIgnoreCase("ACCEPT")) {
-                        accept = valString.toString().toLowerCase();
+                        accept = valString.toString().toLowerCase().trim();
                     }
                     keyString.setLength(0);
                     valString.setLength(0);

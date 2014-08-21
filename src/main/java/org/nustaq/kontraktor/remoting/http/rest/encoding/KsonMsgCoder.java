@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.remoting.http.ArgTypesResolver;
 import org.nustaq.kontraktor.remoting.http.KontraktorHttpRequest;
 import org.nustaq.kontraktor.remoting.http.KontraktorHttpRequestImpl;
 import org.nustaq.kontraktor.remoting.http.rest.HttpMsgCoder;
+import org.nustaq.kontraktor.remoting.http.rest.HttpRemotedCB;
 import org.nustaq.kson.Kson;
 
 /**
@@ -17,7 +18,11 @@ public class KsonMsgCoder implements HttpMsgCoder {
 
     public KsonMsgCoder( Class servingActor ) {
         resolver = new ArgTypesResolver( servingActor );
-        kson = new Kson().map("call", RemoteCallEntry.class).map("calls", RemoteCallEntry[].class);
+        kson = new Kson()
+                .map("call", RemoteCallEntry.class)
+                .map("calls", RemoteCallEntry[].class)
+                .map("rcb", HttpRemotedCB.class);
+        kson.getMapper().setUseSimplClzName(false);
     }
 
     public Kson getKson() {
