@@ -18,6 +18,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by ruedi on 08.08.14.
+ *
+ * fixme: handle stop of published actor (best by talking back in case a message is received on a
+ * stopped published actor).
  */
 public class RemoteRefRegistry {
 
@@ -133,10 +136,14 @@ public class RemoteRefRegistry {
      * @param actor
      */
     protected void remoteRefStopped(Actor actor) {
+        removeRemoteActor(actor);
+        actor.getActorRef().__stopped = true;
+        actor.getActor().__stopped = true;
     }
 
     protected void stopRemoteRefs() {
         new ArrayList<>(remoteActors).forEach( (actor) -> {
+            //don't call remoteRefStopped here as its designed to be overridden
             removeRemoteActor(actor);
             actor.getActorRef().__stopped = true;
             actor.getActor().__stopped = true;
