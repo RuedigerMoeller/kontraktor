@@ -7,15 +7,11 @@ import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 
 import java.io.*;
-import java.net.Socket;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by ruedi on 08.08.14.
  */
 public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
-
-    public static int BUFFER_SIZE = 64000;
 
     public static <T extends Actor> Future<T> Connect( Class<T> clz, String host, int port ) throws IOException {
         Promise<T> res = new Promise<>();
@@ -93,15 +89,10 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
      */
     public class ActorClient {
 
-        Socket clientSocket;
-        OutputStream outputStream;
-        InputStream inputStream;
+        ObjectSocket chan;
 
         public ActorClient() throws IOException {
-            clientSocket = new Socket(host, port);
-            outputStream = new BufferedOutputStream(clientSocket.getOutputStream(), BUFFER_SIZE);
-            inputStream  = new BufferedInputStream(clientSocket.getInputStream(), BUFFER_SIZE);
-            ObjectSocket chan = new TCPObjectSocket(inputStream,outputStream,clientSocket,conf);
+            chan = new TCPSocket(host,port,conf);
             new Thread(
                 () -> {
                     currentChannel.set(chan);
@@ -123,8 +114,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
         }
 
         public void close() throws IOException {
-            setTerminated(true);
-            clientSocket.close();
+            chan.close();
         }
     }
 

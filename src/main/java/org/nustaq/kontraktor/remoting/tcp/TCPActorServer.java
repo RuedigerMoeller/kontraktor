@@ -2,7 +2,6 @@ package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
-import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 
 import java.io.*;
@@ -16,7 +15,6 @@ import java.util.List;
  */
 public class TCPActorServer {
 
-    public static int BUFFER_SIZE = 64000;
     protected List<ActorServerClientConnection> connections = new ArrayList<>();
 
     public static TCPActorServer Publish(Actor act, int port) throws IOException {
@@ -60,9 +58,7 @@ public class TCPActorServer {
             System.out.println(facadeActor.getActor().getClass().getName() + " running on " + welcomeSocket.getLocalPort());
             while (!terminated) {
                 Socket connectionSocket = welcomeSocket.accept();
-                OutputStream outputStream = new BufferedOutputStream(connectionSocket.getOutputStream(), BUFFER_SIZE);
-                InputStream inputStream = new BufferedInputStream(connectionSocket.getInputStream(), BUFFER_SIZE);
-                ActorServerClientConnection clientConnection = new ActorServerClientConnection(outputStream, inputStream, connectionSocket, facadeActor);
+                ActorServerClientConnection clientConnection = new ActorServerClientConnection(connectionSocket, facadeActor);
                 connections.add(clientConnection);
                 clientConnection.start();
             }
@@ -72,12 +68,12 @@ public class TCPActorServer {
     }
 
     public class ActorServerClientConnection extends RemoteRefRegistry {
-        TCPObjectSocket channel;
+        TCPSocket channel;
         Actor facade;
 
-        public ActorServerClientConnection(OutputStream out, InputStream in, Socket s, Actor facade) {
+        public ActorServerClientConnection(Socket s, Actor facade) throws IOException {
             super();
-            this.channel = new TCPObjectSocket(in,out,s,conf);
+            this.channel = new TCPSocket(s,conf);
             this.facade = facade;
         }
 

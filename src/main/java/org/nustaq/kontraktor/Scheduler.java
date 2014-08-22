@@ -20,7 +20,7 @@ public interface Scheduler {
 
     void yield(int count);
 
-    void put2QueuePolling(Queue q, Object o);
+    void put2QueuePolling(Queue q, Object o, Object sender);
 
     Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object args[]);
 
@@ -63,4 +63,6 @@ public interface Scheduler {
     BackOffStrategy getBackoffStrategy();
 
     void tryStopThread(DispatcherThread dispatcherThread);
+
+    void stop();
 }

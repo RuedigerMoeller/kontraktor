@@ -148,4 +148,9 @@ public class HttpObjectSocket implements ObjectSocket {
     public void setLastError(Exception ex) {
 
     }
+
+    @Override
+    public void close() throws IOException {
+        // do nothing
+    }
 }

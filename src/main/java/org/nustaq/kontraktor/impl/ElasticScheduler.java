@@ -24,8 +24,9 @@ import java.util.concurrent.Executors;
  */
 public class ElasticScheduler implements Scheduler {
 
-    public static final int DEFQSIZE = 16384;
-    public static final boolean DEBUG_SCHEDULING = true;
+    public static int DEFQSIZE = 16384;
+    public static boolean DEBUG_SCHEDULING = true;
+    public static int BLOCK_COUNT_WARNING_THRESHOLD = 5000;
 
     int maxThread = Runtime.getRuntime().availableProcessors();
     protected BackOffStrategy backOffStrategy = new BackOffStrategy();
@@ -81,7 +82,8 @@ public class ElasticScheduler implements Scheduler {
             }));
         } else
             fut = null;
-        put2QueuePolling(e.getTargetActor().__mailbox, e);
+        Actor targetActor = e.getTargetActor();
+        put2QueuePolling(targetActor.__mailbox, e, targetActor);
         return fut;
     }
 
@@ -91,10 +93,26 @@ public class ElasticScheduler implements Scheduler {
     }
 
     @Override
-    public void put2QueuePolling(Queue q, Object o) {
+    public void put2QueuePolling(Queue q, Object o, Object receiver ) {
         int count = 0;
+        boolean warningPrinted = false;
         while ( ! q.offer(o) ) {
             yield(count++);
+            if ( count > BLOCK_COUNT_WARNING_THRESHOLD && ! warningPrinted ) {
+                warningPrinted = true;
+                String receiverString;
+                if ( receiver instanceof Actor ) {
+                    if ( q == ((Actor) receiver).__cbQueue ) {
+                        receiverString = receiver.getClass().getSimpleName()+" callbackQ";
+                    } else if ( q == ((Actor) receiver).__mailbox ) {
+                        receiverString = receiver.getClass().getSimpleName()+" mailbox";
+                    } else {
+                        receiverString = receiver.getClass().getSimpleName()+" unknown queue";
+                    }
+                } else
+                    receiverString = ""+receiver;
+                System.out.println("Warning: Thread "+Thread.currentThread().getName()+" blocked trying to put message on "+receiverString);
+            }
         }
     }
 
@@ -152,7 +170,7 @@ public class ElasticScheduler implements Scheduler {
                 return method.invoke(proxy,args); // toString, hashCode etc. invoke sync (DANGER if hashcode accesses local state)
             if ( target != null ) {
                 CallEntry ce = new CallEntry(target,method,args, Actor.sender.get(), targetActor);
-                put2QueuePolling(targetActor.__cbQueue, ce);
+                put2QueuePolling(targetActor.__cbQueue, ce, targetActor);
             }
             return null;
         }
@@ -331,6 +349,11 @@ public class ElasticScheduler implements Scheduler {
                     System.out.println("move for idle " + actor.__nanos + " myload " + dispatcherThread.getLoadNanos() + " actors " + qList.length);
             }
         }
+    }
+
+    @Override
+    public void stop() {
+        // FIXME: terminate all threads hard
     }
 
     @Override

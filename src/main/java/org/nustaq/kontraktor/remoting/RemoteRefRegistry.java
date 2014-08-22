@@ -142,7 +142,7 @@ public class RemoteRefRegistry {
     }
 
     protected void stopRemoteRefs() {
-        new ArrayList<>(remoteActors).forEach( (actor) -> {
+        new ArrayList<>(remoteActors).forEach((actor) -> {
             //don't call remoteRefStopped here as its designed to be overridden
             removeRemoteActor(actor);
             actor.getActorRef().__stopped = true;
@@ -206,6 +206,11 @@ public class RemoteRefRegistry {
             System.out.println(e);
 //            e.printStackTrace();
         }
+        cleanUp();
+    }
+
+    public void cleanUp() {
+        scheduler.stop();
     }
 
     /**

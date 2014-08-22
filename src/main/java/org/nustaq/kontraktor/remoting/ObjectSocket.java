@@ -19,4 +19,6 @@ public interface ObjectSocket {
     public void flush() throws IOException;
 
     void setLastError(Exception ex);
+
+    void close() throws IOException;
 }
