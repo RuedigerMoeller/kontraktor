@@ -132,7 +132,7 @@ public class RemoteRefRegistry {
     }
 
     /**
-     * warning: MThreaded
+     * warning: MThreaded. invoked if client calls $stop on a remote ref.
      * @param actor
      */
     protected void remoteRefStopped(Actor actor) {
@@ -226,32 +226,31 @@ public class RemoteRefRegistry {
             CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
             if ( ce != null) {
                 if ( ce.getMethod().getName().equals("$stop") ) {
-                    new Thread( () -> {
+                    new Thread( () -> { // fixme: this causes multi threaded invocation of stop code
                         try {
                             remoteActor.getActor().$stop();
                         } catch (ActorStoppedException ex) {}
                     }, "stopper thread").start();
-                } else {
-                    sumQueued += remoteActor.__mailbox.size();
-                    int futId = 0;
-                    if (ce.hasFutureResult()) {
-                        futId = registerPublishedCallback(ce.getFutureCB());
-                    }
-                    try {
-                        RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs());
-                        rce.setQueue(rce.MAILBOX);
-                        writeObject(chan, rce);
-                        res = true;
-                    } catch (Exception ex) {
-                        chan.setLastError(ex);
-                        if (toRemove == null)
-                            toRemove = new ArrayList();
-                        toRemove.add(remoteActor);
-                        remoteActor.$stop();
-                        System.out.println("connection closed");
-                        ex.printStackTrace();
-                        break;
-                    }
+                }
+                sumQueued += remoteActor.__mailbox.size();
+                int futId = 0;
+                if (ce.hasFutureResult()) {
+                    futId = registerPublishedCallback(ce.getFutureCB());
+                }
+                try {
+                    RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs());
+                    rce.setQueue(rce.MAILBOX);
+                    writeObject(chan, rce);
+                    res = true;
+                } catch (Exception ex) {
+                    chan.setLastError(ex);
+                    if (toRemove == null)
+                        toRemove = new ArrayList();
+                    toRemove.add(remoteActor);
+                    remoteActor.$stop();
+                    System.out.println("connection closed");
+                    ex.printStackTrace();
+                    break;
                 }
             }
         }

@@ -12,6 +12,14 @@ import java.util.List;
 
 /**
  * Created by ruedi on 08.08.14.
+ *
+ * Can be used to publish a single actor (facade) via TCP. The facade actor then can be used to
+ * publish other actor references to remote clients.
+ *
+ * e.g.
+ *     StatefulServer act = Actors.AsActor(StatefulServer.class);
+ *     act.$init(4);
+ *     TCPActorServer.Publish(act, 6666);
  */
 public class TCPActorServer {
 

@@ -15,8 +15,8 @@ import java.io.Serializable;
 /**
  * Created by ruedi on 20.08.14.
  *
- * Implements a persistent key value storage service reachaböe via
- * - tcp (high perf binary encoding)
+ * Implements a persistent key value storage service exported via
+ * - tcp
  * - json webservice
  */
 public class KVStore extends Actor<KVStore> {
@@ -97,6 +97,5 @@ public class KVStore extends Actor<KVStore> {
             }
         });
     }
-
 
 }

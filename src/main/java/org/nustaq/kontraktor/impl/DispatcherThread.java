@@ -199,10 +199,10 @@ public class DispatcherThread extends Thread {
                         profileCounter = 0;
                         invoke = profiledCall(poll);
                     } else {
-                        invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
+                        invoke = invoke(poll);
                     }
                 } else {
-                    invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
+                    invoke = invoke(poll);
                 }
                 if (poll.getFutureCB() != null) {
                     final Future futureCB = poll.getFutureCB();   // the future of caller side
@@ -235,12 +235,17 @@ public class DispatcherThread extends Thread {
         return false;
     }
 
+    private Object invoke(CallEntry poll) throws IllegalAccessException, InvocationTargetException {
+        final Object target = poll.getTarget();
+        return poll.getMethod().invoke(target, poll.getArgs());
+    }
+
     private Object profiledCall(CallEntry poll) throws IllegalAccessException, InvocationTargetException {
         nextProfile = (int) (PROFILE_INTERVAL + Math.random() * 13);
         schedCounter++;
 
         long nanos = System.nanoTime();
-        Object invoke = poll.getMethod().invoke(poll.getTarget(), poll.getArgs());
+        Object invoke = invoke(poll);
         nanos = System.nanoTime() - nanos;
         ((Actor) poll.getTarget()).__nanos = (((Actor) poll.getTarget()).__nanos * 31 + nanos) / 32;
 

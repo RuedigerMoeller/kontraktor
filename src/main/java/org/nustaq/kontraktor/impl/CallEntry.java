@@ -10,10 +10,10 @@ import java.util.Arrays;
 */
 public class CallEntry<T> implements Message<T> {
 
-    transient final private T target;    // target and target actor are not necessary equal. E.g. target can be callback, but calls are put onto sendingActor Q
     final private Method method;
     final private Object[] args;
     private Future futureCB;
+    transient final private T target;    // target and target actor are not necessary equal. E.g. target can be callback, but calls are put onto sendingActor Q
     transient private Actor sendingActor; // defines the sender of this message. null in case of outside call
     transient private Actor targetActor;  // defines actor assignment in case target is callback
 
@@ -24,7 +24,6 @@ public class CallEntry<T> implements Message<T> {
         this.sendingActor = sender;
         this.targetActor = targetActor;
     }
-
 
     public Actor getTargetActor() {
         return targetActor;
