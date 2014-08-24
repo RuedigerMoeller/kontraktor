@@ -7,12 +7,14 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * Created by ruedi on 23.08.2014.
  */
 public class StatefulClient extends Actor<StatefulClient> {
 
+    StatefulServer server;
     ServerSession session; // this is a remote ref !
 
     /**
@@ -24,6 +26,7 @@ public class StatefulClient extends Actor<StatefulClient> {
             // connect, if this is successful authenticate to obtain a remote client session object
             TCPActorClient.Connect(StatefulServer.class,"localhost", 6666).then( (server,conError) -> {
                 if ( server != null ) {
+                    StatefulClient.this.server = server;
                     server.$authenticate("user" + Math.random(), "pwd").then((sess, authError) -> {
                         if (sess != null) {
                             session = sess;
@@ -32,6 +35,7 @@ public class StatefulClient extends Actor<StatefulClient> {
                             self().$workLoop(); // simulate work
                         } else {
                             result.receiveResult(null, authError);
+                            server.$close();
                         }
                     });
                 } else {
@@ -53,11 +57,18 @@ public class StatefulClient extends Actor<StatefulClient> {
         });
     }
 
+    @Override
+    public void $stop() {
+        session.$stop();
+        server.$close();
+        super.$stop();
+    }
+
     public void $workLoop() {
         // simulate some calls made from client to server
-        yield( session.$getUser(), session.$dummyWork() ).then( (futures,error) -> {
-            System.out.println( "User:"+futures[0].getResult() );
-            System.out.println( "Map:"+futures[1].getResult() );
+        yield( session.$getUser(), session.$dummyWork() ).then((futures, error) -> {
+            System.out.println("User:" + futures[0].getResult());
+            System.out.println("Map:" + futures[1].getResult());
         });
         delayed(500, () -> {
             if (!isStopped())
@@ -65,7 +76,7 @@ public class StatefulClient extends Actor<StatefulClient> {
         });
     }
 
-    public static void main( String arg[] ) {
+    public static StatefulClient createClient() {
         StatefulClient client = Actors.AsActor(StatefulClient.class);
         client.$init().then( (r,e) -> {
             if ( r == null ) {
@@ -75,6 +86,20 @@ public class StatefulClient extends Actor<StatefulClient> {
                 System.out.println("connected and logged in");
             }
         });
+        return client;
+    }
+
+    public static void main( String arg[] ) throws InterruptedException {
+        //createClient();
+        while(true) {
+            ArrayList<StatefulClient> clients = new ArrayList<>();
+            for (int i = 0; i < 1; i++) {
+                clients.add(createClient());
+            }
+            Thread.sleep(5000);
+            clients.forEach((cl) -> cl.$stop());
+            Thread.sleep(5000);
+        }
     }
 
 }

@@ -129,6 +129,7 @@ public class ActorProxyFactory {
         cc.addField(target);
     }
 
+    //FIXME: needs cleanup ...
     protected void defineProxyMethods(CtClass cc, CtClass orig) throws Exception {
 //        cc.addMethod( CtMethod.make( "public void __setDispatcher( "+ DispatcherThread.class.getName()+" d ) { __target.__dispatcher(d); }", cc ) );
         CtMethod[] methods = getSortedPublicCtMethods(orig,false);
@@ -148,7 +149,7 @@ public class ActorProxyFactory {
             CtClass returnType = method.getReturnType();
             boolean isCallerSide = // don't touch
                     originalMethod.getAnnotation(CallerSideMethod.class) != null ||
-                    (originalMethod.getName().equals("self") || originalMethod.getName().equals("future"));
+                    (originalMethod.getName().equals("self"));// || originalMethod.getName().equals("future")); ??
 
 
             if ( isCallerSide ) {
@@ -172,10 +173,16 @@ public class ActorProxyFactory {
                     (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 &&
                     (method.getModifiers() & AccessFlag.PUBLIC) != 0 &&
                     !isCallerSide;
+            // by default lock all method of object and actor
             allowed &= !originalMethod.getDeclaringClass().getName().equals(Object.class.getName()) &&
-                       !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName()) ;
+                       !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName());
 
-            if ( originalMethod.getName().equals("executeInActorThread") || originalMethod.getName().equals("$stop") ) {
+            // exceptions: async built-in actor methods that can be called
+            if ( originalMethod.getName().equals("executeInActorThread") || // needed again !
+                 originalMethod.getName().equals("$stop") ||
+                 originalMethod.getName().equals("$close")
+            )
+            {
                 allowed = true;
             }
 

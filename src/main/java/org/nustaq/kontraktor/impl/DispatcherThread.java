@@ -141,7 +141,7 @@ public class DispatcherThread extends Thread {
             }
         }
         if ( ElasticScheduler.DEBUG_SCHEDULING)
-            System.out.println("thread died");
+            System.out.println("dipatcher thread terminated");
     }
 
     private void schedulePendingAdds() {

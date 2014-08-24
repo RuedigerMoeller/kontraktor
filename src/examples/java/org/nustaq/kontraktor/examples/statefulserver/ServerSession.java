@@ -24,7 +24,8 @@ public class ServerSession extends Actor<ServerSession> {
     }
 
     public void $logout() {
-        server.$clientTernminated(self());
+        server.$clientTerminated(self());
+        self().$close();
         self().$stop();
     }
 

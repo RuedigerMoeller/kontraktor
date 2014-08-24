@@ -70,7 +70,9 @@ public class Actor<SELF extends Actor> implements Serializable {
     public long __nanos;
     public Actor __self;
     public int __remoteId;
-//    public Object __remotingImpl; a list is required to be notified on stop
+    public volatile ConcurrentLinkedQueue<RemoteConnection> __connections; // a list of connection required to be notified on close
+    // register callbacks notified on stop
+    ConcurrentLinkedQueue<Callback<SELF>> __stopHandlers;
     // <- internal
 
     /**
@@ -104,13 +106,7 @@ public class Actor<SELF extends Actor> implements Serializable {
      * the dispatching thread will be terminated.
      */
     public void $stop() {
-        getActorRef().__stopped = true;
-        getActor().__stopped = true;
-        if (__stopHandlers!=null) {
-            __stopHandlers.forEach( (cb) -> cb.receiveResult(self(),null) );
-            __stopHandlers.clear();
-        }
-        throw ActorStoppedException.Instance;
+        __stop();
     }
 
     @CallerSideMethod public boolean isStopped() {
@@ -197,16 +193,49 @@ public class Actor<SELF extends Actor> implements Serializable {
         return __remoteId != 0;
     }
 
+    /**
+     * closes associated remote connection(s) if present. NOP otherwise.
+     */
+    public void $close() {
+        if (__connections != null) {
+            final ConcurrentLinkedQueue<RemoteConnection> prevCon = __connections;
+            __connections = null;
+            prevCon.forEach((con) -> con.close());
+        }
+    }
+
 ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
-    // register callbacks notified on stop
-    ConcurrentLinkedQueue<Callback<SELF>> __stopHandlers;
     @CallerSideMethod public void __addStopHandler( Callback<SELF> cb ) {
         if ( __stopHandlers == null ) {
             getActorRef().__stopHandlers = new ConcurrentLinkedQueue();
             getActor().__stopHandlers = getActorRef().__stopHandlers;
         }
         __stopHandlers.add(cb);
+    }
+
+    @CallerSideMethod public void __addRemoteConnection( RemoteConnection con ) {
+        if ( __connections == null ) {
+            getActorRef().__connections = new ConcurrentLinkedQueue<RemoteConnection>();
+            getActor().__connections = getActorRef().__connections;
+        }
+        __connections.add(con);
+    }
+
+    @CallerSideMethod public void __removeRemoteConnection( RemoteConnection con ) {
+        if ( __connections != null ) {
+            __connections.remove(con);
+        }
+    }
+
+    @CallerSideMethod public void __stop() {
+        getActorRef().__stopped = true;
+        getActor().__stopped = true;
+        if (__stopHandlers!=null) {
+            __stopHandlers.forEach( (cb) -> cb.receiveResult(self(),null) );
+            __stopHandlers.clear();
+        }
+        throw ActorStoppedException.Instance;
     }
 
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread
@@ -232,6 +261,5 @@ public class Actor<SELF extends Actor> implements Serializable {
         }
         return method;
     }
-
 
 }

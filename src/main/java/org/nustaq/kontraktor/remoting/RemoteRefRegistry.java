@@ -185,6 +185,10 @@ public class RemoteRefRegistry {
                         continue;
                     }
 
+                    if (read.getMethod().equals("$stop")) {
+                        publishedActorStopped(targetActor);
+                    }
+
                     Object future = targetActor.getScheduler().enqueueCall(null, targetActor, read.getMethod(), read.getArgs());
                     if ( future instanceof Future ) {
                         ((Future) future).then( (r,e) -> {
@@ -209,6 +213,10 @@ public class RemoteRefRegistry {
         cleanUp();
     }
 
+    protected void publishedActorStopped(Actor actor) {
+        unpublishActor(actor);
+    }
+
     public void cleanUp() {
         scheduler.stop();
     }
@@ -225,12 +233,9 @@ public class RemoteRefRegistry {
             Actor remoteActor = iterator.next();
             CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
             if ( ce != null) {
-                if ( ce.getMethod().getName().equals("$stop") ) {
-                    new Thread( () -> { // fixme: this causes multi threaded invocation of stop code
-                        try {
-                            remoteActor.getActor().$stop();
-                        } catch (ActorStoppedException ex) {}
-                    }, "stopper thread").start();
+                if ( ce.getMethod().getName().equals("$close") ) {
+                    remoteActor.getActor().$close(); // this is a local method
+                    continue;
                 }
                 sumQueued += remoteActor.__mailbox.size();
                 int futId = 0;
@@ -251,6 +256,13 @@ public class RemoteRefRegistry {
                     System.out.println("connection closed");
                     ex.printStackTrace();
                     break;
+                }
+                if ( ce.getMethod().getName().equals("$stop") ) {
+//                    new Thread( () -> {
+                        try {
+                            remoteActor.getActor().__stop(); // triggers stop handlers skipping custom code (as real actor is remote)
+                        } catch (ActorStoppedException ex) {}
+//                    }, "stopper thread").start();
                 }
             }
         }

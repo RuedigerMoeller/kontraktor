@@ -14,12 +14,12 @@ import java.util.List;
 /**
  * Created by ruedi on 23.08.2014.
  *
- * Example of an actor based stateful server via TCP. The facade actor (=StateFulServer) creates an ServerSession
- * actor per client (after auth).
- * Clients obtain a remote ref (transparent) to their designated ServerSession object. Note that ServerSessions
+ * Example of an actor based stateful server via TCP. The facade actor (=StateFulServer) creates a ServerSession
+ * actor per client (after authentication).
+ * Clients obtain a remote ref (transparent) of their designated ServerSession object. Note that ServerSessions
  * share a common scheduler in order to avoid creating a thread for each client.
  *
- * Note this cannot be exported as a WebService currently as Http remoting does not support remote actor refereces,
+ * Note this cannot be exported as a WebService currently as Http remoting does not support remote actor references,
  * so only stateless services (actors) can be exported.
  */
 public class StatefulServer extends Actor<StatefulServer> {
@@ -44,7 +44,7 @@ public class StatefulServer extends Actor<StatefulServer> {
         return new Promise<>(null,"authentication failure");
     }
 
-    public void $clientTernminated(ServerSession session) {
+    public void $clientTerminated(ServerSession session) {
         sessions.remove(session);
     }
 

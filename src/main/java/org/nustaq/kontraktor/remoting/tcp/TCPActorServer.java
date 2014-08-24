@@ -108,6 +108,15 @@ public class TCPActorServer {
                 connections.remove(ActorServerClientConnection.this);
             }, "sender").start();
         }
+
+        @Override
+        protected void publishedActorStopped(Actor actor) {
+            super.publishedActorStopped(actor);
+            if (actor == facade) {
+                setTerminated(true);
+            }
+        }
+
     }
 
 }

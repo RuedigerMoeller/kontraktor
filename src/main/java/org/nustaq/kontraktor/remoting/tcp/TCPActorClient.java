@@ -7,6 +7,8 @@ import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 
 import java.io.*;
+import java.net.SocketException;
+import java.util.logging.SocketHandler;
 
 /**
  * Created by ruedi on 08.08.14.
@@ -65,6 +67,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
             try {
                 client = new ActorClient();
                 connected = true;
+                facadeProxy.__addRemoteConnection(client);
             } catch (Exception ex) {
                 count++;
                 System.out.println("connection to " + getDescriptionString() + " failed, retry " + count + " of " + maxTrialConnect);
@@ -87,7 +90,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
     /**
      *
      */
-    public class ActorClient {
+    public class ActorClient implements RemoteConnection {
 
         ObjectSocket chan;
 
@@ -99,7 +102,10 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
                     try {
                         sendLoop(chan);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        if (e instanceof SocketException)
+                            System.out.println(e);
+                        else
+                            e.printStackTrace();
                     }
                 },
                 "sender"
@@ -113,8 +119,12 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
             ).start();
         }
 
-        public void close() throws IOException {
-            chan.close();
+        public void close() {
+            try {
+                chan.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -125,11 +135,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
             // connection closed => close connection and stop all remoteRefs
             setTerminated(true);
             stopRemoteRefs();
-            try {
-                client.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            client.close();
         }
     }
 

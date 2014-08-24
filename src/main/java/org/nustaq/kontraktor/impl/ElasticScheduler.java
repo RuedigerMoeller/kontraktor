@@ -353,7 +353,8 @@ public class ElasticScheduler implements Scheduler {
 
     @Override
     public void stop() {
-        // FIXME: terminate all threads hard
+        // check if actors are active, if not stop. called on remote client disconnect
+        // seems like scheduler mechanic already detects idleness and terminates .. so unclear if this method will be needed
     }
 
     @Override
