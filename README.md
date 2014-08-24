@@ -1,7 +1,7 @@
 kontraktor
 ==========
 
-lightweight and efficient Actor/(CSP) implementation in Java. The threading model implemented has many similarities to node.js, go's and Dart's model of concurrency.
+lightweight and efficient Actor implementation in Java. The threading model implemented has many similarities to node.js, go's and Dart's model of concurrency.
 
 Kontraktor implements a typed actor model to avoid message definition+handling boilerplate code. Additionally this integrates well
 with code completion and refactoring of modern IDEs.
