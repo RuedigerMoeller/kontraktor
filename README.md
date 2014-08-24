@@ -52,6 +52,6 @@ E.g.
 ```
 
 Kontrakor internally uses a high performance bounded queue implementation of the Jaq-In-A-Box project and can pass 
-9 million messages per second (on i7 laptop, method with 3 arguments passed) up to 15 million on decent hardware.
+up to 9 million messages per second (on i7 laptop, method with 3 arguments passed).
 
 
