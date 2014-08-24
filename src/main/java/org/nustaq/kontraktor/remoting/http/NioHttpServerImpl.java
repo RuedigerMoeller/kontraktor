@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.RateMeasure;
 import org.nustaq.serialization.util.FSTUtil;
 
@@ -55,11 +56,11 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
     }
 
     protected void severe(String s) {
-        System.out.println("SEVERE:"+s);
+        Log.Lg.error(this,null,s);
     }
 
     protected void info(String s) {
-        System.out.println("INFO:"+s);
+        Log.Info(this,s);
     }
 
     public void $receive() {

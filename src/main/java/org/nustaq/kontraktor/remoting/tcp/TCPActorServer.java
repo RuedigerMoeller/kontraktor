@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.remoting.tcp;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.util.Log;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -55,7 +56,7 @@ public class TCPActorServer {
     public void start() throws IOException {
         try {
             welcomeSocket = new ServerSocket(port);
-            System.out.println(facadeActor.getActor().getClass().getName() + " running on " + welcomeSocket.getLocalPort());
+            Log.Info(this,facadeActor.getActor().getClass().getName() + " running on " + welcomeSocket.getLocalPort());
             while (!terminated) {
                 Socket connectionSocket = welcomeSocket.accept();
                 ActorServerClientConnection clientConnection = new ActorServerClientConnection(connectionSocket, facadeActor);

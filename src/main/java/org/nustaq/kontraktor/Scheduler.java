@@ -64,5 +64,4 @@ public interface Scheduler {
 
     void tryStopThread(DispatcherThread dispatcherThread);
 
-    void stop();
 }

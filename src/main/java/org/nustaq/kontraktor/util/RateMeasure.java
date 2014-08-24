@@ -50,7 +50,7 @@ public class RateMeasure {
      * @param lastRatePersecond
      */
     protected void statsUpdated(long lastRatePersecond) {
-        System.out.println("***** Stats for "+name+":   "+lastRatePersecond+"   per second *********");
+        Log.Info(this,"***** Stats for "+name+":   "+lastRatePersecond+"   per second *********");
     }
 
 

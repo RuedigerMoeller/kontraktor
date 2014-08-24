@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
 import io.jaq.mpsc.MpscConcurrentQueue;
+import org.nustaq.kontraktor.util.Log;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -135,13 +136,13 @@ public class DispatcherThread extends Thread {
             LockSupport.parkNanos(1000*1000*5);
             if ( actors.length > 0 ) {
                 if ( ElasticScheduler.DEBUG_SCHEDULING)
-                    System.out.println("Severe: zombie dispatcher thread detected");
+                    Log.Lg.warn(this, "Severe: zombie dispatcher thread detected");
                 scheduler.tryStopThread(this);
                 i = 0;
             }
         }
         if ( ElasticScheduler.DEBUG_SCHEDULING)
-            System.out.println("dipatcher thread terminated");
+            Log.Info(this,"dipatcher thread terminated");
     }
 
     private void schedulePendingAdds() {
@@ -273,7 +274,7 @@ public class DispatcherThread extends Thread {
     // must be called in thread. newOne is expected to not yet started
     void splitTo( DispatcherThread newOne ) {
         if ( ElasticScheduler.DEBUG_SCHEDULING )
-            System.out.println("SPLIT " + scheduler.getMaxThreads());
+            Log.Info(this, "SPLIT " + scheduler.getMaxThreads());
         long myTime = 0;
         long otherTime = 0;
         Arrays.sort(actors, new Comparator() {
@@ -313,7 +314,7 @@ public class DispatcherThread extends Thread {
         newOne.actors = new Actor[new2ScheduleOnOther.size()];
         new2ScheduleOnOther.toArray(newOne.actors);
         if ( ElasticScheduler.DEBUG_SCHEDULING )
-            System.out.println("split distribution " + myTime + ":" + otherTime + " actors " + actors.length);
+            Log.Info(this,"split distribution " + myTime + ":" + otherTime + " actors " + actors.length);
         created = System.currentTimeMillis();
     }
 

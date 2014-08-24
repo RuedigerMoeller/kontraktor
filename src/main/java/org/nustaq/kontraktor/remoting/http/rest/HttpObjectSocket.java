@@ -93,7 +93,6 @@ public class HttpObjectSocket implements ObjectSocket {
 //                            System.out.println("bundled "+resp);
                     }
                     socket.close();
-                    System.out.println("req fin");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

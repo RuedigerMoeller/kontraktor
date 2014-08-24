@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import javassist.*;
 import javassist.bytecode.AccessFlag;
+import org.nustaq.kontraktor.util.Log;
 
 import java.io.Externalizable;
 import java.lang.reflect.Constructor;
@@ -201,7 +202,7 @@ public class ActorProxyFactory {
                             Object annot = availableParameterAnnotation[k];
                             if ( annot.toString().indexOf("kontraktor.annotations.InThread") > 0 ) {
                                 if ( parameterTypes[j].getName().equals(Callback.class.getName()) ) {
-                                    System.out.println("InThread unnecessary when using built in Callback class. method:"+originalMethod+" clz:"+orig);
+                                    Log.Info(this,"InThread unnecessary when using built in Callback class. method:"+originalMethod+" clz:"+orig);
                                     continue;
                                 }
                                 if ( ! parameterTypes[j].isInterface() )

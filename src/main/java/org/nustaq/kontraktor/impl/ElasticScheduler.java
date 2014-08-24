@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.util.Log;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -111,7 +112,7 @@ public class ElasticScheduler implements Scheduler {
                     }
                 } else
                     receiverString = ""+receiver;
-                System.out.println("Warning: Thread "+Thread.currentThread().getName()+" blocked trying to put message on "+receiverString);
+                Log.Lg.warn(this,"Warning: Thread "+Thread.currentThread().getName()+" blocked trying to put message on "+receiverString);
             }
         }
     }
@@ -326,7 +327,7 @@ public class ElasticScheduler implements Scheduler {
                     otherLoad += actor.__nanos;
                     load -= actor.__nanos;
                     if (DEBUG_SCHEDULING)
-                        System.out.println("move " + actor.__nanos + " myload " + load + " otherlOad " + otherLoad);
+                        Log.Info(this,"move " + actor.__nanos + " myload " + load + " otherlOad " + otherLoad);
                     dispatcherThread.removeActorImmediate(actor);
                     minLoadThread.addActor(actor);
                 }
@@ -346,15 +347,9 @@ public class ElasticScheduler implements Scheduler {
                 dispatcherThread.removeActorImmediate(actor);
                 minLoadThread.addActor(actor);
                 if (DEBUG_SCHEDULING)
-                    System.out.println("move for idle " + actor.__nanos + " myload " + dispatcherThread.getLoadNanos() + " actors " + qList.length);
+                    Log.Info(this,"move for idle " + actor.__nanos + " myload " + dispatcherThread.getLoadNanos() + " actors " + qList.length);
             }
         }
-    }
-
-    @Override
-    public void stop() {
-        // check if actors are active, if not stop. called on remote client disconnect
-        // seems like scheduler mechanic already detects idleness and terminates .. so unclear if this method will be needed
     }
 
     @Override

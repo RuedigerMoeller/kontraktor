@@ -5,10 +5,10 @@ import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.util.Log;
 
 import java.io.*;
 import java.net.SocketException;
-import java.util.logging.SocketHandler;
 
 /**
  * Created by ruedi on 08.08.14.
@@ -70,9 +70,9 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
                 facadeProxy.__addRemoteConnection(client);
             } catch (Exception ex) {
                 count++;
-                System.out.println("connection to " + getDescriptionString() + " failed, retry " + count + " of " + maxTrialConnect);
+                Log.Info(this,"connection to " + getDescriptionString() + " failed, retry " + count + " of " + maxTrialConnect);
                 if ( count >= maxTrialConnect ) {
-                    System.out.println("connection failed. giving up");
+                    Log.Lg.error(this,ex,"connection failed. giving up");
                     throw ex;
                 }
             }

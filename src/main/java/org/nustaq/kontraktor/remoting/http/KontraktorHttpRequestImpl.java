@@ -1,5 +1,7 @@
 package org.nustaq.kontraktor.remoting.http;
 
+import org.nustaq.kontraktor.util.Log;
+
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
@@ -33,23 +35,23 @@ public class KontraktorHttpRequestImpl implements KontraktorHttpRequest // avoid
     }
 
     public void append(ByteBuffer buf, int len) {
-        System.out.println("PARTIAL READ");
+        Log.Info(this,"PARTIAL READ");
         if ( !hadHeader()) {
-            System.out.println("..complete header");
+            Log.Info(this,"..complete header");
             byte[] newbytes = new byte[bytes.length + len];
             System.arraycopy(bytes, 0, newbytes, 0, bytes.length);
             buf.get(newbytes, bytes.length, len);
             bytes = newbytes;
             checkComplete();
-            System.out.println("..complete:" + isComplete());
+            Log.Info(this,"..complete:" + isComplete());
         } else {
-            System.out.println("..complete body");
+            Log.Info(this,"..complete body");
             byte[] tmp = new byte[len];
             buf.get(tmp);
             try {
                 text.append(new String(tmp,"UTF-8"));
                 isComplete = text.length() >= contentLength;
-                System.out.println("..complete:"+isComplete()+" text:"+text.length()+" cont:"+contentLength);
+                Log.Info(this,"..complete:"+isComplete()+" text:"+text.length()+" cont:"+contentLength);
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
                 isComplete = true;

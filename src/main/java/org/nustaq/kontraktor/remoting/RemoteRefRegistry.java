@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.remoting;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.impl.*;
-import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.IOException;
@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -174,7 +173,7 @@ public class RemoteRefRegistry implements RemoteConnection {
                 // read object
                 final Object response = channel.readObject();
                 if (response instanceof RemoteCallEntry == false) {
-                    System.out.println(response); // fixme
+                    Log.Lg.error(this, null, "" + response); // fixme
                     continue;
                 }
                 RemoteCallEntry read = (RemoteCallEntry) response;
@@ -184,7 +183,7 @@ public class RemoteRefRegistry implements RemoteConnection {
                 if (read.getQueue() == read.MAILBOX) {
                     Actor targetActor = getPublishedActor(read.getReceiverKey());
                     if (targetActor==null) {
-                        System.out.println("no actor found for key "+read);
+                        Log.Lg.error(this, null, "no actor found for key " + read);
                         continue;
                     }
 
@@ -252,8 +251,7 @@ public class RemoteRefRegistry implements RemoteConnection {
                             toRemove = new ArrayList();
                         toRemove.add(remoteActor);
                         remoteActor.$stop();
-                        System.out.println("connection closed");
-                        ex.printStackTrace();
+                        Log.Lg.infoLong(this, ex, "connection closed");
                         break;
                     }
                 }
