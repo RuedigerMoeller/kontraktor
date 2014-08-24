@@ -16,6 +16,7 @@ public class StatefulClient extends Actor<StatefulClient> {
 
     StatefulServer server;
     ServerSession session; // this is a remote ref !
+    boolean stopPing; // testing
 
     /**
      * @return Boolean.True if successfull, null + error otherwise
@@ -52,19 +53,29 @@ public class StatefulClient extends Actor<StatefulClient> {
     public void $pingLoop() {
         session.$ping();
         delayed(3000, () -> {
-            if (!isStopped())
+            if (!isStopped() && ! stopPing )
                 self().$pingLoop();
         });
+    }
+
+    public void $testStopPing() {
+        stopPing = true; // expect server to close connection
     }
 
     @Override
     public void $stop() {
         session.$stop();
-        server.$close();
+        server.stopSafeClose();
         super.$stop();
     }
 
     public void $workLoop() {
+        if ( session.isStopped() || server.isStopped() ) {
+            $stop();
+            System.out.println("session stopped:"+session.isStopped());
+            System.out.println("server stopped:"+server.isStopped());
+            return;
+        }
         // simulate some calls made from client to server
         yield( session.$getUser(), session.$dummyWork() ).then((futures, error) -> {
             System.out.println("User:" + futures[0].getResult());
@@ -75,6 +86,8 @@ public class StatefulClient extends Actor<StatefulClient> {
                 self().$workLoop();
         });
     }
+
+    /////////////////////// end of client code, some static setup + test methods ////////////////////////////////////////////
 
     public static StatefulClient createClient() {
         StatefulClient client = Actors.AsActor(StatefulClient.class);
@@ -89,11 +102,10 @@ public class StatefulClient extends Actor<StatefulClient> {
         return client;
     }
 
-    public static void main( String arg[] ) throws InterruptedException {
-        //createClient();
+    public static void testConnectDisconnect() throws InterruptedException {
         while(true) {
             ArrayList<StatefulClient> clients = new ArrayList<>();
-            for (int i = 0; i < 1; i++) {
+            for (int i = 0; i < 10; i++) {
                 clients.add(createClient());
             }
             Thread.sleep(5000);
@@ -101,5 +113,22 @@ public class StatefulClient extends Actor<StatefulClient> {
             Thread.sleep(5000);
         }
     }
+
+    public static void testStopPing() throws InterruptedException {
+        StatefulClient client = createClient();
+        Thread.sleep(5000);
+        client.$testStopPing();
+        while( ! client.isStopped() ) {
+            Thread.sleep(1000);
+            System.out.println("wait for stop ..");
+        }
+    }
+
+    public static void main( String arg[] ) throws InterruptedException {
+        //createClient();
+        //testConnectDisconnect();
+        testStopPing();
+    }
+
 
 }

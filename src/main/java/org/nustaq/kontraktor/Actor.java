@@ -204,6 +204,17 @@ public class Actor<SELF extends Actor> implements Serializable {
         }
     }
 
+    /**
+     * avoids exception when closing an actor after stop has been called.
+     */
+    @CallerSideMethod public void stopSafeClose() {
+        if ( isStopped() ) {
+            getActor().$close(); // is threadsafe
+        } else {
+            self().$close();
+        }
+    }
+
 ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     @CallerSideMethod public void __addStopHandler( Callback<SELF> cb ) {
@@ -229,6 +240,8 @@ public class Actor<SELF extends Actor> implements Serializable {
     }
 
     @CallerSideMethod public void __stop() {
+        if ( getActorRef().isStopped() && getActor().isStopped() )
+            return;
         getActorRef().__stopped = true;
         getActor().__stopped = true;
         if (__stopHandlers!=null) {
@@ -240,8 +253,11 @@ public class Actor<SELF extends Actor> implements Serializable {
 
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread
     @CallerSideMethod public Object __enqueueCall( Actor receiver, String methodName, Object args[] ) {
-        if ( __stopped )
-            throw new RuntimeException("Actor "+this+" received message after being stopped "+methodName );
+        if ( __stopped ) {
+            if ( methodName.equals("$stop") ) // ignore double stop
+                return null;
+            throw new RuntimeException("Actor " + this + " received message after being stopped " + methodName);
+        }
         return __scheduler.enqueueCall(sender.get(), receiver, methodName, args);
     }
 

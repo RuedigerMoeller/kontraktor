@@ -26,7 +26,7 @@ import java.util.List;
  *
  *     .. wild async processing ..
  *
- *     endsignalFuture.receiveResult("done",null);
+ *     endsignalFuture.receiveResult("done",null); // will execute next event on bmw if present
  *   });
  *
  */

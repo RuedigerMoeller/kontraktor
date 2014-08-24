@@ -1,9 +1,6 @@
 package org.nustaq.kontraktor.remoting;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 import org.nustaq.serialization.FSTConfiguration;
@@ -22,7 +19,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * fixme: handle stop of published actor (best by talking back in case a message is received on a
  * stopped published actor).
  */
-public class RemoteRefRegistry {
+public class RemoteRefRegistry implements RemoteConnection {
 
     protected FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
 
@@ -78,6 +75,7 @@ public class RemoteRefRegistry {
             integer = actorIdCount.incrementAndGet();
             publishedActorMapping.put(integer, act.getActorRef());
             publishedActorMappingReverse.put(act.getActorRef(), integer);
+            act.__addRemoteConnection(this);
         }
         return integer;
     }
@@ -132,7 +130,7 @@ public class RemoteRefRegistry {
     }
 
     /**
-     * warning: MThreaded. invoked if client calls $stop on a remote ref.
+     * warning: MThreaded
      * @param actor
      */
     protected void remoteRefStopped(Actor actor) {
@@ -153,15 +151,20 @@ public class RemoteRefRegistry {
     private void removeRemoteActor(Actor act) {
         remoteActorSet.remove(act.__remoteId);
         remoteActors.remove(act);
+        act.__stop();
     }
 
     protected void sendLoop(ObjectSocket channel) throws IOException {
-        int count = 0;
-        while (!isTerminated()) {
-            if ( singleSendLoop(channel) ) {
-                count = 0;
+        try {
+            int count = 0;
+            while (!isTerminated()) {
+                if (singleSendLoop(channel)) {
+                    count = 0;
+                }
+                backOffStrategy.yield(count++);
             }
-            backOffStrategy.yield(count++);
+        } finally {
+            stopRemoteRefs();
         }
     }
 
@@ -185,10 +188,6 @@ public class RemoteRefRegistry {
                         continue;
                     }
 
-                    if (read.getMethod().equals("$stop")) {
-                        publishedActorStopped(targetActor);
-                    }
-
                     Object future = targetActor.getScheduler().enqueueCall(null, targetActor, read.getMethod(), read.getArgs());
                     if ( future instanceof Future ) {
                         ((Future) future).then( (r,e) -> {
@@ -209,16 +208,13 @@ public class RemoteRefRegistry {
         } catch (Exception e) {
             System.out.println(e);
 //            e.printStackTrace();
+        } finally {
+            cleanUp();
         }
-        cleanUp();
-    }
-
-    protected void publishedActorStopped(Actor actor) {
-        unpublishActor(actor);
     }
 
     public void cleanUp() {
-        scheduler.stop();
+        stopRemoteRefs();
     }
 
     /**
@@ -233,36 +229,33 @@ public class RemoteRefRegistry {
             Actor remoteActor = iterator.next();
             CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
             if ( ce != null) {
-                if ( ce.getMethod().getName().equals("$close") ) {
-                    remoteActor.getActor().$close(); // this is a local method
-                    continue;
-                }
-                sumQueued += remoteActor.__mailbox.size();
-                int futId = 0;
-                if (ce.hasFutureResult()) {
-                    futId = registerPublishedCallback(ce.getFutureCB());
-                }
-                try {
-                    RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs());
-                    rce.setQueue(rce.MAILBOX);
-                    writeObject(chan, rce);
-                    res = true;
-                } catch (Exception ex) {
-                    chan.setLastError(ex);
-                    if (toRemove == null)
-                        toRemove = new ArrayList();
-                    toRemove.add(remoteActor);
-                    remoteActor.$stop();
-                    System.out.println("connection closed");
-                    ex.printStackTrace();
-                    break;
-                }
                 if ( ce.getMethod().getName().equals("$stop") ) {
-//                    new Thread( () -> {
+                    new Thread( () -> {
                         try {
-                            remoteActor.getActor().__stop(); // triggers stop handlers skipping custom code (as real actor is remote)
+                            remoteActor.getActor().$stop();
                         } catch (ActorStoppedException ex) {}
-//                    }, "stopper thread").start();
+                    }, "stopper thread").start();
+                } else {
+                    sumQueued += remoteActor.__mailbox.size();
+                    int futId = 0;
+                    if (ce.hasFutureResult()) {
+                        futId = registerPublishedCallback(ce.getFutureCB());
+                    }
+                    try {
+                        RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs());
+                        rce.setQueue(rce.MAILBOX);
+                        writeObject(chan, rce);
+                        res = true;
+                    } catch (Exception ex) {
+                        chan.setLastError(ex);
+                        if (toRemove == null)
+                            toRemove = new ArrayList();
+                        toRemove.add(remoteActor);
+                        remoteActor.$stop();
+                        System.out.println("connection closed");
+                        ex.printStackTrace();
+                        break;
+                    }
                 }
             }
         }
@@ -285,4 +278,10 @@ public class RemoteRefRegistry {
         rce.setQueue(rce.CBQ);
         writeObject(chan, rce);
     }
+
+    @Override
+    public void close() {
+        // needs override
+    }
+
 }
