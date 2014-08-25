@@ -2,9 +2,11 @@ package org.nustaq.kontraktor;
 
 import org.nustaq.kontraktor.impl.*;
 import io.jaq.mpsc.MpscConcurrentQueue;
+import org.nustaq.kontraktor.util.Log;
 
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -35,6 +37,20 @@ public class Actors {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // static API
+
+    public static void AddDeadLetter(String s) {
+        Log.Lg.warn(null,s);
+        DeadLetters().add(s);
+    }
+
+    /**
+     * messages that have been dropped or have been sent to stopped actors
+     *
+     * @return queue of dead letters. Note: only strings are recorded to avoid accidental references.
+     */
+    public static ConcurrentLinkedQueue<String> DeadLetters() {
+        return instance.deadLetters;
+    }
 
     /**
      * create an new actor. If this is called outside an actor, a new DispatcherThread will be scheduled. If
@@ -98,6 +114,36 @@ public class Actors {
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    private static void yield(final Future futures[], final int index, final Future result) {
+        if ( index < futures.length ) {
+            futures[index].then(new Callback() {
+                @Override
+                public void receiveResult(Object res, Object error) {
+                    yield(futures, index + 1, result);
+                }
+            });
+        } else {
+            result.receiveResult(futures, null);
+        }
+    }
+
+    private static <T> void yield(final List<Future<T>> futures, final int index, final Future result) {
+        if ( index < futures.size() ) {
+            futures.get(index).then(new Callback() {
+                @Override
+                public void receiveResult(Object res, Object error) {
+                    yield(futures, index + 1, result);
+                }
+            });
+        } else {
+            result.receiveResult(futures, null);
+        }
+    }
+
+    //// instance
+
+    ConcurrentLinkedQueue deadLetters = new ConcurrentLinkedQueue();
+
     protected Actors() {
         factory = new ActorProxyFactory();
     }
@@ -159,32 +205,6 @@ public class Actors {
             if ( e instanceof RuntimeException)
                 throw (RuntimeException)e;
             throw new RuntimeException(e);
-        }
-    }
-
-    private static void yield(final Future futures[], final int index, final Future result) {
-        if ( index < futures.length ) {
-            futures[index].then(new Callback() {
-                @Override
-                public void receiveResult(Object res, Object error) {
-                    yield(futures, index + 1, result);
-                }
-            });
-        } else {
-            result.receiveResult(futures, null);
-        }
-    }
-
-    private static <T> void yield(final List<Future<T>> futures, final int index, final Future result) {
-        if ( index < futures.size() ) {
-            futures.get(index).then(new Callback() {
-                @Override
-                public void receiveResult(Object res, Object error) {
-                    yield(futures, index + 1, result);
-                }
-            });
-        } else {
-            result.receiveResult(futures, null);
         }
     }
 

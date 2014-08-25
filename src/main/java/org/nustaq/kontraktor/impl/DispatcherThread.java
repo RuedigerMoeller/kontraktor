@@ -227,10 +227,7 @@ public class DispatcherThread extends Thread {
                 }
                 if (poll.getFutureCB() != null)
                     poll.getFutureCB().receiveResult(null, e);
-                if (e.getCause() != null)
-                    e.getCause().printStackTrace();
-                else
-                    e.printStackTrace();
+                Log.Warn(this,e,"");
             }
         }
         return false;

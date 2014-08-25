@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.remoting.http.*;
 import org.nustaq.kontraktor.remoting.http.rest.encoding.JSonMsgCoder;
 import org.nustaq.kontraktor.remoting.http.rest.encoding.KsonMsgCoder;
 import org.nustaq.kontraktor.remoting.http.rest.encoding.PlainJSonCoder;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.RateMeasure;
 import org.nustaq.serialization.util.FSTUtil;
 
@@ -100,7 +101,7 @@ public class RestActorServer {
 //                        System.out.println("resp:\n"+encode);
                         response.receiveResult(new RequestResponse(encode), isContinue ? null : fin);
                     } catch (Exception ex) {
-                        ex.printStackTrace();
+                        Log.Warn(this, ex, "");
 //                        response.receiveResult(RequestResponse.MSG_500, null);
                         response.receiveResult(new RequestResponse(FSTUtil.toString(ex)), fin);
                     }
@@ -145,7 +146,7 @@ public class RestActorServer {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.Warn(this,e,"");
             response.receiveResult(RequestResponse.MSG_500, ""+e);
         }
     }

@@ -4,9 +4,13 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 
 import java.io.IOException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.ArrayList;
 
 /**
@@ -58,10 +62,6 @@ public class StatefulClient extends Actor<StatefulClient> {
         });
     }
 
-    public void $testStopPing() {
-        stopPing = true; // expect server to close connection
-    }
-
     @Override
     public void $stop() {
         session.$stop();
@@ -87,13 +87,37 @@ public class StatefulClient extends Actor<StatefulClient> {
         });
     }
 
-    /////////////////////// end of client code, some static setup + test methods ////////////////////////////////////////////
+    @CallerSideMethod public boolean isConnected() {
+        return !(getActor().server.isStopped() && getActor().session.isStopped());
+    }
+
+    /////////////////////// end of client code, some test methods ////////////////////////////////////////////
+
+    public void $testStopPing() {
+        stopPing = true; // expect server to close connection
+    }
+
+    public void $testStopFacade() {
+        server.$stop();
+    }
+
+    public void $testCloseFacade() {
+        server.$close();
+    }
+
+    public void $testCloseClient() {
+        session.$close();
+    }
+
+    public void $testStopClient() {
+        session.$stop();
+    }
 
     public static StatefulClient createClient() {
         StatefulClient client = Actors.AsActor(StatefulClient.class);
-        client.$init().then( (r,e) -> {
-            if ( r == null ) {
-                System.out.println("connection error "+e);
+        client.$init().then( (r, e) -> {
+            if (r == null) {
+                System.out.println("connection error " + e);
                 System.exit(-1);
             } else {
                 System.out.println("connected and logged in");
@@ -103,7 +127,8 @@ public class StatefulClient extends Actor<StatefulClient> {
     }
 
     public static void testConnectDisconnect() throws InterruptedException {
-        while(true) {
+        for ( int ii = 0; ii < 10; ii++ )
+        {
             ArrayList<StatefulClient> clients = new ArrayList<>();
             for (int i = 0; i < 10; i++) {
                 clients.add(createClient());
@@ -118,17 +143,37 @@ public class StatefulClient extends Actor<StatefulClient> {
         StatefulClient client = createClient();
         Thread.sleep(5000);
         client.$testStopPing();
-        while( ! client.isStopped() ) {
+        while( ! client.isConnected() ) {
             Thread.sleep(1000);
             System.out.println("wait for stop ..");
         }
     }
 
-    public static void main( String arg[] ) throws InterruptedException {
-        //createClient();
-        //testConnectDisconnect();
-        testStopPing();
+    public static void testMethod(String methodName) throws Throwable {
+        MethodHandle method = MethodHandles.lookup().findVirtual(StatefulClient.class, methodName, MethodType.methodType(void.class));
+        StatefulClient client = createClient();
+        Thread.sleep(3000);
+        method.invoke(client);
+        while( ! client.isConnected() ) {
+            Thread.sleep(1000);
+            System.out.println("wait for stop .. "+methodName);
+        }
     }
+
+    public static void main( String arg[] ) throws Throwable {
+        testMethod("$testStopFacade");
+        System.out.println("----------------------------------------------------------------------------------");
+        testMethod("$testCloseFacade");
+        System.out.println("----------------------------------------------------------------------------------");
+        testMethod("$testStopClient");
+        System.out.println("----------------------------------------------------------------------------------");
+        testMethod("$testCloseClient");
+        System.out.println("----------------------------------------------------------------------------------");
+        testStopPing();
+        testConnectDisconnect();
+        System.exit(0);
+    }
+
 
 
 }

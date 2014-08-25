@@ -43,7 +43,7 @@ public class ServerSession extends Actor<ServerSession> {
         });
     }
 
-    // return user assync. Will work on remote ref
+    // return user async. Will work on remote ref
     public Future<String> $getUser() {
         return new Promise<>(user);
     }

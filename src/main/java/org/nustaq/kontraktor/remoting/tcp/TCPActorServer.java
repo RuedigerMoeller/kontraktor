@@ -24,7 +24,7 @@ public class TCPActorServer {
             try {
                 server.start();
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.Warn(TCPActorServer.class,e,"");
             }
         }, "acceptor "+port ).start();
         return server;
@@ -85,7 +85,7 @@ public class TCPActorServer {
                     currentChannel.set(channel);
                     receiveLoop(channel);
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    Log.Warn(this,ex,"");
                 }
                 setTerminated(true);
                 connections.remove(ActorServerClientConnection.this);
@@ -95,7 +95,7 @@ public class TCPActorServer {
                     currentChannel.set(channel);
                     sendLoop(channel);
                 } catch (Exception ex) {
-                    ex.printStackTrace();
+                    Log.Warn(this,ex,"");
                 }
                 setTerminated(true);
                 connections.remove(ActorServerClientConnection.this);
@@ -108,7 +108,7 @@ public class TCPActorServer {
             try {
                 channel.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.Warn(this,e,"");
             }
         }
     }

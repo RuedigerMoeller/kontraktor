@@ -53,7 +53,7 @@ public class KontraktorHttpRequestImpl implements KontraktorHttpRequest // avoid
                 isComplete = text.length() >= contentLength;
                 Log.Info(this,"..complete:"+isComplete()+" text:"+text.length()+" cont:"+contentLength);
             } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
+                Log.Warn(this,e,"");
                 isComplete = true;
             }
         }
@@ -73,7 +73,7 @@ public class KontraktorHttpRequestImpl implements KontraktorHttpRequest // avoid
                     isComplete = text.length() >= contentLength;
                     bytes = null; // free headerbytes
                 } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
+                    Log.Warn(this,e,"");
                     isComplete = true;
                 }
                 return;

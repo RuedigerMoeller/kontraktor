@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -49,7 +50,7 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
                 try {
                     sendLoop(channel);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    Log.Warn(this, e, "");
                 }
             },
             "sender"

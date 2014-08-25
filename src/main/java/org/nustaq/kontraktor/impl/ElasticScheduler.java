@@ -214,14 +214,11 @@ public class ElasticScheduler implements Scheduler {
     @Override
     public <T> void runBlockingCall(Actor emitter, final Callable<T> toCall, Callback<T> resultHandler) {
         final CallbackWrapper<T> resultWrapper = new CallbackWrapper<>(emitter,resultHandler);
-        exec.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    resultWrapper.receiveResult(toCall.call(), null);
-                } catch (Throwable th) {
-                    resultWrapper.receiveResult(null, th);
-                }
+        exec.execute(() -> {
+            try {
+                resultWrapper.receiveResult(toCall.call(), null);
+            } catch (Throwable th) {
+                resultWrapper.receiveResult(null, th);
             }
         });
     }

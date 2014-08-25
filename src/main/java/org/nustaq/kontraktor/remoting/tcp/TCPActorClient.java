@@ -23,7 +23,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
                 client.connect();
                 res.receiveResult(client.getFacadeProxy(),null);
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.Warn(TCPActorClient.class,e,"");
                 res.receiveResult(null, e);
             }
         }, "connect "+client.getDescriptionString()).start();
@@ -103,9 +103,9 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
                         sendLoop(chan);
                     } catch (IOException e) {
                         if (e instanceof SocketException)
-                            System.out.println(e);
+                            Log.Lg.infoLong(this,e,"");
                         else
-                            e.printStackTrace();
+                            Log.Warn(this,e,"");
                     }
                 },
                 "sender"
@@ -123,7 +123,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
             try {
                 chan.close();
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.Warn(this,e,"");
             }
         }
     }

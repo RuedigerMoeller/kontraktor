@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.remoting.http.rest;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.http.ArgTypesResolver;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
 import org.nustaq.kson.KsonDeserializer;
 import org.nustaq.kson.KsonStringCharInput;
@@ -94,7 +95,7 @@ public class HttpObjectSocket implements ObjectSocket {
                     }
                     socket.close();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Log.Warn(this, e, "");
                 }
             }
         }, "ObjectSocket:"+host+":"+port+actorPath ).start();

@@ -51,7 +51,7 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
             info("bound to port " + port);
         } catch (IOException e) {
             severe("could not bind to port" + port);
-            e.printStackTrace();
+            Log.Warn(this,e,"");
         }
     }
 
@@ -92,11 +92,11 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
                         }
                     }
                 } catch (Throwable e) {
-                    e.printStackTrace();
+                    Log.Warn(this,e,"");
                 }
             }
         } catch (Throwable e) {
-            e.printStackTrace();
+            Log.Warn(this,e,"");
         }
         if ( ! shouldTerminate ) {
             if ( System.currentTimeMillis() - lastRequest > 100 ) {
@@ -151,7 +151,7 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
                                          writeClient(client, ByteBuffer.wrap(result.toString().getBytes()));
                                      }
                                  } catch (Exception e) {
-                                     e.printStackTrace();
+                                     Log.Warn(this,e,"");
                                  }
                              }
                              if (error != null) {
@@ -168,7 +168,7 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
                                      key.cancel();
                                      client.close();
                                  } catch (IOException e) {
-                                     e.printStackTrace();
+                                     Log.Warn(this,e,"");
                                  }
                              }
                         });
@@ -182,7 +182,7 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
                     try {
                         client.close();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Log.Warn(this,e,"");
                     }
                 }
             }

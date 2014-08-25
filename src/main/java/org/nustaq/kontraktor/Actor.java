@@ -256,7 +256,11 @@ public class Actor<SELF extends Actor> implements Serializable {
         if ( __stopped ) {
             if ( methodName.equals("$stop") ) // ignore double stop
                 return null;
-            throw new RuntimeException("Actor " + this + " received message after being stopped " + methodName);
+            String senderString = sender.get() == null ? "null" : sender.get().getClass().getName();
+            String s = "DEAD LETTER: sender:" + senderString + " receiver::msg:" + receiver.getClass().getSimpleName() + "::" + methodName;
+            s = s.replace("_ActorProxy","");
+            Actors.AddDeadLetter(s);
+//            throw new RuntimeException("Actor " + this + " received message after being stopped " + methodName);
         }
         return __scheduler.enqueueCall(sender.get(), receiver, methodName, args);
     }

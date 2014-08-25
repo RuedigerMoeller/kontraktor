@@ -150,7 +150,9 @@ public class RemoteRefRegistry implements RemoteConnection {
     private void removeRemoteActor(Actor act) {
         remoteActorSet.remove(act.__remoteId);
         remoteActors.remove(act);
-        act.__stop();
+        try {
+            act.__stop();
+        } catch (ActorStoppedException ase) {}
     }
 
     protected void sendLoop(ObjectSocket channel) throws IOException {
@@ -193,7 +195,7 @@ public class RemoteRefRegistry implements RemoteConnection {
                             try {
                                 receiveCBResult(channel, read.getFutureKey(), r, e);
                             } catch (Exception ex) {
-                                ex.printStackTrace();
+                                Log.Warn(this,ex,"");
                             }
                         });
                     }
@@ -205,8 +207,7 @@ public class RemoteRefRegistry implements RemoteConnection {
                 }
             }
         } catch (Exception e) {
-            System.out.println(e);
-//            e.printStackTrace();
+            Log.Lg.infoLong(this,e,"");
         } finally {
             cleanUp();
         }
@@ -228,8 +229,11 @@ public class RemoteRefRegistry implements RemoteConnection {
             Actor remoteActor = iterator.next();
             CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
             if ( ce != null) {
+                if ( ce.getMethod().getName().equals("$close") ) {
+                    chan.close();
+                } else
                 if ( ce.getMethod().getName().equals("$stop") ) {
-                    new Thread( () -> {
+                    new Thread( () -> { // ??
                         try {
                             remoteActor.getActor().$stop();
                         } catch (ActorStoppedException ex) {}

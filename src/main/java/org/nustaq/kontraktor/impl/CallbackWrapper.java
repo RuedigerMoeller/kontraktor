@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.Filter;
 import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.util.Log;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
@@ -63,7 +64,7 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
             try {
                 receiveRes.invoke(realCallback, result, error);
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.Warn( this, e, "" );
             }
         } else {
             CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error}, Actor.sender.get(), targetActor);

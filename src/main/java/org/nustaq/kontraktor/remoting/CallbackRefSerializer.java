@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.remoting;
 
 import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTBasicObjectSerializer;
 import org.nustaq.serialization.FSTClazzInfo;
 import org.nustaq.serialization.FSTObjectInput;
@@ -37,7 +38,7 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
             try {
                 reg.receiveCBResult(chan,id,result,error);
             } catch (Exception e) {
-                e.printStackTrace();
+                Log.Warn(this, e, "");
             }
         };
         in.registerObject(cb, streamPositioin, serializationInfo, referencee);
