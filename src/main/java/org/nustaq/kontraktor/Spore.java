@@ -1,5 +1,7 @@
 package org.nustaq.kontraktor;
 
+import java.io.Serializable;
+
 /**
  * Created by ruedi on 26.08.2014.
  * <pre>
@@ -19,6 +21,7 @@ package org.nustaq.kontraktor;
  *             map = new HashMap();
  *         }
  *
+ *         // remotely executed
  *         public void body(Integer in, Callback<String> out) {
  *             System.out.println("executed later " + sx + " " + sy + " " + sz);
  *         }
@@ -26,6 +29,6 @@ package org.nustaq.kontraktor;
  * }
  * </pre>
  */
-public interface Spore<I,O> {
+public interface Spore<I,O> extends Serializable {
     public void body( I input, Callback<O> output );
 }
