@@ -3,6 +3,7 @@ package kontraktor;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.Promise;
 
+import java.util.HashMap;
 import java.util.concurrent.Callable;
 
 /**
@@ -32,16 +33,12 @@ public class Playground {
 
         public void doBlockingStuff( final String id ) {
             final Thread t = Thread.currentThread();
-            async( new Callable<String>() {
-                        public String call() throws Exception {
-                return "TEST"; //new Scanner(new URL("http://www.spiegel.org").openStream(), "UTF-8").useDelimiter("\\A").next();
-            }              }).then(new Callback<String>() {
-                public void receiveResult(String result, Object error) {
+            async( () -> "TEST" //new Scanner(new URL("http://www.spiegel.org").openStream(), "UTF-8").useDelimiter("\\A").next();
+            ).then( (result, error) -> {
                 if (t != Thread.currentThread()) {
                     System.out.println("Ooops !");
                 }
                 System.out.println("received website id:" + id + " size:" + result.length());
-                }
             });
         }
 
@@ -87,7 +84,37 @@ public class Playground {
         System.out.println("tim "+(numCalls/(System.currentTimeMillis()-tim))*1000+" calls per sec");
     }
 
-    public static void main( String arg[] ) throws InterruptedException {
+    public static class TestSpore {
+        int x = 100;
+        int y = 111;
+        String s = "pok";
+
+        public Spore<Integer,String> getSpore(int z) {
+            return new Spore<Integer,String>() {
+                // declare
+                int sx,sy,sz;
+                HashMap map;
+
+                {
+                    // capture
+                    sx = x; sy = y; sz = z;
+                    map = new HashMap();
+                }
+
+                public void body(Integer in, Callback<String> out) {
+                    System.out.println("executed later " + sx + " " + sy + " " + sz);
+                }
+            };
+        }
+    }
+
+    public static void main( String arg[] ) throws Exception {
+        TestSpore t = new TestSpore();
+        Spore c = t.getSpore(77);
+        System.out.println("pok");
+    }
+
+    public static void main_( String arg[] ) throws InterruptedException {
 
         SampleActor actorA = Actors.AsActor(SampleActor.class);
         final SampleActor actorB = Actors.AsActor(SampleActor.class);
