@@ -1,5 +1,7 @@
 package org.nustaq.kontraktor;
 
+import org.nustaq.kontraktor.impl.CallbackWrapper;
+
 import java.io.Serializable;
 
 /**
@@ -29,6 +31,33 @@ import java.io.Serializable;
  * }
  * </pre>
  */
-public interface Spore<I,O> extends Serializable {
-    public void body( I input, Callback<O> output );
+public abstract class Spore<I,O> implements Serializable {
+
+    Callback cb;
+
+    public Spore() {
+        Callback mycb = (res,err) -> local( (O)res, err );
+        if ( Actor.sender.get() != null ) {
+            this.cb = new CallbackWrapper<>(Actor.sender.get(),mycb);
+        } else {
+            this.cb = mycb;
+        }
+    }
+
+    public abstract void remote( I input );
+    public abstract void local(O result, Object error);
+
+    public void finished() {
+        // signal finish of execution, so remoting can clean up callback id mappings
+        // override if always single result or finish can be emited by the remote method
+        cb.receiveResult(null,null);
+    }
+
+    protected void receiveResult( O result, Object err ) {
+        cb.receiveResult(result,err);
+    }
+
+    public Callback<O> getCb() {
+        return cb;
+    }
 }

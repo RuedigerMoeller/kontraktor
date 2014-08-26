@@ -101,9 +101,16 @@ public class Playground {
                     map = new HashMap();
                 }
 
-                public void body(Integer in, Callback<String> out) {
+                @Override
+                public void remote(Integer input) {
                     System.out.println("executed later " + sx + " " + sy + " " + sz);
                 }
+
+                @Override
+                public void local(String result, Object error) {
+                    System.out.println("POK "+result);
+                }
+
             };
         }
     }
