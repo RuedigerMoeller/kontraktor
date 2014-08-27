@@ -28,7 +28,7 @@ import java.io.Serializable;
  * Typically used to receive results from outside the actor.
  * The underlying mechanics scans method arguments and schedules calls on the call back into the calling actors thread.
  * Note that the callback invocation is added as a message to the end of the calling actor.
- * e.g. actor.method( arg, new Callbacl() { public void receiveResult(T result, Object error ) { ..runs in caller thread.. } }
+ * e.g. actor.method( arg, new Callbacl() { public void receive(T result, Object error ) { ..runs in caller thread.. } }
  */
 public interface Callback<T> extends Serializable  // do not use interface, slows down instanceof significantly
 {
@@ -45,6 +45,6 @@ public interface Callback<T> extends Serializable  // do not use interface, slow
      * Note that any value except CONT will also close the callback channel. So this is informal.
      */
     public final String FIN = "FIN";
-    public void receiveResult(T result, Object error );
+    public void receive(T result, Object error);
 
 }

@@ -26,7 +26,7 @@ import java.util.List;
  *
  *     .. wild async processing ..
  *
- *     endsignalFuture.receiveResult("done",null); // will execute next event on bmw if present
+ *     endsignalFuture.receive("done",null); // will execute next event on bmw if present
  *   });
  *
  */
@@ -59,7 +59,7 @@ public class TicketMachine {
         final List<Ticket> finalFutures = futures;
         signalFin.then(new Callback() {
             @Override
-            public void receiveResult(Object result, Object error) {
+            public void receive(Object result, Object error) {
 //                System.out.println("rec "+channelKey+" do remove+checknext");
                 boolean remove = finalFutures.remove(ticket);
                 if ( ! remove )
@@ -69,7 +69,7 @@ public class TicketMachine {
 
         });
         if ( futures.size() == 1 ) { // this is the one and only call, start immediately
-            signalStart.receiveResult(signalFin,null);
+            signalStart.receive(signalFin, null);
         }
         return signalStart;
     }
@@ -81,7 +81,7 @@ public class TicketMachine {
         } else {
 //            System.out.println("continue "+channelKey);
             Ticket nextTicket = futures.get(0);
-            nextTicket.signalProcessingStart.receiveResult(nextTicket.signalProcessingFinished,null);
+            nextTicket.signalProcessingStart.receive(nextTicket.signalProcessingFinished, null);
         }
     }
 

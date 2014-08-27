@@ -21,10 +21,10 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
         new Thread(() -> {
             try {
                 client.connect();
-                res.receiveResult(client.getFacadeProxy(),null);
+                res.receive(client.getFacadeProxy(), null);
             } catch (IOException e) {
                 Log.Warn(TCPActorClient.class,e,"");
-                res.receiveResult(null, e);
+                res.receive(null, e);
             }
         }, "connect "+client.getDescriptionString()).start();
         return res;

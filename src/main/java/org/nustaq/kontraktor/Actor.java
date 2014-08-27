@@ -266,7 +266,7 @@ public class Actor<SELF extends Actor> implements Serializable {
         getActorRef().__stopped = true;
         getActor().__stopped = true;
         if (__stopHandlers!=null) {
-            __stopHandlers.forEach( (cb) -> cb.receiveResult(self(),null) );
+            __stopHandlers.forEach( (cb) -> cb.receive(self(), null) );
             __stopHandlers.clear();
         }
         throw ActorStoppedException.Instance;

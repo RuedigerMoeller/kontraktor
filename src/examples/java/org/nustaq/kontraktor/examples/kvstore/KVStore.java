@@ -58,9 +58,7 @@ public class KVStore extends Actor<KVStore> {
     }
 
     public void $stream( Spore spore ) {
-        store.values().forEachRemaining((v) -> {
-            spore.remote(v);
-        });
+        store.values().forEachRemaining((v) -> spore.remote(v) );
         spore.remote(Callback.FIN);
     }
 

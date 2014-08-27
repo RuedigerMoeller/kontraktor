@@ -211,8 +211,8 @@ public class DispatcherThread extends Thread {
                     invokeResult.then(
                         new Callback() {
                             @Override
-                            public void receiveResult(Object result, Object error) {
-                                futureCB.receiveResult(result, error);
+                            public void receive(Object result, Object error) {
+                                futureCB.receive(result, error);
                             }
                         }
                     );
@@ -226,7 +226,7 @@ public class DispatcherThread extends Thread {
                     return true;
                 }
                 if (poll.getFutureCB() != null)
-                    poll.getFutureCB().receiveResult(null, e);
+                    poll.getFutureCB().receive(null, e);
                 Log.Warn(this,e,"");
             }
         }

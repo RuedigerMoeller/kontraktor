@@ -6,7 +6,6 @@ import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.Promise;
 import org.junit.Test;
-import org.nustaq.kontraktor.impl.ElasticScheduler;
 
 import java.net.URL;
 import java.util.*;
@@ -63,7 +62,7 @@ public class BasicTest {
         }
           
         public void getResult( Callback<Integer> cb ) {
-            cb.receiveResult(count,null);
+            cb.receive(count, null);
         }
     }
 
@@ -76,7 +75,7 @@ public class BasicTest {
         final CountDownLatch latch = new CountDownLatch(1);
         bs.getResult( new Callback<Integer>() {
             @Override
-            public void receiveResult(Integer result, Object error) {
+            public void receive(Integer result, Object error) {
                 assertTrue(result.intValue()==10);
                 bs.$stop();
                 latch.countDown();
@@ -182,11 +181,11 @@ public class BasicTest {
     public static class Overload extends Actor {
 
         public void a(int x, Callback<Integer> cb) {
-            cb.receiveResult(x,null);
+            cb.receive(x, null);
         }
 
         public void a(int x, int y, Callback<Integer> cb) {
-            cb.receiveResult(y,null);
+            cb.receive(y, null);
         }
 
     }
@@ -262,7 +261,7 @@ public class BasicTest {
 
             yield(results).then(new Callback<Future[]>() {
                 @Override
-                public void receiveResult(Future[] result, Object error) {
+                public void receive(Future[] result, Object error) {
                     System.out.println("now "+System.currentTimeMillis());
                     for (int i = 0; i < result.length; i++) {
                         Future future = result[i];
@@ -312,11 +311,11 @@ public class BasicTest {
             ).then(
                     new Callback<String>() {
                         @Override
-                        public void receiveResult(String result, Object error) {
+                        public void receive(String result, Object error) {
                             if (Thread.currentThread() == myThread) {
-                                content.receiveResult(result, null);
+                                content.receive(result, null);
                             } else {
-                                content.receiveResult(null, "wrong thread");
+                                content.receive(null, "wrong thread");
                             }
                         }
                     });
@@ -345,8 +344,8 @@ public class BasicTest {
             ft.getString("13")
                 .then(new Callback<String>() {
                     @Override
-                    public void receiveResult(String result, Object error) {
-                        stringResult.receiveResult(result, null);
+                    public void receive(String result, Object error) {
+                        stringResult.receive(result, null);
                     }
                 });
             return stringResult;
@@ -356,8 +355,8 @@ public class BasicTest {
             ft.getString("13")
                     .then(new Callback<String>() {
                         @Override
-                        public void receiveResult(String result, Object error) {
-                            stringResult.receiveResult(result, null);
+                        public void receive(String result, Object error) {
+                            stringResult.receive(result, null);
                         }
                     });
         }
@@ -369,7 +368,7 @@ public class BasicTest {
         final AtomicReference<String> outerresult0 = new AtomicReference<>();
         ft.getString("oj").then(new Callback<String>() {
             @Override
-            public void receiveResult(String result, Object error) {
+            public void receive(String result, Object error) {
                 System.out.println("simple:" + result);
                 outerresult0.set(result);
             }
@@ -382,7 +381,7 @@ public class BasicTest {
         test.doTestCall()
             .then(new Callback<String>() {
                 @Override
-                public void receiveResult(String result, Object error) {
+                public void receive(String result, Object error) {
                     System.out.println("outer result " + result);
                     outerresult.set(result);
                 }
@@ -393,7 +392,7 @@ public class BasicTest {
         test.doTestCall1(f);
         f.then(new Callback<String>() {
             @Override
-            public void receiveResult(String result, Object error) {
+            public void receive(String result, Object error) {
                 System.out.println("outer1 result:"+result);
                 outerresult1.set(result);
             }
@@ -470,7 +469,7 @@ public class BasicTest {
         TestBlockingAPI actor = AsActor(TestBlockingAPI.class);
         actor.get("http://www.google.com" ).then( new Callback<String>() {
             @Override
-            public void receiveResult(String result, Object error) {
+            public void receive(String result, Object error) {
             if ( error != null )
                 success.set(1);
             else

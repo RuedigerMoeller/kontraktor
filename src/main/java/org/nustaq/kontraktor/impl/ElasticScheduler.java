@@ -77,8 +77,8 @@ public class ElasticScheduler implements Scheduler {
             fut = new Promise();
             e.setFutureCB(new CallbackWrapper( e.getSendingActor() ,new Callback() {
                 @Override
-                public void receiveResult(Object result, Object error) {
-                    fut.receiveResult(result,error);
+                public void receive(Object result, Object error) {
+                    fut.receive(result, error);
                 }
             }));
         } else
@@ -216,9 +216,9 @@ public class ElasticScheduler implements Scheduler {
         final CallbackWrapper<T> resultWrapper = new CallbackWrapper<>(emitter,resultHandler);
         exec.execute(() -> {
             try {
-                resultWrapper.receiveResult(toCall.call(), null);
+                resultWrapper.receive(toCall.call(), null);
             } catch (Throwable th) {
-                resultWrapper.receiveResult(null, th);
+                resultWrapper.receive(null, th);
             }
         });
     }

@@ -13,7 +13,7 @@ public interface Future<T> extends Callback<T> {
     public T getResult();
 
     /**
-     * same as receiveResult(null,null)
+     * same as receive(null,null)
      */
     public void signal();
 }

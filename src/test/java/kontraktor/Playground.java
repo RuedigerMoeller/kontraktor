@@ -4,7 +4,6 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.Promise;
 
 import java.util.HashMap;
-import java.util.concurrent.Callable;
 
 /**
  * Created by moelrue on 05.05.2014.
@@ -46,7 +45,7 @@ public class Playground {
             if ( other != null )
                 other.service(in, result);
             else
-                result.receiveResult(in + "-result"+" in Thread "+Thread.currentThread().getName(),null);
+                result.receive(in + "-result" + " in Thread " + Thread.currentThread().getName(), null);
         }
 
         public Future<String> getFutureString() {
@@ -59,11 +58,11 @@ public class Playground {
             final Thread curt = Thread.currentThread();
             pokpok.then(new Callback<String>() {
                 @Override
-                public void receiveResult(String result, Object error) {
+                public void receive(String result, Object error) {
                     if (Thread.currentThread()!=curt) throw new RuntimeException("wrong thread");
                     System.out.println("concat thread "+System.identityHashCode(curt));
                     result+="POKPOK";
-                    resultFuture.receiveResult(result,null);
+                    resultFuture.receive(result, null);
                 }
             });
             return resultFuture;
@@ -133,7 +132,7 @@ public class Playground {
         final Future<String> futureString = actorA.getFutureString();
         actorB.concat(futureString).then(new Callback<String>() {
             @Override
-            public void receiveResult(String result, Object error) {
+            public void receive(String result, Object error) {
                 System.out.println("uter result thread "+System.identityHashCode(Thread.currentThread()));
                 System.out.println("result:" + result);
             }
@@ -146,7 +145,7 @@ public class Playground {
             Thread.sleep(1000);
             actorA.service("Hallo", new Callback<String>() {
                 @Override
-                public void receiveResult(String result, Object error) {
+                public void receive(String result, Object error) {
                     System.out.println("forward result in "+Thread.currentThread().getName());
                     actorB.printStuff(result);
                 }

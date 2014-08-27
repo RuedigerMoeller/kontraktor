@@ -118,12 +118,12 @@ public class Actors {
         if ( index < futures.length ) {
             futures[index].then(new Callback() {
                 @Override
-                public void receiveResult(Object res, Object error) {
+                public void receive(Object res, Object error) {
                     yield(futures, index + 1, result);
                 }
             });
         } else {
-            result.receiveResult(futures, null);
+            result.receive(futures, null);
         }
     }
 
@@ -131,12 +131,12 @@ public class Actors {
         if ( index < futures.size() ) {
             futures.get(index).then(new Callback() {
                 @Override
-                public void receiveResult(Object res, Object error) {
+                public void receive(Object res, Object error) {
                     yield(futures, index + 1, result);
                 }
             });
         } else {
-            result.receiveResult(futures, null);
+            result.receive(futures, null);
         }
     }
 

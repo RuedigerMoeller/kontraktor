@@ -40,7 +40,7 @@ public abstract class Spore<I,O> implements Serializable {
     public Spore() {
         Callback mycb = new Callback() {
             @Override
-            public void receiveResult(Object result, Object error) {
+            public void receive(Object result, Object error) {
                 local( (O)result, error );
             }
         };
@@ -54,11 +54,11 @@ public abstract class Spore<I,O> implements Serializable {
         // signal finish of execution, so remoting can clean up callback id mappings
         // override if always single result or finish can be emitted by the remote method
         // note one can send FIN to avoid the final message to visible to receiver callback/spore
-        cb.receiveResult(null, Callback.FINSILENT);
+        cb.receive(null, Callback.FINSILENT);
     }
 
-    protected void receiveResult( O result, Object err ) {
-        cb.receiveResult(result,err);
+    protected void receive(O result, Object err) {
+        cb.receive(result, err);
     }
 
     public Callback<O> getCb() {

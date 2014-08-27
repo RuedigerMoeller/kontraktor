@@ -65,7 +65,7 @@ public class RestActorServer {
         try {
             HttpMsgCoder coder = target.getCoder(req.getAccept()) == null ? target.getCoder("text/json") : target.getCoder(req.getAccept());
             final RemoteCallEntry[] calls = coder.decodeFrom(content, req);
-            response.receiveResult(RequestResponse.MSG_200, null);
+            response.receive(RequestResponse.MSG_200, null);
             AtomicInteger countDown = new AtomicInteger(calls.length);
             for (int i = 0; i < calls.length; i++) {
                 RemoteCallEntry call = calls[i];
@@ -92,17 +92,17 @@ public class RestActorServer {
                         countDown.decrementAndGet();
                     }
                     String fin = countDown.get() <= 0 ? RequestProcessor.FINISHED : null;
-                    RemoteCallEntry resCall = new RemoteCallEntry(0, finalCB, "receiveResult", new Object[]{r, "" + e});
+                    RemoteCallEntry resCall = new RemoteCallEntry(0, finalCB, "receive", new Object[]{r, "" + e});
                     resCall.setQueue(resCall.CBQ);
 
                     try {
                         final String encode = coder.encode(resCall);
 //                        System.out.println("resp:\n"+encode);
-                        response.receiveResult(new RequestResponse(encode), isContinue ? null : fin);
+                        response.receive(new RequestResponse(encode), isContinue ? null : fin);
                     } catch (Exception ex) {
                         Log.Warn(this, ex, "");
-//                        response.receiveResult(RequestResponse.MSG_500, null);
-                        response.receiveResult(new RequestResponse(FSTUtil.toString(ex)), fin);
+//                        response.receive(RequestResponse.MSG_500, null);
+                        response.receive(new RequestResponse(FSTUtil.toString(ex)), fin);
                     }
                 };
 
@@ -111,22 +111,22 @@ public class RestActorServer {
                 for (int ii = 0; ii < parameterTypes.length; ii++) {
                     Class<?> parameterType = parameterTypes[ii];
                     if (Actor.class.isAssignableFrom(parameterType)) {
-//                        response.receiveResult(RequestResponse.MSG_500, null);
-                        response.receiveResult(new RequestResponse(
-                            "method not http enabled, actor remote references " +
-                            "cannot be supported for Http based REST (use TCP stack)"),
-                            RequestProcessor.FINISHED
-                        );
+//                        response.receive(RequestResponse.MSG_500, null);
+                        response.receive(new RequestResponse(
+                                             "method not http enabled, actor remote references " +
+                                                 "cannot be supported for Http based REST (use TCP stack)"),
+                                         RequestProcessor.FINISHED
+                                        );
                         return;
                     }
                     if (Callback.class.isAssignableFrom(parameterType)) {
                         if (cbCount > 0 || Future.class.isAssignableFrom(m.getReturnType())) {
-//                            response.receiveResult(RequestResponse.MSG_500, null);
-                            response.receiveResult(new RequestResponse(
-                                "method not http enabled, more than one callback " +
-                                "object in args, or callback and also returns future"),
-                                RequestProcessor.FINISHED
-                            );
+//                            response.receive(RequestResponse.MSG_500, null);
+                            response.receive(new RequestResponse(
+                                                 "method not http enabled, more than one callback " +
+                                                     "object in args, or callback and also returns future"),
+                                             RequestProcessor.FINISHED
+                                            );
                             return;
                         }
                         cbCount++;
@@ -140,13 +140,13 @@ public class RestActorServer {
                 } else if (m.getReturnType() == void.class && cbCount == 0) {
                     respPerS.count();
                     if ( countDown.decrementAndGet() == 0 ) {
-                        response.receiveResult(null, RequestProcessor.FINISHED);
+                        response.receive(null, RequestProcessor.FINISHED);
                     }
                 }
             }
         } catch (Exception e) {
             Log.Warn(this,e,"");
-            response.receiveResult(RequestResponse.MSG_500, ""+e);
+            response.receive(RequestResponse.MSG_500, "" + e);
         }
     }
 
@@ -174,8 +174,8 @@ public class RestActorServer {
                 String actor = req.getPath(0);
                 final PublishedActor target = publishedActors.get(actor);
                 if ( target == null ) {
-                    response.receiveResult(RequestResponse.MSG_404, null);
-                    response.receiveResult(null, FINISHED);
+                    response.receive(RequestResponse.MSG_404, null);
+                    response.receive(null, FINISHED);
                 } else {
                     enqueueCall(target, req, response);
                 }
@@ -183,14 +183,14 @@ public class RestActorServer {
                 String actor = req.getPath(0);
                 final PublishedActor target = publishedActors.get(actor);
                 if ( target == null ) {
-                    response.receiveResult(RequestResponse.MSG_404, null);
-                    response.receiveResult(null, FINISHED);
+                    response.receive(RequestResponse.MSG_404, null);
+                    response.receive(null, FINISHED);
                 } else {
                     enqueueCall(target, req.getText().toString(), req, response);
                 }
             } else {
-                response.receiveResult(RequestResponse.MSG_404, null);
-                response.receiveResult(null, FINISHED);
+                response.receive(RequestResponse.MSG_404, null);
+                response.receive(null, FINISHED);
             }
         }
     }

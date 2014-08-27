@@ -1,9 +1,6 @@
 package org.nustaq.kontraktor.util;
 
-import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.Filter;
 import org.nustaq.kontraktor.Future;
-import org.nustaq.kontraktor.Promise;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -31,14 +28,14 @@ public class FutureLatch<T> {
         count = new AtomicInteger(counter);
     }
 
-    public void receiveResult(T result, Object error) {
+    public void receive(T result, Object error) {
         countDown(result,error);
     }
 
     public void countDown(T result, Object error) {
         int i = count.decrementAndGet();
         if ( i == 0 ) {
-            wrapped.receiveResult(result,error);
+            wrapped.receive(result, error);
         } else if ( i < 0 ) {
             throw new RuntimeException("latch already triggered !");
         }

@@ -9,7 +9,6 @@ import org.nustaq.kontraktor.annotations.InThread;
 import org.nustaq.kontraktor.impl.ElasticScheduler;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by ruedi on 14.06.14.
@@ -29,7 +28,7 @@ public class CallbackTest {
 
         public void $method(Callback cb) {
 //            LockSupport.parkNanos(1);
-            cb.receiveResult("void", null);
+            cb.receive("void", null);
         }
 
         public void $ping( CBTCallActor pong, Callback cb ) {
@@ -39,7 +38,7 @@ public class CallbackTest {
 
         public void $pongong( Callback cb ) {
             assertTrue(Thread.currentThread() == __currentDispatcher);
-            cb.receiveResult("yuppie","none");
+            cb.receive("yuppie", "none");
         }
 
         public void $customCB( @InThread MyCB cb ) {
@@ -58,7 +57,7 @@ public class CallbackTest {
             cbt = Actors.AsActor(CBTActor.class, new ElasticScheduler(4,10000)); //  ensure different thread
             cbt.$method(new Callback() {
                 @Override
-                public void receiveResult(Object result, Object error) {
+                public void receive(Object result, Object error) {
                     assertTrue(__currentDispatcher == Thread.currentThread());
                 }
             });
@@ -85,7 +84,7 @@ public class CallbackTest {
         public void $sendPing() {
             cbt.$ping(self(), new Callback() {
                 @Override
-                public void receiveResult(Object result, Object error) {
+                public void receive(Object result, Object error) {
                     assertTrue(Thread.currentThread() == __currentDispatcher);
                     assertTrue("yuppie".equals(result));
                     assertTrue("none".equals(error));
@@ -121,7 +120,7 @@ public class CallbackTest {
         final CBTActor cbt = Actors.AsActor(CBTActor.class);
         cbt.$method(new Callback() {
             @Override
-            public void receiveResult(Object result, Object error) {
+            public void receive(Object result, Object error) {
                 assertTrue(Thread.currentThread() == cbt.__currentDispatcher);
             }
         });

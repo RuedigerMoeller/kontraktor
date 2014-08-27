@@ -202,7 +202,7 @@ public class RemoteRefRegistry implements RemoteConnection {
                     }
                 } else if (read.getQueue() == read.CBQ) {
                     Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
-                    publishedCallback.receiveResult(read.getArgs()[0],read.getArgs()[1]); // is a wrapper enqueuing in caller
+                    publishedCallback.receive(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
                     if (!isContinue)
                         removePublishedObject(read.getReceiverKey());
                 }

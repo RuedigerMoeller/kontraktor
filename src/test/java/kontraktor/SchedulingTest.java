@@ -110,7 +110,7 @@ public class SchedulingTest {
             }
             yield(results).then( new Callback<Future[]>() {
                 @Override
-                public void receiveResult(Future[] results, Object error) {
+                public void receive(Future[] results, Object error) {
                     boolean hadDiff = false;
                     long prev = (long) results[0].getResult();
                     for (int i = 0; i < results.length; i++) {
@@ -130,7 +130,7 @@ public class SchedulingTest {
                             }
                         }
                     }
-                    done.receiveResult("void",null);
+                    done.receive("void", null);
                 }
             });
             return done;
@@ -173,7 +173,7 @@ public class SchedulingTest {
         }
         act.$dumpCalls().then(new Callback() {
             @Override
-            public void receiveResult(Object result, Object error) {
+            public void receive(Object result, Object error) {
                 act.$stop();
                     new Thread() { public void run() {
                         try {

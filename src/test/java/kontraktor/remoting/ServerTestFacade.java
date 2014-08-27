@@ -18,7 +18,7 @@ public class ServerTestFacade extends Actor<ServerTestFacade> {
     }
 
     public void $testCallWithCB( long time, Callback<String> cb ) {
-        cb.receiveResult(new Date(time).toString(),null);
+        cb.receive(new Date(time).toString(), null);
     }
 
     RateMeasure measure = new RateMeasure("calls",1000);

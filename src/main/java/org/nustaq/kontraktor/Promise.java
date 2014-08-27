@@ -47,7 +47,7 @@ public class Promise<T> implements Future<T> {
         final Promise<OUT> promise = new Promise<>();
         then(new Callback<T>() {
             @Override
-            public void receiveResult(T result, Object error) {
+            public void receive(T result, Object error) {
                 filter.map(result, error).then(promise);
             }
         });
@@ -67,7 +67,7 @@ public class Promise<T> implements Future<T> {
             hasFired = true;
             lock.set(false);
             nextFuture = new Promise(result,error);
-            resultCB.receiveResult( result, error );
+            resultCB.receive(result, error);
             return nextFuture;
         } else {
             lock.set(false);
@@ -79,10 +79,10 @@ public class Promise<T> implements Future<T> {
     }
 
     @Override
-    public final void receiveResult(Object res, Object error) {
+    public final void receive(Object res, Object error) {
         // ensure correct thread in case actor cascades futures
 //        if ( Thread.currentThread() != currentThread && currentThread instanceof DispatcherThread) {
-//            new CallbackWrapper((DispatcherThread) currentThread, this).receiveResult(res, error);
+//            new CallbackWrapper((DispatcherThread) currentThread, this).receive(res, error);
 //        }
 //        else
         {
@@ -101,10 +101,10 @@ public class Promise<T> implements Future<T> {
                 }
                 hasFired = true;
                 lock.set(false);
-                resultReceiver.receiveResult(result,error);
+                resultReceiver.receive(result, error);
                 resultReceiver = null;
                 if ( nextFuture != null )
-                    nextFuture.receiveResult(result,error);
+                    nextFuture.receive(result, error);
                 return;
             } else {
                 lock.set(false);
@@ -118,7 +118,7 @@ public class Promise<T> implements Future<T> {
 
     @Override
     public void signal() {
-        receiveResult(null,null);
+        receive(null, null);
     }
 
     public Object getError() {
