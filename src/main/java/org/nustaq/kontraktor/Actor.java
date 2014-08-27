@@ -75,8 +75,11 @@ public class Actor<SELF extends Actor> implements Serializable {
      */
     public static final String FIN = Callback.FIN;
 
-    public static boolean isFin(Object o) {
-        return FIN.equals(o);
+    public static boolean Fin(Object o) {
+        return FIN.equals(o) || FINSILENT.equals(o) || o == null;
+    }
+    public static boolean Cont(Object o) {
+        return CONT.equals(o);
     }
 
 

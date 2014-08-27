@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.examples.kvstore;
 
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.Spore;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
@@ -46,15 +47,15 @@ public class KVStoreTCPClient {
                                 }
                             } else {
                                 System.out.println("no match "+input);
-                                if ( Callback.FIN.equals(input) ) {
-                                    receive(hits, Callback.FIN);
+                                if ( Actor.Fin(input) ) {
+                                    receive(hits, Actor.FIN);
                                 }
                             }
                         }
 
                         @Override
                         public void local(Object result, Object error) {
-                            if ( Callback.FIN.equals(error) ) {
+                            if ( Actor.Fin(error) ) {
                                 System.out.println("Hits:"+result);
                             }
                             System.out.println("local received match "+result);
@@ -69,8 +70,8 @@ public class KVStoreTCPClient {
 
                         @Override
                         public void remote(Object input) {
-                            if (Callback.FIN.equals(input)) {
-                                receive(count, Callback.FIN);
+                            if (Actor.Fin(input)) {
+                                receive(count, Actor.FIN);
                             } else {
                                 count++;
                             }
