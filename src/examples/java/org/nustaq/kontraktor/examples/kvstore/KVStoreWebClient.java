@@ -19,7 +19,6 @@ public class KVStoreWebClient {
         for (int i=0; i<10; i++) {
             proxy.$put( "HelloHttp"+i, new Object[] { "from Http client", new Point(i,2*i) } );
         }
-        proxy.$streamValues( (r,e) -> System.out.println(r));
         proxy.$get("HelloHttp7").then((r, e) -> System.out.println("future:" + r));
         LockSupport.parkNanos(1000*1000*50);
         proxy.$get("HelloHttp6").then((r, e) -> System.out.println("future:" + r));

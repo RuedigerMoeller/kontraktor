@@ -41,6 +41,7 @@ public class RemoteRefRegistry implements RemoteConnection {
     public RemoteRefRegistry() {
         conf.registerSerializer(Actor.class,new ActorRefSerializer(this),true);
         conf.registerSerializer(CallbackWrapper.class, new CallbackRefSerializer(this), true);
+        conf.registerSerializer(Spore.class, new SporeRefSerializer(), true);
         conf.registerClass(RemoteCallEntry.class);
     }
 
@@ -179,9 +180,9 @@ public class RemoteRefRegistry implements RemoteConnection {
                     continue;
                 }
                 RemoteCallEntry read = (RemoteCallEntry) response;
-                boolean isContinue = read.getArgs().length > 1 && Callback.CONTINUE.equals(read.getArgs()[1]);
+                boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
                 if ( isContinue )
-                    read.getArgs()[1] = Callback.CONTINUE; // enable ==
+                    read.getArgs()[1] = Callback.CONT; // enable ==
                 if (read.getQueue() == read.MAILBOX) {
                     Actor targetActor = getPublishedActor(read.getReceiverKey());
                     if (targetActor==null) {
@@ -195,7 +196,7 @@ public class RemoteRefRegistry implements RemoteConnection {
                             try {
                                 receiveCBResult(channel, read.getFutureKey(), r, e);
                             } catch (Exception ex) {
-                                Log.Warn(this,ex,"");
+                                Log.Warn(this, ex, "");
                             }
                         });
                     }
@@ -207,7 +208,7 @@ public class RemoteRefRegistry implements RemoteConnection {
                 }
             }
         } catch (Exception e) {
-            Log.Lg.infoLong(this,e,"");
+            Log.Lg.infoLong(this, e, "");
         } finally {
             cleanUp();
         }
@@ -276,6 +277,9 @@ public class RemoteRefRegistry implements RemoteConnection {
     }
 
     public void receiveCBResult(ObjectSocket chan, int id, Object result, Object error) throws Exception {
+        if ( Callback.FINSILENT.equals(error) ) {
+            return;
+        }
         RemoteCallEntry rce = new RemoteCallEntry(0, id, null, new Object[] {result,error});
         rce.setQueue(rce.CBQ);
         writeObject(chan, rce);

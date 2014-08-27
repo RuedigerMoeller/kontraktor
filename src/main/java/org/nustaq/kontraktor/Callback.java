@@ -22,15 +22,29 @@ package org.nustaq.kontraktor;
  * Time: 14:22
  */
 
+import java.io.Serializable;
+
 /**
  * Typically used to receive results from outside the actor.
  * The underlying mechanics scans method arguments and schedules calls on the call back into the calling actors thread.
  * Note that the callback invocation is added as a message to the end of the calling actor.
  * e.g. actor.method( arg, new Callbacl() { public void receiveResult(T result, Object error ) { ..runs in caller thread.. } }
  */
-public interface Callback<T>  // do not use interface, slows down instanceof significantly
+public interface Callback<T> extends Serializable  // do not use interface, slows down instanceof significantly
 {
-    public final String CONTINUE = "CNT";
+    /**
+     * use value to signal no more messages. THE RECEIVER CALLBACK WILL NOT SEE THIS MESSAGE.
+     */
+    public final String FINSILENT = "EOT";
+    /**
+     * use value as error to indicate more messages are to come (else remoting will close channel).
+     */
+    public final String CONT = "CNT";
+    /**
+     * use this value to signal no more messages. The receiver callback will receive the message.
+     * Note that any value except CONT will also close the callback channel. So this is informal.
+     */
+    public final String FIN = "FIN";
     public void receiveResult(T result, Object error );
 
 }

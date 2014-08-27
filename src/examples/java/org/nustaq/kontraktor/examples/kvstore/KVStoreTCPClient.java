@@ -1,11 +1,11 @@
 package org.nustaq.kontraktor.examples.kvstore;
 
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.Spore;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 /**
@@ -17,10 +17,71 @@ public class KVStoreTCPClient {
         TCPActorClient.Connect(KVStore.class, "localhost", 4444)
         .then((store, err) -> {
             try {
-                store.$streamValues((r, e) -> System.out.println("streamed:"+r) );
-                store.$put("TCP_Value", new SampleRecord(new URL("http://ruedigermoeller.github.io/"), 13, 1, "n/a"));
-                store.$get("TCP_Value").then( (r, e) -> System.out.println(r) );
+//                store.$streamValues((r, e) -> System.out.println("streamed:"+r) );
+                long now = System.currentTimeMillis();
+                for ( int i = 0; i < 100000; i++ ) {
+                    store.$put("TCP_Value_"+i, new SampleRecord(new URL("http://ruedigermoeller.github.io/"), i, 1, "n/a"));
+                }
+                store.$sync().then((r,e) -> System.out.println( "Time:"+(System.currentTimeMillis()-now) ) );
+
+                store.$get("TCP_Value_1").then((r, e) -> System.out.println("TCP_Value_1:" + r));
                 store.$get("Null").then( (r,e) -> System.out.println("null:"+r) );
+
+                store.$stream(
+                    new Spore() {
+
+                        int hits;
+
+                        {
+                            hits = 0;
+                        }
+
+                        @Override
+                        public void remote(Object input) {
+                            if ( input instanceof SampleRecord ) {
+                                if ( ((SampleRecord) input).getHits() > 10 && ((SampleRecord) input).getHits() < 100 ) {
+                                    System.out.println("remote " + input);
+                                    receiveResult(input, Callback.CONT);
+                                    hits++;
+                                }
+                            } else {
+                                System.out.println("no match "+input);
+                                if ( Callback.FIN.equals(input) ) {
+                                    receiveResult(hits,Callback.FIN);
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void local(Object result, Object error) {
+                            if ( Callback.FIN.equals(error) ) {
+                                System.out.println("Hits:"+result);
+                            }
+                            System.out.println("local received match "+result);
+                        }
+                    }
+                );
+
+                store.$stream(
+                    new Spore() {
+
+                        int count = 0;
+
+                        @Override
+                        public void remote(Object input) {
+                            if (Callback.FIN.equals(input)) {
+                                receiveResult(count, Callback.FIN);
+                            } else {
+                                count++;
+                            }
+                        }
+
+                        @Override
+                        public void local(Object result, Object error) {
+                            System.out.println("Number of entries "+result);
+                        }
+                    }
+                );
 
                 Thread.sleep(2000);
                 store.$stop(); // disconnects !
@@ -41,6 +102,22 @@ public class KVStoreTCPClient {
             this.hits = hits;
             this.desc = desc;
             this.unique = unique;
+        }
+
+        public URL getUrl() {
+            return url;
+        }
+
+        public int getHits() {
+            return hits;
+        }
+
+        public int getUnique() {
+            return unique;
+        }
+
+        public String getDesc() {
+            return desc;
         }
 
         @Override

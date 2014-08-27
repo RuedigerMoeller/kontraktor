@@ -1,20 +1,21 @@
 package org.nustaq.kontraktor.remoting;
 
-import org.nustaq.serialization.FSTBasicObjectSerializer;
-import org.nustaq.serialization.FSTClazzInfo;
-import org.nustaq.serialization.FSTObjectInput;
-import org.nustaq.serialization.FSTObjectOutput;
+import org.nustaq.kontraktor.Spore;
+import org.nustaq.serialization.*;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 
 /**
  * Created by ruedi on 26.08.14.
+ *
+ * FIXME: pobably not needed anymore beacuse of @AnonymousTransient
  */
 public class SporeRefSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public void readObject(FSTObjectInput in, Object toRead, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy) throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException {
-        super.readObject(in, toRead, clzInfo, referencedBy);
+        in.defaultReadObject(referencedBy,clzInfo,toRead);
     }
 
     @Override
@@ -24,6 +25,7 @@ public class SporeRefSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
-
+        out.defaultWriteObject(toWrite, clzInfo);
     }
+
 }

@@ -11,7 +11,6 @@ import org.nustaq.kontraktor.util.RateMeasure;
 import org.nustaq.serialization.util.FSTUtil;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -87,7 +86,7 @@ public class RestActorServer {
                 int finalCB = cbid;
                 final Method m = target.getActor().__getCachedMethod(call.getMethod(), target.getActor());
                 Callback cb = (r, e) -> {
-                    boolean isContinue = Callback.CONTINUE == e;
+                    boolean isContinue = Callback.CONT == e;
                     respPerS.count();
                     if ( !isContinue ) {
                         countDown.decrementAndGet();

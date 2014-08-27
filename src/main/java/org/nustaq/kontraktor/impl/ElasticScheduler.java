@@ -27,7 +27,7 @@ public class ElasticScheduler implements Scheduler {
 
     public static int DEFQSIZE = 16384;
     public static boolean DEBUG_SCHEDULING = true;
-    public static int BLOCK_COUNT_WARNING_THRESHOLD = 5000;
+    public static int BLOCK_COUNT_WARNING_THRESHOLD = 10000;
 
     int maxThread = Runtime.getRuntime().availableProcessors();
     protected BackOffStrategy backOffStrategy = new BackOffStrategy();

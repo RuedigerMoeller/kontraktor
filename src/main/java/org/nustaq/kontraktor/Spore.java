@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor;
 
 import org.nustaq.kontraktor.impl.CallbackWrapper;
+import org.nustaq.serialization.annotations.AnonymousTransient;
 
 import java.io.Serializable;
 
@@ -31,17 +32,19 @@ import java.io.Serializable;
  * }
  * </pre>
  */
+@AnonymousTransient
 public abstract class Spore<I,O> implements Serializable {
 
     Callback cb;
 
     public Spore() {
-        Callback mycb = (res,err) -> local( (O)res, err );
-        if ( Actor.sender.get() != null ) {
-            this.cb = new CallbackWrapper<>(Actor.sender.get(),mycb);
-        } else {
-            this.cb = mycb;
-        }
+        Callback mycb = new Callback() {
+            @Override
+            public void receiveResult(Object result, Object error) {
+                local( (O)result, error );
+            }
+        };
+        this.cb = new CallbackWrapper<>(Actor.sender.get(),mycb);
     }
 
     public abstract void remote( I input );
@@ -49,8 +52,9 @@ public abstract class Spore<I,O> implements Serializable {
 
     public void finished() {
         // signal finish of execution, so remoting can clean up callback id mappings
-        // override if always single result or finish can be emited by the remote method
-        cb.receiveResult(null,null);
+        // override if always single result or finish can be emitted by the remote method
+        // note one can send FIN to avoid the final message to visible to receiver callback/spore
+        cb.receiveResult(null, Callback.FINSILENT);
     }
 
     protected void receiveResult( O result, Object err ) {

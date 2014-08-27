@@ -35,6 +35,10 @@ public class KVStore extends Actor<KVStore> {
         return new Promise("void");
     }
 
+    public Future $sync() {
+        return new Promise<>("void");
+    }
+
     public Future $get(String key) {
         return new Promise<>(store.get(key));
     }
@@ -53,9 +57,11 @@ public class KVStore extends Actor<KVStore> {
         return new Promise<>((int)(store.getFreeMem()/1024/1024));
     }
 
-    public void $streamValues( Callback cb ) {
-        store.values().forEachRemaining((v) -> cb.receiveResult(v, cb.CONTINUE));
-        cb.receiveResult("EOT", null ); // required to unregister cb
+    public void $stream( Spore spore ) {
+        store.values().forEachRemaining((v) -> {
+            spore.remote(v);
+        });
+        spore.remote(Callback.FIN);
     }
 
     @Override

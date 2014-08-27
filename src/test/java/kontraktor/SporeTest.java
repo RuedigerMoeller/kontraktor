@@ -59,7 +59,7 @@ public class SporeTest {
                     public void remote(String input) {
                         assert  Thread.currentThread().getName().equals("DataHolder");
                         if (input.indexOf(subs) >= 0) {
-                            receiveResult(input, Callback.CONTINUE);
+                            receiveResult(input, Callback.CONT);
                         }
                     }
 

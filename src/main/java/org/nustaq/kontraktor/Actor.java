@@ -59,6 +59,27 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  */
 public class Actor<SELF extends Actor> implements Serializable {
 
+    // constants from Callback class for convenience
+
+    /**
+     * use value to signal no more messages. THE RECEIVER CALLBACK WILL NOT SEE THIS MESSAGE.
+     */
+    public static final String FINSILENT = Callback.FINSILENT;
+    /**
+     * use value as error to indicate more messages are to come (else remoting will close channel).
+     */
+    public static final String CONT = Callback.CONT;
+    /**
+     * use this value to signal no more messages. The receiver callback will receive the message.
+     * Note that any value except CONT will also close the callback channel. So this is informal.
+     */
+    public static final String FIN = Callback.FIN;
+
+    public static boolean isFin(Object o) {
+        return FIN.equals(o);
+    }
+
+
     public static ThreadLocal<Actor> sender = new ThreadLocal<>();
 
     // internal ->
