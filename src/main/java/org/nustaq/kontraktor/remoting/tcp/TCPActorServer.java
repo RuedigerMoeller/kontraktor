@@ -13,6 +13,13 @@ import java.util.List;
 
 /**
  * Created by ruedi on 08.08.14.
+ *
+ * publish an actor via TCP. actor refs/callbacks/futures handed out to clients are automatically transformed
+ * and rerouted, so remoting is mostly transparent.
+ *
+ * Currently old school blocking IO is used. Should be replaced by a NIO implementation to support many clients.
+ * For a moderate number of clients < ~200 blocking IO is not a problem. Depending on load expect significant performance
+ * degradation starting with ~500 clients.
  */
 public class TCPActorServer {
 

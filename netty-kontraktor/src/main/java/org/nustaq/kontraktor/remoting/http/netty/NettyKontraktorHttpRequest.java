@@ -10,6 +10,8 @@ import java.nio.charset.Charset;
 
 /**
  * Created by ruedi on 18.08.14.
+ *
+ * note: this is a "works" implementation. However remoting via http is slow anyway
  */
 public class NettyKontraktorHttpRequest implements KontraktorHttpRequest {
 

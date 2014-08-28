@@ -6,6 +6,8 @@ import java.nio.ByteBuffer;
 
 /**
  * Created by ruedi on 18.08.14.
+ *
+ * Stripped down interface of a http request, as kontraktor http remoting requires only a fraction of http.
  */
 public interface KontraktorHttpRequest {
 

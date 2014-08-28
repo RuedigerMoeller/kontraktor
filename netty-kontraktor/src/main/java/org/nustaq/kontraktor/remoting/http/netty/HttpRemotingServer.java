@@ -24,12 +24,12 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_0;
 /**
  * Created by ruedi on 18.08.14.
  */
-public class KontraktorNettyServer extends WebSocketHttpServer implements NioHttpServer {
+public class HttpRemotingServer extends WebSocketHttpServer implements NioHttpServer {
 
     NettyWSHttpServer nettyWSHttpServer;
     RequestProcessor processor;
 
-    public KontraktorNettyServer() {
+    public HttpRemotingServer() {
         super(new File("."));
     }
 
@@ -55,7 +55,6 @@ public class KontraktorNettyServer extends WebSocketHttpServer implements NioHtt
                     try {
                         if (result != null) {
                             ctx.write(Unpooled.copiedBuffer(result.toString(), Charset.forName("UTF-8") ) );
-//                                    writeClient(client, ByteBuffer.wrap(result.toString().getBytes()));
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -65,19 +64,9 @@ public class KontraktorNettyServer extends WebSocketHttpServer implements NioHtt
                     try {
                         if (error != RequestProcessor.FINISHED) {
                             ctx.write(Unpooled.copiedBuffer(error.toString(), Charset.forName("UTF-8")) );
-//                                    writeClient(client, ByteBuffer.wrap(error.toString().getBytes()));
                         }
                         ChannelFuture f = ctx.writeAndFlush(Unpooled.copiedBuffer("", Charset.forName("UTF-8") ));
-                        f.addListener(new ChannelFutureListener() {
-                            @Override
-                            public void operationComplete(ChannelFuture future) {
-//                                future.cause().printStackTrace();
-//                                System.out.println(future);
-                                future.channel().close();
-                            }
-                        });
-//                                key.cancel();
-//                                client.close();
+                        f.addListener( (ChannelFuture future) -> future.channel().close() );
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
