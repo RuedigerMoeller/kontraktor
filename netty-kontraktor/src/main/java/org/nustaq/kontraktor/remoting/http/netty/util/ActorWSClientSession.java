@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.netty;
+package org.nustaq.kontraktor.remoting.http.netty.util;
 
 import io.netty.channel.ChannelHandlerContext;
 import org.nustaq.kontraktor.Actor;
@@ -18,20 +18,27 @@ public class ActorWSClientSession<T extends ActorWSClientSession> extends Actor<
         this.sessionId = sessionId;
     }
 
+    protected void sendBinaryMessage(byte[] b) {
+        server.sendWSBinaryMessage(context, b);
+    }
 
-    public void $onBinaryMessage(ChannelHandlerContext ctx, byte[] buffer) {
+    protected void sendTextMessage(String s) {
+        server.sendWSTextMessage(context, s);
+    }
+
+    public void $onBinaryMessage(byte[] buffer) {
 
     }
 
     public void $onOpen(ChannelHandlerContext ctx) {
+        this.context = ctx;
+    }
+
+    public void $onClose() {
 
     }
 
-    public void $onClose(ChannelHandlerContext ctx) {
-
-    }
-
-    public void $onTextMessage(ChannelHandlerContext ctx, String text) {
+    public void $onTextMessage(String text) {
 
     }
 }

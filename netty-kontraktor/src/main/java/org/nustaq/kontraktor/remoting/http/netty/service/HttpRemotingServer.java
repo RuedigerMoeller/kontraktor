@@ -1,16 +1,13 @@
-package org.nustaq.kontraktor.remoting.http.netty;
+package org.nustaq.kontraktor.remoting.http.netty.service;
 
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.remoting.http.NioHttpServer;
 import org.nustaq.kontraktor.remoting.http.RequestProcessor;
 import org.nustaq.kontraktor.remoting.http.RequestResponse;
-import org.nustaq.kontraktor.remoting.http.rest.RestActorServer;
 import org.nustaq.netty2go.NettyWSHttpServer;
 import org.nustaq.webserver.ClientSession;
 import org.nustaq.webserver.WebSocketHttpServer;

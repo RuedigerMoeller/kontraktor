@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.netty;
+package org.nustaq.kontraktor.remoting.http.netty.service;
 
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;

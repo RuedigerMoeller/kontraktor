@@ -173,39 +173,7 @@ public class RemoteRefRegistry implements RemoteConnection {
     protected void receiveLoop(ObjectSocket channel) {
         try {
             while( !isTerminated() ) {
-                // read object
-                final Object response = channel.readObject();
-                if (response instanceof RemoteCallEntry == false) {
-                    Log.Lg.error(this, null, "" + response); // fixme
-                    continue;
-                }
-                RemoteCallEntry read = (RemoteCallEntry) response;
-                boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
-                if ( isContinue )
-                    read.getArgs()[1] = Callback.CONT; // enable ==
-                if (read.getQueue() == read.MAILBOX) {
-                    Actor targetActor = getPublishedActor(read.getReceiverKey());
-                    if (targetActor==null) {
-                        Log.Lg.error(this, null, "no actor found for key " + read);
-                        continue;
-                    }
-
-                    Object future = targetActor.getScheduler().enqueueCall(null, targetActor, read.getMethod(), read.getArgs());
-                    if ( future instanceof Future ) {
-                        ((Future) future).then( (r,e) -> {
-                            try {
-                                receiveCBResult(channel, read.getFutureKey(), r, e);
-                            } catch (Exception ex) {
-                                Log.Warn(this, ex, "");
-                            }
-                        });
-                    }
-                } else if (read.getQueue() == read.CBQ) {
-                    Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
-                    publishedCallback.receive(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
-                    if (!isContinue)
-                        removePublishedObject(read.getReceiverKey());
-                }
+                if (singleReceive(channel)) continue;
             }
         } catch (Exception e) {
             Log.Lg.infoLong(this, e, "");
@@ -214,12 +182,56 @@ public class RemoteRefRegistry implements RemoteConnection {
         }
     }
 
+    /**
+     *
+     * @param channel
+     * @return true if no message could be read (either failure or nonblocking channel)
+     * @throws Exception
+     */
+    public boolean singleReceive(ObjectSocket channel) throws Exception {
+        // read object
+        final Object response = channel.readObject();
+        if (response instanceof RemoteCallEntry == false) {
+            if ( response != null )
+                Log.Lg.error(this, null, "" + response); // fixme
+            return true;
+        }
+        RemoteCallEntry read = (RemoteCallEntry) response;
+        boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
+        if ( isContinue )
+            read.getArgs()[1] = Callback.CONT; // enable ==
+        if (read.getQueue() == read.MAILBOX) {
+            Actor targetActor = getPublishedActor(read.getReceiverKey());
+            if (targetActor==null) {
+                Log.Lg.error(this, null, "no actor found for key " + read);
+                return true;
+            }
+
+            Object future = targetActor.getScheduler().enqueueCall(null, targetActor, read.getMethod(), read.getArgs());
+            if ( future instanceof Future) {
+                ((Future) future).then( (r,e) -> {
+                    try {
+                        receiveCBResult(channel, read.getFutureKey(), r, e);
+                    } catch (Exception ex) {
+                        Log.Warn(this, ex, "");
+                    }
+                });
+            }
+        } else if (read.getQueue() == read.CBQ) {
+            Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
+            publishedCallback.receive(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
+            if (!isContinue)
+                removePublishedObject(read.getReceiverKey());
+        }
+        return false;
+    }
+
     public void cleanUp() {
         stopRemoteRefs();
     }
 
     /**
-     * poll remote actor proxies and send. return true if there was at least one method
+     * poll remote actor proxies and send. return true if there was at least one message
      * @param chan
      */
     public boolean singleSendLoop(ObjectSocket chan) throws IOException {

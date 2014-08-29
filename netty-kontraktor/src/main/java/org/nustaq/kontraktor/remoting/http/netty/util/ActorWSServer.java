@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.netty;
+package org.nustaq.kontraktor.remoting.http.netty.util;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -34,7 +34,7 @@ public abstract class ActorWSServer extends WebSocketHttpServer {
         if ( session == null ) {
             logger.warning("onBinaryMessage without session");
         } else {
-            session.$onBinaryMessage(ctx, buffer);
+            session.$onBinaryMessage(buffer);
         }
     }
 
@@ -60,7 +60,7 @@ public abstract class ActorWSServer extends WebSocketHttpServer {
         if ( session == null ) {
             logger.warning("onClose without session");
         } else {
-            session.$onClose(ctx);
+            session.$onClose();
         }
     }
 
@@ -70,7 +70,7 @@ public abstract class ActorWSServer extends WebSocketHttpServer {
         if ( session == null ) {
             logger.warning("onTextMessage without session");
         } else {
-            session.$onTextMessage(ctx, text);
+            session.$onTextMessage(text);
         }
     }
 
