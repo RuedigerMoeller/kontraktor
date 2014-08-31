@@ -8,16 +8,18 @@ import java.io.File;
 /**
  * Created by ruedi on 29.08.2014.
  */
-public class WSocketServer extends ActorWSServer {
+public class WSocketActorServer extends ActorWSServer {
 
     Actor facade;
 
-    public WSocketServer(File contentRoot) {
+    public WSocketActorServer(Actor facade, File contentRoot) {
         super(contentRoot);
+        this.facade = facade;
     }
 
     @Override
     protected Class getClientActorClazz() {
-        return WSocketConnection.class;
+        return WSocketServerSession.class;
     }
+
 }
