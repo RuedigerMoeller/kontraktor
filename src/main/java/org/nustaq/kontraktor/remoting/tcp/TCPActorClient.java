@@ -102,7 +102,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
             chan = new TCPSocket(host,port,conf);
             new Thread(
                 () -> {
-                    currentChannel.set(chan);
+                    currentObjectSocket.set(chan);
                     try {
                         sendLoop(chan);
                     } catch (IOException e) {
@@ -116,7 +116,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
             ).start();
             new Thread(
                 () -> {
-                    currentChannel.set(chan);
+                    currentObjectSocket.set(chan);
                     receiveLoop(chan);
                 },
                 "receiver"

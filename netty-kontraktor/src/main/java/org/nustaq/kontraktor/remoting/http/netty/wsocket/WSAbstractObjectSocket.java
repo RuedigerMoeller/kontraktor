@@ -13,10 +13,17 @@ import java.io.Serializable;
  */
 public abstract class WSAbstractObjectSocket implements ObjectSocket {
 
-    protected FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+    protected FSTConfiguration conf;
+
+    /**
+     * its expected conf has special registrations such as Callback and remoteactor ref
+     * @param conf
+     */
+    public WSAbstractObjectSocket(FSTConfiguration conf) {
+        this.conf = conf;
+    }
 
     protected byte nextRead[]; // fake as not polled
-
     public void setNextMsg(byte b[]) {
         nextRead = b;
     }

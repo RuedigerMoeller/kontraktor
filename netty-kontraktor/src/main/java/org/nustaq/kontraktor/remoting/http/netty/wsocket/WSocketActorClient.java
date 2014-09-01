@@ -91,9 +91,10 @@ public class WSocketActorClient<T extends Actor> extends RemoteRefRegistry {
             }
         }
         if ( isConnected() ) {
-            socket = new MyWSObjectSocket();
+            socket = new MyWSObjectSocket(conf);
             new Thread(()->{
                 try {
+                    currentObjectSocket.set(socket);
                     sendLoop(socket);
                 } catch (IOException e) {
                     close();
@@ -133,6 +134,8 @@ public class WSocketActorClient<T extends Actor> extends RemoteRefRegistry {
         @Override
         public void onBinaryMessage(ChannelHandlerContext ctx, byte[] buffer) {
             try {
+                currentObjectSocket.set(socket);
+                socket.setNextMsg(buffer);
                 singleReceive(socket);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -162,6 +165,15 @@ public class WSocketActorClient<T extends Actor> extends RemoteRefRegistry {
     }
 
     private class MyWSObjectSocket extends WSAbstractObjectSocket {
+
+        /**
+         * its expected conf has special registrations such as Callback and remoteactor ref
+         *
+         * @param conf
+         */
+        public MyWSObjectSocket(FSTConfiguration conf) {
+            super(conf);
+        }
 
         @Override
         public void writeObject(Object toWrite) throws Exception {

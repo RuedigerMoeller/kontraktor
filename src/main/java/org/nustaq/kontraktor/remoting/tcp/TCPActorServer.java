@@ -89,7 +89,7 @@ public class TCPActorServer {
             publishActor(facade); // so facade is always 1
             new Thread(() -> {
                 try {
-                    currentChannel.set(channel);
+                    currentObjectSocket.set(channel);
                     receiveLoop(channel);
                 } catch (Exception ex) {
                     Log.Warn(this,ex,"");
@@ -99,7 +99,7 @@ public class TCPActorServer {
             }, "receiver").start();
             new Thread(() -> {
                 try {
-                    currentChannel.set(channel);
+                    currentObjectSocket.set(channel);
                     sendLoop(channel);
                 } catch (Exception ex) {
                     Log.Warn(this,ex,"");

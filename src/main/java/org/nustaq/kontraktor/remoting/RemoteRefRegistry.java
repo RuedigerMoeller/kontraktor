@@ -35,7 +35,7 @@ public class RemoteRefRegistry implements RemoteConnection {
     ConcurrentLinkedQueue<Actor> remoteActors = new ConcurrentLinkedQueue<>();
     ConcurrentHashMap<Integer,Actor> remoteActorSet = new ConcurrentHashMap<>();
 
-    protected ThreadLocal<ObjectSocket> currentChannel = new ThreadLocal<>();
+    public ThreadLocal<ObjectSocket> currentObjectSocket = new ThreadLocal<>();
     protected volatile boolean terminated = false;
 
     public RemoteRefRegistry() {
@@ -302,4 +302,7 @@ public class RemoteRefRegistry implements RemoteConnection {
         // needs override
     }
 
+    public FSTConfiguration getConf() {
+        return conf;
+    }
 }

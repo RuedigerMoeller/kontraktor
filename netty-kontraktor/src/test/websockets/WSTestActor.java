@@ -17,10 +17,12 @@ public class WSTestActor extends Actor<WSTestActor> {
     }
 
     public Future $futureCall(String result) {
+        System.out.println("futcall "+result );
         return new Promise<>(result);
     }
 
     public void $callbackTest(String msg, Callback cb) {
+        System.out.println("cb call "+msg);
         cb.receive(msg,null);
     }
 
@@ -37,10 +39,16 @@ public class WSTestActor extends Actor<WSTestActor> {
         WSocketActorClient cl = new WSocketActorClient(WSTestActor.class,"ws://localhost:8887/websocket");
         cl.connect();
         WSTestActor facadeProxy = (WSTestActor) cl.getFacadeProxy();
+
         while( true ) {
-            facadeProxy.$voidCall("Hello");
+//            facadeProxy.$voidCall("Hello");
+//            Thread.sleep(1000);
+//            facadeProxy.$futureCall("hello future").then((r, e) -> System.out.println("future call worked result:" + r));
+//            Thread.sleep(1000);
+            facadeProxy.$callbackTest("hello cb", (r,e) -> System.out.println("cb result "+r) );
             Thread.sleep(1000);
         }
+
     }
 
     private static void startServer() throws Exception {

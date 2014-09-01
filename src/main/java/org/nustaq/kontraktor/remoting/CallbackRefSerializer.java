@@ -33,7 +33,7 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
         // fixme: detect local actors returned from foreign
         int id = in.readInt();
-        ObjectSocket chan = reg.currentChannel.get();
+        ObjectSocket chan = reg.currentObjectSocket.get();
         Callback cb = (Object result, Object error) -> {
             try {
                 reg.receiveCBResult(chan,id,result,error);
