@@ -17,6 +17,8 @@ import java.util.concurrent.CountDownLatch;
  */
 public class OrderedConcurrency {
 
+    public static final int ENTRIES_PER_THREAD = 512;
+
     static class OCJob {
         volatile Object result = NO_RES;
         volatile Callable toCall;
@@ -27,15 +29,15 @@ public class OrderedConcurrency {
     int remIndex;
 
     public OrderedConcurrency(int threads) {
-        threads*=16;
+        threads*=ENTRIES_PER_THREAD;
         if ( Integer.bitCount(threads) != 1  )
             throw new RuntimeException("numthreads must be a power of 2");
         jobs = new OCJob[threads];
         for (int i = 0; i < jobs.length; i++) {
             jobs[i] = new OCJob();
             final int finalI = i;
-            if ( (i % 16) == 15 ) {
-                Thread t = new Thread(() -> work(finalI/16), "worker " + i);
+            if ( (i % ENTRIES_PER_THREAD) == ENTRIES_PER_THREAD-1 ) {
+                Thread t = new Thread(() -> work(finalI/ENTRIES_PER_THREAD), "worker " + i);
                 t.start();
             }
         }
@@ -73,7 +75,7 @@ public class OrderedConcurrency {
     }
 
     public void work( int index ) {
-        int base = index*16;
+        int base = index*ENTRIES_PER_THREAD;
         int count = 0;
         while( true ) {
             OCJob job = jobs[base+count];
@@ -91,7 +93,7 @@ public class OrderedConcurrency {
             }
             job.result = res;
             count++;
-            if ( count == 16 ) {
+            if ( count == ENTRIES_PER_THREAD ) {
                 count = 0;
             }
         }
@@ -111,13 +113,13 @@ public class OrderedConcurrency {
         for ( int i = 0; i < 1000000; i++ ) {
             HashMap e = new HashMap();
             e.put("VALUE", new Object[] { i, 11111111,22222222,33333333, "pok"} );
-            e.put("XY", new Object[] { "aposdj", "POK", 422222222,333323333, "poasdasdk"} );
+//            e.put("XY", new Object[] { "aposdj", "POK", 422222222,333323333, "poasdasdk"} );
             toEncode.add(e);
         }
 
         int actcount = 0;
         DecAct act = Actors.AsActor(DecAct.class,5000);
-        while( actcount < 10) {
+        while( actcount < -10) {
 
             long tim = System.currentTimeMillis();
             for (int i = 0; i < toEncode.size(); i++) {
@@ -150,7 +152,7 @@ public class OrderedConcurrency {
 
         }
 
-        OrderedConcurrency conc = new OrderedConcurrency(4);
+        OrderedConcurrency conc = new OrderedConcurrency(8);
         ThreadLocal<FSTConfiguration> cfg = new ThreadLocal() {
             @Override
             protected Object initialValue() {
