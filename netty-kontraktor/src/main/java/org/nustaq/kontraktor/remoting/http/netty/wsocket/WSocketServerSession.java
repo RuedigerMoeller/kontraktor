@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.remoting.http.netty.wsocket;
 
+import io.netty.channel.ChannelHandlerContext;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSClientSession;
@@ -15,8 +16,14 @@ import java.io.Serializable;
  */
 public class WSocketServerSession<T extends WSocketServerSession> extends ActorWSClientSession<T> {
 
-    private Actor facade;
-    RemoteRefRegistry registry = new RemoteRefRegistry();
+    public static final int PING_INTERVAL_MILLIS = 5000;
+    protected Actor facade;
+    RemoteRefRegistry registry = new RemoteRefRegistry() {
+        @Override
+        public Actor getFacadeProxy() {
+            return facade;
+        }
+    };
     MyWSObjectSoocket socket;
     int polldelay = 10;
 
@@ -40,6 +47,12 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
         }
     }
 
+    @Override
+    public void $onOpen(ChannelHandlerContext ctx) {
+        super.$onOpen(ctx);
+        self().$runPing(PING_INTERVAL_MILLIS);
+    }
+
     public void $poll() {
         boolean idle =false;
         try {
@@ -50,7 +63,7 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
         }
         if ( ! isStopped() ) {
             if ( !idle ) {
-                self().$poll(); // fixme, mor high load batching may be appropriate her (do not enqueue, directly loop)
+                self().$poll(); // fixme, more batching may be appropriate here (do not enqueue, directly loop)
             }
             delayed( polldelay, () -> $poll() );
         }
@@ -58,6 +71,12 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
 
     WSocketActorServer getServer() {
         return (WSocketActorServer) server;
+    }
+
+    @Override
+    public void $onClose() {
+        super.$onClose();
+        registry.cleanUp();
     }
 
     class MyWSObjectSoocket extends WSAbstractObjectSocket {

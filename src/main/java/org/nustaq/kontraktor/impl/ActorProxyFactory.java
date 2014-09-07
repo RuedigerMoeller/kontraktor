@@ -179,7 +179,9 @@ public class ActorProxyFactory {
                        !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName());
 
             // exceptions: async built-in actor methods that can be called
-            if ( originalMethod.getName().equals("executeInActorThread") || // needed again !
+            if ( //originalMethod.getName().equals("executeInActorThread") || // needed again ! see spore
+                // async methods at actor class
+                 originalMethod.getName().equals("$sync") ||
                  originalMethod.getName().equals("$stop") ||
                  originalMethod.getName().equals("$close")
             )
@@ -316,7 +318,8 @@ public class ActorProxyFactory {
             if ( ! method.getDeclaringClass().isInterface() ) {
                 String str = toString(method);
                 boolean isVolatile = method.toString().indexOf("volatile ") >= 0;
-                if ( isVolatile ||
+                boolean isStatic = Modifier.isStatic(method.getModifiers());
+                if ( isVolatile || isStatic ||
                    alreadypresent.contains(str) || method.getName().startsWith("access$")) // ignore synthetic methods
                 {
                     methods0[i] = null;

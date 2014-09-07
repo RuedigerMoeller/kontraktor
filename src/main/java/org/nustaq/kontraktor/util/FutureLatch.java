@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by ruedi on 27.07.14.
  *
- * Wraps a future and triggers it after having received N result (counter is counted down).
+ * Wraps a future and triggers it after having received N results (counter is counted down).
  * Note that only the last result/error is actually transmitteed to the wrapped future.
  * An implementation collecting intermediate results in a concurrentlist which then is
  * used as a result could be implemented if needed.

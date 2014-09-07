@@ -202,7 +202,7 @@ public class ElasticScheduler implements Scheduler {
     }
 
     @Override
-    public void delayedCall(int millis, final Runnable toRun) {
+    public void delayedCall(long millis, final Runnable toRun) {
         delayedCalls.schedule(new TimerTask() {
             @Override
             public void run() {

@@ -40,15 +40,17 @@ public class WSTestActor extends Actor<WSTestActor> {
         cl.connect();
         WSTestActor facadeProxy = (WSTestActor) cl.getFacadeProxy();
 
-        while( true ) {
-//            facadeProxy.$voidCall("Hello");
-//            Thread.sleep(1000);
-//            facadeProxy.$futureCall("hello future").then((r, e) -> System.out.println("future call worked result:" + r));
-//            Thread.sleep(1000);
+        int count =0;
+        while( count++ < 5 ) {
+            facadeProxy.$voidCall("Hello void");
+            Thread.sleep(1000);
+            facadeProxy.$futureCall("hello future").then((r, e) -> System.out.println("future call worked result:" + r));
+            Thread.sleep(1000);
             facadeProxy.$callbackTest("hello cb", (r,e) -> System.out.println("cb result "+r) );
             Thread.sleep(1000);
         }
 
+        facadeProxy.$close();
     }
 
     private static void startServer() throws Exception {

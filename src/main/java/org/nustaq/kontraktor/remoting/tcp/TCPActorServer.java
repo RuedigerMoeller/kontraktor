@@ -118,6 +118,11 @@ public class TCPActorServer {
                 Log.Warn(this,e,"");
             }
         }
+
+        @Override
+        public Actor getFacadeProxy() {
+            return facade;
+        }
     }
 
 }

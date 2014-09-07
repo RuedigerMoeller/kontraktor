@@ -59,8 +59,12 @@ public abstract class ActorWSServer extends WebSocketHttpServer {
         ActorWSClientSession session = getSession(ctx);
         if ( session == null ) {
             logger.warning("onClose without session");
+            ctx.channel().close();
         } else {
-            session.$onClose();
+            if ( ! session.isStopped() )
+                session.$onClose();
+            session.$stop();
+            session.$close();
         }
     }
 
@@ -71,6 +75,16 @@ public abstract class ActorWSServer extends WebSocketHttpServer {
             logger.warning("onTextMessage without session");
         } else {
             session.$onTextMessage(text);
+        }
+    }
+
+    @Override
+    public void onPong(ChannelHandlerContext ctx) {
+        ActorWSClientSession session = getSession(ctx);
+        if ( session == null ) {
+            logger.warning("pong without session");
+        } else {
+            session.$pong();
         }
     }
 

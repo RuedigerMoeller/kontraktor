@@ -35,10 +35,6 @@ public class KVStore extends Actor<KVStore> {
         return new Promise("void");
     }
 
-    public Future $sync() {
-        return new Promise<>("void");
-    }
-
     public Future $get(String key) {
         return new Promise<>(store.get(key));
     }

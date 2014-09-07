@@ -38,7 +38,7 @@ public interface Scheduler {
      */
     <T> T inThread(Actor actor, T callback);
 
-    void delayedCall(int millis, Runnable toRun);
+    void delayedCall(long millis, Runnable toRun);
 
     <T> void runBlockingCall(Actor emitter, Callable<T> toCall, Callback<T> resultHandler);
 

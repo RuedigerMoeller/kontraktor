@@ -15,10 +15,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by ruedi on 08.08.14.
  *
+ * tracks remote references of a single point to point connection
+ *
  * fixme: handle stop of published actor (best by talking back in case a message is received on a
  * stopped published actor).
  */
-public class RemoteRefRegistry implements RemoteConnection {
+public abstract class RemoteRefRegistry implements RemoteConnection {
 
     protected FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
 
@@ -85,6 +87,7 @@ public class RemoteRefRegistry implements RemoteConnection {
         if ( integer != null ) {
             publishedActorMapping.remove(integer);
             publishedActorMappingReverse.remove(act.getActorRef());
+            act.__removeRemoteConnection(this);
         }
     }
 
@@ -226,8 +229,16 @@ public class RemoteRefRegistry implements RemoteConnection {
         return false;
     }
 
+    /**
+     * cleanup after connection close
+     */
     public void cleanUp() {
         stopRemoteRefs();
+        publishedActorMappingReverse.keySet().forEach( (act) ->  {
+            if ( act instanceof  Actor)
+                unpublishActor((Actor) act);
+        });
+        getFacadeProxy().__removeRemoteConnection(this);
     }
 
     /**
@@ -299,10 +310,12 @@ public class RemoteRefRegistry implements RemoteConnection {
 
     @Override
     public void close() {
-        // needs override
+        cleanUp();
     }
 
     public FSTConfiguration getConf() {
         return conf;
     }
+
+    public abstract Actor getFacadeProxy();
 }

@@ -30,6 +30,9 @@ public class Log extends Actor<Log> {
     public static void Warn( Object source, Throwable t, String msg ) {
         Lg.warnLong(source,t,msg);
     }
+    public static void Warn( Object source, String msg ) {
+        Lg.warnLong(source,null,msg);
+    }
 
     public static interface LogWrapper {
         public void msg(Thread t, int severity, Object source, Throwable ex, String msg);
