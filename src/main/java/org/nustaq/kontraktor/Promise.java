@@ -17,7 +17,7 @@ public class Promise<T> implements Future<T> {
     // of allocation. However for now stay safe and optimize
     // from a proven-working implementation
     // note: if removed some field must set to volatile
-    AtomicBoolean lock = new AtomicBoolean(false); // fixme at leas move to AtomicFieldUpdater to save allocation of AtomBool
+    final AtomicBoolean lock = new AtomicBoolean(false); // (AtomicFieldUpdater is slower!)
     String id;
     Future nextFuture;
 
@@ -138,8 +138,8 @@ public class Promise<T> implements Future<T> {
     @Override
     public String toString() {
         return "Result{" +
-                "result=" + result +
-                ", error=" + error +
-                '}';
+            "result=" + result +
+            ", error=" + error +
+            '}';
     }
 }
