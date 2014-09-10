@@ -86,7 +86,7 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * special method for tricky things. Creates a nextFuture or returns
+     * special method for tricky things. Creates a nextFuture or returns it. Not threadsafe !
      * current
      * @return
      */
