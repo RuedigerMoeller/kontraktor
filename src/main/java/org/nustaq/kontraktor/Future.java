@@ -11,7 +11,7 @@ public interface Future<T> extends Callback<T> {
      * @return result if already avaiable
      */
     public T getResult();
-
+    public Object getError();
     /**
      * same as receive(null,null)
      */

@@ -97,6 +97,14 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     }
 
     @Override
+    public Object getError() {
+        if (realCallback instanceof Future == false)
+            return null;
+        else
+            return (T) ((Future)realCallback).getError();
+    }
+
+    @Override
     public void signal() {
         receive(null, null);
     }

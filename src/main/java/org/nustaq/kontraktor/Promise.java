@@ -19,7 +19,7 @@ public class Promise<T> implements Future<T> {
     // note: if removed some field must set to volatile
     final AtomicBoolean lock = new AtomicBoolean(false); // (AtomicFieldUpdater is slower!)
     String id;
-    Future nextFuture;
+    volatile Future nextFuture;
 
     public Promise(T result, Object error) {
         this.result = result;
@@ -58,12 +58,14 @@ public class Promise<T> implements Future<T> {
     public Future then(Callback resultCB) {
         // FIXME: this can be implemented more efficient
         while( !lock.compareAndSet(false,true) ) {}
+        if ( resultReceiver != null )
+            throw new RuntimeException("Double register of future listener");
         resultReceiver = resultCB;
         if (hadResult) {
-            if ( hasFired ) {
-                lock.set(false);
-                throw new RuntimeException("Double result received on future");
-            }
+//            if ( hasFired ) { // ???
+//                lock.set(false);
+//                throw new RuntimeException("Double result received on future");
+//            }
             hasFired = true;
             lock.set(false);
             nextFuture = new Promise(result,error);

@@ -9,107 +9,73 @@ import org.nustaq.serialization.FSTConfiguration;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 07.09.14.
  */
-public class OrderedConcurrency {
+public class OrderedConcurrency<T extends Actor> {
 
-    public static final int ENTRIES_PER_THREAD = 128;
+    Actor actors[];
+    int index = 0;
+    Future prev;
 
-    static class OCJob {
-        volatile Object result = NO_RES;
-        volatile Callable toCall;
-    }
-
-    OCJob jobs[];
-    int addIndex;
-    int remIndex;
-
-    public OrderedConcurrency(int threads) {
-        threads*=ENTRIES_PER_THREAD;
-        if ( Integer.bitCount(threads) != 1  )
-            throw new RuntimeException("numthreads must be a power of 2");
-        jobs = new OCJob[threads];
-        for (int i = 0; i < jobs.length; i++) {
-            jobs[i] = new OCJob();
-            final int finalI = i;
-            if ( (i % ENTRIES_PER_THREAD) == ENTRIES_PER_THREAD-1 ) {
-                Thread t = new Thread(() -> work(finalI/ENTRIES_PER_THREAD), "worker " + i);
-                t.start();
-            }
+    public OrderedConcurrency(int numThreads, Class<T> actor) {
+        actors = new Actor[numThreads];
+        for (int i = 0; i < actors.length; i++) {
+            actors[i] = Actors.AsActor(actor);
         }
     }
 
-    /**
-     * single threaded
-     * @param todo
-     * @return true if adding was successful
-     */
-    public boolean offer( Callable todo ) {
-        if ( jobs[addIndex].toCall != null ) {
-            return false;
+    public Future[] each(BiFunction<T, Integer, Future> init) {
+        Future res[] = new Future[actors.length];
+        for (int i = 0; i < actors.length; i++) {
+            T actor = (T) actors[i];
+            res[i] = init.apply(actor,i);
         }
-        jobs[addIndex].toCall = todo;
-        jobs[addIndex].result = NO_RES;
-        addIndex = (addIndex +1) & (jobs.length-1);
-        return true;
+        return res;
     }
 
-    final static Object NO_RES = "--NLL___";
-    /**
-     * must be same thread as add
-     * @return NO_RES if no result
-     */
-    public Object poll() {
-        if ( jobs[remIndex].result != NO_RES && jobs[remIndex].toCall != null ) {
-            Object res = jobs[remIndex].result;
-            jobs[remIndex].toCall = null;
-            jobs[remIndex].result = NO_RES;
-            remIndex = (remIndex +1) & (jobs.length-1);
-            return res;
-        }
-        return NO_RES;
-    }
-
-    volatile boolean stopped = false;
-
-    public void stop() {
-        stopped = true;
-    }
-
-    public void work( int index ) {
-        int base = index*ENTRIES_PER_THREAD;
-        int count = 0;
-        while( ! stopped ) {
-            OCJob job = jobs[base+count];
-            while (job.result != NO_RES) {
-                // spin
-            }
-            while (job.toCall == null) {
-                // spin
-            }
-            Object res = null;
-            try {
-                res = job.toCall.call();
-            } catch (Exception e) {
-                res = e;
-            }
-            job.result = res;
-            count++;
-            if ( count == ENTRIES_PER_THREAD ) {
-                count = 0;
-            }
+    public void each(Consumer<T> init) {
+        for (int i = 0; i < actors.length; i++) {
+            init.accept( (T) actors[i] );
         }
     }
+
+    public Future doOrdered( Function<T,Future> toCall ) {
+        final Future result = toCall.apply((T) actors[index]);
+        index++;
+        if (index==actors.length)
+            index = 0;
+        if ( prev == null ) {
+            Promise p = new Promise();
+            prev = p;
+            result.then(p);
+            return result;
+        } else {
+            Promise p = new Promise();
+            prev.then( (res, err) -> result.then( (res1,err1) -> p.receive(res1, err1) ) );
+            prev = p;
+            return p;
+        }
+    }
+
 
     public static class DecAct extends Actor<DecAct> {
         FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
 
-        public Future decodeOrdered( Future previous, Object o ) {
+        public void $init() {
+
+        }
+
+        public Future decode(Object o) {
+            return new Promise<>(conf.asByteArray((Serializable) o));
+        }
+
+        public Future decodeOrdered(Future previous, Object o) {
             Promise<Object> promise = new Promise<>();
             byte[] result = conf.asByteArray((Serializable) o);
             if ( previous == null ) {
@@ -128,45 +94,14 @@ public class OrderedConcurrency {
         for ( int i = 0; i < 1000000; i++ ) {
             HashMap e = new HashMap();
             e.put("VALUE", new Object[] { i, 11111111,22222222,33333333, "pok"} );
-            e.put("XY", new Object[] { "aposdj", "POK", 422222222,333323333, "poasdasdk"} );
-            e.put("XY1", new Object[] { "aposdj", "POK", 42223222,333333, "poasdasdasdk"} );
+//            e.put("XY", new Object[] { "aposdj", "POK", 422222222,333323333, "poasdasdk"} );
+//            e.put("XY1", new Object[] { "aposdj", "POK", 42223222,333333, "poasdasdasdk"} );
 //            e.put("XY2", new Object[] { "aposdj", "POK", 422222222,333323333, "poasdasdk"} );
 //            e.put("XY3", new Object[] { "aposdj", "POK", 42223222,333333, "poasdasdasdk"} );
 //            e.put("XY4", new Object[] { "aposdj", "POK", 422222222,333323333, "poasdasdk"} );
 //            e.put("XY5", new Object[] { "aposdj", "POK", 42223222,333333, "poasdasdasdk"} );
             toEncode.add(e);
         }
-
-        ThreadLocal<FSTConfiguration> cfg = new ThreadLocal() {
-            @Override
-            protected Object initialValue() {
-                return FSTConfiguration.createDefaultConfiguration();
-            }
-        };
-
-        int parcount = 0;
-        AtomicInteger count = new AtomicInteger(0);
-        ParallelizingActor parAct = Actors.AsActor(ParallelizingActor.class,30000);
-        parAct.$init(4, (res,err) -> {
-            count.incrementAndGet();
-        });
-        while( parcount < -10 ) {
-            count.set(0);
-            long tim = System.currentTimeMillis();
-            for (int i = 0; i < toEncode.size(); i++) {
-                HashMap<Object, Object> toEnc = (HashMap<Object, Object>) toEncode.get(i);
-                parAct.$execute( () -> {
-                    return cfg.get().asByteArray(toEnc);
-                });
-            }
-            while( count.get() < 999000 ) { // fimxe: its bugged!
-//                parAct.$repoll();
-            }
-            System.out.println("time ParACT: " + (System.currentTimeMillis() - tim)+" num:"+count.get());
-            parcount++;
-        }
-        parAct.$stop();
-
 
         int actcount = 0;
         DecAct acts[] = new DecAct[4];
@@ -180,7 +115,7 @@ public class OrderedConcurrency {
             Future last = null;
             for (int i = 0; i < toEncode.size(); i++) {
                 HashMap<Object, Object> toEnc = (HashMap<Object, Object>) toEncode.get(i);
-                last = acts[actIdx].decodeOrdered(last, toEnc).then((res, err) -> {
+                last = acts[actIdx].decodeOrdered(last, toEnc).then( (res, err) -> {
                     // result handling
 //                    HashMap o = (HashMap) FSTConfiguration.getDefaultConfiguration().asObject((byte[]) res);
 //                    System.out.println("res: "+ ((Object[]) o.get("VALUE"))[0]);
@@ -220,35 +155,27 @@ public class OrderedConcurrency {
 
         }
 
-        OrderedConcurrency conc = new OrderedConcurrency(4);
-        while( true ) {
+        actcount = 0;
+        OrderedConcurrency<DecAct> oc = new OrderedConcurrency<DecAct>(4,DecAct.class);
+        oc.each( (dec) -> dec.$init() );
+        while( actcount < 10) {
 
             long tim = System.currentTimeMillis();
-            int resCount = 0;
             for (int i = 0; i < toEncode.size(); i++) {
                 HashMap<Object, Object> toEnc = (HashMap<Object, Object>) toEncode.get(i);
-                Callable todo = () -> {
-                    return cfg.get().asByteArray(toEnc);
-                };
-                while (! conc.offer(todo) ) {
-                    Object res = null;
-                    do {
-                        res = conc.poll();
-                        if ( res != NO_RES ) {
-                            if ( res instanceof Exception ) {
-                                ((Exception) res).printStackTrace();
-                                return;
-                            }
-                            else {
-//                                HashMap o = (HashMap) conf.asObject((byte[]) res);
-//                                System.out.println("res: "+ ((Object[]) o.get("VALUE"))[0]);
-                            }
-                            resCount++;
-                        }
-                    } while( res != NO_RES );
-                }
+                oc.doOrdered( (act) -> {
+                    return act.decode(toEnc);
+                }).then( (r,e) -> {
+
+                });
             }
-            System.out.println("time MT: "+(System.currentTimeMillis()-tim+" rescount:"+resCount));
+            CountDownLatch latch = new CountDownLatch(4);
+            oc.each((act, i) -> act.$sync().then((r, e) -> latch.countDown()));
+            latch.await();
+            System.out.println("time GEN_ACT: " + (System.currentTimeMillis() - tim));
+            actcount++;
         }
+        oc.each( (act) -> act.$stop());
+
     }
 }
