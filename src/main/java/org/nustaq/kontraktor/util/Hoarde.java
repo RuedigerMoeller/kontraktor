@@ -10,6 +10,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -17,13 +18,13 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 07.09.14.
  */
-public class OrderedConcurrency<T extends Actor> {
+public class Hoarde<T extends Actor> {
 
     Actor actors[];
     int index = 0;
-    Future prev;
+    Promise prev;
 
-    public OrderedConcurrency(int numThreads, Class<T> actor) {
+    public Hoarde(int numThreads, Class<T> actor) {
         actors = new Actor[numThreads];
         for (int i = 0; i < actors.length; i++) {
             actors[i] = Actors.AsActor(actor);
@@ -45,23 +46,25 @@ public class OrderedConcurrency<T extends Actor> {
         }
     }
 
-    public Future doOrdered( Function<T,Future> toCall ) {
+    public Future ordered(Function<T, Future> toCall) {
         final Future result = toCall.apply((T) actors[index]);
         index++;
         if (index==actors.length)
             index = 0;
         if ( prev == null ) {
-            Promise p = new Promise();
-            prev = p;
-            result.then(p);
-            return result;
+            prev = new Promise();
+            result.then(prev);
+            return prev;
         } else {
             Promise p = new Promise();
-            prev.then( (res, err) -> result.then( (res1,err1) -> p.receive(res1, err1) ) );
+            prev.getNext().finishWith( (res, err) -> result.then( (res1,err1) -> p.receive(res1, err1) ) );
             prev = p;
             return p;
         }
     }
+
+
+    /////////////////////////////////////////////////// test/benchmark ///////////////////////////////////
 
 
     public static class DecAct extends Actor<DecAct> {
@@ -88,14 +91,15 @@ public class OrderedConcurrency<T extends Actor> {
     }
 
 
+
     public static void main(String arg[]) throws InterruptedException {
         FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
         ArrayList toEncode = new ArrayList();
         for ( int i = 0; i < 1000000; i++ ) {
             HashMap e = new HashMap();
             e.put("VALUE", new Object[] { i, 11111111,22222222,33333333, "pok"} );
-//            e.put("XY", new Object[] { "aposdj", "POK", 422222222,333323333, "poasdasdk"} );
-//            e.put("XY1", new Object[] { "aposdj", "POK", 42223222,333333, "poasdasdasdk"} );
+            e.put("XY", new Object[] { "aposdj", "POK", 422222222,333323333, "poasdasdk"} );
+            e.put("XY1", new Object[] { "aposdj", "POK", 42223222,333333, "poasdasdasdk"} );
 //            e.put("XY2", new Object[] { "aposdj", "POK", 422222222,333323333, "poasdasdk"} );
 //            e.put("XY3", new Object[] { "aposdj", "POK", 42223222,333333, "poasdasdasdk"} );
 //            e.put("XY4", new Object[] { "aposdj", "POK", 422222222,333323333, "poasdasdk"} );
@@ -103,12 +107,74 @@ public class OrderedConcurrency<T extends Actor> {
             toEncode.add(e);
         }
 
+        // warmup
+        testSingleThreaded(conf, toEncode, 1);
+        testGenericAct(toEncode, 1);
+//        testManualActor(toEncode, 1);
+
+
+        testSingleThreaded(conf, toEncode, 10);
+        testGenericAct(toEncode, 10);
+//        testManualActor(toEncode, 10);
+
+
+    }
+
+    private static void testGenericAct(ArrayList toEncode, int max) throws InterruptedException {
+        int actcount = 0;
+        Hoarde<DecAct> oc = new Hoarde<DecAct>(4,DecAct.class);
+        oc.each( (dec) -> dec.$init() );
+        AtomicInteger lastVal = new AtomicInteger(-1);
+        while( actcount < max) {
+
+            long tim = System.currentTimeMillis();
+            for (int i = 0; i < toEncode.size(); i++) {
+                HashMap<Object, Object> toEnc = (HashMap<Object, Object>) toEncode.get(i);
+                oc.ordered((act) -> {
+                    return act.decode(toEnc);
+                }).then((r, e) -> {
+//                    HashMap o = (HashMap) FSTConfiguration.getDefaultConfiguration().asObject((byte[]) r);
+//                    Integer value = (Integer) ((Object[]) o.get("VALUE"))[0];
+//                    if ( lastVal.get() != value.intValue()-1)
+//                        System.out.println("ERROR "+value+" "+lastVal);
+//                    lastVal.set(value.intValue());
+//                    System.out.println("res: "+ value);
+                });
+            }
+            CountDownLatch latch = new CountDownLatch(4);
+            oc.each((act, i) -> act.$sync().then((r, e) -> latch.countDown()));
+            latch.await();
+            System.out.println("time GEN_ACT: " + (System.currentTimeMillis() - tim));
+            actcount++;
+        }
+        oc.each( (act) -> act.$stop());
+    }
+
+    private static void testSingleThreaded(FSTConfiguration conf, ArrayList toEncode, int max) {
+        int stcount = 0;
+        while( stcount < max) {
+
+            long tim = System.currentTimeMillis();
+            int resCount = 0;
+            for (int i = 0; i < toEncode.size(); i++) {
+                HashMap<Object, Object> toEnc = (HashMap<Object, Object>) toEncode.get(i);
+                byte b[] = conf.asByteArray(toEnc);
+                if ( b[0] == 255 )
+                    System.out.println("POK");
+            }
+            System.out.println("time ST: "+(System.currentTimeMillis()-tim));
+            stcount++;
+
+        }
+    }
+
+    private static void testManualActor(ArrayList toEncode, int max) throws InterruptedException {
         int actcount = 0;
         DecAct acts[] = new DecAct[4];
         for (int i = 0; i < acts.length; i++) {
-            acts[i] = Actors.AsActor(DecAct.class,16000);
+            acts[i] = Actors.AsActor(DecAct.class, 320000);
         }
-        while( actcount < 10) {
+        while( actcount < max) {
 
             long tim = System.currentTimeMillis();
             int actIdx = 0;
@@ -138,44 +204,5 @@ public class OrderedConcurrency<T extends Actor> {
         for (int i = 0; i < acts.length; i++) {
             acts[i].$stop();
         }
-
-        int stcount = 0;
-        while( stcount < 10) {
-
-            long tim = System.currentTimeMillis();
-            int resCount = 0;
-            for (int i = 0; i < toEncode.size(); i++) {
-                HashMap<Object, Object> toEnc = (HashMap<Object, Object>) toEncode.get(i);
-                byte b[] = conf.asByteArray(toEnc);
-                if ( b[0] == 255 )
-                    System.out.println("POK");
-            }
-            System.out.println("time ST: "+(System.currentTimeMillis()-tim));
-            stcount++;
-
-        }
-
-        actcount = 0;
-        OrderedConcurrency<DecAct> oc = new OrderedConcurrency<DecAct>(4,DecAct.class);
-        oc.each( (dec) -> dec.$init() );
-        while( actcount < 10) {
-
-            long tim = System.currentTimeMillis();
-            for (int i = 0; i < toEncode.size(); i++) {
-                HashMap<Object, Object> toEnc = (HashMap<Object, Object>) toEncode.get(i);
-                oc.doOrdered( (act) -> {
-                    return act.decode(toEnc);
-                }).then( (r,e) -> {
-
-                });
-            }
-            CountDownLatch latch = new CountDownLatch(4);
-            oc.each((act, i) -> act.$sync().then((r, e) -> latch.countDown()));
-            latch.await();
-            System.out.println("time GEN_ACT: " + (System.currentTimeMillis() - tim));
-            actcount++;
-        }
-        oc.each( (act) -> act.$stop());
-
     }
 }

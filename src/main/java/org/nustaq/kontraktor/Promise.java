@@ -62,22 +62,58 @@ public class Promise<T> implements Future<T> {
             throw new RuntimeException("Double register of future listener");
         resultReceiver = resultCB;
         if (hadResult) {
-//            if ( hasFired ) { // ???
-//                lock.set(false);
-//                throw new RuntimeException("Double result received on future");
-//            }
             hasFired = true;
             lock.set(false);
-            nextFuture = new Promise(result,error);
-            resultCB.receive(result, error);
-            return nextFuture;
+            if ( nextFuture == null ) {
+                nextFuture = new Promise(result, error);
+                resultCB.receive(result, error);
+            } else {
+                resultCB.receive(result, error);
+                nextFuture.receive(result,error);
+                return nextFuture;
+            }
         } else {
             lock.set(false);
         }
         if ( resultCB instanceof Future) {
             return (Future)resultCB;
         }
-        return nextFuture = new Promise();
+        if ( nextFuture == null ) {
+            return nextFuture = new Promise();
+        } else {
+            return nextFuture;
+        }
+    }
+
+    /**
+     * special method for tricky things. Creates a nextFuture or returns
+     * current
+     * @return
+     */
+    public Promise getNext() {
+        if ( nextFuture == null )
+            return new Promise();
+        else
+            return (Promise) nextFuture;
+    }
+
+    /**
+     * same as then, but avoid creation of new future
+     * @param resultCB
+     */
+    public void finishWith(Callback resultCB) {
+        // FIXME: this can be implemented more efficient
+        while( !lock.compareAndSet(false,true) ) {}
+        if ( resultReceiver != null )
+            throw new RuntimeException("Double register of future listener");
+        resultReceiver = resultCB;
+        if (hadResult) {
+            hasFired = true;
+            lock.set(false);
+            resultCB.receive(result, error);
+        } else {
+            lock.set(false);
+        }
     }
 
     @Override
