@@ -283,7 +283,7 @@ public class BasicTest {
     }
 
 
-    @Test
+    @Test @Ignore
     public void testYield() {
 
         SleepCallerActor act = Actors.AsActor(SleepCallerActor.class);

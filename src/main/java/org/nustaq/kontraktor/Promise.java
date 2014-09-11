@@ -19,7 +19,7 @@ public class Promise<T> implements Future<T> {
     // note: if removed some field must set to volatile
     final AtomicBoolean lock = new AtomicBoolean(false); // (AtomicFieldUpdater is slower!)
     String id;
-    volatile Future nextFuture;
+    Future nextFuture;
 
     public Promise(T result, Object error) {
         this.result = result;
@@ -58,30 +58,35 @@ public class Promise<T> implements Future<T> {
     public Future then(Callback resultCB) {
         // FIXME: this can be implemented more efficient
         while( !lock.compareAndSet(false,true) ) {}
-        if ( resultReceiver != null )
-            throw new RuntimeException("Double register of future listener");
-        resultReceiver = resultCB;
-        if (hadResult) {
-            hasFired = true;
+        try {
+            if (resultReceiver != null)
+                throw new RuntimeException("Double register of future listener");
+            resultReceiver = resultCB;
+            if (hadResult) {
+                hasFired = true;
+                if (nextFuture == null) {
+                    nextFuture = new Promise(result, error);
+                    lock.set(false);
+                    resultCB.receive(result, error);
+                } else {
+                    lock.set(false);
+                    resultCB.receive(result, error);
+                    nextFuture.receive(result, error);
+                    return nextFuture;
+                }
+            }
+            if (resultCB instanceof Future) {
+                return (Future) resultCB;
+            }
             lock.set(false);
-            if ( nextFuture == null ) {
-                nextFuture = new Promise(result, error);
-                resultCB.receive(result, error);
+            while( !lock.compareAndSet(false,true) ) {}
+            if (nextFuture == null) {
+                return nextFuture = new Promise();
             } else {
-                resultCB.receive(result, error);
-                nextFuture.receive(result,error);
                 return nextFuture;
             }
-        } else {
+        } finally {
             lock.set(false);
-        }
-        if ( resultCB instanceof Future) {
-            return (Future)resultCB;
-        }
-        if ( nextFuture == null ) {
-            return nextFuture = new Promise();
-        } else {
-            return nextFuture;
         }
     }
 
@@ -91,10 +96,15 @@ public class Promise<T> implements Future<T> {
      * @return
      */
     public Promise getNext() {
-        if ( nextFuture == null )
-            return new Promise();
-        else
-            return (Promise) nextFuture;
+        while( !lock.compareAndSet(false,true) ) {}
+        try {
+            if (nextFuture == null)
+                return new Promise();
+            else
+                return (Promise) nextFuture;
+        } finally {
+            lock.set(false);
+        }
     }
 
     /**
@@ -104,14 +114,16 @@ public class Promise<T> implements Future<T> {
     public void finishWith(Callback resultCB) {
         // FIXME: this can be implemented more efficient
         while( !lock.compareAndSet(false,true) ) {}
-        if ( resultReceiver != null )
-            throw new RuntimeException("Double register of future listener");
-        resultReceiver = resultCB;
-        if (hadResult) {
-            hasFired = true;
-            lock.set(false);
-            resultCB.receive(result, error);
-        } else {
+        try {
+            if (resultReceiver != null)
+                throw new RuntimeException("Double register of future listener");
+            resultReceiver = resultCB;
+            if (hadResult) {
+                hasFired = true;
+                lock.set(false);
+                resultCB.receive(result, error);
+            }
+        } finally {
             lock.set(false);
         }
     }
@@ -127,24 +139,30 @@ public class Promise<T> implements Future<T> {
             this.result = res;
             this.error = error;
             while( !lock.compareAndSet(false,true) ) {}
-            if ( hadResult ) {
-                lock.set(false);
-                throw new RuntimeException("Double result received on future");
-            }
-            hadResult = true;
-            if ( resultReceiver != null ) {
-                if ( hasFired ) {
+            try {
+                if (hadResult) {
                     lock.set(false);
-                    throw new RuntimeException("Double fire on callback");
+                    throw new RuntimeException("Double result received on future");
                 }
-                hasFired = true;
-                lock.set(false);
-                resultReceiver.receive(result, error);
-                resultReceiver = null;
-                if ( nextFuture != null )
-                    nextFuture.receive(result, error);
-                return;
-            } else {
+                hadResult = true;
+                if (resultReceiver != null) {
+                    if (hasFired) {
+                        lock.set(false);
+                        throw new RuntimeException("Double fire on callback");
+                    }
+                    hasFired = true;
+                    lock.set(false);
+                    resultReceiver.receive(result, error);
+                    resultReceiver = null;
+                    while (!lock.compareAndSet(false, true)) {
+                    }
+                    if (nextFuture != null) {
+                        lock.set(false);
+                        nextFuture.receive(result, error);
+                    }
+                    return;
+                }
+            } finally {
                 lock.set(false);
             }
         }

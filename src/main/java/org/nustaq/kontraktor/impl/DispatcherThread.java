@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.util.Log;
 import java.lang.reflect.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -59,18 +60,17 @@ public class DispatcherThread extends Thread {
 
     private Scheduler scheduler;
 
-    /**
-     * defines the strategy applied when idling
-     */
     private Actor actors[] = new Actor[0];
     ConcurrentLinkedQueue<Actor> toAdd = new ConcurrentLinkedQueue<>();
 
     protected boolean shutDown = false;
     private int maxThreads;
+    static AtomicInteger dtcount = new AtomicInteger(0);
 
     public DispatcherThread(Scheduler scheduler) {
         this.scheduler = scheduler;
         maxThreads = scheduler.getMaxThreads();
+        setName("DispatcherThread "+dtcount.incrementAndGet());
     }
 
     @Override
