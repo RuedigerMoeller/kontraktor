@@ -28,7 +28,7 @@ public class ElasticScheduler implements Scheduler {
     public static int DEFQSIZE = 16384;
     public static boolean DEBUG_SCHEDULING = true;
     public static int BLOCK_COUNT_WARNING_THRESHOLD = 10000;
-    public static int ISOLATE_BLOCKED_THRESHOLD = 1024-1;
+    public static int RECURSE_ON_BLOCK_THRESHOLD = 1024-1;
 
     int maxThread = Runtime.getRuntime().availableProcessors();
     protected BackOffStrategy backOffStrategy = new BackOffStrategy();
@@ -99,10 +99,23 @@ public class ElasticScheduler implements Scheduler {
         boolean warningPrinted = false;
         while ( ! q.offer(o) ) {
             yield(count++);
-            if ( count > ISOLATE_BLOCKED_THRESHOLD ) {
-                // thread is blocked, try to isolate blocked actor
+            if ( count > RECURSE_ON_BLOCK_THRESHOLD) {
+                // thread is blocked, try to schedule other actors on this dispatcher
                 if (Thread.currentThread() instanceof DispatcherThread) {
-                    ((DispatcherThread) Thread.currentThread()).isolate( o, Actor.sender.get() );
+
+                    // invalid: need to ensure determinism in case 2 actors block. [requires list of blocked actors]
+
+//                    Actor sendingActor = Actor.sender.get();
+//                    DispatcherThread dp = (DispatcherThread) Thread.currentThread();
+//                    if ( dp.stackDepth < 100 && dp.getActorsNoCopy().length > 1 ) {
+//                        dp.stackDepth++;
+//                        if ( dp.pollQs(sendingActor.getActorRef()) ) {
+//                            count = 0;
+//                        }
+//                        dp.stackDepth--;
+//                    } else {
+//                        //System.out.println("max stack depth");
+//                    }
                 }
             }
             if ( count > BLOCK_COUNT_WARNING_THRESHOLD && ! warningPrinted ) {

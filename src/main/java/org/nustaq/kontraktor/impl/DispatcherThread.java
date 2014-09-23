@@ -52,6 +52,7 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class DispatcherThread extends Thread {
 
+    public static int NUMBER_OF_MESSAGES_TO_PROCESS_PER_CHECK_FOR_NEW_ADDS = 500;
     public static int PROFILE_INTERVAL = 255;
     public static int SCHEDULE_PER_PROFILE = 32;
     public static int QUEUE_PERCENTAGE_TRIGGERING_REBALANCE = 80;      // if queue is X % full, consider rebalance
@@ -67,6 +68,9 @@ public class DispatcherThread extends Thread {
     private int maxThreads;
     static AtomicInteger dtcount = new AtomicInteger(0);
 
+
+    int stackDepth = 0;
+
     public DispatcherThread(Scheduler scheduler) {
         this.scheduler = scheduler;
         maxThreads = scheduler.getMaxThreads();
@@ -81,7 +85,7 @@ public class DispatcherThread extends Thread {
     }
 
     public void addActor(Actor act) {
-        toAdd.offer(act);
+        toAdd.offer(act.getActorRef());
     }
 
     // removes immediate must be called from this thread
@@ -105,10 +109,10 @@ public class DispatcherThread extends Thread {
         int scheduleNewActorCount = 0;
         boolean isShutDown = false;
         while( ! isShutDown ) {
-            if ( pollQs() ) {
+            if ( pollQs( null ) ) {
                 emptyCount = 0;
                 scheduleNewActorCount++;
-                if ( scheduleNewActorCount > 500 ) {
+                if ( scheduleNewActorCount > NUMBER_OF_MESSAGES_TO_PROCESS_PER_CHECK_FOR_NEW_ADDS) { // fixme:
                     scheduleNewActorCount = 0;
                     schedulePendingAdds();
                 }
@@ -165,7 +169,7 @@ public class DispatcherThread extends Thread {
 
     // poll all actors in queue arr round robin
     int count = 0;
-    protected CallEntry pollQueues(Actor[] actors) {
+    protected CallEntry pollQueues(Actor[] actors, Actor refToExclude) {
         if ( count >= actors.length ) {
             // check for changed queueList each run FIXME: too often !
             count = 0;
@@ -173,9 +177,17 @@ public class DispatcherThread extends Thread {
                 return null;
             }
         }
-        CallEntry res = (CallEntry) actors[count].__cbQueue.poll();
+        Actor actor2poll = actors[count];
+        if ( actor2poll == refToExclude ) {
+            if ( actors.length > 1 ) {
+                count++;
+                pollQueues(actors, refToExclude);
+            }
+            return null;
+        }
+        CallEntry res = (CallEntry) actor2poll.__cbQueue.poll();
         if ( res == null )
-            res = (CallEntry) actors[count].__mailbox.poll();
+            res = (CallEntry) actor2poll.__mailbox.poll();
         count++;
         return res;
     }
@@ -188,8 +200,12 @@ public class DispatcherThread extends Thread {
     int nextProfile = 511;
     long created = System.currentTimeMillis();
 
-    public boolean pollQs() {
-        CallEntry callEntry = pollQueues(actors);
+    /**
+     * @param refToExclude
+     * @return false if no message could be polled
+     */
+    public boolean pollQs(Actor refToExclude) {
+        CallEntry callEntry = pollQueues(actors, refToExclude);
         if (callEntry != null) {
             try {
                 // before calling the actor method, set current sender
@@ -414,11 +430,8 @@ public class DispatcherThread extends Thread {
         return res;
     }
 
-    /**
-     * Thread is blocked. Isolate calling actor
-     */
-    public void isolate(Object callEntry, Actor blockedActor) {
-        if ( blockedActor == null ) // external nonactor thread
-            return;
+    Actor[] getActorsNoCopy() {
+        return actors;
     }
+
 }
