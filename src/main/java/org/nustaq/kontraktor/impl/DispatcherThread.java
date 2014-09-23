@@ -189,24 +189,27 @@ public class DispatcherThread extends Thread {
     long created = System.currentTimeMillis();
 
     public boolean pollQs() {
-        CallEntry poll = pollQueues(actors);
-        if (poll != null) {
+        CallEntry callEntry = pollQueues(actors);
+        if (callEntry != null) {
             try {
-                Actor.sender.set(poll.getTargetActor());
+                // before calling the actor method, set current sender
+                // to target, so for each method/callback invoked by the actor method,
+                // sender has correct value
+                Actor.sender.set(callEntry.getTargetActor());
                 Object invoke = null;
                 if ( maxThreads > 1 ) {
                     profileCounter++;
-                    if (profileCounter > nextProfile && poll.getTarget() instanceof Actor) {
+                    if (profileCounter > nextProfile && callEntry.getTarget() instanceof Actor) {
                         profileCounter = 0;
-                        invoke = profiledCall(poll);
+                        invoke = profiledCall(callEntry);
                     } else {
-                        invoke = invoke(poll);
+                        invoke = invoke(callEntry);
                     }
                 } else {
-                    invoke = invoke(poll);
+                    invoke = invoke(callEntry);
                 }
-                if (poll.getFutureCB() != null) {
-                    final Future futureCB = poll.getFutureCB();   // the future of caller side
+                if (callEntry.getFutureCB() != null) {
+                    final Future futureCB = callEntry.getFutureCB();   // the future of caller side
                     final Promise invokeResult = (Promise) invoke;  // the future returned sync from call
                     invokeResult.then(
                         new Callback() {
@@ -220,13 +223,13 @@ public class DispatcherThread extends Thread {
                 return true;
             } catch ( Exception e) {
                 if ( e instanceof InvocationTargetException && ((InvocationTargetException) e).getTargetException() == ActorStoppedException.Instance ) {
-                    Actor actor = (Actor) poll.getTarget();
+                    Actor actor = (Actor) callEntry.getTarget();
                     actor.__stopped = true;
                     removeActorImmediate(actor);
                     return true;
                 }
-                if (poll.getFutureCB() != null)
-                    poll.getFutureCB().receive(null, e);
+                if (callEntry.getFutureCB() != null)
+                    callEntry.getFutureCB().receive(null, e);
                 Log.Warn(this,e,"");
             }
         }
@@ -409,5 +412,13 @@ public class DispatcherThread extends Thread {
         Actor res[] = new Actor[actors.length];
         System.arraycopy(actors,0,res,0,res.length);
         return res;
+    }
+
+    /**
+     * Thread is blocked. Isolate calling actor
+     */
+    public void isolate(Object callEntry, Actor blockedActor) {
+        if ( blockedActor == null ) // external nonactor thread
+            return;
     }
 }
