@@ -116,12 +116,7 @@ public class Actors {
 
     private static void yield(final Future futures[], final int index, final Future result) {
         if ( index < futures.length ) {
-            futures[index].then(new Callback() {
-                @Override
-                public void receive(Object res, Object error) {
-                    yield(futures, index + 1, result);
-                }
-            });
+            futures[index].then( (r,e) -> yield(futures, index + 1, result) );
         } else {
             result.receive(futures, null);
         }
@@ -129,12 +124,7 @@ public class Actors {
 
     private static <T> void yield(final List<Future<T>> futures, final int index, final Future result) {
         if ( index < futures.size() ) {
-            futures.get(index).then(new Callback() {
-                @Override
-                public void receive(Object res, Object error) {
-                    yield(futures, index + 1, result);
-                }
-            });
+            futures.get(index).then( (r,e) -> yield(futures, index + 1, result) );
         } else {
             result.receive(futures, null);
         }
@@ -161,6 +151,7 @@ public class Actors {
 
             Actor realActor = clz.newInstance();
             realActor.__mailbox =  createQueue(qs);
+            realActor.__mbCapacity = qs;
             realActor.__cbQueue =  createQueue(qs);
 
             Actor selfproxy = getFactory().instantiateProxy(realActor);
@@ -168,6 +159,7 @@ public class Actors {
             selfproxy.__self = selfproxy;
 
             selfproxy.__mailbox = realActor.__mailbox;
+            selfproxy.__mbCapacity = realActor.__mbCapacity;
             selfproxy.__cbQueue = realActor.__cbQueue;
 
             realActor.__scheduler = disp.getScheduler();

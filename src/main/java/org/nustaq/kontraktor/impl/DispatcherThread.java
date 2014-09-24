@@ -241,7 +241,7 @@ public class DispatcherThread extends Thread {
                 if ( e instanceof InvocationTargetException && ((InvocationTargetException) e).getTargetException() == ActorStoppedException.Instance ) {
                     Actor actor = (Actor) callEntry.getTarget();
                     actor.__stopped = true;
-                    removeActorImmediate(actor);
+                    removeActorImmediate(actor.getActorRef());
                     return true;
                 }
                 if (callEntry.getFutureCB() != null)

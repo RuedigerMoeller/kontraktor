@@ -131,7 +131,11 @@ public class ElasticScheduler implements Scheduler {
                     }
                 } else
                     receiverString = ""+receiver;
-                Log.Lg.warn(this,"Warning: Thread "+Thread.currentThread().getName()+" blocked trying to put message on "+receiverString);
+                String sender = "";
+                Actor sendingActor = Actor.sender.get();
+                if ( sendingActor != null )
+                    sender = ", sender:"+sendingActor.getActor().getClass().getSimpleName();
+                Log.Lg.warn(this,"Warning: Thread "+Thread.currentThread().getName()+" blocked trying to put message on "+receiverString+sender);
             }
         }
     }

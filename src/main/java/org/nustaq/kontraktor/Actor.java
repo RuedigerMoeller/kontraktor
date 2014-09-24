@@ -87,6 +87,7 @@ public class Actor<SELF extends Actor> implements Serializable {
 
     // internal ->
     public Queue __mailbox;
+    public int __mbCapacity;
     public Queue __cbQueue;
     public Thread __currentDispatcher;
     public Scheduler __scheduler;
@@ -181,24 +182,40 @@ public class Actor<SELF extends Actor> implements Serializable {
     }
 
     /**
+     * @return true if mailbox fill size is ~half capacity
+     */
+    @CallerSideMethod public boolean isMailboxPressured() {
+        return __mailbox.size() * 2 > __mbCapacity;
+    }
+
+    @CallerSideMethod public boolean isCallbackQPressured() {
+        return __cbQueue.size() * 2 > __mbCapacity;
+    }
+
+    /**
      * @return an estimation on the queued up entries in the mailbox. Can be used for bogus flow control
      */
-    public int getMailboxSize() {
-        if ( ! isProxy() )
-            return self().getMailboxSize();
+    @CallerSideMethod public int getMailboxSize() {
         return __mailbox.size();
     }
 
     /**
      * @return an estimation on the queued up callback entries. Can be used for bogus flow control.
      */
-    public int getCallbackSize() {
-        if ( ! isProxy() )
-            return self().getCallbackSize();
+    @CallerSideMethod public int getCallbackSize() {
         return __cbQueue.size();
     }
 
-    Thread _t;
+    Thread _t; //
+
+    /**
+     * Debug method.
+     * can be called to check actor code is actually single threaded.
+     * By using custom callbacks/other threading bugs accidental multi threading
+     * can be detected that way.
+     * Note that in case of dynamic scheduling (ElasticScheduler with #threads > 1)
+     * this will give false alarm.
+     */
     protected final void checkThread() {
         if (_t==null) {
             _t = Thread.currentThread();

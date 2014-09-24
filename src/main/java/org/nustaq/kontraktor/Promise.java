@@ -107,6 +107,18 @@ public class Promise<T> implements Future<T> {
         }
     }
 
+    public Promise getLast() {
+        while( !lock.compareAndSet(false,true) ) {}
+        try {
+            if (nextFuture == null)
+                return this;
+            else
+                return ((Promise)nextFuture).getLast();
+        } finally {
+            lock.set(false);
+        }
+    }
+
     /**
      * same as then, but avoid creation of new future
      * @param resultCB

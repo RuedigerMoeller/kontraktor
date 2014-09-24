@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -31,7 +32,7 @@ public class Hoarde<T extends Actor> {
         }
     }
 
-    public Future[] each(BiFunction<T, Integer, Future> init) {
+    public Future[] map(BiFunction<T, Integer, Future> init) {
         Future res[] = new Future[actors.length];
         for (int i = 0; i < actors.length; i++) {
             T actor = (T) actors[i];
@@ -43,6 +44,12 @@ public class Hoarde<T extends Actor> {
     public void each(Consumer<T> init) {
         for (int i = 0; i < actors.length; i++) {
             init.accept( (T) actors[i] );
+        }
+    }
+
+    public void each(BiConsumer<T, Integer> init) {
+        for (int i = 0; i < actors.length; i++) {
+            init.accept( (T) actors[i], i );
         }
     }
 
