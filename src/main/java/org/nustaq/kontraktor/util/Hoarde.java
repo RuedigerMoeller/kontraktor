@@ -1,9 +1,6 @@
 package org.nustaq.kontraktor.util;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.Future;
-import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.*;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.Serializable;
@@ -25,10 +22,17 @@ public class Hoarde<T extends Actor> {
     int index = 0;
     Promise prev;
 
-    public Hoarde(int numThreads, Class<T> actor) {
-        actors = new Actor[numThreads];
+    public Hoarde(int numActors, Class<T> actor) {
+        actors = new Actor[numActors];
         for (int i = 0; i < actors.length; i++) {
             actors[i] = Actors.AsActor(actor);
+        }
+    }
+
+    public Hoarde(int numActors, Class<T> actor, Scheduler sched) {
+        actors = new Actor[numActors];
+        for (int i = 0; i < actors.length; i++) {
+            actors[i] = Actors.AsActor(actor, sched);
         }
     }
 
