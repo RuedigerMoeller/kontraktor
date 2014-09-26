@@ -93,7 +93,6 @@ public class Dining {
 
         phils.each( (phil, index) -> phil.$start(names[index], index, coordinator));
 
-        phils.getActor(1).test();
         // start a thread reporting state each second
         new Thread(() -> {
             while( true ) {
