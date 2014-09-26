@@ -80,10 +80,6 @@ public class Dining {
             });
         }
 
-        String test() {
-            return "POK";
-        }
-
         public Future<String> $getState() {
             return new Promise( name+" "+state+" eaten:"+eatCount );
         }
