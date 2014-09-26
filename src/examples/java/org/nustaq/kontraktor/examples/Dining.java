@@ -93,7 +93,7 @@ public class Dining {
         String names[] = { "A", "B", "C", "D", "E" };
         Coordinator coordinator = Actors.AsActor(Coordinator.class);
 //        Hoarde<Philosopher> phils = new Hoarde<>( 5, Philosopher.class, new ElasticScheduler(1)); // run concurrent with single threaded
-        Hoarde<Philosopher> phils = new Hoarde<>( 5, Philosopher.class, new ElasticScheduler(1)); // run with one thread per Philosopher
+        Hoarde<Philosopher> phils = new Hoarde<>( 5, Philosopher.class); // run with one thread per Philosopher
 
         phils.each( (phil, index) -> phil.$start(names[index], index, coordinator));
 
