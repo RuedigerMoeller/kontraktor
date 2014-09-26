@@ -21,10 +21,10 @@ import java.util.concurrent.locks.LockSupport;
  * Created by ruedi on 13.08.2014.
  *
  * Minimalistic Http server implementation. Only partial Http implementation necessary for Kontraktor Http Remoting.
- * Do NOT use in production. At least requires a reverse proxy like NGINX in front to have at least some dos protection.
- * Main purpose is development/light weight inhouse usage. Avoids too much dependencies of kontraktor-core.
+ * Do NOT use in production. At least requires a reverse proxy like NGINX in front to have get some protection.
+ * Main purpose is development/light weight inhouse usage. Avoids dependencies of kontraktor-core.
  *
- * Its recommended to use KontraktorNettyServer (see github/kontraktor) for production.
+ * Its recommended to use KontraktorNettyServer (see github/kontraktor) for production apps.
  */
 public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHttpServer {
 
@@ -51,7 +51,7 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
             info("bound to port " + port);
         } catch (IOException e) {
             severe("could not bind to port" + port);
-            Log.Warn(this,e,"");
+            Log.Lg.error(this,e,null);
         }
     }
 
@@ -65,7 +65,7 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
 
     public void $receive() {
         try {
-            int keys = selector.selectNow();
+            selector.selectNow();
             for (Iterator<SelectionKey> iterator = selector.selectedKeys().iterator(); iterator.hasNext(); ) {
                 SelectionKey key = iterator.next();
                 try {
@@ -74,7 +74,7 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
                             SocketChannel accept = socket.accept();
                             if (accept != null) {
                                 accept.configureBlocking(false);
-                                SelectionKey register = accept.register(selector, SelectionKey.OP_READ);
+                                accept.register(selector, SelectionKey.OP_READ);
                                 lastRequest = System.currentTimeMillis();
                             }
                         }
@@ -100,7 +100,7 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
         }
         if ( ! shouldTerminate ) {
             if ( System.currentTimeMillis() - lastRequest > 100 ) {
-                LockSupport.parkNanos(1000 * 1000); // latency ..
+                LockSupport.parkNanos(1000 * 1000); // latency max 1 ms, but avoid excessive power consumption.
             }
             self().$receive();
         }
