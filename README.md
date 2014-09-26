@@ -6,6 +6,27 @@ lightweight and efficient Actor implementation in Java. The threading model impl
 Kontraktor implements a typed actor model to avoid message definition+handling boilerplate code. Additionally this integrates well
 with code completion and refactoring of modern IDEs.
 
+===2.0 beta===
+
+* package name change
+* requires jdk 1.8
+* each actor now has dedicated queues, 1.x style scheduling (many actors from one per-thread-queue) caused issues in some scenarios.
+* New: Elastic Scheduler scales up actors horizontally by adding cores based on profiling data
+* New: Actor Remoting: TCP, HTTP-WebService, WebSockets
+* New: Spores
+* Streamlined API, added new utils
+* added many sanity checks to help spotting actor contract violations for beginners
+* Documentation see 2.0-betat wiki page (in progress)
+
+2.0 beta State: 
+* Core Actor functionality stable. 
+* TCP remoting also stable, probably issues in corner cases (e.g. dynamically connecting/disconnecting etc.). 
+* WebSocket Remoting functionality requires unreleased sub project "netty-kontraktor" (see source).
+* Single line WebService actor publishing lacks documentation, zero test coverage (uses kson/json encoding)
+* Still unoptimized. 4-5 million messages per second in-process, up to 1.5 million messages per second remotely (depends on number of arguments/message size).
+
+===1.x===
+
 Requires JDK 1.7+, but JDK 8 is recommended as readability is much better with lambda's and now optional "final" modifier.
 
 [Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki) is work in progress,
