@@ -19,9 +19,9 @@ import java.net.SocketException;
  */
 public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
 
-    public static <T extends Actor> Future<T> Connect( Class<T> clz, String host, int port ) throws IOException {
-        Promise<T> res = new Promise<>();
-        TCPActorClient<T> client = new TCPActorClient<>( clz, host, port);
+    public static <AC extends Actor> Future<AC> Connect( Class<AC> clz, String host, int port ) throws IOException {
+        Promise<AC> res = new Promise<>();
+        TCPActorClient<AC> client = new TCPActorClient<>( clz, host, port);
         new Thread(() -> {
             try {
                 client.connect();

@@ -22,6 +22,11 @@ public class Hoarde<T extends Actor> {
     int index = 0;
     Promise prev;
 
+    /**
+     * create a hoarde with each actor having a dedicated thread
+     * @param numActors
+     * @param actor
+     */
     public Hoarde(int numActors, Class<T> actor) {
         actors = new Actor[numActors];
         for (int i = 0; i < actors.length; i++) {
@@ -29,6 +34,12 @@ public class Hoarde<T extends Actor> {
         }
     }
 
+    /**
+     * create a hoarde scheduled on given scheduler
+     * @param numActors
+     * @param actor
+     * @param sched
+     */
     public Hoarde(int numActors, Class<T> actor, Scheduler sched) {
         actors = new Actor[numActors];
         for (int i = 0; i < actors.length; i++) {
@@ -45,16 +56,18 @@ public class Hoarde<T extends Actor> {
         return res;
     }
 
-    public void each(Consumer<T> init) {
+    public Hoarde<T> each(Consumer<T> init) {
         for (int i = 0; i < actors.length; i++) {
             init.accept( (T) actors[i] );
         }
+        return this;
     }
 
-    public void each(BiConsumer<T, Integer> init) {
+    public Hoarde<T> each(BiConsumer<T, Integer> init) {
         for (int i = 0; i < actors.length; i++) {
             init.accept( (T) actors[i], i );
         }
+        return this;
     }
 
     public Future ordered(Function<T, Future> toCall) {
