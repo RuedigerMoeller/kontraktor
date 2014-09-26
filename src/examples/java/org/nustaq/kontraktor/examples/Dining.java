@@ -65,7 +65,7 @@ public class Dining {
             }
             delayed(thinkTime, () -> {
                 state = "Hungry";
-                coordinator.getFork(firstFork).then((r, e) -> {
+                coordinator.getFork(firstFork).then((r, e) ->
                     coordinator.getFork(secondFork).then((r1, e1) -> {
                         state = "Eat";
                         long eatTime = (long) (100 * Math.random());
@@ -75,8 +75,8 @@ public class Dining {
                             coordinator.returnFork(secondFork);
                             self().$think();
                         });
-                    });
-                });
+                    })
+                );
             });
         }
 
