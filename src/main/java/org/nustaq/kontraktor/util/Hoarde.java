@@ -74,4 +74,11 @@ public class Hoarde<T extends Actor> {
         }
     }
 
+    public int getSize() {
+        return actors.length;
+    }
+
+    public T getActor(int i) {
+        return (T) actors[i];
+    }
 }

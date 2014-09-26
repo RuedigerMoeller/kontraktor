@@ -71,7 +71,7 @@ public class HoardeTest {
 
 
         testSingleThreaded(conf, toEncode, 6);
-        testGenericAct(toEncode, 4, 10, false );
+        testGenericAct(toEncode, 4, 5, false );
 
         System.out.println("DONE");
     }

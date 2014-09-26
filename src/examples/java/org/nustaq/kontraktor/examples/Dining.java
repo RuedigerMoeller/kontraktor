@@ -1,4 +1,4 @@
-package kontraktor.scheduling;
+package org.nustaq.kontraktor.examples;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
@@ -12,6 +12,8 @@ import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by ruedi on 24.09.14.
+ *
+ * Solution of the Dining Philosopher Problem using actors. (no attempt is made on being fair)
  */
 public class Dining {
 
@@ -78,6 +80,10 @@ public class Dining {
             });
         }
 
+        String test() {
+            return "POK";
+        }
+
         public Future<String> $getState() {
             return new Promise( name+" "+state+" eaten:"+eatCount );
         }
@@ -86,10 +92,12 @@ public class Dining {
     public static void main( String arg[] ) {
         String names[] = { "A", "B", "C", "D", "E" };
         Coordinator coordinator = Actors.AsActor(Coordinator.class);
-        Hoarde<Philosopher> phils = new Hoarde<>( 5, Philosopher.class, new ElasticScheduler(1));
+//        Hoarde<Philosopher> phils = new Hoarde<>( 5, Philosopher.class, new ElasticScheduler(1)); // run concurrent with single threaded
+        Hoarde<Philosopher> phils = new Hoarde<>( 5, Philosopher.class, new ElasticScheduler(1)); // run with one thread per Philosopher
 
         phils.each( (phil, index) -> phil.$start(names[index], index, coordinator));
 
+        phils.getActor(1).test();
         // start a thread reporting state each second
         new Thread(() -> {
             while( true ) {

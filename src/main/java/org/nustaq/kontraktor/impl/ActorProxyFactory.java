@@ -134,6 +134,7 @@ public class ActorProxyFactory {
     protected void defineProxyMethods(CtClass cc, CtClass orig) throws Exception {
 //        cc.addMethod( CtMethod.make( "public void __setDispatcher( "+ DispatcherThread.class.getName()+" d ) { __target.__dispatcher(d); }", cc ) );
         CtMethod[] methods = getSortedPublicCtMethods(orig,false);
+
         for (int i = 0; i < methods.length; i++) {
             CtMethod method = methods[i];
             CtMethod originalMethod = method;
@@ -146,7 +147,7 @@ public class ActorProxyFactory {
                 map.fix(orig);
                 method = new CtMethod(method, cc, map);
             }
-//            CtClass[] parameterTypes = method.getParameterTypes();
+
             CtClass returnType = method.getReturnType();
             boolean isCallerSide = // don't touch
                     originalMethod.getAnnotation(CallerSideMethod.class) != null ||
@@ -227,25 +228,45 @@ public class ActorProxyFactory {
                     "}";
                 method.setBody(body);
                 cc.addMethod(method);
-//                System.out.println("patch method 0 "+method.getName());
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
                 if (isCallerSide || method.getName().equals("toString")) {
-                    // do nothing
-//                } else if ( method.getName().equals("assignDispatcher") ) {
-//                    method.setBody(" return __target.assignDispatcher();");
-//                    cc.addMethod(method);
-//                    System.out.println("patch method 1 "+method.getName());
                 } else if ( ! method.getName().equals("getActor") ) {
                     method.setBody("throw new RuntimeException(\"can only call public methods on actor ref\");");
                     cc.addMethod(method);
-//                    System.out.println("patch method 2 "+method.getName());
                 } else {
                     cc.addMethod(method);
-//                    System.out.println("patch method 3 "+method.getName());
                 }
             }
         }
+
+//        methods = getSortedNonPublicCtMethods(orig);
+//
+//        for (int i = 0; i < methods.length; i++) {
+//            CtMethod method = methods[i];
+//            CtMethod originalMethod = method;
+//            if (method.getName().equals("getActor")) {
+//                ClassMap map = new ClassMap();
+//                map.put(Actor.class.getName(),Actor.class.getName());
+//                method = CtMethod.make( "public "+Actor.class.getName()+" getActor() { return __target; }", cc ) ;
+//            } else {
+//                ClassMap map = new ClassMap();
+//                map.fix(orig);
+//                method = new CtMethod(method, cc, map);
+//            }
+//
+//            CtClass returnType = method.getReturnType();
+//            // by default ignore all method of object and actor
+//            boolean isObjectOrActor = !originalMethod.getDeclaringClass().getName().equals(Object.class.getName()) &&
+//                    !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName());
+//
+//            if (! isObjectOrActor &&
+//                (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
+//            {
+//                method.setBody("throw new RuntimeException(\"can only call public methods on actor ref\");");
+//                cc.addMethod(method);
+//            }
+//        }
     }
 
 //    protected boolean isFastCall(CtMethod m) throws NotFoundException {
@@ -308,7 +329,53 @@ public class ActorProxyFactory {
         }
     }
 
+    protected CtMethod[] getSortedNonPublicCtMethods(CtClass orig) throws NotFoundException {
+        int count = 0;
+        CtMethod[] methods0 = orig.getMethods();
+        for (int i = methods0.length-1; i >= 0; i-- ) {
+            CtMethod method = methods0[i];
+            if ( ! method.getDeclaringClass().isInterface() ) {
+                String str = toString(method);
+                boolean isVolatile = method.toString().indexOf("volatile ") >= 0;
+                boolean isStatic = Modifier.isStatic(method.getModifiers());
+                boolean isPublic = Modifier.isPublic(method.getModifiers());
+                if ( isPublic || isVolatile || isStatic || method.getName().startsWith("access$")) // ignore synthetic methods
+                {
+                    methods0[i] = null;
+                }
+            }
+        }
+
+        CtMethod methods[] = null;
+        for (int i = 0; i < methods0.length; i++) {
+            CtMethod method = methods0[i];
+            if (method != null ) {
+                count++;
+            }
+        }
+
+        methods = new CtMethod[count];
+        count = 0;
+        for (int i = 0; i < methods0.length; i++) {
+            CtMethod method = methods0[i];
+            if ( method != null ) {
+                methods[count++] = method;
+            }
+        }
+
+        Arrays.sort(methods, (o1,o2) -> {
+            try {
+                return (o1.getName() + o1.getReturnType() + o1.getParameterTypes().length).compareTo(o2.getName() + o2.getReturnType() + o2.getParameterTypes().length);
+            } catch (NotFoundException e) {
+                e.printStackTrace();
+                return 0;
+            }
+        });
+        return methods;
+    }
+
     protected CtMethod[] getSortedPublicCtMethods(CtClass orig, boolean onlyRemote) throws NotFoundException {
+        //fixme: grown stuff, lots of redundant checks
         int count = 0;
         CtMethod[] methods0 = orig.getMethods();
         HashSet alreadypresent = new HashSet();
@@ -371,15 +438,12 @@ public class ActorProxyFactory {
             }
         }
 
-        Arrays.sort(methods, new Comparator<CtMethod>() {
-            @Override
-            public int compare(CtMethod o1, CtMethod o2) {
-                try {
-                    return (o1.getName() + o1.getReturnType() + o1.getParameterTypes().length).compareTo(o2.getName() + o2.getReturnType() + o2.getParameterTypes().length);
-                } catch (NotFoundException e) {
-                    e.printStackTrace();
-                    return 0;
-                }
+        Arrays.sort(methods, (o1,o2) -> {
+            try {
+                return (o1.getName() + o1.getReturnType() + o1.getParameterTypes().length).compareTo(o2.getName() + o2.getReturnType() + o2.getParameterTypes().length);
+            } catch (NotFoundException e) {
+                e.printStackTrace();
+                return 0;
             }
         });
         return methods;
