@@ -24,6 +24,14 @@ with code completion and refactoring of modern IDEs.
 * Single line WebService actor publishing lacks documentation, zero test coverage (uses kson/json encoding)
 * Still unoptimized. Currently: 4-5 million messages per second in-process, ~1.0 million messages per second via TCP-Remoting/fast-serialization 2.x (ofc depends on number of arguments/message size).
 
+```xml
+<dependency>
+    <groupId>de.ruedigermoeller</groupId>
+    <artifactId>kontraktor</artifactId>
+    <version>2.0-beta-1</version>
+</dependency>
+```
+
 ###Productive 1.x
 
 Requires JDK 1.7+, but JDK 8 is recommended as readability is much better with lambda's and now optional "final" modifier.
@@ -38,7 +46,7 @@ Requires JDK 1.7+, but JDK 8 is recommended as readability is much better with l
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>LATEST</version>
+    <version>1.15</version>
 </dependency>
 ```
 
