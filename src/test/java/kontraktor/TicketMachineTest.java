@@ -20,7 +20,7 @@ public class TicketMachineTest {
 
         public Future $work(final long nanos) {
             Promise promise = new Promise<>();
-            async( new Callable<Object>() {
+            exec(new Callable<Object>() {
                 @Override
                 public Object call() throws Exception {
                     LockSupport.parkNanos(nanos);

@@ -302,13 +302,13 @@ public class BasicTest {
         public Future<String> get( final String url ) {
             final Promise<String> content = new Promise();
             final Thread myThread = Thread.currentThread();
-            async(new Callable<String>() {
-                      @Override
-                      public String call() throws Exception {
-                          return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
-                      }
-                  }
-            ).then(
+            exec(new Callable<String>() {
+                     @Override
+                     public String call() throws Exception {
+                         return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
+                     }
+                 }
+                ).then(
                     new Callback<String>() {
                         @Override
                         public void receive(String result, Object error) {

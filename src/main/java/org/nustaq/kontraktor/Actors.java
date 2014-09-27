@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.util.Log;
 
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -110,9 +111,43 @@ public class Actors {
         return res;
     }
 
+    /**
+     * mimics scala's async macro. callables are executed in order. if a callable returns a promise,
+     * execution of the next callable is deferred until the promise is fulfilled. The future resulting from the last
+     * callable is returned.
+     * Helps keeping future chains readable.
+     *
+     * (see https://gist.github.com/RuedigerMoeller/10c583819616f2563969 for an example)
+     *
+     * @param toexec
+     * @return
+     */
+    public static Future<Future[]> async(Callable<Future>... toexec) {
+        return ordered(toexec,0);
+    }
+
     // end static API
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    private static Future ordered(final Callable<Future> callables[], final int index) {
+        try {
+            if ( index == callables.length - 1 ) {
+                return callables[index].call();
+            } else {
+                Future res = callables[index].call();
+                if ( res != null ) {
+                    Promise p = new Promise();
+                    res.then( () -> ordered(callables, index +1).then(p) );
+                    return p;
+                } else
+                    return ordered(callables, index +1 );
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new Promise<>(null,e);
+        }
+    }
 
     private static void yield(final Future futures[], final int index, final Future result) {
         if ( index < futures.length ) {

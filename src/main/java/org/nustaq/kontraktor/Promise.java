@@ -43,6 +43,11 @@ public class Promise<T> implements Future<T> {
     }
 
     @Override
+    public Future<T> then(Runnable result) {
+        return then( (r,e) -> result.run() );
+    }
+
+    @Override
     public <OUT> Future<OUT> map(final Filter<T, OUT> filter) {
         final Promise<OUT> promise = new Promise<>();
         then(new Callback<T>() {

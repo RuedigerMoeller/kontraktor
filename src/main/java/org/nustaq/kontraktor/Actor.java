@@ -145,6 +145,10 @@ public class Actor<SELF extends Actor> implements Serializable {
         return __scheduler.yield(futures);
     }
 
+    protected Future<Future[]> ordered(Callable ... callables) {
+        return Actors.async(callables);
+    }
+
     protected <T> Future<List<Future<T>>> yieldList( List<Future<T>> futures) {
         return __scheduler.yield(futures);
     }
@@ -156,7 +160,7 @@ public class Actor<SELF extends Actor> implements Serializable {
      * @param <T>
      * @return
      */
-    protected <T> Future<T> async(Callable<T> callable) {
+    protected <T> Future<T> exec(Callable<T> callable) {
         Promise<T> prom = new Promise<>();
         __scheduler.runBlockingCall(self(),callable,prom);
         return prom;

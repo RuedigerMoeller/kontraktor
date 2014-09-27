@@ -73,6 +73,14 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     }
 
     @Override
+    public Future<T> then(Runnable result) {
+        if (realCallback instanceof Future == false)
+            throw new RuntimeException("this is an error.");
+        else
+            return ((Future)realCallback).then(result);
+    }
+
+    @Override
     public Future then(Callback<T> result) {
         if (realCallback instanceof Future == false)
             throw new RuntimeException("this is an error.");
