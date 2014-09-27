@@ -7,7 +7,8 @@ Kontraktor implements a typed actor model to avoid message definition+handling b
 with code completion and refactoring of modern IDEs.
 
 Blogposts (kontraktor version > 2.0):
-[Solving "Dining Philosophers problem" with (distributed) actors](http://java-is-the-new-c.blogspot.de/2014/09/breaking-habit-solving-dining.html)
+
+* [Solving "Dining Philosophers problem" with (distributed) actors](http://java-is-the-new-c.blogspot.de/2014/09/breaking-habit-solving-dining.html)
 
 
 ###2.0 beta
