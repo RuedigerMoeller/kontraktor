@@ -6,7 +6,7 @@ lightweight and efficient Actor implementation in Java. The threading model impl
 Kontraktor implements a typed actor model to avoid message definition+handling boilerplate code. Additionally this integrates well
 with code completion and refactoring of modern IDEs.
 
-blogposts (kontraktor version > 2.0):
+Blogposts (kontraktor version > 2.0):
 [Solving "Dining Philosophers problem" with (distributed) actors](http://java-is-the-new-c.blogspot.de/2014/09/breaking-habit-solving-dining.html)
 
 
