@@ -61,7 +61,7 @@ public class DispatcherThread extends Thread {
 
     private Scheduler scheduler;
 
-    private Actor actors[] = new Actor[0];
+    private Actor actors[] = new Actor[0]; // always refs
     ConcurrentLinkedQueue<Actor> toAdd = new ConcurrentLinkedQueue<>();
 
     protected boolean shutDown = false;
@@ -109,7 +109,7 @@ public class DispatcherThread extends Thread {
         int scheduleNewActorCount = 0;
         boolean isShutDown = false;
         while( ! isShutDown ) {
-            if ( pollQs( null ) ) {
+            if ( pollQs() ) {
                 emptyCount = 0;
                 scheduleNewActorCount++;
                 if ( scheduleNewActorCount > NUMBER_OF_MESSAGES_TO_PROCESS_PER_CHECK_FOR_NEW_ADDS) { // fixme:
@@ -169,7 +169,7 @@ public class DispatcherThread extends Thread {
 
     // poll all actors in queue arr round robin
     int count = 0;
-    protected CallEntry pollQueues(Actor[] actors, Actor refToExclude) {
+    protected CallEntry pollQueues(Actor[] actors) {
         if ( count >= actors.length ) {
             // check for changed queueList each run FIXME: too often !
             count = 0;
@@ -178,13 +178,6 @@ public class DispatcherThread extends Thread {
             }
         }
         Actor actor2poll = actors[count];
-        if ( actor2poll == refToExclude ) {
-            if ( actors.length > 1 ) {
-                count++;
-                pollQueues(actors, refToExclude);
-            }
-            return null;
-        }
         CallEntry res = (CallEntry) actor2poll.__cbQueue.poll();
         if ( res == null )
             res = (CallEntry) actor2poll.__mailbox.poll();
@@ -200,12 +193,15 @@ public class DispatcherThread extends Thread {
     int nextProfile = 511;
     long created = System.currentTimeMillis();
 
+    public boolean pollQs() {
+        return pollQs(actors);
+    }
+
     /**
-     * @param refToExclude
      * @return false if no message could be polled
      */
-    public boolean pollQs(Actor refToExclude) {
-        CallEntry callEntry = pollQueues(actors, refToExclude);
+    public boolean pollQs(Actor actors[]) {
+        CallEntry callEntry = pollQueues(actors);
         if (callEntry != null) {
             try {
                 // before calling the actor method, set current sender
@@ -434,4 +430,20 @@ public class DispatcherThread extends Thread {
         return actors;
     }
 
+    /**
+     * can be called from the dispacther thread itself only
+     * @param receiver
+     * @return
+     */
+    public boolean schedules(Actor receiverRef) {
+        if ( Thread.currentThread() != this ) {
+            throw new RuntimeException("cannot call from foreign thread");
+        }
+        for (int i = 0; i < actors.length; i++) {
+            Actor actor = actors[i];
+            if ( actor == receiverRef )
+                return true;
+        }
+        return false;
+    }
 }

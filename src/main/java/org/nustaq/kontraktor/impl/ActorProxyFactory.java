@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.AsCallback;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import javassist.*;
 import javassist.bytecode.AccessFlag;
@@ -192,6 +193,7 @@ public class ActorProxyFactory {
 
             if (allowed) {
                 boolean isVoid = returnType == CtPrimitiveType.voidType;
+                boolean isCallbackCall = originalMethod.getAnnotation(AsCallback.class) != null;
                 if (returnType != CtPrimitiveType.voidType && !returnType.getName().equals(Future.class.getName()) ) {
                     throw new RuntimeException("only void methods or methods returning Future allowed problematic method:"+originalMethod );
                 }
@@ -218,7 +220,7 @@ public class ActorProxyFactory {
                         }
                     }
                 }
-                String call = "__target.__enqueueCall( this, \""+method.getName()+"\", args );";
+                String call = "__target.__enqueueCall( this, \""+method.getName()+"\", args, "+isCallbackCall+" );";
                 if ( ! isVoid ) {
                     call = "return ("+originalMethod.getReturnType().getName()+") (Object)"+call;
                 }

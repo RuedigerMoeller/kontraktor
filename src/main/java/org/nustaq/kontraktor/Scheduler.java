@@ -20,9 +20,9 @@ public interface Scheduler {
 
     void yield(int count);
 
-    void put2QueuePolling(Queue q, Object o, Object sender);
+    void put2QueuePolling(Queue q, boolean isCBQ, Object o, Object sender);
 
-    Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object args[]);
+    Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object args[], boolean isCB);
 
     void threadStopped(DispatcherThread th);
 

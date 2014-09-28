@@ -134,7 +134,7 @@ public class RestActorServer {
                     }
                 }
 
-                Object future = target.getActor().__scheduler.enqueueCall(server.getServingActor(), target.getActor(), call.getMethod(), call.getArgs());
+                Object future = target.getActor().__scheduler.enqueueCall(server.getServingActor(), target.getActor(), call.getMethod(), call.getArgs(), false);
                 if (future instanceof Future) {
                     ((Future) future).then(cb);
                 } else if (m.getReturnType() == void.class && cbCount == 0) {

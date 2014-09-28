@@ -210,7 +210,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
                 return true;
             }
 
-            Object future = targetActor.getScheduler().enqueueCall(null, targetActor, read.getMethod(), read.getArgs());
+            Object future = targetActor.getScheduler().enqueueCall(null, targetActor, read.getMethod(), read.getArgs(), false);
             if ( future instanceof Future) {
                 ((Future) future).then( (r,e) -> {
                     try {

@@ -305,7 +305,7 @@ public class Actor<SELF extends Actor> implements Serializable {
     }
 
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread
-    @CallerSideMethod public Object __enqueueCall( Actor receiver, String methodName, Object args[] ) {
+    @CallerSideMethod public Object __enqueueCall( Actor receiver, String methodName, Object args[], boolean isCB ) {
         if ( __stopped ) {
             if ( methodName.equals("$stop") ) // ignore double stop
                 return null;
@@ -315,7 +315,7 @@ public class Actor<SELF extends Actor> implements Serializable {
             Actors.AddDeadLetter(s);
 //            throw new RuntimeException("Actor " + this + " received message after being stopped " + methodName);
         }
-        return __scheduler.enqueueCall(sender.get(), receiver, methodName, args);
+        return __scheduler.enqueueCall(sender.get(), receiver, methodName, args, isCB);
     }
 
     ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();

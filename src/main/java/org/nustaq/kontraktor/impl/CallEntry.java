@@ -16,13 +16,15 @@ public class CallEntry<T> implements Message<T> {
     transient final private T target;    // target and target actor are not necessary equal. E.g. target can be callback, but calls are put onto sendingActor Q
     transient private Actor sendingActor; // defines the sender of this message. null in case of outside call
     transient private Actor targetActor;  // defines actor assignment in case target is callback
+    transient private boolean onCBQueue;  // determines queue used
 
-    public CallEntry(T target, Method method, Object[] args, Actor sender, Actor targetActor) {
+    public CallEntry(T target, Method method, Object[] args, Actor sender, Actor targetActor, boolean isCB) {
         this.target = target;
         this.method = method;
         this.args = args;
         this.sendingActor = sender;
         this.targetActor = targetActor;
+        this.onCBQueue = isCB;
     }
 
     public Actor getTargetActor() {
@@ -79,11 +81,17 @@ public class CallEntry<T> implements Message<T> {
     @Override
     public String toString() {
         return "CallEntry{" +
-                "target=" + target +
-                ", method=" + method +
-                ", args=" + Arrays.toString(args) +
-                ", futureCB=" + futureCB +
-                ", disp=" + sendingActor +
-                '}';
+                   "method=" + method.getName() +
+//                   ", args=" + Arrays.toString(args) +
+                   ", futureCB=" + futureCB +
+                   ", target=" + target +
+                   ", sendingActor=" + sendingActor +
+                   ", targetActor=" + targetActor +
+                   ", onCBQueue=" + onCBQueue +
+                   '}';
+    }
+
+    public boolean isCallback() {
+        return onCBQueue;
     }
 }

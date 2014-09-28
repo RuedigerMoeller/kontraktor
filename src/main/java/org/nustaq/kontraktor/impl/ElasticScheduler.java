@@ -25,10 +25,11 @@ import java.util.concurrent.Executors;
  */
 public class ElasticScheduler implements Scheduler {
 
+    public static final int MAX_STACK_ON_SYNC_CBDISPATCH = 200000;
     public static int DEFQSIZE = 16384;
     public static boolean DEBUG_SCHEDULING = true;
     public static int BLOCK_COUNT_WARNING_THRESHOLD = 10000;
-    public static int RECURSE_ON_BLOCK_THRESHOLD = 1024-1;
+    public static int RECURSE_ON_BLOCK_THRESHOLD = 2;
 
     int maxThread = Runtime.getRuntime().availableProcessors();
     protected BackOffStrategy backOffStrategy = new BackOffStrategy();
@@ -84,7 +85,7 @@ public class ElasticScheduler implements Scheduler {
         } else
             fut = null;
         Actor targetActor = e.getTargetActor();
-        put2QueuePolling(targetActor.__mailbox, e, targetActor);
+        put2QueuePolling( e.isCallback() ? targetActor.__cbQueue : targetActor.__mailbox, false, e, targetActor);
         return fut;
     }
 
@@ -94,28 +95,33 @@ public class ElasticScheduler implements Scheduler {
     }
 
     @Override
-    public void put2QueuePolling(Queue q, Object o, Object receiver ) {
+    public void put2QueuePolling(Queue q, boolean isCBQ, Object o, Object receiver) {
         int count = 0;
         boolean warningPrinted = false;
         while ( ! q.offer(o) ) {
             yield(count++);
-            if ( count > RECURSE_ON_BLOCK_THRESHOLD) {
+            if ( count > RECURSE_ON_BLOCK_THRESHOLD && isCBQ) {
                 // thread is blocked, try to schedule other actors on this dispatcher
                 if (Thread.currentThread() instanceof DispatcherThread) {
 
                     // invalid: need to ensure determinism in case 2 actors block. [requires list of blocked actors]
+                    // fixme: does this hold true if only applied to callbacks
 
 //                    Actor sendingActor = Actor.sender.get();
-//                    DispatcherThread dp = (DispatcherThread) Thread.currentThread();
-//                    if ( dp.stackDepth < 100 && dp.getActorsNoCopy().length > 1 ) {
-//                        dp.stackDepth++;
-//                        if ( dp.pollQs(sendingActor.getActorRef()) ) {
-//                            count = 0;
-//                        }
-//                        dp.stackDepth--;
-//                    } else {
-//                        //System.out.println("max stack depth");
-//                    }
+                    DispatcherThread dp = (DispatcherThread) Thread.currentThread();
+                    if ( dp.stackDepth < MAX_STACK_ON_SYNC_CBDISPATCH && dp.getActorsNoCopy().length > 1 ) {
+                        Actor recAct = (Actor) receiver;
+                        recAct = recAct.getActorRef();
+                        if ( dp.schedules(recAct) ) {
+                            dp.stackDepth++;
+                            if (dp.pollQs(new Actor[] {recAct})) {
+                                count = 0;
+                            }
+                            dp.stackDepth--;
+                        }
+                    } else {
+//                        System.out.println("max stack depth");
+                    }
                 }
             }
             if ( count > BLOCK_COUNT_WARNING_THRESHOLD && ! warningPrinted ) {
@@ -135,13 +141,13 @@ public class ElasticScheduler implements Scheduler {
                 Actor sendingActor = Actor.sender.get();
                 if ( sendingActor != null )
                     sender = ", sender:"+sendingActor.getActor().getClass().getSimpleName();
-                Log.Lg.warn(this,"Warning: Thread "+Thread.currentThread().getName()+" blocked trying to put message on "+receiverString+sender);
+                Log.Lg.warn(this,"Warning: Thread "+Thread.currentThread().getName()+" blocked trying to put message on "+receiverString+sender+" msg:"+o);
             }
         }
     }
 
     @Override
-    public Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object args[]) {
+    public Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object args[], boolean isCB) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
         Actor actor = receiver.getActor();
@@ -161,7 +167,8 @@ public class ElasticScheduler implements Scheduler {
                 method,
                 args,
                 Actor.sender.get(), // enqueuer
-                actor
+                actor,
+                isCB
         );
         return put2QueuePolling(e);
     }
@@ -193,8 +200,8 @@ public class ElasticScheduler implements Scheduler {
             if ( method.getDeclaringClass() == Object.class )
                 return method.invoke(proxy,args); // toString, hashCode etc. invoke sync (DANGER if hashcode accesses local state)
             if ( target != null ) {
-                CallEntry ce = new CallEntry(target,method,args, Actor.sender.get(), targetActor);
-                put2QueuePolling(targetActor.__cbQueue, ce, targetActor);
+                CallEntry ce = new CallEntry(target,method,args, Actor.sender.get(), targetActor, true);
+                put2QueuePolling(targetActor.__cbQueue, true, ce, targetActor);
             }
             return null;
         }

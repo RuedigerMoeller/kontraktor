@@ -67,8 +67,8 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
                 Log.Warn( this, e, "" );
             }
         } else {
-            CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error}, Actor.sender.get(), targetActor);
-            targetActor.__scheduler.put2QueuePolling(targetActor.__cbQueue, ce, targetActor);
+            CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error}, Actor.sender.get(), targetActor, true);
+            targetActor.__scheduler.put2QueuePolling(targetActor.__cbQueue, true, ce, targetActor);
         }
     }
 
