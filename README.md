@@ -27,7 +27,7 @@ with code completion and refactoring of modern IDEs.
 
 **2.0 documentation**
 
-(wiki/Kontraktor-2.0-(beta))[https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-2.0-(beta)]
+[wiki/Kontraktor-2.0-(beta)](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-2.0-(beta))
 
 Blogposts:
 
