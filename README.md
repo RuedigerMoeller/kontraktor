@@ -6,10 +6,6 @@ lightweight and efficient Actor implementation in Java. The threading model impl
 Kontraktor implements a typed actor model to avoid message definition+handling boilerplate code. Additionally this integrates well
 with code completion and refactoring of modern IDEs.
 
-Blogposts (kontraktor version > 2.0):
-
-* [Solving "Dining Philosophers problem" with (distributed) actors](http://java-is-the-new-c.blogspot.de/2014/09/breaking-habit-solving-dining.html)
-
 
 ###2.0 beta
 
@@ -28,6 +24,15 @@ Blogposts (kontraktor version > 2.0):
 * WebSocket Remoting functionality requires unreleased sub project "netty-kontraktor" (see source).
 * Single line WebService actor publishing lacks documentation, zero test coverage (uses kson/json encoding)
 * Still unoptimized. Currently: 4-5 million messages per second in-process, ~1.0 million messages per second via TCP-Remoting/fast-serialization 2.x (ofc depends on number of arguments/message size).
+
+**2.0 documentation**
+
+(wiki/Kontraktor-2.0-(beta))[https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-2.0-(beta)]
+
+Blogposts:
+
+* [Solving "Dining Philosophers problem" with (distributed) actors](http://java-is-the-new-c.blogspot.de/2014/09/breaking-habit-solving-dining.html)
+
 
 ```xml
 <dependency>
