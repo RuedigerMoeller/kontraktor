@@ -39,7 +39,8 @@ import java.util.HashSet;
  */
 
 /**
- * To change this template use File | Settings | File Templates.
+ * generate an actor proxy. This class is in awful state as it has been moved from fast-cast + extended iterative.
+ * Out of fear of breaking stuff, a major refactoring will be done with next major release.
  */
 public class ActorProxyFactory {
 
@@ -308,7 +309,7 @@ public class ActorProxyFactory {
         }
     }
 
-    public String toString(CtMethod m) {
+    public static String toString(CtMethod m) {
         try {
             StringBuilder sb = new StringBuilder();
 //            int mod = m.getModifiers() & java.lang.reflect.Modifier.methodModifiers();
@@ -376,7 +377,7 @@ public class ActorProxyFactory {
         return methods;
     }
 
-    protected CtMethod[] getSortedPublicCtMethods(CtClass orig, boolean onlyRemote) throws NotFoundException {
+    public static CtMethod[] getSortedPublicCtMethods(CtClass orig, boolean onlyRemote) throws NotFoundException {
         //fixme: grown stuff, lots of redundant checks
         int count = 0;
         CtMethod[] methods0 = orig.getMethods();
