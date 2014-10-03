@@ -7,6 +7,8 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Scheduler;
 import org.nustaq.kontraktor.impl.ElasticScheduler;
 import org.nustaq.netty2go.NettyWSHttpServer;
+import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.minbin.MinBin;
 import org.nustaq.webserver.ClientSession;
 import org.nustaq.webserver.WebSocketHttpServer;
 
@@ -18,14 +20,21 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public abstract class ActorWSServer extends WebSocketHttpServer {
 
+	public enum Coding {
+		FSTSer,
+		MinBin
+	}
     // don't buffer too much.
     public static int CLIENTQ_SIZE = 1000;
     public static int MAX_THREADS = 1;
 
-    Scheduler clientScheduler = new ElasticScheduler(MAX_THREADS, CLIENTQ_SIZE);
+    protected Scheduler clientScheduler = new ElasticScheduler(MAX_THREADS, CLIENTQ_SIZE);
+	protected volatile Coding coding = Coding.FSTSer;
 
-    public ActorWSServer(File contentRoot) {
+
+    public ActorWSServer(File contentRoot, Coding coding) {
         super(contentRoot);
+	    this.coding = coding;
     }
 
     @Override
@@ -98,7 +107,7 @@ public abstract class ActorWSServer extends WebSocketHttpServer {
     @Override
     protected ClientSession createNewSession() {
         ActorWSClientSession session = Actors.AsActor((Class<? extends Actor>) getClientActorClazz(), clientScheduler);
-        session.$init(this,sessionid.incrementAndGet());
+        session.$init(this,sessionid.incrementAndGet(), coding);
         return session;
     }
 

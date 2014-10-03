@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.remoting;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.impl.*;
+import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
@@ -22,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public abstract class RemoteRefRegistry implements RemoteConnection {
 
-    protected FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+    protected FSTConfiguration conf;
 
     RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
 
@@ -40,14 +41,31 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     public ThreadLocal<ObjectSocket> currentObjectSocket = new ThreadLocal<>();
     protected volatile boolean terminated = false;
 
-    public RemoteRefRegistry() {
-        conf.registerSerializer(Actor.class,new ActorRefSerializer(this),true);
-        conf.registerSerializer(CallbackWrapper.class, new CallbackRefSerializer(this), true);
-        conf.registerSerializer(Spore.class, new SporeRefSerializer(), true);
-        conf.registerClass(RemoteCallEntry.class);
-    }
+	public RemoteRefRegistry() {
+		this(null);
+	}
 
-    public Actor getPublishedActor(int id) {
+	public RemoteRefRegistry(ActorWSServer.Coding code) {
+		if ( code == null )
+			code = ActorWSServer.Coding.FSTSer;
+	    switch (code) {
+		    case MinBin:
+			    conf = FSTConfiguration.createCrossPlatformConfiguration();
+			    break;
+		    default:
+			    conf = FSTConfiguration.createDefaultConfiguration();
+	    }
+	    configureConfiguration();
+	}
+
+	protected void configureConfiguration() {
+		conf.registerSerializer(Actor.class,new ActorRefSerializer(this),true);
+		conf.registerSerializer(CallbackWrapper.class, new CallbackRefSerializer(this), true);
+		conf.registerSerializer(Spore.class, new SporeRefSerializer(), true);
+		conf.registerClass(RemoteCallEntry.class);
+	}
+
+	public Actor getPublishedActor(int id) {
         return (Actor) publishedActorMapping.get(id);
     }
 

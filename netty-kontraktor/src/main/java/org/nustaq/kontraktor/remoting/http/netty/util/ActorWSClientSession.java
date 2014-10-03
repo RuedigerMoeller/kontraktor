@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.remoting.http.netty.util;
 import io.netty.channel.ChannelHandlerContext;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.webserver.ClientSession;
 
 /**
@@ -16,7 +17,7 @@ public class ActorWSClientSession<T extends ActorWSClientSession> extends Actor<
     protected int sessionId;
     volatile long lastPong = System.currentTimeMillis();
 
-    public void $init(ActorWSServer server, int sessionId) {
+    public void $init(ActorWSServer server, int sessionId, ActorWSServer.Coding coding) {
         this.server = server;
         this.sessionId = sessionId;
     }

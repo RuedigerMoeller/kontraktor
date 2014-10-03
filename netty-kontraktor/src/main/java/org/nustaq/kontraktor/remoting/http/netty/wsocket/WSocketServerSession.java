@@ -16,23 +16,24 @@ import java.io.Serializable;
  */
 public class WSocketServerSession<T extends WSocketServerSession> extends ActorWSClientSession<T> {
 
-    public static final int PING_INTERVAL_MILLIS = 5000;
+    public static int PING_INTERVAL_MILLIS = 5000;
     protected Actor facade;
-    RemoteRefRegistry registry = new RemoteRefRegistry() {
-        @Override
-        public Actor getFacadeProxy() {
-            return facade;
-        }
-    };
+    RemoteRefRegistry registry;
     MyWSObjectSoocket socket;
     int polldelay = 10;
 
     @Override
-    public void $init(ActorWSServer server, int sessionId) {
-        super.$init(server, sessionId);
+    public void $init(ActorWSServer server, int sessionId, ActorWSServer.Coding coding) {
+        super.$init(server, sessionId, coding);
+        registry = new RemoteRefRegistry(coding) {
+	        @Override
+	        public Actor getFacadeProxy() {
+	            return facade;
+	        }
+        };
         this.facade = getServer().facade;
         socket = new MyWSObjectSoocket(registry.getConf());
-        registry.publishActor(facade);
+	    registry.publishActor(facade);
         $poll();
     }
 

@@ -2,18 +2,15 @@ package org.nustaq.kontraktor.remoting.http.netty.wsocket;
 
 import io.netty.channel.ChannelHandlerContext;
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
-import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
-import org.nustaq.kontraktor.remoting.tcp.TCPSocket;
+import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.netty2go.WebSocketClient;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.net.SocketException;
 
 /**
  * Created by ruedi on 30.08.14.
@@ -25,7 +22,7 @@ public class WSocketActorClient<T extends Actor> extends RemoteRefRegistry {
 
     public static <T extends Actor> Future<T> Connect( Class<T> clz, String host, int port ) throws IOException {
         Promise<T> res = new Promise<>();
-        WSocketActorClient<T> client = new WSocketActorClient<>( clz, host);
+        WSocketActorClient<T> client = new WSocketActorClient<>( clz, host, ActorWSServer.Coding.MinBin);
         new Thread(() -> {
             try {
                 client.connect();
@@ -42,7 +39,6 @@ public class WSocketActorClient<T extends Actor> extends RemoteRefRegistry {
 
     Class<? extends Actor> actorClazz;
     T facadeProxy;
-    BackOffStrategy backOffStrategy = new BackOffStrategy();
 
     String url;
     WSActorClient client;
@@ -50,7 +46,8 @@ public class WSocketActorClient<T extends Actor> extends RemoteRefRegistry {
 
     int maxTrialConnect = 60; // number of trials on initial connect (each second)
 
-    public WSocketActorClient(Class<? extends Actor> clz, String url) throws IOException {
+    public WSocketActorClient(Class<? extends Actor> clz, String url, ActorWSServer.Coding code) throws IOException {
+	    super(code);
         this.url = url;
         actorClazz = clz;
         facadeProxy = Actors.AsActor(actorClazz, new RemoteScheduler());
