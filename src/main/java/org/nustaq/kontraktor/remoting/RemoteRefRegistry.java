@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.minbin.MBPrinter;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,6 +64,10 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 		conf.registerSerializer(CallbackWrapper.class, new CallbackRefSerializer(this), true);
 		conf.registerSerializer(Spore.class, new SporeRefSerializer(), true);
 		conf.registerClass(RemoteCallEntry.class);
+        conf.registerCrossPlatformClassMapping(new String[][]{
+                {"call", RemoteCallEntry.class.getName()},
+                {"cbw", CallbackWrapper.class.getName()}
+        });
 	}
 
 	public Actor getPublishedActor(int id) {
@@ -214,7 +219,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
         final Object response = channel.readObject();
         if (response instanceof RemoteCallEntry == false) {
             if ( response != null )
-                Log.Lg.error(this, null, "" + response); // fixme
+                Log.Lg.error(this, null, "unexpected response:" + response); // fixme
             return true;
         }
         RemoteCallEntry read = (RemoteCallEntry) response;

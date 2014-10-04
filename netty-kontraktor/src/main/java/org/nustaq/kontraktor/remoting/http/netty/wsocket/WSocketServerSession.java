@@ -6,6 +6,8 @@ import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSClientSession;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.minbin.MBPrinter;
+import org.nustaq.serialization.minbin.MinBin;
 
 import java.io.Serializable;
 
@@ -88,7 +90,8 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
 
         @Override
         public void writeObject(Object toWrite) throws Exception {
-            sendBinaryMessage(conf.asByteArray((Serializable) toWrite));
+            final byte[] b = conf.asByteArray(toWrite);
+            sendBinaryMessage(b);
         }
 
     }

@@ -60,7 +60,8 @@ public class WSTestActor extends Actor<WSTestActor> {
 	    server.setFileMapper( (f) -> {
 		    if ( f != null && f.getName() != null ) {
 			    if ( f.getName().equals("minbin.js") ) {
-				    return new File("/home/ruedi/IdeaProjects/fast-serialization/src/main/javascript/minbin.js");
+                    return new File("C:\\work\\GitHub\\fast-serialization\\src\\main\\javascript\\minbin.js");
+//                    return new File("/home/ruedi/IdeaProjects/fast-serialization/src/main/javascript/minbin.js");
 			    }
 		    }
 		    return f;

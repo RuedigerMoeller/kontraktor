@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.netty2go.WebSocketClient;
 import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.minbin.MBPrinter;
 
 import java.io.IOException;
 import java.io.Serializable;

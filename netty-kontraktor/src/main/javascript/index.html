@@ -8,6 +8,15 @@
 </head>
 <body>
 
-
+<script>
+    Kontraktor.connect("localhost",8887,"websocket", function() {
+        var call = MinBin.obj("call", {
+            "args" : MinBin.jarray(["Hello from js"]),
+            "method" : "$voidCall",
+            "receiverKey" : 1
+        });
+        Kontraktor.sendBinary( MinBin.encode(call));
+    });
+</script>
 </body>
 </html>

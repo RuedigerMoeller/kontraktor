@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.remoting.http.netty.wsocket;
 
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.minbin.MBPrinter;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -33,6 +34,7 @@ public abstract class WSAbstractObjectSocket implements ObjectSocket {
         if (nextRead == null)
             return null;
         final byte[] tmp = nextRead;
+        new MBPrinter().printMessage(tmp);
         nextRead = null;
         return conf.asObject(tmp);
     }
