@@ -7,11 +7,80 @@ import org.nustaq.kontraktor.remoting.http.netty.wsocket.WSocketActorServer;
 import org.nustaq.netty2go.NettyWSHttpServer;
 
 import java.io.File;
+import java.util.ArrayList;
 
 /**
  * Created by ruedi on 31.08.14.
  */
 public class WSTestActor extends Actor<WSTestActor> {
+
+	public static class SampleUser {
+		String name;
+		int age;
+		int credits;
+		ArrayList<String> roles = new ArrayList<>(0);
+
+		public SampleUser(String name, int age, int credits) {
+			this.name = name;
+			this.age = age;
+			this.credits = credits;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		public void setName(String name) {
+			this.name = name;
+		}
+
+		public int getAge() {
+			return age;
+		}
+
+		public void setAge(int age) {
+			this.age = age;
+		}
+
+		public int getCredits() {
+			return credits;
+		}
+
+		public void setCredits(int credits) {
+			this.credits = credits;
+		}
+
+		public ArrayList<String> getRoles() {
+			return roles;
+		}
+
+		public void setRoles(ArrayList<String> roles) {
+			this.roles = roles;
+		}
+	}
+
+	public static class ClientSession extends Actor<ClientSession> {
+
+		WSTestActor parent;
+		SampleUser user;
+
+		public void $init(WSTestActor parent) {
+			this.parent = parent;
+		}
+
+		public Future<String> $clientSpecific(String clientId, String whatNot ) {
+			return new Promise<>(clientId+" and "+whatNot);
+		}
+
+		public void $setUser( SampleUser user ) {
+			this.user = user;
+		}
+
+		public Future<SampleUser> $getUser() {
+			return new Promise<>(user);
+		}
+
+	}
 
     public void $voidCall(String message) {
         System.out.println("receive msg:"+message);
@@ -21,6 +90,10 @@ public class WSTestActor extends Actor<WSTestActor> {
         System.out.println("futcall "+result );
         return new Promise<>(result);
     }
+
+	public Future<ClientSession> $createSession() {
+		return new Promise<>(Actors.AsActor(ClientSession.class,getScheduler()));
+	}
 
     public void $callbackTest(String msg, Callback cb) {
         System.out.println("cb call "+msg);
@@ -60,8 +133,8 @@ public class WSTestActor extends Actor<WSTestActor> {
 	    server.setFileMapper( (f) -> {
 		    if ( f != null && f.getName() != null ) {
 			    if ( f.getName().equals("minbin.js") ) {
-                    return new File("C:\\work\\GitHub\\fast-serialization\\src\\main\\javascript\\minbin.js");
-//                    return new File("/home/ruedi/IdeaProjects/fast-serialization/src/main/javascript/minbin.js");
+//                    return new File("C:\\work\\GitHub\\fast-serialization\\src\\main\\javascript\\minbin.js");
+                    return new File("/home/ruedi/IdeaProjects/fast-serialization/src/main/javascript/minbin.js");
 			    }
 		    }
 		    return f;

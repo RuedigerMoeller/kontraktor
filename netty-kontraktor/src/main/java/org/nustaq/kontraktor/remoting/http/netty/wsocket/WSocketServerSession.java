@@ -6,10 +6,6 @@ import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSClientSession;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.serialization.FSTConfiguration;
-import org.nustaq.serialization.minbin.MBPrinter;
-import org.nustaq.serialization.minbin.MinBin;
-
-import java.io.Serializable;
 
 /**
  * Created by ruedi on 29.08.2014.
@@ -21,7 +17,7 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
     public static int PING_INTERVAL_MILLIS = 5000;
     protected Actor facade;
     RemoteRefRegistry registry;
-    MyWSObjectSoocket socket;
+    MyWSObjectSocket socket;
     int polldelay = 10;
 
     @Override
@@ -34,7 +30,7 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
 	        }
         };
         this.facade = getServer().facade;
-        socket = new MyWSObjectSoocket(registry.getConf());
+        socket = new MyWSObjectSocket(registry.getConf());
 	    registry.publishActor(facade);
         $poll();
     }
@@ -72,7 +68,7 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
         }
     }
 
-    WSocketActorServer getServer() {
+    protected WSocketActorServer getServer() {
         return (WSocketActorServer) server;
     }
 
@@ -82,9 +78,9 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
         registry.cleanUp();
     }
 
-    class MyWSObjectSoocket extends WSAbstractObjectSocket {
+    class MyWSObjectSocket extends WSAbstractObjectSocket {
 
-        MyWSObjectSoocket(FSTConfiguration conf) {
+        MyWSObjectSocket(FSTConfiguration conf) {
             super(conf);
         }
 

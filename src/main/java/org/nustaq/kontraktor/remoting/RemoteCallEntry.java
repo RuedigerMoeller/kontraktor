@@ -14,7 +14,7 @@ public class RemoteCallEntry implements Serializable {
     public static final int MAILBOX = 0;
     public static final int CBQ = 1;
 
-    int receiverKey; // id of published actor in host
+    int receiverKey; // id of published actor in host, contains cbId in case of callbacks
     int futureKey; // id of future if any
     String method;
     @ArgTypes

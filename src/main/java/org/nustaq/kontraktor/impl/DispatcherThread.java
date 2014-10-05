@@ -146,7 +146,7 @@ public class DispatcherThread extends Thread {
             }
         }
         if ( ElasticScheduler.DEBUG_SCHEDULING)
-            Log.Info(this,"dipatcher thread terminated");
+            Log.Info(this,"dispatcher thread terminated");
     }
 
     private void schedulePendingAdds() {

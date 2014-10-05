@@ -5,18 +5,77 @@
     <title>Test kontraktor from js</title>
     <script src="kontraktor.js"></script>
     <script src="minbin.js"></script>
+
+    <script src="minbingen.js"></script>
+
 </head>
 <body>
 
 <script>
-    Kontraktor.connect("localhost",8887,"websocket", function() {
+    var basicTests = function() {
+
         var call = MinBin.obj("call", {
             "args" : MinBin.jarray(["Hello from js"]),
             "method" : "$voidCall",
             "receiverKey" : 1
         });
-        Kontraktor.sendBinary( MinBin.encode(call));
+        Kontraktor.send(call);
+
+        call = MinBin.obj("call", {
+            "method" : "$callbackTest",
+            "receiverKey" : 1,
+            "args" : MinBin.jarray([ "Hello from js with callback", function(result, error) {
+                document.write(result);
+                document.write("<br>");
+                console.log("cb result:"+result);
+            }])
+        });
+        Kontraktor.send(call);
+
+        call = MinBin.obj("call", {
+            "method" : "$futureCall",
+            "receiverKey" : 1,
+            "args" : MinBin.jarray([ "Hello from js with future" ])
+        });
+        Kontraktor.send(call,true).then( function(r,e) {
+            document.write("future invoked: <b>"+r+"</b>");
+            document.write("<br>");
+        });
+
+        call = MinBin.obj("call", {
+            "method" : "$createSession",
+            "receiverKey" : 1
+        });
+
+        Kontraktor.send(call,true).then( function(r,e) {
+            var remoteHandle = r;
+            var actorId = r[0];
+
+            call = MinBin.obj("call", {
+                "method" : "$clientSpecific",
+                "receiverKey" : actorId,
+                "args" : MinBin.jarray([ "ca call", "pokpok" ])
+            });
+            Kontraktor.send( call, true).then( function(r,e) {
+                document.write("client call:<b>"+r+"</b>");
+            });
+
+            console.log( r );
+        });
+
+    };
+
+    Kontraktor.connect("localhost",8887,"websocket", function() {
+        basicTests();
+        var server = new JWSTestActor(1);
+        server.$createSession().then( function(session,e) {
+            session.$clientSpecific("A","B").then( function(r,e) {
+                console.log("wrapper call resulted:"+r);
+            });
+        });
     });
+
+
 </script>
 </body>
 </html>
