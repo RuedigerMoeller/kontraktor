@@ -108,9 +108,20 @@ var Kontraktor = new function() {
                             if ( cbfunc ) {
                                 if ( cbfunc.isPromise ) {
                                     delete self.cbmap[msg.receiverKey];
-                                    if ( msg.args[0] && msg.args[0].__typeInfo ) {
-                                        if ( kendsWith( msg.args[0].__typeInfo, "_ActorProxy" ) ) {
-                                            // todo: extract simplename and create proxy
+                                    var clz = msg.args[0].__typeInfo;
+                                    if ( msg.args[0] && clz ) {
+                                        if ( kendsWith(clz, "_ActorProxy" ) ) {
+                                            var id = msg.args[0][0];
+                                            clz = clz.substr(0,clz.length-"_ActorProxy".length);
+                                            var idx = clz.lastIndexOf(".");
+                                            if ( idx >= 0 ) {
+                                                clz = clz.substr(idx+1);
+                                            }
+                                            idx = clz.lastIndexOf("$");
+                                            if ( idx >= 0 ) {
+                                                clz = clz.substr(idx+1);
+                                            }
+                                            msg.args[0] = mbfactory(clz,id);
                                         }
                                     }
                                     cbfunc.receive(msg.args[0],msg.args[1]);
