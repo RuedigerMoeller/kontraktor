@@ -104,8 +104,12 @@ public class ElasticScheduler implements Scheduler {
                 // thread is blocked, try to schedule other actors on this dispatcher
                 if (Thread.currentThread() instanceof DispatcherThread) {
 
-                    // invalid: need to ensure determinism in case 2 actors block. [requires list of blocked actors]
-                    // fixme: does this hold true if only applied to callbacks
+                    // fixme: think about consequences in depth.
+	                //
+
+	                // if blocked trying to put a callback onto a callback queue:
+	                // check wether receiving actor is also scheduled on current thread
+	                // if so, poll its message queue. fixme: what happens if sender == receiver
 
 //                    Actor sendingActor = Actor.sender.get();
                     DispatcherThread dp = (DispatcherThread) Thread.currentThread();

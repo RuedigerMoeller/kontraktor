@@ -218,7 +218,11 @@ public class DispatcherThread extends Thread {
                         invoke = invoke(callEntry);
                     }
                 } else {
-                    invoke = invoke(callEntry);
+	                try {
+		                invoke = invoke(callEntry);
+	                } catch (IllegalArgumentException iae) {
+		                throw iae;
+	                }
                 }
                 if (callEntry.getFutureCB() != null) {
                     final Future futureCB = callEntry.getFutureCB();   // the future of caller side

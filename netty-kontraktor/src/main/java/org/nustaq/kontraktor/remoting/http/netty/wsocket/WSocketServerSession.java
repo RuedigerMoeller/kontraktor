@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSClientSession;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.minbin.MBPrinter;
 
 /**
  * Created by ruedi on 29.08.2014.
@@ -87,6 +88,8 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
         @Override
         public void writeObject(Object toWrite) throws Exception {
             final byte[] b = conf.asByteArray(toWrite);
+	    System.out.println("SEND:");
+	    new MBPrinter().printMessage(b);
             sendBinaryMessage(b);
         }
 

@@ -22,7 +22,7 @@ var KPromise = function() {
 
 var kendsWith = function endsWith(str, suffix) {
     return str.indexOf(suffix, str.length - suffix.length) !== -1;
-}
+};
 
 var Kontraktor = new function() {
 
@@ -32,6 +32,16 @@ var Kontraktor = new function() {
 
     this.cbmap = {};
     this.cbid = 13;
+
+    this.registerLocalActor = function(actor) {
+        if ( actor._actorProxy ) // use generated stubs !
+        {
+            this.cbmap[this.cbid] = actor;
+            actor.receiverKey = this.cbid;
+            this.cbid++;
+        } else
+            throw "not a valid actor clazz";
+    };
 
     this.send = function( msg, withFuture ) {
         if ( ! self.socketConnected ) {
@@ -102,28 +112,12 @@ var Kontraktor = new function() {
                     var strMsg = MinBin.prettyPrint(msg);
                     console.log("callback:\n "+strMsg);
                     // handle message
-                    if ( msg.queue ) {
+                    if ( msg.queue || msg.queue == 0 ) {
                         if ( msg.queue == 1 ) { // callback
                             var cbfunc = self.cbmap[msg.receiverKey];
                             if ( cbfunc ) {
                                 if ( cbfunc.isPromise ) {
                                     delete self.cbmap[msg.receiverKey];
-                                    var clz = msg.args[0].__typeInfo;
-                                    if ( msg.args[0] && clz ) {
-                                        if ( kendsWith(clz, "_ActorProxy" ) ) {
-                                            var id = msg.args[0][0];
-                                            clz = clz.substr(0,clz.length-"_ActorProxy".length);
-                                            var idx = clz.lastIndexOf(".");
-                                            if ( idx >= 0 ) {
-                                                clz = clz.substr(idx+1);
-                                            }
-                                            idx = clz.lastIndexOf("$");
-                                            if ( idx >= 0 ) {
-                                                clz = clz.substr(idx+1);
-                                            }
-                                            msg.args[0] = mbfactory(clz,id);
-                                        }
-                                    }
                                     cbfunc.receive(msg.args[0],msg.args[1]);
                                 } else {
                                     if ("CNT" != msg.args[1]) {
@@ -133,9 +127,14 @@ var Kontraktor = new function() {
                                 }
                             } else
                                 console.error("no function found for callback");
+                        } else if ( msg.queue == 0 ) {
+                            var actor = self.cbmap[msg.receiverKey];
+                            if (!actor)
+                                throw "unknown actor with id "+msg.receiverKey;
+                            actor[msg.method].apply(actor,msg.args);
                         }
                     } else
-                        console.error("unrecognized callback message");
+                        console.error("unrecognized callback message"+msg);
                 };
                 // error handling is missing
                 fr.readAsArrayBuffer(message.data);

@@ -1,6 +1,7 @@
 package websockets;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.RemoteActorInterface;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.kontraktor.remoting.http.netty.wsocket.WSocketActorClient;
 import org.nustaq.kontraktor.remoting.http.netty.wsocket.WSocketActorServer;
@@ -63,6 +64,7 @@ public class WSTestActor extends Actor<WSTestActor> {
 
 		WSTestActor parent;
 		SampleUser user;
+		JSActorInterface remoteClientActor;
 
 		public void $init(WSTestActor parent) {
 			this.parent = parent;
@@ -79,6 +81,23 @@ public class WSTestActor extends Actor<WSTestActor> {
 		public Future<SampleUser> $getUser() {
 			return new Promise<>(user);
 		}
+
+		public void $registerClientActor(JSActorInterface actor) {
+			remoteClientActor = actor;
+			$sendLoop(0);
+		}
+
+		public void $sendLoop(int count) {
+			remoteClientActor.$voidCallClient("Hello Client "+count);
+			delayed(1000, () -> $sendLoop(count+1) );
+		}
+	}
+
+	@RemoteActorInterface
+	public static class JSActorInterface extends Actor<JSActorInterface> {
+
+		public void $voidCallClient(String s) {}
+		public Future $futureCall(String s) { return null; }
 
 	}
 
