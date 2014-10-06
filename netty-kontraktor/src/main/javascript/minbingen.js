@@ -82,8 +82,8 @@ var JJSActorInterface = function(obj) {
     this._actorProxy = true;
 
 
-    this.$futureCall = function(s) { /**/ };
     this.$voidCallClient = function(s) { /**/ };
+    this.$futureCall = function(s) { /**/ };
     this.$close = function() { /**/ };
     this.$stop = function() { /**/ };
     this.$sync = function() { /**/ };
@@ -132,6 +132,17 @@ var JClientSession = function(obj) {
         });
         return Kontraktor.send(call);
     };
+    this.$clientSpecific = function(clientId, whatNot) {
+        var call = MinBin.obj('call', {
+            method: '$clientSpecific',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+                clientId,
+                whatNot
+            ])
+        });
+        return Kontraktor.send(call,true);
+    };
     this.$setUser = function(user) {
         var call = MinBin.obj('call', {
             method: '$setUser',
@@ -151,6 +162,26 @@ var JClientSession = function(obj) {
         });
         return Kontraktor.send(call,true);
     };
+    this.$print = function(s) {
+        var call = MinBin.obj('call', {
+            method: '$print',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+                s
+            ])
+        });
+        return Kontraktor.send(call,true);
+    };
+    this.$pingRound = function(sess) {
+        var call = MinBin.obj('call', {
+            method: '$pingRound',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+                MinBin.obj('ClientSession',sess)
+            ])
+        });
+        return Kontraktor.send(call);
+    };
     this.$registerClientActor = function(actor) {
         var call = MinBin.obj('call', {
             method: '$registerClientActor',
@@ -161,16 +192,15 @@ var JClientSession = function(obj) {
         });
         return Kontraktor.send(call);
     };
-    this.$clientSpecific = function(clientId, whatNot) {
+    this.$sendLoop = function(count) {
         var call = MinBin.obj('call', {
-            method: '$clientSpecific',
+            method: '$sendLoop',
             receiverKey: this.receiverKey,
             args: MinBin.jarray([
-                clientId,
-                whatNot
+                MinBin.parseIntOrNan(count)
             ])
         });
-        return Kontraktor.send(call,true);
+        return Kontraktor.send(call);
     };
     this.$close = function() {
         var call = MinBin.obj('call', {

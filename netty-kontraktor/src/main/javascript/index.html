@@ -65,7 +65,7 @@
 
     };
 
-    Kontraktor.connect("localhost",8887,"websocket", function() {
+    Kontraktor.connect(window.location.hostname,window.location.port,"websocket", function() {
         basicTests();
         var server = new JWSTestActor(1);
         server.$createSession().then( function(session,e) {
@@ -73,10 +73,16 @@
                 console.log("wrapper call resulted:"+r);
             });
 
+            session.$pingRound(session); // send remoteRef to server, server calls print => client => to server => print
+
+
             var me = new JJSActorInterface();
             Kontraktor.registerLocalActor(me);
             me.$voidCallClient = function(s) { document.write("client called:"+s+"<br>") };
-            me.$futureCall = function(s) { /**/ };
+            me.$futureCall = function(s) {
+                document.write("Future called");
+                return new KPromise("done");
+            };
             me.$sync = function() { /**/ };
             me.$stop = function() { /**/ };
             me.$close = function() { /**/ };

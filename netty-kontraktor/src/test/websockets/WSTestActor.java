@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.kontraktor.remoting.http.netty.wsocket.WSocketActorClient;
 import org.nustaq.kontraktor.remoting.http.netty.wsocket.WSocketActorServer;
 import org.nustaq.netty2go.NettyWSHttpServer;
+import org.nustaq.webserver.ClientSession;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -82,6 +83,15 @@ public class WSTestActor extends Actor<WSTestActor> {
 			return new Promise<>(user);
 		}
 
+		public Future $print(String s) {
+			System.out.println("Hello");
+			return new Promise("yes");
+		}
+
+		public void $pingRound(ClientSession sess) {
+			sess.$print("TestToken").then( (r,e) -> System.out.println("printres "+r) );
+		}
+
 		public void $registerClientActor(JSActorInterface actor) {
 			remoteClientActor = actor;
 			$sendLoop(0);
@@ -89,7 +99,10 @@ public class WSTestActor extends Actor<WSTestActor> {
 
 		public void $sendLoop(int count) {
 			remoteClientActor.$voidCallClient("Hello Client "+count);
-			delayed(1000, () -> $sendLoop(count+1) );
+			long nanos = System.currentTimeMillis();
+			remoteClientActor.$futureCall("Hello Client "+count)
+			   .then( (r,e) -> System.out.println("round trip "+(System.currentTimeMillis()-nanos)) );
+//			delayed(2000, () -> $sendLoop(count+1) );
 		}
 	}
 

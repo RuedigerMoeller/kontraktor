@@ -1,6 +1,6 @@
 // requires minbin.js
-var KPromise = function() {
-    this.res = null;
+var KPromise = function(initialResult) {
+    this.res = initialResult ? [initialResult,null] : null;
     this.isPromise = false;
     this.cb = null;
 
@@ -129,9 +129,20 @@ var Kontraktor = new function() {
                                 console.error("no function found for callback");
                         } else if ( msg.queue == 0 ) {
                             var actor = self.cbmap[msg.receiverKey];
+                            var futKey = msg.futureKey;
                             if (!actor)
                                 throw "unknown actor with id "+msg.receiverKey;
-                            actor[msg.method].apply(actor,msg.args);
+                            var future = actor[msg.method].apply(actor,msg.args);
+                            if ( future ) {
+                                future.then( function(r,e) {
+                                    var call = MinBin.obj("call", {
+                                        receiverKey: futKey,
+                                        queue: 1,
+                                        "args" : MinBin.jarray([ r, e ])
+                                    });
+                                    Kontraktor.send(call);
+                                });
+                            }
                         }
                     } else
                         console.error("unrecognized callback message"+msg);
