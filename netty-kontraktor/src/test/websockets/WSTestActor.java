@@ -1,5 +1,6 @@
 package websockets;
 
+import minbin.gen.GenRemote;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.RemoteActorInterface;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 /**
  * Created by ruedi on 31.08.14.
  */
+@GenRemote
 public class WSTestActor extends Actor<WSTestActor> {
 
 	public static class SampleUser {

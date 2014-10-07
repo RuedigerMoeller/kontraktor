@@ -93,8 +93,6 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
         @Override
         public void writeObject(Object toWrite) throws Exception {
             final byte[] b = conf.asByteArray(toWrite);
-	    System.out.println("SEND:");
-	    new MBPrinter().printMessage(b);
             sendBinaryMessage(b);
         }
 

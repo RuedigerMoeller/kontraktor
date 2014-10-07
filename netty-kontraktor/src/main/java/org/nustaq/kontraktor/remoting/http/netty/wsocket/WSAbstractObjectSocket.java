@@ -34,8 +34,6 @@ public abstract class WSAbstractObjectSocket implements ObjectSocket {
         if (nextRead == null)
             return null;
         final byte[] tmp = nextRead;
-	    System.out.println("RECEIVE:");
-	    new MBPrinter().printMessage(tmp);
         nextRead = null;
         return conf.asObject(tmp);
     }
