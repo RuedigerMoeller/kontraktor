@@ -43,6 +43,21 @@ var Kontraktor = new function() {
             throw "not a valid actor clazz";
     };
 
+    this.registerForeignActorRef = function(actor) {
+        // a foreign actorref is handed out to an external process, just map, don't assign id
+        // an actor ref recieverKey contains the id in a foreign process. If this ref is handed out
+        // a second id is required to dispatch calls incoming on this ref.
+        if ( actor._actorProxy ) // use generated stubs !
+        {
+            if ( ! actor._foreignRefKey ) { // already registered
+                this.cbmap[this.cbid] = actor;
+                actor._foreignRefKey = this.cbid;
+                this.cbid++;
+            }
+        } else
+            throw "not a valid actor clazz";
+    };
+
     this.send = function( msg, withFuture ) {
         if ( ! self.socketConnected ) {
             throw "socket is closed";
@@ -55,6 +70,9 @@ var Kontraktor = new function() {
                     args[i].isPromise = false;
                     args[i] = MinBin.obj("cbw", MinBin.jarray([self.cbid]));
                     self.cbid++;
+                }
+                if ( args[i] && args[i]._actorProxy ) { // foreign ref handed out to other process
+                    Kontraktor.registerForeignActorRef(args[i]);
                 }
             }
         } else {
@@ -86,19 +104,31 @@ var Kontraktor = new function() {
 
         this.ws.onopen = function () {
             self.socketConnected = true;
-            if ( onOpen != null )
-                onOpen.apply();
+            if ( onOpen != null ) {
+                onOpen.apply(null,[true]);
+            }
+            var ping = function() {
+                if ( self.socketConnected ) {
+                    self.ws.send("KTR_PING");
+                    setTimeout(ping,7000);
+                }
+            };
+            ping.apply();
         };
 
         this.ws.onerror = function () {
-            console.log("error");
+            console.log("connection error");
             this.socketConnected = false;
             this.close();
+            if ( onOpen != null )
+                onOpen.apply("socket error");
         };
 
         this.ws.onclose = function () {
-            console.log("closed");
+            console.log("connection closed");
             self.socketConnected = false;
+            if ( onOpen != null )
+                onOpen.apply("socket closed");
         };
 
         this.ws.onmessage = function (message) {

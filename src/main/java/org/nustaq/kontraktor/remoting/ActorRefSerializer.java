@@ -32,7 +32,11 @@ public class ActorRefSerializer extends FSTBasicObjectSerializer {
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
         // fixme: detect local actors returned from foreign
         int id = in.readInt();
-        Class actorClz = in.readClass().getClazz();
+        String clzName = in.readStringUTF();
+        if (clzName.endsWith("_ActorProxy")) {
+            clzName = clzName.substring(0,clzName.length()-"_ActorProxy".length());
+        }
+        Class actorClz = Class.forName(clzName);
         Actor actorRef = reg.registerRemoteActorRef(actorClz, id, null);
         in.registerObject(actorRef, streamPositioin, serializationInfo, referencee);
         return actorRef;
@@ -42,8 +46,8 @@ public class ActorRefSerializer extends FSTBasicObjectSerializer {
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
         // fixme: catch republish of foreign actor
         Actor act = (Actor) toWrite;
-        int id = reg.publishActor(act); // register published host side
+        int id = reg.publishActor(act); // register published host side FIXME: if ref is foreign ref, scnd id is required see javascript impl
         out.writeInt(id);
-        out.writeClassTag(act.getActor().getClass());
+        out.writeStringUTF(act.getActorRef().getClass().getName());
     }
 }

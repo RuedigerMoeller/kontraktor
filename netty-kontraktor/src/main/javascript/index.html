@@ -62,33 +62,42 @@
 
             console.log( r );
         });
-
     };
 
-    Kontraktor.connect(window.location.hostname,window.location.port,"websocket", function() {
-        basicTests();
-        var server = new JWSTestActor(1);
-        server.$createSession().then( function(session,e) {
-            session.$clientSpecific("A","B").then( function(r,e) {
-                console.log("wrapper call resulted:"+r);
+    Kontraktor.connect(window.location.hostname,window.location.port,"websocket", function(trueOrError) {
+        if ( trueOrError ) {
+            basicTests();
+            var server = new JWSTestActor(1);
+            server.$createSession().then(function (session, e) {
+                session.$clientSpecific("A", "B").then(function (r, e) {
+                    console.log("wrapper call resulted:" + r);
+                });
+
+                session.$pingRound(session); // send remoteRef to server, server calls print => client => to server => print
+
+
+                var me = new JJSActorInterface();
+                Kontraktor.registerLocalActor(me);
+
+                me.$voidCallClient = function (s) {
+                    document.write("client called:" + s + "<br>")
+                };
+                me.$futureCall = function (s) {
+                    document.write("Future called");
+                    return new KPromise("done");
+                };
+                me.$sync = function () { /**/
+                };
+                me.$stop = function () { /**/
+                };
+                me.$close = function () { /**/
+                };
+
+                session.$registerClientActor(me);
             });
-
-            session.$pingRound(session); // send remoteRef to server, server calls print => client => to server => print
-
-
-            var me = new JJSActorInterface();
-            Kontraktor.registerLocalActor(me);
-            me.$voidCallClient = function(s) { document.write("client called:"+s+"<br>") };
-            me.$futureCall = function(s) {
-                document.write("Future called");
-                return new KPromise("done");
-            };
-            me.$sync = function() { /**/ };
-            me.$stop = function() { /**/ };
-            me.$close = function() { /**/ };
-
-            session.$registerClientActor(me);
-        });
+        } else {
+            document.write("Websocket connection closed:"+trueOrError);
+        }
     });
 
 

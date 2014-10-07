@@ -15,7 +15,7 @@ import org.nustaq.serialization.minbin.MBPrinter;
  */
 public class WSocketServerSession<T extends WSocketServerSession> extends ActorWSClientSession<T> {
 
-    public static int PING_INTERVAL_MILLIS = 5000;
+    public static int PING_INTERVAL_MILLIS = 10000;
     protected Actor facade;
     RemoteRefRegistry registry;
     MyWSObjectSocket socket;
@@ -45,6 +45,11 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void $onTextMessage(String text) {
+        super.$onTextMessage(text);
     }
 
     @Override

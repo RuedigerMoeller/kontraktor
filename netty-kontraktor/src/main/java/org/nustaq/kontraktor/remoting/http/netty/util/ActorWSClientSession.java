@@ -15,7 +15,7 @@ public class ActorWSClientSession<T extends ActorWSClientSession> extends Actor<
     protected ChannelHandlerContext context;
     protected ActorWSServer server;
     protected int sessionId;
-    volatile long lastPong = System.currentTimeMillis();
+    volatile protected long lastPong = System.currentTimeMillis();
 
     public void $init(ActorWSServer server, int sessionId, ActorWSServer.Coding coding) {
         this.server = server;
@@ -59,11 +59,12 @@ public class ActorWSClientSession<T extends ActorWSClientSession> extends Actor<
     }
 
     public void $onTextMessage(String text) {
-
+        if ( "KTR_PING".equals(text) ) {
+            $pong();
+        }
     }
 
     public void $pong() {
         lastPong = System.currentTimeMillis();
-        System.out.println("pong received");
     }
 }
