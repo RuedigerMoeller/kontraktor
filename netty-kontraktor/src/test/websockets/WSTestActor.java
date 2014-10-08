@@ -1,5 +1,6 @@
 package websockets;
 
+import encoding.TestEncoding;
 import minbin.gen.GenRemote;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.RemoteActorInterface;
@@ -91,7 +92,10 @@ public class WSTestActor extends Actor<WSTestActor> {
 		}
 
 		public void $pingRound(ClientSession sess) {
-			sess.$print("TestToken").then( (r,e) -> System.out.println("printres "+r) );
+			sess.$print("TestToken").then((r, e) -> {
+				System.out.println("printres " + r);
+				remoteClientActor.$testFinished();
+			});
 		}
 
 		public void $registerClientActor(JSActorInterface actor) {
@@ -113,6 +117,7 @@ public class WSTestActor extends Actor<WSTestActor> {
 
 		public void $voidCallClient(String s) {}
 		public Future $futureCall(String s) { return null; }
+		public void $testFinished() {}
 
 	}
 
@@ -127,6 +132,10 @@ public class WSTestActor extends Actor<WSTestActor> {
 
 	public Future<ClientSession> $createSession() {
 		return new Promise<>(Actors.AsActor(ClientSession.class,getScheduler()));
+	}
+
+	public Future<TestEncoding> $createTestEncoding() {
+		return new Promise<>(Actors.AsActor(TestEncoding.class,getScheduler()));
 	}
 
     public void $callbackTest(String msg, Callback cb) {
@@ -167,8 +176,11 @@ public class WSTestActor extends Actor<WSTestActor> {
 	    server.setFileMapper( (f) -> {
 		    if ( f != null && f.getName() != null ) {
 			    if ( f.getName().equals("minbin.js") ) {
-                    return new File("C:\\work\\GitHub\\fast-serialization\\src\\main\\javascript\\minbin.js");
-//                    return new File("/home/ruedi/IdeaProjects/fast-serialization/src/main/javascript/minbin.js");
+				    File file = new File("C:\\work\\GitHub\\fast-serialization\\src\\main\\javascript\\minbin.js");
+				    if ( ! file.exists() ) {
+	                    return new File("/home/ruedi/IdeaProjects/fast-serialization/src/main/javascript/minbin.js");
+				    }
+				    return file;
 			    }
 		    }
 		    return f;

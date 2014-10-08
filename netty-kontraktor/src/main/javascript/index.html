@@ -12,8 +12,10 @@
 <body>
 
 <script>
+    var successCount = 0;
     var basicTests = function() {
 
+        document.write("<br><b>Basics ..</b></b><br>");
         var call = MinBin.obj("call", {
             "args" : MinBin.jarray(["Hello from js"]),
             "method" : "$voidCall",
@@ -27,7 +29,7 @@
             "args" : MinBin.jarray([ "Hello from js with callback", function(result, error) {
                 document.write(result);
                 document.write("<br>");
-                console.log("cb result:"+result);
+                successCount++;
             }])
         });
         Kontraktor.send(call);
@@ -40,6 +42,7 @@
         Kontraktor.send(call,true).then( function(r,e) {
             document.write("future invoked: <b>"+r+"</b>");
             document.write("<br>");
+            successCount++;
         });
 
         call = MinBin.obj("call", {
@@ -58,6 +61,7 @@
             });
             Kontraktor.send( call, true).then( function(r,e) {
                 document.write("client call:<b>"+r+"</b>");
+                successCount++;
             });
 
             console.log( r );
@@ -68,32 +72,72 @@
         if ( trueOrError ) {
             basicTests();
             var server = new JWSTestActor(1);
-            server.$createSession().then(function (session, e) {
-                session.$clientSpecific("A", "B").then(function (r, e) {
-                    console.log("wrapper call resulted:" + r);
+            server.$createSession().then(function (session_arg, e) {
+
+                var session = session_arg;
+                var starttime=(new Date()).getTime();
+
+                server.$createTestEncoding().then(function(testenc) {
+                    testenc.hmap( MinBin.jmap({
+                        one : 1,
+                        two : 2,
+                        arr : [1,2,3],
+                        string: "aString"
+                    })).then(function(resultMap) {
+                        if ( resultMap["one"] == 1 &&
+                             resultMap["two"] == 2 &&
+                             resultMap["arr"] == [1,2,3] &&
+                             resultMap["string"] == "aString"
+                           ) {
+                            successCount++;
+                        } else {
+                            console.error(resultMap);
+                        }
+                    });
                 });
 
-                session.$pingRound(session); // send remoteRef to server, server calls print => client => to server => print
+                session.$sync().then( function(r,e) {
+
+                    document.write("<br><br>sync time (ms):"+(new Date().getTime()-starttime));
+                    document.write("<br><br><b>Remoting/RemoteRefs/Client Actor ..</b></b><br>");
+
+                    session.$clientSpecific("A", "B").then(function (r, e) {
+                        console.log("wrapper call resulted:" + r);
+                        successCount++;
+                    });
+
+                    session.$pingRound(session); // send remoteRef to server, server calls print => client => to server => print
 
 
-                var me = new JJSActorInterface();
-                Kontraktor.registerLocalActor(me);
+                    // instantiate and define actor implemented in JS
+                    var me = new JJSActorInterface();
+                    Kontraktor.registerLocalActor(me);
+                    me.$voidCallClient = function (s) {
+                        document.write("client called:" + s + "<br>")
+                        successCount++;
+                    };
+                    me.$futureCall = function (s) {
+                        document.write("Future called");
+                        successCount++;
+                        return new KPromise("done");
+                    };
+                    me.$testFinished = function() {
+                        if ( successCount != 6 ) {
+                            document.write("<br><br><h1><font color='red'>Test Error success count:" + successCount +"</font></h1>");
+                        } else {
+                            document.write("<br><br><h1>Test Finished count (" + successCount +")</h1>");
+                        }
+                    };
+                    me.$sync = function () {
+                        return new KPromise("void");
+                    };
+                    me.$stop = function () {};
+                    me.$close = function () {};
 
-                me.$voidCallClient = function (s) {
-                    document.write("client called:" + s + "<br>")
-                };
-                me.$futureCall = function (s) {
-                    document.write("Future called");
-                    return new KPromise("done");
-                };
-                me.$sync = function () { /**/
-                };
-                me.$stop = function () { /**/
-                };
-                me.$close = function () { /**/
-                };
+                    session.$registerClientActor(me);
+                    // end instantiate and define actor implemented in JS
 
-                session.$registerClientActor(me);
+                });
             });
         } else {
             document.write("Websocket connection closed:"+trueOrError);
