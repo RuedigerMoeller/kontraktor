@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.remoting.http.netty.wsocket;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.minbin.MBPrinter;
+import org.nustaq.serialization.minbin.MinBin;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -35,7 +36,15 @@ public abstract class WSAbstractObjectSocket implements ObjectSocket {
             return null;
         final byte[] tmp = nextRead;
         nextRead = null;
-        return conf.asObject(tmp);
+        try {
+            return conf.asObject(tmp);
+        } catch (Exception e) {
+            if ( conf.isCrossPlatform() ) {
+                System.out.println("error reading:");
+                MinBin.print(tmp);
+            }
+            throw e;
+        }
     }
 
     @Override

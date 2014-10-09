@@ -5,15 +5,34 @@ var JWSTestActor = function(obj) {
     this._actorProxy = true;
 
 
-    this.$futureCall = function(result) {
+    this.$createTestEncoding = function() {
+        var call = MinBin.obj('call', {
+            method: '$createTestEncoding',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+            ])
+        });
+        return Kontraktor.send(call,true);
+    };
+    this.$futureCall = function(arg0) {
         var call = MinBin.obj('call', {
             method: '$futureCall',
             receiverKey: this.receiverKey,
             args: MinBin.jarray([
-                result
+                arg0
             ])
         });
         return Kontraktor.send(call,true);
+    };
+    this.$voidCall = function(arg0) {
+        var call = MinBin.obj('call', {
+            method: '$voidCall',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+                arg0
+            ])
+        });
+        return Kontraktor.send(call);
     };
     this.$createSession = function() {
         var call = MinBin.obj('call', {
@@ -24,48 +43,20 @@ var JWSTestActor = function(obj) {
         });
         return Kontraktor.send(call,true);
     };
-    this.$voidCall = function(message) {
-        var call = MinBin.obj('call', {
-            method: '$voidCall',
-            receiverKey: this.receiverKey,
-            args: MinBin.jarray([
-                message
-            ])
-        });
-        return Kontraktor.send(call);
-    };
-    this.$callbackTest = function(msg, cb) {
+    this.$callbackTest = function(arg0, arg1) {
         var call = MinBin.obj('call', {
             method: '$callbackTest',
             receiverKey: this.receiverKey,
             args: MinBin.jarray([
-                msg,
-                MinBin.obj('Callback',cb)
+                arg0,
+                MinBin.obj('Callback',arg1)
             ])
         });
         return Kontraktor.send(call);
-    };
-    this.$createTestEncoding = function() {
-        var call = MinBin.obj('call', {
-            method: '$createTestEncoding',
-            receiverKey: this.receiverKey,
-            args: MinBin.jarray([
-            ])
-        });
-        return Kontraktor.send(call,true);
     };
     this.$close = function() {
         var call = MinBin.obj('call', {
             method: '$close',
-            receiverKey: this.receiverKey,
-            args: MinBin.jarray([
-            ])
-        });
-        return Kontraktor.send(call);
-    };
-    this.$stop = function() {
-        var call = MinBin.obj('call', {
-            method: '$stop',
             receiverKey: this.receiverKey,
             args: MinBin.jarray([
             ])
@@ -80,6 +71,15 @@ var JWSTestActor = function(obj) {
             ])
         });
         return Kontraktor.send(call,true);
+    };
+    this.$stop = function() {
+        var call = MinBin.obj('call', {
+            method: '$stop',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+            ])
+        });
+        return Kontraktor.send(call);
     };
 
 };
@@ -91,55 +91,55 @@ var JTestEncoding = function(obj) {
     this._actorProxy = true;
 
 
-    this.numbers = function(by, sh, ch, integ, f, d) {
-        var call = MinBin.obj('call', {
-            method: 'numbers',
-            receiverKey: this.receiverKey,
-            args: MinBin.jarray([
-                MinBin.parseIntOrNan(by),
-                MinBin.parseIntOrNan(sh),
-                MinBin.parseIntOrNan(ch),
-                MinBin.parseIntOrNan(integ),
-                MinBin.parseIntOrNan(f),
-                MinBin.parseIntOrNan(d)
-            ])
-        });
-        return Kontraktor.send(call,true);
-    };
-    this.lists = function(al, li) {
-        var call = MinBin.obj('call', {
-            method: 'lists',
-            receiverKey: this.receiverKey,
-            args: MinBin.jarray([
-                MinBin.jlist(al),
-                MinBin.jlist(li)
-            ])
-        });
-        return Kontraktor.send(call,true);
-    };
-    this.hmap = function(mp) {
+    this.hmap = function(arg0) {
         var call = MinBin.obj('call', {
             method: 'hmap',
             receiverKey: this.receiverKey,
             args: MinBin.jarray([
-                MinBin.jmap(val)
+                MinBin.jmap(arg0)
             ])
         });
         return Kontraktor.send(call,true);
     };
-    this.arrays = function(oa, str, by, sh, ch, integ, f, d) {
+    this.numbers = function(arg0, arg1, arg2, arg3, arg4, arg5) {
+        var call = MinBin.obj('call', {
+            method: 'numbers',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+                MinBin.parseIntOrNan(arg0, 'byte' ),
+                MinBin.parseIntOrNan(arg1, 'short' ),
+                MinBin.parseIntOrNan(arg2, 'char' ),
+                MinBin.parseIntOrNan(arg3, 'int' ),
+                arg4,
+                arg5
+            ])
+        });
+        return Kontraktor.send(call,true);
+    };
+    this.arrays = function(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
         var call = MinBin.obj('call', {
             method: 'arrays',
             receiverKey: this.receiverKey,
             args: MinBin.jarray([
-                MinBin.jarray(oa),
-                MinBin.jarray(str),
-                MinBin.i8(by),
-                MinBin.i16(sh),
-                MinBin.ui16(ch),
-                MinBin.i32(integ),
-                MinBin.dbl(f),
-                MinBin.dbl(d)
+                MinBin.jarray(arg0),
+                MinBin.jarray(arg1),
+                MinBin.i8(arg2),
+                MinBin.i16(arg3),
+                MinBin.ui16(arg4),
+                MinBin.i32(arg5),
+                MinBin.dbl(arg6),
+                MinBin.dbl(arg7)
+            ])
+        });
+        return Kontraktor.send(call,true);
+    };
+    this.lists = function(arg0, arg1) {
+        var call = MinBin.obj('call', {
+            method: 'lists',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+                MinBin.jlist(arg0),
+                MinBin.jlist(arg1)
             ])
         });
         return Kontraktor.send(call,true);
@@ -147,15 +147,6 @@ var JTestEncoding = function(obj) {
     this.$close = function() {
         var call = MinBin.obj('call', {
             method: '$close',
-            receiverKey: this.receiverKey,
-            args: MinBin.jarray([
-            ])
-        });
-        return Kontraktor.send(call);
-    };
-    this.$stop = function() {
-        var call = MinBin.obj('call', {
-            method: '$stop',
             receiverKey: this.receiverKey,
             args: MinBin.jarray([
             ])
@@ -171,6 +162,15 @@ var JTestEncoding = function(obj) {
         });
         return Kontraktor.send(call,true);
     };
+    this.$stop = function() {
+        var call = MinBin.obj('call', {
+            method: '$stop',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+            ])
+        });
+        return Kontraktor.send(call);
+    };
 
 };
 
@@ -181,12 +181,12 @@ var JJSActorInterface = function(obj) {
     this._actorProxy = true;
 
 
-    this.$futureCall = function(s) { /**/ };
-    this.$voidCallClient = function(s) { /**/ };
+    this.$futureCall = function(arg0) { /**/ };
     this.$testFinished = function() { /**/ };
+    this.$voidCallClient = function(arg0) { /**/ };
     this.$close = function() { /**/ };
-    this.$stop = function() { /**/ };
     this.$sync = function() { /**/ };
+    this.$stop = function() { /**/ };
 
 };
 
@@ -194,8 +194,8 @@ var JJSActorInterface = function(obj) {
 var JSampleUser = function(obj) {
     this.__typeInfo = 'SampleUser';
 
-    this.j_age = function() { return MinBin.parseIntOrNan(this.age); };
-    this.j_credits = function() { return MinBin.parseIntOrNan(this.credits); };
+    this.j_age = function() { return MinBin.parseIntOrNan(this.age, 'int' ); };
+    this.j_credits = function() { return MinBin.parseIntOrNan(this.credits, 'int' ); };
     this.j_roles = function() { return MinBin.jlist(this.roles); };
     this.j_name = function() { return this.name; };
 
@@ -222,32 +222,12 @@ var JClientSession = function(obj) {
     this._actorProxy = true;
 
 
-    this.$sendLoop = function(count) {
+    this.$registerClientActor = function(arg0) {
         var call = MinBin.obj('call', {
-            method: '$sendLoop',
+            method: '$registerClientActor',
             receiverKey: this.receiverKey,
             args: MinBin.jarray([
-                MinBin.parseIntOrNan(count)
-            ])
-        });
-        return Kontraktor.send(call);
-    };
-    this.$init = function(parent) {
-        var call = MinBin.obj('call', {
-            method: '$init',
-            receiverKey: this.receiverKey,
-            args: MinBin.jarray([
-                MinBin.obj('WSTestActor',parent)
-            ])
-        });
-        return Kontraktor.send(call);
-    };
-    this.$setUser = function(user) {
-        var call = MinBin.obj('call', {
-            method: '$setUser',
-            receiverKey: this.receiverKey,
-            args: MinBin.jarray([
-                MinBin.obj('SampleUser',user)
+                MinBin.obj('JSActorInterface',arg0)
             ])
         });
         return Kontraktor.send(call);
@@ -261,59 +241,70 @@ var JClientSession = function(obj) {
         });
         return Kontraktor.send(call,true);
     };
-    this.$print = function(s) {
-        var call = MinBin.obj('call', {
-            method: '$print',
-            receiverKey: this.receiverKey,
-            args: MinBin.jarray([
-                s
-            ])
-        });
-        return Kontraktor.send(call,true);
-    };
-    this.$pingRound = function(sess) {
+    this.$pingRound = function(arg0) {
         var call = MinBin.obj('call', {
             method: '$pingRound',
             receiverKey: this.receiverKey,
             args: MinBin.jarray([
-                MinBin.obj('ClientSession',sess)
+                MinBin.obj('ClientSession',arg0)
             ])
         });
         return Kontraktor.send(call);
     };
-    this.$registerClientActor = function(actor) {
+    this.$print = function(arg0) {
         var call = MinBin.obj('call', {
-            method: '$registerClientActor',
+            method: '$print',
             receiverKey: this.receiverKey,
             args: MinBin.jarray([
-                MinBin.obj('JSActorInterface',actor)
-            ])
-        });
-        return Kontraktor.send(call);
-    };
-    this.$clientSpecific = function(clientId, whatNot) {
-        var call = MinBin.obj('call', {
-            method: '$clientSpecific',
-            receiverKey: this.receiverKey,
-            args: MinBin.jarray([
-                clientId,
-                whatNot
+                arg0
             ])
         });
         return Kontraktor.send(call,true);
     };
-    this.$close = function() {
+    this.$sendLoop = function(arg0) {
         var call = MinBin.obj('call', {
-            method: '$close',
+            method: '$sendLoop',
             receiverKey: this.receiverKey,
             args: MinBin.jarray([
+                MinBin.parseIntOrNan(arg0, 'int' )
             ])
         });
         return Kontraktor.send(call);
     };
-    this.$stop = function() {
+    this.$clientSpecific = function(arg0, arg1) {
         var call = MinBin.obj('call', {
-            method: '$stop',
+            method: '$clientSpecific',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+                arg0,
+                arg1
+            ])
+        });
+        return Kontraktor.send(call,true);
+    };
+    this.$setUser = function(arg0) {
+        var call = MinBin.obj('call', {
+            method: '$setUser',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+                MinBin.obj('SampleUser',arg0)
+            ])
+        });
+        return Kontraktor.send(call);
+    };
+    this.$init = function(arg0) {
+        var call = MinBin.obj('call', {
+            method: '$init',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+                MinBin.obj('WSTestActor',arg0)
+            ])
+        });
+        return Kontraktor.send(call);
+    };
+    this.$close = function() {
+        var call = MinBin.obj('call', {
+            method: '$close',
             receiverKey: this.receiverKey,
             args: MinBin.jarray([
             ])
@@ -328,6 +319,15 @@ var JClientSession = function(obj) {
             ])
         });
         return Kontraktor.send(call,true);
+    };
+    this.$stop = function() {
+        var call = MinBin.obj('call', {
+            method: '$stop',
+            receiverKey: this.receiverKey,
+            args: MinBin.jarray([
+            ])
+        });
+        return Kontraktor.send(call);
     };
 
 };

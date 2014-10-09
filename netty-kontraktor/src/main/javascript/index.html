@@ -78,15 +78,15 @@
                 var starttime=(new Date()).getTime();
 
                 server.$createTestEncoding().then(function(testenc) {
-                    testenc.hmap( MinBin.jmap({
+                    testenc.hmap({
                         one : 1,
                         two : 2,
                         arr : [1,2,3],
                         string: "aString"
-                    })).then(function(resultMap) {
+                    }).then(function(resultMap) {
                         if ( resultMap["one"] == 1 &&
                              resultMap["two"] == 2 &&
-                             resultMap["arr"] == [1,2,3] &&
+                             resultMap["arr"].length == 3 &&
                              resultMap["string"] == "aString"
                            ) {
                             successCount++;
@@ -94,7 +94,38 @@
                             console.error(resultMap);
                         }
                     });
+
+                    testenc.numbers( 1, 44, 26666, 65537, 123.123, 234.234 ).then(function(oarr){
+                        if (
+                            oarr[0] == 1 &&
+                            oarr[1] == 44 &&
+                            oarr[2] == 26666 &&
+                            oarr[3] == 65537 &&
+                            oarr[4] == 123.123 &&
+                            oarr[5] == 234.234
+                        ) {
+                            successCount++;
+                        } else {
+                            console.error(oarr);
+                        }
+                    });
+
+                    testenc.numbers( -1, -44, -26666, -65537, -123.123, -234.234 ).then(function(oarr){
+                        if (
+                                oarr[0] == -1 &&
+                                oarr[1] == -44 &&
+                                oarr[2] == -26666 &&
+                                oarr[3] == -65537 &&
+                                oarr[4] == -123.123 &&
+                                oarr[5] == -234.234
+                                ) {
+                            successCount++;
+                        } else {
+                            console.error(oarr);
+                        }
+                    });
                 });
+
 
                 session.$sync().then( function(r,e) {
 
@@ -122,7 +153,7 @@
                         return new KPromise("done");
                     };
                     me.$testFinished = function() {
-                        if ( successCount != 6 ) {
+                        if ( successCount != 7 ) {
                             document.write("<br><br><h1><font color='red'>Test Error success count:" + successCount +"</font></h1>");
                         } else {
                             document.write("<br><br><h1>Test Finished count (" + successCount +")</h1>");
