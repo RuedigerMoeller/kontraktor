@@ -8,7 +8,7 @@ lightweight and efficient Actor implementation in Java. The threading model impl
 
 Kontraktor can be used as a model to deal with **concurrency and parallelism**, however its perfectly valid to just make use of Kontraktors **rich Remoting infrastructure** to ease creation of distributed **'Microservice'** alike application topologies.
 
-* expose an actor as a TCP service, a WebService, WebSockets with little effort (1-liner)
+* expose an actor as a TCP service, a WebService, or via WebSockets with little effort (1-liner)
 * directly do actor calls from a JavaSccript client [involves proxy generation]
 * implement actors in JavaScript and transparently call them from java.
 
