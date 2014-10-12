@@ -83,8 +83,9 @@ var Kontraktor = new function() {
             res.isPromise = true;
             self.cbmap[self.cbid] = res;
             msg.futureKey = self.cbid;
-            this.ws.send(MinBin.encode(msg));
+            console.log("put future for method "+msg.method+" to "+self.cbid);
             self.cbid++;
+            this.ws.send(MinBin.encode(msg));
             return res;
         } else {
             this.ws.send(MinBin.encode(msg));

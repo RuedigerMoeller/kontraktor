@@ -110,20 +110,32 @@
                         }
                     });
 
-                    testenc.numbers( -1, -44, -26666, -65537, -123.123, -234.234 ).then(function(oarr){
+                    testenc.numbers( -1, -44, 26666, -65537, -123.123, -234.234 ).then(function(oarr){
                         if (
                                 oarr[0] == -1 &&
                                 oarr[1] == -44 &&
-                                oarr[2] == -26666 &&
+                                oarr[2] == 26666 &&
                                 oarr[3] == -65537 &&
                                 oarr[4] == -123.123 &&
                                 oarr[5] == -234.234
                                 ) {
                             successCount++;
                         } else {
-                            console.error(oarr);
+                            console.error("wrong vars:"+ JSON.stringify(oarr));
                         }
                     });
+
+                    testenc.lists( [1,2,3], ["Hello", "these", "are", 2, "Lists"] ).then(function(oarr){
+                        if (
+                                oarr[0][2] == 3 &&
+                                oarr[1][4] == "Lists"
+                        ) {
+                            successCount++;
+                        } else {
+                            console.error("wrong vars:"+ JSON.stringify(oarr));
+                        }
+                    });
+
                 });
 
 
@@ -153,8 +165,8 @@
                         return new KPromise("done");
                     };
                     me.$testFinished = function() {
-                        if ( successCount != 7 ) {
-                            document.write("<br><br><h1><font color='red'>Test Error success count:" + successCount +"</font></h1>");
+                        if ( successCount != 10 ) {
+                            document.write("<br><br><h1><font color='red'>Test Error successCount:" + successCount +"</font></h1>");
                         } else {
                             document.write("<br><br><h1>Test Finished count (" + successCount +")</h1>");
                         }

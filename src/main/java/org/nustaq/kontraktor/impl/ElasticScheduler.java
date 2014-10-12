@@ -291,13 +291,13 @@ public class ElasticScheduler implements Scheduler {
         throw new RuntimeException("could not assign thread. This is a severe error");
     }
 
-    private DispatcherThread findMinLoadThread(long minLoad, DispatcherThread dispatcherThread) {
+    private DispatcherThread findMinLoadThread(int minLoad, DispatcherThread dispatcherThread) {
         synchronized (threads) {
             DispatcherThread minThread = null;
             for (int i = 0; i < threads.length; i++) {
                 DispatcherThread thread = threads[i];
                 if (thread != null && thread != dispatcherThread) {
-                    long load = thread.getLoadNanos();
+                    int load = thread.getAccumulatedLoad();
                     if (load < minLoad) {
                         minLoad = load;
                         minThread = thread;
@@ -335,34 +335,33 @@ public class ElasticScheduler implements Scheduler {
     @Override
     public void rebalance(DispatcherThread dispatcherThread) {
         synchronized (balanceLock) {
-            long load = dispatcherThread.getLoadNanos();
             DispatcherThread minLoadThread = createNewThreadIfPossible();
-            if (minLoadThread != null) {
-                // split
-                dispatcherThread.splitTo(minLoadThread);
-                minLoadThread.start();
-                return;
-            }
-            minLoadThread = findMinLoadThread(load, dispatcherThread);
+            int load = dispatcherThread.getAccumulatedLoad();
+            if (minLoadThread == null) {
+                minLoadThread = findMinLoadThread(load, dispatcherThread);
+            } else if (DEBUG_SCHEDULING)
+                Log.Info(this, "*created new thread*");
             if (minLoadThread == null) {
                 // does not pay off. stay on current
-                //System.out.println("no rebalance possible");
+                System.out.println("no rebalance possible");
                 return;
             }
             // move cheapest actor
             Actor[] qList = dispatcherThread.getActors();
-            long otherLoad = minLoadThread.getLoadNanos();
+            long otherLoad = minLoadThread.getLoad();
             for (int i = 0; i < qList.length; i++) {
                 Actor actor = qList[i];
-                if (otherLoad + actor.__nanos < load - actor.__nanos) {
-                    otherLoad += actor.__nanos;
-                    load -= actor.__nanos;
+                if (otherLoad + actor.getQSizes() < load - actor.getQSizes()) {
+                    otherLoad += actor.getQSizes();
+                    load -= actor.getQSizes();
                     if (DEBUG_SCHEDULING)
-                        Log.Info(this,"move " + actor.__nanos + " myload " + load + " otherlOad " + otherLoad);
+                        Log.Info(this,"move " + actor.getQSizes() + " myload " + load + " otherload " + otherLoad + " from "+dispatcherThread.getName()+" to "+minLoadThread.getName() );
                     dispatcherThread.removeActorImmediate(actor);
                     minLoadThread.addActor(actor);
                 }
             }
+            if ( ! minLoadThread.isAlive() )
+                minLoadThread.start();
         }
     }
 
@@ -370,7 +369,7 @@ public class ElasticScheduler implements Scheduler {
         synchronized (balanceLock) {
             // move cheapest actor
             Actor qList[] = dispatcherThread.getActors();
-            DispatcherThread minLoadThread = findMinLoadThread(Long.MAX_VALUE, dispatcherThread);
+            DispatcherThread minLoadThread = findMinLoadThread(Integer.MAX_VALUE, dispatcherThread);
             if (minLoadThread == null)
                 return;
             for (int i = 0; i < qList.length; i++) {
@@ -378,7 +377,7 @@ public class ElasticScheduler implements Scheduler {
                 dispatcherThread.removeActorImmediate(actor);
                 minLoadThread.addActor(actor);
                 if (DEBUG_SCHEDULING)
-                    Log.Info(this,"move for idle " + actor.__nanos + " myload " + dispatcherThread.getLoadNanos() + " actors " + qList.length);
+                    Log.Info(this,"move for idle " + actor.getQSizes() + " myload " + dispatcherThread.getAccumulatedLoad() + " actors " + qList.length);
             }
         }
     }

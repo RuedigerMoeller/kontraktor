@@ -92,7 +92,6 @@ public class Actor<SELF extends Actor> implements Serializable {
     public Thread __currentDispatcher;
     public Scheduler __scheduler;
     public volatile boolean __stopped = false;
-    public long __nanos;
     public Actor __self;
     public int __remoteId;
     public volatile ConcurrentLinkedQueue<RemoteConnection> __connections; // a list of connection required to be notified on close
@@ -201,6 +200,10 @@ public class Actor<SELF extends Actor> implements Serializable {
      */
     @CallerSideMethod public int getMailboxSize() {
         return __mailbox.size();
+    }
+
+    @CallerSideMethod public int getQSizes() {
+        return getCallbackSize()+getMailboxSize();
     }
 
     /**

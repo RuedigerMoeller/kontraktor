@@ -52,11 +52,9 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class DispatcherThread extends Thread {
 
-    public static int NUMBER_OF_MESSAGES_TO_PROCESS_PER_CHECK_FOR_NEW_ADDS = 500;
-    public static int PROFILE_INTERVAL = 255;
-    public static int SCHEDULE_PER_PROFILE = 32;
-    public static int QUEUE_PERCENTAGE_TRIGGERING_REBALANCE = 80;      // if queue is X % full, consider rebalance
-    public static int MILLIS_AFTER_CREATION_BEFORE_REBALANCING = 1000; // give JIT + OS a chance to get things going before rebalancing
+    public static int NUMBER_OF_MESSAGES_TO_PROCESS_PER_CHECK_FOR_NEW_ADDS = 1000;
+    public static int QUEUE_PERCENTAGE_TRIGGERING_REBALANCE = 50;      // if queue is X % full, consider rebalance
+    public static int MILLIS_AFTER_CREATION_BEFORE_REBALANCING = 5; // give JIT + OS a chance to get things going before rebalancing
     public static int TRIGGER_REBALANCE_COUNTER = 2; // how many times in a row rebalance conditions must be true before acting
 
     private Scheduler scheduler;
@@ -104,6 +102,8 @@ public class DispatcherThread extends Thread {
         actors = newAct;
     }
 
+    int emptySinceLastCheck = 0; // incremented on sleep
+
     public void run() {
         int emptyCount = 0;
         int scheduleNewActorCount = 0;
@@ -112,7 +112,12 @@ public class DispatcherThread extends Thread {
             if ( pollQs() ) {
                 emptyCount = 0;
                 scheduleNewActorCount++;
-                if ( scheduleNewActorCount > NUMBER_OF_MESSAGES_TO_PROCESS_PER_CHECK_FOR_NEW_ADDS) { // fixme:
+                if ( scheduleNewActorCount > NUMBER_OF_MESSAGES_TO_PROCESS_PER_CHECK_FOR_NEW_ADDS) {
+                    if ( emptySinceLastCheck == 0 ) // no idle during last interval
+                    {
+                        checkForSplit();
+                    }
+                    emptySinceLastCheck = 0;
                     scheduleNewActorCount = 0;
                     schedulePendingAdds();
                 }
@@ -123,13 +128,14 @@ public class DispatcherThread extends Thread {
                 if (shutDown) // access volatile only when idle
                     isShutDown = true;
                 if ( scheduler.getBackoffStrategy().isSleeping(emptyCount) ) {
+                    emptySinceLastCheck++;
                     scheduleNewActorCount = 0;
                     schedulePendingAdds();
                     if ( System.currentTimeMillis()-created > 3000 ) {
                         if ( actors.length == 0 && toAdd.peek() == null ) {
                             shutDown();
                         } else {
-                            scheduler.tryStopThread(this);
+//                            scheduler.tryStopThread(this);
                         }
                     }
                 }
@@ -138,7 +144,7 @@ public class DispatcherThread extends Thread {
         scheduler.threadStopped(this);
         for ( int i = 0; i < 100; i++ ) { // FIXME: umh .. works in practice
             LockSupport.parkNanos(1000*1000*5);
-            if ( actors.length > 0 ) {
+            if ( actors.length > 0 || toAdd.peek() != null ) {
                 if ( ElasticScheduler.DEBUG_SCHEDULING)
                     Log.Lg.warn(this, "Severe: zombie dispatcher thread detected");
                 scheduler.tryStopThread(this);
@@ -146,9 +152,12 @@ public class DispatcherThread extends Thread {
             }
         }
         if ( ElasticScheduler.DEBUG_SCHEDULING)
-            Log.Info(this,"dispatcher thread terminated");
+            Log.Info(this,"dispatcher thread terminated "+getName());
     }
 
+    /**
+     * add actors which have been marked to be scheduled on this
+     */
     private void schedulePendingAdds() {
         ArrayList<Actor> newOnes = new ArrayList<>();
         Actor a;
@@ -187,10 +196,7 @@ public class DispatcherThread extends Thread {
 
 
     // return true if msg was avaiable
-    int profileCounter = 0;
-    int schedCounter = 0;
     int loadCounter=0; // counts load peaks in direct seq
-    int nextProfile = 511;
     long created = System.currentTimeMillis();
 
     public boolean pollQs() {
@@ -209,20 +215,15 @@ public class DispatcherThread extends Thread {
                 // sender has correct value
                 Actor.sender.set(callEntry.getTargetActor());
                 Object invoke = null;
-                if ( maxThreads > 1 ) {
-                    profileCounter++;
-                    if (profileCounter > nextProfile && callEntry.getTarget() instanceof Actor) {
-                        profileCounter = 0;
-                        invoke = profiledCall(callEntry);
-                    } else {
-                        invoke = invoke(callEntry);
+                try {
+                    invoke = invoke(callEntry);
+                } catch (IllegalArgumentException iae) {
+                    for (int i = 0; i < callEntry.getArgs().length; i++) {
+                        Object o = callEntry.getArgs()[i];
+                        System.out.println("arg "+i+" "+o+(o!=null?" "+o.getClass().getSimpleName():"")+",");
                     }
-                } else {
-	                try {
-		                invoke = invoke(callEntry);
-	                } catch (IllegalArgumentException iae) {
-		                throw iae;
-	                }
+                    System.out.println();
+                    throw iae;
                 }
                 if (callEntry.getFutureCB() != null) {
                     final Future futureCB = callEntry.getFutureCB();   // the future of caller side
@@ -257,22 +258,6 @@ public class DispatcherThread extends Thread {
         return poll.getMethod().invoke(target, poll.getArgs());
     }
 
-    private Object profiledCall(CallEntry poll) throws IllegalAccessException, InvocationTargetException {
-        nextProfile = (int) (PROFILE_INTERVAL + Math.random() * 13);
-        schedCounter++;
-
-        long nanos = System.nanoTime();
-        Object invoke = invoke(poll);
-        nanos = System.nanoTime() - nanos;
-        ((Actor) poll.getTarget()).__nanos = (((Actor) poll.getTarget()).__nanos * 31 + nanos) / 32;
-
-        if (schedCounter > SCHEDULE_PER_PROFILE) {
-            schedCounter = 0;
-            checkForSplit();
-        }
-        return invoke;
-    }
-
     private void checkForSplit() {
         int load = getLoad();
         if (load > QUEUE_PERCENTAGE_TRIGGERING_REBALANCE &&
@@ -287,52 +272,6 @@ public class DispatcherThread extends Thread {
         }
     }
 
-    // must be called in thread. newOne is expected to not yet started
-    void splitTo( DispatcherThread newOne ) {
-        if ( ElasticScheduler.DEBUG_SCHEDULING )
-            Log.Info(this, "SPLIT " + scheduler.getMaxThreads());
-        long myTime = 0;
-        long otherTime = 0;
-        Arrays.sort(actors, new Comparator() {
-            @Override
-            public int compare(Object o1, Object o2) {
-                return (((Actor)o1).__nanos - ((Actor)o2).__nanos) > 0 ? -1 : 1;
-            }
-        });
-        for (int i = 0; i < actors.length; i++) {
-            Actor act = (Actor) actors[i];
-            long nan = act.__nanos;
-            if (otherTime < myTime) {
-                otherTime += nan;
-            } else {
-                myTime += nan;
-            }
-        }
-        //if ( 8*myTime > otherTime && 8*otherTime > myTime )
-        //                                    {
-        myTime = otherTime = 0;
-        ArrayList<Actor> new2ScheduleOnMe = new ArrayList<>();
-        ArrayList<Actor> new2ScheduleOnOther = new ArrayList<>();
-        for (int i = 0; i < actors.length; i++) {
-            Actor act = (Actor) actors[i];
-            long nan = act.__nanos;
-            if (otherTime < myTime) {
-                new2ScheduleOnOther.add(act);
-                otherTime += nan;
-                act.__currentDispatcher = newOne;
-            } else {
-                new2ScheduleOnMe.add(act);
-                myTime += nan;
-            }
-        }
-        actors = new Actor[new2ScheduleOnMe.size()];
-        new2ScheduleOnMe.toArray(actors);
-        newOne.actors = new Actor[new2ScheduleOnOther.size()];
-        new2ScheduleOnOther.toArray(newOne.actors);
-        if ( ElasticScheduler.DEBUG_SCHEDULING )
-            Log.Info(this,"split distribution " + myTime + ":" + otherTime + " actors " + actors.length);
-        created = System.currentTimeMillis();
-    }
 
     /**
      * @return percentage of queue fill of max actor
@@ -349,20 +288,14 @@ public class DispatcherThread extends Thread {
         return res;
     }
 
-    /**
-     * @return profiling based measured load
-     */
-    public long getLoadNanos() {
-        long res = 0;
+    public int getAccumulatedLoad() {
+        int res = 0;
         final Actor actors[] = this.actors;
         for (int i = 0; i < actors.length; i++) {
-            Actor a = actors[i];
-            res += a.__nanos;
+            res += actors[i].getQSizes();
         }
         return res;
     }
-
-    // FIXME: bad for concurrentlinkedq
 
     /**
      * @return accumulated q size of all dispatched actors
