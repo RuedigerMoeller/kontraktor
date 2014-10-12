@@ -3,11 +3,23 @@ kontraktor
 
 lightweight and efficient Actor implementation in Java. The threading model implemented has many similarities to node.js, go's and Dart's model of concurrency.
 
-Kontraktor implements a typed actor model to avoid message definition+handling boilerplate code. Additionally this integrates well
-with code completion and refactoring of modern IDEs.
+* **boilerplate free**. No need for handcrafted message dispatch, no need for a definition of "Message" classes or Actor-Interfaces. Full typesafety integrates well with code completion and refactoring features of modern IDEs
+* **no** instrumentation agent or post compilation task required
+
+Kontraktor can be used as a model to deal with **concurrency and parallelism**, however its perfectly valid to just make use of Kontraktors **rich Remoting infrastructure** to ease creation of distributed **'Microservice'** alike application topologies.
+
+* expose an actor as a TCP service, a WebService, WebSockets with little effort (1-liner)
+* directly do actor calls from a JavaSccript client [involves proxy generation]
+* implement actors in JavaScript and transparently call them from java.
+
+**Future plans:**
+* MultiCast ESB based on an actors-as-microservice metaphor [planned by adapting fast-cast]
+* Add bridges to other languages like Go, Dart, .. [currently only JavaScript available]
+
+[*Note:* A plan is something which has not been done yet and *might* be done in the future ;) ] 
 
 
-###2.0 beta
+###Changes 2.0 beta
 
 * package name change, requires jdk 1.8
 * each actor now has dedicated queues, 1.x style scheduling (many actors from one per-thread-queue) caused issues in some scenarios.
@@ -16,9 +28,11 @@ with code completion and refactoring of modern IDEs.
 * New: Spores
 * Streamlined API, added new utils
 * added many sanity checks to help spotting actor contract violations for beginners
-* Documentation see 2.0-beta wiki page (in progress)
+* Documentation see wiki pages (in progress)
 
 **2.0 beta State:**
+
+* In transition to 2.0. Check wikipages marked explicitely as **2.0** to avoid confusion by the 1.x => 2.0 mess
 * Core Actor functionality stable. 
 * TCP remoting also stable, probably issues in corner cases (e.g. dynamically connecting/disconnecting etc.). 
 * WebSocket Remoting functionality requires unreleased sub project "netty-kontraktor" (see source).
@@ -27,7 +41,7 @@ with code completion and refactoring of modern IDEs.
 
 **2.0 documentation**
 
-[wiki/Kontraktor-2.0-(beta)](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-2.0-(beta))
+check wiki.
 
 Blogposts:
 
