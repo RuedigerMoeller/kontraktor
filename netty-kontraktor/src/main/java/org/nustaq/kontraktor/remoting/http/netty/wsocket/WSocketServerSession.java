@@ -6,7 +6,6 @@ import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSClientSession;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.serialization.FSTConfiguration;
-import org.nustaq.serialization.minbin.MBPrinter;
 
 /**
  * Created by ruedi on 29.08.2014.
@@ -22,7 +21,7 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
     int polldelay = 10;
 
     @Override
-    public void $init(ActorWSServer server, int sessionId, ActorWSServer.Coding coding) {
+    public void $init(ActorWSServer server, int sessionId, RemoteRefRegistry.Coding coding) {
         super.$init(server, sessionId, coding);
         registry = new RemoteRefRegistry(coding) {
 	        @Override

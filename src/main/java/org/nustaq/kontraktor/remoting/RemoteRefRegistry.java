@@ -2,10 +2,9 @@ package org.nustaq.kontraktor.remoting;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.impl.*;
-import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
-import org.nustaq.serialization.minbin.MBPrinter;
+import org.nustaq.serialization.minbin.MinBin;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -46,9 +45,9 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 		this(null);
 	}
 
-	public RemoteRefRegistry(ActorWSServer.Coding code) {
+	public RemoteRefRegistry(Coding code) {
 		if ( code == null )
-			code = ActorWSServer.Coding.FSTSer;
+			code = Coding.FSTSer;
 	    switch (code) {
 		    case MinBin:
 			    conf = FSTConfiguration.createCrossPlatformConfiguration();
@@ -341,4 +340,9 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     }
 
     public abstract Actor getFacadeProxy();
+
+    public enum Coding {
+        FSTSer,
+        MinBin
+    }
 }

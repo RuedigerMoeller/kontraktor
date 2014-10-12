@@ -1,10 +1,8 @@
 package org.nustaq.kontraktor.remoting.http.netty.wsocket;
 
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSClientSession;
+import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
-import org.nustaq.webserver.ClientSession;
 
 import java.io.File;
 
@@ -20,10 +18,10 @@ public class WSocketActorServer extends ActorWSServer {
     Actor facade;
 
     public WSocketActorServer(Actor facade, File contentRoot) {
-	    this(facade, contentRoot, Coding.FSTSer);
+	    this(facade, contentRoot, RemoteRefRegistry.Coding.FSTSer);
     }
 
-    public WSocketActorServer(Actor facade, File contentRoot, Coding coding ) {
+    public WSocketActorServer(Actor facade, File contentRoot, RemoteRefRegistry.Coding coding ) {
         super(contentRoot, coding);
         this.facade = facade;
     }
