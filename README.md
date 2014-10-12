@@ -14,7 +14,7 @@ Kontraktor can be used as a model to deal with **concurrency and parallelism**, 
 
 **Future plans:**
 * MultiCast ESB based on an actors-as-microservice metaphor [planned by adapting fast-cast]
-* Implement briges to other languages like Go, Dart, .. [currently only JavaScript supported]
+* Add bridges to other languages like Go, Dart, .. [currently only JavaScript available]
 
 [*Note:* A plan is something which has not been done yet and *might* be done in the future ;) ] 
 
