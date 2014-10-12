@@ -1,6 +1,6 @@
 package encoding;
 
-import minbin.gen.GenRemote;
+import org.nustaq.kontraktor.annotations.GenRemote;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.Promise;

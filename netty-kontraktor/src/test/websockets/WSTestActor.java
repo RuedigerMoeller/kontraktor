@@ -1,14 +1,13 @@
 package websockets;
 
 import encoding.TestEncoding;
-import minbin.gen.GenRemote;
+import org.nustaq.kontraktor.annotations.GenRemote;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.RemoteActorInterface;
 import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.kontraktor.remoting.http.netty.wsocket.WSocketActorClient;
 import org.nustaq.kontraktor.remoting.http.netty.wsocket.WSocketActorServer;
 import org.nustaq.netty2go.NettyWSHttpServer;
-import org.nustaq.webserver.ClientSession;
 
 import java.io.File;
 import java.util.ArrayList;

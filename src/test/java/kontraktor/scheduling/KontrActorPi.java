@@ -42,7 +42,7 @@ public class KontrActorPi {
 
 //        Hoarde<PiActor> hoarde = new Hoarde<>(numActors, PiActor.class);
 
-        // testing custom scheduler
+        // testing automatic scheduling
         ElasticScheduler sched = new ElasticScheduler(numActors);
         Hoarde<PiActor> hoarde = new Hoarde<>(numActors, PiActor.class,sched);
 
