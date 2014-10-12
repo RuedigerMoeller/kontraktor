@@ -13,7 +13,7 @@ Kontraktor can be used as a model to deal with **concurrency and parallelism**, 
 * implement actors in JavaScript and transparently call them from java.
 
 **Future plans:**
-* MultiCast ESB based on actor serviced [planned by adapting fast-cast]
+* MultiCast ESB based on an actors-as-microservice metaphor [planned by adapting fast-cast]
 * Implement briges to other languages like Go, Dart, .. [currently only JavaScript supported]
 
 [*Note:* A plan is something which has not been done yet and *might* be done in the future ;) ] 
