@@ -3,9 +3,23 @@ kontraktor
 
 lightweight and efficient Actor implementation in Java. The threading model implemented has many similarities to node.js, go's and Dart's model of concurrency.
 
-Kontraktor implements a typed actor model to avoid message definition+handling boilerplate code. Additionally this integrates well
-with code completion and refactoring of modern IDEs.
+* boilerplate free, **no** need for handcrafted message dispatch, no need for a definition of "Message" classes or Actor-Interfaces. Full typesafety integrates well with code completion and refactoring features of modern IDEs
+* **no** instrumentation agent or post compilation task required
 
+Kontraktor can be used as a model to deal with concurrency and parallelism, however if this looks to strange or does not fit your habits, Kontraktors rich Remoting infrastructure ease creation of distributed 'Microservice' alike application topologies, as Kontraktor supports 
+
+* expose an actor as a TCP service, a WebService, WebSockets with little effort (1-liner)
+* directly do actor calls from a JavaSccript client [involves proxy generation]
+* implement actor in JavaScript and transparently call them from a server.
+
+Future plans:
+* MultiCast ESB based on actor serviced [planned by adapting fast-cast]
+* Implement briges to other languages like Go, Dart, .. [currently only JavaScript supported]
+
+[*Note:* A plan is something which has not been done yet and *might* be done in the future ;) ] 
+
+
+**State** In transition to 2.0. Core features are pretty stable. Remoting features are working, however there is lack of error handling / connection errors, verify proper cleanup etc. . Check wikipages marked explicitely as **2.0** to avoid confusion by the 1.x => 2.0 mess ..
 
 ###2.0 beta
 
