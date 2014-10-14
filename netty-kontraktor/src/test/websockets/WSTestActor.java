@@ -18,7 +18,7 @@ import java.util.ArrayList;
 @GenRemote
 public class WSTestActor extends Actor<WSTestActor> {
 
-	public static class SampleUser {
+	public static class SampleUser { // test using javaclass from js
 		String name;
 		int age;
 		int credits;
