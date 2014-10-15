@@ -31,7 +31,4 @@ public class TestEncoding extends Actor<TestEncoding> {
 		return new Promise<>(mp);
 	}
 
-
-
-
 }
