@@ -343,12 +343,18 @@ public class ElasticScheduler implements Scheduler {
                 Log.Info(this, "*created new thread*");
             if (minLoadThread == null) {
                 // does not pay off. stay on current
-                System.out.println("no rebalance possible");
+//                System.out.println("no rebalance possible");
                 return;
             }
             // move cheapest actor
             Actor[] qList = dispatcherThread.getActors();
             long otherLoad = minLoadThread.getLoad();
+            if (otherLoad*2>load) {
+                if (DEBUG_SCHEDULING) {
+                    Log.Info(this, "no payoff, skip rebalance load:"+load+" other:"+otherLoad);
+                }
+                return;
+            }
             for (int i = 0; i < qList.length; i++) {
                 Actor actor = qList[i];
                 if (otherLoad + actor.getQSizes() < load - actor.getQSizes()) {

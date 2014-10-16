@@ -52,10 +52,9 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class DispatcherThread extends Thread {
 
-    public static int NUMBER_OF_MESSAGES_TO_PROCESS_PER_CHECK_FOR_NEW_ADDS = 1000;
+    public static int SCHEDULE_TICK_NANOS = 1000*500;
     public static int QUEUE_PERCENTAGE_TRIGGERING_REBALANCE = 50;      // if queue is X % full, consider rebalance
-    public static int MILLIS_AFTER_CREATION_BEFORE_REBALANCING = 5; // give JIT + OS a chance to get things going before rebalancing
-    public static int TRIGGER_REBALANCE_COUNTER = 2; // how many times in a row rebalance conditions must be true before acting
+    public static int MILLIS_AFTER_CREATION_BEFORE_REBALANCING = 2; // give caches a chance to get things going before rebalancing
 
     private Scheduler scheduler;
 
@@ -63,7 +62,6 @@ public class DispatcherThread extends Thread {
     ConcurrentLinkedQueue<Actor> toAdd = new ConcurrentLinkedQueue<>();
 
     protected boolean shutDown = false;
-    private int maxThreads;
     static AtomicInteger dtcount = new AtomicInteger(0);
 
 
@@ -71,7 +69,6 @@ public class DispatcherThread extends Thread {
 
     public DispatcherThread(Scheduler scheduler) {
         this.scheduler = scheduler;
-        maxThreads = scheduler.getMaxThreads();
         setName("DispatcherThread "+dtcount.incrementAndGet());
     }
 
@@ -106,30 +103,29 @@ public class DispatcherThread extends Thread {
 
     public void run() {
         int emptyCount = 0;
-        int scheduleNewActorCount = 0;
+        long scheduleTickTime = System.nanoTime();
         boolean isShutDown = false;
         while( ! isShutDown ) {
             if ( pollQs() ) {
                 emptyCount = 0;
-                scheduleNewActorCount++;
-                if ( scheduleNewActorCount > NUMBER_OF_MESSAGES_TO_PROCESS_PER_CHECK_FOR_NEW_ADDS) {
+                if ( System.nanoTime() - scheduleTickTime > SCHEDULE_TICK_NANOS) {
                     if ( emptySinceLastCheck == 0 ) // no idle during last interval
                     {
                         checkForSplit();
                     }
                     emptySinceLastCheck = 0;
-                    scheduleNewActorCount = 0;
+                    scheduleTickTime = System.nanoTime();
                     schedulePendingAdds();
                 }
             }
             else {
                 emptyCount++;
+                emptySinceLastCheck++;
                 scheduler.yield(emptyCount);
                 if (shutDown) // access volatile only when idle
                     isShutDown = true;
                 if ( scheduler.getBackoffStrategy().isSleeping(emptyCount) ) {
-                    emptySinceLastCheck++;
-                    scheduleNewActorCount = 0;
+                    scheduleTickTime = 0;
                     schedulePendingAdds();
                     if ( System.currentTimeMillis()-created > 3000 ) {
                         if ( actors.length == 0 && toAdd.peek() == null ) {
@@ -196,7 +192,6 @@ public class DispatcherThread extends Thread {
 
 
     // return true if msg was avaiable
-    int loadCounter=0; // counts load peaks in direct seq
     long created = System.currentTimeMillis();
 
     public boolean pollQs() {
@@ -264,11 +259,7 @@ public class DispatcherThread extends Thread {
             actors.length > 1 &&
             System.currentTimeMillis()-created > MILLIS_AFTER_CREATION_BEFORE_REBALANCING )
         {
-            loadCounter++;
-            if (loadCounter > TRIGGER_REBALANCE_COUNTER) {
-                loadCounter = 0;
-                scheduler.rebalance(this);
-            }
+            scheduler.rebalance(this);
         }
     }
 
@@ -282,6 +273,10 @@ public class DispatcherThread extends Thread {
         for (int i = 0; i < actors.length; i++) {
             MpscConcurrentQueue queue = (MpscConcurrentQueue) actors[i].__mailbox;
             int load = queue.size() * 100 / queue.getCapacity();
+            if ( load > res )
+                res = load;
+            queue = (MpscConcurrentQueue) actors[i].__cbQueue;
+            load = queue.size() * 100 / queue.getCapacity();
             if ( load > res )
                 res = load;
         }
@@ -369,7 +364,7 @@ public class DispatcherThread extends Thread {
 
     /**
      * can be called from the dispacther thread itself only
-     * @param receiver
+     * @param receiverRef
      * @return
      */
     public boolean schedules(Actor receiverRef) {

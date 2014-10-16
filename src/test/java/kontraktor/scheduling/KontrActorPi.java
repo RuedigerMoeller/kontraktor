@@ -48,7 +48,7 @@ public class KontrActorPi {
 
         for ( int i = 0; i < numMessages; i+=numActors) {
             int finalI = i;
-//            if ( (i%15) == 0 )
+//            if ( (i%50) == 0 )
 //                LockSupport.parkNanos(1);
             hoarde.each( (pia,index) -> pia.$calculatePiFor(finalI + index, step, adder) );
         }
@@ -69,13 +69,14 @@ public class KontrActorPi {
     public static void main( String arg[] ) throws InterruptedException {
         final int numMessages = 1000000;
         final int step = 100;
+        final int MIN_ACT = 2;
         final int MAX_ACT = 8;
         String results[] = new String[MAX_ACT];
 
         Log.Lg.$setSeverity(Log.ERROR);
         ElasticScheduler.DEFQSIZE = 6000;
 
-        for ( int numActors = 1; numActors <= MAX_ACT; numActors+=1 ) {
+        for ( int numActors = MIN_ACT; numActors <= MAX_ACT; numActors+=1 ) {
             long sum = 0;
             for ( int ii=0; ii < 20; ii++) {
                 long res = calcPi(numMessages, step, numActors);
