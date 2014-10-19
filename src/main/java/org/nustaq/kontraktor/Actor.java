@@ -215,15 +215,15 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
         __scheduler.delayedCall( millis, inThread(self(),toRun) );
     }
 
-    @CallerSideMethod public Scheduler getScheduler() {
-        return __scheduler;
-    }
-
     /**
      * @return true if mailbox fill size is ~half capacity
      */
     @CallerSideMethod public boolean isMailboxPressured() {
         return __mailbox.size() * 2 > __mbCapacity;
+    }
+
+    @CallerSideMethod public Scheduler getScheduler() {
+        return __scheduler;
     }
 
     @CallerSideMethod public boolean isCallbackQPressured() {

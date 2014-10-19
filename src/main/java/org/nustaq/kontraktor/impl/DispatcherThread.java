@@ -66,7 +66,9 @@ public class DispatcherThread extends Thread implements Monitorable {
     static AtomicInteger dtcount = new AtomicInteger(0);
 
 
+
     int stackDepth = 0;
+    volatile boolean isIsolated = false;
 
     public DispatcherThread(Scheduler scheduler) {
         this.scheduler = scheduler;
@@ -78,6 +80,14 @@ public class DispatcherThread extends Thread implements Monitorable {
         return "DispatcherThread{" +
                 " name:"+getName()+
                 '}';
+    }
+
+    public boolean isIsolated() {
+        return isIsolated;
+    }
+
+    public void setIsolated(boolean isIsolated) {
+        this.isIsolated = isIsolated;
     }
 
     public void addActor(Actor act) {
@@ -101,7 +111,7 @@ public class DispatcherThread extends Thread implements Monitorable {
         actors = newAct;
     }
 
-    int emptySinceLastCheck = 0; // incremented on sleep
+    int emptySinceLastCheck = 0; // incremented on sleep/yield
 
     public void run() {
         int emptyCount = 0;

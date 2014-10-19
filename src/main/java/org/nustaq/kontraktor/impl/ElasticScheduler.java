@@ -26,9 +26,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ElasticScheduler implements Scheduler, Monitorable {
 
     public static final int MAX_STACK_ON_SYNC_CBDISPATCH = 200000;
-    public static int DEFQSIZE = 16384;
+    public static int DEFQSIZE = 32000; // will be alligne to 2^x
 
-    public static boolean DEBUG_SCHEDULING = true;
+    public static boolean DEBUG_SCHEDULING = false;
     public static boolean REALLY_DEBUG_SCHEDULING = false; // logs any move and remove
 
     public static int BLOCK_COUNT_WARNING_THRESHOLD = 10000;
@@ -78,7 +78,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
 //    @Override
     public Future put2QueuePolling(CallEntry e) {
         final Future fut;
-        if (e.hasFutureResult()) {
+        if (e.hasFutureResult() && ! (e.getFutureCB() instanceof CallbackWrapper) ) {
             fut = new Promise();
             e.setFutureCB(new CallbackWrapper( e.getSendingActor() ,new Callback() {
                 @Override
@@ -150,25 +150,32 @@ public class ElasticScheduler implements Scheduler, Monitorable {
                     String sender = "";
                     if (sendingActor != null)
                         sender = ", sender:" + sendingActor.getActor().getClass().getSimpleName();
-                    Log.Lg.warn(this, "Warning: Thread " + Thread.currentThread().getName() + " blocked trying to put message on " + receiverString + sender + " msg:" + o);
+                    if ( DEBUG_SCHEDULING )
+                        Log.Lg.warn(this, "Warning: Thread " + Thread.currentThread().getName() + " blocked trying to put message on " + receiverString + sender + " msg:" + o);
                 }
                 // decouple current thread
                 if ( sendingActor != null && Thread.currentThread() instanceof DispatcherThread ) {
                     DispatcherThread dp = (DispatcherThread) Thread.currentThread();
                     dp.schedulePendingAdds();
-                    if ( dp.getActors().length > 1 && dp.schedules( receiver ) ) {
-                        Log.Lg.warn(this, "  try unblock Thread " + Thread.currentThread().getName() + " actors:" + dp.getActors().length);
+//                    if ( dp.getActors().length > 1 && dp.schedules( receiver ) )
+                    if ( dp.getActors().length > 1 ) // try isolating in any case
+                    {
+                        if ( DEBUG_SCHEDULING )
+                            Log.Lg.warn(this, "  try unblock Thread " + Thread.currentThread().getName() + " actors:" + dp.getActors().length);
                         dp.getScheduler().tryIsolate(dp, sendingActor.getActorRef());
-                        Log.Lg.warn(this, "  unblock done Thread " + Thread.currentThread().getName() + " actors:" + dp.getActors().length);
+                        if ( DEBUG_SCHEDULING )
+                            Log.Lg.warn(this, "  unblock done Thread " + Thread.currentThread().getName() + " actors:" + dp.getActors().length);
                     } else {
                         if ( dp.getActors().length > 1 ) {
-                            System.out.println("POK "+dp.schedules( receiver )+" "+sendingActor.__currentDispatcher+" "+ ((Actor) receiver).__currentDispatcher);
+                            // this indicates there are at least two actors on different threads blocking each other
+                            // only solution to unlock is increase the Q of one of the actors
+//                            System.out.println("POK "+dp.schedules( receiver )+" "+sendingActor.__currentDispatcher+" "+ ((Actor) receiver).__currentDispatcher);
                         }
                     }
                 }
             }
         }
-        if ( warningPrinted ) {
+        if ( warningPrinted && DEBUG_SCHEDULING) {
             Log.Lg.warn(this,"Thread "+Thread.currentThread().getName()+" continued");
         }
     }
@@ -209,10 +216,11 @@ public class ElasticScheduler implements Scheduler, Monitorable {
                 }
             }
         }
-        if ( DEBUG_SCHEDULING )
-            Log.Info( this, "  was decoupled one.");
-        isolateCount.decrementAndGet();
-
+        if ( th.isIsolated() ) {
+            if (DEBUG_SCHEDULING)
+                Log.Info(this, "  was decoupled one.");
+            isolateCount.decrementAndGet();
+        }
 //        throw new RuntimeException("Oops. Unknown Thread");
     }
 
@@ -413,6 +421,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
                 if ( threads[i] == dispatcherThread ) {
                     threads[i] = createDispatcherThread();
                     dispatcherThread.setName(dispatcherThread.getName()+" (isolated)");
+                    dispatcherThread.setIsolated(true);
                     isolateCount.incrementAndGet();
                     minLoadThread = threads[i];
                     minLoadThread.start();
@@ -424,6 +433,8 @@ public class ElasticScheduler implements Scheduler, Monitorable {
                 // calling thread is already isolate
                 // so no creation happened and no minloadthread was found
                 minLoadThread = createDispatcherThread();
+                minLoadThread.setName(dispatcherThread.getName()+" (isolated)");
+                minLoadThread.setIsolated(true);
                 isolateCount.incrementAndGet();
                 if (DEBUG_SCHEDULING)
                     Log.Info(this,"created new thread to unblock already isolated "+dispatcherThread.getName());

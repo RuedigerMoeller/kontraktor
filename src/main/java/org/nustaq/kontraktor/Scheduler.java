@@ -3,6 +3,7 @@ package org.nustaq.kontraktor;
 import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.impl.DispatcherThread;
+import org.nustaq.kontraktor.monitoring.Monitorable;
 
 import java.lang.reflect.InvocationHandler;
 import java.util.List;
@@ -12,7 +13,7 @@ import java.util.concurrent.Callable;
 /**
  * Created by ruedi on 14.06.14.
  */
-public interface Scheduler {
+public interface Scheduler extends Monitorable{
 
     int getMaxThreads();
 

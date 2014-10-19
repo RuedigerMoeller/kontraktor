@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.util;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.http.rest.RestActorServer;
@@ -29,7 +30,7 @@ public class HttpMonitor extends Actor<HttpMonitor> {
     /**
      * Flattens a monitorable hierarchy to a stream, as http remoting does not support remote refs
      *
-     * method name gets part of url
+     * method name is without '$' as it gets part of url
      */
     public void report( String name, int depth, Callback cb ) {
         if ( depth == 0 ) {
@@ -39,28 +40,39 @@ public class HttpMonitor extends Actor<HttpMonitor> {
         if ( monitorable == null )
             cb.receive("no such monitorable registered:"+name, "not found");
         else {
-            Object[] result = new Object[2];
-            sendMonitorable(depth,result, monitorable);
-            delayed( 10, () -> self().$sync().then(()->cb.receive(result, FINSILENT)) );
+            sendMonitorable(depth,monitorable).then((result, err) -> {
+                cb.receive(result, null);
+            });
         }
     }
 
-    protected void sendMonitorable(int depth, Object result[], Monitorable monitorable) {
+    protected Future<Object[]> sendMonitorable(int depth, Monitorable monitorable) {
 //        System.out.println("dumpmon " + monitorable);
+        Promise p = new Promise();
         monitorable.$getReport().then( ( report, err ) -> {
+            Object result[] = new Object[2];
             result[0] = report;
             monitorable.$getSubMonitorables().then((monitorables, errmon) -> {
                 if ( monitorables.length > 0 && depth >= 1 ) {
-                    result[1] = new Object[monitorables.length];
+                    Object[] subResult = new Object[monitorables.length];
+                    result[1] = subResult;
+                    Future futs[] = new Future[monitorables.length];
                     for (int i = 0; i < monitorables.length; i++) {
                         Monitorable submon = monitorables[i];
-                        Object subres[] = new Object[2];
-                        ((Object[]) result[1])[i] = subres;
-                        sendMonitorable(depth-1,subres, submon);
+                        futs[i] = sendMonitorable(depth-1,submon);
                     }
-                }
+                    yield(futs).then( (futures,err0) -> {
+                        for (int i = 0; i < futures.length; i++) {
+                            Future future = futures[i];
+                            subResult[i] = future.getResult();
+                        }
+                        p.receive(result,null);
+                    });
+                } else
+                    p.receive(result,null);
             });
         });
+        return p;
     }
 
     HashMap<String,Monitorable> monitored = new HashMap();

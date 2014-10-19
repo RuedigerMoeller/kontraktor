@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+    <!-- Latest compiled and minified JavaScript -->
+
+
+</head>
+<body>
+
+    <script type='text/javascript' src='js/knockout3.2.0.js'></script>
+    <script type='text/javascript' src='js/jquery-2.1.1.js'></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+
+<p>published name:<br> <input data-bind="value: published" /></p>
+<p>port: <br> <input data-bind="value: port" /></p>
+<br><br>
+<p data-bind="with: scheduler" >
+    Scheduled Dispatcher Threads: <span data-bind="text: numDispatchers"></span><br>
+    Default Q Size: <span data-bind="text: $data.defQSize"></span><br>
+    Isolated Dispatcher Threads: <span data-bind="text: $data.isolatedThreads"></span><br>
+    <br>
+    <table class="table table-bordered table-condensed" border="1" width="80%">
+    <thead>
+        <tr>
+            <th align="LEFT">&nbsp;</th>
+            <th align="LEFT">Name</th>
+            <th align="LEFT">#Actors</th>
+            <th align="LEFT">fullest queue</th>
+            <th align="LEFT">sum queued msg</th>
+        </tr>
+    </thead>
+    <tbody data-bind="foreach: dispatchers">
+        <tr>
+            <td>&nbsp;</td>
+            <td data-bind="text: $data[0].name"></td>
+            <td data-bind="text: $data[0].numActors"></td>
+            <td> <span data-bind="text: $data[0].loadPerc"></span>%</td>
+            <td data-bind="text: $data[0].qSizes"></td>
+        </tr>
+    </tbody>
+</table>
+</p>
+
+<script>
+var Model = function(published,port) {
+    this.published = ko.observable( published );
+    this.port = ko.observable( port );
+    this.scheduler = ko.observable({numDispatchers:"-"});
+    this.dispatchers = ko.observableArray([]);
+};
+
+var model = new Model("scheduler", 7777);
+ko.applyBindings( model );
+
+var url = "http://localhost:" + model.port() + "/monitor/report/" + model.published() + "/1";
+$.getJSON(url, function( data ) {
+    console.log(data);
+    var schedulerReport = data.args[0][0];
+    var dispatcherArray = data.args[0][1];
+    console.log(dispatcherArray);
+    model.scheduler(schedulerReport);
+    model.dispatchers(dispatcherArray);
+    var differences = ko.utils.compareArrays(model.dispatchers(), dispatcherArray);
+    console.log(differences);
+
+});
+
+var code = function () {
+    console.log("pok");
+    window.setTimeout(code, 1000 );
+};
+window.setTimeout(code, 1000 );
+</script>
+
+
+</body>
+</html>
