@@ -1,9 +1,8 @@
 package kontraktor.scheduling.exectest;
 
+import static kontraktor.scheduling.exectest.Runner2.Mode.*;
+
 import java.util.concurrent.*;
-import static kontraktor.scheduling.exectest.Runner2.Mode.Dedicated;
-import static kontraktor.scheduling.exectest.Runner2.Mode.FixedThread;
-import static kontraktor.scheduling.exectest.Runner2.Mode.WorkStealing;
 
 /**
  * Created by ruedi on 10/13/14.
@@ -39,14 +38,19 @@ public class Runner2 {
         for (int i = 0; i < workers.length; i++) {
             workers[i] = new Work2(localSize);
             if ( mode == Mode.Dedicated && i < MAX_WORKER ) {
-                threads[i] = Executors.newSingleThreadScheduledExecutor();
+                threads[i] = (new ThreadPoolExecutor(1, 1,
+                                    0L, TimeUnit.MILLISECONDS,
+                                    new ArrayBlockingQueue<Runnable>(10000)));
+
             }
         }
         switch (mode) {
             case WorkStealing:
                 ex = Executors.newWorkStealingPool(MAX_WORKER); break;
             case FixedThread:
-                ex  = Executors.newFixedThreadPool(MAX_WORKER); break;
+                ex  = new ThreadPoolExecutor(MAX_WORKER, MAX_WORKER,
+                                      0L, TimeUnit.MILLISECONDS,
+                                      new ArrayBlockingQueue<Runnable>(100000));
         }
         return this;
     }
@@ -84,6 +88,7 @@ public class Runner2 {
 
     private static long avgTest(Mode mode, int localSize ) throws InterruptedException {
         long sum = 0;
+        System.gc();
         Runner2 runner = new Runner2(mode).init(localSize);
         int iters = 1;
         for (int i = 0; i < iters; i++) {
@@ -98,14 +103,21 @@ public class Runner2 {
     }
 
     public static void main(String arg[]) throws InterruptedException {
-        int sizes[] = { 16, 64, 500, 1000, 8000, 80000 };
+        int sizes[] = {
+                16,
+                64,
+                500,
+                1000,
+                8000,
+                80000
+        };
         long durations[][] = new long[sizes.length][];
         for (int i = 0; i < sizes.length; i++) {
             int size = sizes[i];
             for ( int ii = 0; ii < 2; ii++ ) {
                 System.out.println("warmup =>");
                 avgTest(Dedicated, size);
-                avgTest(FixedThread, size);
+//                avgTest(FixedThread, size);
                 avgTest(WorkStealing, size);
             }
             durations[i] =  new long[3];
@@ -113,7 +125,7 @@ public class Runner2 {
             for ( int ii = 0; ii < numRuns; ii++ ) {
                 System.out.println("run => "+ii);
                 durations[i][Dedicated.ordinal()] += avgTest(Dedicated, size);
-                durations[i][FixedThread.ordinal()] += avgTest(FixedThread, size);
+//                durations[i][FixedThread.ordinal()] += avgTest(FixedThread, size);
                 durations[i][WorkStealing.ordinal()] += avgTest(WorkStealing, size);
             }
             for (int j = 0; j < durations[i].length; j++) {

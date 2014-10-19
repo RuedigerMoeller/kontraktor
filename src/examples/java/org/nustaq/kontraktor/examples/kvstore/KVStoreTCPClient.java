@@ -47,7 +47,7 @@ public class KVStoreTCPClient {
                                 }
                             } else {
                                 System.out.println("no match "+input);
-                                if ( Actor.Fin(input) ) {
+                                if ( Actor.isFinal(input) ) {
                                     receive(hits, Actor.FIN);
                                 }
                             }
@@ -55,7 +55,7 @@ public class KVStoreTCPClient {
 
                         @Override
                         public void local(Object result, Object error) {
-                            if ( Actor.Fin(error) ) {
+                            if ( Actor.isFinal(error) ) {
                                 System.out.println("Hits:"+result);
                             }
                             System.out.println("local received match "+result);
@@ -70,7 +70,7 @@ public class KVStoreTCPClient {
 
                         @Override
                         public void remote(Object input) {
-                            if (Actor.Fin(input)) {
+                            if (Actor.isFinal(input)) {
                                 receive(count, Actor.FIN);
                             } else {
                                 count++;

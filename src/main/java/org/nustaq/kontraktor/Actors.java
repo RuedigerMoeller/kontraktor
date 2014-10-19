@@ -227,7 +227,7 @@ public class Actors {
                 sched = new ElasticScheduler(1,qsize);
             if ( qsize < 1 )
                 qsize = sched.getDefaultQSize();
-            return makeProxy(clz, sched.assignDispatcher(), qsize);
+            return makeProxy(clz, sched.assignDispatcher(70), qsize);
         } catch (Exception e) {
             if ( e instanceof RuntimeException)
                 throw (RuntimeException)e;
@@ -235,4 +235,11 @@ public class Actors {
         }
     }
 
+    public static Object[] toResults(Future[] futs) {
+        Object o[] = new Object[futs.length];
+        for (int i = 0; i < o.length; i++) {
+            o[i] = futs [i].getResult();
+        }
+        return o;
+    }
 }

@@ -69,7 +69,7 @@ public class KVStore extends Actor<KVStore> {
         // create Service Actor
         KVStore service = Actors.AsActor(KVStore.class);
 
-        // figure file location for persistence
+        // figure out file location for persistence
         String file = "kvstore.mmf";
         if ( new File("/tmp").exists() ) file = "/tmp/kvstore.mmf";
 
@@ -85,15 +85,8 @@ public class KVStore extends Actor<KVStore> {
                     e1.printStackTrace();
                 }
 
-                // start Http service
-                RestActorServer sv = new RestActorServer();
-
-                // a netty based impl is available separately, use internal server here ..
-                NioHttpServer server = Actors.AsActor(NioHttpServerImpl.class, 64000);
-                sv.startOnServer(9999, server);
-
-                // publish service actor
-                sv.publish("kvstore",service);
+                // create Http service abstraction
+                RestActorServer.publish("kvstore",9999,service);
             }
         });
     }

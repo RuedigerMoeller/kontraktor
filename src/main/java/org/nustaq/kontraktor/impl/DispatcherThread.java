@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
 import io.jaq.mpsc.MpscConcurrentQueue;
+import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.util.Log;
 
 import java.lang.reflect.*;
@@ -50,9 +51,9 @@ import java.util.concurrent.locks.LockSupport;
  * to exactly balance and control the number of threads created and which thread operates a set of actors.
  *
  */
-public class DispatcherThread extends Thread {
+public class DispatcherThread extends Thread implements Monitorable {
 
-    public static int SCHEDULE_TICK_NANOS = 1000*500;
+    public static int SCHEDULE_TICK_NANOS = 1000*500; // how often balancing/profiling is done
     public static int QUEUE_PERCENTAGE_TRIGGERING_REBALANCE = 50;      // if queue is X % full, consider rebalance
     public static int MILLIS_AFTER_CREATION_BEFORE_REBALANCING = 2; // give caches a chance to get things going before rebalancing
 
@@ -80,6 +81,7 @@ public class DispatcherThread extends Thread {
     }
 
     public void addActor(Actor act) {
+        act.getActorRef().__currentDispatcher = act.getActor().__currentDispatcher = this;
         toAdd.offer(act.getActorRef());
     }
 
@@ -127,11 +129,11 @@ public class DispatcherThread extends Thread {
                 if ( scheduler.getBackoffStrategy().isSleeping(emptyCount) ) {
                     scheduleTickTime = 0;
                     schedulePendingAdds();
-                    if ( System.currentTimeMillis()-created > 3000 ) {
+                    if ( System.currentTimeMillis()-created > 1000 ) {
                         if ( actors.length == 0 && toAdd.peek() == null ) {
                             shutDown();
                         } else {
-//                            scheduler.tryStopThread(this);
+                            scheduler.tryStopThread(this);
                         }
                     }
                 }
@@ -140,8 +142,8 @@ public class DispatcherThread extends Thread {
         scheduler.threadStopped(this);
         for ( int i = 0; i < 100; i++ ) { // FIXME: umh .. works in practice
             LockSupport.parkNanos(1000*1000*5);
-            if ( actors.length > 0 || toAdd.peek() != null ) {
-                if ( ElasticScheduler.DEBUG_SCHEDULING)
+            while ( actors.length > 0 || toAdd.peek() != null ) {
+//                if ( ElasticScheduler.DEBUG_SCHEDULING)
                     Log.Lg.warn(this, "Severe: zombie dispatcher thread detected");
                 scheduler.tryStopThread(this);
                 i = 0;
@@ -154,7 +156,7 @@ public class DispatcherThread extends Thread {
     /**
      * add actors which have been marked to be scheduled on this
      */
-    private void schedulePendingAdds() {
+    public void schedulePendingAdds() {
         ArrayList<Actor> newOnes = new ArrayList<>();
         Actor a;
         while ( (a=toAdd.poll()) != null ) {
@@ -233,12 +235,15 @@ public class DispatcherThread extends Thread {
                     );
                 }
                 return true;
-            } catch ( Exception e) {
+            } catch ( Throwable e) {
                 if ( e instanceof InvocationTargetException && ((InvocationTargetException) e).getTargetException() == ActorStoppedException.Instance ) {
                     Actor actor = (Actor) callEntry.getTarget();
                     actor.__stopped = true;
                     removeActorImmediate(actor.getActorRef());
                     return true;
+                }
+                if ( e instanceof InvocationTargetException ) {
+                    e = e.getCause();
                 }
                 if (callEntry.getFutureCB() != null)
                     callEntry.getFutureCB().receive(null, e);
@@ -283,7 +288,11 @@ public class DispatcherThread extends Thread {
         return res;
     }
 
-    public int getAccumulatedLoad() {
+    /**
+     * accumulated queue sizes of all actors
+     * @return
+     */
+    public int getAccumulatedQSizes() {
         int res = 0;
         final Actor actors[] = this.actors;
         for (int i = 0; i < actors.length; i++) {
@@ -367,15 +376,56 @@ public class DispatcherThread extends Thread {
      * @param receiverRef
      * @return
      */
-    public boolean schedules(Actor receiverRef) {
+    public boolean schedules(Object receiverRef) {
         if ( Thread.currentThread() != this ) {
             throw new RuntimeException("cannot call from foreign thread");
         }
-        for (int i = 0; i < actors.length; i++) {
-            Actor actor = actors[i];
-            if ( actor == receiverRef )
-                return true;
+        if ( receiverRef instanceof Actor ) {
+            // FIXME: think about visibility of scheduler var
+            return ((Actor) receiverRef).__currentDispatcher == this;
+//            for (int i = 0; i < actors.length; i++) {
+//                Actor actor = actors[i];
+//                if (actor == receiverRef)
+//                    return true;
+//            }
         }
         return false;
     }
+
+    @Override
+    public Future $getReport() {
+        return new Promise(new DispatcherReport(getName(), actors.length, getLoad(),getAccumulatedQSizes() ));
+    }
+
+    @Override
+    public Future<Monitorable[]> $getSubMonitorables() {
+        return new Promise(getActors());
+    }
+
+    public static class DispatcherReport {
+
+        String name;
+        int numActors;
+        int loadPerc;
+        int qSizes;
+
+        public DispatcherReport() {
+        }
+
+        public DispatcherReport(String name, int numActors, int loadPerc, int qSizes) {
+            this.name = name;
+            this.numActors = numActors;
+            this.loadPerc = loadPerc;
+            this.qSizes = qSizes;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public int getNumActors() {
+            return numActors;
+        }
+    }
+
 }

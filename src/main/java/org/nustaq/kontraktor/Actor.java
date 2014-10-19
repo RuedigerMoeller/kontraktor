@@ -25,6 +25,7 @@ package org.nustaq.kontraktor;
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.impl.*;
+import org.nustaq.kontraktor.monitoring.Monitorable;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
@@ -57,7 +58,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * Use Actors.Exec in case you need to do blocking calls (e.g. synchronous requests)
  *
  */
-public class Actor<SELF extends Actor> implements Serializable {
+public class Actor<SELF extends Actor> implements Serializable, Monitorable {
 
     // constants from Callback class for convenience
 
@@ -75,9 +76,19 @@ public class Actor<SELF extends Actor> implements Serializable {
      */
     public static final String FIN = Callback.FIN;
 
-    public static boolean Fin(Object o) {
+    /**
+     * return if given Object signals end of callback stream
+     * @param o
+     * @return
+     */
+    public static boolean isFinal(Object o) {
         return FIN.equals(o) || FINSILENT.equals(o) || o == null;
     }
+
+    public static boolean isSilentFinal(Object o) {
+        return FINSILENT.equals(o);
+    }
+
     public static boolean Cont(Object o) {
         return CONT.equals(o);
     }
@@ -144,7 +155,31 @@ public class Actor<SELF extends Actor> implements Serializable {
         return __scheduler.yield(futures);
     }
 
-    protected Future<Future[]> ordered(Callable ... callables) {
+    /**
+     * same as yield, but converts the resulting Future[] to an Object[] or T[]
+     * @param futures
+     * @return
+     */
+    protected <T> Future<T[]> yield2Result(Future<T>... futures) {
+        Promise p = new Promise();
+        __scheduler.yield(futures).then( (futs,err) -> {
+            Object res[] = new Object[futures.length];
+            for (int i = 0; i < futs.length; i++) {
+                res[i] = futs[i].getResult();
+            }
+            p.receive(res,err);
+        });
+        return p;
+    }
+
+    /**
+     * execute given callables asynchronously, but one after another async but chained.
+     *
+     * see https://gist.github.com/RuedigerMoeller/10c583819616f2563969
+     * @param callables
+     * @return
+     */
+    protected Future<Future[]> ordered(Callable<Future> ... callables) {
         return Actors.async(callables);
     }
 
@@ -336,6 +371,44 @@ public class Actor<SELF extends Actor> implements Serializable {
             }
         }
         return method;
+    }
+
+    @Override
+    public Future $getReport() {
+        return new Promise( new ActorReport(getActor().getClass().getSimpleName(), getMailboxSize(), getCallbackSize() ) );
+    }
+
+    @Override
+    public Future<Monitorable[]> $getSubMonitorables() {
+        return new Promise<>(new Monitorable[0]);
+    }
+
+    public static class ActorReport {
+        String clz;
+        int mailboxSize;
+        int cbqSize;
+
+        public ActorReport() {
+        }
+
+        public ActorReport(String clz, int mailboxSize, int cbqSize) {
+            this.clz = clz;
+            this.mailboxSize = mailboxSize;
+            this.cbqSize = cbqSize;
+        }
+
+        public String getClz() {
+            return clz;
+        }
+
+        public int getMailboxSize() {
+            return mailboxSize;
+        }
+
+        public int getCbqSize() {
+            return cbqSize;
+        }
+
     }
 
 }

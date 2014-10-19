@@ -52,7 +52,7 @@ public interface Scheduler {
     Future<Future[]> yield(Future... futures);
     <T> Future<List<Future<T>>> yield(List<Future<T>> futures);
 
-    public DispatcherThread assignDispatcher();
+    public DispatcherThread assignDispatcher(int minLoadPerc);
 
     /** called from inside overloaded thread with load
      * all actors assigned to the calling thread therefore can be safely moved
@@ -64,4 +64,5 @@ public interface Scheduler {
 
     void tryStopThread(DispatcherThread dispatcherThread);
 
+    void tryIsolate(DispatcherThread dp, Actor actorRef);
 }

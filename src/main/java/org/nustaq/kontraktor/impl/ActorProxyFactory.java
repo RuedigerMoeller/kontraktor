@@ -183,7 +183,9 @@ public class ActorProxyFactory {
 
             // exceptions: async built-in actor methods that can be called
             if ( //originalMethod.getName().equals("executeInActorThread") || // needed again ! see spore
-                // async methods at actor class
+                // async methods at actor class. FIXME: add annotation
+                 originalMethod.getName().equals("$getSubMonitorables") ||
+                 originalMethod.getName().equals("$getReport") ||
                  originalMethod.getName().equals("$sync") ||
                  originalMethod.getName().equals("$stop") ||
                  originalMethod.getName().equals("$close")

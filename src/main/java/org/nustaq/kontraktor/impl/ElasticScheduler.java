@@ -1,18 +1,18 @@
 package org.nustaq.kontraktor.impl;
 
+import com.sun.org.apache.xpath.internal.SourceTree;
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.util.Log;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.List;
-import java.util.Queue;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by ruedi on 13.06.14.
@@ -23,21 +23,25 @@ import java.util.concurrent.Executors;
  * when using an executor to schedule actor messages.
  * Additionally this way I can use spin locks without going to 800% CPU if threadmax = 8.
  */
-public class ElasticScheduler implements Scheduler {
+public class ElasticScheduler implements Scheduler, Monitorable {
 
     public static final int MAX_STACK_ON_SYNC_CBDISPATCH = 200000;
     public static int DEFQSIZE = 16384;
+
     public static boolean DEBUG_SCHEDULING = true;
+    public static boolean REALLY_DEBUG_SCHEDULING = false; // logs any move and remove
+
     public static int BLOCK_COUNT_WARNING_THRESHOLD = 10000;
     public static int RECURSE_ON_BLOCK_THRESHOLD = 2;
 
     int maxThread = Runtime.getRuntime().availableProcessors();
     protected BackOffStrategy backOffStrategy = new BackOffStrategy();
-    volatile DispatcherThread threads[];
+    final DispatcherThread threads[];
 
     int defQSize = DEFQSIZE;
     protected ExecutorService exec = Executors.newCachedThreadPool();
     protected static Timer delayedCalls = new Timer();
+    private AtomicInteger isolateCount = new AtomicInteger(0);
 
     public ElasticScheduler(int maxThreads) {
         this(maxThreads, DEFQSIZE);
@@ -128,25 +132,44 @@ public class ElasticScheduler implements Scheduler {
                     }
                 }
             }
-            if ( count > BLOCK_COUNT_WARNING_THRESHOLD && ! warningPrinted ) {
-                warningPrinted = true;
-                String receiverString;
-                if ( receiver instanceof Actor ) {
-                    if ( q == ((Actor) receiver).__cbQueue ) {
-                        receiverString = receiver.getClass().getSimpleName()+" callbackQ";
-                    } else if ( q == ((Actor) receiver).__mailbox ) {
-                        receiverString = receiver.getClass().getSimpleName()+" mailbox";
-                    } else {
-                        receiverString = receiver.getClass().getSimpleName()+" unknown queue";
-                    }
-                } else
-                    receiverString = ""+receiver;
-                String sender = "";
+            if ( count > BLOCK_COUNT_WARNING_THRESHOLD ) {
                 Actor sendingActor = Actor.sender.get();
-                if ( sendingActor != null )
-                    sender = ", sender:"+sendingActor.getActor().getClass().getSimpleName();
-                Log.Lg.warn(this,"Warning: Thread "+Thread.currentThread().getName()+" blocked trying to put message on "+receiverString+sender+" msg:"+o);
+                if ( ! warningPrinted ) {
+                    warningPrinted = true;
+                    String receiverString;
+                    if (receiver instanceof Actor) {
+                        if (q == ((Actor) receiver).__cbQueue) {
+                            receiverString = receiver.getClass().getSimpleName() + " callbackQ";
+                        } else if (q == ((Actor) receiver).__mailbox) {
+                            receiverString = receiver.getClass().getSimpleName() + " mailbox";
+                        } else {
+                            receiverString = receiver.getClass().getSimpleName() + " unknown queue";
+                        }
+                    } else
+                        receiverString = "" + receiver;
+                    String sender = "";
+                    if (sendingActor != null)
+                        sender = ", sender:" + sendingActor.getActor().getClass().getSimpleName();
+                    Log.Lg.warn(this, "Warning: Thread " + Thread.currentThread().getName() + " blocked trying to put message on " + receiverString + sender + " msg:" + o);
+                }
+                // decouple current thread
+                if ( sendingActor != null && Thread.currentThread() instanceof DispatcherThread ) {
+                    DispatcherThread dp = (DispatcherThread) Thread.currentThread();
+                    dp.schedulePendingAdds();
+                    if ( dp.getActors().length > 1 && dp.schedules( receiver ) ) {
+                        Log.Lg.warn(this, "  try unblock Thread " + Thread.currentThread().getName() + " actors:" + dp.getActors().length);
+                        dp.getScheduler().tryIsolate(dp, sendingActor.getActorRef());
+                        Log.Lg.warn(this, "  unblock done Thread " + Thread.currentThread().getName() + " actors:" + dp.getActors().length);
+                    } else {
+                        if ( dp.getActors().length > 1 ) {
+                            System.out.println("POK "+dp.schedules( receiver )+" "+sendingActor.__currentDispatcher+" "+ ((Actor) receiver).__currentDispatcher);
+                        }
+                    }
+                }
             }
+        }
+        if ( warningPrinted ) {
+            Log.Lg.warn(this,"Thread "+Thread.currentThread().getName()+" continued");
         }
     }
 
@@ -186,7 +209,11 @@ public class ElasticScheduler implements Scheduler {
                 }
             }
         }
-        throw new RuntimeException("Oops. Unknown Thread");
+        if ( DEBUG_SCHEDULING )
+            Log.Info( this, "  was decoupled one.");
+        isolateCount.decrementAndGet();
+
+//        throw new RuntimeException("Oops. Unknown Thread");
     }
 
     class CallbackInvokeHandler implements InvocationHandler {
@@ -274,11 +301,15 @@ public class ElasticScheduler implements Scheduler {
         return Actors.yield(futures);
     }
 
+    /**
+     * if a low load thread is avaiable, return it. else try creation of new thread.
+     * if this is not possible return thread with lowest load
+     * @return
+     */
     @Override
-    public DispatcherThread assignDispatcher() {
-        synchronized (threads) {
-            int minLoad = Integer.MAX_VALUE;
-            DispatcherThread minThread = findMinLoadThread(minLoad, null);
+    public DispatcherThread assignDispatcher(int minLoadPerc) {
+        synchronized (balanceLock) {
+            DispatcherThread minThread = findMinLoadThread(minLoadPerc, null);
             if ( minThread != null ) {
                 return minThread;
             }
@@ -286,18 +317,19 @@ public class ElasticScheduler implements Scheduler {
             if ( newThreadIfPossible != null ) {
                 newThreadIfPossible.start();
                 return newThreadIfPossible;
+            } else {
+                return findMinLoadThread(Integer.MIN_VALUE, null); // return thread with lowest load
             }
         }
-        throw new RuntimeException("could not assign thread. This is a severe error");
     }
 
     private DispatcherThread findMinLoadThread(int minLoad, DispatcherThread dispatcherThread) {
-        synchronized (threads) {
+        synchronized (balanceLock) {
             DispatcherThread minThread = null;
             for (int i = 0; i < threads.length; i++) {
                 DispatcherThread thread = threads[i];
                 if (thread != null && thread != dispatcherThread) {
-                    int load = thread.getAccumulatedLoad();
+                    int load = thread.getLoad();
                     if (load < minLoad) {
                         minLoad = load;
                         minThread = thread;
@@ -309,24 +341,25 @@ public class ElasticScheduler implements Scheduler {
     }
 
     private DispatcherThread createNewThreadIfPossible() {
-        synchronized (threads) {
-            for (int i = 0; i < threads.length; i++) {
-                DispatcherThread thread = threads[i];
-                if (thread == null) {
-                    DispatcherThread th = createDispatcherThread();
-                    threads[i] = th;
-                    return th;
-                }
+        for (int i = 0; i < threads.length; i++) {
+            DispatcherThread thread = threads[i];
+            if (thread == null) {
+                DispatcherThread th = createDispatcherThread();
+                threads[i] = th;
+                return th;
             }
         }
         return null;
     }
 
+    /**
+     * @return an UNSTARTED dispatcher thread
+     */
     protected DispatcherThread createDispatcherThread() {
         return new DispatcherThread(this);
     }
 
-    Object balanceLock = new Object();
+    final Object balanceLock = new Object();
 
     /** called from inside overloaded thread.
      * all actors assigned to the calling thread therefore can be safely moved
@@ -335,33 +368,27 @@ public class ElasticScheduler implements Scheduler {
     @Override
     public void rebalance(DispatcherThread dispatcherThread) {
         synchronized (balanceLock) {
-            DispatcherThread minLoadThread = createNewThreadIfPossible();
-            int load = dispatcherThread.getAccumulatedLoad();
-            if (minLoadThread == null) {
-                minLoadThread = findMinLoadThread(load, dispatcherThread);
-            } else if (DEBUG_SCHEDULING)
-                Log.Info(this, "*created new thread*");
-            if (minLoadThread == null) {
-                // does not pay off. stay on current
-//                System.out.println("no rebalance possible");
+            DispatcherThread minLoadThread = assignDispatcher(dispatcherThread.getLoad());
+            if (minLoadThread == null || minLoadThread == dispatcherThread) {
                 return;
             }
-            // move cheapest actor
+            int qSizes = dispatcherThread.getAccumulatedQSizes();
+            // move actors
             Actor[] qList = dispatcherThread.getActors();
-            long otherLoad = minLoadThread.getLoad();
-            if (otherLoad*2>load) {
-                if (DEBUG_SCHEDULING) {
-                    Log.Info(this, "no payoff, skip rebalance load:"+load+" other:"+otherLoad);
+            long otherQSizes = minLoadThread.getAccumulatedQSizes();
+            if (4*otherQSizes/3>qSizes) {
+                if (REALLY_DEBUG_SCHEDULING) {
+                    Log.Info(this, "no payoff, skip rebalance load:"+qSizes+" other:"+otherQSizes);
                 }
                 return;
             }
             for (int i = 0; i < qList.length; i++) {
                 Actor actor = qList[i];
-                if (otherLoad + actor.getQSizes() < load - actor.getQSizes()) {
-                    otherLoad += actor.getQSizes();
-                    load -= actor.getQSizes();
-                    if (DEBUG_SCHEDULING)
-                        Log.Info(this,"move " + actor.getQSizes() + " myload " + load + " otherload " + otherLoad + " from "+dispatcherThread.getName()+" to "+minLoadThread.getName() );
+                if (otherQSizes + actor.getQSizes() < qSizes - actor.getQSizes()) {
+                    otherQSizes += actor.getQSizes();
+                    qSizes -= actor.getQSizes();
+                    if (REALLY_DEBUG_SCHEDULING)
+                        Log.Info(this,"move " + actor.getQSizes() + " myload " + qSizes + " otherload " + otherQSizes + " from "+dispatcherThread.getName()+" to "+minLoadThread.getName() );
                     dispatcherThread.removeActorImmediate(actor);
                     minLoadThread.addActor(actor);
                 }
@@ -371,19 +398,90 @@ public class ElasticScheduler implements Scheduler {
         }
     }
 
-    public void tryStopThread(DispatcherThread dispatcherThread) {
+    // fixme: use currentthread if this is a precondition anyway
+    public void tryIsolate(DispatcherThread dispatcherThread, Actor refToExclude /*implicitely indicates unblock*/) {
+        if ( dispatcherThread != Thread.currentThread() )
+            throw new RuntimeException("bad error");
         synchronized (balanceLock) {
-            // move cheapest actor
+            // move to actor with minimal load
+            if ( refToExclude == null ) {
+                throw new IllegalArgumentException("excluderef should not be null");
+            }
             Actor qList[] = dispatcherThread.getActors();
+            DispatcherThread minLoadThread = findMinLoadThread(Integer.MAX_VALUE, dispatcherThread);
+            for (int i = 0; i < threads.length; i++) { // avoid further dispatch
+                if ( threads[i] == dispatcherThread ) {
+                    threads[i] = createDispatcherThread();
+                    dispatcherThread.setName(dispatcherThread.getName()+" (isolated)");
+                    isolateCount.incrementAndGet();
+                    minLoadThread = threads[i];
+                    minLoadThread.start();
+                    if (DEBUG_SCHEDULING)
+                        Log.Info(this,"created new thread to unblock "+dispatcherThread.getName());
+                }
+            }
+            if ( minLoadThread == null ) {
+                // calling thread is already isolate
+                // so no creation happened and no minloadthread was found
+                minLoadThread = createDispatcherThread();
+                isolateCount.incrementAndGet();
+                if (DEBUG_SCHEDULING)
+                    Log.Info(this,"created new thread to unblock already isolated "+dispatcherThread.getName());
+            }
+            for (int i = 0; i < qList.length; i++)
+            {
+                Actor actor = qList[i];
+                // sanity, remove me later
+                if ( actor.getActorRef() != actor )
+                    throw new RuntimeException("this should not happen ever");
+                if ( refToExclude != null && refToExclude.getActorRef() != refToExclude ) {
+                    throw new RuntimeException("this also");
+                }
+                if ( actor != refToExclude ) {
+                    dispatcherThread.removeActorImmediate(actor);
+                    minLoadThread.addActor(actor);
+                }
+                if (REALLY_DEBUG_SCHEDULING)
+                    Log.Info(this,"move for unblock " + actor.getQSizes() + " myload " + dispatcherThread.getAccumulatedQSizes() + " actors " + qList.length);
+            }
+        }
+    }
+
+    /**
+     * stepwise move actors onto other dispatchers. Note actual termination is not done here.
+     * removes given dispatcher from the scheduling array, so this thread won't be visible to scheduling
+     * anymore. In extreme this could lead to high thread numbers, however this behaviour was never observed
+     * until now ..
+     *
+     * FIXME: in case decoupled threads live forever, do a hard stop on them
+     * FIXME: sort by load and spread load amongst all threads (current find min and put removedActors on it).
+     * @param dispatcherThread
+     */
+    public void tryStopThread(DispatcherThread dispatcherThread) {
+        if ( dispatcherThread != Thread.currentThread() )
+            throw new RuntimeException("bad one");
+        synchronized (balanceLock) {
             DispatcherThread minLoadThread = findMinLoadThread(Integer.MAX_VALUE, dispatcherThread);
             if (minLoadThread == null)
                 return;
-            for (int i = 0; i < qList.length; i++) {
+            // move to actor with minimal load
+            Actor qList[] = dispatcherThread.getActors();
+            for (int i = 0; i < threads.length; i++) { // avoid further dispatch
+                if ( threads[i] == dispatcherThread ) {
+                    threads[i] = null;
+                }
+            }
+            int maxActors2Remove = Math.min(qList.length, qList.length / 5 + 1); // do several steps to get better spread
+            for (int i = 0; i < maxActors2Remove; i++)
+            {
                 Actor actor = qList[i];
+                // sanity, remove me later
+                if ( actor.getActorRef() != actor )
+                    throw new RuntimeException("this should not happen ever");
                 dispatcherThread.removeActorImmediate(actor);
                 minLoadThread.addActor(actor);
-                if (DEBUG_SCHEDULING)
-                    Log.Info(this,"move for idle " + actor.getQSizes() + " myload " + dispatcherThread.getAccumulatedLoad() + " actors " + qList.length);
+                if (REALLY_DEBUG_SCHEDULING)
+                    Log.Info(this,"move for idle " + actor.getQSizes() + " myload " + dispatcherThread.getAccumulatedQSizes() + " actors " + qList.length);
             }
         }
     }
@@ -393,5 +491,59 @@ public class ElasticScheduler implements Scheduler {
         return backOffStrategy;
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    // monitorable
+
+    @Override
+    public Future $getReport() {
+        int count = 0;
+        for (int i = 0; i < threads.length; i++) {
+            if ( threads[i] != null ) {
+                count++;
+            }
+        }
+        return new Promise<>(new SchedulingReport(count,defQSize,isolateCount.get()));
+    }
+
+    @Override
+    public Future<Monitorable[]> $getSubMonitorables() {
+        DispatcherThread[] current = threads;
+        int count = 0;
+        for (int i = 0; i < current.length; i++) {
+            if ( current[i] != null )
+                count++;
+        }
+        Monitorable res[] = new Monitorable[count];
+        count = 0;
+        for (int i = 0; i < current.length; i++) {
+            if ( current[i] != null )
+                res[count++] = current[i];
+        }
+        return new Promise<>(res);
+    }
+
+    public static class SchedulingReport {
+
+        int numDispatchers;
+        int defQSize;
+        int isolatedThreads;
+
+        public SchedulingReport() {
+        }
+
+        public SchedulingReport(int numDispatchers, int defQSize, int isolatedThreads) {
+            this.numDispatchers = numDispatchers;
+            this.defQSize = defQSize;
+            this.isolatedThreads = isolatedThreads;
+        }
+
+        public int getNumDispatchers() {
+            return numDispatchers;
+        }
+
+        public int getDefQSize() {
+            return defQSize;
+        }
+    }
 
 }

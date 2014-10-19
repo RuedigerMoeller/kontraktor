@@ -20,6 +20,42 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class RestActorServer {
 
+    /**
+     * shorthand to create and run a http service publishing given actor class.
+     * For more control (queue sizes, several actors on a single port, use a distinct server impl) do a stepwise
+     * init (just checkout source of method)
+     *
+     * @param clz
+     * @param path
+     * @param port
+     * @param <T>
+     * @return
+     */
+    public static <T extends Actor> T publish( Class<T> clz, String path, int port ) {
+        T service = Actors.AsActor(clz, 16000);
+        return publish(path, port, service);
+
+    }
+
+    static ConcurrentHashMap<Integer,RestActorServer> servers = new ConcurrentHashMap<>(); // FIXME: dirty
+    public static <T extends Actor> T publish(String path, int port, T serviceRef) {
+        RestActorServer sv = servers.get(port);
+        if ( sv == null ) {
+            // create Http service abstraction
+            sv = new RestActorServer();
+
+            // assign to concrete server impl.
+            // a netty based impl is available separately, use internal server here ..
+            NioHttpServer server = Actors.AsActor(NioHttpServerImpl.class, 64000);
+            sv.startOnServer(port, server);
+            servers.put(port,sv);
+        }
+
+        // publish service actor
+        sv.publish(path,serviceRef);
+        return serviceRef;
+    }
+
     NioHttpServer server;
     ConcurrentHashMap<String,PublishedActor> publishedActors = new ConcurrentHashMap<>();
 
@@ -86,7 +122,7 @@ public class RestActorServer {
                 int finalCB = cbid;
                 final Method m = target.getActor().__getCachedMethod(call.getMethod(), target.getActor());
                 Callback cb = (r, e) -> {
-                    boolean isContinue = Callback.CONT == e;
+                    boolean isContinue = !Actor.isFinal(e);
                     respPerS.count();
                     if ( !isContinue ) {
                         countDown.decrementAndGet();
