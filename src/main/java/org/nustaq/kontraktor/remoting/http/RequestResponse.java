@@ -9,9 +9,20 @@ public class RequestResponse {
     public static final RequestResponse MSG_500 = new RequestResponse("HTTP/1.0 500 internal error\n\n500 something went wrong somewhere");
     public static final RequestResponse MSG_200 = new RequestResponse("HTTP/1.0 200 OK\nAccess-Control-Allow-Origin: *\n\n");;
     String data;
+    byte binary[];
 
     public RequestResponse(String data) {
         this.data = data;
+    }
+    public RequestResponse(byte[] data) {
+        this.binary = data;
+    }
+
+    public byte[] getBinary() {
+        if ( binary != null )
+            return binary;
+        else
+            return data.getBytes();
     }
 
     @Override

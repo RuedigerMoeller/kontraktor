@@ -77,12 +77,12 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
     public static final String FIN = Callback.FIN;
 
     /**
-     * return if given Object signals end of callback stream
-     * @param o
+     * return if given error Object signals end of callback stream
+     * @param error
      * @return
      */
-    public static boolean isFinal(Object o) {
-        return FIN.equals(o) || FINSILENT.equals(o) || o == null;
+    public static boolean isFinal(Object error) {
+        return FIN.equals(error) || FINSILENT.equals(error) || ! CONT.equals(error);
     }
 
     public static boolean isSilentFinal(Object o) {

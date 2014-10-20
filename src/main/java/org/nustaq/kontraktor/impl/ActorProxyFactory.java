@@ -398,7 +398,7 @@ public class ActorProxyFactory {
                 } else {
                     String key = method.getName();
                     if (unqiqueForActors.contains(key) && !method.getDeclaringClass().getName().equals("java.lang.Object")) {
-                        throw new RuntimeException("method overloading not supported for actors. problematic Method: "+key);
+                        throw new RuntimeException("method overloading not supported for actors. problematic Method: "+key+" on class "+orig.getName());
                     }
                     unqiqueForActors.add(key);
                     alreadypresent.add(str);

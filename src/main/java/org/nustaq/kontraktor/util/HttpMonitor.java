@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.http.rest.RestActorServer;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -27,6 +28,21 @@ public class HttpMonitor extends Actor<HttpMonitor> {
         return instance;
     }
 
+    public Future<String[]> getMonitorableKeys(String simpleClzName) {
+        ArrayList<String> result = new ArrayList();
+        monitored.entrySet().forEach( (entry) -> {
+            Monitorable mon = entry.getValue();
+            if ( mon instanceof Actor)
+                mon = ((Actor)mon).getActor();
+            if ( entry.getValue() != null && mon.getClass().getSimpleName().equals(simpleClzName) ) {
+                result.add(entry.getKey());
+            }
+        });
+        String res[] = new String[result.size()];
+        result.toArray(res);
+        return new Promise(res);
+    }
+
     /**
      * Flattens a monitorable hierarchy to a stream, as http remoting does not support remote refs
      *
@@ -38,15 +54,15 @@ public class HttpMonitor extends Actor<HttpMonitor> {
         }
         Monitorable monitorable = monitored.get(name);
         if ( monitorable == null )
-            cb.receive("no such monitorable registered:"+name, "not found");
+            cb.receive(null,"no such monitorable registered: '"+name+"'");
         else {
-            sendMonitorable(depth,monitorable).then((result, err) -> {
+            getMonitorables(depth, monitorable).then((result, err) -> {
                 cb.receive(result, null);
             });
         }
     }
 
-    protected Future<Object[]> sendMonitorable(int depth, Monitorable monitorable) {
+    protected Future<Object[]> getMonitorables(int depth, Monitorable monitorable) {
 //        System.out.println("dumpmon " + monitorable);
         Promise p = new Promise();
         monitorable.$getReport().then( ( report, err ) -> {
@@ -59,7 +75,7 @@ public class HttpMonitor extends Actor<HttpMonitor> {
                     Future futs[] = new Future[monitorables.length];
                     for (int i = 0; i < monitorables.length; i++) {
                         Monitorable submon = monitorables[i];
-                        futs[i] = sendMonitorable(depth-1,submon);
+                        futs[i] = getMonitorables(depth - 1, submon);
                     }
                     yield(futs).then( (futures,err0) -> {
                         for (int i = 0; i < futures.length; i++) {

@@ -148,7 +148,7 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
                              if (error == null || error == RequestProcessor.FINISHED) {
                                  try {
                                      if (result != null) {
-                                         writeClient(client, ByteBuffer.wrap(result.toString().getBytes()));
+                                         writeClient(client, ByteBuffer.wrap(result.getBinary()));
                                      }
                                  } catch (Exception e) {
                                      Log.Warn(this,e,"");
@@ -198,9 +198,10 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
     static class SimpleProcessor implements RequestProcessor {
 
         @Override
-        public void processRequest(KontraktorHttpRequest req, Callback response) {
+        public boolean processRequest(KontraktorHttpRequest req, Callback response) {
             response.receive(new RequestResponse("HTTP/1.0 200 OK\nAccess-Control-Allow-Origin: *\n\n" + req.getText()), null);
             response.receive(null, FINISHED);
+            return true;
         }
     }
 

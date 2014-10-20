@@ -56,6 +56,13 @@ public class RestActorServer {
         return serviceRef;
     }
 
+    public static ArrayList<String> getPublished(String simpleClzName, int port) {
+        RestActorServer sv = servers.get(port);
+        if ( sv == null )
+            return new ArrayList<>();
+        return sv.getPublishedActors( simpleClzName );
+    }
+
     NioHttpServer server;
     ConcurrentHashMap<String,PublishedActor> publishedActors = new ConcurrentHashMap<>();
 
@@ -95,6 +102,17 @@ public class RestActorServer {
         }
         json+="] } ]";
         enqueueCall(target, json, req, response);
+    }
+
+    public ArrayList<String> getPublishedActors( String simpleClzName ) {
+        ArrayList<String> result = new ArrayList();
+        publishedActors.entrySet().forEach( (entry) -> {
+            Actor actor = entry.getValue().getActor().getActor();
+            if ( entry.getValue() != null && actor.getClass().getSimpleName().equals(simpleClzName) ) {
+                result.add(entry.getKey());
+            }
+        });
+        return result;
     }
 
     protected void enqueueCall(PublishedActor target, String content, KontraktorHttpRequest req, Callback<RequestResponse> response) {
@@ -204,14 +222,18 @@ public class RestActorServer {
 
     public class RestProcessor implements RequestProcessor {
 
+        ServeFromCPProcessor cpServer = new ServeFromCPProcessor();
+
         @Override
-        public void processRequest(KontraktorHttpRequest req, Callback<RequestResponse> response) {
+        public boolean processRequest(KontraktorHttpRequest req, Callback<RequestResponse> response) {
             if ( req.isGET() ) {
                 String actor = req.getPath(0);
                 final PublishedActor target = publishedActors.get(actor);
                 if ( target == null ) {
-                    response.receive(RequestResponse.MSG_404, null);
-                    response.receive(null, FINISHED);
+                    if ( ! cpServer.processRequest(req,response)) {
+                        response.receive(RequestResponse.MSG_404, null);
+                        response.receive(null, FINISHED);
+                    }
                 } else {
                     enqueueCall(target, req, response);
                 }
@@ -228,6 +250,7 @@ public class RestActorServer {
                 response.receive(RequestResponse.MSG_404, null);
                 response.receive(null, FINISHED);
             }
+            return true;
         }
     }
 

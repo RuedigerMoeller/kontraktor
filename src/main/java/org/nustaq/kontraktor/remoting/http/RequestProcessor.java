@@ -11,6 +11,6 @@ import org.nustaq.kontraktor.Callback;
 public interface RequestProcessor {
 
     public static String FINISHED = "FIN"; // must be sent once all responses are sent
-    public void processRequest( KontraktorHttpRequest req, Callback<RequestResponse> response );
+    public boolean processRequest(KontraktorHttpRequest req, Callback<RequestResponse> response);
 
 }

@@ -153,7 +153,7 @@ public class KontraktorHttpRequestImpl implements KontraktorHttpRequest // avoid
     }
 
     public boolean isGET() {
-        return methodString.charAt(0) == 'G';
+        return Character.toUpperCase(methodString.charAt(0)) == 'G'; // =)
     }
 
     public String getPath(int i) {

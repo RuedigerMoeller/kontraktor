@@ -12,10 +12,21 @@ import java.nio.ByteBuffer;
 public interface KontraktorHttpRequest {
 
     boolean isGET();
+    // return i'th element of path. if at end return ""
     String getPath(int i);
     boolean isPOST();
     CharSequence getText();
     String getAccept();
     void append(ByteBuffer buffer, int bytesread);
     boolean isComplete();
+
+    default String getFullPath() {
+        StringBuilder res = new StringBuilder(64);
+        for ( int i = 0; ! getPath(i).equals(""); i++ ) {
+            res.append('/');
+            res.append(getPath(i));
+        }
+        return res.toString();
+    }
+
 }
