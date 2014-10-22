@@ -17,6 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by ruedi on 14.08.2014.
+ * implemenst RequestPrccessor for Rest/Http based actor remoting. Requires an actual server implementation
+ * (netty or built in NioHttpServer).
  */
 public class RestActorServer {
 
@@ -37,6 +39,9 @@ public class RestActorServer {
 
     }
 
+    /**
+     * static utility to publish an actor. Uses built in server.
+     */
     static ConcurrentHashMap<Integer,RestActorServer> servers = new ConcurrentHashMap<>(); // FIXME: dirty
     public static <T extends Actor> T publish(String path, int port, T serviceRef) {
         RestActorServer sv = servers.get(port);
@@ -204,10 +209,25 @@ public class RestActorServer {
         }
     }
 
+    /**
+     * init server and start
+     * @param port
+     * @param server
+     */
     public void startOnServer(int port, NioHttpServer server) {
         this.server = server;
         server.$init(port, new RestProcessor());
         server.$receive();
+    }
+
+    /**
+     * init server and start
+     * @param port
+     * @param server
+     */
+    public void joinServer(int port, NioHttpServer server) {
+        this.server = server;
+        server.$setHttpProcessor(port, new RestProcessor());
     }
 
     public PublishedActor publish( String name, Actor obj ) {

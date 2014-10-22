@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.http.NioHttpServer;
 import org.nustaq.kontraktor.remoting.http.RequestProcessor;
 import org.nustaq.kontraktor.remoting.http.RequestResponse;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.netty2go.NettyWSHttpServer;
 import org.nustaq.webserver.ClientSession;
 import org.nustaq.webserver.WebSocketHttpServer;
@@ -100,6 +101,13 @@ public class HttpRemotingServer extends WebSocketHttpServer implements NioHttpSe
     @Override
     public Actor getServingActor() {
         return null;
+    }
+
+    @Override
+    public void $setHttpProcessor(int port, RequestProcessor restProcessor) {
+        if ( processor != null && restProcessor != processor)
+            Log.Warn(this, "httpprocessor already set");
+        processor = restProcessor;
     }
 
 //    public static void main(String[] args) throws Exception {
