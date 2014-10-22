@@ -67,7 +67,7 @@ public class MBGen {
 	private void generate(String outFile) throws ClassNotFoundException {
         System.out.println("generating to "+new File(outFile).getAbsolutePath());
 		GenContext ctx = new GenContext();
-		genClzList(outFile, new ArrayList<String>(clazzSet), ctx, infoMap, "js/js.jsp");
+        genClzList(outFile, new ArrayList<String>(clazzSet), ctx, infoMap, templateFile);
 	}
 
 	private void addClz(Set<String> clazzSet, Class aClass, HashMap<Class, List<MsgInfo>> infoMap) {
@@ -164,6 +164,9 @@ public class MBGen {
     @Parameter( names={"-p"}, description = "',' separated list of whitelist packages" )
     String pack;
 
+    @Parameter( names={"-t"}, description = "templatefile to use" )
+    String templateFile = "js/js.jsp";
+
     public static void main(String arg[]) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         MBGen gen = new MBGen();
 	    JCommander jCommander = new JCommander(gen, arg);
@@ -190,6 +193,9 @@ public class MBGen {
                 mbGen.generate(gen.out);
             } else
                 System.out.println("no @GenRemote classes found in given packages");
+        } else {
+            gen.addTopLevelClass(gen.clazz);
+            gen.generate(gen.out);
         }
         //gen.addTopLevelClass("org.rm.testserver.protocol.Meta","../testshell/src/main/javascript/js/model.js");
 

@@ -51,7 +51,7 @@ public interface Scheduler extends Monitorable{
      * @return
      */
     Future<Future[]> yield(Future... futures);
-    <T> Future<List<Future<T>>> yield(List<Future<T>> futures);
+    Future<List<Future>> yield(List<Future> futures);
 
     public DispatcherThread assignDispatcher(int minLoadPerc);
 

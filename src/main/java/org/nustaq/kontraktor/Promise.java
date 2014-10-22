@@ -6,9 +6,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Created by ruedi on 20.05.14.
  */
 public class Promise<T> implements Future<T> {
-
-    // fixme: volatile ? (assumption: lock triggers cache coherence. unsure, no errors until now)
-    protected Object result;
+    // fixme: volatile ? (assumption: lock ensures order of publish. unsure, no errors until now)
+    protected Object result = null;
     protected Object error;
     protected Callback resultReceiver;
     protected boolean hadResult;

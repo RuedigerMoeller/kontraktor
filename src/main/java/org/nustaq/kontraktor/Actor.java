@@ -183,7 +183,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
         return Actors.async(callables);
     }
 
-    protected <T> Future<List<Future<T>>> yieldList( List<Future<T>> futures) {
+    protected Future<List<Future>> yieldList( List<Future> futures) {
         return __scheduler.yield(futures);
     }
 

@@ -105,7 +105,7 @@ public class Actors {
         return res;
     }
 
-    public static <T> Future<List<Future<T>>> yield(List<Future<T>> futures) {
+    public static Future<List<Future>> yield(List<Future> futures) {
         Promise res = new Promise();
         yield(futures, 0, res);
         return res;
@@ -157,7 +157,7 @@ public class Actors {
         }
     }
 
-    private static <T> void yield(final List<Future<T>> futures, final int index, final Future result) {
+    private static void yield(final List<Future> futures, final int index, final Future result) {
         if ( index < futures.size() ) {
             futures.get(index).then( (r,e) -> yield(futures, index + 1, result) );
         } else {
