@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Scheduler;
 import org.nustaq.kontraktor.impl.ElasticScheduler;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.http.netty.service.HttpRemotingServer;
 import org.nustaq.netty2go.NettyWSHttpServer;
 import org.nustaq.webserver.ClientSession;
 import org.nustaq.webserver.WebSocketHttpServer;
@@ -17,16 +18,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by ruedi on 28.08.14.
  */
-public abstract class ActorWSServer extends WebSocketHttpServer {
+public abstract class ActorWSServer extends HttpRemotingServer {
 
-    // don't buffer too much.
+    // don't buffer too much messages (memory issues with many clients)
     public static int CLIENTQ_SIZE = 1000;
     public static int MAX_THREADS = 1;
 
     protected Scheduler clientScheduler = new ElasticScheduler(MAX_THREADS, CLIENTQ_SIZE);
 	protected volatile RemoteRefRegistry.Coding coding = RemoteRefRegistry.Coding.FSTSer;
+    protected AtomicInteger sessionid = new AtomicInteger(1);
 
-
+    /**
+     *
+     * @param contentRoot - root to serve files from
+     * @param coding - encoding used for websocket traffic
+     */
     public ActorWSServer(File contentRoot, RemoteRefRegistry.Coding coding) {
         super(contentRoot);
 	    this.coding = coding;
@@ -42,10 +48,9 @@ public abstract class ActorWSServer extends WebSocketHttpServer {
         }
     }
 
-    @Override
-    public void onHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req, NettyWSHttpServer.HttpResponseSender sender) {
-        super.onHttpRequest(ctx, req, sender);
-    }
+    //
+    // websocket stuff, http handled by superclass
+    //
 
     @Override
     public void onOpen(ChannelHandlerContext ctx) {
@@ -96,8 +101,6 @@ public abstract class ActorWSServer extends WebSocketHttpServer {
     protected ActorWSClientSession getSession(ChannelHandlerContext ctx) {
         return (ActorWSClientSession) super.getSession(ctx);
     }
-
-    protected AtomicInteger sessionid = new AtomicInteger(1);
 
     @Override
     protected ClientSession createNewSession() {

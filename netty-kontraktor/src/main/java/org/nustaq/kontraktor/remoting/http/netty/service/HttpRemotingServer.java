@@ -21,14 +21,23 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_0;
 
 /**
  * Created by ruedi on 18.08.14.
+ *
+ * Adaptor to use netty as a host for pure / JSon / KSon based actor remoting (plain old http)
+ *
+ * Use ActorWSServer subclass to also get WebSocketSupport
+ *
  */
 public class HttpRemotingServer extends WebSocketHttpServer implements NioHttpServer {
 
-    NettyWSHttpServer nettyWSHttpServer;
-    RequestProcessor processor;
+    protected NettyWSHttpServer nettyWSHttpServer;
+    protected RequestProcessor processor;
 
     public HttpRemotingServer() {
         super(new File("."));
+    }
+
+    public HttpRemotingServer( File contentRoot ) {
+        super(contentRoot);
     }
 
     @Override
@@ -76,13 +85,15 @@ public class HttpRemotingServer extends WebSocketHttpServer implements NioHttpSe
     }
 
     @Override
-    protected ClientSession createNewSession() {
-        return null;
+    public void $init(int port, RequestProcessor restProcessor) {
+        nettyWSHttpServer = new NettyWSHttpServer(port, this);
+        processor = restProcessor;
     }
 
     @Override
-    public void $init(int port, RequestProcessor restProcessor) {
-        nettyWSHttpServer = new NettyWSHttpServer(port, this);
+    public void $setHttpProcessor(int port, RequestProcessor restProcessor) {
+        if ( processor != null && restProcessor != processor)
+            Log.Warn(this, "httpprocessor already set");
         processor = restProcessor;
     }
 
@@ -104,10 +115,8 @@ public class HttpRemotingServer extends WebSocketHttpServer implements NioHttpSe
     }
 
     @Override
-    public void $setHttpProcessor(int port, RequestProcessor restProcessor) {
-        if ( processor != null && restProcessor != processor)
-            Log.Warn(this, "httpprocessor already set");
-        processor = restProcessor;
+    protected ClientSession createNewSession() {
+        return null;
     }
 
 //    public static void main(String[] args) throws Exception {

@@ -9,13 +9,12 @@ import java.io.File;
 /**
  * Created by ruedi on 29.08.2014.
  *
- * An actor based websocket server. For each client connecting, a WSocketServerSession is created.
- * A remote client talks to the facade actor.
- *
+ * Subclass of actorwebsocket server. Implements full abstraction on actor remoting (websocket methods
+ * not visible to user app)
  */
 public class WSocketActorServer extends ActorWSServer {
 
-    Actor facade;
+    protected Actor facade; // the one and only facade actor (=application class)
 
     public WSocketActorServer(Actor facade, File contentRoot) {
 	    this(facade, contentRoot, RemoteRefRegistry.Coding.FSTSer);

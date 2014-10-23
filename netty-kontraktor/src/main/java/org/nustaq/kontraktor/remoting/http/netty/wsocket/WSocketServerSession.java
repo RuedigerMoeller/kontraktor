@@ -10,12 +10,12 @@ import org.nustaq.serialization.FSTConfiguration;
 /**
  * Created by ruedi on 29.08.2014.
  *
- * a single client connection of websocket server
+ * implements generic actor hosting based on websockets
  */
 public class WSocketServerSession<T extends WSocketServerSession> extends ActorWSClientSession<T> {
 
     public static int PING_INTERVAL_MILLIS = 10000;
-    protected Actor facade;
+    protected Actor facade; // ref to public application class singleton
     RemoteRefRegistry registry;
     MyWSObjectSocket socket;
     int polldelay = 10;

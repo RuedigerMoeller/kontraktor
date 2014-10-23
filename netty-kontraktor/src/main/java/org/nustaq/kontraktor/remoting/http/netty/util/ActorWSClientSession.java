@@ -8,6 +8,9 @@ import org.nustaq.webserver.ClientSession;
 
 /**
  * Created by ruedi on 28.08.14.
+ *
+ * Base session actor for websockets, receives raw websocket messages
+ *
  */
 public class ActorWSClientSession<T extends ActorWSClientSession> extends Actor<T> implements ClientSession {
 
@@ -59,7 +62,7 @@ public class ActorWSClientSession<T extends ActorWSClientSession> extends Actor<
     }
 
     public void $onTextMessage(String text) {
-        if ( "KTR_PING".equals(text) ) {
+        if ( "KTR_PING".equals(text) ) { // some browsers do no send pings by themselfs
             $pong();
         }
     }

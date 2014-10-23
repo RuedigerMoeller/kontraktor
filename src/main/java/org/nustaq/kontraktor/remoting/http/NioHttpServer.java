@@ -9,5 +9,11 @@ public interface NioHttpServer {
     void $init(int port, RequestProcessor restProcessor);
     void $receive();
     public Actor getServingActor();
+
+    /**
+     * set processor for ordinary http requests
+     * @param port
+     * @param restProcessor
+     */
     void $setHttpProcessor(int port, RequestProcessor restProcessor);
 }
