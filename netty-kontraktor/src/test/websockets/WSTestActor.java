@@ -5,8 +5,8 @@ import org.nustaq.kontraktor.annotations.GenRemote;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.RemoteActorInterface;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.http.netty.wsocket.ActorWSServer;
 import org.nustaq.kontraktor.remoting.http.netty.wsocket.WSocketActorClient;
-import org.nustaq.kontraktor.remoting.http.netty.wsocket.WSocketActorServer;
 import org.nustaq.netty2go.NettyWSHttpServer;
 
 import java.io.File;
@@ -171,7 +171,7 @@ public class WSTestActor extends Actor<WSTestActor> {
 
     private static void startServer() throws Exception {
         Actor actor = Actors.AsActor(WSTestActor.class);
-        WSocketActorServer server = new WSocketActorServer( actor, new File("./"), RemoteRefRegistry.Coding.MinBin );
+        ActorWSServer server = new ActorWSServer( actor, new File("./"), RemoteRefRegistry.Coding.MinBin );
 	    server.setFileMapper( (f) -> {
 		    if ( f != null && f.getName() != null ) {
 			    if ( f.getName().equals("minbin.js") ) {

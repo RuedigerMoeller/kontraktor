@@ -112,7 +112,7 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
     }
 
     @Override
-    public void $setHttpProcessor(int port, RequestProcessor restProcessor) {
+    public void $addHttpProcessor(RequestProcessor restProcessor) {
         if ( processor != null && restProcessor != processor)
             Log.Warn(this, "httpprocessor already set");
         processor = restProcessor;

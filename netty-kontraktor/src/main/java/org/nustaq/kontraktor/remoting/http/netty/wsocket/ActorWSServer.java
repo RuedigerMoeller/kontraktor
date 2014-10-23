@@ -1,42 +1,77 @@
-package org.nustaq.kontraktor.remoting.http.netty.util;
+package org.nustaq.kontraktor.remoting.http.netty.wsocket;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.FullHttpRequest;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Scheduler;
 import org.nustaq.kontraktor.impl.ElasticScheduler;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.http.ServeFromCPProcessor;
 import org.nustaq.kontraktor.remoting.http.netty.service.HttpRemotingServer;
+import org.nustaq.kontraktor.remoting.http.rest.RestActorServer;
 import org.nustaq.netty2go.NettyWSHttpServer;
 import org.nustaq.webserver.ClientSession;
-import org.nustaq.webserver.WebSocketHttpServer;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Created by ruedi on 28.08.14.
+ * implements mechanics of transparent actor remoting via websockets based on the websocket api
+ * inherited.
+ *
+ * FIXME: inherited Per-Client session actor is superfluous and adds latency per actor caused by redundant message enqueuing
+ * FIXME: currently flow is httpserver =enqueue=> actor server =enq=> connection session =enq=> AppServerActor/AppSessionActor
  */
-public abstract class ActorWSServer extends HttpRemotingServer {
+public class ActorWSServer extends HttpRemotingServer {
 
     // don't buffer too much messages (memory issues with many clients)
-    public static int CLIENTQ_SIZE = 1000;
-    public static int MAX_THREADS = 1;
+    public static int DEFAULT_CLIENTQ_SIZE = 1000;
+    public static int DEFAULT_MAX_THREADS = 1;
 
-    protected Scheduler clientScheduler = new ElasticScheduler(MAX_THREADS, CLIENTQ_SIZE);
+    /**
+     * startup given actor as a RestService AND as a Websocket Service.
+     * @param port
+     * @param actServer
+     * @param contentRoot
+     * @param clientScheduler
+     * @return
+     * @throws Exception
+     */
+    public static ActorWSServer startAsRestWSServer(int port, Actor actServer, File contentRoot, Scheduler clientScheduler) throws Exception {
+        ActorWSServer server = new ActorWSServer( actServer, contentRoot, RemoteRefRegistry.Coding.MinBin, clientScheduler );
+
+        // setup a restactor server under /rest
+        RestActorServer restServer = new RestActorServer();
+        restServer.publish("rest",actServer);
+        restServer.joinServer(server);
+        server.$addHttpProcessor(new ServeFromCPProcessor()); // FIXME: order should be file => classpath;
+
+        new NettyWSHttpServer(port, server).run();
+        return server;
+    }
+
+    protected Scheduler clientScheduler;
 	protected volatile RemoteRefRegistry.Coding coding = RemoteRefRegistry.Coding.FSTSer;
     protected AtomicInteger sessionid = new AtomicInteger(1);
+
+    protected Actor facade; // the one and only facade actor (=application class)
 
     /**
      *
      * @param contentRoot - root to serve files from
      * @param coding - encoding used for websocket traffic
      */
-    public ActorWSServer(File contentRoot, RemoteRefRegistry.Coding coding) {
+    public ActorWSServer( Actor facade, File contentRoot, RemoteRefRegistry.Coding coding, Scheduler clientScheduler) {
         super(contentRoot);
+        this.clientScheduler = clientScheduler;
 	    this.coding = coding;
+        this.facade = facade;
     }
+
+    public ActorWSServer( Actor facade, File contentRoot, RemoteRefRegistry.Coding coding) {
+        this( facade, contentRoot,coding,new ElasticScheduler(DEFAULT_MAX_THREADS, DEFAULT_CLIENTQ_SIZE) );
+    }
+
 
     @Override
     public void onBinaryMessage(ChannelHandlerContext ctx, byte[] buffer) {
@@ -109,6 +144,8 @@ public abstract class ActorWSServer extends HttpRemotingServer {
         return session;
     }
 
-    abstract protected Class getClientActorClazz();
+    protected Class getClientActorClazz() {
+        return WSocketServerSession.class;
+    }
 
 }

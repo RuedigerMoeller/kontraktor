@@ -221,13 +221,12 @@ public class RestActorServer {
     }
 
     /**
-     * init server and start
-     * @param port
+     * set self as a http processor for a running server instance
      * @param server
      */
-    public void joinServer(int port, NioHttpServer server) {
+    public void joinServer(NioHttpServer server) {
         this.server = server;
-        server.$setHttpProcessor(port, new RestProcessor());
+        server.$addHttpProcessor(new RestProcessor());
     }
 
     public PublishedActor publish( String name, Actor obj ) {
@@ -242,18 +241,13 @@ public class RestActorServer {
 
     public class RestProcessor implements RequestProcessor {
 
-        ServeFromCPProcessor cpServer = new ServeFromCPProcessor();
-
         @Override
         public boolean processRequest(KontraktorHttpRequest req, Callback<RequestResponse> response) {
             if ( req.isGET() ) {
                 String actor = req.getPath(0);
                 final PublishedActor target = publishedActors.get(actor);
                 if ( target == null ) {
-                    if ( ! cpServer.processRequest(req,response)) {
-                        response.receive(RequestResponse.MSG_404, null);
-                        response.receive(null, FINISHED);
-                    }
+                    return false;
                 } else {
                     enqueueCall(target, req, response);
                 }
@@ -261,14 +255,14 @@ public class RestActorServer {
                 String actor = req.getPath(0);
                 final PublishedActor target = publishedActors.get(actor);
                 if ( target == null ) {
-                    response.receive(RequestResponse.MSG_404, null);
-                    response.receive(null, FINISHED);
+                    return false;
                 } else {
                     enqueueCall(target, req.getText().toString(), req, response);
                 }
             } else {
-                response.receive(RequestResponse.MSG_404, null);
-                response.receive(null, FINISHED);
+                return false;
+//                response.receive(RequestResponse.MSG_404, null);
+//                response.receive(null, FINISHED);
             }
             return true;
         }

@@ -12,8 +12,7 @@ public interface NioHttpServer {
 
     /**
      * set processor for ordinary http requests
-     * @param port
      * @param restProcessor
      */
-    void $setHttpProcessor(int port, RequestProcessor restProcessor);
+    void $addHttpProcessor(RequestProcessor restProcessor);
 }

@@ -15,6 +15,8 @@ import org.nustaq.webserver.WebSocketHttpServer;
 
 import java.io.File;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_0;
@@ -30,7 +32,7 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_0;
 public class HttpRemotingServer extends WebSocketHttpServer implements NioHttpServer {
 
     protected NettyWSHttpServer nettyWSHttpServer;
-    protected RequestProcessor processor;
+    protected ArrayList<RequestProcessor> processors = new ArrayList<>(); // FIXME: is netty calling this multithreaded ?
 
     public HttpRemotingServer() {
         super(new File("."));
@@ -42,43 +44,57 @@ public class HttpRemotingServer extends WebSocketHttpServer implements NioHttpSe
 
     @Override
     public void onHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req, NettyWSHttpServer.HttpResponseSender sender) {
-        if ( req.getMethod() == HttpMethod.GET || req.getMethod() == HttpMethod.POST ) {
+        if (req.getMethod() == HttpMethod.GET || req.getMethod() == HttpMethod.POST) {
             NettyKontraktorHttpRequest kreq = new NettyKontraktorHttpRequest(req);
-            processor.processRequest(kreq, (result,error) -> {
-                // quirksmode as I cannot directly write http header with netty (or did not figure out how to do that)
-                if ( result == RequestResponse.MSG_200 ) {
-                    ctx.write(new DefaultHttpResponse(HTTP_1_0, HttpResponseStatus.OK));
-                    return;
-                }
-                if ( result == RequestResponse.MSG_404 ) {
-                    ctx.write(new DefaultHttpResponse(HTTP_1_0, HttpResponseStatus.NOT_FOUND));
-                    return;
-                }
-                if ( result == RequestResponse.MSG_500 ) {
-                    ctx.write(new DefaultHttpResponse(HTTP_1_0, HttpResponseStatus.INTERNAL_SERVER_ERROR));
-                    return;
-                }
-                if (error == null || error == RequestProcessor.FINISHED) {
-                    try {
-                        if (result != null) {
-                            ctx.write(Unpooled.copiedBuffer(result.toString(), Charset.forName("UTF-8") ) );
+            boolean processed = false;
+            try {
+                for (int i = 0; !processed && i < processors.size(); i++) {
+                    RequestProcessor processor = processors.get(i);
+                    processed = processor.processRequest(kreq, (result, error) -> {
+                        // quirksmode as I cannot directly write http header with netty (or did not figure out how to do that)
+                        if (result == RequestResponse.MSG_200) {
+                            ctx.write(new DefaultHttpResponse(HTTP_1_0, HttpResponseStatus.OK));
+                            return;
                         }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (error != null) {
-                    try {
-                        if (error != RequestProcessor.FINISHED) {
-                            ctx.write(Unpooled.copiedBuffer(error.toString(), Charset.forName("UTF-8")) );
+                        if (result == RequestResponse.MSG_404) {
+                            ctx.write(new DefaultHttpResponse(HTTP_1_0, HttpResponseStatus.NOT_FOUND));
+                            return;
                         }
-                        ChannelFuture f = ctx.writeAndFlush(Unpooled.copiedBuffer("", Charset.forName("UTF-8") ));
-                        f.addListener( (ChannelFuture future) -> future.channel().close() );
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                        if (result == RequestResponse.MSG_500) {
+                            ctx.write(new DefaultHttpResponse(HTTP_1_0, HttpResponseStatus.INTERNAL_SERVER_ERROR));
+                            return;
+                        }
+                        if (error == null || error == RequestProcessor.FINISHED) {
+                            try {
+                                if (result != null) {
+                                    ctx.write(Unpooled.copiedBuffer(result.toString(), Charset.forName("UTF-8")));
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        if (error != null) {
+                            try {
+                                if (error != RequestProcessor.FINISHED) {
+                                    ctx.write(Unpooled.copiedBuffer(error.toString(), Charset.forName("UTF-8")));
+                                }
+                                ChannelFuture f = ctx.writeAndFlush(Unpooled.copiedBuffer("", Charset.forName("UTF-8")));
+                                f.addListener((ChannelFuture future) -> future.channel().close());
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
                 }
-            });
+                if (!processed) {
+                    super.onHttpRequest(ctx, req, sender); // falls back to serve file (native netty impl)
+                }
+            } catch (Exception e) {
+                ctx.write(new DefaultHttpResponse(HTTP_1_0, HttpResponseStatus.INTERNAL_SERVER_ERROR));
+                ctx.writeAndFlush(Unpooled.copiedBuffer(e.getClass().getSimpleName() + ":" + e.getMessage().toString(), Charset.forName("UTF-8")));
+                ctx.close();
+                e.printStackTrace();
+            }
         } else {
             sender.sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HTTP_1_0, FORBIDDEN));
         }
@@ -87,14 +103,12 @@ public class HttpRemotingServer extends WebSocketHttpServer implements NioHttpSe
     @Override
     public void $init(int port, RequestProcessor restProcessor) {
         nettyWSHttpServer = new NettyWSHttpServer(port, this);
-        processor = restProcessor;
+        $addHttpProcessor(restProcessor);
     }
 
     @Override
-    public void $setHttpProcessor(int port, RequestProcessor restProcessor) {
-        if ( processor != null && restProcessor != processor)
-            Log.Warn(this, "httpprocessor already set");
-        processor = restProcessor;
+    public void $addHttpProcessor(RequestProcessor restProcessor) {
+        processors.add(restProcessor);
     }
 
     @Override

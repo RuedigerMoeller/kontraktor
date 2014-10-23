@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.netty.util;
+package org.nustaq.kontraktor.remoting.http.netty.wsocket;
 
 import io.netty.channel.ChannelHandlerContext;
 import org.nustaq.kontraktor.Actor;

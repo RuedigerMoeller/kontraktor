@@ -3,8 +3,6 @@ package org.nustaq.kontraktor.remoting.http.netty.wsocket;
 import io.netty.channel.ChannelHandlerContext;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
-import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSClientSession;
-import org.nustaq.kontraktor.remoting.http.netty.util.ActorWSServer;
 import org.nustaq.serialization.FSTConfiguration;
 
 /**
@@ -73,8 +71,8 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
         }
     }
 
-    protected WSocketActorServer getServer() {
-        return (WSocketActorServer) server;
+    protected ActorWSServer getServer() {
+        return server;
     }
 
     @Override
