@@ -103,7 +103,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
     public Thread __currentDispatcher;
     public Scheduler __scheduler;
     public volatile boolean __stopped = false;
-    public Actor __self;
+    public Actor __self; // the proxy
     public int __remoteId;
     public volatile ConcurrentLinkedQueue<RemoteConnection> __connections; // a list of connection required to be notified on close
     // register callbacks notified on stop
@@ -338,6 +338,15 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
         if (__stopHandlers!=null) {
             __stopHandlers.forEach( (cb) -> cb.receive(self(), null) );
             __stopHandlers.clear();
+        }
+        // remove ref to real actor as ref might still be referenced in threadlocals and
+        // queues.
+        try {
+            getActorRef().getClass().getField("__target").set( getActorRef(), null );
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
         }
         throw ActorStoppedException.Instance;
     }

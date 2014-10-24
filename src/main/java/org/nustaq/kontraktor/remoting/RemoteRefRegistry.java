@@ -110,6 +110,9 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
             publishedActorMapping.remove(integer);
             publishedActorMappingReverse.remove(act.getActorRef());
             act.__removeRemoteConnection(this);
+            if ( act instanceof RemotableActor) {
+                ((RemotableActor) act).$hasBeenUnpublished();
+            }
         }
     }
 

@@ -44,6 +44,7 @@ public class HttpRemotingServer extends WebSocketHttpServer implements NioHttpSe
 
     @Override
     public void onHttpRequest(ChannelHandlerContext ctx, FullHttpRequest req, NettyWSHttpServer.HttpResponseSender sender) {
+        // FIXME: serve this on dedicated single threaded actor
         if (req.getMethod() == HttpMethod.GET || req.getMethod() == HttpMethod.POST) {
             NettyKontraktorHttpRequest kreq = new NettyKontraktorHttpRequest(req);
             boolean processed = false;
@@ -87,6 +88,8 @@ public class HttpRemotingServer extends WebSocketHttpServer implements NioHttpSe
                     });
                 }
                 if (!processed) {
+                    // FIXME: blocks => should run inside main actor or dedicated file serving actor.
+                    // FIXME: should create processor for this
                     super.onHttpRequest(ctx, req, sender); // falls back to serve file (native netty impl)
                 }
             } catch (Exception e) {

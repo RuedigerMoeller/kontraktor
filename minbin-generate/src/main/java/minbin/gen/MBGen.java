@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.GenRemote;
+import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.serialization.FSTConfiguration;
 import de.ruedigermoeller.template.TemplateExecutor;
 import org.nustaq.serialization.minbin.GenMeta;
@@ -103,6 +104,7 @@ public class MBGen {
 		    Method method = m[i];
 		    if (Modifier.isPublic(method.getModifiers()) &&
 			    method.getAnnotation(CallerSideMethod.class) == null &&
+			    method.getAnnotation(Local.class) == null &&
 			    ( method.getReturnType() == void.class || Future.class.isAssignableFrom(method.getReturnType()) ) &&
 				method.getDeclaringClass() != Object.class &&
                 !Modifier.isStatic(method.getModifiers())
@@ -158,14 +160,14 @@ public class MBGen {
     @Parameter( names={"-class", "-c"}, description = "class containing generation description (must implement GenMeta) " )
     String clazz = null; //"org.rm.testserver.protocol.Meta";
 
-    @Parameter( names={"-f"}, description = "file/directory to addTopLevelClass to" )
+    @Parameter( names={"-f"}, description = "output dir/file" )
     String out;
 
     @Parameter( names={"-p"}, description = "',' separated list of whitelist packages" )
     String pack;
 
     @Parameter( names={"-t"}, description = "templatefile to use" )
-    String templateFile = "js/js.jsp";
+    String templateFile = "/js/js.jsp";
 
     public static void main(String arg[]) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         MBGen gen = new MBGen();
