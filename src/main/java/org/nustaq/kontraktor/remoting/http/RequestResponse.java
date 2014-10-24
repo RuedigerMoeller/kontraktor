@@ -27,6 +27,6 @@ public class RequestResponse {
 
     @Override
     public String toString() {
-        return data;
+        return binary != null ? new String(binary,0) : data;
     }
 }

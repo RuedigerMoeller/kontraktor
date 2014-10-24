@@ -31,7 +31,7 @@ public class SporeTest {
         }
 
         public void $query( Spore<String,Object> query ) {
-            data.forEach( (string) -> {
+            data.forEach( string -> {
                 query.remote( string );
             });
             query.finished();

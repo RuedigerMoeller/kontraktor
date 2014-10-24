@@ -79,7 +79,7 @@ public class HoardeTest {
     private void testGenericAct(ArrayList toEncode, int threads, int max, boolean verify) throws InterruptedException {
         int actcount = 0;
         Hoarde<DecAct> oc = new Hoarde<DecAct>(threads,DecAct.class);
-        oc.each( (dec) -> dec.$init() );
+        oc.each( dec -> dec.$init() );
         AtomicInteger count = new AtomicInteger(0);
         AtomicInteger lastVal = new AtomicInteger(-1);
         while( actcount < max) {
@@ -87,7 +87,7 @@ public class HoardeTest {
             long tim = System.currentTimeMillis();
             for (int i = 0; i < toEncode.size(); i++) {
                 HashMap<Object, Object> toEnc = (HashMap<Object, Object>) toEncode.get(i);
-                oc.ordered((act) -> {
+                oc.ordered( act -> {
                     return act.decode(toEnc);
                 }).then((r, e) -> {
                     count.incrementAndGet();

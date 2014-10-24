@@ -46,7 +46,13 @@ public class ActorWSServer extends HttpRemotingServer {
         restServer.joinServer(server);
         server.$addHttpProcessor(new ServeFromCPProcessor()); // FIXME: order should be file => classpath;
 
-        new NettyWSHttpServer(port, server).run();
+        new Thread( () -> {
+            try {
+                new NettyWSHttpServer(port, server).run();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }, "Netty Main").start();
         return server;
     }
 
