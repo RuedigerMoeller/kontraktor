@@ -29,6 +29,7 @@ var Kontraktor = new function() {
     var self = this;
     this.ws = null; // a Websocket object
     this.socketConnected = false;
+    this.restPrefix = 'rest';
 
     this.cbmap = {};
     this.cbid = 13;
@@ -58,6 +59,19 @@ var Kontraktor = new function() {
             throw "not a valid actor clazz";
     };
 
+    // in case no generation has been done, invoke methods on remote actors.
+    // targetId = actor id (1=facade actor)
+    // withFuture must be true in case called method has a future result
+    this.call = function( targetId, methodName, withFuture, args ) {
+        var call = MinBin.obj("call", {
+            "method": methodName,
+            "receiverKey": targetId,
+            "args": MinBin.jarray(args)
+        });
+        return self.send(call, withFuture);
+    };
+
+    // private, don't use
     this.send = function( msg, withFuture ) {
         if ( ! self.socketConnected ) {
             throw "socket is closed";
@@ -100,8 +114,40 @@ var Kontraktor = new function() {
         this.ws.send(binmsg);
     };
 
+    this.restGET = function(url) {
+        var promise = new KPromise();
+        var xhr = new XMLHttpRequest();
+        xhr.onload = function (e) {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    try {
+                        var r = JSON.parse(xhr.responseText);
+                        console.log(xhr.responseText);
+                        promise.receive(r.args[0], r.args[1]);
+                    } catch (err) {
+                        promise.receive(xhr.responseText, err);
+                    }
+                } else {
+                    promise.receive(null, xhr.statusText);
+                }
+            }
+        };
+        xhr.onerror = function (e) {
+            promise.receive(null, xhr.statusText);
+        };
+        xhr.open( "GET", self.restPrefix+'/'+url, true );
+        xhr.send( null );
+        return promise;
+    };
+
+    this.connectHome = function(onOpen) {
+        self.connect(window.location.hostname, window.location.port, 'websocket', onOpen);
+    };
+
     this.connect = function(host,port,websocketDir,onOpen) {
-        this.ws = new WebSocket("ws://".concat(host).concat(":").concat(port).concat("/").concat(websocketDir));
+        var url = "ws://".concat(host).concat(":").concat(port).concat("/").concat(websocketDir);
+        console.log('connecting '+url);
+        this.ws = new WebSocket(url);
 
         this.ws.onopen = function () {
             self.socketConnected = true;

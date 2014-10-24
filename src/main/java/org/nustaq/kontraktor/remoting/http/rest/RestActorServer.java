@@ -151,7 +151,7 @@ public class RestActorServer {
                         countDown.decrementAndGet();
                     }
                     String fin = countDown.get() <= 0 ? RequestProcessor.FINISHED : null;
-                    RemoteCallEntry resCall = new RemoteCallEntry(0, finalCB, "receive", new Object[]{r, "" + e});
+                    RemoteCallEntry resCall = new RemoteCallEntry(0, finalCB, "receive", new Object[]{r, e == null ? null : ("" + e) });
                     resCall.setQueue(resCall.CBQ);
 
                     try {
