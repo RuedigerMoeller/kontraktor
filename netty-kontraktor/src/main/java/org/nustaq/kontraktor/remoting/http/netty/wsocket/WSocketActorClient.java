@@ -3,7 +3,9 @@ package org.nustaq.kontraktor.remoting.http.netty.wsocket;
 import io.netty.channel.ChannelHandlerContext;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
+import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.SerializerType;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.netty2go.WebSocketClient;
 import org.nustaq.serialization.FSTConfiguration;
@@ -21,7 +23,7 @@ public class WSocketActorClient<T extends Actor> extends RemoteRefRegistry {
 
     public static <T extends Actor> Future<T> Connect( Class<T> clz, String host, int port ) throws IOException {
         Promise<T> res = new Promise<>();
-        WSocketActorClient<T> client = new WSocketActorClient<>( clz, host, Coding.MinBin);
+        WSocketActorClient<T> client = new WSocketActorClient<>( clz, host, new Coding(SerializerType.MinBin));
         new Thread(() -> {
             try {
                 client.connect();

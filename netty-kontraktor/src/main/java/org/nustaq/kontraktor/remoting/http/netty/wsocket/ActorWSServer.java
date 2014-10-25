@@ -5,7 +5,8 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Scheduler;
 import org.nustaq.kontraktor.impl.ElasticScheduler;
-import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.Coding;
+import org.nustaq.kontraktor.remoting.SerializerType;
 import org.nustaq.kontraktor.remoting.http.ServeFromCPProcessor;
 import org.nustaq.kontraktor.remoting.http.netty.service.HttpRemotingServer;
 import org.nustaq.kontraktor.remoting.http.rest.RestActorServer;
@@ -14,6 +15,8 @@ import org.nustaq.webserver.ClientSession;
 
 import java.io.File;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.nustaq.kontraktor.remoting.SerializerType.MinBin;
 
 /**
  * implements mechanics of transparent actor remoting via websockets based on the websocket api
@@ -37,8 +40,8 @@ public class ActorWSServer extends HttpRemotingServer {
      * @return
      * @throws Exception
      */
-    public static ActorWSServer startAsRestWSServer(int port, Actor actServer, File contentRoot, Scheduler clientScheduler) throws Exception {
-        ActorWSServer server = new ActorWSServer( actServer, contentRoot, RemoteRefRegistry.Coding.MinBin, clientScheduler );
+    public static ActorWSServer startAsRestWSServer(int port, Actor actServer, File contentRoot, Scheduler clientScheduler, Coding coding) throws Exception {
+        ActorWSServer server = new ActorWSServer( actServer, contentRoot, coding, clientScheduler );
 
         // setup a restactor server under /rest
         RestActorServer restServer = new RestActorServer();
@@ -57,7 +60,7 @@ public class ActorWSServer extends HttpRemotingServer {
     }
 
     protected Scheduler clientScheduler;
-	protected volatile RemoteRefRegistry.Coding coding = RemoteRefRegistry.Coding.FSTSer;
+	protected volatile Coding coding = new Coding(SerializerType.FSTSer);
     protected AtomicInteger sessionid = new AtomicInteger(1);
 
     protected Actor facade; // the one and only facade actor (=application class)
@@ -67,14 +70,14 @@ public class ActorWSServer extends HttpRemotingServer {
      * @param contentRoot - root to serve files from
      * @param coding - encoding used for websocket traffic
      */
-    public ActorWSServer( Actor facade, File contentRoot, RemoteRefRegistry.Coding coding, Scheduler clientScheduler) {
+    public ActorWSServer( Actor facade, File contentRoot, Coding coding, Scheduler clientScheduler) {
         super(contentRoot);
         this.clientScheduler = clientScheduler;
 	    this.coding = coding;
         this.facade = facade;
     }
 
-    public ActorWSServer( Actor facade, File contentRoot, RemoteRefRegistry.Coding coding) {
+    public ActorWSServer( Actor facade, File contentRoot, Coding coding) {
         this( facade, contentRoot,coding,new ElasticScheduler(DEFAULT_MAX_THREADS, DEFAULT_CLIENTQ_SIZE) );
     }
 

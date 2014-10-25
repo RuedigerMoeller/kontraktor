@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.remoting.http.netty.wsocket;
 
 import io.netty.channel.ChannelHandlerContext;
 import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.serialization.FSTConfiguration;
 
@@ -19,7 +20,7 @@ public class WSocketServerSession<T extends WSocketServerSession> extends ActorW
     int polldelay = 10;
 
     @Override
-    public void $init(ActorWSServer server, int sessionId, RemoteRefRegistry.Coding coding) {
+    public void $init(ActorWSServer server, int sessionId, Coding coding) {
         super.$init(server, sessionId, coding);
         registry = new RemoteRefRegistry(coding) {
 	        @Override

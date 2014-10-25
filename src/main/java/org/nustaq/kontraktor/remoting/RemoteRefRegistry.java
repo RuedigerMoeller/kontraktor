@@ -4,7 +4,6 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
-import org.nustaq.serialization.minbin.MinBin;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -47,18 +46,18 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 
 	public RemoteRefRegistry(Coding code) {
 		if ( code == null )
-			code = Coding.FSTSer;
-	    switch (code) {
+			code = new Coding(SerializerType.FSTSer);
+	    switch (code.getCoding()) {
 		    case MinBin:
 			    conf = FSTConfiguration.createCrossPlatformConfiguration();
 			    break;
 		    default:
 			    conf = FSTConfiguration.createDefaultConfiguration();
 	    }
-	    configureConfiguration();
+	    configureConfiguration( code );
 	}
 
-	protected void configureConfiguration() {
+	protected void configureConfiguration( Coding code ) {
 		conf.registerSerializer(Actor.class,new ActorRefSerializer(this),true);
 		conf.registerSerializer(CallbackWrapper.class, new CallbackRefSerializer(this), true);
 		conf.registerSerializer(Spore.class, new SporeRefSerializer(), true);
@@ -67,6 +66,9 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
                 {"call", RemoteCallEntry.class.getName()},
                 {"cbw", CallbackWrapper.class.getName()}
         });
+        if (code.getConfigurator()!=null) {
+            code.getConfigurator().accept(conf);
+        }
 	}
 
 	public Actor getPublishedActor(int id) {
@@ -344,8 +346,4 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 
     public abstract Actor getFacadeProxy();
 
-    public enum Coding {
-        FSTSer,
-        MinBin
-    }
 }

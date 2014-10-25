@@ -14,6 +14,9 @@ import de.ruedigermoeller.template.TemplateExecutor;
 import org.nustaq.serialization.minbin.GenMeta;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
@@ -38,17 +41,20 @@ public class MBGen {
             if ( Actor.class.isAssignableFrom(c) ) {
 //                clazzSet.add(c.getName());
                 prepareActorMeta(c);
-            } else {
+            } else if (GenMeta.class.isAssignableFrom(c)) {
+
                 GenMeta meta = (GenMeta) c.newInstance();
                 List<Class> clazz = meta.getClasses();
                 for (int i = 0; i < clazz.size(); i++) {
                     Class aClass = clazz.get(i);
 	                addClz(clazzSet, aClass, infoMap);
                 }
+            } else {
+                addClz(clazzSet,c,infoMap);
             }
-        } catch (ClassCastException ex) {
-            System.out.println("Expected a class implementing GenMeta interface or be an actor class");
-            System.exit(-1);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.exit(1);
         }
 //        for (int i = 0; i < clazz.length; i++) {
 //            Class aClass = clazz[i];
@@ -69,7 +75,35 @@ public class MBGen {
         System.out.println("generating to "+new File(outFile).getAbsolutePath());
 		GenContext ctx = new GenContext();
         genClzList(outFile, new ArrayList<String>(clazzSet), ctx, infoMap, templateFile);
-	}
+
+        try {
+            // generate classmapping kson
+            File f = new File(outFile);
+            if ( !f.isDirectory() )
+                f = f.getParentFile();
+            f = new File(f,"name-map.kson");
+            PrintStream pout = new PrintStream( new FileOutputStream(f) );
+            pout.println("{");
+            clazzSet.stream().forEach(clzStr -> {
+                Class clz = null;
+                try {
+                    clz = Class.forName(clzStr);
+                    String simpleName = clz.getSimpleName();
+                    while ( simpleName.length() < 20 )
+                        simpleName+=" ";
+                    pout.println("    " + simpleName + " : '" + clz.getName()+"'");
+                } catch (ClassNotFoundException e) {
+                    e.printStackTrace();
+                }
+            });
+            pout.println("}");
+            pout.flush();
+            pout.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+    }
 
 	private void addClz(Set<String> clazzSet, Class aClass, HashMap<Class, List<MsgInfo>> infoMap) {
 		if ( ! clazzSet.contains(aClass.getName()) ) {

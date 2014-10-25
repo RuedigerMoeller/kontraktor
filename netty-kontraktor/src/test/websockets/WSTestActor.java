@@ -4,7 +4,8 @@ import encoding.TestEncoding;
 import org.nustaq.kontraktor.annotations.GenRemote;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.RemoteActorInterface;
-import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.Coding;
+import org.nustaq.kontraktor.remoting.SerializerType;
 import org.nustaq.kontraktor.remoting.http.netty.wsocket.ActorWSServer;
 import org.nustaq.kontraktor.remoting.http.netty.wsocket.WSocketActorClient;
 import org.nustaq.netty2go.NettyWSHttpServer;
@@ -152,7 +153,7 @@ public class WSTestActor extends Actor<WSTestActor> {
     }
 
     private static void startClient() throws Exception {
-        WSocketActorClient cl = new WSocketActorClient(WSTestActor.class,"ws://localhost:8887/websocket", RemoteRefRegistry.Coding.MinBin);
+        WSocketActorClient cl = new WSocketActorClient(WSTestActor.class,"ws://localhost:8887/websocket", new Coding(SerializerType.MinBin));
         cl.connect();
         WSTestActor facadeProxy = (WSTestActor) cl.getFacadeProxy();
 
@@ -171,7 +172,7 @@ public class WSTestActor extends Actor<WSTestActor> {
 
     private static void startServer() throws Exception {
         Actor actor = Actors.AsActor(WSTestActor.class);
-        ActorWSServer server = new ActorWSServer( actor, new File("./"), RemoteRefRegistry.Coding.MinBin );
+        ActorWSServer server = new ActorWSServer( actor, new File("./"), new Coding(SerializerType.MinBin) );
 	    server.setFileMapper( (f) -> {
 		    if ( f != null && f.getName() != null ) {
 			    if ( f.getName().equals("minbin.js") ) {
