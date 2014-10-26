@@ -231,3 +231,76 @@ var Kontraktor = new function() {
     };
 
 };
+
+/////////////////////////////////// requires KO (tested with 3.2.0) /////////////////////////////////////
+
+var krServer; // { facade: [facadeactor], session: [sessionActor], meta: [reallive datamodel] }
+
+if ( typeof ko !== 'undefined') {
+    krServer = {
+        facade:  ko.observable(null),
+        session: ko.observable(null),
+        meta:    ko.observable(null),
+        loggedIn: ko.observable(false)
+    };
+
+    ko.components.register( 'kr-login', {
+            viewModel:
+            function (params) {
+                var self = this;
+                this.user = ko.observable('');
+                this.pwd = ko.observable('');
+                this.resultMsg = ko.observable('');
+                this.facadeClass = params.facade;   // required
+                this.loggedIn = krServer.loggedIn;
+
+                this.loginDone = function () {
+                    self.resultMsg('');
+                    krServer.loggedIn(true);
+                };
+                // expect $authenticate(), FIXME: define webfacade iface
+                this.login = function () {
+                    Kontraktor.restGET('$authenticate/'+self.user()+'/'+self.pwd()).then( function(r,e) {
+                        if ( e ) {
+                            self.resultMsg(e);
+                        } else {
+                            Kontraktor.connectHome( function() {
+                                var facadeClz = window[self.facadeClass];
+                                krServer.facade(new facadeClz(1));
+                                krServer.facade().$getSession(r).then( function(r,e) {
+                                    if ( e ) {
+                                        self.resultMsg(e);
+                                    } else if (r==null) {
+                                        self.resultMsg('unable to create session');
+                                    } else {
+                                        krServer.session(r);
+                                        if (typeof RealLive !== 'undefined') { // load model
+                                            krServer.session().$getRLMeta().then( function(model,err) {
+                                                if ( err ) {
+                                                    self.resultMsg(err);
+                                                } else {
+                                                    krServer.meta(model);
+                                                    self.loginDone();
+                                                }
+                                            });
+                                        } else
+                                            self.loginDone();
+                                    }
+                                });
+                            })
+                        }
+                    });
+                }.bind(this);
+            },
+            template:
+                '<span data-bind="visible: !loggedIn()">\
+                    <input placeholder="user" size="6" type="text" data-bind="value: user">\
+                    <input placeholder="password" size="4" type="password" data-bind="value: pwd">\
+                    <button data-bind="click: login">Log In</button>\
+                </span>\
+                <span data-bind="visible: loggedIn()">Welcome <b data-bind="text: user"></b></span>\
+                <b><span data-bind="text: resultMsg" style="color: darkred;">\
+                </span></b>'
+        }
+    );
+}
