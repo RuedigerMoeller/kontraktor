@@ -32,8 +32,6 @@ public class ServeFromCPProcessor implements RequestProcessor {
                             fileInputStream.read(bytes);
                             response.receive(RequestResponse.MSG_200, null);
                             response.receive(new RequestResponse(bytes), FINISHED);
-//                            if (f.endsWith("index.html"))
-//                                System.out.println(new String(bytes, 0, 0, bytes.length));
                         }
                         return true;
                     } else {
