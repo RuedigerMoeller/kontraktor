@@ -234,10 +234,11 @@ var Kontraktor = new function() {
 
 /////////////////////////////////// requires KO (tested with 3.2.0) /////////////////////////////////////
 
-var krServer; // { facade: [facadeactor], session: [sessionActor], meta: [reallive datamodel] }
+var Server; // { facade: [facadeactor], session: [sessionActor], meta: [reallive datamodel] }
 
 if ( typeof ko !== 'undefined') {
-    krServer = {
+
+    Server = {
         facade:  ko.observable(null),
         session: ko.observable(null),
         meta:    ko.observable(null),
@@ -251,35 +252,43 @@ if ( typeof ko !== 'undefined') {
                 this.user = ko.observable('');
                 this.pwd = ko.observable('');
                 this.resultMsg = ko.observable('');
+                this.doSpin = ko.observable(false);
                 this.facadeClass = params.facade;   // required
-                this.loggedIn = krServer.loggedIn;
+                this.loggedIn = Server.loggedIn;
 
                 this.loginDone = function () {
                     self.resultMsg('');
-                    krServer.loggedIn(true);
+                    Server.loggedIn(true);
+                    self.doSpin(false);
                 };
                 // expect $authenticate(), FIXME: define webfacade iface
                 this.login = function () {
+                    self.resultMsg('');
+                    self.doSpin(true);
                     Kontraktor.restGET('$authenticate/'+self.user()+'/'+self.pwd()).then( function(r,e) {
                         if ( e ) {
+                            self.doSpin(false);
                             self.resultMsg(e);
                         } else {
                             Kontraktor.connectHome( function() {
                                 var facadeClz = window[self.facadeClass];
-                                krServer.facade(new facadeClz(1));
-                                krServer.facade().$getSession(r).then( function(r,e) {
+                                Server.facade(new facadeClz(1));
+                                Server.facade().$getSession(r).then( function(r,e) {
                                     if ( e ) {
+                                        self.doSpin(false);
                                         self.resultMsg(e);
                                     } else if (r==null) {
+                                        self.doSpin(false);
                                         self.resultMsg('unable to create session');
                                     } else {
-                                        krServer.session(r);
+                                        Server.session(r);
                                         if (typeof RealLive !== 'undefined') { // load model
-                                            krServer.session().$getRLMeta().then( function(model,err) {
+                                            Server.session().$getRLMeta().then( function(model,err) {
                                                 if ( err ) {
+                                                    self.doSpin(false);
                                                     self.resultMsg(err);
                                                 } else {
-                                                    krServer.meta(model);
+                                                    Server.meta(model);
                                                     self.loginDone();
                                                 }
                                             });
@@ -292,15 +301,72 @@ if ( typeof ko !== 'undefined') {
                     });
                 }.bind(this);
             },
-            template:
-                '<span data-bind="visible: !loggedIn()">\
-                    <input placeholder="user" size="6" type="text" data-bind="value: user">\
-                    <input placeholder="password" size="4" type="password" data-bind="value: pwd">\
-                    <button data-bind="click: login">Log In</button>\
-                </span>\
-                <span data-bind="visible: loggedIn()">Welcome <b data-bind="text: user"></b></span>\
-                <b><span data-bind="text: resultMsg" style="color: darkred;">\
-                </span></b>'
+            template: { element: 'login-template'}
+//                '<span data-bind="spin: doSpin()">\
+//                <span data-bind="visible: !loggedIn()">\
+//                    <input placeholder="user" size="6" type="text" data-bind="value: user">\
+//                    <input placeholder="password" size="4" type="password" data-bind="value: pwd">\
+//                    <button data-bind="click: login, enable: !doSpin()">Log In</button>\
+//                </span>\
+//                <span data-bind="visible: loggedIn()">Welcome <b data-bind="text: user"></b></span>\
+//                <b data-bind="hilight: true"><span data-bind="text: resultMsg" style="color: darkred;"></span></b>\
+//                </span>'
         }
     );
+
+    var highlightElem = function(element, color) {
+        if (!element.hicount && element.hicount != 0) {
+            element.hicount = 1;
+        } else {
+            element.hicount++;
+        }
+        element.style.backgroundColor = '#FFF3B0';
+        if ( color )
+            element.style.color = '#000';
+        (function () {
+            var current = element;
+            var prevKey = element;
+            setTimeout(function () {
+                if (current.hicount <= 1 || prevKey != current) {
+                    current.style.backgroundColor = 'rgba(230,230,230,0.0)';
+                    if ( color )
+                        current.style.color = color;
+                    current.hicount = 0;
+                } else {
+                    current.hicount--;
+                }
+            }, 3000);
+        }())
+    };
+
+    ko.bindingHandlers.hilight = {
+        init: function(element, valueAccessor, allBindings, viewModel, bindingContext) {
+            var self = element;
+            $(element).bind('DOMSubtreeModified', function(event) {
+                if (element.innerHTML != self.lastValue ) {
+                    highlightElem(element);
+                    self.lastValue = element.innerHTML;
+                }
+            });
+            self.lastValue = element.innerHTML;
+        },
+        update: function(element, valueAccessor, allBindings, viewModel, bindingContext) {
+        }
+    };
+
+    ////////// reqzires spin.js //////////////////////////////
+    ko.bindingHandlers.spin = {
+        init: function(element, valueAccessor, allBindings, viewModel, bindingContext) {
+            this.spinner = new Spinner();
+        },
+        update: function(element, valueAccessor, allBindings, viewModel, bindingContext) {
+            if ( valueAccessor() ) {
+                this.spinner.spin(element);
+                element.style.opacity = 0.5;
+            } else {
+                element.style.opacity = 1;
+                this.spinner.stop();
+            }
+        }
+    };
 }
