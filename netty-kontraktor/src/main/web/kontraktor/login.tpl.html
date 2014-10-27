@@ -6,6 +6,6 @@
             <button class="btn btn-primary btn-default" data-bind="click: login, enable: !doSpin()">Log In</button>
         </span>
     <span data-bind="visible: loggedIn()">Welcome <b data-bind="text: user"></b></span>
-    <b data-bind="hilight: true"><span data-bind="text: resultMsg" style="color: darkred;"></span></b>
+    <b data-bind="hilight: true" style="color: darkred;"><span data-bind="text: resultMsg"></span></b>
     </span>
 </template>

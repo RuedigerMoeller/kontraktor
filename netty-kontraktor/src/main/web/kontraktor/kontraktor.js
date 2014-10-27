@@ -344,7 +344,12 @@ if ( typeof ko !== 'undefined') {
             var self = element;
             $(element).bind('DOMSubtreeModified', function(event) {
                 if (element.innerHTML != self.lastValue ) {
-                    highlightElem(element);
+                    var col = valueAccessor();
+                    if ( col != true ) {
+                        highlightElem(element,col);
+                    } else {
+                        highlightElem(element);
+                    }
                     self.lastValue = element.innerHTML;
                 }
             });
@@ -354,7 +359,7 @@ if ( typeof ko !== 'undefined') {
         }
     };
 
-    ////////// reqzires spin.js //////////////////////////////
+    ////////// requires spin.js //////////////////////////////
     ko.bindingHandlers.spin = {
         init: function(element, valueAccessor, allBindings, viewModel, bindingContext) {
             this.spinner = new Spinner();
