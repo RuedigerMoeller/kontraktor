@@ -1,6 +1,9 @@
 package org.nustaq.kontraktor.remoting.http;
 
 import java.io.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 
 /**
  * Created by ruedi on 26.10.14.
@@ -30,35 +33,55 @@ public class ScriptComponentLoader {
         return this;
     }
 
-    public File lookupResource( String finam ) {
+    public List<File> lookupResource( String finam, HashSet<String> alreadyFound) {
+        ArrayList<File> res = new ArrayList<>();
         finam  = finam.replace('/',File.separatorChar);
         while ( finam.startsWith("/") )
             finam = finam.substring(1);
         for (int i = 0; i < resourcePath.length; i++) {
             File file = resourcePath[i];
             File loc = new File(file.getAbsolutePath() + File.separatorChar + finam);
-            if ( loc.exists() ) {
-                return loc;
+            if ( finam.indexOf('.') >= 0 ) { // assume is a file
+                if (loc.exists() && !alreadyFound.contains(finam+"#"+loc.getName())) {
+                    res.add(loc);
+                    System.out.println("ressolving "+finam+" to "+loc.getAbsolutePath());
+                    alreadyFound.add(finam+"#"+loc.getName());
+                    return res; // in case of single file, return immediately
+                }
+            } else { // assume dir, add all files in this dir to result if not alreadyFound
+                if ( loc.exists() && loc.isDirectory() ) {
+                    File f[] = loc.listFiles();
+                    for (int j = 0; f != null && j < f.length; j++) {
+                        File singleFile = f[j];
+                        if ( ! singleFile.isDirectory() && !alreadyFound.contains(finam+"#"+singleFile.getName() )) {
+                            res.add(singleFile);
+                            System.out.println("ressolving "+finam+" to "+singleFile.getAbsolutePath());
+                            alreadyFound.add(finam+"#"+singleFile.getName());
+                        }
+                    }
+                }
             }
         }
-        return null;
+        return res;
     }
 
     // very inefficient, however SPA's load once, so expect not too many requests to expect
     public byte[] mergeScripts( String ... jsFileNames ) {
         ByteArrayOutputStream bout = new ByteArrayOutputStream(2000);
+        HashSet hs = new HashSet();
         for (int i = 0; i < jsFileNames.length; i++) {
             String jsFileName = jsFileNames[i];
-            File f = lookupResource(jsFileName);
-            if ( f == null ) {
-                System.out.println("unable to locate resource "+jsFileName);
-            } else {
-                byte[] bytes = new byte[(int) f.length()];
-                try (FileInputStream fileInputStream = new FileInputStream(f)) {
-                    fileInputStream.read(bytes);
-                    bout.write(bytes);
-                } catch (Exception e) {
-                    e.printStackTrace();
+            List<File> files = lookupResource(jsFileName,hs);
+            for (int j = 0; j < files.size(); j++) {
+                File f = files.get(j);
+                if ( f.getName().endsWith(".js") ) {
+                    byte[] bytes = new byte[(int) f.length()];
+                    try (FileInputStream fileInputStream = new FileInputStream(f)) {
+                        fileInputStream.read(bytes);
+                        bout.write(bytes);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }
         }
@@ -68,26 +91,30 @@ public class ScriptComponentLoader {
     // very inefficient, however SPA's load once, so expect not too many requests to expect
     public byte[] mergeTemplateSnippets( String ... templateFileNames ) {
         ByteArrayOutputStream bout = new ByteArrayOutputStream(2000);
+        HashSet hs = new HashSet();
         PrintStream pout = new PrintStream(bout);
         pout.println("document.write('\\");
         for (int i = 0; i < templateFileNames.length; i++) {
             String jsFileName = templateFileNames[i];
-            File f = lookupResource(jsFileName);
-            if ( f == null ) {
-                System.out.println("unable to locate resource "+jsFileName);
-            } else {
-                try (FileReader fileInputStream = new FileReader(f)) {
-                    BufferedReader in = new BufferedReader(fileInputStream);
-                    while (in.ready()) {
-                        String line = in.readLine();
-                        line = line.replace("\'", "\\'");
-                        pout.println(line+"\\");
+            List<File> files = lookupResource(jsFileName, hs);
+            for (int j = 0; j < files.size(); j++) {
+                File f = files.get(j);
+                if ( f.getName().endsWith(".html") )
+                {
+                    try (FileReader fileInputStream = new FileReader(f)) {
+                        BufferedReader in = new BufferedReader(fileInputStream);
+                        while (in.ready()) {
+                            String line = in.readLine();
+                            line = line.replace("\'", "\\'");
+                            pout.println(line+"\\");
+                        }
+                        in.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                    in.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
             }
+
         }
         pout.println("');");
         pout.flush();
@@ -100,9 +127,9 @@ public class ScriptComponentLoader {
             "/home/ruedi/IdeaProjects/abstractor/netty-kontraktor/src/main/webroot",
             "/home/ruedi/IdeaProjects/abstractor/src/main/javascript/js"
         );
-        System.out.println(loader.lookupResource("index.html"));
-        System.out.println(loader.lookupResource("index.html1"));
-        System.out.println(loader.lookupResource("kontraktor.js"));
+//        System.out.println(loader.lookupResource("index.html"));
+//        System.out.println(loader.lookupResource("index.html1"));
+//        System.out.println(loader.lookupResource("kontraktor.js"));
 
 //        System.out.println( new String(loader.mergeScripts(
 //            "jquery-2.1.1.js", "knockout3.2.0.js", "kontraktor.js"
