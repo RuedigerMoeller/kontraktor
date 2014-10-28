@@ -1,5 +1,6 @@
 package minbin.gen;
 
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.serialization.FSTClazzInfo;
 
 import java.util.Collection;
@@ -85,7 +86,9 @@ public class GenContext {
 		        }
 		    } else if ( ! Number.class.isAssignableFrom(fieldType) &&
 					    ! String.class.isAssignableFrom(fieldType) &&
-                        ! Character.class.isAssignableFrom(fieldType) )
+                        ! Character.class.isAssignableFrom(fieldType) &&
+                        ! Callback.class.isAssignableFrom(fieldType)
+                     )
 		    {
 			    res += "MinBin.obj('"+fieldType.getSimpleName()+"',"+ fieldName + ")";
 		    } else

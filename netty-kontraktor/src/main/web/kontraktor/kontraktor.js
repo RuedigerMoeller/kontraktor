@@ -82,7 +82,8 @@ var Kontraktor = new function() {
                 if (typeof args[i] == 'function') {
                     self.cbmap[self.cbid] = args[i];
                     args[i].isPromise = false;
-                    args[i] = MinBin.obj("cbw", MinBin.jarray([self.cbid]));
+                    args[i] = MinBin.jarray([self.cbid]);
+                    args[i].__typeInfo = "cbw";
                     self.cbid++;
                 }
                 if ( args[i] && args[i]._actorProxy ) { // foreign ref handed out to other process
@@ -187,7 +188,7 @@ var Kontraktor = new function() {
                 fr.onloadend = function (event) {
                     var msg = MinBin.decode(event.target.result);
                     var strMsg = MinBin.prettyPrint(msg);
-                    console.log("callback:\n "+strMsg);
+//                    console.log("callback:\n "+strMsg);
                     // handle message
                     if ( msg.queue || msg.queue == 0 ) {
                         if ( msg.queue == 1 ) { // callback
