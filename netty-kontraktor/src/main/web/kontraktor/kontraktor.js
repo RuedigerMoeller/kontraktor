@@ -289,6 +289,7 @@ if ( typeof ko !== 'undefined') {
                                                     self.doSpin(false);
                                                     self.resultMsg(err);
                                                 } else {
+                                                    RealLive.enrichModel(model);
                                                     Server.meta(model);
                                                     self.loginDone();
                                                 }

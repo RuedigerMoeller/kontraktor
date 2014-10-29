@@ -1,5 +1,7 @@
 package org.nustaq.kontraktor.remoting.http;
 
+import org.nustaq.kson.Kson;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -33,7 +35,10 @@ public class ScriptComponentLoader {
         return this;
     }
 
-    public List<File> lookupResource( String finam, HashSet<String> alreadyFound) {
+    public List<File> lookupResource( String finam, HashSet<String> alreadyFound, HashSet<String> alreadyChecked) {
+        if ( alreadyChecked.contains(finam) ) {
+            return new ArrayList<>();
+        }
         ArrayList<File> res = new ArrayList<>();
         finam  = finam.replace('/',File.separatorChar);
         while ( finam.startsWith("/") )
@@ -50,6 +55,24 @@ public class ScriptComponentLoader {
                 }
             } else { // assume dir, add all files in this dir to result if not alreadyFound
                 if ( loc.exists() && loc.isDirectory() ) {
+                    File dep = new File(loc, "dep.kson");
+                    if ( dep.exists() ) {
+                        try {
+                            String deps[] = (String[]) new Kson().readObject(dep, String[].class);
+                            for (int j = 0; j < deps.length; j++) {
+                                String lib = deps[j];
+                                if ( ! alreadyChecked.contains(lib) ) {
+                                    System.out.println("=> lib dependency "+lib+" of "+finam);
+                                    res.addAll(lookupResource(lib,alreadyFound,alreadyChecked));
+                                    alreadyChecked.add(lib);
+                                }
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if ( alreadyChecked.contains(finam) ) // might have been included by dependencies (cyclic)
+                        return res;
                     File f[] = loc.listFiles();
                     for (int j = 0; f != null && j < f.length; j++) {
                         File singleFile = f[j];
@@ -65,13 +88,27 @@ public class ScriptComponentLoader {
         return res;
     }
 
-    // very inefficient, however SPA's load once, so expect not too many requests to expect
+
+    /**
+     * lookup and merge scripts.
+     *
+     * rules:
+     *  if a name is a .js file, lookup ressourcepath in order for the file
+     *  if a name is a component name (no '.' in name !!!), search ressoucepath
+     *  for each directory of resourcepath
+     *   - look for subdirectory named [component name] and load all .js files of this directory.
+     *   - if a file is found twice, first match wins (override .js via resourcePath)
+     *
+     * @param jsFileNames list of component names or direct .js filename
+     * @return
+     */
     public byte[] mergeScripts( String ... jsFileNames ) {
+        // inefficient, however SPA's load once, so expect not too many requests
         ByteArrayOutputStream bout = new ByteArrayOutputStream(2000);
         HashSet hs = new HashSet();
         for (int i = 0; i < jsFileNames.length; i++) {
             String jsFileName = jsFileNames[i];
-            List<File> files = lookupResource(jsFileName,hs);
+            List<File> files = lookupResource(jsFileName,hs, new HashSet<>());
             for (int j = 0; j < files.size(); j++) {
                 File f = files.get(j);
                 if ( f.getName().endsWith(".js") ) {
@@ -88,7 +125,11 @@ public class ScriptComponentLoader {
         return bout.toByteArray();
     }
 
-    // very inefficient, however SPA's load once, so expect not too many requests to expect
+    /**
+     * same as mergeJS but concatenate .html files found
+     * @param templateFileNames
+     * @return
+     */
     public byte[] mergeTemplateSnippets( String ... templateFileNames ) {
         ByteArrayOutputStream bout = new ByteArrayOutputStream(2000);
         HashSet hs = new HashSet();
@@ -96,7 +137,7 @@ public class ScriptComponentLoader {
         pout.println("document.write('\\");
         for (int i = 0; i < templateFileNames.length; i++) {
             String jsFileName = templateFileNames[i];
-            List<File> files = lookupResource(jsFileName, hs);
+            List<File> files = lookupResource(jsFileName, hs, new HashSet<>());
             for (int j = 0; j < files.size(); j++) {
                 File f = files.get(j);
                 if ( f.getName().endsWith(".html") )
