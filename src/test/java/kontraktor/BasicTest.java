@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.Promise;
 import org.junit.Test;
+import org.nustaq.kontraktor.impl.ActorBlockedException;
 
 import java.net.URL;
 import java.util.*;
@@ -14,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.nustaq.kontraktor.Actors.*;
 import static org.junit.Assert.assertTrue;
@@ -485,5 +487,35 @@ public class BasicTest {
         actor.$stop();
     }
 
+    public static class ExceptionThrower extends Actor<ExceptionThrower> {
 
+        public volatile boolean hadEx = false;
+
+        public void $test() {
+            setThrowExWhenBlocked(true);
+            try {
+                for (int i=0; i < 100000; i++)
+                    $deadlockMySelf();
+            } catch ( ActorBlockedException abe ) {
+                hadEx = true;
+            }
+        }
+
+        public void $deadlockMySelf() {
+            self().$deadlockMySelf();
+        }
+
+    }
+
+
+    @Test public void testBlockEx() {
+        ExceptionThrower act = Actors.AsActor(ExceptionThrower.class, 1000);
+        act.$test();
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        assertTrue(act.getActor().hadEx);
+    }
 }

@@ -31,7 +31,6 @@ public class ElasticScheduler implements Scheduler, Monitorable {
     public static boolean DEBUG_SCHEDULING = false;
     public static boolean REALLY_DEBUG_SCHEDULING = false; // logs any move and remove
 
-    public static int BLOCK_COUNT_WARNING_THRESHOLD = 10000;
     public static int RECURSE_ON_BLOCK_THRESHOLD = 2;
 
     int maxThread = Runtime.getRuntime().availableProcessors();
@@ -132,8 +131,10 @@ public class ElasticScheduler implements Scheduler, Monitorable {
                     }
                 }
             }
-            if ( count > BLOCK_COUNT_WARNING_THRESHOLD ) {
+            if ( backOffStrategy.isYielding(count) ) {
                 Actor sendingActor = Actor.sender.get();
+                if ( sendingActor.__throwExAtBlock )
+                    throw ActorBlockedException.Instance;
                 if ( ! warningPrinted ) {
                     warningPrinted = true;
                     String receiverString;

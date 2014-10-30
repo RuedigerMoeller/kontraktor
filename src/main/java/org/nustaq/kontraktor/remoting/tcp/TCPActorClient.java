@@ -41,7 +41,6 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
     String host;
     int port;
     ActorClient client;
-    int maxTrialConnect = 60; // number of trials on initial connect (each second)
     volatile boolean connected = false;
 
     public TCPActorClient(Class<? extends Actor> clz, String host, int port) throws IOException {
@@ -57,29 +56,15 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
         return facadeProxy;
     }
 
-    public int getMaxTrialConnect() {
-        return maxTrialConnect;
-    }
-
-    public void setMaxTrialConnect(int maxTrialConnect) {
-        this.maxTrialConnect = maxTrialConnect;
-    }
-
     public void connect() throws IOException {
-        int count = 0;
-        while (count < maxTrialConnect && ! connected ) {
-            try {
-                client = new ActorClient();
-                connected = true;
-                facadeProxy.__addRemoteConnection(client);
-            } catch (Exception ex) {
-                count++;
-                Log.Info(this,"connection to " + getDescriptionString() + " failed, retry " + count + " of " + maxTrialConnect);
-                if ( count >= maxTrialConnect ) {
-                    Log.Lg.error(this,ex,"connection failed. giving up");
-                    throw ex;
-                }
-            }
+        try {
+            client = new ActorClient();
+            connected = true;
+            facadeProxy.__addRemoteConnection(client);
+        } catch (IOException ioe) {
+            throw ioe;
+        } catch (Exception ex) {
+            Log.Info(this,"connection to " + getDescriptionString() + " failed");
         }
     }
 

@@ -105,6 +105,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
     public volatile boolean __stopped = false;
     public Actor __self; // the proxy
     public int __remoteId;
+    public boolean __throwExAtBlock = false;
     public volatile ConcurrentLinkedQueue<RemoteConnection> __connections; // a list of connection required to be notified on close
     // register callbacks notified on stop
     ConcurrentLinkedQueue<Callback<SELF>> __stopHandlers;
@@ -381,6 +382,26 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
         }
         return method;
     }
+
+    /**
+     * tell the execution machinery to throw an exception in case the actor is blocked trying to
+     * put a message on an overloaded actor's mailbox/queue.
+     * @param b
+     * @return
+     */
+    protected SELF setThrowExWhenBlocked( boolean b ) {
+        __throwExAtBlock = b;
+        return (SELF) this;
+    }
+
+    protected boolean getThrowExWhenBlocked() {
+        return __throwExAtBlock;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Monitoring
+    //
 
     @Override
     public Future $getReport() {
