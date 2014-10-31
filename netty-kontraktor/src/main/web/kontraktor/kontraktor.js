@@ -316,51 +316,6 @@ if ( typeof ko !== 'undefined') {
         }
     );
 
-    var highlightElem = function(element, color) {
-        if (!element.hicount && element.hicount != 0) {
-            element.hicount = 1;
-        } else {
-            element.hicount++;
-        }
-        element.style.backgroundColor = '#FFF3B0';
-        if ( color )
-            element.style.color = '#000';
-        (function () {
-            var current = element;
-            var prevKey = element;
-            setTimeout(function () {
-                if (current.hicount <= 1 || prevKey != current) {
-                    current.style.backgroundColor = 'rgba(230,230,230,0.0)';
-                    if ( color )
-                        current.style.color = color;
-                    current.hicount = 0;
-                } else {
-                    current.hicount--;
-                }
-            }, 3000);
-        }())
-    };
-
-    ko.bindingHandlers.hilight = {
-        init: function(element, valueAccessor, allBindings, viewModel, bindingContext) {
-            var self = element;
-            $(element).bind('DOMSubtreeModified', function(event) {
-                if (element.innerHTML != self.lastValue ) {
-                    var col = valueAccessor();
-                    if ( col != true ) {
-                        highlightElem(element,col);
-                    } else {
-                        highlightElem(element);
-                    }
-                    self.lastValue = element.innerHTML;
-                }
-            });
-            self.lastValue = element.innerHTML;
-        },
-        update: function(element, valueAccessor, allBindings, viewModel, bindingContext) {
-        }
-    };
-
     ////////// requires spin.js //////////////////////////////
     ko.bindingHandlers.spin = {
         init: function(element, valueAccessor, allBindings, viewModel, bindingContext) {
