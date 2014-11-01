@@ -243,7 +243,19 @@ if ( typeof ko !== 'undefined') {
         facade:  ko.observable(null),
         session: ko.observable(null),
         meta:    ko.observable(null),
-        loggedIn: ko.observable(false)
+        loggedIn: ko.observable(false),
+        userName: ko.observable(null),
+
+        doOnceLoggedIn: function (fun) {
+            if ( Server.loggedIn() ) {
+                fun.apply();
+            } else {
+                Server.loggedIn.subscribe( function(lgin) {
+                    if ( lgin )
+                        fun.apply();
+                });
+            }
+        }
     };
 
     ko.components.register( 'kr-login', {
@@ -259,6 +271,7 @@ if ( typeof ko !== 'undefined') {
 
                 this.loginDone = function () {
                     self.resultMsg('');
+                    Server.userName(self.user());
                     Server.loggedIn(true);
                     self.doSpin(false);
                 };
