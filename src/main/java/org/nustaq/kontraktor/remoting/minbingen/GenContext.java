@@ -1,4 +1,4 @@
-package minbin.gen;
+package org.nustaq.kontraktor.remoting.minbingen;
 
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.serialization.FSTClazzInfo;

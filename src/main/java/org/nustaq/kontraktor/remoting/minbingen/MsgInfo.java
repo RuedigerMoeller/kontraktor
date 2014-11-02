@@ -1,4 +1,4 @@
-package minbin.gen;
+package org.nustaq.kontraktor.remoting.minbingen;
 
 import java.lang.reflect.Parameter;
 

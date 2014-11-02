@@ -16,8 +16,12 @@ import java.util.Scanner;
  */
 public class ServeFromCPProcessor implements RequestProcessor {
 
+    public static boolean ENABLED = false;
+
     @Override
     public boolean processRequest(KontraktorHttpRequest req, Callback<RequestResponse> response) {
+        if ( ! ENABLED )
+            return false;
         if ( req.isGET() ) {
             String path = req.getFullPath();
             URL resource = Object.class.getResource(path);

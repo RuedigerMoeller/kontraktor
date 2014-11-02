@@ -1,11 +1,9 @@
-package org.nustaq.kontraktor.remoting.http;
+package org.nustaq.machweb.util;
 
 import org.nustaq.kson.Kson;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by ruedi on 26.10.14.
@@ -112,6 +110,7 @@ public class ScriptComponentLoader {
             for (int j = 0; j < files.size(); j++) {
                 File f = files.get(j);
                 if ( f.getName().endsWith(".js") ) {
+                    System.out.println("   "+f.getName()+" size:"+f.length());
                     byte[] bytes = new byte[(int) f.length()];
                     try (FileInputStream fileInputStream = new FileInputStream(f)) {
                         fileInputStream.read(bytes);
@@ -122,7 +121,8 @@ public class ScriptComponentLoader {
                 }
             }
         }
-        return bout.toByteArray();
+        byte[] bytes = bout.toByteArray();
+        return bytes;
     }
 
     /**
