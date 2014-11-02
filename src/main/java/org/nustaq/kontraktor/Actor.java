@@ -357,13 +357,17 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
         if ( __stopped ) {
             if ( methodName.equals("$stop") ) // ignore double stop
                 return null;
-            String senderString = sender.get() == null ? "null" : sender.get().getClass().getName();
-            String s = "DEAD LETTER: sender:" + senderString + " receiver::msg:" + receiver.getClass().getSimpleName() + "::" + methodName;
-            s = s.replace("_ActorProxy","");
-            Actors.AddDeadLetter(s);
+            __addDeadLetter(receiver, methodName);
 //            throw new RuntimeException("Actor " + this + " received message after being stopped " + methodName);
         }
         return __scheduler.enqueueCall(sender.get(), receiver, methodName, args, isCB);
+    }
+
+    @CallerSideMethod public void __addDeadLetter(Actor receiver, String methodName) {
+        String senderString = sender.get() == null ? "null" : sender.get().getClass().getName();
+        String s = "DEAD LETTER: sender:" + senderString + " receiver::msg:" + receiver.getClass().getSimpleName() + "::" + methodName;
+        s = s.replace("_ActorProxy","");
+        Actors.AddDeadLetter(s);
     }
 
     ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();

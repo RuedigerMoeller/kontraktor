@@ -11,10 +11,7 @@ import org.nustaq.kson.Kson;
 import org.nustaq.machweb.util.ScriptComponentLoader;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by ruedi on 01.11.14.
@@ -147,7 +144,7 @@ public abstract class MachWeb<SERVER extends Actor,SESSION extends MachWebSessio
             if ( f.getPath().replace(File.separatorChar,'/').startsWith(prefix) ) {
                 List<File> files = loader.lookupResource(f.getPath().substring(prefix.length() + 1), new HashSet<>(), new HashSet<>());
                 if ( files.size() > 0 )
-                    return files.get(0);
+                    return files.iterator().next();
             }
             return f;
         });

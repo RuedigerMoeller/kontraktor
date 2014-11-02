@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.util.Log;
 
+import java.io.Serializable;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -28,7 +29,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
     public static final int MAX_STACK_ON_SYNC_CBDISPATCH = 200000;
     public static int DEFQSIZE = 32000; // will be alligne to 2^x
 
-    public static boolean DEBUG_SCHEDULING = false;
+    public static boolean DEBUG_SCHEDULING = true;
     public static boolean REALLY_DEBUG_SCHEDULING = false; // logs any move and remove
 
     public static int RECURSE_ON_BLOCK_THRESHOLD = 2;
@@ -133,6 +134,16 @@ public class ElasticScheduler implements Scheduler, Monitorable {
             }
             if ( backOffStrategy.isYielding(count) ) {
                 Actor sendingActor = Actor.sender.get();
+                if ( receiver instanceof Actor && ((Actor) receiver).__stopped ) {
+                    String dl;
+                    if ( o instanceof CallEntry) {
+                        dl = ((CallEntry) o).getMethod().getName();
+                    } else {
+                        dl = ""+o;
+                    }
+                    sendingActor.__addDeadLetter((Actor) receiver, dl);
+                    throw new StoppedActorTargetedException(dl);
+                }
                 if ( sendingActor.__throwExAtBlock )
                     throw ActorBlockedException.Instance;
                 if ( backOffStrategy.isSleeping(count) ) {
@@ -536,7 +547,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
         return new Promise<>(res);
     }
 
-    public static class SchedulingReport {
+    public static class SchedulingReport implements Serializable {
 
         int numDispatchers;
         int defQSize;

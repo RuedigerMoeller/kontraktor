@@ -104,12 +104,14 @@ public class ScriptComponentLoader {
         // inefficient, however SPA's load once, so expect not too many requests
         ByteArrayOutputStream bout = new ByteArrayOutputStream(2000);
         HashSet hs = new HashSet();
+        HashSet<String> done = new HashSet<>();
         for (int i = 0; i < jsFileNames.length; i++) {
             String jsFileName = jsFileNames[i];
             List<File> files = lookupResource(jsFileName,hs, new HashSet<>());
-            for (int j = 0; j < files.size(); j++) {
-                File f = files.get(j);
-                if ( f.getName().endsWith(".js") ) {
+            files.forEach( f -> {
+                String absolutePath = f.getAbsolutePath();
+                if ( f.getName().endsWith(".js") && ! done.contains(absolutePath) ) {
+                    done.add(absolutePath);
                     System.out.println("   "+f.getName()+" size:"+f.length());
                     byte[] bytes = new byte[(int) f.length()];
                     try (FileInputStream fileInputStream = new FileInputStream(f)) {
@@ -119,7 +121,7 @@ public class ScriptComponentLoader {
                         e.printStackTrace();
                     }
                 }
-            }
+            });
         }
         byte[] bytes = bout.toByteArray();
         return bytes;

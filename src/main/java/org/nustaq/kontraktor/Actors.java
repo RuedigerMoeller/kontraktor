@@ -186,7 +186,7 @@ public class Actors {
 
             Actor realActor = clz.newInstance();
             realActor.__mailbox =  createQueue(qs);
-            realActor.__mbCapacity = qs;
+            realActor.__mbCapacity = ((MpscConcurrentQueue) realActor.__mailbox).getCapacity();
             realActor.__cbQueue =  createQueue(qs);
 
             Actor selfproxy = getFactory().instantiateProxy(realActor);
