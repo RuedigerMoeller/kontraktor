@@ -135,42 +135,44 @@ public class ElasticScheduler implements Scheduler, Monitorable {
                 Actor sendingActor = Actor.sender.get();
                 if ( sendingActor.__throwExAtBlock )
                     throw ActorBlockedException.Instance;
-                if ( ! warningPrinted ) {
-                    warningPrinted = true;
-                    String receiverString;
-                    if (receiver instanceof Actor) {
-                        if (q == ((Actor) receiver).__cbQueue) {
-                            receiverString = receiver.getClass().getSimpleName() + " callbackQ";
-                        } else if (q == ((Actor) receiver).__mailbox) {
-                            receiverString = receiver.getClass().getSimpleName() + " mailbox";
-                        } else {
-                            receiverString = receiver.getClass().getSimpleName() + " unknown queue";
-                        }
-                    } else
-                        receiverString = "" + receiver;
-                    String sender = "";
-                    if (sendingActor != null)
-                        sender = ", sender:" + sendingActor.getActor().getClass().getSimpleName();
-                    if ( DEBUG_SCHEDULING )
-                        Log.Lg.warn(this, "Warning: Thread " + Thread.currentThread().getName() + " blocked trying to put message on " + receiverString + sender + " msg:" + o);
-                }
-                // decouple current thread
-                if ( sendingActor != null && Thread.currentThread() instanceof DispatcherThread ) {
-                    DispatcherThread dp = (DispatcherThread) Thread.currentThread();
-                    dp.schedulePendingAdds();
+                if ( backOffStrategy.isSleeping(count) ) {
+                    if (!warningPrinted) {
+                        warningPrinted = true;
+                        String receiverString;
+                        if (receiver instanceof Actor) {
+                            if (q == ((Actor) receiver).__cbQueue) {
+                                receiverString = receiver.getClass().getSimpleName() + " callbackQ";
+                            } else if (q == ((Actor) receiver).__mailbox) {
+                                receiverString = receiver.getClass().getSimpleName() + " mailbox";
+                            } else {
+                                receiverString = receiver.getClass().getSimpleName() + " unknown queue";
+                            }
+                        } else
+                            receiverString = "" + receiver;
+                        String sender = "";
+                        if (sendingActor != null)
+                            sender = ", sender:" + sendingActor.getActor().getClass().getSimpleName();
+                        if (DEBUG_SCHEDULING)
+                            Log.Lg.warn(this, "Warning: Thread " + Thread.currentThread().getName() + " blocked trying to put message on " + receiverString + sender + " msg:" + o);
+                    }
+                    // decouple current thread
+                    if (sendingActor != null && Thread.currentThread() instanceof DispatcherThread) {
+                        DispatcherThread dp = (DispatcherThread) Thread.currentThread();
+                        dp.schedulePendingAdds();
 //                    if ( dp.getActors().length > 1 && dp.schedules( receiver ) )
-                    if ( dp.getActors().length > 1 ) // try isolating in any case
-                    {
-                        if ( DEBUG_SCHEDULING )
-                            Log.Lg.warn(this, "  try unblock Thread " + Thread.currentThread().getName() + " actors:" + dp.getActors().length);
-                        dp.getScheduler().tryIsolate(dp, sendingActor.getActorRef());
-                        if ( DEBUG_SCHEDULING )
-                            Log.Lg.warn(this, "  unblock done Thread " + Thread.currentThread().getName() + " actors:" + dp.getActors().length);
-                    } else {
-                        if ( dp.getActors().length > 1 ) {
-                            // this indicates there are at least two actors on different threads blocking each other
-                            // only solution to unlock is increase the Q of one of the actors
+                        if (dp.getActors().length > 1) // try isolating in any case
+                        {
+                            if (DEBUG_SCHEDULING)
+                                Log.Lg.warn(this, "  try unblock Thread " + Thread.currentThread().getName() + " actors:" + dp.getActors().length);
+                            dp.getScheduler().tryIsolate(dp, sendingActor.getActorRef());
+                            if (DEBUG_SCHEDULING)
+                                Log.Lg.warn(this, "  unblock done Thread " + Thread.currentThread().getName() + " actors:" + dp.getActors().length);
+                        } else {
+                            if (dp.getActors().length > 1) {
+                                // this indicates there are at least two actors on different threads blocking each other
+                                // only solution to unlock is increase the Q of one of the actors
 //                            System.out.println("POK "+dp.schedules( receiver )+" "+sendingActor.__currentDispatcher+" "+ ((Actor) receiver).__currentDispatcher);
+                            }
                         }
                     }
                 }
