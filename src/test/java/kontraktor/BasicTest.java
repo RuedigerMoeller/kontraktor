@@ -15,7 +15,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.LockSupport;
 
 import static org.nustaq.kontraktor.Actors.*;
 import static org.junit.Assert.assertTrue;
@@ -517,5 +516,41 @@ public class BasicTest {
             e.printStackTrace();
         }
         assertTrue(act.getActor().hadEx);
+    }
+
+    static AtomicInteger tocount = new AtomicInteger(0);
+    public static class TimeOuter extends Actor<TimeOuter> {
+
+        public Future $timeOutingMethod() {
+            final Promise promise = new Promise();
+            delayed(4000, () -> promise.signal() );
+            return promise;
+        }
+
+        public void $internalTimeout() {
+            checkThread();
+            self().$timeOutingMethod().timeoutIn(2000).then( (r,e) -> {
+                checkThread();
+                if ( e == Timeout.INSTANCE ) {
+                    System.out.println("timed out");
+                    tocount.incrementAndGet();
+                } else tocount.set(1000);
+            });
+        }
+    }
+
+    @Test public void testTimout() {
+        TimeOuter to = Actors.AsActor(TimeOuter.class);
+        to.$internalTimeout();
+        to.$timeOutingMethod().timeoutIn(3000).then( (r,e) -> {
+            System.out.println("outer call timed out:"+e);
+            tocount.incrementAndGet();
+        });
+        try {
+            Thread.sleep(6000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        assertTrue(tocount.get() == 2);
     }
 }

@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 
 /**
  * Created by ruedi on 08.08.14.
@@ -39,6 +40,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 
     public ThreadLocal<ObjectSocket> currentObjectSocket = new ThreadLocal<>();
     protected volatile boolean terminated = false;
+    BiFunction<Actor,String,Boolean> remoteCallInterceptor;
 
 	public RemoteRefRegistry() {
 		this(null);
@@ -57,7 +59,15 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 	    configureConfiguration( code );
 	}
 
-	protected void configureConfiguration( Coding code ) {
+    public BiFunction<Actor, String, Boolean> getRemoteCallInterceptor() {
+        return remoteCallInterceptor;
+    }
+
+    public void setRemoteCallInterceptor(BiFunction<Actor, String, Boolean> remoteCallInterceptor) {
+        this.remoteCallInterceptor = remoteCallInterceptor;
+    }
+
+    protected void configureConfiguration( Coding code ) {
 		conf.registerSerializer(Actor.class,new ActorRefSerializer(this),true);
 		conf.registerSerializer(CallbackWrapper.class, new CallbackRefSerializer(this), true);
 		conf.registerSerializer(Spore.class, new SporeRefSerializer(), true);
@@ -234,6 +244,10 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
             Actor targetActor = getPublishedActor(read.getReceiverKey());
             if (targetActor==null) {
                 Log.Lg.error(this, null, "no actor found for key " + read);
+                return true;
+            }
+            if (remoteCallInterceptor != null && !remoteCallInterceptor.apply(targetActor,read.getMethod())) {
+                Log.Warn(this,"remote message blocked by securityinterceptor "+targetActor.getClass().getName()+" "+read.getMethod());
                 return true;
             }
 

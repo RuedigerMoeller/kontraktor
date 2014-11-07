@@ -14,6 +14,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
 
 /**
  * Created by ruedi on 14.08.2014.
@@ -70,6 +71,15 @@ public class RestActorServer {
 
     NioHttpServer server;
     ConcurrentHashMap<String,PublishedActor> publishedActors = new ConcurrentHashMap<>();
+    BiFunction<Actor,String,Boolean> remoteCallInterceptor;
+
+    public BiFunction<Actor, String, Boolean> getRemoteCallInterceptor() {
+        return remoteCallInterceptor;
+    }
+
+    public void setRemoteCallInterceptor(BiFunction<Actor, String, Boolean> remoteCallInterceptor) {
+        this.remoteCallInterceptor = remoteCallInterceptor;
+    }
 
     public RestActorServer() {
     }
@@ -249,7 +259,12 @@ public class RestActorServer {
                 if ( target == null ) {
                     return false;
                 } else {
-                    enqueueCall(target, req, response);
+                    if ( remoteCallInterceptor != null && !remoteCallInterceptor.apply(target.actor,req.getPath(1)) ) {
+                        response.receive(RequestResponse.MSG_403, null);
+                        response.receive(null, FINISHED);
+                        return true;
+                    } else
+                        enqueueCall(target, req, response);
                 }
             } else if (req.isPOST() ) {
                 String actor = req.getPath(0);

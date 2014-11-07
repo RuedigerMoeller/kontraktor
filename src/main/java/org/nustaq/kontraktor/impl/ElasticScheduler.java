@@ -40,7 +40,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
 
     int defQSize = DEFQSIZE;
     protected ExecutorService exec = Executors.newCachedThreadPool();
-    protected static Timer delayedCalls = new Timer();
+    public static Timer delayedCalls = new Timer();
     private AtomicInteger isolateCount = new AtomicInteger(0);
 
     public ElasticScheduler(int maxThreads) {

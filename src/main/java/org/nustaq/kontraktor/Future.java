@@ -17,4 +17,11 @@ public interface Future<T> extends Callback<T> {
      * same as receive(null,null)
      */
     public void signal();
+
+    /**
+     *
+     * @param millis
+     * @return this for chaining
+     */
+    public Future timeoutIn(long millis);
 }

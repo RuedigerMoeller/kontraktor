@@ -1,5 +1,8 @@
 package org.nustaq.kontraktor;
 
+import org.nustaq.kontraktor.impl.ElasticScheduler;
+
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -10,9 +13,10 @@ public class Promise<T> implements Future<T> {
     protected Object result = null;
     protected Object error;
     protected Callback resultReceiver;
+    // fixme: use bits
     protected boolean hadResult;
     protected boolean hasFired;
-    // not necessary in many cases and also increases cost
+    // probably unnecessary, increases cost
     // of allocation. However for now stay safe and optimize
     // from a proven-working implementation
     // note: if removed some field must set to volatile
@@ -56,6 +60,12 @@ public class Promise<T> implements Future<T> {
             }
         });
         return promise;
+    }
+
+    public void timedOut( Timeout to ) {
+        if (!hadResult ) {
+            receive(null, to);
+        }
     }
 
     @Override
@@ -153,12 +163,17 @@ public class Promise<T> implements Future<T> {
 //        else
         {
             this.result = res;
+            Object prevErr = this.error;
             this.error = error;
             while( !lock.compareAndSet(false,true) ) {}
             try {
                 if (hadResult) {
+                    if ( prevErr instanceof Timeout ) {
+                        lock.set(false);
+                        return;
+                    }
                     lock.set(false);
-                    throw new RuntimeException("Double result received on future");
+                    throw new RuntimeException("Double result received on future " + prevErr );
                 }
                 hadResult = true;
                 if (resultReceiver != null) {
@@ -191,6 +206,22 @@ public class Promise<T> implements Future<T> {
     @Override
     public void signal() {
         receive(null, null);
+    }
+
+    @Override
+    public Future timeoutIn(long millis) {
+        final Actor actor = Actor.sender.get();
+        if ( actor != null )
+            actor.delayed(millis, ()-> timedOut(Timeout.INSTANCE));
+        else {
+            ElasticScheduler.delayedCalls.schedule( new TimerTask() {
+                @Override
+                public void run() {
+                    timedOut(Timeout.INSTANCE);
+                }
+            },millis);
+        }
+        return this;
     }
 
     public Object getError() {

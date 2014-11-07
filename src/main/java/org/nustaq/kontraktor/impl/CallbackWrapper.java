@@ -1,9 +1,6 @@
 package org.nustaq.kontraktor.impl;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.Filter;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.Serializable;
@@ -115,5 +112,13 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     @Override
     public void signal() {
         receive(null, null);
+    }
+
+    @Override
+    public Future timeoutIn(long millis) {
+        if (realCallback instanceof Future == false)
+            throw new RuntimeException( "currently supported for futures only" );
+        ((Future)realCallback).timeoutIn(millis);
+        return this;
     }
 }
