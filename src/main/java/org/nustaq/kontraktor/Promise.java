@@ -169,6 +169,7 @@ public class Promise<T> implements Future<T> {
             try {
                 if (hadResult) {
                     if ( prevErr instanceof Timeout ) {
+                        this.error = prevErr;
                         lock.set(false);
                         return;
                     }
