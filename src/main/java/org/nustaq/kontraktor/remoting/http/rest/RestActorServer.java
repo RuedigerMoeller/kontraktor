@@ -45,7 +45,7 @@ public class RestActorServer {
      */
     static ConcurrentHashMap<Integer,RestActorServer> servers = new ConcurrentHashMap<>(); // FIXME: dirty
     public static <T extends Actor> T publish(String path, int port, T serviceRef) {
-        RestActorServer sv = servers.get(port);
+        RestActorServer sv = getRestActorServer(port);
         if ( sv == null ) {
             // create Http service abstraction
             sv = new RestActorServer();
@@ -62,8 +62,12 @@ public class RestActorServer {
         return serviceRef;
     }
 
+    public static RestActorServer getRestActorServer(int port) {
+        return servers.get(port);
+    }
+
     public static ArrayList<String> getPublished(String simpleClzName, int port) {
-        RestActorServer sv = servers.get(port);
+        RestActorServer sv = getRestActorServer(port);
         if ( sv == null )
             return new ArrayList<>();
         return sv.getPublishedActors( simpleClzName );
@@ -72,6 +76,7 @@ public class RestActorServer {
     NioHttpServer server;
     ConcurrentHashMap<String,PublishedActor> publishedActors = new ConcurrentHashMap<>();
     BiFunction<Actor,String,Boolean> remoteCallInterceptor;
+    RestProcessor restProcessor;
 
     public BiFunction<Actor, String, Boolean> getRemoteCallInterceptor() {
         return remoteCallInterceptor;
@@ -236,7 +241,7 @@ public class RestActorServer {
      */
     public void joinServer(NioHttpServer server) {
         this.server = server;
-        server.$addHttpProcessor(new RestProcessor());
+        server.$addHttpProcessor(this.restProcessor = new RestProcessor());
     }
 
     public PublishedActor publish( String name, Actor obj ) {
