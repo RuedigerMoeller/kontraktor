@@ -542,15 +542,71 @@ public class BasicTest {
     @Test public void testTimout() {
         TimeOuter to = Actors.AsActor(TimeOuter.class);
         to.$internalTimeout();
-        to.$timeOutingMethod().timeoutIn(3000).then( (r,e) -> {
-            System.out.println("outer call timed out:"+e);
+        to.$timeOutingMethod()
+          .timeoutIn(3000)
+          .onResult( r -> tocount.set(9999) )
+          .onError( err -> tocount.set(10000) )
+          .onTimeout( err -> {
+            System.out.println("outer call timed out");
             tocount.incrementAndGet();
-        });
+          });
         try {
             Thread.sleep(6000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
         assertTrue(tocount.get() == 2);
+        to.$stop();
     }
+
+    public static class OnFutTest extends Actor<OnFutTest> {
+
+        public Future<String> $returnErrorOrResult(int i) {
+            if ( Math.random() > .5 ) {
+                return new Promise<>("Result "+i);
+            }
+            if ( Math.random() > .5 ) {
+                return new Promise<>(null, "Error "+i);
+            }
+            Promise<String> res = new Promise<>();
+            delayed(1, () -> res.receive("AsyncResult "+i, null) );
+            return res;
+        }
+
+        // test when called from inside actor
+        public void testMethod() {
+            for ( int i = 20; i < 30; i++ ) {
+                self().$returnErrorOrResult(i)
+                   .onResult((result) -> System.out.println("result 1 " + result))
+                   .onError((error) -> System.out.println("onerr 1 " + error))
+                   .onResult((result) -> System.out.println("result 2 " + result))
+                   .onError((error) -> System.out.println("onerr 2 " + error))
+                   .onResult((result) -> System.out.println("result 3 " + result))
+                   .then((r, e) -> onFutCount.incrementAndGet());
+            }
+        }
+
+    }
+
+    static AtomicInteger onFutCount = new AtomicInteger(0);
+
+    @Test public void testOnFutureMethods() throws InterruptedException {
+        OnFutTest oft = Actors.AsActor(OnFutTest.class);
+        oft.testMethod();
+        Thread.sleep(2000);
+        System.out.println("-----------------------------");
+        for ( int i = 0; i < 10; i++ ) {
+            oft.$returnErrorOrResult(i)
+               .onResult( (result) -> System.out.println("result 1 "+result))
+               .onError(  (error)  -> System.out.println("onerr 1 "+error))
+               .onResult( (result) -> System.out.println("result 2 "+result))
+               .onError(  (error)  -> System.out.println("onerr 2 "+error))
+               .onResult( (result) -> System.out.println("result 3 " + result))
+               .then( (r,e) -> onFutCount.incrementAndGet());
+        }
+        Thread.sleep(2000);
+        oft.$stop();
+        assertTrue(onFutCount.get() == 20);
+    }
+
 }

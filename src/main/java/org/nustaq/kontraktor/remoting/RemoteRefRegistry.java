@@ -76,6 +76,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
                 {"call", RemoteCallEntry.class.getName()},
                 {"cbw", CallbackWrapper.class.getName()}
         });
+		conf.registerSerializer(Timeout.class, new TimeoutSerializer(), false);
         if (code.getConfigurator()!=null) {
             code.getConfigurator().accept(conf);
         }

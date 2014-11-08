@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.impl.ElasticScheduler;
 
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 20.05.14.
@@ -49,6 +50,34 @@ public class Promise<T> implements Future<T> {
     public Future<T> then(Runnable result) {
         return then( (r,e) -> result.run() );
     }
+
+    @Override
+    public Future<T> onResult(Consumer<T> resultHandler) {
+        return then( (r,e) -> {
+            if ( e == null ) {
+                resultHandler.accept((T) r);
+            }
+        });
+    }
+
+    @Override
+    public Future<T> onError(Consumer errorHandler) {
+        return then( (r,e) -> {
+            if ( e != null && e != Timeout.INSTANCE) {
+                errorHandler.accept(e);
+            }
+        });
+    }
+
+    @Override
+    public Future<T> onTimeout(Consumer timeoutHandler) {
+        return then( (r,e) -> {
+            if ( e == Timeout.INSTANCE ) {
+                timeoutHandler.accept(e);
+            }
+        });
+    }
+
 
     @Override
     public <OUT> Future<OUT> map(final Filter<T, OUT> filter) {

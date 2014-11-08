@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.util.Log;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.util.function.Consumer;
 
 /**
  * Copyright (c) 2014, Ruediger Moeller. All rights reserved.
@@ -83,6 +84,30 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
             throw new RuntimeException("this is an error.");
         else
             return ((Future)realCallback).then(result);
+    }
+
+    @Override
+    public Future<T> onResult(Consumer<T> resultHandler) {
+        if (realCallback instanceof Future == false)
+            throw new RuntimeException("this is an error.");
+        else
+            return ((Future)realCallback).onResult(resultHandler);
+    }
+
+    @Override
+    public Future<T> onError(Consumer errorHandler) {
+        if (realCallback instanceof Future == false)
+            throw new RuntimeException("this is an error.");
+        else
+            return ((Future)realCallback).onError(errorHandler);
+    }
+
+    @Override
+    public Future<T> onTimeout(Consumer timeoutHandler) {
+        if (realCallback instanceof Future == false)
+            throw new RuntimeException("this is an error.");
+        else
+            return ((Future)realCallback).onTimeout(timeoutHandler);
     }
 
     @Override
