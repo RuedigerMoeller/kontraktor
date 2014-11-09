@@ -352,7 +352,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
         } catch (NoSuchFieldException e) {
             e.printStackTrace();
         }
-        throw ActorStoppedException.Instance;
+        throw InternalActorStoppedException.Instance;
     }
 
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread

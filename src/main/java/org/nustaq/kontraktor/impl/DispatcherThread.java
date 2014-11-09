@@ -246,11 +246,19 @@ public class DispatcherThread extends Thread implements Monitorable {
                 }
                 return true;
             } catch ( Throwable e) {
-                if ( e instanceof InvocationTargetException && ((InvocationTargetException) e).getTargetException() == ActorStoppedException.Instance ) {
+                if ( e instanceof InvocationTargetException && ((InvocationTargetException) e).getTargetException() == InternalActorStoppedException.Instance ) {
                     // fixme: rare classcast exception with elasticscheduler seen here when $stop is called from a callback ..
                     Actor actor = (Actor) callEntry.getTarget();
                     actor.__stopped = true;
                     removeActorImmediate(actor.getActorRef());
+                    if (callEntry.getFutureCB() != null)
+                        callEntry.getFutureCB().receive(null, e);
+                    else
+                        Log.Warn(this,e,"");
+                    if (callEntry.getFutureCB() != null)
+                        callEntry.getFutureCB().receive(null, e);
+                    else
+                        Log.Warn(this,e,"");
                     return true;
                 }
                 if ( e instanceof InvocationTargetException ) {
@@ -258,7 +266,8 @@ public class DispatcherThread extends Thread implements Monitorable {
                 }
                 if (callEntry.getFutureCB() != null)
                     callEntry.getFutureCB().receive(null, e);
-                Log.Warn(this,e,"");
+                else
+                    Log.Warn(this,e,"");
             }
         }
         return false;

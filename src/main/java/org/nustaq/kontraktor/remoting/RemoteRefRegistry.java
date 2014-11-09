@@ -194,7 +194,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
         remoteActors.remove(act);
         try {
             act.__stop();
-        } catch (ActorStoppedException ase) {}
+        } catch (InternalActorStoppedException ase) {}
     }
 
     protected void sendLoop(ObjectSocket channel) throws IOException {
@@ -302,7 +302,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
                     new Thread( () -> { // ??
                         try {
                             remoteActor.getActor().$stop();
-                        } catch (ActorStoppedException ex) {}
+                        } catch (InternalActorStoppedException ex) {}
                     }, "stopper thread").start();
                 } else {
                     sumQueued += remoteActor.__mailbox.size();
