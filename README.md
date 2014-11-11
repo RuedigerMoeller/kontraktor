@@ -19,7 +19,7 @@ Kontraktor can be used as a model to deal with **concurrency and parallelism**, 
 [*Note:* A plan is something which has not been done yet and *might* be done in the future ;) ] 
 
 
-###Changes 2.0 beta
+###Changes 2.0 (beta)
 
 * package name change, requires jdk 1.8
 * each actor now has dedicated queues, 1.x style scheduling (many actors from one per-thread-queue) caused issues in some scenarios.
@@ -52,7 +52,7 @@ Blogposts:
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>2.0-beta-1</version>
+    <version>2.0-beta-2</version>
 </dependency>
 ```
 
