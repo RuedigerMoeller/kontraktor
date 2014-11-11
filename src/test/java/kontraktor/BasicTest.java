@@ -284,7 +284,7 @@ public class BasicTest {
     }
 
 
-    @Test @Ignore
+    @Test
     public void testYield() {
 
         SleepCallerActor act = Actors.AsActor(SleepCallerActor.class);
@@ -449,7 +449,7 @@ public class BasicTest {
         }
     }
 
-    @Test @Ignore
+    @Test
     public void testDelayed() {
         DelayedCaller caller = Actors.AsActor(DelayedCaller.class);
         caller.$delay();
@@ -460,7 +460,7 @@ public class BasicTest {
         }
         assertTrue(delay_threads.get());
         assertTrue(delay_err.get()==0);
-        assertTrue(delay_time.get() >= 100 && delay_time.get() < 200);
+        assertTrue(delay_time.get() >= 100 && delay_time.get() < 500);
         caller.$stop();
     }
 

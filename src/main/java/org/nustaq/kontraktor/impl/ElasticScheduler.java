@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ElasticScheduler implements Scheduler, Monitorable {
 
     public static final int MAX_STACK_ON_SYNC_CBDISPATCH = 200000;
-    public static int DEFQSIZE = 32000; // will be alligne to 2^x
+    public static int DEFQSIZE = 32768; // will be alligne to 2^x
 
     public static boolean DEBUG_SCHEDULING = true;
     public static boolean REALLY_DEBUG_SCHEDULING = false; // logs any move and remove
@@ -144,7 +144,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
                     sendingActor.__addDeadLetter((Actor) receiver, dl);
                     throw new StoppedActorTargetedException(dl);
                 }
-                if ( sendingActor.__throwExAtBlock )
+                if ( sendingActor != null && sendingActor.__throwExAtBlock )
                     throw ActorBlockedException.Instance;
                 if ( backOffStrategy.isSleeping(count) ) {
                     if (!warningPrinted) {

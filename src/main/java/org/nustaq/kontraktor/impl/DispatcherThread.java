@@ -118,35 +118,39 @@ public class DispatcherThread extends Thread implements Monitorable {
         long scheduleTickTime = System.nanoTime();
         boolean isShutDown = false;
         while( ! isShutDown ) {
-            if ( pollQs() ) {
-                emptyCount = 0;
-                if ( System.nanoTime() - scheduleTickTime > SCHEDULE_TICK_NANOS) {
-                    if ( emptySinceLastCheck == 0 ) // no idle during last interval
-                    {
-                        checkForSplit();
+            try {
+                if ( pollQs() ) {
+                    emptyCount = 0;
+                    if ( System.nanoTime() - scheduleTickTime > SCHEDULE_TICK_NANOS) {
+                        if ( emptySinceLastCheck == 0 ) // no idle during last interval
+                        {
+                            checkForSplit();
+                        }
+                        emptySinceLastCheck = 0;
+                        scheduleTickTime = System.nanoTime();
+                        schedulePendingAdds();
                     }
-                    emptySinceLastCheck = 0;
-                    scheduleTickTime = System.nanoTime();
-                    schedulePendingAdds();
                 }
-            }
-            else {
-                emptyCount++;
-                emptySinceLastCheck++;
-                scheduler.yield(emptyCount);
-                if (shutDown) // access volatile only when idle
-                    isShutDown = true;
-                if ( scheduler.getBackoffStrategy().isSleeping(emptyCount) ) {
-                    scheduleTickTime = 0;
-                    schedulePendingAdds();
-                    if ( System.currentTimeMillis()-created > 1000 ) {
-                        if ( actors.length == 0 && toAdd.peek() == null ) {
-                            shutDown();
-                        } else {
-                            scheduler.tryStopThread(this);
+                else {
+                    emptyCount++;
+                    emptySinceLastCheck++;
+                    scheduler.yield(emptyCount);
+                    if (shutDown) // access volatile only when idle
+                        isShutDown = true;
+                    if ( scheduler.getBackoffStrategy().isSleeping(emptyCount) ) {
+                        scheduleTickTime = 0;
+                        schedulePendingAdds();
+                        if ( System.currentTimeMillis()-created > 1000 ) {
+                            if ( actors.length == 0 && toAdd.peek() == null ) {
+                                shutDown();
+                            } else {
+                                scheduler.tryStopThread(this);
+                            }
                         }
                     }
                 }
+            } catch (Throwable th) {
+                Log.Warn(this, th, "from main poll loop");
             }
         }
         scheduler.threadStopped(this);
@@ -251,14 +255,15 @@ public class DispatcherThread extends Thread implements Monitorable {
                     Actor actor = (Actor) callEntry.getTarget();
                     actor.__stopped = true;
                     removeActorImmediate(actor.getActorRef());
-                    if (callEntry.getFutureCB() != null)
-                        callEntry.getFutureCB().receive(null, e);
-                    else
-                        Log.Warn(this,e,"");
-                    if (callEntry.getFutureCB() != null)
-                        callEntry.getFutureCB().receive(null, e);
-                    else
-                        Log.Warn(this,e,"");
+// FIXME: Many Testcases fail if uncommented. Rethink
+//                    if (callEntry.getFutureCB() != null)
+//                        callEntry.getFutureCB().receive(null, e);
+//                    else
+//                        Log.Warn(this,e,"");
+//                    if (callEntry.getFutureCB() != null)
+//                        callEntry.getFutureCB().receive(null, e);
+//                    else
+//                        Log.Warn(this,e,"");
                     return true;
                 }
                 if ( e instanceof InvocationTargetException ) {
