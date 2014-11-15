@@ -21,13 +21,11 @@ import java.io.Serializable;
  */
 public class KVStore extends Actor<KVStore> {
 
-    FSTConfiguration conf;
     FSTAsciiStringOffheapMap store;
 
     public Future $init( int keylen, int sizeGB, String file ) {
         try {
-            conf = FSTConfiguration.createDefaultConfiguration();
-            store = new FSTAsciiStringOffheapMap(file, keylen, sizeGB * FSTAsciiStringOffheapMap.GB, 10*1000000, conf);
+            store = new FSTAsciiStringOffheapMap(file, keylen, sizeGB * FSTAsciiStringOffheapMap.GB, 10*1000000);
         } catch (Exception e) {
             e.printStackTrace();
             return new Promise<>(null,e);

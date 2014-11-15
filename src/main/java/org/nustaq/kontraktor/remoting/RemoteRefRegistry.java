@@ -51,7 +51,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 			code = new Coding(SerializerType.FSTSer);
 	    switch (code.getCoding()) {
 		    case MinBin:
-			    conf = FSTConfiguration.createCrossPlatformConfiguration();
+			    conf = FSTConfiguration.createMinBinConfiguration();
 			    break;
 		    default:
 			    conf = FSTConfiguration.createDefaultConfiguration();
