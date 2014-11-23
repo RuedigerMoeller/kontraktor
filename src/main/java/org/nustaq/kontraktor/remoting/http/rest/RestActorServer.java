@@ -13,6 +13,7 @@ import org.nustaq.serialization.util.FSTUtil;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
@@ -139,6 +140,29 @@ public class RestActorServer {
         try {
             HttpMsgCoder coder = target.getCoder(req.getAccept()) == null ? target.getCoder("text/json") : target.getCoder(req.getAccept());
             final RemoteCallEntry[] calls = coder.decodeFrom(content, req);
+            // special name for http redirect. Quirky, however let's be practical ;)
+            // method is expected to have no callbacks in argument and to return
+            // a Future<HtmlString>. The HtmlString has to contain the new url
+            if ( calls.length == 1 && calls[0].getMethod().startsWith("$httpRedirect")) {
+                RemoteCallEntry call = calls[0];
+                Callback cb = (r, e) -> {
+                    if ( r != null ) {
+                        response.receive(RequestResponse.MSG_302(((HtmlString)r).getRedirectUrl()), null );
+                        response.receive(new RequestResponse(""), RestProcessor.FINISHED );
+                    } else {
+                        Log.Warn(this, "error in httpRedirect "+e);
+                        response.receive(RequestResponse.MSG_500, RequestProcessor.FINISHED );
+                    }
+                };
+                try {
+                    target.getActor().__getCachedMethod(call.getMethod(), target.getActor());
+                    Future future = (Future) target.getActor().__scheduler.enqueueCall(server.getServingActor(), target.getActor(), call.getMethod(), call.getArgs(), false);
+                    future.then(cb);
+                } catch (Exception e) {
+                    Log.Warn(this,e);
+                }
+                return;
+            }
             response.receive(RequestResponse.MSG_200, null);
             AtomicInteger countDown = new AtomicInteger(calls.length);
             for (int i = 0; i < calls.length; i++) {
@@ -169,7 +193,7 @@ public class RestActorServer {
                     }
                     String fin = countDown.get() <= 0 ? RequestProcessor.FINISHED : null;
                     if ( r instanceof HtmlString ) {
-                        response.receive( new RequestResponse((HtmlString) r), fin); // pipelining does not make sense with HtmlString results
+                        response.receive( new RequestResponse((HtmlString) r), fin); // note: pipelining does not make sense with HtmlString results
                         return;
                     }
                     RemoteCallEntry resCall = new RemoteCallEntry(0, finalCB, "receive", new Object[]{r, e == null ? null : ("" + e) });

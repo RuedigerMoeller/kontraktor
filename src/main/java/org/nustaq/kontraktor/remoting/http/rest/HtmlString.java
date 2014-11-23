@@ -17,12 +17,22 @@ package org.nustaq.kontraktor.remoting.http.rest;
  */
 public class HtmlString {
     String string;
+    boolean isRedirect;
 
     public HtmlString(String string) {
         this.string = string;
     }
 
+    public HtmlString(String url, boolean isRedirect ) {
+        this.string = url;
+    }
+
     public String getString() {
         return string;
     }
+
+    public String getRedirectUrl() {
+        return string;
+    }
+
 }
