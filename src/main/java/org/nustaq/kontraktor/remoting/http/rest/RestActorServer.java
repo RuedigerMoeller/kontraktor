@@ -160,12 +160,18 @@ public class RestActorServer {
                 int finalCB = cbid;
                 final Method m = target.getActor().__getCachedMethod(call.getMethod(), target.getActor());
                 Callback cb = (r, e) -> {
-                    boolean isContinue = !Actor.isFinal(e);
+                    //FIXME: termination logic is contrary to kontraktor: only if error occurs or error = RequestProcessor.FINISHED
+                    //FIXME: response will be closed.
+                    boolean isContinue = !Actor.isFinal(e) && !(r instanceof HtmlString);
                     respPerS.count();
                     if ( !isContinue ) {
                         countDown.decrementAndGet();
                     }
                     String fin = countDown.get() <= 0 ? RequestProcessor.FINISHED : null;
+                    if ( r instanceof HtmlString ) {
+                        response.receive( new RequestResponse((HtmlString) r), fin); // pipelining does not make sense with HtmlString results
+                        return;
+                    }
                     RemoteCallEntry resCall = new RemoteCallEntry(0, finalCB, "receive", new Object[]{r, e == null ? null : ("" + e) });
                     resCall.setQueue(resCall.CBQ);
 
