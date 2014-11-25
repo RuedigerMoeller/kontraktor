@@ -3,7 +3,9 @@ package org.newstaq.kontraktor.remoting.aeron;
 import uk.co.real_logic.aeron.Aeron;
 import uk.co.real_logic.aeron.Publication;
 import uk.co.real_logic.aeron.common.CommonContext;
+import uk.co.real_logic.aeron.driver.Configuration;
 import uk.co.real_logic.aeron.driver.MediaDriver;
+import uk.co.real_logic.aeron.driver.NonBlockingFlowControl;
 import uk.co.real_logic.agrona.CloseHelper;
 import uk.co.real_logic.agrona.concurrent.UnsafeBuffer;
 
@@ -51,7 +53,7 @@ public class BasicPublisher
 
     public static void main(final String[] args) throws Exception
     {
-        System.setProperty("java.net.preferIPv4Stack","true" );
+        System.setProperty(Configuration.SENDER_MULTICAST_FLOW_CONTROL_STRATEGY_PROP_NAME, NonBlockingFlowControl.class.getName() );
         String CHANNEL = "udp://localhost@224.10.9.9:40123";
         System.out.println("Publishing to " + CHANNEL + " on stream Id " + STREAM_ID);
 
@@ -80,7 +82,7 @@ public class BasicPublisher
                     System.out.println(" yay!");
                 }
 
-                Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+                Thread.sleep(1);
             }
 
             System.out.println("Done sending.");

@@ -80,7 +80,6 @@ public class BasicSubscriber {
 
     public static void main(final String[] args) throws Exception
     {
-        System.setProperty("java.net.preferIPv4Stack","true" );
         String channel = "udp://localhost@224.10.9.9:40123";
         System.out.println("Subscribing to " + channel + " on stream Id " + BasicPublisher.STREAM_ID);
 
