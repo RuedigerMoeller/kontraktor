@@ -1,5 +1,7 @@
 package org.newstaq.kontraktor.remoting.aeron;
 
+import org.nustaq.offheap.bytez.onheap.HeapBytez;
+import org.nustaq.offheap.structs.unsafeimpl.FSTStructFactory;
 import uk.co.real_logic.aeron.Aeron;
 import uk.co.real_logic.aeron.Subscription;
 import uk.co.real_logic.aeron.common.BackoffIdleStrategy;
@@ -9,6 +11,8 @@ import uk.co.real_logic.aeron.common.concurrent.logbuffer.DataHandler;
 import uk.co.real_logic.aeron.driver.MediaDriver;
 import uk.co.real_logic.agrona.CloseHelper;
 
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -35,17 +39,27 @@ public class BasicSubscriber {
                         channel, streamId, sessionId));
     }
 
+
+    static final Executor worker = Executors.newSingleThreadExecutor();
+    static int count = 0;
+    static final byte[] b = new byte[80000];
+    static HeapBytez hp = new HeapBytez(b);
     public static DataHandler printStringMessage(final int streamId)
     {
         return (buffer, offset, length, header) ->
         {
-            final byte[] data = new byte[length];
-            buffer.getBytes(offset, data);
-
-            System.out.println(
-                    String.format(
-                            "message to stream %d from session %x (%d@%d) <<%s>>",
-                            streamId, header.sessionId(), length, offset, new String(data)));
+            buffer.getBytes(offset, b);
+            BasicPublisher.TestMsg received = FSTStructFactory.getInstance().getStructPointer(hp, 0).cast();
+            final long nanos = System.nanoTime() - received.getTimeNanos();
+            if (count++ % 1000 == 0) {
+                final BasicPublisher.TestMsg finRec = received.detach();
+                worker.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        System.out.println("receive " + finRec.getString().toString() + " latency:" + (nanos / 1000));
+                    }
+                });
+            }
         };
     }
 
@@ -80,10 +94,12 @@ public class BasicSubscriber {
 
     public static void main(final String[] args) throws Exception
     {
+        FSTStructFactory.getInstance().registerClz(BasicPublisher.TestMsg.class);
+
         String channel = "udp://localhost@224.10.9.9:40123";
         System.out.println("Subscribing to " + channel + " on stream Id " + BasicPublisher.STREAM_ID);
 
-//        BasicPublisher.useSharedMemoryOnLinux();
+        BasicPublisher.useSharedMemoryOnLinux();
 
         final MediaDriver driver = BasicPublisher.EMBEDDED_MEDIA_DRIVER ? MediaDriver.launch() : null;
 
