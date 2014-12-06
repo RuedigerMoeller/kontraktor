@@ -5,9 +5,11 @@ import org.nustaq.offheap.structs.unsafeimpl.FSTStructFactory;
 import uk.co.real_logic.aeron.Aeron;
 import uk.co.real_logic.aeron.Subscription;
 import uk.co.real_logic.aeron.common.BackoffIdleStrategy;
+import uk.co.real_logic.aeron.common.BusySpinIdleStrategy;
 import uk.co.real_logic.aeron.common.IdleStrategy;
 import uk.co.real_logic.aeron.common.concurrent.SigInt;
 import uk.co.real_logic.aeron.common.concurrent.logbuffer.DataHandler;
+import uk.co.real_logic.aeron.driver.Configuration;
 import uk.co.real_logic.aeron.driver.MediaDriver;
 import uk.co.real_logic.agrona.CloseHelper;
 
@@ -41,6 +43,7 @@ public class BasicSubscriber {
 
 
     static final Executor worker = Executors.newSingleThreadExecutor();
+
     static int count = 0;
     static final byte[] b = new byte[80000];
     static HeapBytez hp = new HeapBytez(b);
@@ -66,7 +69,7 @@ public class BasicSubscriber {
     public static Consumer<Subscription> subscriberLoop(final int limit, final AtomicBoolean running)
     {
         final IdleStrategy idleStrategy = new BackoffIdleStrategy(
-                100, 10, TimeUnit.MICROSECONDS.toNanos(1), TimeUnit.MICROSECONDS.toNanos(100));
+                1000000, 10, TimeUnit.MICROSECONDS.toNanos(1), TimeUnit.MICROSECONDS.toNanos(100));
 
         return subscriberLoop(limit, running, idleStrategy);
     }
@@ -94,16 +97,19 @@ public class BasicSubscriber {
 
     public static void main(final String[] args) throws Exception
     {
+//        System.setProperty(Configuration.MTU_LENGTH_PROP_NAME, "1496" );
         FSTStructFactory.getInstance().registerClz(BasicPublisher.TestMsg.class);
 
-        String channel = "udp://localhost@224.10.9.9:40123";
+        String channel = "udp://127.0.0.1@224.10.9.9:40123";
         System.out.println("Subscribing to " + channel + " on stream Id " + BasicPublisher.STREAM_ID);
 
-        BasicPublisher.useSharedMemoryOnLinux();
+//        BasicPublisher.useSharedMemoryOnLinux();
 
-        final MediaDriver driver = BasicPublisher.EMBEDDED_MEDIA_DRIVER ? MediaDriver.launch() : null;
+//        final MediaDriver driver = MediaDriver.launch(BasicPublisher.mctx);
+        final MediaDriver driver = MediaDriver.launch();
 
         final Aeron.Context ctx = new Aeron.Context()
+                .idleStrategy(new BusySpinIdleStrategy())
                 .newConnectionHandler(BasicSubscriber::printNewConnection)
                 .inactiveConnectionHandler(BasicSubscriber::printInactiveConnection);
 
