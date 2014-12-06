@@ -35,7 +35,7 @@ import static uk.co.real_logic.aeron.common.CommonContext.DATA_DIR_PROP_NAME;
 public class BasicPublisher
 {
 
-    // gets instrumented don't add logic to methods ..
+    // is instrumented don't add logic to methods ..
     public static class TestMsg extends FSTStruct {
 
         protected StructString string = new StructString(15);
@@ -58,6 +58,26 @@ public class BasicPublisher
         }
     }
 
+    public static void useSharedMemoryOnLinux()
+    {
+        if (false&&"Linux".equalsIgnoreCase(System.getProperty("os.name")))
+        {
+            if (null == System.getProperty(ADMIN_DIR_PROP_NAME))
+            {
+                System.setProperty(ADMIN_DIR_PROP_NAME, "/dev/shm/aeron/conductor");
+            }
+
+            if (null == System.getProperty(COUNTERS_DIR_PROP_NAME))
+            {
+                System.setProperty(COUNTERS_DIR_PROP_NAME, "/dev/shm/aeron/counters");
+            }
+
+            if (null == System.getProperty(DATA_DIR_PROP_NAME))
+            {
+                System.setProperty(DATA_DIR_PROP_NAME, "/dev/shm/aeron/data");
+            }
+        }
+    }
 
     static final int STREAM_ID = 10;
     static final long NUMBER_OF_MESSAGES = 100_000_000;
@@ -76,9 +96,11 @@ public class BasicPublisher
 
     public static void main(final String[] args) throws Exception
     {
-//        System.setProperty(Configuration.MTU_LENGTH_PROP_NAME, "1496" );
+        System.setProperty(Configuration.MTU_LENGTH_PROP_NAME, "1496" );
         String CHANNEL = "udp://127.0.0.1@224.10.9.9:40123";
         System.out.println("Publishing to " + CHANNEL + " on stream Id " + STREAM_ID);
+        useSharedMemoryOnLinux();
+
 
         FSTStructFactory.getInstance().registerClz(TestMsg.class);
         TestMsg template = new TestMsg();
@@ -87,21 +109,22 @@ public class BasicPublisher
         TestMsg toSend = allocator.newStruct(template);
         byte[] base = ((HeapBytez) toSend.getBase()).getBase();
 
-//        final MediaDriver driver = MediaDriver.launch(mctx);
-        final MediaDriver driver = MediaDriver.launch();
+        final MediaDriver driver = MediaDriver.launch(mctx);
+//        final MediaDriver driver = MediaDriver.launch();
         final Aeron.Context ctx = new Aeron.Context();
 
         Sleeper sleeper = new Sleeper();
         RateMeasure measure = new RateMeasure("msg send");
 //        try (final Aeron aeron = Aeron.connect(ctx.idleStrategy(new BusySpinIdleStrategy()));
+        int byteSize = toSend.getByteSize();
         try (final Aeron aeron = Aeron.connect(ctx);
              final Publication publication = aeron.addPublication(CHANNEL, STREAM_ID))
         {
             for (int i = 0; i < NUMBER_OF_MESSAGES; /**i++**/)
             {
                 toSend.setTimeNanos(System.nanoTime());
-                BUFFER.putBytes(0, base, 0, toSend.getByteSize() );
-                final boolean result = publication.offer(BUFFER, 0, toSend.getByteSize());
+                BUFFER.putBytes(0, base, 0, byteSize);
+                final boolean result = publication.offer(BUFFER, 0, byteSize);
                 if (!result)
                 {
 
@@ -110,7 +133,7 @@ public class BasicPublisher
                 {
                     measure.count();
                 }
-//                sleeper.sleepMicros(50);
+                sleeper.sleepMicros(50);
             }
 
             System.out.println("Done sending.");

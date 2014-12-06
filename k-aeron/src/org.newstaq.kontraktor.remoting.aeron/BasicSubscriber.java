@@ -97,16 +97,16 @@ public class BasicSubscriber {
 
     public static void main(final String[] args) throws Exception
     {
-//        System.setProperty(Configuration.MTU_LENGTH_PROP_NAME, "1496" );
+        System.setProperty(Configuration.MTU_LENGTH_PROP_NAME, "1496" );
+        BasicPublisher.useSharedMemoryOnLinux();
+
         FSTStructFactory.getInstance().registerClz(BasicPublisher.TestMsg.class);
 
         String channel = "udp://127.0.0.1@224.10.9.9:40123";
         System.out.println("Subscribing to " + channel + " on stream Id " + BasicPublisher.STREAM_ID);
 
-//        BasicPublisher.useSharedMemoryOnLinux();
-
-//        final MediaDriver driver = MediaDriver.launch(BasicPublisher.mctx);
-        final MediaDriver driver = MediaDriver.launch();
+        final MediaDriver driver = MediaDriver.launch(BasicPublisher.mctx);
+//        final MediaDriver driver = MediaDriver.launch();
 
         final Aeron.Context ctx = new Aeron.Context()
                 .idleStrategy(new BusySpinIdleStrategy())
