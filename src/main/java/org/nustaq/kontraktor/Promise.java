@@ -10,7 +10,7 @@ import java.util.function.Consumer;
  * Created by ruedi on 20.05.14.
  */
 public class Promise<T> implements Future<T> {
-    // fixme: volatile ? (assumption: lock ensures order of publish. unsure, no errors until now)
+    // fixme: volatile ? (assumption: lock ensures order of Publish. unsure, no errors until now)
     protected Object result = null;
     protected Object error;
     protected Callback resultReceiver;

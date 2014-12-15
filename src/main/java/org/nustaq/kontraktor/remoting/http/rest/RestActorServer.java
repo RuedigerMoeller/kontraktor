@@ -13,7 +13,6 @@ import org.nustaq.serialization.util.FSTUtil;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
@@ -35,17 +34,17 @@ public class RestActorServer {
      * @param <T>
      * @return
      */
-    public static <T extends Actor> T publish( Class<T> clz, String path, int port ) {
+    public static <T extends Actor> T Publish(Class<T> clz, String path, int port) {
         T service = Actors.AsActor(clz, 16000);
-        return publish(path, port, service);
+        return Publish(path, port, service);
 
     }
 
     /**
-     * static utility to publish an actor. Uses built in server.
+     * static utility to Publish an actor. Uses built in server.
      */
     static ConcurrentHashMap<Integer,RestActorServer> servers = new ConcurrentHashMap<>(); // FIXME: dirty
-    public static <T extends Actor> T publish(String path, int port, T serviceRef) {
+    public static <T extends Actor> T Publish(String path, int port, T serviceRef) {
         RestActorServer sv = getRestActorServer(port);
         if ( sv == null ) {
             // create Http service abstraction
@@ -58,7 +57,7 @@ public class RestActorServer {
             servers.put(port,sv);
         }
 
-        // publish service actor
+        // Publish service actor
         sv.publish(path,serviceRef);
         return serviceRef;
     }
@@ -371,7 +370,7 @@ public class RestActorServer {
 
 //    public static void main(String arg[]) {
 //        RestActorServer sv = new RestActorServer().map(MDesc.class);
-//        sv.publish("rest",Actors.AsActor(RESTActor.class,65000));
+//        sv.Publish("rest",Actors.AsActor(RESTActor.class,65000));
 //        sv.startOnServer(9999, Actors.AsActor(NioHttpServerImpl.class, 64000));
 //    }
 

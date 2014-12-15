@@ -22,7 +22,7 @@ public class HttpMonitor extends Actor<HttpMonitor> {
     public static HttpMonitor getInstance() {
         synchronized (HttpMonitor.class) {
             if (instance == null) {
-                instance = RestActorServer.publish( HttpMonitor.class, "monitor", DEFAULT_PORT );
+                instance = RestActorServer.Publish(HttpMonitor.class, "monitor", DEFAULT_PORT);
             }
         }
         return instance;

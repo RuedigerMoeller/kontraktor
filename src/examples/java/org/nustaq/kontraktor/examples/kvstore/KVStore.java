@@ -1,12 +1,9 @@
 package org.nustaq.kontraktor.examples.kvstore;
 
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.remoting.http.NioHttpServer;
-import org.nustaq.kontraktor.remoting.http.NioHttpServerImpl;
 import org.nustaq.kontraktor.remoting.http.rest.RestActorServer;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
 import org.nustaq.offheap.FSTAsciiStringOffheapMap;
-import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,7 +81,7 @@ public class KVStore extends Actor<KVStore> {
                 }
 
                 // create Http service abstraction
-                RestActorServer.publish("kvstore",9999,service);
+                RestActorServer.Publish("kvstore", 9999, service);
             }
         });
     }
