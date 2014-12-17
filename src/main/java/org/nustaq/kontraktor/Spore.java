@@ -14,6 +14,7 @@ import java.io.Serializable;
 public abstract class Spore<I,O> implements Serializable {
 
     Callback cb;
+    transient protected boolean finished;
 
     public Spore() {
         Callback mycb = new Callback() {
@@ -33,6 +34,7 @@ public abstract class Spore<I,O> implements Serializable {
         // override if always single result or finish can be emitted by the remote method
         // note one can send FIN to avoid the final message to visible to receiver callback/spore
         cb.receive(null, Callback.FINSILENT);
+        finished = true;
     }
 
     protected void receive(O result, Object err) {
@@ -41,5 +43,13 @@ public abstract class Spore<I,O> implements Serializable {
 
     public Callback<O> getCb() {
         return cb;
+    }
+
+    /**
+     * to be read at remote side.
+     * @return
+     */
+    public boolean isFinished() {
+        return finished;
     }
 }
