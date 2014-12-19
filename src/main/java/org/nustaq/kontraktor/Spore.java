@@ -15,6 +15,7 @@ public abstract class Spore<I,O> implements Serializable {
 
     Callback cb;
     transient protected boolean finished;
+    transient Callback<O> localCallback;
 
     public Spore() {
         Callback mycb = new Callback() {
@@ -26,8 +27,36 @@ public abstract class Spore<I,O> implements Serializable {
         this.cb = new CallbackWrapper<>(Actor.sender.get(),mycb);
     }
 
+    /**
+     * implements code to be executed at receiver side
+     * @param input
+     */
     public abstract void remote( I input );
-    public abstract void local(O result, Object error);
+
+    /**
+     * is called on sender side once results stream in from receiver side remote() method.
+     * Preferably do not override this but register a callback on sender side using 'then()'
+     * @param result
+     * @param error
+     */
+    public void local(O result, Object error) {
+        if ( localCallback != null ) {
+            localCallback.receive(result,error);
+        } else {
+            System.err.println("override local() method or set callback using then() prior sending");
+        }
+    }
+
+    /**
+     * local. Register at sending side and will recieve data streamed back from remote.
+     * Aalternatively one overriding local(..)
+     * @param cb
+     * @return
+     */
+    public Spore<I,O> then( Callback<O> cb ) {
+        localCallback = cb;
+        return this;
+    }
 
     public void finished() {
         // signal finish of execution, so remoting can clean up callback id mappings
@@ -41,12 +70,8 @@ public abstract class Spore<I,O> implements Serializable {
         cb.receive(result, err);
     }
 
-    public Callback<O> getCb() {
-        return cb;
-    }
-
     /**
-     * to be read at remote side.
+     * to be read at remote side in order to decide wether to stop e.g. iteration.
      * @return
      */
     public boolean isFinished() {
