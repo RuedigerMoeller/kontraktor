@@ -37,7 +37,7 @@ Kontraktor can be used as a model to deal with **concurrency and parallelism**, 
 * TCP remoting also stable, probably issues in corner cases (e.g. dynamically connecting/disconnecting etc.). 
 * WebSocket Remoting functionality requires unreleased project 4k [https://github.com/RuedigerMoeller/4k] .
 * Single line WebService actor publishing lacks documentation, zero test coverage (uses kson/json encoding)
-* Still unoptimized. Currently: 4-5 million messages per second in-process, ~1.0 million messages per second via TCP-Remoting/fast-serialization 2.x (ofc depends on number of arguments/message size).
+* Still unoptimized. Currently: 4-8 million messages per second in-process, ~1.0 million messages per second via TCP-Remoting/fast-serialization 2.x (ofc depends on number of arguments/message size).
 
 **2.0 documentation**
 
