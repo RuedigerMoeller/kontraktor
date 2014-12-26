@@ -54,7 +54,7 @@ Blogposts:
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>2.0-beta-2</version>
+    <version>2.0-beta-3</version>
 </dependency>
 ```
 
