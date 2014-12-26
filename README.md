@@ -56,11 +56,11 @@ Blogposts:
 </dependency>
 ```
 
-###Productive 1.x
+###Old version 1.x (Deprecated)
 
 Requires JDK 1.7+, but JDK 8 is recommended as readability is much better with lambda's and now optional "final" modifier.
 
-[Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki) is work in progress,
+[see archived Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki) is work in progress,
 
 [SampleApp - a nio http 1.0 webserver skeleton done with actors](https://github.com/RuedigerMoeller/kontraktor-samples/tree/master/src/main/java/samples/niohttp)
 
