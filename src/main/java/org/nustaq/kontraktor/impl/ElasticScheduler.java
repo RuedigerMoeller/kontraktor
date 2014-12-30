@@ -306,6 +306,11 @@ public class ElasticScheduler implements Scheduler, Monitorable {
         });
     }
 
+    @Override
+    public void runOutside(Actor actor, Runnable toRun) {
+        exec.execute(toRun);
+    }
+
     /**
      * wait for all futures to complete and return an array of fulfilled futures
      *

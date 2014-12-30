@@ -66,4 +66,6 @@ public interface Scheduler extends Monitorable{
     void tryStopThread(DispatcherThread dispatcherThread);
 
     void tryIsolate(DispatcherThread dp, Actor actorRef);
+
+    void runOutside(Actor actor, Runnable toRun);
 }
