@@ -27,6 +27,9 @@ public class Log extends Actor<Log> {
     public static void Info( Object source, String msg ) {
         Lg.info(source,msg);
     }
+    public static void Info( Object source, Throwable t, String msg ) {
+        Lg.infoLong(source,t,msg);
+    }
     public static void Warn( Object source, Throwable t, String msg ) {
         Lg.warnLong(source,t,msg);
     }

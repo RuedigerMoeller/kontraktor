@@ -229,12 +229,27 @@ public class DispatcherThread extends Thread implements Monitorable {
                 try {
                     invoke = invoke(callEntry);
                 } catch (IllegalArgumentException iae) {
-                    for (int i = 0; i < callEntry.getArgs().length; i++) {
-                        Object o = callEntry.getArgs()[i];
-                        System.out.println("arg "+i+" "+o+(o!=null?" "+o.getClass().getSimpleName():"")+",");
+                    // FIXME: boolean is translated wrong by minbin .. this fix is expensive
+                    final Class<?>[] parameterTypes = callEntry.getMethod().getParameterTypes();
+                    final Object[] args = callEntry.getArgs();
+                    if ( args.length == parameterTypes.length ) {
+                        for (int i = 0; i < args.length; i++) {
+                            Object arg = args[i];
+                            if ( (parameterTypes[i] == boolean.class || parameterTypes[i] == Boolean.class) &&
+                                 arg instanceof Byte ) {
+                                args[i] = ((Byte) arg).intValue()!=0;
+                            }
+                        }
+                        invoke = invoke(callEntry);
+                    } else {
+                        System.out.println("mismatch when invoking method " + callEntry);
+                        for (int i = 0; i < callEntry.getArgs().length; i++) {
+                            Object o = callEntry.getArgs()[i];
+                            System.out.println("arg " + i + " " + o + (o != null ? " " + o.getClass().getSimpleName() : "") + ",");
+                        }
+                        System.out.println();
+                        throw iae;
                     }
-                    System.out.println();
-                    throw iae;
                 }
                 if (callEntry.getFutureCB() != null) {
                     final Future futureCB = callEntry.getFutureCB();   // the future of caller side
@@ -269,8 +284,10 @@ public class DispatcherThread extends Thread implements Monitorable {
                 if ( e instanceof InvocationTargetException ) {
                     e = e.getCause();
                 }
-                if (callEntry.getFutureCB() != null)
+                if (callEntry.getFutureCB() != null) {
+                    Log.Info(this,e,"returned catched exception to future");
                     callEntry.getFutureCB().receive(null, e);
+                }
                 else
                     Log.Warn(this,e,"");
             }
