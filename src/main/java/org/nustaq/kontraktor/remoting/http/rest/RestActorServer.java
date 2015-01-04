@@ -11,6 +11,7 @@ import org.nustaq.kontraktor.util.RateMeasure;
 import org.nustaq.serialization.util.FSTUtil;
 
 import java.lang.reflect.Method;
+import java.net.URLDecoder;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -138,6 +139,7 @@ public class RestActorServer {
     protected void enqueueCall(PublishedActor target, String content, KontraktorHttpRequest req, Callback<RequestResponse> response) {
         try {
             HttpMsgCoder coder = target.getCoder(req.getAccept()) == null ? target.getCoder("text/json") : target.getCoder(req.getAccept());
+            content = URLDecoder.decode(content, "UTF-8");
             final RemoteCallEntry[] calls = coder.decodeFrom(content, req);
             // special name for http redirect. Quirky, however let's be practical ;)
             // method is expected to have no callbacks in argument and to return
