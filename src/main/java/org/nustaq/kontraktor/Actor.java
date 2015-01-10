@@ -26,6 +26,8 @@ package org.nustaq.kontraktor;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
+import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.util.TicketMachine;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
@@ -404,9 +406,26 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
         return method;
     }
 
+    protected TicketMachine __ticketMachine;
+
+    protected void serialOn( Object transActionKey, Runnable toRun ) {
+        if ( __ticketMachine == null ) {
+            __ticketMachine = new TicketMachine();
+        }
+        __ticketMachine.getTicket(transActionKey).onResult(finSig -> {
+            try {
+                toRun.run();
+            } catch (Throwable th) {
+                Log.Warn(Actor.this,th);
+            }
+        });
+    }
+
     /**
-     * tell the execution machinery to throw an exception in case the actor is blocked trying to
-     * put a message on an overloaded actor's mailbox/queue.
+     * tell the execution machinery to throw an ActorBlockedException in case the actor is blocked trying to
+     * put a message on an overloaded actor's mailbox/queue. Useful e.g. when dealing with actors representing
+     * a remote client (might block or lag due to connection issues).
+     *
      * @param b
      * @return
      */

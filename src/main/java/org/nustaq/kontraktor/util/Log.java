@@ -37,7 +37,7 @@ public class Log extends Actor<Log> {
         Lg.warnLong(source,null,msg);
     }
 
-    public static void Warn( Object source, Exception ex ) {
+    public static void Warn( Object source, Throwable ex ) {
         Lg.warnLong(source,ex,null);
     }
 

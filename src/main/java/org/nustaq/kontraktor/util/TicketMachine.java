@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.Promise;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -45,7 +46,7 @@ public class TicketMachine {
     public Future<Future> getTicket( final Object channelKey ) {
         List<Ticket> futures = tickets.get(channelKey);
         if ( futures == null ) {
-            futures = new LinkedList<>();
+            futures = new ArrayList<>(3);
             tickets.put(channelKey,futures);
         }
 
@@ -77,9 +78,7 @@ public class TicketMachine {
     private void checkNext(Object channelKey, List<Ticket> futures, Ticket ticket) {
         if ( futures.size() == 0 ) {
             tickets.remove(channelKey);
-//            System.out.println("**remove "+channelKey);
         } else {
-//            System.out.println("continue "+channelKey);
             Ticket nextTicket = futures.get(0);
             nextTicket.signalProcessingStart.receive(nextTicket.signalProcessingFinished, null);
         }
