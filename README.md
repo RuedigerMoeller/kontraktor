@@ -18,6 +18,25 @@ Kontraktor can be used as a model to deal with **concurrency and parallelism**, 
 
 [*Note:* A plan is something which has not been done yet and *might* be done in the future ;) ] 
 
+**2.0 documentation**
+
+check wiki.
+
+Blogposts:
+
+* [Solving "Dining Philosophers problem" with (distributed) actors](http://java-is-the-new-c.blogspot.de/2014/09/breaking-habit-solving-dining.html)
+* [A persistent KeyValue Server in 40 lines and a sad fact](http://java-is-the-new-c.blogspot.de/2014/12/a-persistent-keyvalue-server-in-40.html)
+* [Alternatives to Executors when scheduling Tasks/Actors](http://java-is-the-new-c.blogspot.de/2014/10/alternatives-to-executors-when.html)
+
+
+```xml
+<dependency>
+    <groupId>de.ruedigermoeller</groupId>
+    <artifactId>kontraktor</artifactId>
+    <version>2.0-beta-4</version>
+</dependency>
+```
+
 
 ###Changes 2.0 (beta)
 
@@ -39,24 +58,6 @@ Kontraktor can be used as a model to deal with **concurrency and parallelism**, 
 * Single line WebService actor publishing lacks documentation, zero test coverage (uses kson/json encoding)
 * Still unoptimized. Currently: 4-8 million messages per second in-process, ~1.0 million messages per second via TCP-Remoting/fast-serialization 2.x (ofc depends on number of arguments/message size).
 
-**2.0 documentation**
-
-check wiki.
-
-Blogposts:
-
-* [Solving "Dining Philosophers problem" with (distributed) actors](http://java-is-the-new-c.blogspot.de/2014/09/breaking-habit-solving-dining.html)
-* [A persistent KeyValue Server in 40 lines and a sad fact](http://java-is-the-new-c.blogspot.de/2014/12/a-persistent-keyvalue-server-in-40.html)
-* [Alternatives to Executors when scheduling Tasks/Actors](http://java-is-the-new-c.blogspot.de/2014/10/alternatives-to-executors-when.html)
-
-
-```xml
-<dependency>
-    <groupId>de.ruedigermoeller</groupId>
-    <artifactId>kontraktor</artifactId>
-    <version>2.0-beta-3</version>
-</dependency>
-```
 
 ###Old version 1.x (Deprecated)
 
