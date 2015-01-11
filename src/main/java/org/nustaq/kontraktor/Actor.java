@@ -36,6 +36,8 @@ import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
@@ -408,13 +410,22 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
 
     protected TicketMachine __ticketMachine;
 
-    protected void serialOn( Object transActionKey, Runnable toRun ) {
+    /**
+     * enforce serial execution of asynchronous tasks. The 'toRun' closure must call '.signal()' on the given future
+     * to signal his processing has finished and the next item locked on 'transactionKey' can be processed.
+     *
+     * @param transactionKey
+     * @param toRun
+     */
+    protected void serialOn( Object transactionKey, Consumer<Future> toRun ) {
+        if ( isProxy() )
+            throw new RuntimeException("cannot call on actor proxy object");
         if ( __ticketMachine == null ) {
             __ticketMachine = new TicketMachine();
         }
-        __ticketMachine.getTicket(transActionKey).onResult(finSig -> {
+        __ticketMachine.getTicket(transactionKey).onResult(finSig -> {
             try {
-                toRun.run();
+                toRun.accept(finSig);
             } catch (Throwable th) {
                 Log.Warn(Actor.this,th);
             }
