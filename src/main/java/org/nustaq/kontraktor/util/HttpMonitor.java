@@ -16,7 +16,7 @@ import java.util.HashMap;
  */
 public class HttpMonitor extends Actor<HttpMonitor> {
 
-    public static int DEFAULT_PORT = 7777;
+    public static int DEFAULT_PORT = 9999;
 
     static HttpMonitor instance;
     public static HttpMonitor getInstance() {
