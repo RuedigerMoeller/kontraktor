@@ -185,7 +185,8 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
             //don't call remoteRefStopped here as its designed to be overridden
             removeRemoteActor(actor);
             actor.getActorRef().__stopped = true;
-            actor.getActor().__stopped = true;
+            if ( actor.getActor() != null )
+                actor.getActor().__stopped = true;
         });
     }
 

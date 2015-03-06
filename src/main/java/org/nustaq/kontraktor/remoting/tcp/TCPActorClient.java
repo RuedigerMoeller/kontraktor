@@ -27,7 +27,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
                 client.connect();
                 res.receive(client.getFacadeProxy(), null);
             } catch (IOException e) {
-                Log.Warn(TCPActorClient.class,e,"");
+                Log.Warn(TCPActorClient.class,null,""+e);
                 res.receive(null, e);
             }
         }, "connect "+client.getDescriptionString()).start();
@@ -61,10 +61,8 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
             client = new ActorClient();
             connected = true;
             facadeProxy.__addRemoteConnection(client);
-        } catch (IOException ioe) {
+        } catch (Exception ioe) {
             throw ioe;
-        } catch (Exception ex) {
-            Log.Info(this,"connection to " + getDescriptionString() + " failed");
         }
     }
 
