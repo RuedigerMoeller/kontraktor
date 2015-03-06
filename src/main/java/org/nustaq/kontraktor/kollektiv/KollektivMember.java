@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.kloud;
+package org.nustaq.kontraktor.kollektiv;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
@@ -8,6 +8,10 @@ import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,12 +19,13 @@ import java.util.List;
 /**
  * Created by moelrue on 3/6/15.
  */
-public class KloudSlave extends Actor<KloudSlave> {
+public class KollektivMember extends Actor<KollektivMember> {
 
-    String tmpDir = "./tmp";
+    String tmpDir = "/tmp";
     List<String> masterAddresses;
-    HashMap<String,KloudMaster> masters;
+    HashMap<String,KollektivMaster> masters;
     String nodeId = "SL"+System.currentTimeMillis()+":"+(System.nanoTime()&0xffff);
+    String clazzDirBase = "/tmp";
 
     public void $init() {
         List<String> addr = new ArrayList<>();
@@ -30,7 +35,6 @@ public class KloudSlave extends Actor<KloudSlave> {
 
     public void $initWithOptions(List<String> masterAddresses) {
         this.masterAddresses = masterAddresses;
-        new File(tmpDir).mkdirs();
         masters = new HashMap<>();
         $startHB();
     }
@@ -43,13 +47,13 @@ public class KloudSlave extends Actor<KloudSlave> {
                 String[] split = s.split(":");
                 try {
                     TCPActorClient.Connect(
-                        KloudMaster.class,
+                        KollektivMaster.class,
                         split[0], Integer.parseInt(split[1]),
                         disconnectedRef -> self().$refDisconnected(s,disconnectedRef)
                     )
                     .onResult(actor -> {
                         masters.put(s, actor);
-                        actor.$registerSlave(new SlaveDescription(nodeId), self());
+                        actor.$registerMember(new MemberDescription(nodeId), self());
                     })
                     .onError(err -> System.out.println("failed to connect " + s));
                 } catch (IOException e) {
@@ -71,12 +75,31 @@ public class KloudSlave extends Actor<KloudSlave> {
     }
 
     public Future $defineNameSpace( ActorAppBundle bundle ) {
-        System.out.println("define name space "+bundle.getName());
+        System.out.println("define name space "+bundle.getName()+" size "+bundle.getSizeKB() );
+        File base = new File(tmpDir + File.separator + bundle.getName());
+        base.mkdirs();
+        bundle.getResources().entrySet().forEach( entry -> {
+            if ( entry.getKey().endsWith(".jar") ) {
+                String name = new File(entry.getKey()).getName();
+                try {
+                    Files.write( Paths.get( base.getAbsolutePath(), name ), entry.getValue().bytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING );
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                try {
+                    new File(base.getAbsolutePath() + File.separator+ entry.getKey() ).getParentFile().mkdirs();
+                    Files.write( Paths.get( base.getAbsolutePath(), entry.getKey() ), entry.getValue().bytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING );
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
         return new Promise<>(null);
     }
 
     public static void main( String a[] ) {
-        KloudSlave sl = Actors.AsActor(KloudSlave.class);
+        KollektivMember sl = Actors.AsActor(KollektivMember.class);
         sl.$init();
         sl.$refDisconnected(null,null);
     }

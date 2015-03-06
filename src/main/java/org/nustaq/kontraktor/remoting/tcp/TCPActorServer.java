@@ -10,6 +10,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collector;
 
 /**
  * Created by ruedi on 08.08.14.
@@ -25,10 +27,15 @@ public class TCPActorServer {
 
     protected List<ActorServerClientConnection> connections = new ArrayList<>();
 
-    public static TCPActorServer Publish(Actor act, int port) throws IOException {
+    public static TCPActorServer Publish(Actor act, int port ) throws IOException {
+        return Publish(act,port,null);
+    }
+
+    public static TCPActorServer Publish(Actor act, int port, Consumer<Actor> closeListener ) throws IOException {
         TCPActorServer server = new TCPActorServer((ActorProxy) act, port);
         new Thread( ()-> {
             try {
+                server.closeListener = closeListener;
                 server.start();
             } catch (IOException e) {
                 Log.Warn(TCPActorServer.class,e,"");
@@ -37,6 +44,7 @@ public class TCPActorServer {
         return server;
     }
 
+    Consumer<Actor> closeListener;
     Actor facadeActor;
     int port;
     ServerSocket welcomeSocket;
@@ -83,6 +91,7 @@ public class TCPActorServer {
             super();
             this.channel = new TCPSocket(s,conf);
             this.facade = facade;
+            this.disconnectHandler = closeListener;
         }
 
         public void start() {

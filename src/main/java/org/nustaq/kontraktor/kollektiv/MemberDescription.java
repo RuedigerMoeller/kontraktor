@@ -1,15 +1,15 @@
-package org.nustaq.kontraktor.remoting.kloud;
+package org.nustaq.kontraktor.kollektiv;
 
 import java.io.Serializable;
 
 /**
  * Created by moelrue on 3/6/15.
  */
-public class SlaveDescription implements Serializable {
+public class MemberDescription implements Serializable {
 
     String nodeId;
 
-    public SlaveDescription(String nodeId) {
+    public MemberDescription(String nodeId) {
         this.nodeId = nodeId;
     }
 
@@ -27,4 +27,5 @@ public class SlaveDescription implements Serializable {
                 "nodeId='" + nodeId + '\'' +
                 '}';
     }
+
 }
