@@ -12,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 08.08.14.
@@ -41,8 +43,9 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     public ThreadLocal<ObjectSocket> currentObjectSocket = new ThreadLocal<>();
     protected volatile boolean terminated = false;
     BiFunction<Actor,String,Boolean> remoteCallInterceptor;
+    protected Consumer<Actor> disconnectHandler;
 
-	public RemoteRefRegistry() {
+    public RemoteRefRegistry() {
 		this(null);
 	}
 
@@ -182,6 +185,8 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 
     protected void stopRemoteRefs() {
         new ArrayList<>(remoteActors).forEach((actor) -> {
+            if ( disconnectHandler != null )
+                disconnectHandler.accept(actor);
             //don't call remoteRefStopped here as its designed to be overridden
             removeRemoteActor(actor);
             actor.getActorRef().__stopped = true;
@@ -362,4 +367,11 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 
     public abstract Actor getFacadeProxy();
 
+    public void setDisconnectHandler(Consumer<Actor> disconnectHandler) {
+        this.disconnectHandler = disconnectHandler;
+    }
+
+    public Consumer<Actor> getDisconnectHandler() {
+        return disconnectHandler;
+    }
 }

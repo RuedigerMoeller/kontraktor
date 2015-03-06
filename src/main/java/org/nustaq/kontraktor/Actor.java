@@ -277,15 +277,18 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
      * can be called to check actor code is actually single threaded.
      * By using custom callbacks/other threading bugs accidental multi threading
      * can be detected that way.
-     * Note that in case of dynamic scheduling (ElasticScheduler with #threads > 1)
-     * this will give false alarm.
+     *
+     * WARNING: only feasable when running in dev on single threaded scheduler (ElasticScheduler with a single thread),
+     * else false alarm might occur
      */
     protected final void checkThread() {
-        if (_t==null) {
-            _t = Thread.currentThread();
-        } else {
-            if ( _t != Thread.currentThread() ) {
-                throw new RuntimeException("Wrong Thread");
+        if (getScheduler().getMaxThreads() == 1 ) {
+            if (_t == null) {
+                _t = Thread.currentThread();
+            } else {
+                if (_t != Thread.currentThread()) {
+                    throw new RuntimeException("Wrong Thread");
+                }
             }
         }
     }

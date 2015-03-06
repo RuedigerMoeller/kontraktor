@@ -140,6 +140,9 @@ public class ActorProxyFactory {
         for (int i = 0; i < methods.length; i++) {
             CtMethod method = methods[i];
             CtMethod originalMethod = method;
+            if ( method.getName().equals("$refDisconnected")) {
+                int xx = 1;
+            }
             if (method.getName().equals("getActor")) {
                 ClassMap map = new ClassMap();
                 map.put(Actor.class.getName(),Actor.class.getName());
@@ -147,6 +150,7 @@ public class ActorProxyFactory {
             } else {
                 ClassMap map = new ClassMap();
                 map.fix(orig);
+                map.fix(Actor.class.getName());
                 method = new CtMethod(method, cc, map);
             }
 

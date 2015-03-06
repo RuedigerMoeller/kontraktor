@@ -36,21 +36,34 @@ public class KloudSlave extends Actor<KloudSlave> {
     }
 
     public void $startHB() {
+        checkThread();
         for (int i = 0; i < masterAddresses.size(); i++) {
             String s = masterAddresses.get(i);
             if ( masters.get(s) == null ) {
                 String[] split = s.split(":");
                 try {
-                    TCPActorClient.Connect(KloudMaster.class, split[0], Integer.parseInt(split[1])).onResult(actor -> {
-                        masters.put(s,actor);
-                        actor.$registerSlave( new SlaveDescription(nodeId),self());
-                    }).onError( err -> System.out.println("failed to connect "+s) );
+                    TCPActorClient.Connect(
+                        KloudMaster.class,
+                        split[0], Integer.parseInt(split[1]),
+                        disconnectedRef -> self().$refDisconnected(s,disconnectedRef)
+                    )
+                    .onResult(actor -> {
+                        masters.put(s, actor);
+                        actor.$registerSlave(new SlaveDescription(nodeId), self());
+                    })
+                    .onError(err -> System.out.println("failed to connect " + s));
                 } catch (IOException e) {
                     System.out.println("could not connect "+e);
                 }
             }
         }
-        delayed( 3000, () -> self().$startHB() );
+        delayed(3000, () -> self().$startHB());
+    }
+
+    public void $refDisconnected(String address, Actor disconnectedRef) {
+        checkThread();
+        System.out.println("actor disconnected "+disconnectedRef+" address:"+address);
+        masters.remove(address);
     }
 
     public Future<Actor> $start( String clazzname, String nameSpace ) {
@@ -58,12 +71,14 @@ public class KloudSlave extends Actor<KloudSlave> {
     }
 
     public Future $defineNameSpace( ActorAppBundle bundle ) {
+        System.out.println("define name space "+bundle.getName());
         return new Promise<>(null);
     }
 
     public static void main( String a[] ) {
         KloudSlave sl = Actors.AsActor(KloudSlave.class);
         sl.$init();
+        sl.$refDisconnected(null,null);
     }
 
 }

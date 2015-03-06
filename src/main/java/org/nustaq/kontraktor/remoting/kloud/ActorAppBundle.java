@@ -22,7 +22,8 @@ public class ActorAppBundle implements Serializable {
     List<CPEntry> classPath;
     String name;
 
-    public ActorAppBundle() {
+    public ActorAppBundle(String name) {
+        this.name = name;
     }
 
     public ActorAppBundle(String name, List<CPEntry> classPath ) {

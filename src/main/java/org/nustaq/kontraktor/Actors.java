@@ -45,6 +45,22 @@ public class Actors {
     }
 
     /**
+     * in case called from an actor, wraps the given interface instance into a proxy such that
+     * a calls on the interface get schedulled on the actors thread (avoids accidental multithreading
+     * when handing out callback/listener interfaces from an actor)
+     * @param anInterface
+     * @param <T>
+     * @return
+     */
+    public static <T> T InThread( T anInterface ) {
+        Actor sender = Actor.sender.get();
+        if ( sender != null )
+            return sender.getScheduler().inThread(sender.getActor(),anInterface);
+        else
+            return anInterface;
+    }
+
+    /**
      * messages that have been dropped or have been sent to stopped actors
      *
      * @return queue of dead letters. Note: only strings are recorded to avoid accidental references.

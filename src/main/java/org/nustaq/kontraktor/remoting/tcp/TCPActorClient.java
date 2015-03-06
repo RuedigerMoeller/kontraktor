@@ -9,6 +9,8 @@ import org.nustaq.kontraktor.util.Log;
 
 import java.io.*;
 import java.net.SocketException;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 08.08.14.
@@ -20,8 +22,18 @@ import java.net.SocketException;
 public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
 
     public static <AC extends Actor> Future<AC> Connect( Class<AC> clz, String host, int port ) throws IOException {
+        return Connect(clz,host,port,null);
+    }
+
+    public static <AC extends Actor> Future<AC> Connect( Class<AC> clz, String host, int port, Consumer<Actor> disconnectHandler ) throws IOException {
+        if ( disconnectHandler != null ) {
+            disconnectHandler = Actors.InThread(disconnectHandler);
+        }
         Promise<AC> res = new Promise<>();
         TCPActorClient<AC> client = new TCPActorClient<>( clz, host, port);
+        if ( disconnectHandler != null ) {
+            client.setDisconnectHandler(disconnectHandler);
+        }
         new Thread(() -> {
             try {
                 client.connect();
