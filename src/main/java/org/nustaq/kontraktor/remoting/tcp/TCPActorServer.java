@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.util.Log;
 
@@ -10,6 +11,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.stream.Collector;
 
@@ -27,20 +31,32 @@ public class TCPActorServer {
 
     protected List<ActorServerClientConnection> connections = new ArrayList<>();
 
-    public static TCPActorServer Publish(Actor act, int port ) throws IOException {
+    public static TCPActorServer Publish(Actor act, int port ) throws Exception {
         return Publish(act,port,null);
     }
 
-    public static TCPActorServer Publish(Actor act, int port, Consumer<Actor> closeListener ) throws IOException {
+    public static TCPActorServer Publish(Actor act, int port, Consumer<Actor> closeListener ) throws Exception {
         TCPActorServer server = new TCPActorServer((ActorProxy) act, port);
+        Promise success = new Promise();
         new Thread( ()-> {
             try {
                 server.closeListener = closeListener;
                 server.start();
+                success.receive("started", null);
             } catch (IOException e) {
-                Log.Warn(TCPActorServer.class,e,"");
+                success.receive(null,e);
             }
         }, "acceptor "+port ).start();
+        CountDownLatch latch = new CountDownLatch(1); // bad style, but won't change api now
+        AtomicReference<Object> res = new AtomicReference<>(null);
+        success.then( (r,e) -> { latch.countDown(); res.set(e); } );
+        try {
+            latch.await(10000, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        if ( res.get() instanceof Exception )
+            throw (Exception) res.get();
         return server;
     }
 

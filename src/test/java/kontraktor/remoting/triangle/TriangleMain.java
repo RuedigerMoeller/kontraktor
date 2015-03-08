@@ -12,7 +12,7 @@ import java.io.IOException;
  */
 public class TriangleMain {
 
-    public static void main(String arg[]) throws IOException {
+    public static void main(String arg[]) throws Exception {
         final TCPActorServer server = TCPActorServer.Publish(Actors.AsActor(CenterActor.class), 7777);
 
         Future<CenterActor> outer1 = TCPActorClient.Connect(CenterActor.class, "localhost", 7777);

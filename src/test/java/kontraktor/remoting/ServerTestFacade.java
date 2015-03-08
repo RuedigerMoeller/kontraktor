@@ -31,8 +31,8 @@ public class ServerTestFacade extends Actor<ServerTestFacade> {
     }
 
 
-    public static void main(String arg[]) throws IOException {
-        TCPActorServer.Publish( Actors.AsActor(ServerTestFacade.class), 7777 );
+    public static void main(String arg[]) throws Exception {
+        TCPActorServer.Publish(Actors.AsActor(ServerTestFacade.class), 7777);
     }
 
 }

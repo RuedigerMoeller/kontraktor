@@ -1,19 +1,20 @@
 package org.nustaq.kontraktor.kollektiv;
 
-import com.lukehutch.fastclasspathscanner.FastClasspathScanner;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -23,7 +24,6 @@ public class KollektivMaster extends Actor<KollektivMaster> {
 
     List<KollektivMember> members;
     ActorAppBundle cachedBundle;
-    String appName = "Sample";
 
     public void $init() {
         members = new ArrayList<>();
@@ -91,10 +91,54 @@ public class KollektivMaster extends Actor<KollektivMaster> {
         System.out.println("member disconnected "+closedActor+" members remaining:"+members.size());
     }
 
-    public static void main(String arg[]) throws IOException {
+    public Future $onMemberMoreThan(int i) {
+        Promise p = new Promise();
+        AtomicReference<Runnable> toRun = new AtomicReference<>();
+        toRun.set( ()-> {
+            if (members.size() >= i) {
+                p.signal();
+            } else {
+                delayed(1000,toRun.get());
+            }
+        });
+        delayed(100, toRun.get());
+        return p;
+    }
+
+    public Future<Actor> $run(Class<TestActor> testActorClass, String nameSpace) {
+        if ( members.size() == 0 ) {
+            return new Promise<>(null,"no members avaiable");
+        }
+        Promise res = new Promise<>();
+        members.get(0).$run(testActorClass.getName(), nameSpace).then( (r, e) -> {
+            res.receive(r, e);
+        });
+        return res;
+    }
+
+    public static void main(String arg[]) throws Exception {
         KollektivMaster cm = Actors.AsActor(KollektivMaster.class);
         cm.$init();
-        TCPActorServer.Publish( cm, 3456, closedActor -> cm.$memberDisconnected(closedActor) );
+        try {
+            TCPActorServer.Publish(cm, 3456, closedActor -> cm.$memberDisconnected(closedActor));
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        cm.$onMemberMoreThan(1).onResult(dummy -> {
+            cm.$run(TestActor.class, "Hello")
+                    .onError(e -> {
+                        System.out.println(e);
+                    })
+                    .onResult(act -> {
+                        TestActor tact = (TestActor) act;
+                        System.out.println(tact);
+                        tact.$init();
+                        tact.$method("Huhu Hoho").onResult( res -> System.out.println(res) );
+                    });
+
+        });
     }
+
 
 }

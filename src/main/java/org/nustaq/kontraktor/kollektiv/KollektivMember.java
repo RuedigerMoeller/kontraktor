@@ -8,6 +8,11 @@ import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
 import java.nio.file.Paths;
@@ -26,6 +31,8 @@ public class KollektivMember extends Actor<KollektivMember> {
     HashMap<String,KollektivMaster> masters;
     String nodeId = "SL"+System.currentTimeMillis()+":"+(System.nanoTime()&0xffff);
     String clazzDirBase = "/tmp";
+    HashMap<String, ActorAppBundle> apps = new HashMap<>();
+
 
     public void $init() {
         List<String> addr = new ArrayList<>();
@@ -70,31 +77,67 @@ public class KollektivMember extends Actor<KollektivMember> {
         masters.remove(address);
     }
 
-    public Future<Actor> $start( String clazzname, String nameSpace ) {
-        return new Promise<>(null);
+    public static class ActorBootstrap {
+
+        public Actor actor;
+
+        public ActorBootstrap(Class actor) {
+            this.actor = Actors.AsActor(actor);
+        }
+
+    }
+
+    public Future<Actor> $run(String clazzname, String nameSpace) {
+        Promise res = new Promise();
+        try {
+            ActorAppBundle actorAppBundle = apps.get(nameSpace);
+            MemberClassLoader loader = actorAppBundle.getLoader();
+            Class<?> actorClazz = loader.loadClass(clazzname);
+            Class<?> bootstrap = loader.loadClass(ActorBootstrap.class.getName());
+            Object actorBS = bootstrap.getConstructor(Class.class).newInstance(actorClazz);
+            Field f = actorBS.getClass().getField("actor");
+            Actor resAct = (Actor) f.get(actorBS);
+            res.receive(resAct,null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            res.receive(null,e);
+        }
+        return res;
     }
 
     public Future $defineNameSpace( ActorAppBundle bundle ) {
-        System.out.println("define name space "+bundle.getName()+" size "+bundle.getSizeKB() );
-        File base = new File(tmpDir + File.separator + bundle.getName());
-        base.mkdirs();
-        bundle.getResources().entrySet().forEach( entry -> {
-            if ( entry.getKey().endsWith(".jar") ) {
-                String name = new File(entry.getKey()).getName();
-                try {
-                    Files.write( Paths.get( base.getAbsolutePath(), name ), entry.getValue().bytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING );
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                try {
-                    new File(base.getAbsolutePath() + File.separator+ entry.getKey() ).getParentFile().mkdirs();
-                    Files.write( Paths.get( base.getAbsolutePath(), entry.getKey() ), entry.getValue().bytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING );
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+        try {
+            ActorAppBundle actorAppBundle = apps.get(bundle.getName());
+            if ( actorAppBundle != null ) {
+                actorAppBundle.getMainActor().$stop();
             }
-        });
+            System.out.println("define name space "+bundle.getName()+" size "+bundle.getSizeKB() );
+            File base = new File(tmpDir + File.separator + bundle.getName());
+            base.mkdirs();
+            bundle.getResources().entrySet().forEach(entry -> {
+                if (entry.getKey().endsWith(".jar")) {
+                    String name = new File(entry.getKey()).getName();
+                    try {
+                        Files.write(Paths.get(base.getAbsolutePath(), name), entry.getValue().bytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    try {
+                        new File(base.getAbsolutePath() + File.separator + entry.getKey()).getParentFile().mkdirs();
+                        Files.write(Paths.get(base.getAbsolutePath(), entry.getKey()), entry.getValue().bytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            bundle.setBaseDir(base.getAbsolutePath());
+            MemberClassLoader memberClassLoader = new MemberClassLoader(bundle, new URL[]{base.toURL()}, getClass().getClassLoader());
+            bundle.setLoader(memberClassLoader);
+            apps.put(bundle.getName(),bundle);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
         return new Promise<>(null);
     }
 
