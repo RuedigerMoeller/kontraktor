@@ -1,7 +1,7 @@
 package org.nustaq.kontraktor.impl;
 
-import org.nustaq.kontraktor.*;
 import io.jaq.mpsc.MpscConcurrentQueue;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.util.Log;
 
