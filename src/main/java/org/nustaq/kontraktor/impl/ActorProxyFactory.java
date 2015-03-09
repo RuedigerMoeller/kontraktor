@@ -8,13 +8,11 @@ import javassist.bytecode.AccessFlag;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.Externalizable;
+import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -51,7 +49,7 @@ public class ActorProxyFactory {
 
     public <T> T instantiateProxy(Actor target) {
         try {
-            Class proxyClass = createProxyClass(target.getClass());
+            Class proxyClass = createProxyClass(target.getClass(), target.getClass().getClassLoader() );
             Constructor[] constructors = proxyClass.getConstructors();
             T instance = null;
             try {
@@ -81,13 +79,22 @@ public class ActorProxyFactory {
         }
     }
 
-    protected <T> Class<T> createProxyClass(Class<T> clazz) throws Exception {
+    protected <T> Class<T> createProxyClass(Class<T> clazz, ClassLoader loader) throws Exception {
         synchronized (generatedProxyClasses) {
             String proxyName = clazz.getName() + "_ActorProxy";
             String key = clazz.getName();
             Class ccClz = generatedProxyClasses.get(key);
             if (ccClz == null) {
                 ClassPool pool = ClassPool.getDefault();
+                if ( loader instanceof ClassPathProvider ) {
+                    ClassPool local = new ClassPool(pool);
+                    List<File> classPath = ((ClassPathProvider) loader).getClassPath();
+                    for (int i = 0; i < classPath.size(); i++) {
+                        File file = classPath.get(i);
+                        local.appendClassPath(file.getAbsolutePath());
+                    }
+                    pool = local;
+                }
                 CtClass cc = null;
                 try {
                     cc = pool.getCtClass(proxyName);

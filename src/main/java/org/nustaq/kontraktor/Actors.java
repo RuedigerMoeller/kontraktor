@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -193,6 +194,38 @@ public class Actors {
 
     public ActorProxyFactory getFactory() {
         return factory;
+    }
+
+    /**
+     * block until future returns. Warning: this can be called only from non-actor code as
+     * it blocks the calling thread. If called from inside an actor, an exception is thrown.
+     * Sometimes this is required/handy when setting up stuff or interoperating with non-actorish
+     * old-school multithreading code.
+     *
+     * if the future returns an error, an exception is thrown.
+     *
+     * @param fut
+     * @param <T>
+     * @return
+     */
+    public <T> T sync( Future<T> fut ) {
+        if ( Actor.sender.get() != null )
+            throw new RuntimeException("cannot call from within actor thread");
+        CountDownLatch latch = new CountDownLatch(1);
+        fut.then( (r,e) -> latch.countDown() );
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        if ( fut.getError() != null ) {
+            if ( fut.getError() instanceof RuntimeException )
+                throw (RuntimeException) fut.getError();
+            if ( fut.getError() instanceof Throwable )
+                throw new RuntimeException((Throwable) fut.getError());
+            throw new RuntimeException(""+fut.getError());
+        }
+        return fut.getResult();
     }
 
     protected Actor makeProxy(Class<? extends Actor> clz, DispatcherThread disp, int qs) {
