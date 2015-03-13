@@ -45,14 +45,14 @@ public class Log extends Actor<Log> {
         public void msg(Thread t, int severity, Object source, Throwable ex, String msg);
     }
 
-    LogWrapper logger = new LogWrapper() {
+    LogWrapper defLogger = new LogWrapper() {
         DateFormat formatter = new SimpleDateFormat("HH:mm:ss:SSS");
         @Override
         public void msg(Thread t, int sev, Object source, Throwable ex, String msg) {
             if ( severity <= sev ) {
                 if ( source == null )
-                    source = "NULL";
-                else
+                    source = "null";
+                else if ( source instanceof String == false )
                     source = source.getClass().getSimpleName();
                 String tname = t == null ? "-" : t.getName();
                 String svString = "";
@@ -72,10 +72,16 @@ public class Log extends Actor<Log> {
         }
     };
 
+    LogWrapper logger = defLogger;
+
     int severity = 0;
 
-    public void $init( LogWrapper delegate ) {
+    public void $setLogWrapper(LogWrapper delegate) {
         this.logger = delegate;
+    }
+
+    public void $resetToSysout() {
+        this.logger = defLogger;
     }
 
     public void $setSeverity(int severity) {
@@ -87,23 +93,23 @@ public class Log extends Actor<Log> {
     //
 
     @CallerSideMethod public void infoLong(Object source, Throwable ex, String msg) {
-        $msg(Thread.currentThread(), INFO, source, ex, msg);
+        self().$msg(Thread.currentThread(), INFO, source, ex, msg);
     }
 
     @CallerSideMethod public void info( Object source, String msg ) {
-        $msg(Thread.currentThread(), INFO, source, null, msg);
+        self().$msg(Thread.currentThread(), INFO, source, null, msg);
     }
 
     @CallerSideMethod public void warnLong( Object source, Throwable ex, String msg ) {
-        $msg(Thread.currentThread(), WARN, source, ex, msg);
+        self().$msg(Thread.currentThread(), WARN, source, ex, msg);
     }
 
     @CallerSideMethod public void warn( Object source, String msg ) {
-        $msg(Thread.currentThread(), WARN, source, null, msg);
+        self().$msg(Thread.currentThread(), WARN, source, null, msg);
     }
 
     @CallerSideMethod public void error( Object source, Throwable ex, String msg ) {
-        $msg(Thread.currentThread(), ERROR, source, ex, msg);
+        self().$msg(Thread.currentThread(), ERROR, source, ex, msg);
     }
 
     ////////////////////////////
