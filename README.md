@@ -10,7 +10,8 @@ Kontraktor can be used as a model to deal with **concurrency and parallelism**, 
 
 **2.0 state**
 
-Core functionality is stable. For Remoting only TCP-based remoting could be considered stable. WebSockets, Http remoting has been moved to 4k project currently alpha at best :-). 
+Core functionality is stable. TCP-based remoting should be stable. 
+WebSockets, Http remoting has been moved to 4k project currently alpha at best :-). 
 
 **2.0 documentation**
 
@@ -27,7 +28,7 @@ Blogposts:
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>2.0-beta-4</version>
+    <version>2.00</version>
 </dependency>
 ```
 
