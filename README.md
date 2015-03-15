@@ -10,7 +10,7 @@ Kontraktor can be used as a model to deal with **concurrency and parallelism**, 
 
 **2.0 documentation**
 
-check wiki.
+check [wiki](https://github.com/RuedigerMoeller/kontraktor/wiki).
 
 Blogposts:
 
