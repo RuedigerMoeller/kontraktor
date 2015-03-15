@@ -26,10 +26,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ElasticScheduler implements Scheduler, Monitorable {
 
-    public static final int MAX_STACK_ON_SYNC_CBDISPATCH = 200000;
-    public static int DEFQSIZE = 32768; // will be alligne to 2^x
+    public static final int MAX_STACK_ON_SYNC_CBDISPATCH = 100000;
+    public static int DEFQSIZE = 32768; // will be alligned to 2^x
 
-    public static boolean DEBUG_SCHEDULING = true;
+    public static boolean DEBUG_SCHEDULING = false;
     public static boolean REALLY_DEBUG_SCHEDULING = false; // logs any move and remove
 
     public static int RECURSE_ON_BLOCK_THRESHOLD = 2;
