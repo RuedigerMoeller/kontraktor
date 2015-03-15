@@ -8,6 +8,10 @@ lightweight and efficient Actor implementation in Java. The threading model impl
 
 Kontraktor can be used as a model to deal with **concurrency and parallelism**, however its perfectly valid to just make use of Kontraktors **remoting** to ease creation of distributed 'Microservice' alike application topologies.
 
+**2.0 state**
+
+Core functionality is stable. For Remoting only TCP-based remoting could be considered stable. WebSockets, Http remoting has been moved to 4k project currently alpha at best :-). 
+
 **2.0 documentation**
 
 check [wiki](https://github.com/RuedigerMoeller/kontraktor/wiki).
