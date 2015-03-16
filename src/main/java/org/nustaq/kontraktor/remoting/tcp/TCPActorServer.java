@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
+import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.util.Log;
@@ -41,17 +42,16 @@ public class TCPActorServer {
         new Thread( ()-> {
             try {
                 server.closeListener = closeListener;
-                server.start();
-                success.receive("started", null);
+                server.start(success);
             } catch (IOException e) {
                 success.receive(null,e);
             }
         }, "acceptor "+port ).start();
         CountDownLatch latch = new CountDownLatch(1); // bad style, but won't change api now
         AtomicReference<Object> res = new AtomicReference<>(null);
-        success.then( (r,e) -> { latch.countDown(); res.set(e); } );
+        success.then( (r,e) -> { latch.countDown(); res.set(e); } ); // FIXME: never called ?
         try {
-            latch.await(10000, TimeUnit.MILLISECONDS);
+            latch.await(5000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -83,12 +83,17 @@ public class TCPActorServer {
     /**
      * warning: consumes calling thread !!
      * @throws IOException
+     * @param success
      */
-    public void start() throws IOException {
+    public void start(Future success) throws IOException {
         try {
             welcomeSocket = new ServerSocket(port);
             Log.Info(this,facadeActor.getActor().getClass().getName() + " running on " + welcomeSocket.getLocalPort());
             while (!terminated) {
+                if ( success != null ) {
+                    success.signal();
+                    success = null;
+                }
                 Socket connectionSocket = welcomeSocket.accept();
                 ActorServerClientConnection clientConnection = new ActorServerClientConnection(connectionSocket, facadeActor);
                 connections.add(clientConnection);
