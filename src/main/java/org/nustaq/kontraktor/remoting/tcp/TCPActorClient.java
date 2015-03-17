@@ -39,10 +39,10 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
                 client.connect();
                 res.receive(client.getFacadeProxy(), null);
             } catch (IOException e) {
-                Log.Warn(TCPActorClient.class,null,""+e);
+                Log.Info(TCPActorClient.class,null,""+e);
                 res.receive(null, e);
             }
-        }, "connect "+client.getDescriptionString()).start();
+        }, "connection thread "+client.getDescriptionString()).start();
         return res;
     }
 

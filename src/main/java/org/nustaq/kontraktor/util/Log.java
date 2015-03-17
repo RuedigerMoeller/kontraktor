@@ -7,9 +7,6 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
 
 /**
  * Created by ruedi on 24.08.14.
@@ -45,17 +42,21 @@ public class Log extends Actor<Log> {
         public void msg(Thread t, int severity, Object source, Throwable ex, String msg);
     }
 
-    LogWrapper defLogger = new LogWrapper() {
+    public LogWrapper defaultLogger = new LogWrapper() {
         DateFormat formatter = new SimpleDateFormat("HH:mm:ss:SSS");
         @Override
         public void msg(Thread t, int sev, Object source, Throwable ex, String msg) {
             if ( severity <= sev ) {
                 if ( source == null )
                     source = "null";
-                else if ( source instanceof String == false )
-                    source = source.getClass().getSimpleName();
+                else if ( source instanceof String == false ) {
+                    if ( source instanceof Class ) {
+                        source = ((Class) source).getName();
+                    } else
+                        source = source.getClass().getSimpleName();
+                }
                 String tname = t == null ? "-" : t.getName();
-                String svString = "";
+                String svString = "i ";
                 switch (sev) {
                     case WARN: svString = "! "; break;
                     case ERROR: svString = "!! "; break;
@@ -72,17 +73,14 @@ public class Log extends Actor<Log> {
         }
     };
 
-    LogWrapper logger = defLogger;
+    LogWrapper logger = defaultLogger;
 
-    int severity = 0;
+    volatile int severity = 0;
 
     public void $setLogWrapper(LogWrapper delegate) {
         this.logger = delegate;
     }
 
-    public void $resetToSysout() {
-        this.logger = defLogger;
-    }
 
     public void $setSeverity(int severity) {
         this.severity = severity;
@@ -91,6 +89,14 @@ public class Log extends Actor<Log> {
     /////////////////////////////////////////////////////////////////////
     // caller side wrappers are here to enable stacktrace capture etc.
     //
+
+    @CallerSideMethod public int getSeverity() {
+        return getActor().severity;
+    }
+
+    @CallerSideMethod public void resetToSysout() {
+        this.logger = defaultLogger;
+    }
 
     @CallerSideMethod public void infoLong(Object source, Throwable ex, String msg) {
         self().$msg(Thread.currentThread(), INFO, source, ex, msg);
