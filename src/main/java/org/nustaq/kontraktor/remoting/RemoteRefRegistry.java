@@ -223,7 +223,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
                 if (singleReceive(channel)) continue;
             }
         } catch (Exception e) {
-            Log.Lg.infoLong(this, e, "");
+            Log.Lg.error(this, e, "");
         } finally {
             cleanUp();
         }

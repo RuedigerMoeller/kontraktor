@@ -42,7 +42,7 @@ import java.util.*;
  */
 public class ActorProxyFactory {
 
-    HashMap<String,Class> generatedProxyClasses = new HashMap<String, Class>();
+    HashMap<Class,Class> generatedProxyClasses = new HashMap<Class, Class>();
 
     public ActorProxyFactory() {
     }
@@ -82,8 +82,7 @@ public class ActorProxyFactory {
     protected <T> Class<T> createProxyClass(Class<T> clazz, ClassLoader loader) throws Exception {
         synchronized (generatedProxyClasses) {
             String proxyName = clazz.getName() + "_ActorProxy";
-            String key = clazz.getName();
-            Class ccClz = generatedProxyClasses.get(key);
+            Class ccClz = generatedProxyClasses.get(clazz);
             if (ccClz == null) {
                 ClassPool pool = ClassPool.getDefault();
                 if ( loader instanceof ClassPathProvider ) {
@@ -112,7 +111,7 @@ public class ActorProxyFactory {
                 }
 
                 ccClz = loadProxyClass(clazz, pool, cc);
-                generatedProxyClasses.put(key, ccClz);
+                generatedProxyClasses.put(clazz, ccClz);
             }
             return ccClz;
         }
