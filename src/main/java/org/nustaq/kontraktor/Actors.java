@@ -176,24 +176,10 @@ public class Actors {
 
     private static void yield(final List<Future> futures, final int index, final Future result) {
         if ( index < futures.size() ) {
-            futures.get(index).then( (r,e) -> yield(futures, index + 1, result) );
+            futures.get(index).then((r, e) -> yield(futures, index + 1, result));
         } else {
             result.receive(futures, null);
         }
-    }
-
-    //// instance
-
-    ConcurrentLinkedQueue deadLetters = new ConcurrentLinkedQueue();
-
-    protected Actors() {
-        factory = new ActorProxyFactory();
-    }
-
-    protected ActorProxyFactory factory;
-
-    public ActorProxyFactory getFactory() {
-        return factory;
     }
 
     /**
@@ -208,7 +194,7 @@ public class Actors {
      * @param <T>
      * @return
      */
-    public <T> T sync( Future<T> fut ) {
+    public static <T> T sync( Future<T> fut ) {
         if ( Actor.sender.get() != null )
             throw new RuntimeException("cannot call from within actor thread");
         CountDownLatch latch = new CountDownLatch(1);
@@ -226,6 +212,20 @@ public class Actors {
             throw new RuntimeException(""+fut.getError());
         }
         return fut.getResult();
+    }
+
+    //// instance
+
+    ConcurrentLinkedQueue deadLetters = new ConcurrentLinkedQueue();
+
+    protected Actors() {
+        factory = new ActorProxyFactory();
+    }
+
+    protected ActorProxyFactory factory;
+
+    public ActorProxyFactory getFactory() {
+        return factory;
     }
 
     protected Actor makeProxy(Class<? extends Actor> clz, DispatcherThread disp, int qs) {

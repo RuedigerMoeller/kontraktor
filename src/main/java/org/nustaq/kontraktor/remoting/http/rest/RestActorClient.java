@@ -96,6 +96,7 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
         return this;
     }
 
+
 //    public static void main(String a[]) {
 //        RestActorClient<RestActorServer.RESTActor> cl = new RestActorClient("localhost", 9999, "/rest", RestActorServer.RESTActor.class);
 //        cl.connect();

@@ -6,4 +6,5 @@ package org.nustaq.kontraktor;
 public interface RemoteConnection {
     public void close();
     public void setClassLoader( ClassLoader l );
+    public int getRemoteId( Actor act );
 }

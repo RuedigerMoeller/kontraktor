@@ -130,6 +130,11 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
         public void setClassLoader(ClassLoader l) {
             chan.getConf().setClassLoader(l);
         }
+
+        @Override
+        public int getRemoteId(Actor act) {
+            return TCPActorClient.this.getRemoteId(act);
+        }
     }
 
     @Override

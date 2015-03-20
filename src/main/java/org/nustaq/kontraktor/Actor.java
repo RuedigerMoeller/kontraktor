@@ -159,7 +159,21 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
         return getActor() != this;
     }
 
+    /**
+     * returns a future whose "then" or "onResult" is called once all futures given have been completed.
+     * The result is an array of completed futures.
+     *
+     * @param futures
+     * @return
+     */
     protected Future<Future[]> yield(Future... futures) {
+        return __scheduler.yield(futures);
+    }
+
+    /**
+     *  same as yield but uses a list
+     */
+     protected Future<List<Future>> yieldList( List<Future> futures) {
         return __scheduler.yield(futures);
     }
 
@@ -181,6 +195,17 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
     }
 
     /**
+     * generic method for untyped messages. Can be used e.g. for lifcycle signaling and can be called on
+     * any actor.
+     *
+     * @param message
+     * @return
+     */
+    public Future $receive( Object message ) {
+        return null;
+    }
+
+    /**
      * execute given callables asynchronously, but one after another async but chained.
      *
      * see https://gist.github.com/RuedigerMoeller/10c583819616f2563969
@@ -189,10 +214,6 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
      */
     protected Future<Future[]> ordered(Callable<Future> ... callables) {
         return Actors.async(callables);
-    }
-
-    protected Future<List<Future>> yieldList( List<Future> futures) {
-        return __scheduler.yield(futures);
     }
 
     /**
@@ -220,11 +241,6 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
      */
     protected void run(Runnable toRun) {
         __scheduler.runOutside(self(),toRun);
-    }
-
-    @CallerSideMethod
-    protected <T> T inThread(Actor proxy, T cbInterface) {
-        return __scheduler.inThread(proxy, cbInterface);
     }
 
     /**
@@ -271,6 +287,11 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
     }
 
     Thread _t; //
+
+    @CallerSideMethod
+    protected <T> T inThread(Actor proxy, T cbInterface) {
+        return __scheduler.inThread(proxy, cbInterface);
+    }
 
     /**
      * Debug method.
@@ -324,7 +345,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
     }
 
     /**
-     * can be used to wait for all messages having been processed
+     * can be used to wait for all messages having been processed and get a signal from the returned future once this is complete
      * @return
      */
     public Future $sync() {

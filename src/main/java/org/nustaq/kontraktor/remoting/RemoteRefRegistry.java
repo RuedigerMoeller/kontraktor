@@ -27,7 +27,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 
     protected FSTConfiguration conf;
 
-    RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
+    protected RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
 
     // holds published actors, futures and callbacks of this process
     AtomicInteger actorIdCount = new AtomicInteger(0);
@@ -381,6 +381,13 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     public void setClassLoader(ClassLoader l) {
         conf.setClassLoader(l);
     }
+
+    @Override
+    public int getRemoteId(Actor act) {
+        Integer integer = publishedActorMappingReverse.get(act.getActorRef());
+        return integer == null ? -1 : integer;
+    }
+
 }
 
 
