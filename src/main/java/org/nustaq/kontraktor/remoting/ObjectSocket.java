@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.remoting;
 
+import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import java.io.IOException;
@@ -21,4 +22,6 @@ public interface ObjectSocket {
     void setLastError(Exception ex);
 
     void close() throws IOException;
+
+    public FSTConfiguration getConf();
 }

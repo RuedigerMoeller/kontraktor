@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
 import org.nustaq.kson.KsonDeserializer;
 import org.nustaq.kson.KsonStringCharInput;
+import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -152,5 +153,10 @@ public class HttpObjectSocket implements ObjectSocket {
     @Override
     public void close() throws IOException {
         // do nothing
+    }
+
+    @Override
+    public FSTConfiguration getConf() {
+        return null;
     }
 }

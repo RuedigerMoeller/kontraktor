@@ -376,4 +376,11 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     public Consumer<Actor> getDisconnectHandler() {
         return disconnectHandler;
     }
+
+    @Override
+    public void setClassLoader(ClassLoader l) {
+        conf.setClassLoader(l);
+    }
 }
+
+

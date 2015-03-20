@@ -67,11 +67,11 @@ public class HoardeTest {
 
         // warmup
         testSingleThreaded(conf, toEncode, 1);
-        testGenericAct(toEncode, 2, 1, true );
+        testGenericAct(toEncode, 1, 1, true );
 
 
         testSingleThreaded(conf, toEncode, 6);
-        testGenericAct(toEncode, 4, 5, false );
+        testGenericAct(toEncode, 8, 6, false );
 
         System.out.println("DONE");
     }

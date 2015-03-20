@@ -105,12 +105,7 @@ public class Playground {
                     System.out.println("executed later " + sx + " " + sy + " " + sz);
                 }
 
-                @Override
-                public void local(String result, Object error) {
-                    System.out.println("POK "+result);
-                }
-
-            };
+            }.then( (r,e) -> System.out.println("POK "+r) );
         }
     }
 

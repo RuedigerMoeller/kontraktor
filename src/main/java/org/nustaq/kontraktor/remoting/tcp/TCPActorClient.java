@@ -15,7 +15,7 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 08.08.14.
  *
- * Client side for an tcp actor server.
+ * Client side of a tcp actor server.
  * actor refs/callbacks/futures handed out to the actors' server facade are automatically transformed
  * and rerouted, so remoting is mostly transparent.
  */
@@ -124,6 +124,11 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
             } catch (IOException e) {
                 Log.Warn(this,e,"");
             }
+        }
+
+        @Override
+        public void setClassLoader(ClassLoader l) {
+            chan.getConf().setClassLoader(l);
         }
     }
 

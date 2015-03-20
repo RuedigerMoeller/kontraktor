@@ -15,6 +15,9 @@ import java.util.function.Function;
 
 /**
  * Created by ruedi on 07.09.14.
+ *
+ * a utility class allowing to address/manage multiple actors of same type
+ *
  */
 public class Hoarde<T extends Actor> {
 
@@ -56,13 +59,24 @@ public class Hoarde<T extends Actor> {
         return res;
     }
 
-    public Hoarde<T> each(Consumer<T> init) {
+    /**
+     * iterate over each actor and execute tocall. E.g. hoarde.each( actor -> actor.$init() )
+     * @param tocall
+     * @return
+     */
+    public Hoarde<T> each(Consumer<T> tocall) {
         for (int i = 0; i < actors.length; i++) {
-            init.accept( (T) actors[i] );
+            tocall.accept( (T) actors[i] );
         }
         return this;
     }
 
+    /**
+     * same as other each but with index
+     *
+     * @param init
+     * @return
+     */
     public Hoarde<T> each(BiConsumer<T, Integer> init) {
         for (int i = 0; i < actors.length; i++) {
             init.accept( (T) actors[i], i );
@@ -70,6 +84,15 @@ public class Hoarde<T extends Actor> {
         return this;
     }
 
+    /**
+     * calls given function round robin. typical use:
+     *
+     * hoarde.ordered( actor -> actor.decode(byte[]) ).onResult( decodedObj -> businesslogic(decodedObj) );
+     *
+     * after
+     * @param toCall
+     * @return
+     */
     public Future ordered(Function<T, Future> toCall) {
         final Future result = toCall.apply((T) actors[index]);
         index++;
@@ -94,4 +117,5 @@ public class Hoarde<T extends Actor> {
     public T getActor(int i) {
         return (T) actors[i];
     }
+
 }

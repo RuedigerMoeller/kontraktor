@@ -21,7 +21,11 @@ public abstract class Spore<I,O> implements Serializable {
         Callback mycb = new Callback() {
             @Override
             public void receive(Object result, Object error) {
-                local( (O)result, error );
+                if ( localCallback != null ) {
+                    localCallback.receive((O)result,error);
+                } else {
+                    System.err.println("override set callback using then() prior sending");
+                }
             }
         };
         this.cb = new CallbackWrapper<>(Actor.sender.get(),mycb);
@@ -34,20 +38,6 @@ public abstract class Spore<I,O> implements Serializable {
     public abstract void remote( I input );
 
     /**
-     * is called on sender side once results stream in from receiver side remote() method.
-     * Preferably do not override this but register a callback on sender side using 'then()'
-     * @param result
-     * @param error
-     */
-    public void local(O result, Object error) {
-        if ( localCallback != null ) {
-            localCallback.receive(result,error);
-        } else {
-            System.err.println("override local() method or set callback using then() prior sending");
-        }
-    }
-
-    /**
      * local. Register at sending side and will recieve data streamed back from remote.
      * Aalternatively one overriding local(..)
      * @param cb
@@ -58,16 +48,33 @@ public abstract class Spore<I,O> implements Serializable {
         return this;
     }
 
+    /**
+     * when using streaming to deliver multiple results, call this in order to signal no further
+     * results are expected.
+     */
     public void finished() {
         // signal finish of execution, so remoting can clean up callback id mappings
         // override if always single result or finish can be emitted by the remote method
-        // note one can send FIN to avoid the final message to visible to receiver callback/spore
+        // note one can send FIN to make the final message visible to receiver callback/spore
         cb.receive(null, Callback.FINSILENT);
         finished = true;
     }
 
-    protected void receive(O result, Object err) {
+    /**
+     * note that sending an error implicitely will close the backstream
+     * @param result
+     * @param err
+     */
+    protected void returnResult(O result, Object err) {
         cb.receive(result, err);
+    }
+
+    protected void returnResult(O result) {
+        cb.receive(result, null);
+    }
+
+    protected void stream(O result) {
+        cb.receive(result, Actor.CONT);
     }
 
     /**
