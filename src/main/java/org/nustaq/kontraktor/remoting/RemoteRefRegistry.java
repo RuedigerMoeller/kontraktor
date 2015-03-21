@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -219,10 +220,12 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 
     protected void receiveLoop(ObjectSocket channel) {
         try {
-            while( !isTerminated() ) {
+            while (!isTerminated()) {
                 if (singleReceive(channel)) continue;
             }
-        } catch (Exception e) {
+        } catch (EOFException eof) {
+            Log.Lg.warn(this, ""+eof);
+        } catch (Throwable e) {
             Log.Lg.error(this, e, "");
         } finally {
             cleanUp();
@@ -251,6 +254,10 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
             Actor targetActor = getPublishedActor(read.getReceiverKey());
             if (targetActor==null) {
                 Log.Lg.error(this, null, "no actor found for key " + read);
+                return true;
+            }
+            if (targetActor.isStopped() || targetActor.getScheduler() == null ) {
+                Log.Lg.error(this, null, "actor found for key " + read + " is stopped and/or has no scheduler set");
                 return true;
             }
             if (remoteCallInterceptor != null && !remoteCallInterceptor.apply(targetActor,read.getMethod())) {

@@ -53,6 +53,7 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class DispatcherThread extends Thread implements Monitorable {
 
+    public static boolean DUMP_CATCHED = false; // do a print stacktrace on uncatched exceptions put as a future's result
     public static int SCHEDULE_TICK_NANOS = 1000*500; // how often balancing/profiling is done
     public static int QUEUE_PERCENTAGE_TRIGGERING_REBALANCE = 50;      // if queue is X % full, consider rebalance
     public static int MILLIS_AFTER_CREATION_BEFORE_REBALANCING = 2; // give caches a chance to get things going before rebalancing
@@ -285,7 +286,10 @@ public class DispatcherThread extends Thread implements Monitorable {
                     e = e.getCause();
                 }
                 if (callEntry.getFutureCB() != null) {
-                    Log.Info(this,e,"returned catched exception to future");
+                    Log.Info(this,e,"returned catched exception to future "+e+" set DispatcherThread.DUMP_CATCHED to true in order to dump stack.");
+                    if ( DUMP_CATCHED ) {
+                        e.printStackTrace();
+                    }
                     callEntry.getFutureCB().receive(null, e);
                 }
                 else

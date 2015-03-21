@@ -183,6 +183,21 @@ public class Promise<T> implements Future<T> {
         }
     }
 
+    /**
+     * calls receive( result, null )
+     * @param res
+     */
+    public void receiveResult(Object res) {
+        receive(res,null);
+    }
+
+    /**
+     * calls receive( null, error )
+     */
+    public void receiveError(Object error) {
+        receive(null,error);
+    }
+
     @Override
     public final void receive(Object res, Object error) {
         // ensure correct thread in case actor cascades futures
