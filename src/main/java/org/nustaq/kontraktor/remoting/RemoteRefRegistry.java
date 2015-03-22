@@ -224,7 +224,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
                 if (singleReceive(channel)) continue;
             }
         } catch (EOFException eof) {
-            Log.Lg.warn(this, ""+eof);
+            Log.Lg.warn(this, "" + eof);
         } catch (Throwable e) {
             Log.Lg.error(this, e, "");
         } finally {
@@ -258,10 +258,14 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
             }
             if (targetActor.isStopped() || targetActor.getScheduler() == null ) {
                 Log.Lg.error(this, null, "actor found for key " + read + " is stopped and/or has no scheduler set");
+                receiveCBResult(channel, read.getFutureKey(), null, new RuntimeException("Actor has been stopped"));
                 return true;
             }
             if (remoteCallInterceptor != null && !remoteCallInterceptor.apply(targetActor,read.getMethod())) {
                 Log.Warn(this,"remote message blocked by securityinterceptor "+targetActor.getClass().getName()+" "+read.getMethod());
+                if ( read.getFutureKey() > 0 ) {
+
+                }
                 return true;
             }
 
@@ -278,7 +282,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
         } else if (read.getQueue() == read.CBQ) {
             Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
             if ( publishedCallback == null )
-                throw new RuntimeException("Publisher already deregistered, use Actor.CONT in order to signal more messages will be sent");
+                throw new RuntimeException("Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent");
             publishedCallback.receive(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
             if (!isContinue)
                 removePublishedObject(read.getReceiverKey());
