@@ -46,7 +46,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
         return res;
     }
 
-    Class<? extends Actor> actorClazz;
+    Class<T> actorClazz;
     T facadeProxy;
     BackOffStrategy backOffStrategy = new BackOffStrategy();
 
@@ -55,7 +55,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
     ActorClient client;
     volatile boolean connected = false;
 
-    public TCPActorClient(Class<? extends Actor> clz, String host, int port) throws IOException {
+    public TCPActorClient(Class<T> clz, String host, int port) throws IOException {
         this.host = host;
         this.port = port;
         actorClazz = clz;
