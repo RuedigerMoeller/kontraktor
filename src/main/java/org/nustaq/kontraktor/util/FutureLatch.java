@@ -32,6 +32,10 @@ public class FutureLatch<T> {
         countDown(result,error);
     }
 
+    public void countDown() {
+        countDown(null,null);
+    }
+
     public void countDown(T result, Object error) {
         int i = count.decrementAndGet();
         if ( i == 0 ) {

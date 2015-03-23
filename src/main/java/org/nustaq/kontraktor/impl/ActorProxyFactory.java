@@ -247,7 +247,13 @@ public class ActorProxyFactory {
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
                 if (isCallerSide || method.getName().equals("toString")) {
-                } else if ( ! method.getName().equals("getActor") ) {
+                } else if (
+                    ! method.getName().equals("getActor") &&
+                    ! method.getName().equals("delayed") &&
+                    ! method.getName().equals("run") &&
+                    ! method.getName().equals("exec")
+                )
+                {
                     method.setBody("throw new RuntimeException(\"can only call public methods on actor ref\");");
                     cc.addMethod(method);
                 } else {

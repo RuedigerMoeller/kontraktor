@@ -44,16 +44,25 @@ public abstract class Spore<I,O> implements Serializable {
 
     /**
      * local. Register at sending side and will recieve data streamed back from remote.
-     * Aalternatively one overriding local(..)
+     *
      * @param cb
-     * @return
+     * @return a future triggered
      */
-    public Spore<I,O> then( Callback<O> cb ) {
+    public Spore<I,O> forEachResult(Callback<O> cb) {
+        if ( localCallback != null ) {
+            throw new RuntimeException("forEachResult callback handler can only be set once.");
+        }
         localCallback = cb;
         return this;
     }
 
+    public Spore<I,O> onFinish(Runnable toRun) {
+        finSignal.then(toRun);
+        return this;
+    }
+
     /**
+     * to be called at remote side
      * when using streaming to deliver multiple results, call this in order to signal no further
      * results are expected.
      */
@@ -66,16 +75,11 @@ public abstract class Spore<I,O> implements Serializable {
     }
 
     /**
-     * note that sending an error implicitely will close the backstream
-     * @param result
+     * note that sending an error implicitely will close the backstream.
      * @param err
      */
-    protected void returnResult(O result, Object err) {
-        cb.receive(result, err);
-    }
-
-    protected void returnResult(O result) {
-        cb.receive(result, null);
+    protected void streamError(Object err) {
+        cb.receive(null, err);
     }
 
     protected void stream(O result) {

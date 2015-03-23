@@ -226,7 +226,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
      * @param <T>
      * @return
      */
-    protected <T> Future<T> exec(Callable<T> callable) {
+    public <T> Future<T> exec(Callable<T> callable) {
         Promise<T> prom = new Promise<>();
         __scheduler.runBlockingCall(self(),callable,prom);
         return prom;
@@ -239,7 +239,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
      * WARNING: do not access local actor state (instance fields) from within the runnable (=hidden parallelism).
      *
      */
-    protected void run(Runnable toRun) {
+    public void run(Runnable toRun) {
         __scheduler.runOutside(self(),toRun);
     }
 
@@ -249,7 +249,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
      * delayed( 100, () -> { self().doAction( x, y,  ); } );
      *
      */
-    protected void delayed( long millis, final Runnable toRun ) {
+    public void delayed( long millis, final Runnable toRun ) {
         __scheduler.delayedCall( millis, inThread(self(),toRun) );
     }
 

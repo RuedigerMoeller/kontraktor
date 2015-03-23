@@ -42,13 +42,13 @@ public class KVStoreTCPClient {
                             if ( input instanceof SampleRecord ) {
                                 if ( ((SampleRecord) input).getHits() > 10 && ((SampleRecord) input).getHits() < 100 ) {
                                     System.out.println("remote " + input);
-                                    returnResult(input, Callback.CONT);
+                                    sendBack(input, Callback.CONT);
                                     hits++;
                                 }
                             } else {
                                 System.out.println("no match "+input);
                                 if ( Actor.isFinal(input) ) {
-                                    returnResult(hits, Actor.FIN);
+                                    sendBack(hits, Actor.FIN);
                                 }
                             }
                         }
@@ -71,7 +71,7 @@ public class KVStoreTCPClient {
                         @Override
                         public void remote(Object input) {
                             if (Actor.isFinal(input)) {
-                                returnResult(count, Actor.FIN);
+                                sendBack(count, Actor.FIN);
                             } else {
                                 count++;
                             }

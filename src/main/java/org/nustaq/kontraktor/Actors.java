@@ -150,7 +150,18 @@ public class Actors {
         return yieldEach(futures.collect(Collectors.toList()),consumer);
     }
 
-    public static <IN,OUT> Future yieldEach( List<IN> coll, Function<IN,Future<OUT>> map, Callback<OUT> consumer ) {
+    /**
+     * takes elements of a collection feeds them into the map function which is expected to return a future for each
+     * element of the collection. The waits for all futures to be completed. Then iterate the collection of completed
+     * futures and feed it into consumer
+     * @param coll
+     * @param map - map a collection item to a future (e.g. call remote method)
+     * @param consumer - receives each completeed future
+     * @param <IN>
+     * @param <OUT>
+     * @return
+     */
+    public static <IN,OUT> Future yieldMap( List<IN> coll, Function<IN,Future<OUT>> map, Callback<OUT> consumer ) {
         List<Future<OUT>> collect = coll.stream().map(map).collect(Collectors.toList());
         return yieldEach(collect,consumer);
     }
