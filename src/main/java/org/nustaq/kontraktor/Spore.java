@@ -16,15 +16,20 @@ public abstract class Spore<I,O> implements Serializable {
     Callback cb;
     transient protected boolean finished;
     transient Callback<O> localCallback;
+    transient Promise finSignal = new Promise();
 
     public Spore() {
         Callback mycb = new Callback() {
             @Override
             public void receive(Object result, Object error) {
-                if ( localCallback != null ) {
-                    localCallback.receive((O)result,error);
+                if ( FIN.equals(error) ) {
+                    finSignal.signal();
                 } else {
-                    System.err.println("override set callback using then() prior sending");
+                    if (localCallback != null) {
+                        localCallback.receive((O) result, error);
+                    } else {
+                        System.err.println("override set callback using then() prior sending");
+                    }
                 }
             }
         };
@@ -55,8 +60,8 @@ public abstract class Spore<I,O> implements Serializable {
     public void finished() {
         // signal finish of execution, so remoting can clean up callback id mappings
         // override if always single result or finish can be emitted by the remote method
-        // note one can send FIN to make the final message visible to receiver callback/spore
-        cb.receive(null, Callback.FINSILENT);
+        // note one can send FINSILENT to avoid the final message to be visible to receiver callback/spore
+        cb.receive(null, Callback.FIN);
         finished = true;
     }
 

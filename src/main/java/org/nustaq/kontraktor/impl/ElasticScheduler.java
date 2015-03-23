@@ -324,7 +324,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
     }
 
     @Override
-    public Future<List<Future>>  yield(List<Future> futures) {
+    public <T> Future<List<Future<T>>>  yield(List<Future<T>> futures) {
         return Actors.yield(futures);
     }
 

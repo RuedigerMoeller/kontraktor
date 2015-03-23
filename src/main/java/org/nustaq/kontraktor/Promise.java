@@ -2,6 +2,7 @@ package org.nustaq.kontraktor;
 
 import org.nustaq.kontraktor.impl.ElasticScheduler;
 
+import java.util.Collection;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -10,7 +11,6 @@ import java.util.function.Consumer;
  * Created by ruedi on 20.05.14.
  */
 public class Promise<T> implements Future<T> {
-    // fixme: volatile ? (assumption: lock ensures order of Publish. unsure, no errors until now)
     protected Object result = null;
     protected Object error;
     protected Callback resultReceiver;
@@ -134,7 +134,7 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * special method for tricky things. Creates a nextFuture or returns it. Not threadsafe !
+     * special method for tricky things. Creates a nextFuture or returns it.
      * current
      * @return
      */

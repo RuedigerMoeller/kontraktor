@@ -4,11 +4,18 @@ import org.nustaq.kontraktor.impl.*;
 import io.jaq.mpsc.MpscConcurrentQueue;
 import org.nustaq.kontraktor.util.Log;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -122,10 +129,30 @@ public class Actors {
         return res;
     }
 
-    public static Future<List<Future>> yield(List<Future> futures) {
+    public static <T> Future<List<Future<T>>> yield(List<Future<T>> futures) {
         Promise res = new Promise();
         yield(futures, 0, res);
         return res;
+    }
+
+    public static <T> Future yieldEach(List<Future<T>> futures, Callback<T> consumer ) {
+        Promise<List<Future>> prom = new Promise();
+        Promise signal = new Promise();
+        yield(futures, 0, prom);
+        prom.onResult(list -> {
+            list.forEach(fut -> consumer.receive((T) fut.getResult(), fut.getError()));
+            signal.signal();
+        });
+        return signal;
+    }
+
+    public static <T> Future yieldEach(Stream<Future<T>> futures, Callback<T> consumer ) {
+        return yieldEach(futures.collect(Collectors.toList()),consumer);
+    }
+
+    public static <IN,OUT> Future yieldEach( List<IN> coll, Function<IN,Future<OUT>> map, Callback<OUT> consumer ) {
+        List<Future<OUT>> collect = coll.stream().map(map).collect(Collectors.toList());
+        return yieldEach(collect,consumer);
     }
 
     /**
@@ -139,7 +166,7 @@ public class Actors {
      * @param toexec
      * @return
      */
-    public static Future<Future[]> async(Callable<Future>... toexec) {
+    public static <T> Future<Future<T>[]> async(Callable<Future<T>>... toexec) {
         return ordered(toexec,0);
     }
 
@@ -147,12 +174,12 @@ public class Actors {
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static Future ordered(final Callable<Future> callables[], final int index) {
+    private static <T> Future<Future<T>[]> ordered(final Callable<Future<T>> callables[], final int index) {
         try {
             if ( index == callables.length - 1 ) {
-                return callables[index].call();
+                return (Future<Future<T>[]>) callables[index].call();
             } else {
-                Future res = callables[index].call();
+                Future<T> res = callables[index].call();
                 if ( res != null ) {
                     Promise p = new Promise();
                     res.then( () -> ordered(callables, index +1).then(p) );
@@ -166,7 +193,7 @@ public class Actors {
         }
     }
 
-    private static void yield(final Future futures[], final int index, final Future result) {
+    private static <T> void yield(final Future<T> futures[], final int index, final Future result) {
         if ( index < futures.length ) {
             futures[index].then( (r,e) -> yield(futures, index + 1, result) );
         } else {
@@ -174,7 +201,7 @@ public class Actors {
         }
     }
 
-    private static void yield(final List<Future> futures, final int index, final Future result) {
+    private static <T> void yield(final List<Future<T>> futures, final int index, final Future result) {
         if ( index < futures.size() ) {
             futures.get(index).then((r, e) -> yield(futures, index + 1, result));
         } else {

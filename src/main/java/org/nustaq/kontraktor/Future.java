@@ -10,6 +10,8 @@ public interface Future<T> extends Callback<T> {
 
     /**
      * called when any result of a future becomes available
+     * Can be used in case a sender is not interested in the actual result
+     * but when a remote method has finished processing.
      * @param result
      * @return
      */

@@ -173,7 +173,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
     /**
      *  same as yield but uses a list
      */
-     protected Future<List<Future>> yieldList( List<Future> futures) {
+     protected <T> Future<List<Future<T>>> yieldList( List<Future<T>> futures) {
         return __scheduler.yield(futures);
     }
 
@@ -212,7 +212,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
      * @param callables
      * @return
      */
-    protected Future<Future[]> ordered(Callable<Future> ... callables) {
+    protected <T> Future<Future<T>[]> ordered(Callable<Future<T>> ... callables) {
         return Actors.async(callables);
     }
 
@@ -377,7 +377,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
     }
 
     @CallerSideMethod public void __stop() {
-        if ( getActorRef().isStopped() && getActor().isStopped() )
+        if ( getActorRef() == null || getActor() == null || (getActorRef().isStopped() && getActor().isStopped()) )
             return;
         getActorRef().__stopped = true;
         getActor().__stopped = true;
