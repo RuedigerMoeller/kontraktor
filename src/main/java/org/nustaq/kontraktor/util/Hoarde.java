@@ -50,7 +50,7 @@ public class Hoarde<T extends Actor> {
         }
     }
 
-    public Future[] map(BiFunction<T, Integer, Future> init) {
+    public <X> Future<T>[] map(BiFunction<T, Integer, Future<X>> init) {
         Future res[] = new Future[actors.length];
         for (int i = 0; i < actors.length; i++) {
             T actor = (T) actors[i];

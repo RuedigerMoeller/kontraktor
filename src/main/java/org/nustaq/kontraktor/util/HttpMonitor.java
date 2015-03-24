@@ -77,7 +77,8 @@ public class HttpMonitor extends Actor<HttpMonitor> {
                         Monitorable submon = monitorables[i];
                         futs[i] = getMonitorables(depth - 1, submon);
                     }
-                    yield(futs).then( (futures,err0) -> {
+                    yield(futs).then( (futArr, err0) -> {
+                        Future futures[] = (Future[]) futArr;
                         for (int i = 0; i < futures.length; i++) {
                             Future future = futures[i];
                             subResult[i] = future.getResult();

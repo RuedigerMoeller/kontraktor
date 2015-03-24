@@ -260,14 +260,11 @@ public class BasicTest {
                 results[i] = act[i].sleep();
             }
 
-            yield(results).then(new Callback<Future[]>() {
-                @Override
-                public void receive(Future[] result, Object error) {
-                    System.out.println("now "+System.currentTimeMillis());
-                    for (int i = 0; i < result.length; i++) {
-                        Future future = result[i];
-                        System.out.println("sleep "+i+" "+future.getResult());
-                    }
+            yield(results).then( (result, error) -> {
+                System.out.println("now "+System.currentTimeMillis());
+                for (int i = 0; i < result.length; i++) {
+                    Future future = result[i];
+                    System.out.println("sleep "+i+" "+future.getResult());
                 }
             });
 

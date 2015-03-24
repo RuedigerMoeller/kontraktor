@@ -166,7 +166,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
      * @param futures
      * @return
      */
-    protected Future<Future[]> yield(Future... futures) {
+    protected <T> Future<Future<T>[]> yield(Future<T> ... futures) {
         return __scheduler.yield(futures);
     }
 

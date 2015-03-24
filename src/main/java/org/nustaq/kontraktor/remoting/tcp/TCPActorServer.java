@@ -39,18 +39,23 @@ public class TCPActorServer {
     public static TCPActorServer Publish(Actor act, int port, Consumer<Actor> closeListener ) throws Exception {
         TCPActorServer server = new TCPActorServer((ActorProxy) act, port);
         Promise success = new Promise();
+        AtomicReference<Object> res = new AtomicReference<>(null);
         new Thread( ()-> {
             try {
                 server.closeListener = closeListener;
                 server.start(success);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 if ( !success.isCompleted() )
                     success.receive(null,e);
+                res.set(e);
             }
         }, "acceptor "+port ).start();
         CountDownLatch latch = new CountDownLatch(1); // bad style, but won't change api now
-        AtomicReference<Object> res = new AtomicReference<>(null);
-        success.then( (r,e) -> { latch.countDown(); res.set(e); } ); // FIXME: never called ?
+        success.then( (r,e) -> {
+            if ( e != null )
+                res.set(e);
+             latch.countDown();
+        });
         try {
             latch.await(5000, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {

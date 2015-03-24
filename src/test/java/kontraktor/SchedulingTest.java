@@ -108,30 +108,27 @@ public class SchedulingTest {
             for (int i = 0; i < test.length; i++) {
                 results[i] = test[i].$getCalls();
             }
-            yield(results).then( new Callback<Future[]>() {
-                @Override
-                public void receive(Future[] results, Object error) {
-                    boolean hadDiff = false;
-                    long prev = (long) results[0].getResult();
-                    for (int i = 0; i < results.length; i++) {
-                        long r = (long) results[i].getResult();
-                        System.out.println("" + i + " - " + r);
-                        if ( r != prev ) {
-                            if (hadDiff) {
-                                System.out.println("fatal error 1");
-                                System.exit(0);
-                            }
-                            if ( r == prev-1 ) {
-                                prev = r;
-                                hadDiff = true;
-                            } else {
-                                System.out.println("fatal error 0 "+r);
-                                System.exit(0);
-                            }
+            yield(results).then( (res, error ) -> {
+                boolean hadDiff = false;
+                long prev = (long) res[0].getResult();
+                for (int i = 0; i < res.length; i++) {
+                    long r = (long) res[i].getResult();
+                    System.out.println("" + i + " - " + r);
+                    if ( r != prev ) {
+                        if (hadDiff) {
+                            System.out.println("fatal error 1");
+                            System.exit(0);
+                        }
+                        if ( r == prev-1 ) {
+                            prev = r;
+                            hadDiff = true;
+                        } else {
+                            System.out.println("fatal error 0 "+r);
+                            System.exit(0);
                         }
                     }
-                    done.receive("void", null);
                 }
+                done.receive("void", null);
             });
             return done;
         }
