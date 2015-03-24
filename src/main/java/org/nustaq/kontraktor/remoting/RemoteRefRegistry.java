@@ -7,6 +7,7 @@ import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
@@ -223,6 +224,8 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
             while (!isTerminated()) {
                 if (singleReceive(channel)) continue;
             }
+        } catch (SocketException soc) {
+            Log.Lg.warn(this, "" + soc);
         } catch (EOFException eof) {
             Log.Lg.warn(this, "" + eof);
         } catch (Throwable e) {

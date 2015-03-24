@@ -44,7 +44,8 @@ public class TCPActorServer {
                 server.closeListener = closeListener;
                 server.start(success);
             } catch (IOException e) {
-                success.receive(null,e);
+                if ( !success.isCompleted() )
+                    success.receive(null,e);
             }
         }, "acceptor "+port ).start();
         CountDownLatch latch = new CountDownLatch(1); // bad style, but won't change api now
@@ -101,6 +102,15 @@ public class TCPActorServer {
             }
         } finally {
             setTerminated(true);
+        }
+    }
+
+    public void closeConnection() {
+        setTerminated(true);
+        try {
+            welcomeSocket.close();
+        } catch (IOException e) {
+            Log.Warn(this,e+"");
         }
     }
 

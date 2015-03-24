@@ -273,6 +273,9 @@ public class Promise<T> implements Future<T> {
         return error;
     }
 
+    public boolean isCompleted() {
+        return hadResult;
+    }
     // debug
     public boolean _isHadResult() {
         return hadResult;

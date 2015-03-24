@@ -36,7 +36,7 @@ public class ActorRefSerializer extends FSTBasicObjectSerializer {
         if (clzName.endsWith("_ActorProxy")) {
             clzName = clzName.substring(0,clzName.length()-"_ActorProxy".length());
         }
-        Class actorClz = Class.forName(clzName);
+        Class actorClz = Class.forName(clzName,true,reg.getConf().getClassLoader());
         Actor actorRef = reg.registerRemoteActorRef(actorClz, id, null);
         in.registerObject(actorRef, streamPositioin, serializationInfo, referencee);
         return actorRef;
