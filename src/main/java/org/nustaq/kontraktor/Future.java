@@ -43,7 +43,10 @@ public interface Future<T> extends Callback<T> {
      */
     public Future<T> onTimeout(Consumer timeoutHandler);
 
-    public <OUT> Future<OUT> map(final Filter<T, OUT> filter);
+    public <OUT> Future<OUT> map(final Function<T, Future<OUT>> function);
+    public <OUT> Future<OUT> map(final Consumer<T> function);
+    public <OUT> Future<OUT> catchError(final Function<Object, Future<OUT>> function);
+    public <OUT> Future<OUT> catchError(final Consumer<Object> function);
 
     /**
      * @return result if avaiable

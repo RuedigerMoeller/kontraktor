@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.util.Log;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Copyright (c) 2014, Ruediger Moeller. All rights reserved.
@@ -111,11 +112,35 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     }
 
     @Override
-    public <OUT> Future<OUT> map(Filter<T, OUT> filter) {
+    public <OUT> Future<OUT> map(Function<T, Future<OUT>> function) {
         if (realCallback instanceof Future == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).map(filter);
+            return ((Future)realCallback).map(function);
+    }
+
+    @Override
+    public <OUT> Future<OUT> map(Consumer<T> function) {
+        if (realCallback instanceof Future == false)
+            throw new RuntimeException("this is an error.");
+        else
+            return ((Future)realCallback).map(function);
+    }
+
+    @Override
+    public <OUT> Future<OUT> catchError(Function<Object, Future<OUT>> function) {
+        if (realCallback instanceof Future == false)
+            throw new RuntimeException("this is an error.");
+        else
+            return ((Future)realCallback).catchError(function);
+    }
+
+    @Override
+    public <OUT> Future<OUT> catchError(Consumer<Object> function) {
+        if (realCallback instanceof Future == false)
+            throw new RuntimeException("this is an error.");
+        else
+            return ((Future)realCallback).catchError(function);
     }
 
     @Override

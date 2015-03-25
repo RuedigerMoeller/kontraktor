@@ -98,7 +98,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
     }
 
     public static boolean isError(Object o) {
-        return ! isSilentFinal(o) && ! isCont(o) && ! isFinal(o);
+        return o != null && ! FIN.equals(o) && ! FINSILENT.equals(o) && ! CONT.equals(o);
     }
 
     public static ThreadLocal<Actor> sender = new ThreadLocal<>();

@@ -2,10 +2,10 @@ package org.nustaq.kontraktor;
 
 import org.nustaq.kontraktor.impl.ElasticScheduler;
 
-import java.util.Collection;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 20.05.14.
@@ -15,7 +15,7 @@ public class Promise<T> implements Future<T> {
     protected Object error;
     protected Callback resultReceiver;
     // fixme: use bits
-    protected boolean hadResult;
+    protected volatile boolean hadResult;
     protected boolean hasFired;
     // probably unnecessary, increases cost
     // of allocation. However for now stay safe and optimize
@@ -78,17 +78,70 @@ public class Promise<T> implements Future<T> {
         });
     }
 
-
     @Override
-    public <OUT> Future<OUT> map(final Filter<T, OUT> filter) {
-        final Promise<OUT> promise = new Promise<>();
-        then(new Callback<T>() {
+    public <OUT> Future<OUT> map(final Function<T, Future<OUT>> function) {
+        Promise res = new Promise<>();
+        then( new Callback<T>() {
             @Override
             public void receive(T result, Object error) {
-                filter.map(result, error).then(promise);
+                if ( Actor.isError(error) ) {
+                    res.receive( null, error );
+                } else {
+                    function.apply(result).then(res);
+                }
             }
         });
-        return promise;
+        return res;
+    }
+
+    @Override
+    public <OUT> Future<OUT> map(Consumer<T> function) {
+        Promise res = new Promise<>();
+        then( new Callback<T>() {
+            @Override
+            public void receive(T result, Object error) {
+                if ( Actor.isError(error) ) {
+                    res.receive(null, error);
+                } else {
+                    function.accept(result);
+                    res.signal();
+                }
+            }
+        });
+        return res;
+    }
+
+    @Override
+    public <OUT> Future<OUT> catchError(final Function<Object, Future<OUT>> function) {
+        Promise res = new Promise<>();
+        then( new Callback<T>() {
+            @Override
+            public void receive(T result, Object error) {
+                if ( ! Actor.isError(error) ) {
+                    res.receive( null, error );
+                } else {
+                    function.apply(error).then(res);
+                }
+            }
+        });
+        return res;
+    }
+
+    @Override
+    public <OUT> Future<OUT> catchError(Consumer<Object> function) {
+        Promise res = new Promise<>();
+        then( new Callback<T>() {
+            @Override
+            public void receive(T result, Object error) {
+                if ( ! Actor.isError(error) ) {
+                    res.receive( null, error );
+                } else {
+                    function.accept(error);
+                    res.signal();
+                }
+            }
+        });
+        return res;
     }
 
     public void timedOut( Timeout to ) {
