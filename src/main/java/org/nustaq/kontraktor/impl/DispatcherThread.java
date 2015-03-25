@@ -286,7 +286,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                     e = e.getCause();
                 }
                 if (callEntry.getFutureCB() != null) {
-                    Log.Info(this,e,"returned catched exception to future "+e+" set DispatcherThread.DUMP_CATCHED to true in order to dump stack.");
+                    Log.Warn(this,e,"returned catched exception to future "+e+" set DispatcherThread.DUMP_CATCHED to true in order to dump stack.");
                     if ( DUMP_CATCHED ) {
                         e.printStackTrace();
                     }
