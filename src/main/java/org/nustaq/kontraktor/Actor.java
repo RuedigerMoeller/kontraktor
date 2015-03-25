@@ -286,12 +286,12 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
         return __cbQueue.size();
     }
 
-    Thread _t; //
-
     @CallerSideMethod
     protected <T> T inThread(Actor proxy, T cbInterface) {
         return __scheduler.inThread(proxy, cbInterface);
     }
+
+    Thread _t; // debug
 
     /**
      * Debug method.
@@ -352,7 +352,51 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
         return new Promise<>("void");
     }
 
+    protected TicketMachine __ticketMachine;
+
+    /**
+     * enforce serial execution of asynchronous tasks. The 'toRun' closure must call '.signal()' on the given future
+     * to signal his processing has finished and the next item locked on 'transactionKey' can be processed.
+     *
+     * @param transactionKey
+     * @param toRun
+     */
+    protected void serialOn( Object transactionKey, Consumer<Future> toRun ) {
+        if ( isProxy() )
+            throw new RuntimeException("cannot call on actor proxy object");
+        if ( __ticketMachine == null ) {
+            __ticketMachine = new TicketMachine();
+        }
+        __ticketMachine.getTicket(transactionKey).onResult(finSig -> {
+            try {
+                toRun.accept(finSig);
+            } catch (Throwable th) {
+                Log.Warn(Actor.this,th);
+            }
+        });
+    }
+
+    /**
+     * tell the execution machinery to throw an ActorBlockedException in case the actor is blocked trying to
+     * put a message on an overloaded actor's mailbox/queue. Useful e.g. when dealing with actors representing
+     * a remote client (might block or lag due to connection issues).
+     *
+     * @param b
+     * @return
+     */
+    protected SELF setThrowExWhenBlocked( boolean b ) {
+        __throwExAtBlock = b;
+        return (SELF) this;
+    }
+
+    protected boolean getThrowExWhenBlocked() {
+        return __throwExAtBlock;
+    }
+
+
+
 ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
+
 
     @CallerSideMethod public void __addStopHandler( Callback<SELF> cb ) {
         if ( __stopHandlers == null ) {
@@ -430,47 +474,6 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
             }
         }
         return method;
-    }
-
-    protected TicketMachine __ticketMachine;
-
-    /**
-     * enforce serial execution of asynchronous tasks. The 'toRun' closure must call '.signal()' on the given future
-     * to signal his processing has finished and the next item locked on 'transactionKey' can be processed.
-     *
-     * @param transactionKey
-     * @param toRun
-     */
-    protected void serialOn( Object transactionKey, Consumer<Future> toRun ) {
-        if ( isProxy() )
-            throw new RuntimeException("cannot call on actor proxy object");
-        if ( __ticketMachine == null ) {
-            __ticketMachine = new TicketMachine();
-        }
-        __ticketMachine.getTicket(transactionKey).onResult(finSig -> {
-            try {
-                toRun.accept(finSig);
-            } catch (Throwable th) {
-                Log.Warn(Actor.this,th);
-            }
-        });
-    }
-
-    /**
-     * tell the execution machinery to throw an ActorBlockedException in case the actor is blocked trying to
-     * put a message on an overloaded actor's mailbox/queue. Useful e.g. when dealing with actors representing
-     * a remote client (might block or lag due to connection issues).
-     *
-     * @param b
-     * @return
-     */
-    protected SELF setThrowExWhenBlocked( boolean b ) {
-        __throwExAtBlock = b;
-        return (SELF) this;
-    }
-
-    protected boolean getThrowExWhenBlocked() {
-        return __throwExAtBlock;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////

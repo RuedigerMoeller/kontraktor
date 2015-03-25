@@ -4,7 +4,6 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.Spore;
 
 import java.util.ArrayList;
@@ -30,7 +29,7 @@ public class SporeTest {
             }
         }
 
-        public void $query( Spore<String,Object> query ) {
+        public void $doQuery(Spore<String, Object> query) {
             data.forEach( string -> {
                 query.remote( string );
             });
@@ -46,32 +45,31 @@ public class SporeTest {
         public void $testSpore( DataHolder data, String subs ) {
             Thread.currentThread().setName("Caller");
             checkThread();
-            data.$query(
-                new Spore<String, Object>() {
+            data.$doQuery(
+                    new Spore<String, Object>() {
 
-                    String toSearch; // data required remotely
+                        String toSearch; // data required remotely
 
-                    {
-                        toSearch = subs; // capture data from current context
-                    }
-
-                    // the method executed remotely
-                    public void remote(String input) {
-                        assert  Thread.currentThread().getName().equals("DataHolder");
-                        if (input.indexOf(subs) >= 0) {
-                            stream(input);
+                        {
+                            toSearch = subs; // capture data from current context
                         }
-                    }
 
-                    // here the objects emmitted by the remote code come in again
-                    public void local(Object result, Object error) {
-                        assert  Thread.currentThread().getName().equals("Caller");
+                        // the method executed remotely
+                        public void remote(String input) {
+                            assert Thread.currentThread().getName().equals("DataHolder");
+                            if (input.indexOf(subs) >= 0) {
+                                stream(input);
+                            }
+                        }
+
+                    } // result receiving executed locally
+                    .forEach((result, error) -> {
+                        assert Thread.currentThread().getName().equals("Caller");
                         int i = res.incrementAndGet();
-                        System.out.println("result "+i+":" + result + " err:" + error);
+                        System.out.println("result " + i + ":" + result + " err:" + error);
                         checkThread();
-                    }
-
-                }
+                    })
+                    .onFinish(() -> System.out.println("DONE"))
             );
         }
     }
@@ -82,7 +80,7 @@ public class SporeTest {
         data.$init(500);
         Caller caller = Actors.AsActor(Caller.class);
         caller.$testSpore(data, "maybe");
-        Thread.sleep(1000);
-        Assert.assertTrue( res.get() == 73 );
+        Thread.sleep(2000);
+        Assert.assertTrue( res.get() == 72 );
     }
 }

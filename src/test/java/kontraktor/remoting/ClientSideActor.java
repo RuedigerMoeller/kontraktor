@@ -34,7 +34,7 @@ public class ClientSideActor extends Actor<ClientSideActor> {
         }
     }
 
-    public static void main( String arg[] ) throws IOException, InterruptedException {
+    public static void main( String arg[] ) throws Exception {
 
         TCPActorClient.Connect(ServerTestFacade.class, "localhost", 7777).then( (test, err) -> {
             if (test != null) {

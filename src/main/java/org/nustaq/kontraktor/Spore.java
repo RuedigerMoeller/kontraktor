@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor;
 
+import org.nustaq.kontraktor.annotations.InThread;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.serialization.annotations.AnonymousTransient;
 
@@ -28,7 +29,7 @@ public abstract class Spore<I,O> implements Serializable {
                     if (localCallback != null) {
                         localCallback.receive((O) result, error);
                     } else {
-                        System.err.println("override set callback using then() prior sending");
+                        System.err.println("set callback using then() prior sending");
                     }
                 }
             }
@@ -48,7 +49,7 @@ public abstract class Spore<I,O> implements Serializable {
      * @param cb
      * @return a future triggered
      */
-    public Spore<I,O> forEachResult(Callback<O> cb) {
+    public Spore<I,O> forEach(Callback<O> cb) {
         if ( localCallback != null ) {
             throw new RuntimeException("forEachResult callback handler can only be set once.");
         }
@@ -56,7 +57,7 @@ public abstract class Spore<I,O> implements Serializable {
         return this;
     }
 
-    public Spore<I,O> onFinish(Runnable toRun) {
+    public Spore<I,O> onFinish( Runnable toRun) {
         finSignal.then(toRun);
         return this;
     }

@@ -152,7 +152,7 @@ public class Actors {
 
     /**
      * takes elements of a collection feeds them into the map function which is expected to return a future for each
-     * element of the collection. The waits for all futures to be completed. Then iterate the collection of completed
+     * element of the collection. Then waits (async) for all futures to be completed. Then iterate the collection of completed
      * futures and feed it into consumer
      * @param coll
      * @param map - map a collection item to a future (e.g. call remote method)
@@ -235,6 +235,10 @@ public class Actors {
     public static <T> T sync( Future<T> fut ) {
         if ( Actor.sender.get() != null )
             throw new RuntimeException("cannot call from within actor thread");
+        return unsafeSync(fut);
+    }
+
+    public static <T> T unsafeSync(Future<T> fut) {
         CountDownLatch latch = new CountDownLatch(1);
         fut.then( (r,e) -> latch.countDown() );
         try {
@@ -247,6 +251,18 @@ public class Actors {
                 throw (RuntimeException) fut.getError();
             if ( fut.getError() instanceof Throwable )
                 throw new RuntimeException((Throwable) fut.getError());
+            throw new RuntimeException(""+fut.getError());
+        }
+        return fut.getResult();
+    }
+
+    public static <T> T unsafeSyncThrowEx(Future<T> fut) throws Throwable{
+        CountDownLatch latch = new CountDownLatch(1);
+        fut.then( (r,e) -> latch.countDown() );
+        latch.await();
+        if ( fut.getError() != null ) {
+            if ( fut.getError() instanceof Throwable )
+                throw (Throwable) fut.getError();
             throw new RuntimeException(""+fut.getError());
         }
         return fut.getResult();
