@@ -54,10 +54,10 @@ public class HttpMonitor extends Actor<HttpMonitor> {
         }
         Monitorable monitorable = monitored.get(name);
         if ( monitorable == null )
-            cb.receive(null,"no such monitorable registered: '"+name+"'");
+            cb.settle(null, "no such monitorable registered: '" + name + "'");
         else {
             getMonitorables(depth, monitorable).then((result, err) -> {
-                cb.receive(result, null);
+                cb.settle(result, null);
             });
         }
     }
@@ -83,10 +83,10 @@ public class HttpMonitor extends Actor<HttpMonitor> {
                             Future future = futures[i];
                             subResult[i] = future.getResult();
                         }
-                        p.receive(result,null);
+                        p.settle(result, null);
                     });
                 } else
-                    p.receive(result,null);
+                    p.settle(result, null);
             });
         });
         return p;

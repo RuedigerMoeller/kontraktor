@@ -10,7 +10,6 @@ import org.nustaq.kontraktor.util.Log;
 import java.io.*;
 import java.net.SocketException;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Created by ruedi on 08.08.14.
@@ -59,10 +58,10 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
         new Thread(() -> {
             try {
                 client.connect();
-                res.receive(client.getFacadeProxy(), null);
+                res.settle(client.getFacadeProxy(), null);
             } catch (IOException e) {
                 Log.Info(TCPActorClient.class,null,""+e);
-                res.receive(null, e);
+                res.settle(null, e);
             }
         }, "connection thread "+client.getDescriptionString()).start();
         return res;

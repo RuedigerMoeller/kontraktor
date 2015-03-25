@@ -37,7 +37,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
@@ -53,7 +52,7 @@ import java.util.function.Function;
  *
  * All 'messages' of an actor are defined by 'public void' methods.
  * Actor methods are not allowed to return values. They must be of type void. Pass a Callback as argument to a call
- * in order to receive results from other actors/threads.
+ * in order to settle results from other actors/threads.
  * Non public methods can be called from inside the actor, but not outside as a message.
  *
  * Note that you have to pass immutable objects as arguments, else you'll get unpredictable behaviour.
@@ -62,7 +61,7 @@ import java.util.function.Function;
  * Use Actors.Exec in case you need to do blocking calls (e.g. synchronous requests)
  *
  */
-public class Actor<SELF extends Actor> implements Serializable, Monitorable {
+public class Actor<SELF extends Actor> extends Actors implements Serializable, Monitorable {
 
     // constants from Callback class for convenience
 
@@ -75,7 +74,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
      */
     public static final String CONT = Callback.CONT;
     /**
-     * use this value to signal no more messages. The receiver callback will receive the message.
+     * use this value to signal no more messages. The receiver callback will settle the message.
      * Note that any value except CONT will also close the callback channel. So this is informal.
      */
     public static final String FIN = Callback.FIN;
@@ -157,41 +156,6 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
     }
     @CallerSideMethod public boolean isProxy() {
         return getActor() != this;
-    }
-
-    /**
-     * returns a future whose "then" or "onResult" is called once all futures given have been completed.
-     * The result is an array of completed futures.
-     *
-     * @param futures
-     * @return
-     */
-    protected <T> Future<Future<T>[]> yield(Future<T> ... futures) {
-        return __scheduler.yield(futures);
-    }
-
-    /**
-     *  same as yield but uses a list
-     */
-     protected <T> Future<List<Future<T>>> yieldList( List<Future<T>> futures) {
-        return __scheduler.yield(futures);
-    }
-
-    /**
-     * same as yield, but converts the resulting Future[] to an Object[] or T[]
-     * @param futures
-     * @return
-     */
-    protected <T> Future<T[]> yield2Result(Future<T>... futures) {
-        Promise p = new Promise();
-        __scheduler.yield(futures).then( (futs,err) -> {
-            Object res[] = new Object[futures.length];
-            for (int i = 0; i < futs.length; i++) {
-                res[i] = futs[i].getResult();
-            }
-            p.receive(res,err);
-        });
-        return p;
     }
 
     /**
@@ -426,7 +390,7 @@ public class Actor<SELF extends Actor> implements Serializable, Monitorable {
         getActorRef().__stopped = true;
         getActor().__stopped = true;
         if (__stopHandlers!=null) {
-            __stopHandlers.forEach( (cb) -> cb.receive(self(), null) );
+            __stopHandlers.forEach( (cb) -> cb.settle(self(), null) );
             __stopHandlers.clear();
         }
         // remove ref to real actor as ref might still be referenced in threadlocals and

@@ -59,7 +59,7 @@ public class BasicSubscriber {
                 worker.execute(new Runnable() {
                     @Override
                     public void run() {
-                        System.out.println("receive " + finRec.getString().toString() + " latency:" + (nanos / 1000));
+                        System.out.println("settle " + finRec.getString().toString() + " latency:" + (nanos / 1000));
                     }
                 });
             }

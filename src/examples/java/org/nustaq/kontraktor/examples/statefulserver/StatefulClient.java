@@ -35,21 +35,21 @@ public class StatefulClient extends Actor<StatefulClient> {
                     server.$authenticate("user" + Math.random(), "pwd").then((sess, authError) -> {
                         if (sess != null) {
                             session = sess;
-                            result.receive(true, null);
+                            result.settle(true, null);
                             self().$pingLoop(); // start pinging
                             self().$workLoop(); // simulate work
                         } else {
-                            result.receive(null, authError);
+                            result.settle(null, authError);
                             server.$close();
                         }
                     });
                 } else {
-                    result.receive(null, conError);
+                    result.settle(null, conError);
                 }
             });
         } catch (IOException e) {
             e.printStackTrace();
-            result.receive(null, e);
+            result.settle(null, e);
         }
         return result;
     }

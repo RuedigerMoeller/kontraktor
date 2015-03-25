@@ -206,8 +206,8 @@ public class NioHttpServerImpl extends Actor<NioHttpServerImpl> implements NioHt
 
         @Override
         public boolean processRequest(KontraktorHttpRequest req, Callback response) {
-            response.receive(new RequestResponse("HTTP/1.0 200 OK\nAccess-Control-Allow-Origin: *\n\n" + req.getText()), null);
-            response.receive(null, FINISHED);
+            response.settle(new RequestResponse("HTTP/1.0 200 OK\nAccess-Control-Allow-Origin: *\n\n" + req.getText()), null);
+            response.settle(null, FINISHED);
             return true;
         }
     }

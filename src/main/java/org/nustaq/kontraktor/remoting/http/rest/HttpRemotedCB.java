@@ -25,7 +25,7 @@ public class HttpRemotedCB implements Callback {
     }
 
     @Override
-    public void receive(Object result, Object error) {
+    public void settle(Object result, Object error) {
 
     }
 

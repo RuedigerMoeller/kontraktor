@@ -6,6 +6,7 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Created by ruedi on 20.05.14.
@@ -79,13 +80,13 @@ public class Promise<T> implements Future<T> {
     }
 
     @Override
-    public <OUT> Future<OUT> map(final Function<T, Future<OUT>> function) {
+    public <OUT> Future<OUT> then(final Function<T, Future<OUT>> function) {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
-            public void receive(T result, Object error) {
+            public void settle(T result, Object error) {
                 if ( Actor.isError(error) ) {
-                    res.receive( null, error );
+                    res.settle(null, error);
                 } else {
                     function.apply(result).then(res);
                 }
@@ -95,16 +96,16 @@ public class Promise<T> implements Future<T> {
     }
 
     @Override
-    public <OUT> Future<OUT> map(Consumer<T> function) {
+    public <OUT> Future<OUT> then(Consumer<T> function) {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
-            public void receive(T result, Object error) {
+            public void settle(T result, Object error) {
                 if ( Actor.isError(error) ) {
-                    res.receive(null, error);
+                    res.settle(null, error);
                 } else {
                     function.accept(result);
-                    res.signal();
+                    res.settle();
                 }
             }
         });
@@ -112,13 +113,31 @@ public class Promise<T> implements Future<T> {
     }
 
     @Override
+    public Future<T> then(Supplier<Future<T>> callable) {
+        Promise res = new Promise<>();
+        then( new Callback<T>() {
+            @Override
+            public void settle(T result, Object error) {
+                if ( Actor.isError(error) ) {
+                    res.settle(null, error);
+                } else {
+                    Future<T> call = null;
+                    call = callable.get().then(res);
+                }
+            }
+        });
+        return res;
+    }
+
+
+    @Override
     public <OUT> Future<OUT> catchError(final Function<Object, Future<OUT>> function) {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
-            public void receive(T result, Object error) {
+            public void settle(T result, Object error) {
                 if ( ! Actor.isError(error) ) {
-                    res.receive( null, error );
+                    res.settle(null, error);
                 } else {
                     function.apply(error).then(res);
                 }
@@ -132,12 +151,12 @@ public class Promise<T> implements Future<T> {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
-            public void receive(T result, Object error) {
+            public void settle(T result, Object error) {
                 if ( ! Actor.isError(error) ) {
-                    res.receive( null, error );
+                    res.settle(null, error);
                 } else {
                     function.accept(error);
-                    res.signal();
+                    res.settle();
                 }
             }
         });
@@ -146,7 +165,7 @@ public class Promise<T> implements Future<T> {
 
     public void timedOut( Timeout to ) {
         if (!hadResult ) {
-            receive(null, to);
+            settle(null, to);
         }
     }
 
@@ -163,11 +182,11 @@ public class Promise<T> implements Future<T> {
                 if (nextFuture == null) {
                     nextFuture = new Promise(result, error);
                     lock.set(false);
-                    resultCB.receive(result, error);
+                    resultCB.settle(result, error);
                 } else {
                     lock.set(false);
-                    resultCB.receive(result, error);
-                    nextFuture.receive(result, error);
+                    resultCB.settle(result, error);
+                    nextFuture.settle(result, error);
                     return nextFuture;
                 }
             }
@@ -219,7 +238,7 @@ public class Promise<T> implements Future<T> {
      * same as then, but avoid creation of new future
      * @param resultCB
      */
-    public void finishWith(Callback resultCB) {
+    public void finallyDo(Callback resultCB) {
         // FIXME: this can be implemented more efficient
         while( !lock.compareAndSet(false,true) ) {}
         try {
@@ -229,7 +248,7 @@ public class Promise<T> implements Future<T> {
             if (hadResult) {
                 hasFired = true;
                 lock.set(false);
-                resultCB.receive(result, error);
+                resultCB.settle(result, error);
             }
         } finally {
             lock.set(false);
@@ -237,25 +256,25 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * calls receive( result, null )
+     * calls settle( result, null )
      * @param res
      */
     public void receiveResult(Object res) {
-        receive(res,null);
+        settle(res, null);
     }
 
     /**
-     * calls receive( null, error )
+     * calls settle( null, error )
      */
     public void receiveError(Object error) {
-        receive(null,error);
+        settle(null, error);
     }
 
     @Override
-    public final void receive(Object res, Object error) {
+    public final void settle(Object res, Object error) {
         // ensure correct thread in case actor cascades futures
 //        if ( Thread.currentThread() != currentThread && currentThread instanceof DispatcherThread) {
-//            new CallbackWrapper((DispatcherThread) currentThread, this).receive(res, error);
+//            new CallbackWrapper((DispatcherThread) currentThread, this).settle(res, error);
 //        }
 //        else
         {
@@ -281,13 +300,13 @@ public class Promise<T> implements Future<T> {
                     }
                     hasFired = true;
                     lock.set(false);
-                    resultReceiver.receive(result, error);
+                    resultReceiver.settle(result, error);
                     resultReceiver = null;
                     while (!lock.compareAndSet(false, true)) {
                     }
                     if (nextFuture != null) {
                         lock.set(false);
-                        nextFuture.receive(result, error);
+                        nextFuture.settle(result, error);
                     }
                     return;
                 }
@@ -299,11 +318,6 @@ public class Promise<T> implements Future<T> {
 
     public T getResult() {
         return (T) result;
-    }
-
-    @Override
-    public void signal() {
-        receive(null, null);
     }
 
     @Override

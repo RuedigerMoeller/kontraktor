@@ -148,11 +148,11 @@ public class RestActorServer {
                 RemoteCallEntry call = calls[0];
                 Callback cb = (r, e) -> {
                     if ( r != null ) {
-                        response.receive(RequestResponse.MSG_302(((HtmlString)r).getRedirectUrl()), null );
-                        response.receive(new RequestResponse(""), RestProcessor.FINISHED );
+                        response.settle(RequestResponse.MSG_302(((HtmlString) r).getRedirectUrl()), null);
+                        response.settle(new RequestResponse(""), RestProcessor.FINISHED);
                     } else {
                         Log.Warn(this, "error in httpRedirect "+e);
-                        response.receive(RequestResponse.MSG_500, RequestProcessor.FINISHED );
+                        response.settle(RequestResponse.MSG_500, RequestProcessor.FINISHED);
                     }
                 };
                 try {
@@ -164,7 +164,7 @@ public class RestActorServer {
                 }
                 return;
             }
-            response.receive(RequestResponse.MSG_200, null);
+            response.settle(RequestResponse.MSG_200, null);
             AtomicInteger countDown = new AtomicInteger(calls.length);
             for (int i = 0; i < calls.length; i++) {
                 RemoteCallEntry call = calls[i];
@@ -194,20 +194,20 @@ public class RestActorServer {
                     }
                     String fin = countDown.get() <= 0 ? RequestProcessor.FINISHED : null;
                     if ( r instanceof HtmlString ) {
-                        response.receive( new RequestResponse((HtmlString) r), fin); // note: pipelining does not make sense with HtmlString results
+                        response.settle(new RequestResponse((HtmlString) r), fin); // note: pipelining does not make sense with HtmlString results
                         return;
                     }
-                    RemoteCallEntry resCall = new RemoteCallEntry(0, finalCB, "receive", new Object[]{r, e == null ? null : ("" + e) });
+                    RemoteCallEntry resCall = new RemoteCallEntry(0, finalCB, "settle", new Object[]{r, e == null ? null : ("" + e) });
                     resCall.setQueue(resCall.CBQ);
 
                     try {
                         final String encode = coder.encode(resCall);
 //                        System.out.println("resp:\n"+encode);
-                        response.receive(new RequestResponse(encode), isContinue ? null : fin);
+                        response.settle(new RequestResponse(encode), isContinue ? null : fin);
                     } catch (Exception ex) {
                         Log.Warn(this, ex, "");
-//                        response.receive(RequestResponse.MSG_500, null);
-                        response.receive(new RequestResponse(FSTUtil.toString(ex)), fin);
+//                        response.settle(RequestResponse.MSG_500, null);
+                        response.settle(new RequestResponse(FSTUtil.toString(ex)), fin);
                     }
                 };
 
@@ -216,22 +216,22 @@ public class RestActorServer {
                 for (int ii = 0; ii < parameterTypes.length; ii++) {
                     Class<?> parameterType = parameterTypes[ii];
                     if (Actor.class.isAssignableFrom(parameterType)) {
-//                        response.receive(RequestResponse.MSG_500, null);
-                        response.receive(new RequestResponse(
-                                             "method not http enabled, actor remote references " +
-                                                 "cannot be supported for Http based REST (use TCP stack)"),
-                                         RequestProcessor.FINISHED
-                                        );
+//                        response.settle(RequestResponse.MSG_500, null);
+                        response.settle(new RequestResponse(
+                                                               "method not http enabled, actor remote references " +
+                                                                   "cannot be supported for Http based REST (use TCP stack)"),
+                                           RequestProcessor.FINISHED
+                        );
                         return;
                     }
                     if (Callback.class.isAssignableFrom(parameterType)) {
                         if (cbCount > 0 || Future.class.isAssignableFrom(m.getReturnType())) {
-//                            response.receive(RequestResponse.MSG_500, null);
-                            response.receive(new RequestResponse(
-                                                 "method not http enabled, more than one callback " +
-                                                     "object in args, or callback and also returns future"),
-                                             RequestProcessor.FINISHED
-                                            );
+//                            response.settle(RequestResponse.MSG_500, null);
+                            response.settle(new RequestResponse(
+                                                                   "method not http enabled, more than one callback " +
+                                                                       "object in args, or callback and also returns future"),
+                                               RequestProcessor.FINISHED
+                            );
                             return;
                         }
                         cbCount++;
@@ -245,13 +245,13 @@ public class RestActorServer {
                 } else if (m.getReturnType() == void.class && cbCount == 0) {
                     respPerS.count();
                     if ( countDown.decrementAndGet() == 0 ) {
-                        response.receive(null, RequestProcessor.FINISHED);
+                        response.settle(null, RequestProcessor.FINISHED);
                     }
                 }
             }
         } catch (Exception e) {
             Log.Warn(this,e,"");
-            response.receive(RequestResponse.MSG_500, "" + e);
+            response.settle(RequestResponse.MSG_500, "" + e);
         }
     }
 
@@ -296,8 +296,8 @@ public class RestActorServer {
                     return false;
                 } else {
                     if ( remoteCallInterceptor != null && !remoteCallInterceptor.apply(target.actor,req.getPath(1)) ) {
-                        response.receive(RequestResponse.MSG_403, null);
-                        response.receive(null, FINISHED);
+                        response.settle(RequestResponse.MSG_403, null);
+                        response.settle(null, FINISHED);
                         return true;
                     } else
                         enqueueCall(target, req, response);
@@ -312,8 +312,8 @@ public class RestActorServer {
                 }
             } else {
                 return false;
-//                response.receive(RequestResponse.MSG_404, null);
-//                response.receive(null, FINISHED);
+//                response.settle(RequestResponse.MSG_404, null);
+//                response.settle(null, FINISHED);
             }
             return true;
         }
@@ -371,7 +371,7 @@ public class RestActorServer {
     }
 
 //    public static void main(String arg[]) {
-//        RestActorServer sv = new RestActorServer().map(MDesc.class);
+//        RestActorServer sv = new RestActorServer().then(MDesc.class);
 //        sv.Publish("rest",Actors.AsActor(RESTActor.class,65000));
 //        sv.startOnServer(9999, Actors.AsActor(NioHttpServerImpl.class, 64000));
 //    }

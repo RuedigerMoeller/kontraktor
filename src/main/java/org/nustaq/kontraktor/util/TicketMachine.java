@@ -6,7 +6,6 @@ import org.nustaq.kontraktor.Promise;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -15,7 +14,7 @@ import java.util.List;
  * Single threaded, can be used from within one actor only !
  *
  * Problem:
- * you receive a stream of events related to some items (e.g. UserSessions or Trades)
+ * you settle a stream of events related to some items (e.g. UserSessions or Trades)
  * you need to do some asynchronous lookups during processing (e.g. query data async)
  * now you want to process parallel, but need to process events related to a single item
  * in order (e.g. want to process trades related to say BMW in the order they come in).
@@ -27,7 +26,7 @@ import java.util.List;
  *
  *     .. wild async processing ..
  *
- *     endsignalFuture.receive("done",null); // will execute next event on bmw if present
+ *     endsignalFuture.settle("done",null); // will execute next event on bmw if present
  *   });
  *
  */
@@ -60,7 +59,7 @@ public class TicketMachine {
         final List<Ticket> finalFutures = futures;
         signalFin.then(new Callback() {
             @Override
-            public void receive(Object result, Object error) {
+            public void settle(Object result, Object error) {
 //                System.out.println("rec "+channelKey+" do remove+checknext");
                 boolean remove = finalFutures.remove(ticket);
                 if ( ! remove )
@@ -70,7 +69,7 @@ public class TicketMachine {
 
         });
         if ( futures.size() == 1 ) { // this is the one and only call, start immediately
-            signalStart.receive(signalFin, null);
+            signalStart.settle(signalFin, null);
         }
         return signalStart;
     }
@@ -80,7 +79,7 @@ public class TicketMachine {
             tickets.remove(channelKey);
         } else {
             Ticket nextTicket = futures.get(0);
-            nextTicket.signalProcessingStart.receive(nextTicket.signalProcessingFinished, null);
+            nextTicket.signalProcessingStart.settle(nextTicket.signalProcessingFinished, null);
         }
     }
 

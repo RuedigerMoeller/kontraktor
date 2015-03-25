@@ -4,7 +4,6 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
 import org.nustaq.kontraktor.util.RateMeasure;
 
-import java.io.IOException;
 import java.util.Date;
 
 /**
@@ -18,7 +17,7 @@ public class ServerTestFacade extends Actor<ServerTestFacade> {
     }
 
     public void $testCallWithCB( long time, Callback<String> cb ) {
-        cb.receive(new Date(time).toString(), null);
+        cb.settle(new Date(time).toString(), null);
     }
 
     RateMeasure measure = new RateMeasure("calls",1000);

@@ -198,7 +198,7 @@ public class ActorProxyFactory {
                  originalMethod.getName().equals("$getReport") ||
                  originalMethod.getName().equals("$sync") ||
                  originalMethod.getName().equals("$stop") ||
-                 originalMethod.getName().equals("$receive") ||
+                 originalMethod.getName().equals("$settle") ||
                  originalMethod.getName().equals("$close")
             )
             {
@@ -268,13 +268,13 @@ public class ActorProxyFactory {
 //            CtMethod method = methods[i];
 //            CtMethod originalMethod = method;
 //            if (method.getName().equals("getActor")) {
-//                ClassMap map = new ClassMap();
-//                map.put(Actor.class.getName(),Actor.class.getName());
+//                ClassMap then = new ClassMap();
+//                then.put(Actor.class.getName(),Actor.class.getName());
 //                method = CtMethod.make( "public "+Actor.class.getName()+" getActor() { return __target; }", cc ) ;
 //            } else {
-//                ClassMap map = new ClassMap();
-//                map.fix(orig);
-//                method = new CtMethod(method, cc, map);
+//                ClassMap then = new ClassMap();
+//                then.fix(orig);
+//                method = new CtMethod(method, cc, then);
 //            }
 //
 //            CtClass returnType = method.getReturnType();

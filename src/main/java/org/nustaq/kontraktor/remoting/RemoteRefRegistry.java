@@ -15,7 +15,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Created by ruedi on 08.08.14.
@@ -286,7 +285,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
             Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
             if ( publishedCallback == null )
                 throw new RuntimeException("Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent");
-            publishedCallback.receive(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
+            publishedCallback.settle(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
             if (!isContinue)
                 removePublishedObject(read.getReceiverKey());
         }

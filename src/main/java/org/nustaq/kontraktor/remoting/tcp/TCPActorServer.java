@@ -16,7 +16,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.stream.Collector;
 
 /**
  * Created by ruedi on 08.08.14.
@@ -46,7 +45,7 @@ public class TCPActorServer {
                 server.start(success);
             } catch (Exception e) {
                 if ( !success.isCompleted() )
-                    success.receive(null,e);
+                    success.settle(null, e);
                 res.set(e);
             }
         }, "acceptor "+port ).start();
@@ -97,7 +96,7 @@ public class TCPActorServer {
             Log.Info(this,facadeActor.getActor().getClass().getName() + " running on " + welcomeSocket.getLocalPort());
             while (!terminated) {
                 if ( success != null ) {
-                    success.signal();
+                    success.settle();
                     success = null;
                 }
                 Socket connectionSocket = welcomeSocket.accept();

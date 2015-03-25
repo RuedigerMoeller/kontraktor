@@ -3,12 +3,7 @@ package org.nustaq.kontraktor.remoting.http;
 import org.nustaq.kontraktor.Callback;
 
 import java.io.*;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.charset.Charset;
-import java.nio.file.*;
 import java.util.Scanner;
 
 /**
@@ -34,8 +29,8 @@ public class ServeFromCPProcessor implements RequestProcessor {
                         byte[] bytes = new byte[(int) file.length()];
                         try (FileInputStream fileInputStream = new FileInputStream(file)) {
                             fileInputStream.read(bytes);
-                            response.receive(RequestResponse.MSG_200, null);
-                            response.receive(new RequestResponse(bytes), FINISHED);
+                            response.settle(RequestResponse.MSG_200, null);
+                            response.settle(new RequestResponse(bytes), FINISHED);
                         }
                         return true;
                     } else {
@@ -45,15 +40,15 @@ public class ServeFromCPProcessor implements RequestProcessor {
                     // can be used to serve some text/images/js files on initial page load of an SPA
                     if ( content instanceof InputStream ) {
                         Scanner s = new java.util.Scanner((InputStream) content).useDelimiter("\\A");
-                        response.receive( RequestResponse.MSG_200, null );
-                        response.receive( new RequestResponse(s.hasNext() ? s.next() : ""), FINISHED );
+                        response.settle(RequestResponse.MSG_200, null);
+                        response.settle(new RequestResponse(s.hasNext() ? s.next() : ""), FINISHED);
                         ((InputStream) content).close();
                     } else {
-                        response.receive( RequestResponse.MSG_200, null );
-                        response.receive(new RequestResponse(content.toString()), FINISHED);
+                        response.settle(RequestResponse.MSG_200, null);
+                        response.settle(new RequestResponse(content.toString()), FINISHED);
                     }
                 } catch (Exception e) {
-                    response.receive( RequestResponse.MSG_500, FINISHED );
+                    response.settle(RequestResponse.MSG_500, FINISHED);
                     e.printStackTrace();
                 }
                 return true;

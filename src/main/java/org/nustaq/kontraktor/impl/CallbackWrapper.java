@@ -7,6 +7,7 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Copyright (c) 2014, Ruediger Moeller. All rights reserved.
@@ -39,7 +40,7 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
 
     static {
         try {
-            receiveRes = Callback.class.getMethod("receive", new Class[]{Object.class,Object.class});
+            receiveRes = Callback.class.getMethod("settle", new Class[]{Object.class,Object.class});
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
         }
@@ -54,7 +55,7 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     }
 
     @Override
-    public void receive(T result, Object error) {
+    public void settle(T result, Object error) {
         if ( realCallback == null ) {
             return;
         }
@@ -73,6 +74,14 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
 
     @Override
     public Future<T> then(Runnable result) {
+        if (realCallback instanceof Future == false)
+            throw new RuntimeException("this is an error.");
+        else
+            return ((Future)realCallback).then(result);
+    }
+
+    @Override
+    public Future<T> then(Supplier<Future<T>> result) {
         if (realCallback instanceof Future == false)
             throw new RuntimeException("this is an error.");
         else
@@ -112,19 +121,19 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     }
 
     @Override
-    public <OUT> Future<OUT> map(Function<T, Future<OUT>> function) {
+    public <OUT> Future<OUT> then(Function<T, Future<OUT>> function) {
         if (realCallback instanceof Future == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).map(function);
+            return ((Future)realCallback).then(function);
     }
 
     @Override
-    public <OUT> Future<OUT> map(Consumer<T> function) {
+    public <OUT> Future<OUT> then(Consumer<T> function) {
         if (realCallback instanceof Future == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).map(function);
+            return ((Future)realCallback).then(function);
     }
 
     @Override
@@ -157,11 +166,6 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
             return null;
         else
             return (T) ((Future)realCallback).getError();
-    }
-
-    @Override
-    public void signal() {
-        receive(null, null);
     }
 
     @Override

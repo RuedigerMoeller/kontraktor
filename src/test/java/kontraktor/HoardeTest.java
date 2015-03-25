@@ -1,9 +1,7 @@
 package kontraktor;
 
-import junit.framework.Assert;
 import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Hoarde;
@@ -12,7 +10,6 @@ import org.nustaq.serialization.FSTConfiguration;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
@@ -39,9 +36,9 @@ public class HoardeTest {
             Promise<Object> promise = new Promise<>();
             byte[] result = conf.asByteArray((Serializable) o);
             if ( previous == null ) {
-                promise.receive(result,null);
+                promise.settle(result, null);
             } else {
-                previous.then((res, err) -> promise.receive(result, null));
+                previous.then((res, err) -> promise.settle(result, null));
             }
             return promise;
         }

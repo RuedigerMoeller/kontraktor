@@ -1,13 +1,7 @@
 package org.nustaq.kontraktor.util;
 
 import org.nustaq.kontraktor.*;
-import org.nustaq.serialization.FSTConfiguration;
 
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -104,7 +98,7 @@ public class Hoarde<T extends Actor> {
             return prev;
         } else {
             Promise p = new Promise();
-            prev.getNext().finishWith( (res, err) -> result.then( (res1,err1) -> p.receive(res1, err1) ) );
+            prev.getNext().finallyDo((res, err) -> result.then((res1, err1) -> p.settle(res1, err1)));
             prev = p;
             return p;
         }

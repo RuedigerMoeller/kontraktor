@@ -39,7 +39,7 @@ public class FutureLatch<T> {
     public void countDown(T result, Object error) {
         int i = count.decrementAndGet();
         if ( i == 0 ) {
-            wrapped.receive(result, error);
+            wrapped.settle(result, error);
         } else if ( i < 0 ) {
             throw new RuntimeException("latch already triggered !");
         }

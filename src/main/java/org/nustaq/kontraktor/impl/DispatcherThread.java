@@ -258,8 +258,8 @@ public class DispatcherThread extends Thread implements Monitorable {
                     invokeResult.then(
                         new Callback() {
                             @Override
-                            public void receive(Object result, Object error) {
-                                futureCB.receive(result, error);
+                            public void settle(Object result, Object error) {
+                                futureCB.settle(result, error);
                             }
                         }
                     );
@@ -273,11 +273,11 @@ public class DispatcherThread extends Thread implements Monitorable {
                     removeActorImmediate(actor.getActorRef());
 // FIXME: Many Testcases fail if uncommented. Rethink
 //                    if (callEntry.getFutureCB() != null)
-//                        callEntry.getFutureCB().receive(null, e);
+//                        callEntry.getFutureCB().settle(null, e);
 //                    else
 //                        Log.Warn(this,e,"");
 //                    if (callEntry.getFutureCB() != null)
-//                        callEntry.getFutureCB().receive(null, e);
+//                        callEntry.getFutureCB().settle(null, e);
 //                    else
 //                        Log.Warn(this,e,"");
                     return true;
@@ -290,7 +290,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                     if ( DUMP_CATCHED ) {
                         e.printStackTrace();
                     }
-                    callEntry.getFutureCB().receive(null, e);
+                    callEntry.getFutureCB().settle(null, e);
                 }
                 else
                     Log.Warn(this,e,"");

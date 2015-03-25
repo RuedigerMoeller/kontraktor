@@ -135,10 +135,10 @@ public class FastClasspathScanner {
      */
     private ArrayList<FilePathMatcher> filePathMatchers = new ArrayList<>();
 
-    /** A map from fully-qualified class name to the corresponding ClassInfo object. */
+    /** A then from fully-qualified class name to the corresponding ClassInfo object. */
     private final HashMap<String, ClassInfo> classNameToClassInfo = new HashMap<>();
 
-    /** A map from fully-qualified class name to the corresponding InterfaceInfo object. */
+    /** A then from fully-qualified class name to the corresponding InterfaceInfo object. */
     private final HashMap<String, InterfaceInfo> interfaceNameToInterfaceInfo = new HashMap<>();
 
     /** Reverse mapping from annotation to classes that have the annotation */

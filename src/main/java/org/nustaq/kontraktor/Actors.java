@@ -4,15 +4,13 @@ import org.nustaq.kontraktor.impl.*;
 import io.jaq.mpsc.MpscConcurrentQueue;
 import org.nustaq.kontraktor.util.Log;
 
-import java.util.Collection;
+import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,7 +39,7 @@ import java.util.stream.Stream;
  */
 public class Actors {
 
-    public static Actors instance = new Actors(); // public for testing
+    public static ActorsImpl instance = new ActorsImpl(); // public for testing
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
@@ -74,7 +72,7 @@ public class Actors {
      * @return queue of dead letters. Note: only strings are recorded to avoid accidental references.
      */
     public static ConcurrentLinkedQueue<String> DeadLetters() {
-        return instance.deadLetters;
+        return instance.getDeadLetters();
     }
 
     /**
@@ -123,7 +121,7 @@ public class Actors {
         return (T) instance.newProxy(actorClazz,scheduler,qsize);
     }
 
-    public static Future<Future[]> yield(Future... futures) {
+    public static <T> Future<Future<T>[]> yield(Future<T> ... futures) {
         Promise res = new Promise();
         yield(futures, 0, res);
         return res;
@@ -135,19 +133,15 @@ public class Actors {
         return res;
     }
 
-    public static <T> Future yieldEach(List<Future<T>> futures, Callback<T> consumer ) {
+    public static <T> Future<T> yieldEach(List<Future<T>> futures, Callback<T> consumer ) {
         Promise<List<Future>> prom = new Promise();
         Promise signal = new Promise();
         yield(futures, 0, prom);
         prom.onResult(list -> {
-            list.forEach(fut -> consumer.receive((T) fut.getResult(), fut.getError()));
-            signal.signal();
+            list.forEach(fut -> consumer.settle((T) fut.getResult(), fut.getError()));
+            signal.settle();
         });
         return signal;
-    }
-
-    public static <T> Future yieldEach(Stream<Future<T>> futures, Callback<T> consumer ) {
-        return yieldEach(futures.collect(Collectors.toList()),consumer);
     }
 
     /**
@@ -155,7 +149,7 @@ public class Actors {
      * element of the collection. Then waits (async) for all futures to be completed. Then iterate the collection of completed
      * futures and feed it into consumer
      * @param coll
-     * @param map - map a collection item to a future (e.g. call remote method)
+     * @param map - then a collection item to a future (e.g. call remote method)
      * @param consumer - receives each completeed future
      * @param <IN>
      * @param <OUT>
@@ -163,7 +157,98 @@ public class Actors {
      */
     public static <IN,OUT> Future yieldMap( List<IN> coll, Function<IN,Future<OUT>> map, Callback<OUT> consumer ) {
         List<Future<OUT>> collect = coll.stream().map(map).collect(Collectors.toList());
-        return yieldEach(collect,consumer);
+        return yieldEach(collect, consumer);
+    }
+
+    /**
+     * stream settled futures unboxed. e.g. yield(f1,f2,..).then( farr -> stream(farr).forEach( val -> process(val) );
+     * Note this can be used only on "settled" or "completed" futures.
+     *
+     * @param settledFutures
+     * @param <T>
+     * @return
+     */
+    public static <T> Stream<T> stream(Future<T> ... settledFutures) {
+        return Arrays.stream(settledFutures).map(future -> future.getResult());
+    }
+
+    /**
+     * similar to es6 Promise.all method, however non-Future objects are not allowed
+     * @param resultArrayType
+     * @param futures
+     * @param <T>
+     * @return
+     */
+    public static <T> Future<T[]> all( Class<T> resultArrayType, Future<T> ... futures ) {
+        return yield(futures).then(resolved -> {
+            T arr[] = (T[]) Array.newInstance(resultArrayType, futures.length);
+            for (int i = 0; i < arr.length; i++) {
+                arr[i] = resolved[i].getResult();
+            }
+            return new Promise<>(arr);
+        });
+    }
+
+    /**
+     * block until future returns. Warning: this can be called only from non-actor code as
+     * it blocks the calling thread. If called from inside an actor, an exception is thrown.
+     * Sometimes this is required/handy when setting up stuff or interoperating with
+     * old-school multithreading code.
+     *
+     * if the future returns an error, an exception is thrown.
+     *
+     * @param fut
+     * @param <T>
+     * @return
+     */
+    public static <T> T sync( Future<T> fut ) {
+        if ( Actor.sender.get() != null )
+            throw new RuntimeException("cannot call from within actor thread");
+        return unsafeSync(fut);
+    }
+
+    /**
+     * use with extreme caution as if called from an actor, the actor's thread is blocked
+     *
+     * @param fut
+     * @param <T>
+     * @return
+     */
+    public static <T> T unsafeSync(Future<T> fut) {
+        CountDownLatch latch = new CountDownLatch(1);
+        fut.then( (r,e) -> latch.countDown() );
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        if ( fut.getError() != null ) {
+            if ( fut.getError() instanceof RuntimeException )
+                throw (RuntimeException) fut.getError();
+            if ( fut.getError() instanceof Throwable )
+                throw new RuntimeException((Throwable) fut.getError());
+            throw new RuntimeException(""+fut.getError());
+        }
+        return fut.getResult();
+    }
+
+    /**
+     * use with extreme caution as if called from an actor, the actor's thread is blocked
+     *
+     * @param fut
+     * @param <T>
+     * @return
+     */
+    public static <T> T unsafeSyncThrowEx(Future<T> fut) throws Throwable {
+        CountDownLatch latch = new CountDownLatch(1);
+        fut.then( (r,e) -> latch.countDown() );
+        latch.await();
+        if ( fut.getError() != null ) {
+            if ( fut.getError() instanceof Throwable )
+                throw (Throwable) fut.getError();
+            throw new RuntimeException(""+fut.getError());
+        }
+        return fut.getResult();
     }
 
     /**
@@ -178,7 +263,7 @@ public class Actors {
      * @return
      */
     public static <T> Future<Future<T>[]> async(Callable<Future<T>>... toexec) {
-        return ordered(toexec,0);
+        return ordered(toexec, 0);
     }
 
     // end static API
@@ -208,7 +293,7 @@ public class Actors {
         if ( index < futures.length ) {
             futures[index].then( (r,e) -> yield(futures, index + 1, result) );
         } else {
-            result.receive(futures, null);
+            result.settle(futures, null);
         }
     }
 
@@ -216,133 +301,8 @@ public class Actors {
         if ( index < futures.size() ) {
             futures.get(index).then((r, e) -> yield(futures, index + 1, result));
         } else {
-            result.receive(futures, null);
+            result.settle(futures, null);
         }
     }
 
-    /**
-     * block until future returns. Warning: this can be called only from non-actor code as
-     * it blocks the calling thread. If called from inside an actor, an exception is thrown.
-     * Sometimes this is required/handy when setting up stuff or interoperating with non-actorish
-     * old-school multithreading code.
-     *
-     * if the future returns an error, an exception is thrown.
-     *
-     * @param fut
-     * @param <T>
-     * @return
-     */
-    public static <T> T sync( Future<T> fut ) {
-        if ( Actor.sender.get() != null )
-            throw new RuntimeException("cannot call from within actor thread");
-        return unsafeSync(fut);
-    }
-
-    public static <T> T unsafeSync(Future<T> fut) {
-        CountDownLatch latch = new CountDownLatch(1);
-        fut.then( (r,e) -> latch.countDown() );
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        if ( fut.getError() != null ) {
-            if ( fut.getError() instanceof RuntimeException )
-                throw (RuntimeException) fut.getError();
-            if ( fut.getError() instanceof Throwable )
-                throw new RuntimeException((Throwable) fut.getError());
-            throw new RuntimeException(""+fut.getError());
-        }
-        return fut.getResult();
-    }
-
-    public static <T> T unsafeSyncThrowEx(Future<T> fut) throws Throwable{
-        CountDownLatch latch = new CountDownLatch(1);
-        fut.then( (r,e) -> latch.countDown() );
-        latch.await();
-        if ( fut.getError() != null ) {
-            if ( fut.getError() instanceof Throwable )
-                throw (Throwable) fut.getError();
-            throw new RuntimeException(""+fut.getError());
-        }
-        return fut.getResult();
-    }
-
-    //// instance
-
-    ConcurrentLinkedQueue deadLetters = new ConcurrentLinkedQueue();
-
-    protected Actors() {
-        factory = new ActorProxyFactory();
-    }
-
-    protected ActorProxyFactory factory;
-
-    public ActorProxyFactory getFactory() {
-        return factory;
-    }
-
-    protected Actor makeProxy(Class<? extends Actor> clz, DispatcherThread disp, int qs) {
-        try {
-            if ( qs <= 100 )
-                qs = disp.getScheduler().getDefaultQSize();
-
-            Actor realActor = clz.newInstance();
-            realActor.__mailbox =  createQueue(qs);
-            realActor.__mbCapacity = ((MpscConcurrentQueue) realActor.__mailbox).getCapacity();
-            realActor.__cbQueue =  createQueue(qs);
-
-            Actor selfproxy = getFactory().instantiateProxy(realActor);
-            realActor.__self = selfproxy;
-            selfproxy.__self = selfproxy;
-
-            selfproxy.__mailbox = realActor.__mailbox;
-            selfproxy.__mbCapacity = realActor.__mbCapacity;
-            selfproxy.__cbQueue = realActor.__cbQueue;
-
-            realActor.__scheduler = disp.getScheduler();
-            selfproxy.__scheduler = disp.getScheduler();
-
-            realActor.__currentDispatcher = disp;
-            selfproxy.__currentDispatcher = disp;
-
-            disp.addActor(realActor);
-            return selfproxy;
-        } catch (Exception e) {
-            if ( e instanceof RuntimeException)
-                throw (RuntimeException)e;
-            throw new RuntimeException(e);
-        }
-    }
-
-    protected Queue createQueue(int qSize) {
-        return new MpscConcurrentQueue(qSize);
-    }
-
-    protected Actor newProxy(Class<? extends Actor> clz, Scheduler sched, int qsize) {
-        if ( sched == null ) {
-            if (Thread.currentThread() instanceof DispatcherThread) {
-                sched = ((DispatcherThread) Thread.currentThread()).getScheduler();
-            }
-        }
-        try {
-            if ( sched == null )
-                sched = new ElasticScheduler(1,qsize);
-            if ( qsize < 1 )
-                qsize = sched.getDefaultQSize();
-            return makeProxy(clz, sched.assignDispatcher(70), qsize);
-        } catch (Exception e) {
-            if ( e instanceof RuntimeException)
-                throw (RuntimeException)e;
-            throw new RuntimeException(e);
-        }
-    }
-
-    public static Object[] toResults(Future[] futs) {
-        Object o[] = new Object[futs.length];
-        for (int i = 0; i < o.length; i++) {
-            o[i] = futs [i].getResult();
-        }
-        return o;
-    }
 }

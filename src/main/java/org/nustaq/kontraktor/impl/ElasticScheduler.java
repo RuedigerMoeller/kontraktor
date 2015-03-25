@@ -1,6 +1,5 @@
 package org.nustaq.kontraktor.impl;
 
-import com.sun.org.apache.xpath.internal.SourceTree;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.util.Log;
@@ -82,8 +81,8 @@ public class ElasticScheduler implements Scheduler, Monitorable {
             fut = new Promise();
             e.setFutureCB(new CallbackWrapper( e.getSendingActor() ,new Callback() {
                 @Override
-                public void receive(Object result, Object error) {
-                    fut.receive(result, error);
+                public void settle(Object result, Object error) {
+                    fut.settle(result, error);
                 }
             }));
         } else
@@ -299,9 +298,9 @@ public class ElasticScheduler implements Scheduler, Monitorable {
         final CallbackWrapper<T> resultWrapper = new CallbackWrapper<>(emitter,resultHandler);
         exec.execute(() -> {
             try {
-                resultWrapper.receive(toCall.call(), null);
+                resultWrapper.settle(toCall.call(), null);
             } catch (Throwable th) {
-                resultWrapper.receive(null, th);
+                resultWrapper.settle(null, th);
             }
         });
     }

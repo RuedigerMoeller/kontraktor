@@ -25,10 +25,10 @@ package org.nustaq.kontraktor;
 import java.io.Serializable;
 
 /**
- * Typically used to receive results from outside the actor.
+ * Typically used to settle results from outside the actor.
  * The underlying mechanics scans method arguments and schedules calls on the call back into the calling actors thread.
  * Note that the callback invocation is added as a message to the end of the calling actor.
- * e.g. actor.method( arg, new Callbacl() { public void receive(T result, Object error ) { ..runs in caller thread.. } }
+ * e.g. actor.method( arg, new Callbacl() { public void settle(T result, Object error ) { ..runs in caller thread.. } }
  */
 public interface Callback<T> extends Serializable  // do not use interface, slows down instanceof significantly
 {
@@ -40,11 +40,31 @@ public interface Callback<T> extends Serializable  // do not use interface, slow
      * use value as error to indicate more messages are to come (else remoting will close channel).
      */
     public final String CONT = "CNT";
+
     /**
-     * use this value to signal no more messages. The receiver callback will receive the message.
+     * use this value to signal no more messages. The receiver callback will settle the message.
      * Note that any value except CONT will also close the callback channel. So this is informal.
      */
     public final String FIN = "FIN";
-    public void receive(T result, Object error);
 
+    public void settle(T result, Object error);
+
+    /**
+     * same as settle(null,null)
+     */
+    default public void settle() {
+        settle(null,null);
+    }
+
+    default void reject(Object error) {
+        settle(null, error);
+    }
+
+    default void resolve(T result) {
+        settle(result, null);
+    }
+
+    default void stream(T result) {
+        settle(result, Actor.CONT);
+    }
 }
