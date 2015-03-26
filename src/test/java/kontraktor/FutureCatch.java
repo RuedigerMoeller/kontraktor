@@ -7,7 +7,6 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.Promise;
 
-import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,18 +19,33 @@ public class FutureCatch {
 
     public static class FutCatch extends Actor<FutCatch> {
 
-        public Future error(int num) {
+        public Future<String> $error(int num) {
             Promise res = new Promise();
             delayed( 500, () -> res.settle(null, "Error " + num) );
             return res;
         }
 
-        public Future result(int num) {
+        public Future<String> $result(int num) {
             Promise res = new Promise();
             delayed( 500, () -> res.settle("Result " + num, null) );
             return res;
         }
 
+        public Future $testESYield() {
+            System.out.println(esYield( $result(1) ));
+            System.out.println(esYield( $result(2) ));
+            System.out.println(esYield( $result(3) ));
+            System.out.println(esYield( $result(4) ));
+            return new Promise<>("");
+        }
+
+    }
+
+    @Test
+    public void testESY() {
+        final FutCatch futCatch = AsActor(FutCatch.class);
+        Actors.sync(futCatch.$testESYield());
+        System.out.println("Done");
     }
 
     @Test
@@ -40,31 +54,31 @@ public class FutureCatch {
         final FutCatch futCatch = AsActor(FutCatch.class);
         AtomicInteger count = new AtomicInteger(0);
         Actors.sync(
-            futCatch.result(0)
-               .then(r -> {
+            futCatch.$result(0)
+               .then( r -> {
                    System.out.println("" + r);
                    count.addAndGet(1);
-                   return futCatch.result(1);
+                   return futCatch.$result(1);
                })
                .then(r -> {
                    System.out.println("" + r);
                    count.addAndGet(2);
-                   return futCatch.result(2);
+                   return futCatch.$result(2);
                })
                .then(r -> {
                    System.out.println("" + r);
                    count.addAndGet(3);
-                   return futCatch.error(1);
+                   return futCatch.$error(1);
                })
                .then(r -> {
                    System.out.println("" + r);
                    count.addAndGet(4);
-                   return futCatch.result(3);
+                   return futCatch.$result(3);
                })
                .then(r -> {
                    System.out.println("" + r);
                    count.addAndGet(5);
-                   return futCatch.result(4);
+                   return futCatch.$result(4);
                })
                .catchError(error -> {
                    count.addAndGet(5);
@@ -73,6 +87,7 @@ public class FutureCatch {
                .then((r, e) -> System.out.println("done "+count.get()))
         );
         Assert.assertTrue(count.get() == 11);
+        futCatch.$stop();
     }
 
 }

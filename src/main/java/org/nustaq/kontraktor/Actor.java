@@ -37,6 +37,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
@@ -306,6 +307,15 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         } else {
             self().$close();
         }
+    }
+
+    protected <T> T esYield( Future<T> future ) {
+        return __scheduler.esYield(future, self());
+    }
+
+    protected <T> Stream<T> esYield( Future<T> ... futures ) {
+        Future<Future<T>[]> futs = yield(futures);
+        return stream(esYield(futs));
     }
 
     /**

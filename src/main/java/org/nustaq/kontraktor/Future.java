@@ -72,4 +72,7 @@ public interface Future<T> extends Callback<T> {
      * @return this for chaining
      */
     public Future timeoutIn(long millis);
+
+    public boolean isCompleted();
+
 }

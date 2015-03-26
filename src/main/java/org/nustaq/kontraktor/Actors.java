@@ -5,12 +5,11 @@ import io.jaq.mpsc.MpscConcurrentQueue;
 import org.nustaq.kontraktor.util.Log;
 
 import java.lang.reflect.Array;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -162,7 +161,8 @@ public class Actors {
 
     /**
      * stream settled futures unboxed. e.g. yield(f1,f2,..).then( farr -> stream(farr).forEach( val -> process(val) );
-     * Note this can be used only on "settled" or "completed" futures.
+     * Note this can be used only on "settled" or "completed" futures. If one of the futures has been rejected,
+     * a null value is streamed. FIXME
      *
      * @param settledFutures
      * @param <T>
@@ -174,6 +174,9 @@ public class Actors {
 
     /**
      * similar to es6 Promise.all method, however non-Future objects are not allowed
+     *
+     * returns a future which is settled once all futures provided are settled
+     *
      * @param resultArrayType
      * @param futures
      * @param <T>
@@ -188,6 +191,68 @@ public class Actors {
             return new Promise<>(arr);
         });
     }
+
+    //FIXME: error handling in race + all
+
+    /**
+     * similar to es6 Promise.all method, however non-Future objects are not allowed
+     *
+     * returns a future which is settled once all futures provided are settled
+     *
+     * @param futures
+     * @param <T>
+     * @return
+     */
+    public static <T> Future<List<T>> all( Future<T> ... futures ) {
+        return yield(futures).then(resolved -> {
+            List<T> arr = new ArrayList<T>(futures.length);
+            for (int i = 0; i < futures.length; i++) {
+                arr.set(i, resolved[i].getResult() );
+            }
+            return new Promise<>(arr);
+        });
+    }
+
+    /**
+     * similar to es6 Promise.all method, however non-Future objects are not allowed
+     *
+     * returns a future which is settled once one of the futures provided gets settled
+     *
+     */
+    public static <T> Future<T> race( Future<T> ... futures ) {
+        Promise p = new Promise();
+        AtomicBoolean fin = new AtomicBoolean(false);
+        for (int i = 0; i < futures.length; i++) {
+            futures[i].then( (r,e) -> {
+                if ( fin.compareAndSet(false,true) ) {
+                    p.settle(r,e);
+                }
+            });
+        }
+        return p;
+    }
+
+    /**
+     * similar to es6 Promise.all method, however non-Future objects are not allowed
+     *
+     * returns a future which is settled once one of the futures provided gets settled
+     *
+     */
+    public static <T> Future<T> race( Collection<Future<T>> futures ) {
+        Promise p = new Promise();
+        AtomicBoolean fin = new AtomicBoolean(false);
+        for (Iterator<Future<T>> iterator = futures.iterator(); iterator.hasNext(); ) {
+            iterator.next().then( (r,e) -> {
+                if ( fin.compareAndSet(false,true) ) {
+                    p.settle(r,e);
+                }
+            });
+        }
+        return p;
+    }
+
+    //TODO: add timeout variants for race and all
+
 
     /**
      * block until future returns. Warning: this can be called only from non-actor code as

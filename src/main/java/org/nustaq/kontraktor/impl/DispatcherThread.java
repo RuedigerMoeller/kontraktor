@@ -211,6 +211,9 @@ public class DispatcherThread extends Thread implements Monitorable {
     // return true if msg was avaiable
     long created = System.currentTimeMillis();
 
+    /**
+     * @return false if no message could be polled
+     */
     public boolean pollQs() {
         return pollQs(actors);
     }

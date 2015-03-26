@@ -68,4 +68,6 @@ public interface Scheduler extends Monitorable{
     void tryIsolate(DispatcherThread dp, Actor actorRef);
 
     void runOutside(Actor actor, Runnable toRun);
+
+    <T> T esYield( Future<T> future, Actor ref );
 }

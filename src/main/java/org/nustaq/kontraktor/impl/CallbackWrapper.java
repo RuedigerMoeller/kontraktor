@@ -175,4 +175,12 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
         ((Future)realCallback).timeoutIn(millis);
         return this;
     }
+
+    @Override
+    public boolean isCompleted() {
+        if (realCallback instanceof Future == false)
+            throw new RuntimeException( "currently supported for futures only" );
+        else
+            return ((Future)realCallback).isCompleted();
+    }
 }

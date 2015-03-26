@@ -12,6 +12,7 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -308,6 +309,25 @@ public class ElasticScheduler implements Scheduler, Monitorable {
     @Override
     public void runOutside(Actor actor, Runnable toRun) {
         exec.execute(toRun);
+    }
+
+    @Override
+    public <T> T esYield(Future<T> future, Actor ref) {
+        DispatcherThread dt = (DispatcherThread) Thread.currentThread();
+        int idleCount = 0;
+        while( ! future.isCompleted() ) {
+            if ( ! dt.pollQs() ) {
+                idleCount++;
+                yield(idleCount);
+            } else {
+                idleCount = 0;
+            }
+        }
+        if ( Actor.isError(future.getError()) ) {
+            throw new YieldException(future.getError());
+        } else {
+            return future.getResult();
+        }
     }
 
     /**
