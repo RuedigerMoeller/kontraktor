@@ -7,6 +7,7 @@ public class YieldException extends RuntimeException {
     Object o;
 
     public YieldException(Object o) {
+        super(""+o);
         this.o = o;
     }
 

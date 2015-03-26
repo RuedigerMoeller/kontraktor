@@ -313,7 +313,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return __scheduler.esYield(future, self());
     }
 
-    protected <T> Stream<T> esYield( Future<T> ... futures ) {
+    protected <T> Stream<T> esYieldAll( Future<T> ... futures ) {
         Future<Future<T>[]> futs = yield(futures);
         return stream(esYield(futs));
     }
@@ -322,12 +322,11 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * can be used to wait for all messages having been processed and get a signal from the returned future once this is complete
      * @return
      */
-    public Future $sync() {
-        return new Promise<>("void");
+    public Future $ping() {
+        return new Promise<>("pong");
     }
 
     protected TicketMachine __ticketMachine;
-
     /**
      * enforce serial execution of asynchronous tasks. The 'toRun' closure must call '.signal()' on the given future
      * to signal his processing has finished and the next item locked on 'transactionKey' can be processed.

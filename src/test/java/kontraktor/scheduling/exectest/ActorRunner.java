@@ -6,13 +6,6 @@ import org.nustaq.kontraktor.util.Hoarde;
 import org.nustaq.kontraktor.util.Log;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import static kontraktor.scheduling.exectest.Runner2.Mode.Dedicated;
-import static kontraktor.scheduling.exectest.Runner2.Mode.FixedThread;
-import static kontraktor.scheduling.exectest.Runner2.Mode.WorkStealing;
 
 /**
  * Created by ruedi on 16.10.2014.
@@ -32,7 +25,7 @@ public class ActorRunner {
         for ( int n=0; n < iter; n++ )
             h.each( (worker) -> worker.$doWork(memAcc) );
 
-        Actors.yield( h.map( (wk,i) -> wk.$sync() ) ).then( (r,e) -> finSignal.countDown() );
+        Actors.yield( h.map( (wk,i) -> wk.$ping() ) ).then( (r,e) -> finSignal.countDown() );
         finSignal.await();
         long dur = System.currentTimeMillis()-tim;
         h.each( (worker) -> worker.$stop() );

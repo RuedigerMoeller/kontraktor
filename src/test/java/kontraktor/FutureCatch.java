@@ -25,18 +25,41 @@ public class FutureCatch {
             return res;
         }
 
+        public Future<String> $badex(int num) {
+            Promise res = new Promise();
+            delayed( 500, () -> res.settle(null, new Error("oh noes")) );
+            return res;
+        }
+
         public Future<String> $result(int num) {
             Promise res = new Promise();
             delayed( 500, () -> res.settle("Result " + num, null) );
             return res;
         }
 
-        public Future $testESYield() {
-            System.out.println(esYield( $result(1) ));
-            System.out.println(esYield( $result(2) ));
-            System.out.println(esYield( $result(3) ));
-            System.out.println(esYield( $result(4) ));
-            return new Promise<>("");
+        public Future<Integer> $testESYield() {
+            int correctCount = 0;
+            try {
+                System.out.println(esYield( $result(1) ));
+                System.out.println(esYield( $result(2) ));
+                System.out.println(esYield( $result(3) ));
+                System.out.println(esYield( $result(4) ));
+                System.out.println(esYield($error(13)));
+            } catch (Exception e) {
+                correctCount++;
+                e.printStackTrace();
+            }
+            try {
+                System.out.println(esYield( $result(1) ));
+                System.out.println(esYield( $result(2) ));
+                System.out.println(esYield( $result(3) ));
+                System.out.println(esYield( $result(4) ));
+                System.out.println(esYield($badex(17)));
+            } catch (Throwable e) {
+                correctCount++;
+                e.printStackTrace();
+            }
+            return new Promise<>(correctCount);
         }
 
     }
@@ -44,8 +67,9 @@ public class FutureCatch {
     @Test
     public void testESY() {
         final FutCatch futCatch = AsActor(FutCatch.class);
-        Actors.sync(futCatch.$testESYield());
+        Integer sync = Actors.sync(futCatch.$testESYield());
         System.out.println("Done");
+        junit.framework.Assert.assertTrue(sync.intValue() == 2 );
     }
 
     @Test

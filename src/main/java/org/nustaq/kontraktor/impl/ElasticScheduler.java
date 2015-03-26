@@ -324,7 +324,12 @@ public class ElasticScheduler implements Scheduler, Monitorable {
             }
         }
         if ( Actor.isError(future.getError()) ) {
-            throw new YieldException(future.getError());
+            if ( future.getError() instanceof Throwable ) {
+                Actors.<RuntimeException>throwException((Throwable) future.getError());
+                return null; // never reached
+            }
+            else
+                throw new YieldException(future.getError());
         } else {
             return future.getResult();
         }

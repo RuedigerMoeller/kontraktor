@@ -7,7 +7,6 @@ import org.nustaq.kontraktor.util.Hoarde;
 import org.nustaq.kontraktor.util.Log;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by ruedi on 09.10.14.
@@ -53,7 +52,7 @@ public class KontrActorPi {
             hoarde.each( (pia,index) -> pia.$calculatePiFor(finalI + index, step, adder) );
         }
         // trigger latch once all actors have finished
-        Actors.yield( hoarde.map( (pia,i) -> pia.$sync() ) ).then( (r,e) -> latch.countDown() );
+        Actors.yield( hoarde.map( (pia,i) -> pia.$ping() ) ).then( (r,e) -> latch.countDown() );
         latch.await();
         long duration = System.currentTimeMillis() - tim;
         adder.$printPi();
