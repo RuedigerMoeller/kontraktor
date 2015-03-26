@@ -259,11 +259,11 @@ public class BasicTest {
                 results[i] = act[i].sleep();
             }
 
-            yield(results).then( (result, error) -> {
+            all(results).then( (result, error) -> {
                 System.out.println("now "+System.currentTimeMillis());
                 for (int i = 0; i < result.length; i++) {
                     Future future = result[i];
-                    System.out.println("sleep "+i+" "+future.getResult());
+                    System.out.println("sleep "+i+" "+future.get());
                 }
             });
 

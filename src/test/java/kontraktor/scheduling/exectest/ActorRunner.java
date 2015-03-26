@@ -25,7 +25,7 @@ public class ActorRunner {
         for ( int n=0; n < iter; n++ )
             h.each( (worker) -> worker.$doWork(memAcc) );
 
-        Actors.yield( h.map( (wk,i) -> wk.$ping() ) ).then( (r,e) -> finSignal.countDown() );
+        Actors.all(h.map((wk, i) -> wk.$ping())).then( (r,e) -> finSignal.countDown() );
         finSignal.await();
         long dur = System.currentTimeMillis()-tim;
         h.each( (worker) -> worker.$stop() );

@@ -16,6 +16,7 @@ import java.util.Date;
  */
 public class Log extends Actor<Log> {
 
+    public static final int DEBUG = 0;
     public static final int INFO = 1;
     public static final int WARN = 2;
     public static final int ERROR = 3;
@@ -23,6 +24,12 @@ public class Log extends Actor<Log> {
     public static Log Lg = Actors.AsActor(Log.class,100000);
     public static void Info( Object source, String msg ) {
         Lg.info(source,msg);
+    }
+    public static void Debug( String msg ) {
+        Lg.debug(null, msg);
+    }
+    public static void Debug( Object source, String msg ) {
+        Lg.debug(source,msg);
     }
     public static void Info( Object source, Throwable t, String msg ) {
         Lg.infoLong(source,t,msg);
@@ -100,6 +107,10 @@ public class Log extends Actor<Log> {
 
     @CallerSideMethod public void infoLong(Object source, Throwable ex, String msg) {
         self().$msg(Thread.currentThread(), INFO, source, ex, msg);
+    }
+
+    @CallerSideMethod public void debug( Object source, String msg ) {
+        self().$msg(Thread.currentThread(), INFO, source, null, msg);
     }
 
     @CallerSideMethod public void info( Object source, String msg ) {

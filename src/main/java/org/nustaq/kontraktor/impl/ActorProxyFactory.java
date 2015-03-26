@@ -250,11 +250,11 @@ public class ActorProxyFactory {
                 } else if (
                     ! method.getName().equals("getActor") &&
                     ! method.getName().equals("delayed") &&
-                    ! method.getName().equals("run") &&
+                    ! method.getName().equals("$run") &&
                     ! method.getName().equals("exec")
                 )
                 {
-                    method.setBody("throw new RuntimeException(\"can only call public methods on actor ref\");");
+                    method.setBody("throw new RuntimeException(\"can only call public methods on actor ref. method:'"+method.getName()+"\");");
                     cc.addMethod(method);
                 } else {
                     cc.addMethod(method);
@@ -404,7 +404,7 @@ public class ActorProxyFactory {
         HashSet unqiqueForActors = new HashSet();
         for (int i = methods0.length-1; i >= 0; i-- ) {
             CtMethod method = methods0[i];
-            if ( ! method.getDeclaringClass().isInterface() ) {
+            if ( ! method.getDeclaringClass().isInterface() && (method.getModifiers() & AccessFlag.PUBLIC) != 0 ) {
                 String str = toString(method);
                 boolean isVolatile = method.toString().indexOf("volatile ") >= 0;
                 boolean isStatic = Modifier.isStatic(method.getModifiers());

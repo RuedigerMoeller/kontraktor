@@ -123,9 +123,9 @@ public class Dining {
         new Thread(() -> {
             while( true ) {
                 LockSupport.parkNanos(1000 * 1000l * 1000);
-                Actors.yield(phils.map((phil, index) -> phil.$getState())).then( (futs, e) -> {
+                Actors.all(phils.map((phil, index) -> phil.$getState())).then( (futs, e) -> {
                     for (int i = 0; i < futs.length; i++)
-                        System.out.print(futs[i].getResult() + ", ");
+                        System.out.print(futs[i].get() + ", ");
                     System.out.println();
                 });
             }

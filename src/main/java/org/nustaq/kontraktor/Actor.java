@@ -24,6 +24,7 @@ package org.nustaq.kontraktor;
  */
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.annotations.InThread;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.util.Log;
@@ -171,17 +172,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
-     * execute given callables asynchronously, but one after another async but chained.
-     *
-     * see https://gist.github.com/RuedigerMoeller/10c583819616f2563969
-     * @param callables
-     * @return
-     */
-    protected <T> Future<Future<T>[]> ordered(Callable<Future<T>> ... callables) {
-        return Actors.async(callables);
-    }
-
-    /**
      * execute a callable asynchronously (in a different thread) and return a future
      * of the result (delivered in caller thread)
      *
@@ -191,21 +181,21 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * @param <T>
      * @return
      */
-    public <T> Future<T> exec(Callable<T> callable) {
+    protected <T> Future<T> exec( @InThread Callable<T> callable) {
         Promise<T> prom = new Promise<>();
         __scheduler.runBlockingCall(self(),callable,prom);
         return prom;
     }
 
     /**
-     * execute a callable asynchronously (in a different thread) and return a future
-     * of the result (delivered in caller thread).
+     * execute a Runnable (on the actors thread) [similar to invokeLater in Swing]
      *
-     * WARNING: do not access local actor state (instance fields) from within the runnable (=hidden parallelism).
+     * self().$run( () -> .. ) - run the runnable after the current message has been processed
+     * this.$run( () -> .. )   - runs the runnable synchronous (actually useless, could call it directly)
      *
      */
-    public void run(Runnable toRun) {
-        __scheduler.runOutside(self(),toRun);
+    public void $run(Runnable toRun) {
+        toRun.run();
     }
 
     /**
@@ -214,7 +204,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * delayed( 100, () -> { self().doAction( x, y,  ); } );
      *
      */
-    public void delayed( long millis, final Runnable toRun ) {
+    protected void delayed( long millis, final Runnable toRun ) {
         __scheduler.delayedCall( millis, inThread(self(),toRun) );
     }
 
@@ -307,15 +297,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         } else {
             self().$close();
         }
-    }
-
-    protected <T> T esYield( Future<T> future ) {
-        return __scheduler.esYield(future, self());
-    }
-
-    protected <T> Stream<T> esYieldAll( Future<T> ... futures ) {
-        Future<Future<T>[]> futs = yield(futures);
-        return stream(esYield(futs));
     }
 
     /**

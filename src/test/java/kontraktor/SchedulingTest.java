@@ -108,11 +108,11 @@ public class SchedulingTest {
             for (int i = 0; i < test.length; i++) {
                 results[i] = test[i].$getCalls();
             }
-            yield(results).then( (res, error ) -> {
+            all(results).then( (res, error ) -> {
                 boolean hadDiff = false;
-                long prev = (long) res[0].getResult();
+                long prev = (long) res[0].get();
                 for (int i = 0; i < res.length; i++) {
-                    long r = (long) res[i].getResult();
+                    long r = (long) res[i].get();
                     System.out.println("" + i + " - " + r);
                     if ( r != prev ) {
                         if (hadDiff) {

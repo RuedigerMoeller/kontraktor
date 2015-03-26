@@ -19,7 +19,7 @@ public interface Scheduler extends Monitorable{
 
     int getDefaultQSize();
 
-    void yield(int count);
+    void pollDelay(int count);
 
     void put2QueuePolling(Queue q, boolean isCBQ, Object o, Object sender);
 
@@ -43,16 +43,6 @@ public interface Scheduler extends Monitorable{
 
     <T> void runBlockingCall(Actor emitter, Callable<T> toCall, Callback<T> resultHandler);
 
-    /**
-     * wait for all futures to complete and return an array of fulfilled futures
-     *
-     * e.g. yield( f1, f2 ).then( (f,e) -> System.out.println( f[0].getResult() + f[1].getResult() ) );
-     * @param futures
-     * @return
-     */
-    <T> Future<Future<T>[]> yield(Future<T>... futures);
-    <T> Future<List<Future<T>>> yield(List<Future<T>> futures);
-
     public DispatcherThread assignDispatcher(int minLoadPerc);
 
     /** called from inside overloaded thread with load
@@ -67,7 +57,4 @@ public interface Scheduler extends Monitorable{
 
     void tryIsolate(DispatcherThread dp, Actor actorRef);
 
-    void runOutside(Actor actor, Runnable toRun);
-
-    <T> T esYield( Future<T> future, Actor ref );
 }

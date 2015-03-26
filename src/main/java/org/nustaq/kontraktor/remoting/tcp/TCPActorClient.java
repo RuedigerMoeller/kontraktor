@@ -30,7 +30,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
     }
 
     /**
-     * do a synchronous connect (may block, however noncritical in init code).
+     * do a synchronous connect (blocks on non-actor thread, yields when called from actor).
      *
      * @return an actor ref or nuöö
      * @throws Exception
@@ -38,7 +38,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
     public static <AC extends Actor> AC ConnectSync( Class<AC> clz, String host, int port, Consumer<Actor> disconnectHandler ) throws Exception
     {
         try {
-            return Actors.unsafeSyncThrowEx(Connect(clz, host, port, disconnectHandler));
+            return Connect(clz, host, port, disconnectHandler).yield();
         } catch (Throwable throwable) {
             if ( throwable instanceof Exception )
                 throw (Exception) throwable;

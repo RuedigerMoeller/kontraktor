@@ -56,9 +56,32 @@ public interface Future<T> extends Callback<T> {
     public Future<T> onTimeout(Consumer timeoutHandler);
 
     /**
-     * @return result if avaiable
+     * Warning: this is different to JDK's BLOCKING future
+     * @return result if avaiable.
      */
-    public T getResult();
+    public T get();
+
+    /**
+     * schedule other events/messages until future is resolved/settled (Nonblocking delay).
+     *
+     * In case this is called from a non-actor thread, the current thread is blocked
+     * until the result is avaiable.
+     *
+     * If the future is rejected (resolves to an error) an excpetion is raised.
+     *
+     * @return the futures result or throw exception in case of error
+     */
+    public T yield();
+
+    /**
+     * schedule other events/messages until future is resolved/settled (Nonblocking delay).
+     *
+     * In case this is called from a non-actor thread, the current thread is blocked
+     * until the result is avaiable.
+     *
+     * @return the settled future. No Exception is thrown, but the exception can be obtained by Future.getError()
+     */
+    public Future<T> await();
 
     /**
      * @return error if avaiable
@@ -73,6 +96,6 @@ public interface Future<T> extends Callback<T> {
      */
     public Future timeoutIn(long millis);
 
-    public boolean isCompleted();
+    public boolean isSettled();
 
 }

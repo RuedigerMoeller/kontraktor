@@ -153,11 +153,27 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     }
 
     @Override
-    public T getResult() {
+    public T get() {
         if (realCallback instanceof Future == false)
             return null;
         else
-            return (T) ((Future)realCallback).getResult();
+            return (T) ((Future)realCallback).get();
+    }
+
+    @Override
+    public T yield() {
+        if (realCallback instanceof Future == false)
+            return null;
+        else
+            return ((Future<T>)realCallback).yield();
+    }
+
+    @Override
+    public Future<T> await() {
+        if (realCallback instanceof Future == false)
+            return null;
+        else
+            return ((Future<T>)realCallback).await();
     }
 
     @Override
@@ -177,10 +193,10 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     }
 
     @Override
-    public boolean isCompleted() {
+    public boolean isSettled() {
         if (realCallback instanceof Future == false)
             throw new RuntimeException( "currently supported for futures only" );
         else
-            return ((Future)realCallback).isCompleted();
+            return ((Future)realCallback).isSettled();
     }
 }

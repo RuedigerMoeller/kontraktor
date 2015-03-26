@@ -3,7 +3,6 @@ package kontraktor.scheduling.autoscale;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Future;
-import org.nustaq.kontraktor.Scheduler;
 import org.nustaq.kontraktor.impl.ElasticScheduler;
 import org.nustaq.kontraktor.util.Hoarde;
 import org.nustaq.kontraktor.util.HttpMonitor;
@@ -38,11 +37,11 @@ public class BalancedRunner extends Actor<BalancedRunner> {
     }
 
     public void $report() {
-        yield( h.map( (worker,i) -> worker.$getItemCount() ) ).then( (futures,err) -> {
+        all(h.map((worker, i) -> worker.$getItemCount())).then( (futures,err) -> {
             int count = 0;
             for (int i = 0; i < futures.length; i++) {
                 Future future = futures[i];
-                if ( ((Number)future.getResult()).intValue() > 0 ) {
+                if ( ((Number)future.get()).intValue() > 0 ) {
                     count++;
                 }
             }

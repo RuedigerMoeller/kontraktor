@@ -77,7 +77,7 @@ public class StatefulClient extends Actor<StatefulClient> {
             return;
         }
         // simulate some calls made from client to server
-        yield( session.$getUser(), session.$dummyWork() ).then((futures, error) -> {
+        all(session.$getUser(), session.$dummyWork()).then((futures, error) -> {
             System.out.println("User:" + futures[0].getResult());
             System.out.println("Map:" + futures[1].getResult());
         });

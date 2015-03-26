@@ -44,7 +44,7 @@ public class TCPActorServer {
                 server.closeListener = closeListener;
                 server.start(success);
             } catch (Exception e) {
-                if ( !success.isCompleted() )
+                if ( !success.isSettled() )
                     success.settle(null, e);
                 res.set(e);
             }

@@ -52,7 +52,7 @@ public class KontrActorPi {
             hoarde.each( (pia,index) -> pia.$calculatePiFor(finalI + index, step, adder) );
         }
         // trigger latch once all actors have finished
-        Actors.yield( hoarde.map( (pia,i) -> pia.$ping() ) ).then( (r,e) -> latch.countDown() );
+        Actors.all(hoarde.map((pia, i) -> pia.$ping())).then( (r,e) -> latch.countDown() );
         latch.await();
         long duration = System.currentTimeMillis() - tim;
         adder.$printPi();

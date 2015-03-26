@@ -1,17 +1,11 @@
 package org.nustaq.kontraktor;
 
 import org.nustaq.kontraktor.impl.*;
-import io.jaq.mpsc.MpscConcurrentQueue;
 import org.nustaq.kontraktor.util.Log;
 
-import java.lang.reflect.Array;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -34,7 +28,9 @@ import java.util.stream.Stream;
  *
  * Date: 04.01.14
  * Time: 19:50
- * To change this template use File | Settings | File Templates.
+ *
+ * A set of important async helper methods. Note Actor inherits from this class
+ *
  */
 public class Actors {
 
@@ -120,56 +116,16 @@ public class Actors {
         return (T) instance.newProxy(actorClazz,scheduler,qsize);
     }
 
-    public static <T> Future<Future<T>[]> yield(Future<T> ... futures) {
-        Promise res = new Promise();
-        yield(futures, 0, res);
-        return res;
-    }
-
-    public static <T> Future<List<Future<T>>> yield(List<Future<T>> futures) {
-        Promise res = new Promise();
-        yield(futures, 0, res);
-        return res;
-    }
-
-    public static <T> Future<T> yieldEach(List<Future<T>> futures, Callback<T> consumer ) {
-        Promise<List<Future>> prom = new Promise();
-        Promise signal = new Promise();
-        yield(futures, 0, prom);
-        prom.onResult(list -> {
-            list.forEach(fut -> consumer.settle((T) fut.getResult(), fut.getError()));
-            signal.settle();
-        });
-        return signal;
-    }
-
     /**
-     * takes elements of a collection feeds them into the map function which is expected to return a future for each
-     * element of the collection. Then waits (async) for all futures to be completed. Then iterate the collection of completed
-     * futures and feed it into consumer
-     * @param coll
-     * @param map - then a collection item to a future (e.g. call remote method)
-     * @param consumer - receives each completeed future
-     * @param <IN>
-     * @param <OUT>
-     * @return
-     */
-    public static <IN,OUT> Future yieldMap( List<IN> coll, Function<IN,Future<OUT>> map, Callback<OUT> consumer ) {
-        List<Future<OUT>> collect = coll.stream().map(map).collect(Collectors.toList());
-        return yieldEach(collect, consumer);
-    }
-
-    /**
-     * stream settled futures unboxed. e.g. yield(f1,f2,..).then( farr -> stream(farr).forEach( val -> process(val) );
-     * Note this can be used only on "settled" or "completed" futures. If one of the futures has been rejected,
-     * a null value is streamed. FIXME
+     * similar to es6 Promise.all method, however non-Future objects are not allowed
      *
-     * @param settledFutures
-     * @param <T>
-     * @return
+     * returns a future which is settled once all futures provided are settled
+     *
      */
-    public static <T> Stream<T> stream(Future<T> ... settledFutures) {
-        return Arrays.stream(settledFutures).map(future -> future.getResult());
+    public static <T> Future<Future<T>[]> all(Future<T> ... futures) {
+        Promise res = new Promise();
+        awaitSettle(futures, 0, res);
+        return res;
     }
 
     /**
@@ -177,44 +133,27 @@ public class Actors {
      *
      * returns a future which is settled once all futures provided are settled
      *
-     * @param resultArrayType
-     * @param futures
-     * @param <T>
-     * @return
      */
-    public static <T> Future<T[]> all( Class<T> resultArrayType, Future<T> ... futures ) {
-        return yield(futures).then(resolved -> {
-            T arr[] = (T[]) Array.newInstance(resultArrayType, futures.length);
-            for (int i = 0; i < arr.length; i++) {
-                arr[i] = resolved[i].getResult();
-            }
-            return new Promise<>(arr);
-        });
-    }
-
-    //FIXME: error handling in race + all
-
-    /**
-     * similar to es6 Promise.all method, however non-Future objects are not allowed
-     *
-     * returns a future which is settled once all futures provided are settled
-     *
-     * @param futures
-     * @param <T>
-     * @return
-     */
-    public static <T> Future<List<T>> all( Future<T> ... futures ) {
-        return yield(futures).then(resolved -> {
-            List<T> arr = new ArrayList<T>(futures.length);
-            for (int i = 0; i < futures.length; i++) {
-                arr.set(i, resolved[i].getResult() );
-            }
-            return new Promise<>(arr);
-        });
+    public static <T> Future<List<Future<T>>> all(List<Future<T>> futures) {
+        Promise res = new Promise();
+        awaitSettle(futures, 0, res);
+        return res;
     }
 
     /**
-     * similar to es6 Promise.all method, however non-Future objects are not allowed
+     * await until all futures are settled and stream them
+     *
+     */
+    protected <T> Stream<T> stream(Future<T>... futures) {
+        return streamHelper(all(futures).yield());
+    }
+
+    protected <T> Stream<T> stream(List<Future<T>> futures) {
+        return streamHelper(all(futures).yield());
+    }
+
+    /**
+     * similar to es6 Promise.race method, however non-Future objects are not allowed
      *
      * returns a future which is settled once one of the futures provided gets settled
      *
@@ -233,7 +172,7 @@ public class Actors {
     }
 
     /**
-     * similar to es6 Promise.all method, however non-Future objects are not allowed
+     * similar to es6 Promise.race method, however non-Future objects are not allowed
      *
      * returns a future which is settled once one of the futures provided gets settled
      *
@@ -251,123 +190,45 @@ public class Actors {
         return p;
     }
 
-    //TODO: add timeout variants for race and all
-
-
-    /**
-     * block until future returns. Warning: this can be called only from non-actor code as
-     * it blocks the calling thread. If called from inside an actor, an exception is thrown.
-     * Sometimes this is required/handy when setting up stuff or interoperating with
-     * old-school multithreading code.
-     *
-     * if the future returns an error, an exception is thrown.
-     *
-     * @param fut
-     * @param <T>
-     * @return
-     */
-    public static <T> T sync( Future<T> fut ) {
-        if ( Actor.sender.get() != null )
-            throw new RuntimeException("cannot call from within actor thread");
-        return unsafeSync(fut);
-    }
-
-    /**
-     * use with extreme caution as if called from an actor, the actor's thread is blocked
-     *
-     * @param fut
-     * @param <T>
-     * @return
-     */
-    public static <T> T unsafeSync(Future<T> fut) {
-        CountDownLatch latch = new CountDownLatch(1);
-        fut.then( (r,e) -> latch.countDown() );
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        if ( fut.getError() != null ) {
-            if ( fut.getError() instanceof RuntimeException )
-                throw (RuntimeException) fut.getError();
-            if ( fut.getError() instanceof Throwable )
-                throw new RuntimeException((Throwable) fut.getError());
-            throw new RuntimeException(""+fut.getError());
-        }
-        return fut.getResult();
-    }
-
-    /**
-     * use with extreme caution as if called from an actor, the actor's thread is blocked
-     *
-     * @param fut
-     * @param <T>
-     * @return
-     */
-    public static <T> T unsafeSyncThrowEx(Future<T> fut) throws Throwable {
-        CountDownLatch latch = new CountDownLatch(1);
-        fut.then( (r,e) -> latch.countDown() );
-        latch.await();
-        if ( fut.getError() != null ) {
-            if ( fut.getError() instanceof Throwable )
-                throw (Throwable) fut.getError();
-            throw new RuntimeException(""+fut.getError());
-        }
-        return fut.getResult();
-    }
-
-    /**
-     * mimics scala's async macro. callables are executed in order. if a callable returns a promise,
-     * execution of the next callable is deferred until the promise is fulfilled. The future resulting from the last
-     * callable is returned.
-     * Helps keeping future chains readable.
-     *
-     * (see https://gist.github.com/RuedigerMoeller/10c583819616f2563969 for an example)
-     *
-     * @param toexec
-     * @return
-     */
-    public static <T> Future<Future<T>[]> async(Callable<Future<T>>... toexec) {
-        return ordered(toexec, 0);
-    }
-
     // end static API
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static <T> Future<Future<T>[]> ordered(final Callable<Future<T>> callables[], final int index) {
-        try {
-            if ( index == callables.length - 1 ) {
-                return (Future<Future<T>[]>) callables[index].call();
-            } else {
-                Future<T> res = callables[index].call();
-                if ( res != null ) {
-                    Promise p = new Promise();
-                    res.then( () -> ordered(callables, index +1).then(p) );
-                    return p;
-                } else
-                    return ordered(callables, index +1 );
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new Promise<>(null,e);
-        }
-    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // helper
 
-    private static <T> void yield(final Future<T> futures[], final int index, final Future result) {
+    private static <T> void awaitSettle(final Future<T> futures[], final int index, final Future result) {
         if ( index < futures.length ) {
-            futures[index].then( (r,e) -> yield(futures, index + 1, result) );
+            futures[index].then( (r,e) -> awaitSettle(futures, index + 1, result) );
         } else {
             result.settle(futures, null);
         }
     }
 
-    private static <T> void yield(final List<Future<T>> futures, final int index, final Future result) {
+    private static <T> void awaitSettle(final List<Future<T>> futures, final int index, final Future result) {
         if ( index < futures.size() ) {
-            futures.get(index).then((r, e) -> yield(futures, index + 1, result));
+            futures.get(index).then((r, e) -> awaitSettle(futures, index + 1, result));
         } else {
             result.settle(futures, null);
         }
+    }
+
+    /**
+     * helper to stream settled futures unboxed. e.g. all(f1,f2,..).then( farr -> stream(farr).forEach( val -> process(val) );
+     * Note this can be used only on "settled" or "completed" futures. If one of the futures has been rejected,
+     * a null value is streamed.
+     *
+     * @param settledFutures
+     * @param <T>
+     * @return
+     */
+    private static <T> Stream<T> streamHelper(Future<T>... settledFutures) {
+        return Arrays.stream(settledFutures).map(future -> future.get());
+    }
+
+    private static <T> Stream<T> streamHelper(List<Future<T>> settledFutures) {
+        return settledFutures.stream().map(future -> future.get());
     }
 
     @SuppressWarnings("unchecked")

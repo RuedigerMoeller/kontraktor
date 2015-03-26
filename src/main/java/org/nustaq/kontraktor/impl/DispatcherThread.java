@@ -68,7 +68,7 @@ public class DispatcherThread extends Thread implements Monitorable {
 
 
 
-    int stackDepth = 0;
+    public int __stackDepth = 0;
     volatile boolean isIsolated = false;
 
     public DispatcherThread(Scheduler scheduler) {
@@ -112,7 +112,7 @@ public class DispatcherThread extends Thread implements Monitorable {
         actors = newAct;
     }
 
-    int emptySinceLastCheck = 0; // incremented on sleep/yield
+    int emptySinceLastCheck = 0; // incremented on sleep/all
 
     public void run() {
         int emptyCount = 0;
@@ -135,7 +135,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                 else {
                     emptyCount++;
                     emptySinceLastCheck++;
-                    scheduler.yield(emptyCount);
+                    scheduler.pollDelay(emptyCount);
                     if (shutDown) // access volatile only when idle
                         isShutDown = true;
                     if ( scheduler.getBackoffStrategy().isSleeping(emptyCount) ) {
@@ -289,7 +289,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                     e = e.getCause();
                 }
                 if (callEntry.getFutureCB() != null) {
-                    Log.Warn(this,e,"returned catched exception to future "+e+" set DispatcherThread.DUMP_CATCHED to true in order to dump stack.");
+                    Log.Warn(this, e, "returned catched exception to future " + e + " set DispatcherThread.DUMP_CATCHED to true in order to dump stack.");
                     if ( DUMP_CATCHED ) {
                         e.printStackTrace();
                     }

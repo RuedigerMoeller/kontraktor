@@ -1,9 +1,11 @@
 package org.nustaq.kontraktor;
 
+import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.impl.ElasticScheduler;
 
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -316,8 +318,77 @@ public class Promise<T> implements Future<T> {
         }
     }
 
-    public T getResult() {
+    @Override
+    public T get() {
         return (T) result;
+    }
+
+    @Override
+    public T yield() {
+        if ( Thread.currentThread() instanceof DispatcherThread ) {
+            DispatcherThread dt = (DispatcherThread) Thread.currentThread();
+            int idleCount = 0;
+            while( ! isSettled() ) {
+                if ( ! dt.pollQs() ) {
+                    idleCount++;
+                    dt.__stackDepth++;
+                    dt.getScheduler().pollDelay(idleCount);
+                    dt.__stackDepth--;
+                } else {
+                    idleCount = 0;
+                }
+            }
+            return yieldHelper();
+        } else {
+            // if outside of actor machinery, just block (warning actually polls)
+            while( ! isSettled() ) {
+                LockSupport.parkNanos(1000*500);
+            }
+            return yieldHelper();
+        }
+    }
+
+    @Override
+    public Future<T> await() {
+        if ( Thread.currentThread() instanceof DispatcherThread ) {
+            DispatcherThread dt = (DispatcherThread) Thread.currentThread();
+            Scheduler scheduler = dt.getScheduler();
+            int idleCount = 0;
+            while( ! isSettled() ) {
+                if ( ! dt.pollQs() ) {
+                    idleCount++;
+                    dt.__stackDepth++;
+                    scheduler.pollDelay(idleCount);
+                    dt.__stackDepth--;
+                } else {
+                    idleCount = 0;
+                }
+            }
+            return this;
+        } else {
+            // if outside of actor machinery, just block (warning actually polls)
+            while( ! isSettled() ) {
+                LockSupport.parkNanos(1000*500);
+            }
+            return this;
+        }
+    }
+
+    private T yieldHelper() {
+        if ( Actor.isError(getError()) ) {
+            if ( getError() instanceof Throwable ) {
+                Actors.<RuntimeException>throwException((Throwable) getError());
+                return null; // never reached
+            }
+            else {
+                if ( getError() == Timeout.INSTANCE ) {
+                    throw new TimeoutException();
+                }
+                throw new YieldException(getError());
+            }
+        } else {
+            return get();
+        }
     }
 
     @Override
@@ -340,7 +411,7 @@ public class Promise<T> implements Future<T> {
         return error;
     }
 
-    public boolean isCompleted() {
+    public boolean isSettled() {
         return hadResult;
     }
 

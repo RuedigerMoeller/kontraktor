@@ -12,7 +12,6 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -94,7 +93,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
     }
 
     @Override
-    public void yield(int count) {
+    public void pollDelay(int count) {
         backOffStrategy.yield(count);
     }
 
@@ -103,9 +102,9 @@ public class ElasticScheduler implements Scheduler, Monitorable {
         int count = 0;
         boolean warningPrinted = false;
         while ( ! q.offer(o) ) {
-            yield(count++);
+            pollDelay(count++);
             if ( count > RECURSE_ON_BLOCK_THRESHOLD && isCBQ) {
-                // thread is blocked, try to schedule other actors on this dispatcher
+                // thread is blocked, try to schedule other actors on this dispatcher (only calbacks+futures!)
                 if (Thread.currentThread() instanceof DispatcherThread) {
 
                     // fixme: think about consequences in depth.
@@ -117,15 +116,15 @@ public class ElasticScheduler implements Scheduler, Monitorable {
 
 //                    Actor sendingActor = Actor.sender.get();
                     DispatcherThread dp = (DispatcherThread) Thread.currentThread();
-                    if ( dp.stackDepth < MAX_STACK_ON_SYNC_CBDISPATCH && dp.getActorsNoCopy().length > 1 ) {
+                    if ( dp.__stackDepth < MAX_STACK_ON_SYNC_CBDISPATCH && dp.getActorsNoCopy().length > 1 ) {
                         Actor recAct = (Actor) receiver;
                         recAct = recAct.getActorRef();
                         if ( dp.schedules(recAct) ) {
-                            dp.stackDepth++;
+                            dp.__stackDepth++;
                             if (dp.pollQs(new Actor[] {recAct})) {
                                 count = 0;
                             }
-                            dp.stackDepth--;
+                            dp.__stackDepth--;
                         }
                     } else {
 //                        System.out.println("max stack depth");
@@ -304,52 +303,6 @@ public class ElasticScheduler implements Scheduler, Monitorable {
                 resultWrapper.settle(null, th);
             }
         });
-    }
-
-    @Override
-    public void runOutside(Actor actor, Runnable toRun) {
-        exec.execute(toRun);
-    }
-
-    @Override
-    public <T> T esYield(Future<T> future, Actor ref) {
-        DispatcherThread dt = (DispatcherThread) Thread.currentThread();
-        int idleCount = 0;
-        while( ! future.isCompleted() ) {
-            if ( ! dt.pollQs() ) {
-                idleCount++;
-                yield(idleCount);
-            } else {
-                idleCount = 0;
-            }
-        }
-        if ( Actor.isError(future.getError()) ) {
-            if ( future.getError() instanceof Throwable ) {
-                Actors.<RuntimeException>throwException((Throwable) future.getError());
-                return null; // never reached
-            }
-            else
-                throw new YieldException(future.getError());
-        } else {
-            return future.getResult();
-        }
-    }
-
-    /**
-     * wait for all futures to complete and return an array of fulfilled futures
-     *
-     * e.g. yield( f1, f2 ).then( (f,e) -> System.out.println( f[0].getResult() + f[1].getResult() ) );
-     * @param futures
-     * @return
-     */
-    @Override
-    public Future<Future[]> yield(Future ... futures) {
-        return Actors.yield(futures);
-    }
-
-    @Override
-    public <T> Future<List<Future<T>>>  yield(List<Future<T>> futures) {
-        return Actors.yield(futures);
     }
 
     /**

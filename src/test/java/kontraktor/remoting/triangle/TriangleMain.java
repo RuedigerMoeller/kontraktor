@@ -5,8 +5,6 @@ import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
 
-import java.io.IOException;
-
 /**
  * Created by ruedi on 13.08.2014.
  */
@@ -20,7 +18,7 @@ public class TriangleMain {
         Future<CenterActor> outer3 = TCPActorClient.Connect(CenterActor.class, "localhost", 7777);
 
         // wait til all have connected
-        Actors.yield(outer1,outer2,outer3).then( (futures,error) -> {
+        Actors.all(outer1,outer2,outer3).then( (futures,error) -> {
             // create client actors
             OuterActor outer[] = {
                     (OuterActor) Actors.AsActor(OuterActor.class),
@@ -29,7 +27,7 @@ public class TriangleMain {
             };
             // register each client actor
             for (int i = 0; i < futures.length; i++) {
-                CenterActor center = (CenterActor) futures[i].getResult();
+                CenterActor center = (CenterActor) futures[i].get();
                 center.$registerRemoteRef(i, outer[i]);
                 outer[i].$init(i, center);
             }
