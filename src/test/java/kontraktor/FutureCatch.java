@@ -27,7 +27,7 @@ public class FutureCatch {
 
         public Future<String> $badex(int num) {
             Promise res = new Promise();
-            delayed( 500, () -> res.settle(null, new Error("oh noes")) );
+            delayed( 500, () -> res.settle(null, new Error("oh noes "+num)) );
             return res;
         }
 
