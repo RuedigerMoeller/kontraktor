@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ElasticScheduler implements Scheduler, Monitorable {
 
     public static final int MAX_STACK_ON_SYNC_CBDISPATCH = 100000;
+    public static final int MAX_EXTERNAL_THREADS_POOL_SIZE = 1000; // max threads used when externalizing blocking api
     public static int DEFQSIZE = 32768; // will be alligned to 2^x
 
     public static boolean DEBUG_SCHEDULING = false;
@@ -38,7 +39,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
     final DispatcherThread threads[];
 
     int defQSize = DEFQSIZE;
-    protected ExecutorService exec = Executors.newCachedThreadPool();
+    protected ExecutorService exec = Executors.newFixedThreadPool(MAX_EXTERNAL_THREADS_POOL_SIZE);
     public static Timer delayedCalls = new Timer();
     private AtomicInteger isolateCount = new AtomicInteger(0);
 
