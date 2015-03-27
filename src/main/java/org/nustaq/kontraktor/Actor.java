@@ -173,7 +173,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
 
     /**
      * execute a callable asynchronously (in a different thread) and return a future
-     * of the result (delivered in caller thread)
+     * of the result (delivered in caller thread). Can be used to isolate blocking operations
      *
      * WARNING: do not access local actor state (instance fields) from within the callable (=hidden parallelism).
      *
@@ -188,7 +188,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
-     * execute a Runnable (on the actors thread) [similar to invokeLater in Swing]
+     * execute a Runnable on the actors thread, similar to invokeLater in Swing
      *
      * self().$run( () -> .. ) - run the runnable after the current message has been processed
      * this.$run( () -> .. )   - runs the runnable synchronous (actually useless, could call it directly)
