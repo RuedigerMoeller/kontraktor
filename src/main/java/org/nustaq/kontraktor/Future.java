@@ -71,7 +71,7 @@ public interface Future<T> extends Callback<T> {
      *
      * @return the futures result or throw exception in case of error
      */
-    public T yield();
+    public T await();
 
     /**
      * schedule other events/messages until future is resolved/settled (Nonblocking delay).
@@ -81,7 +81,7 @@ public interface Future<T> extends Callback<T> {
      *
      * @return the settled future. No Exception is thrown, but the exception can be obtained by Future.getError()
      */
-    public Future<T> await();
+    public Future<T> awaitFuture();
 
     /**
      * @return error if avaiable

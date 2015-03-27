@@ -116,15 +116,15 @@ public class ElasticScheduler implements Scheduler, Monitorable {
 
 //                    Actor sendingActor = Actor.sender.get();
                     DispatcherThread dp = (DispatcherThread) Thread.currentThread();
-                    if ( dp.__stackDepth < MAX_STACK_ON_SYNC_CBDISPATCH && dp.getActorsNoCopy().length > 1 ) {
+                    if ( dp.__stack.size() < MAX_STACK_ON_SYNC_CBDISPATCH && dp.getActorsNoCopy().length > 1 ) {
                         Actor recAct = (Actor) receiver;
                         recAct = recAct.getActorRef();
                         if ( dp.schedules(recAct) ) {
-                            dp.__stackDepth++;
+                            dp.__stack.add(null);
                             if (dp.pollQs(new Actor[] {recAct})) {
                                 count = 0;
                             }
-                            dp.__stackDepth--;
+                            dp.__stack.remove(dp.__stack.size()-1);
                         }
                     } else {
 //                        System.out.println("max stack depth");

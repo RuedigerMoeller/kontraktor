@@ -161,19 +161,19 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     }
 
     @Override
-    public T yield() {
-        if (realCallback instanceof Future == false)
-            return null;
-        else
-            return ((Future<T>)realCallback).yield();
-    }
-
-    @Override
-    public Future<T> await() {
+    public T await() {
         if (realCallback instanceof Future == false)
             return null;
         else
             return ((Future<T>)realCallback).await();
+    }
+
+    @Override
+    public Future<T> awaitFuture() {
+        if (realCallback instanceof Future == false)
+            return null;
+        else
+            return ((Future<T>)realCallback).awaitFuture();
     }
 
     @Override

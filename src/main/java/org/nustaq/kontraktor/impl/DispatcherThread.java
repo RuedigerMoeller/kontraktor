@@ -68,7 +68,7 @@ public class DispatcherThread extends Thread implements Monitorable {
 
 
 
-    public int __stackDepth = 0;
+    public ArrayList<Promise> __stack = new ArrayList();
     volatile boolean isIsolated = false;
 
     public DispatcherThread(Scheduler scheduler) {

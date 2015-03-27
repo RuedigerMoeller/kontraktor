@@ -324,32 +324,13 @@ public class Promise<T> implements Future<T> {
     }
 
     @Override
-    public T yield() {
-        if ( Thread.currentThread() instanceof DispatcherThread ) {
-            DispatcherThread dt = (DispatcherThread) Thread.currentThread();
-            int idleCount = 0;
-            while( ! isSettled() ) {
-                if ( ! dt.pollQs() ) {
-                    idleCount++;
-                    dt.__stackDepth++;
-                    dt.getScheduler().pollDelay(idleCount);
-                    dt.__stackDepth--;
-                } else {
-                    idleCount = 0;
-                }
-            }
-            return yieldHelper();
-        } else {
-            // if outside of actor machinery, just block (warning actually polls)
-            while( ! isSettled() ) {
-                LockSupport.parkNanos(1000*500);
-            }
-            return yieldHelper();
-        }
+    public T await() {
+        awaitFuture();
+        return awaitHelper();
     }
 
     @Override
-    public Future<T> await() {
+    public Future<T> awaitFuture() {
         if ( Thread.currentThread() instanceof DispatcherThread ) {
             DispatcherThread dt = (DispatcherThread) Thread.currentThread();
             Scheduler scheduler = dt.getScheduler();
@@ -357,9 +338,9 @@ public class Promise<T> implements Future<T> {
             while( ! isSettled() ) {
                 if ( ! dt.pollQs() ) {
                     idleCount++;
-                    dt.__stackDepth++;
+                    dt.__stack.add(this);
                     scheduler.pollDelay(idleCount);
-                    dt.__stackDepth--;
+                    dt.__stack.remove(dt.__stack.size()-1);
                 } else {
                     idleCount = 0;
                 }
@@ -374,7 +355,7 @@ public class Promise<T> implements Future<T> {
         }
     }
 
-    private T yieldHelper() {
+    private T awaitHelper() {
         if ( Actor.isError(getError()) ) {
             if ( getError() instanceof Throwable ) {
                 Actors.<RuntimeException>throwException((Throwable) getError());

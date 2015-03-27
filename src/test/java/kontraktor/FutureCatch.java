@@ -28,7 +28,7 @@ public class FutureCatch {
                 return null;
             }
             in.resolve(o);
-            Object res = out.yield();
+            Object res = out.await();
             System.out.println("out yielded");
             out = new Promise<>();
             return res;
@@ -37,10 +37,13 @@ public class FutureCatch {
         public void run() {
             System.out.println("run");
             for ( int i = 0; i < 10; i++ ) {
-                in.yield();
-                System.out.println("in yielded");
+                Future inPrev = in;
                 in = new Promise<>();
-                out.resolve(i);
+                final int finalI = i;
+                inPrev.then(r -> {
+                    System.out.println("in yielded");
+                    out.resolve(finalI);
+                });
             }
             fin = true;
         }
@@ -51,12 +54,10 @@ public class FutureCatch {
         public void $generator() {
             Generator gen = new Generator();
             self().$run(() -> gen.run());
-            self().$run(() -> {
-                int count = 0;
-                while (!gen.fin) {
-                    System.out.println("GEN:" + gen.next("POK " + count++));
-                }
-            });
+            int count = 0;
+            while (!gen.fin) {
+                System.out.println("GEN:" + gen.next("POK " + count++));
+            }
         }
 
         public Future<String> $error(int num) {
@@ -77,34 +78,53 @@ public class FutureCatch {
             return res;
         }
 
+        public Future<String> $rand(int num) {
+            Promise res = new Promise();
+            delayed( 500+(long)(Math.random()*500), () -> res.settle("Result " + num, null) );
+            return res;
+        }
+
         public Future<Integer> $testESYield() {
             int correctCount = 0;
+            AtomicInteger count = new AtomicInteger(0);
             try {
-                System.out.println( $result(1).yield() );
-                System.out.println( $result(2).yield() );
-                System.out.println( $result(3).yield() );
-                System.out.println( $result(4).yield() );
-                System.out.println( $error(13).yield() );
+                System.out.println( self().$result(1).await() );
+                System.out.println( self().$result(2).await() );
+                System.out.println( self().$result(3).await() );
+                System.out.println( self().$result(4).await() );
+                System.out.println( self().$error(13).await() );
             } catch (Exception e) {
                 correctCount++;
                 e.printStackTrace();
             }
             try {
-                System.out.println( $result(1).yield() );
-                System.out.println( $result(2).yield() );
-                System.out.println( $result(3).yield() );
-                System.out.println( $result(4).yield() );
-                System.out.println( $badex(17).yield() );
+                System.out.println( self().$result(1).await() );
+                System.out.println( self().$result(2).await() );
+                System.out.println( self().$result(3).await() );
+                System.out.println( self().$result(4).await() );
+                System.out.println( self().$badex(17).await() );
             } catch (Throwable e) {
                 correctCount++;
                 e.printStackTrace();
             }
-            return new Promise<>(correctCount);
-        }
+            stream( self().$rand(1),
+                    self().$rand(2),
+                    self().$rand(3),
+                    self().$rand(4)
+            ).forEach( r -> { System.out.print("," + r); count.incrementAndGet(); });
 
+            String race = race(self().$rand(1),
+                    self().$rand(2),
+                    self().$rand(3),
+                    self().$rand(4)
+            ).await();
+            System.out.println();
+            System.out.println("rc "+race);
+            return new Promise<>(correctCount+count.get());
+        }
     }
 
-    @Test
+//    @Test
     public void testGen() {
         FutCatch futCatch = AsActor(FutCatch.class);
         futCatch.$generator();
@@ -120,13 +140,13 @@ public class FutureCatch {
         FutCatch futCatch = AsActor(FutCatch.class);
         int suc = 0;
         try {
-            futCatch.$result(12).timeoutIn(100).yield();
+            futCatch.$result(12).timeoutIn(100).await();
         } catch ( Throwable t ) {
             t.printStackTrace();
             suc++;
         }
         try {
-            futCatch.$result(12).timeoutIn(1000).yield();
+            futCatch.$result(12).timeoutIn(1000).await();
         } catch ( Throwable t ) {
             t.printStackTrace();
             suc++;
@@ -143,9 +163,9 @@ public class FutureCatch {
     @Test
     public void testESY() {
         final FutCatch futCatch = AsActor(FutCatch.class);
-        Integer sync = futCatch.$testESYield().yield();
+        Integer sync = futCatch.$testESYield().await();
         System.out.println("Done");
-        assertTrue(sync.intValue() == 2);
+        assertTrue(sync.intValue() == 6);
         futCatch.$stop();
     }
 
@@ -186,7 +206,7 @@ public class FutureCatch {
                System.out.println("catched " + error);
            })
            .then((r, e) -> System.out.println("done "+count.get()))
-           .yield();
+           .await();
 
         assertTrue(count.get() == 11);
         futCatch.$stop();

@@ -38,7 +38,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
     public static <AC extends Actor> AC ConnectSync( Class<AC> clz, String host, int port, Consumer<Actor> disconnectHandler ) throws Exception
     {
         try {
-            return Connect(clz, host, port, disconnectHandler).yield();
+            return Connect(clz, host, port, disconnectHandler).await();
         } catch (Throwable throwable) {
             if ( throwable instanceof Exception )
                 throw (Exception) throwable;

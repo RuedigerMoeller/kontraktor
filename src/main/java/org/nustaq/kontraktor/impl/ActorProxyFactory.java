@@ -197,6 +197,7 @@ public class ActorProxyFactory {
                  originalMethod.getName().equals("$getSubMonitorables") ||
                  originalMethod.getName().equals("$getReport") ||
                  originalMethod.getName().equals("$sync") ||
+                 originalMethod.getName().equals("$run") ||
                  originalMethod.getName().equals("$stop") ||
                  originalMethod.getName().equals("$settle") ||
                  originalMethod.getName().equals("$close")
@@ -250,7 +251,7 @@ public class ActorProxyFactory {
                 } else if (
                     ! method.getName().equals("getActor") &&
                     ! method.getName().equals("delayed") &&
-                    ! method.getName().equals("$run") &&
+//                    ! method.getName().equals("$run") &&
                     ! method.getName().equals("exec")
                 )
                 {

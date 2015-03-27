@@ -145,11 +145,11 @@ public class Actors {
      *
      */
     protected <T> Stream<T> stream(Future<T>... futures) {
-        return streamHelper(all(futures).yield());
+        return streamHelper(all(futures).await());
     }
 
     protected <T> Stream<T> stream(List<Future<T>> futures) {
-        return streamHelper(all(futures).yield());
+        return streamHelper(all(futures).await());
     }
 
     /**
