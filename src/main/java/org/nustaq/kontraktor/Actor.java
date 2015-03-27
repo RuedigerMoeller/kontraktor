@@ -42,13 +42,11 @@ import java.util.stream.Stream;
 
 /**
  * Baseclass for actor implementations. Note that actors are not created using constructors.
- * Use Actors.AsActor(..) or Actor.SpawnActor() to instantiate an actor instance. To pass initialization parameter,
+ * Use Actors.AsActor(..) to instantiate an actor instance. To pass initialization parameter,
  * define an init method in your implementation and call it from the instantiating instance.
  *
- * e.g.; MyActor act = Actors.Channel(MyActor.class); act.myInit( x,y,z );
- *
  * The init method then will be executed in the thread of the dispatcher associated with your
- * actor avoiding problems rised by state visibility inconsistency amongst threads.
+ * actor avoiding problems raised by state visibility inconsistency amongst threads.
  *
  * Inside an actor, everything is executed single threaded. You don't have to worry about synchronization.
  *
