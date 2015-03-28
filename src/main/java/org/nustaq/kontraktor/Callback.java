@@ -47,6 +47,13 @@ public interface Callback<T> extends Serializable  // do not use interface, slow
      */
     public final String FIN = "FIN";
 
+    /**
+     * set result or error. error might also contain flow indicators to signal end/continue of
+     * stream when remoting. (Actor.FIN Actor.CONT)
+     *
+     * @param result
+     * @param error
+     */
     public void settle(T result, Object error);
 
     /**
