@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by ruedi on 13.06.14.
  *
- * A scheduler implementing "vertical" scaling. Instead of distributing load amongs
+ * A scheduler implementing "vertical" scaling. Instead of distributing load amongst
  * a given set of threads, it increases the number of threads/cores with load.
  * This way an actor has an dedicated thread executing it instead of random thread hopping
  * when using an executor to schedule actor messages.
@@ -251,7 +251,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
             if ( method.getDeclaringClass() == Object.class )
-                return method.invoke(proxy,args); // toString, hashCode etc. invoke sync (DANGER if hashcode accesses local state)
+                return method.invoke(proxy,args); // toString, hashCode etc. invoke sync (DANGER if hashcode accesses mutable local state)
             if ( target != null ) {
                 CallEntry ce = new CallEntry(target,method,args, Actor.sender.get(), targetActor, true);
                 put2QueuePolling(targetActor.__cbQueue, true, ce, targetActor);

@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.rest;
+package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
@@ -10,10 +10,7 @@ import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
-import java.io.Serializable;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by ruedi on 14.08.2014.

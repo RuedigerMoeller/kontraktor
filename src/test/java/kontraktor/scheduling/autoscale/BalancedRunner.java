@@ -5,7 +5,6 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.impl.ElasticScheduler;
 import org.nustaq.kontraktor.util.Hoarde;
-import org.nustaq.kontraktor.util.HttpMonitor;
 
 import java.util.Random;
 
@@ -20,8 +19,8 @@ public class BalancedRunner extends Actor<BalancedRunner> {
     public void $main() {
         r = new Random(13);
         ElasticScheduler scheduler = new ElasticScheduler(8);
-        HttpMonitor.getInstance().$publish("scheduler",scheduler);
-        HttpMonitor.getInstance().$publish("mainscheduler",getScheduler());
+//        HttpMonitor.getInstance().$publish("scheduler",scheduler);
+//        HttpMonitor.getInstance().$publish("mainscheduler",getScheduler());
         h = new Hoarde<BalancedWorker>(800,BalancedWorker.class, scheduler);
         h.each( (worker,i) -> worker.$init( h.getActor((i+1)%h.getSize()), h.getActor((i+2)%h.getSize()) ) );
         for (int i = 0; i < 100000; i++) {

@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.rest;
+package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.Callback;
 

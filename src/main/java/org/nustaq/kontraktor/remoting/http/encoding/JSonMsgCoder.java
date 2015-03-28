@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.rest.encoding;
+package org.nustaq.kontraktor.remoting.http.encoding;
 
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
 

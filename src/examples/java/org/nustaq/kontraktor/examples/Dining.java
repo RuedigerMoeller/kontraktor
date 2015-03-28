@@ -38,7 +38,7 @@ public class Dining {
             num %= 5;
             forks[num].remove(0);
             if ( forks[num].size() > 0 )
-                forks[num].get(0).signal();
+                forks[num].get(0).settle();
         }
     }
 
@@ -94,11 +94,11 @@ public class Dining {
         startReportingThread(phils);
     }
 
-    public static void runServer() throws IOException {
+    public static void runServer() throws Exception {
         TCPActorServer.Publish(Actors.AsActor(Table.class), 6789);
     }
 
-    static void runClient() throws IOException {
+    static void runClient() throws Exception {
         TCPActorClient.Connect(Table.class, "localhost", 6789).then( (table, error) -> {
             if (table != null) { // connection failure
                 runPhilosophers(table);
@@ -108,7 +108,7 @@ public class Dining {
         });
     }
 
-    public static void main( String arg[] ) throws IOException {
+    public static void main( String arg[] ) throws Exception {
         switch ( arg.length ) {
             case 0: runServer(); break;
             case 1: runClient(); break;

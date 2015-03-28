@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.util;
+package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
@@ -6,7 +6,6 @@ import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.monitoring.Monitorable;
-import org.nustaq.kontraktor.remoting.http.rest.RestActorServer;
 
 import java.util.ArrayList;
 import java.util.HashMap;

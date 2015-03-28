@@ -1,9 +1,5 @@
 package org.nustaq.kontraktor.remoting.http;
 
-import org.nustaq.kontraktor.remoting.http.rest.HtmlString;
-
-import java.util.HashMap;
-
 /**
  * Created by ruedi on 14.08.2014.
  */

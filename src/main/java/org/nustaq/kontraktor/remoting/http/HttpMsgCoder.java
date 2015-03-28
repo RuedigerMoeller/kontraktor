@@ -1,8 +1,6 @@
-package org.nustaq.kontraktor.remoting.http.rest;
+package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
-import org.nustaq.kontraktor.remoting.http.KontraktorHttpRequest;
-import org.nustaq.kontraktor.remoting.http.KontraktorHttpRequestImpl;
 
 /**
  * Created by ruedi on 17.08.14.

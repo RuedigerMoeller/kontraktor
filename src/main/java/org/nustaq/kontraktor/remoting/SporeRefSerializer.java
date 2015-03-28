@@ -9,7 +9,7 @@ import java.lang.reflect.Field;
 /**
  * Created by ruedi on 26.08.14.
  *
- * FIXME: pobably not needed anymore beacuse of @AnonymousTransient
+ * FIXME: pobably not needed anymore because of @AnonymousTransient
  */
 public class SporeRefSerializer extends FSTBasicObjectSerializer {
 

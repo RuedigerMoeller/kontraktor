@@ -1,11 +1,10 @@
-package org.nustaq.kontraktor.remoting.http.rest;
+package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
-import org.nustaq.kontraktor.remoting.http.*;
-import org.nustaq.kontraktor.remoting.http.rest.encoding.JSonMsgCoder;
-import org.nustaq.kontraktor.remoting.http.rest.encoding.KsonMsgCoder;
-import org.nustaq.kontraktor.remoting.http.rest.encoding.PlainJSonCoder;
+import org.nustaq.kontraktor.remoting.http.encoding.JSonMsgCoder;
+import org.nustaq.kontraktor.remoting.http.encoding.KsonMsgCoder;
+import org.nustaq.kontraktor.remoting.http.encoding.PlainJSonCoder;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.RateMeasure;
 import org.nustaq.serialization.util.FSTUtil;
@@ -19,10 +18,12 @@ import java.util.function.BiFunction;
 
 /**
  * Created by ruedi on 14.08.2014.
- * implemenst RequestPrccessor for Rest/Http based actor remoting. Requires an actual server implementation
- * (netty or built in NioHttpServer).
+ * implemenst Rest/Http based actor remoting. Requires an actual server implementation adapter
+ * (netty or undertow currently).
  */
 public class RestActorServer {
+
+    public static String FINISHED = "FIN"; // must be sent once all responses are sent
 
     /**
      * shorthand to create and run a http service publishing given actor class.
@@ -35,33 +36,33 @@ public class RestActorServer {
      * @param <T>
      * @return
      */
-    public static <T extends Actor> T Publish(Class<T> clz, String path, int port) {
-        T service = Actors.AsActor(clz, 16000);
-        return Publish(path, port, service);
-
-    }
+//    public static <T extends Actor> T Publish(Class<T> clz, String path, int port) {
+//        T service = Actors.AsActor(clz, 16000);
+//        return Publish(path, port, service);
+//
+//    }
 
     /**
      * static utility to Publish an actor. Uses built in server.
      */
     static ConcurrentHashMap<Integer,RestActorServer> servers = new ConcurrentHashMap<>(); // FIXME: dirty
-    public static <T extends Actor> T Publish(String path, int port, T serviceRef) {
-        RestActorServer sv = getRestActorServer(port);
-        if ( sv == null ) {
-            // create Http service abstraction
-            sv = new RestActorServer();
-
-            // assign to concrete server impl.
-            // a netty based impl is available separately, use internal server here ..
-            NioHttpServer server = Actors.AsActor(NioHttpServerImpl.class, 64000);
-            sv.startOnServer(port, server);
-            servers.put(port,sv);
-        }
-
-        // Publish service actor
-        sv.publish(path,serviceRef);
-        return serviceRef;
-    }
+//    public static <T extends Actor> T Publish(String path, int port, T serviceRef) {
+//        RestActorServer sv = getRestActorServer(port);
+//        if ( sv == null ) {
+//            // create Http service abstraction
+//            sv = new RestActorServer();
+//
+//            // assign to concrete server impl.
+//            // a netty based impl is available separately, use internal server here ..
+//            NioHttpServer server = Actors.AsActor(NioHttpServerImpl.class, 64000);
+//            sv.startOnServer(port, server);
+//            servers.put(port,sv);
+//        }
+//
+//        // Publish service actor
+//        sv.publish(path,serviceRef);
+//        return serviceRef;
+//    }
 
     public static RestActorServer getRestActorServer(int port) {
         return servers.get(port);
@@ -127,9 +128,9 @@ public class RestActorServer {
 
     public ArrayList<String> getPublishedActors( String simpleClzName ) {
         ArrayList<String> result = new ArrayList();
-        publishedActors.entrySet().forEach( (entry) -> {
+        publishedActors.entrySet().forEach((entry) -> {
             Actor actor = entry.getValue().getActor().getActor();
-            if ( entry.getValue() != null && actor.getClass().getSimpleName().equals(simpleClzName) ) {
+            if (entry.getValue() != null && actor.getClass().getSimpleName().equals(simpleClzName)) {
                 result.add(entry.getKey());
             }
         });
@@ -149,10 +150,10 @@ public class RestActorServer {
                 Callback cb = (r, e) -> {
                     if ( r != null ) {
                         response.settle(RequestResponse.MSG_302(((HtmlString) r).getRedirectUrl()), null);
-                        response.settle(new RequestResponse(""), RestProcessor.FINISHED);
+                        response.settle(new RequestResponse(""), FINISHED);
                     } else {
                         Log.Warn(this, "error in httpRedirect "+e);
-                        response.settle(RequestResponse.MSG_500, RequestProcessor.FINISHED);
+                        response.settle(RequestResponse.MSG_500, FINISHED);
                     }
                 };
                 try {
@@ -192,7 +193,7 @@ public class RestActorServer {
                     if ( !isContinue ) {
                         countDown.decrementAndGet();
                     }
-                    String fin = countDown.get() <= 0 ? RequestProcessor.FINISHED : null;
+                    String fin = countDown.get() <= 0 ? FINISHED : null;
                     if ( r instanceof HtmlString ) {
                         response.settle(new RequestResponse((HtmlString) r), fin); // note: pipelining does not make sense with HtmlString results
                         return;
@@ -220,7 +221,7 @@ public class RestActorServer {
                         response.settle(new RequestResponse(
                                                                "method not http enabled, actor remote references " +
                                                                    "cannot be supported for Http based REST (use TCP stack)"),
-                                           RequestProcessor.FINISHED
+                                           FINISHED
                         );
                         return;
                     }
@@ -230,7 +231,7 @@ public class RestActorServer {
                             response.settle(new RequestResponse(
                                                                    "method not http enabled, more than one callback " +
                                                                        "object in args, or callback and also returns future"),
-                                               RequestProcessor.FINISHED
+                                               FINISHED
                             );
                             return;
                         }
@@ -245,7 +246,7 @@ public class RestActorServer {
                 } else if (m.getReturnType() == void.class && cbCount == 0) {
                     respPerS.count();
                     if ( countDown.decrementAndGet() == 0 ) {
-                        response.settle(null, RequestProcessor.FINISHED);
+                        response.settle(null, FINISHED);
                     }
                 }
             }
@@ -285,9 +286,8 @@ public class RestActorServer {
         publishedActors.remove(name);
     }
 
-    public class RestProcessor implements RequestProcessor {
+    public class RestProcessor {
 
-        @Override
         public boolean processRequest(KontraktorHttpRequest req, Callback<RequestResponse> response) {
             if ( req.isGET() ) {
                 String actor = req.getPath(0);
@@ -312,8 +312,6 @@ public class RestActorServer {
                 }
             } else {
                 return false;
-//                response.settle(RequestResponse.MSG_404, null);
-//                response.settle(null, FINISHED);
             }
             return true;
         }
