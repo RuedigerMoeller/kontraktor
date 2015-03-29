@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.undertow;
+package org.nustaq.kontraktor.undertow.http;
 
 /**
  * Created by ruedi on 28/03/15.

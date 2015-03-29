@@ -12,18 +12,19 @@ import java.lang.annotation.Target;
 /**
  * Created by ruedi on 06.05.14.
  *
- * Specifies this method is a utility processed on client side.
+ * Specifies this method is a utility processed on client side / inside sender thread.
  * e.g.
  *
  * class .. extends Actor {
  *     public void message( long timeStamp, String stuff ) {..}
  *
+ *     // just an utility executed inside calling thread
  *     @CallerSideMethod public void message( String stuff ) {
  *         message( System.currentTimeMillis(), stuff );
  *     }
  * }
  *
- * Note those method cannot access local state of the actor, they just might call methods.
+ * Note those method cannot access local state of the actor, they just might invoke methods.
  */
 public @interface CallerSideMethod {
 }

@@ -29,6 +29,7 @@ import java.util.List;
  *     endsignalFuture.settle("done",null); // will execute next event on bmw if present
  *   });
  *
+ * Note Actor.serialOn internally makes use of this
  */
 public class TicketMachine {
 

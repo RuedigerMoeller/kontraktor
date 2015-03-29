@@ -17,9 +17,9 @@ import java.lang.annotation.Target;
  *
  * handle this method like a callback method. The contract for callbacks is weaker than for regular
  * actor methods. For a callback method, the scheduler is allowed to execute the method synchronous
- * if the sender and receiver happen to be scheduled on the same thread.
+ * if the sender and receiver happen to be scheduled on the same thread. (callback invocation order is undefined).
  *
- * Additionally callback messages have higher priority compared to regualt actor messages. A dispatcher thread
+ * Additionally callback messages have higher priority compared to regult actor messages. A dispatcher thread
  * will always first check the callback queue befor looking for messages on the actors mailbox.
  *
  * Besides performance improvements, this also enables some scheduling tweaks to automatically prevent deadlocks.

@@ -25,9 +25,8 @@ package org.nustaq.kontraktor;
 
 /**
  * tagging interface. 
- * Using Actors.AsActor() actually returns a proxy which enqueues each method call to the 'real' actor instance.
+ * Using Actors.AsActor() returns a proxy which enqueues each method call to the 'real' actor instance.
  * This way one can determine wether an Object is the "real" actor or a proxy reference to it.
- * Another way to detect this is actor.getActor() == actor .
  * @param <T>
  */
 public interface ActorProxy<T extends Actor> {

@@ -29,7 +29,7 @@ import java.util.stream.Stream;
  * Date: 04.01.14
  * Time: 19:50
  *
- * A set of important async helper methods. Note Actor inherits from this class
+ * A set of static async helper methods. Note Actor inherits from this class.
  *
  */
 public class Actors {

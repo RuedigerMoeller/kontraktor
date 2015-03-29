@@ -11,7 +11,8 @@ import java.util.Date;
 /**
  * Created by ruedi on 24.08.14.
  *
- * A wrapper for logging + metrics.
+ * A wrapper for logging + metrics. This logger is asnychronous (so does not block by IO).
+ * In order to redirect logging, use Log.Lg.$setLogWrapper( .. );
  *
  */
 public class Log extends Actor<Log> {

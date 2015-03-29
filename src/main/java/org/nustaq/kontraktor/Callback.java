@@ -25,7 +25,7 @@ package org.nustaq.kontraktor;
 import java.io.Serializable;
 
 /**
- * Typically used to settle results from outside the actor.
+ * Typically used to receive/stream results from outside the actor.
  * The underlying mechanics scans method arguments and schedules calls on the call back into the calling actors thread.
  * Note that the callback invocation is added as a message to the end of the calling actor.
  * e.g. actor.method( arg, new Callbacl() { public void settle(T result, Object error ) { ..runs in caller thread.. } }
@@ -33,7 +33,7 @@ import java.io.Serializable;
 public interface Callback<T> extends Serializable  // do not use interface, slows down instanceof significantly
 {
     /**
-     * use value to signal no more messages. THE RECEIVER CALLBACK WILL NOT SEE THIS MESSAGE.
+     * use value to signal no more messages will be sent. THE RECEIVER CALLBACK WILL NOT SEE THIS MESSAGE.
      */
     public final String FINSILENT = "EOT";
     /**
@@ -42,7 +42,7 @@ public interface Callback<T> extends Serializable  // do not use interface, slow
     public final String CONT = "CNT";
 
     /**
-     * use this value to signal no more messages. The receiver callback will settle the message.
+     * use this value to signal no more messages. The receiver callback will receive the message.
      * Note that any value except CONT will also close the callback channel. So this is informal.
      */
     public final String FIN = "FIN";
@@ -63,14 +63,27 @@ public interface Callback<T> extends Serializable  // do not use interface, slow
         settle(null,null);
     }
 
+    /**
+     * signal an error to sender. Will automatically "close" the callback if remoted.
+     *
+     * @param error
+     */
     default void reject(Object error) {
         settle(null, error);
     }
 
+    /**
+     * pass a result object to the sender. This can be called only once (connection to sender will be closed afterwards).
+     * @param result
+     */
     default void resolve(T result) {
         settle(result, null);
     }
 
+    /**
+     * invalid for Futures !. can be called more than once in order to stream objects to the sender.
+     * @param result
+     */
     default void stream(T result) {
         settle(result, Actor.CONT);
     }

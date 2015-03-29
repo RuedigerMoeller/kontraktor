@@ -1,33 +1,84 @@
 package org.nustaq.kontraktor;
 
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Created by moelrue on 20.05.2014.
+ * Future interface. The only implementation is "Promise" currenlty. I try to stick
+ * to ES6/7 terminology where possible.
+ * Future is the interface implemented by the "Promise" class. So if you come from a JS background
+ * think of Future == Promise.
  */
 public interface Future<T> extends Callback<T> {
 
     /**
-     * called when any result of a future becomes available
+     * called once any result of a future becomes available
      * Can be used in case a sender is not interested in the actual result
      * but when a remote method has finished processing.
-     * @param result
-     * @return
+     *
+     * e.g. actor.$asyncMehod().then( () -> furtherProcessing() );
+     *
+     * @return a future ressolved after this
      */
     public Future<T> then( Runnable result );
+
     /**
-     * called when any result of a future becomes available
-     * @param result
-     * @return
+     * called once any result of a future becomes available
+     * Can be used in case a sender is not interested in the actual result
+     * but when a remote method has finished processing.
+     *
+     * e.g. actor.$asyncMehod().then( () -> furtherProcessing() );
+     *
+     * @return a future ressolved with the Callable result after this
      */
     public Future<T> then( Callback<T> result );
+
+    /**
+     * called once any result of a future becomes available
+     * Can be used in case a sender is not interested in the actual result
+     * but when a remote method has finished processing.
+     *
+     * e.g. actor.$asyncMehod().then( () -> { furtherProcessing(); return new Promise("result"); } );
+     *
+     * @return a future ressolved with the Supüplier result after this
+     */
     public Future<T> then( Supplier<Future<T>> result );
+
+    /**
+     * called once any result of a future becomes available
+     * Can be used in case a sender is not interested in the actual result
+     * but when a remote method has finished processing.
+     *
+     * e.g. actor.$asyncMehod().then( () -> { furtherProcessing(); return new Promise("result"); } );
+     *
+     * @return a future ressolved with the Function result after this
+     */
     public <OUT> Future<OUT> then(final Function<T, Future<OUT>> function);
+
+    /**
+     * called once any result of a future becomes available
+     * Can be used in case a sender is not interested in the actual result
+     * but when a remote method has finished processing.
+     *
+     * e.g. actor.$asyncMehod().then( () -> { furtherProcessing(); return new Promise("result"); } );
+     *
+     * @return a future ressolved empty after this
+     */
     public <OUT> Future<OUT> then(final Consumer<T> function);
+
+    /**
+     * called if an error has been signaled by one of the futures in the previous future chain.
+     *
+     * e.e. actor.$async().then( ).then( ).then( ).catchError( error -> .. );
+     */
     public <OUT> Future<OUT> catchError(final Function<Object, Future<OUT>> function);
+
+    /**
+     * called if an error has been signaled by one of the futures in the previous future chain.
+     *
+     * e.e. actor.$async().then( ).then( ).then( ).catchError( () -> .. );
+     */
     public <OUT> Future<OUT> catchError(final Consumer<Object> function);
 
     /**
@@ -57,7 +108,7 @@ public interface Future<T> extends Callback<T> {
 
     /**
      * Warning: this is different to JDK's BLOCKING future
-     * @return result if avaiable.
+     * @return result if avaiable (no blocking no awaiting).
      */
     public T get();
 
@@ -96,6 +147,9 @@ public interface Future<T> extends Callback<T> {
      */
     public Future timeoutIn(long millis);
 
+    /**
+     * @return wether an error or a result has been set to this future
+     */
     public boolean isSettled();
 
 }

@@ -263,7 +263,7 @@ public class RestActorServer {
      */
     public void startOnServer(int port, NioHttpServer server) {
         this.server = server;
-        server.$init(port, new RestProcessor());
+        server.$init(port, new RestProcessor(this));
         server.$receive();
     }
 
@@ -273,7 +273,7 @@ public class RestActorServer {
      */
     public void joinServer(NioHttpServer server) {
         this.server = server;
-        server.$addHttpProcessor(this.restProcessor = new RestProcessor());
+        server.$setHttpProcessor(this.restProcessor = new RestProcessor(this));
     }
 
     public PublishedActor publish( String name, Actor obj ) {
@@ -284,37 +284,6 @@ public class RestActorServer {
 
     public void unpublish( String name ) {
         publishedActors.remove(name);
-    }
-
-    public class RestProcessor {
-
-        public boolean processRequest(KontraktorHttpRequest req, Callback<RequestResponse> response) {
-            if ( req.isGET() ) {
-                String actor = req.getPath(0);
-                final PublishedActor target = publishedActors.get(actor);
-                if ( target == null ) {
-                    return false;
-                } else {
-                    if ( remoteCallInterceptor != null && !remoteCallInterceptor.apply(target.actor,req.getPath(1)) ) {
-                        response.settle(RequestResponse.MSG_403, null);
-                        response.settle(null, FINISHED);
-                        return true;
-                    } else
-                        enqueueCall(target, req, response);
-                }
-            } else if (req.isPOST() ) {
-                String actor = req.getPath(0);
-                final PublishedActor target = publishedActors.get(actor);
-                if ( target == null ) {
-                    return false;
-                } else {
-                    enqueueCall(target, req.getText().toString(), req, response);
-                }
-            } else {
-                return false;
-            }
-            return true;
-        }
     }
 
     ConcurrentHashMap<String,Class> classNameMappings = new ConcurrentHashMap<>();

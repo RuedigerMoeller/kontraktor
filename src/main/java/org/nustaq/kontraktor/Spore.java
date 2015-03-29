@@ -6,9 +6,8 @@ import org.nustaq.serialization.annotations.AnonymousTransient;
 import java.io.Serializable;
 
 /**
- * Created by ruedi on 26.08.2014.
+ * A Spore is sent to a foreign actor executes on its data and sends results back to caller.
  *
- * A Spore is sent to a foreign actor executes on its data and sends results back to caller
  */
 @AnonymousTransient
 public abstract class Spore<I,O> implements Serializable {

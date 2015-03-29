@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.Promise;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.Assert.assertTrue;
 import static org.nustaq.kontraktor.Actors.*;
@@ -176,7 +177,20 @@ public class FutureCatch {
         AtomicInteger count = new AtomicInteger(0);
 
         futCatch.$result(0)
-           .then( r -> {
+           .then(() -> { // Runnable
+               count.addAndGet(1);
+               System.out.println("EMPTYTHEN");
+           })
+           .then( () -> { // supplier [=callable]
+               Promise p = new Promise();
+               count.addAndGet(1);
+               new Thread( () -> {
+                   LockSupport.parkNanos(500l*1000* 1000);
+                   p.resolve("supplier");
+               }).start();
+               return p;
+           })
+           .then(r -> {
                System.out.println("" + r);
                count.addAndGet(1);
                return futCatch.$result(1);
@@ -208,7 +222,7 @@ public class FutureCatch {
            .then((r, e) -> System.out.println("done "+count.get()))
            .await();
 
-        assertTrue(count.get() == 11);
+        assertTrue(count.get() == 13);
         futCatch.$stop();
     }
 

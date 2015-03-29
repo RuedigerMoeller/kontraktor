@@ -20,7 +20,6 @@ package org.nustaq.kontraktor;
  *
  * Date: 03.01.14
  * Time: 21:19
- * To change this template use File | Settings | File Templates.
  */
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
@@ -41,25 +40,28 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
- * Baseclass for actor implementations. Note that actors are not created using constructors.
- * Use Actors.AsActor(..) to instantiate an actor instance. To pass initialization parameter,
- * define an init method in your implementation and call it from the instantiating instance.
+ * Baseclass for actor/eventloop implementations. Note that actors are not created using constructors.
+ * Use Actors.AsActor(..) to instantiate an actor instance.
  *
- * The init method then will be executed in the thread of the dispatcher associated with your
- * actor avoiding problems raised by state visibility inconsistency amongst threads.
+ * Example (public methods are automatically transformed to be async):
+ * <pre>
+ * public class MyActor extends Actor<MyActor> {
  *
- * Inside an actor, everything is executed single threaded. You don't have to worry about synchronization.
+ *     // public async API
+ *     public Future $init() {..}
+ *     public void $asyncMessage(String arg) { .. }
+ *     public Future $asyncMessage(String arg) { .. }
+ *     public void $asyncMessage(int arg, Callback aCallback) { .. }
  *
- * All 'messages' of an actor are defined by 'public void' methods.
- * Actor methods are not allowed to return values. They must be of type void. Pass a Callback as argument to a call
- * in order to settle results from other actors/threads.
- * Non public methods can be called from inside the actor, but not outside as a message.
+ *     // synchronous methods
+ *     protected String syncMethod() { .. }
+ * }
  *
- * Note that you have to pass immutable objects as arguments, else you'll get unpredictable behaviour.
+ * MyActor act = Actors.AsActor(MyActor.class);
+ * act.$init().then( () -> { System.out.println("done"); }
+ * Object res = act.$asyncMessage("Hello").await();
  *
- * Code inside an actor is not allowed to ever block the current thread (networking etc.).
- * Use Actors.Exec in case you need to do blocking calls (e.g. synchronous requests)
- *
+ * </pre>
  */
 public class Actor<SELF extends Actor> extends Actors implements Serializable, Monitorable {
 
@@ -88,31 +90,49 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return FIN.equals(error) || FINSILENT.equals(error) || ! CONT.equals(error);
     }
 
+    /**
+     * helper to check for "special" error objects.
+     * @param o
+     * @return
+     */
     public static boolean isSilentFinal(Object o) {
         return FINSILENT.equals(o);
     }
 
+    /**
+     * helper to check for "special" error objects.
+     * @param o
+     * @return
+     */
     public static boolean isCont(Object o) {
         return CONT.equals(o);
     }
 
+    /**
+     * helper to check for "special" error objects.
+     * @param o
+     * @return
+     */
     public static boolean isError(Object o) {
         return o != null && ! FIN.equals(o) && ! FINSILENT.equals(o) && ! CONT.equals(o);
     }
 
+    /**
+     * contains sender of a message if one actor messages to another actor
+     */
     public static ThreadLocal<Actor> sender = new ThreadLocal<>();
 
     // internal ->
-    public Queue __mailbox;
+    public Queue __mailbox; // mailbox/eventloop queue
     public int __mbCapacity;
-    public Queue __cbQueue;
-    public Thread __currentDispatcher;
+    public Queue __cbQueue; // queue of callbacks/future results
+    public Thread __currentDispatcher; // thread of this actor
     public Scheduler __scheduler;
     public volatile boolean __stopped = false;
-    public Actor __self; // the proxy
-    public int __remoteId;
-    public boolean __throwExAtBlock = false;
-    public volatile ConcurrentLinkedQueue<RemoteConnection> __connections; // a list of connection required to be notified on close
+    public Actor __self; // the proxy object
+    public int __remoteId; // id in case this actor is published via network
+    public boolean __throwExAtBlock = false; // if true, trying to send a message to full queue will throw an exception instead of blocking
+    public volatile ConcurrentLinkedQueue<RemoteConnection> __connections; // a list of connections required to be notified on close
     // register callbacks notified on stop
     ConcurrentLinkedQueue<Callback<SELF>> __stopHandlers;
     // <- internal
@@ -151,9 +171,16 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         __stop();
     }
 
+    /**
+     * synchronous method returning true in case this actor is stopped
+     */
     @CallerSideMethod public boolean isStopped() {
         return __stopped;
     }
+
+    /**
+     * @return wether this is the "real" implementation or the proxy object
+     */
     @CallerSideMethod public boolean isProxy() {
         return getActor() != this;
     }
@@ -213,10 +240,16 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return __mailbox.size() * 2 > __mbCapacity;
     }
 
+    /**
+     * @return the scheduler associated with this actor (determines scheduling of processing of actors to threads)
+     */
     @CallerSideMethod public Scheduler getScheduler() {
         return __scheduler;
     }
 
+    /**
+     * @return wether the callback queue is mor than half full (can indicate overload)
+     */
     @CallerSideMethod public boolean isCallbackQPressured() {
         return __cbQueue.size() * 2 > __mbCapacity;
     }
@@ -228,6 +261,9 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return __mailbox.size();
     }
 
+    /**
+     * @return summed queue size of mailbox+callback queue
+     */
     @CallerSideMethod public int getQSizes() {
         return getCallbackSize()+getMailboxSize();
     }
@@ -239,6 +275,17 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return __cbQueue.size();
     }
 
+    /**
+     * wraps an interface into a proxy of that interface. The proxy object automatically enqueues all
+     * calls made on the interface onto the callback queue.
+     * Can be used incase one needs to pass other callback interfaces then built in Callback object.
+     * Stick to using 'Callback' class if possible.
+     *
+     * @param proxy
+     * @param cbInterface
+     * @param <T>
+     * @return
+     */
     @CallerSideMethod
     protected <T> T inThread(Actor proxy, T cbInterface) {
         return __scheduler.inThread(proxy, cbInterface);
@@ -267,10 +314,16 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         }
     }
 
+    /**
+     * @return the proxy of this actor
+     */
     @CallerSideMethod public Actor getActorRef() {
         return __self;
     }
 
+    /**
+     * @return wether this is a proxy to a remotely running actor
+     */
     @CallerSideMethod public boolean isRemote() {
         return __remoteId != 0;
     }
@@ -306,8 +359,9 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     protected TicketMachine __ticketMachine;
+
     /**
-     * enforce serial execution of asynchronous tasks. The 'toRun' closure must call '.signal()' on the given future
+     * enforce serial execution of asynchronous tasks. The 'toRun' closure must call '.settle()' (=empty result) on the given future
      * to signal his processing has finished and the next item locked on 'transactionKey' can be processed.
      *
      * @param transactionKey

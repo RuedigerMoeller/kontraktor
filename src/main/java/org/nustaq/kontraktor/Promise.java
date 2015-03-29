@@ -11,7 +11,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Created by ruedi on 20.05.14.
+ * implementation of the Future interface.
+ *
+ * A Promise is unfulfilled or "unsettled" once it has not been set a result.
+ * Its 'rejected' once an error has been set "reject(..)".
+ * Its 'resolved' once a result has been set "resolve(..)".
+ * Its 'settled' once a result or error has been set.
  */
 public class Promise<T> implements Future<T> {
     protected Object result = null;
@@ -28,32 +33,56 @@ public class Promise<T> implements Future<T> {
     String id;
     Future nextFuture;
 
+    /**
+     * create a settled Promise by either providing an result or error.
+     * @param result
+     * @param error
+     */
     public Promise(T result, Object error) {
         this.result = result;
         this.error = error;
         hadResult = true;
     }
 
+    /**
+     * create a resolved Promise by providing a result (cane be null).
+     * @param error
+     */
     public Promise(T result) {
         this(result,null);
     }
 
+    /**
+     * create an unfulfilled/unsettled Promise
+     */
     public Promise() {}
 
+    /**
+     * remoting helper
+     */
     public String getId() {
         return id;
     }
 
+    /**
+     * remoting helper
+     */
     public Promise<T> setId(String id) {
         this.id = id;
         return this;
     }
 
+    /**
+     * see Future interface
+     */
     @Override
     public Future<T> then(Runnable result) {
         return then( (r,e) -> result.run() );
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public Future<T> onResult(Consumer<T> resultHandler) {
         return then( (r,e) -> {
@@ -63,6 +92,9 @@ public class Promise<T> implements Future<T> {
         });
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public Future<T> onError(Consumer errorHandler) {
         return then( (r,e) -> {
@@ -72,6 +104,9 @@ public class Promise<T> implements Future<T> {
         });
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public Future<T> onTimeout(Consumer timeoutHandler) {
         return then( (r,e) -> {
@@ -81,6 +116,9 @@ public class Promise<T> implements Future<T> {
         });
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public <OUT> Future<OUT> then(final Function<T, Future<OUT>> function) {
         Promise res = new Promise<>();
@@ -97,6 +135,9 @@ public class Promise<T> implements Future<T> {
         return res;
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public <OUT> Future<OUT> then(Consumer<T> function) {
         Promise res = new Promise<>();
@@ -114,6 +155,9 @@ public class Promise<T> implements Future<T> {
         return res;
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public Future<T> then(Supplier<Future<T>> callable) {
         Promise res = new Promise<>();
@@ -132,6 +176,9 @@ public class Promise<T> implements Future<T> {
     }
 
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public <OUT> Future<OUT> catchError(final Function<Object, Future<OUT>> function) {
         Promise res = new Promise<>();
@@ -148,6 +195,9 @@ public class Promise<T> implements Future<T> {
         return res;
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public <OUT> Future<OUT> catchError(Consumer<Object> function) {
         Promise res = new Promise<>();
@@ -165,12 +215,18 @@ public class Promise<T> implements Future<T> {
         return res;
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     public void timedOut( Timeout to ) {
         if (!hadResult ) {
             settle(null, to);
         }
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public Future then(Callback resultCB) {
         // FIXME: this can be implemented more efficient
@@ -224,6 +280,9 @@ public class Promise<T> implements Future<T> {
         }
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     public Promise getLast() {
         while( !lock.compareAndSet(false,true) ) {}
         try {
@@ -258,77 +317,67 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * calls settle( result, null )
-     * @param res
+     * see Future (inheriting Callback) interface
      */
-    public void receiveResult(Object res) {
-        settle(res, null);
-    }
-
-    /**
-     * calls settle( null, error )
-     */
-    public void receiveError(Object error) {
-        settle(null, error);
-    }
-
     @Override
     public final void settle(Object res, Object error) {
-        // ensure correct thread in case actor cascades futures
-//        if ( Thread.currentThread() != currentThread && currentThread instanceof DispatcherThread) {
-//            new CallbackWrapper((DispatcherThread) currentThread, this).settle(res, error);
-//        }
-//        else
-        {
-            this.result = res;
-            Object prevErr = this.error;
-            this.error = error;
-            while( !lock.compareAndSet(false,true) ) {}
-            try {
-                if (hadResult) {
-                    if ( prevErr instanceof Timeout ) {
-                        this.error = prevErr;
-                        lock.set(false);
-                        return;
-                    }
+        this.result = res;
+        Object prevErr = this.error;
+        this.error = error;
+        while( !lock.compareAndSet(false,true) ) {}
+        try {
+            if (hadResult) {
+                if ( prevErr instanceof Timeout ) {
+                    this.error = prevErr;
                     lock.set(false);
-                    throw new RuntimeException("Double result received on future " + prevErr );
-                }
-                hadResult = true;
-                if (resultReceiver != null) {
-                    if (hasFired) {
-                        lock.set(false);
-                        throw new RuntimeException("Double fire on callback");
-                    }
-                    hasFired = true;
-                    lock.set(false);
-                    resultReceiver.settle(result, error);
-                    resultReceiver = null;
-                    while (!lock.compareAndSet(false, true)) {
-                    }
-                    if (nextFuture != null) {
-                        lock.set(false);
-                        nextFuture.settle(result, error);
-                    }
                     return;
                 }
-            } finally {
                 lock.set(false);
+                throw new RuntimeException("Double result received on future " + prevErr );
             }
+            hadResult = true;
+            if (resultReceiver != null) {
+                if (hasFired) {
+                    lock.set(false);
+                    throw new RuntimeException("Double fire on callback");
+                }
+                hasFired = true;
+                lock.set(false);
+                resultReceiver.settle(result, error);
+                resultReceiver = null;
+                while (!lock.compareAndSet(false, true)) {
+                }
+                if (nextFuture != null) {
+                    lock.set(false);
+                    nextFuture.settle(result, error);
+                }
+                return;
+            }
+        } finally {
+            lock.set(false);
         }
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public T get() {
         return (T) result;
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public T await() {
         awaitFuture();
         return awaitHelper();
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public Future<T> awaitFuture() {
         if ( Thread.currentThread() instanceof DispatcherThread ) {
@@ -365,13 +414,16 @@ public class Promise<T> implements Future<T> {
                 if ( getError() == Timeout.INSTANCE ) {
                     throw new TimeoutException();
                 }
-                throw new YieldException(getError());
+                throw new AwaitException(getError());
             }
         } else {
             return get();
         }
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
     @Override
     public Future timeoutIn(long millis) {
         final Actor actor = Actor.sender.get();
@@ -388,10 +440,18 @@ public class Promise<T> implements Future<T> {
         return this;
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
+    @Override
     public Object getError() {
         return error;
     }
 
+    /**
+     * see Future (inheriting Callback) interface
+     */
+    @Override
     public boolean isSettled() {
         return hadResult;
     }
