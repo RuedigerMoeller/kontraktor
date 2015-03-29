@@ -258,14 +258,16 @@ public class DispatcherThread extends Thread implements Monitorable {
                 if (callEntry.getFutureCB() != null) {
                     final Future futureCB = callEntry.getFutureCB();   // the future of caller side
                     final Promise invokeResult = (Promise) invoke;  // the future returned sync from call
-                    invokeResult.then(
-                        new Callback() {
-                            @Override
-                            public void settle(Object result, Object error) {
-                                futureCB.settle(result, error);
+                    if ( invokeResult != null ) { // if return null instead a promise, method is handled like void
+                        invokeResult.then(
+                            new Callback() {
+                                @Override
+                                public void settle(Object result, Object error) {
+                                    futureCB.settle(result, error);
+                                }
                             }
-                        }
-                    );
+                        );
+                    }
                 }
                 return true;
             } catch ( Throwable e) {
@@ -289,7 +291,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                     e = e.getCause();
                 }
                 if (callEntry.getFutureCB() != null) {
-                    Log.Warn(this, e, "returned catched exception to future " + e + " set DispatcherThread.DUMP_CATCHED to true in order to dump stack.");
+                    Log.Warn(this, e, "unhandled exception in message: '"+callEntry+"'.returned catched exception to future " + e + " set DispatcherThread.DUMP_CATCHED to true in order to dump stack.");
                     if ( DUMP_CATCHED ) {
                         e.printStackTrace();
                     }

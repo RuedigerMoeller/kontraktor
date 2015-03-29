@@ -5,6 +5,7 @@ import io.undertow.websockets.WebSocketProtocolHandshakeHandler;
 import io.undertow.websockets.core.*;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
 import org.nustaq.kontraktor.remoting.http.websocket.WebSocketEndpoint;
+import org.xnio.Buffers;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -12,20 +13,20 @@ import java.nio.ByteBuffer;
 /**
  * Created by ruedi on 27/03/15.
  */
-public class KWebSocketHandler extends WebSocketProtocolHandshakeHandler {
+public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler {
 
     WebSocketEndpoint endpoint;
 
     public static WebSocketConnectionCallback Connect(WebSocketEndpoint endpoint) {
-        KWebSocketHandler handler[] = {null};
+        KUndertowWebSocketHandler handler[] = {null};
         WebSocketConnectionCallback cb = (ex, ch) -> {
             handler[0].doConnect(ex, ch);
         };
-        handler[0] = new KWebSocketHandler(endpoint, cb);
+        handler[0] = new KUndertowWebSocketHandler(endpoint, cb);
         return cb;
     }
 
-    protected KWebSocketHandler(WebSocketEndpoint endpoint, WebSocketConnectionCallback cb ) {
+    protected KUndertowWebSocketHandler(WebSocketEndpoint endpoint, WebSocketConnectionCallback cb) {
         super(cb);
         this.endpoint = endpoint;
     }
@@ -49,13 +50,11 @@ public class KWebSocketHandler extends WebSocketProtocolHandshakeHandler {
 
             @Override
             protected void onFullPingMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
-                System.out.println("PING");
                 super.onFullPingMessage(channel, message);
             }
 
             @Override
             protected void onFullPongMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
-                System.out.println("PONG");
                 endpoint.onPong( utChannel );
             }
 
@@ -78,18 +77,7 @@ public class KWebSocketHandler extends WebSocketProtocolHandshakeHandler {
     }
 
     private byte[] getBytes(ByteBuffer[] data) {
-        int len = 0;
-        for (int i = 0; i < data.length; i++) {
-            ByteBuffer byteBuffer = data[i];
-            len += byteBuffer.limit() - byteBuffer.arrayOffset();
-        }
-        byte res[] = new byte[len];
-        int off = 0;
-        for (int i = 0; i < data.length; i++) {
-            ByteBuffer byteBuffer = data[i];
-            byteBuffer.get( res, off, byteBuffer.limit() - byteBuffer.arrayOffset() );
-        }
-        return res;
+        return Buffers.take(data,0,data.length);
     }
 
 }

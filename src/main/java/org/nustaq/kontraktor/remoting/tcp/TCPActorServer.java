@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.util.Log;
 
@@ -23,7 +24,7 @@ import java.util.function.Consumer;
  * Publish an actor via TCP. actor refs/callbacks/futures handed out to clients are automatically transformed
  * and rerouted, so remoting is mostly transparent.
  *
- * Currently old school blocking IO is used. Should be replaced by a NIO implementation to support many clients.
+ * Currently old school blocking IO is used. Should be replaced by a NIO implementation to improve scaling.
  * For a moderate number of clients < ~200 blocking IO is not a problem. Depending on load expect significant performance
  * degradation starting with ~500 clients.
  */
@@ -119,7 +120,7 @@ public class TCPActorServer {
     }
 
     public class ActorServerClientConnection extends RemoteRefRegistry {
-        TCPSocket channel;
+        ObjectSocket channel;
         Actor facade;
 
         public ActorServerClientConnection(Socket s, Actor facade) throws IOException {

@@ -199,6 +199,7 @@ public class ActorProxyFactory {
                  originalMethod.getName().equals("$sync") ||
                  originalMethod.getName().equals("$run") ||
                  originalMethod.getName().equals("$stop") ||
+                 originalMethod.getName().equals("$receive") ||
                  originalMethod.getName().equals("$settle") ||
                  originalMethod.getName().equals("$close")
             )

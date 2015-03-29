@@ -1,71 +1,27 @@
-package org.nustaq.kontraktor.remoting.tcp;
+package org.nustaq.kontraktor.remoting.http.websocket;
 
-import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.RemoteConnection;
 import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.tcp.TCPSocket;
 import org.nustaq.kontraktor.util.Log;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.SocketException;
-import java.util.function.Consumer;
 
 /**
- * Created by ruedi on 08.08.14.
+ * Created by ruedi on 29/03/15.
  *
- * Client side of a tcp actor server.
- * actor refs/callbacks/futures handed out to the actors' server facade are automatically transformed
- * and rerouted, so remoting is mostly transparent.
+ * Connect to a remotely websocket-published actor.
+ *
+ * FIXME: shares a lot of code. Unify with TCP client/server
+ *
  */
-public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
-
-    public static <AC extends Actor> Future<AC> Connect( Class<AC> clz, String host, int port ) throws Exception {
-        return Connect(clz,host,port,null);
-    }
-
-    public static <AC extends Actor> AC ConnectSync( Class<AC> clz, String host, int port ) throws Exception
-    {
-        return ConnectSync(clz,host,port,null);
-    }
-
-    /**
-     * do a "synchronous" connect (blocks on non-actor thread, awaits nonblocking when called from actor).
-     *
-     * @return an actor ref or nuöö
-     * @throws Exception
-     */
-    public static <AC extends Actor> AC ConnectSync( Class<AC> clz, String host, int port, Consumer<Actor> disconnectHandler ) throws Exception
-    {
-        try {
-            return Connect(clz, host, port, disconnectHandler).await();
-        } catch (Throwable throwable) {
-            if ( throwable instanceof Exception )
-                throw (Exception) throwable;
-            throw new RuntimeException(throwable);
-        }
-    }
-
-    public static <AC extends Actor> Future<AC> Connect( Class<AC> clz, String host, int port, Consumer<Actor> disconnectHandler ) throws Exception {
-        if ( disconnectHandler != null ) {
-            disconnectHandler = Actors.InThread(disconnectHandler);
-        }
-        Promise<AC> res = new Promise<>();
-        TCPActorClient<AC> client = new TCPActorClient<>( clz, host, port);
-        if ( disconnectHandler != null ) {
-            client.setDisconnectHandler(disconnectHandler);
-        }
-        new Thread(() -> {
-            try {
-                client.connect();
-                res.settle(client.getFacadeProxy(), null);
-            } catch (IOException e) {
-                Log.Info(TCPActorClient.class,null,""+e);
-                res.settle(null, e);
-            }
-        }, "connection thread "+client.getDescriptionString()).start();
-        return res;
-    }
+public class WebSocketClient<T extends Actor> extends RemoteRefRegistry {
 
     Class<T> actorClazz;
     T facadeProxy;
@@ -76,11 +32,11 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
     ActorClient client;
     volatile boolean connected = false;
 
-    public TCPActorClient(Class<T> clz, String host, int port) throws IOException {
+    public WebSocketClient(Class<T> clz, String host, int port) throws IOException {
         this.host = host;
         this.port = port;
         actorClazz = clz;
-        facadeProxy = Actors.AsActor( actorClazz, new RemoteScheduler() );
+        facadeProxy = Actors.AsActor(actorClazz, new RemoteScheduler());
         facadeProxy.__remoteId = 1;
         registerRemoteRefDirect(facadeProxy);
     }
@@ -100,7 +56,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
     }
 
     private String getDescriptionString() {
-        return actorClazz.getSimpleName() + "@" + host + ":" + port;
+        return actorClazz.getSimpleName() + "@ws://" + host + ":" + port;
     }
 
     public boolean isConnected() {
@@ -154,7 +110,7 @@ public class TCPActorClient<T extends Actor> extends RemoteRefRegistry {
 
         @Override
         public int getRemoteId(Actor act) {
-            return TCPActorClient.this.getRemoteId(act);
+            return WebSocketClient.this.getRemoteId(act);
         }
     }
 

@@ -1,69 +1,94 @@
 package org.nustaq.kontraktor.remoting.http.websocket;
 
-import org.nustaq.kontraktor.Scheduler;
-import org.nustaq.kontraktor.impl.ElasticScheduler;
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.Coding;
+import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.util.Log;
+import org.nustaq.serialization.FSTConfiguration;
 
 /**
  * implements mechanics of transparent actor remoting via websockets based on the websocket api
  * inherited.
  *
- * FIXME: inherited Per-Client session actor is superfluous and adds latency per actor caused by redundant message enqueuing
- * FIXME: currently flow is httpserver =enqueue=> actor server =enq=> connection session =enq=> AppServerActor/AppSessionActor
  */
 public class WebSocketEndpoint {
 
-    // don't buffer too much messages (memory issues with many clients)
-    public static int DEFAULT_CLIENTQ_SIZE = 1000;
-    public static int DEFAULT_MAX_THREADS = 1;
+    public static int PING_INTERVAL_MILLIS = 10000;
+    protected Actor facade; // ref to public application actor
+    RemoteRefRegistry registry;
 
-    protected Scheduler connectionScheduler;
+    Coding coding;
 
-    public WebSocketEndpoint(Coding coding, int maxThreadsForAllConnections, int queueSizePerConnection) {
-        this( new ElasticScheduler(maxThreadsForAllConnections, queueSizePerConnection) );
+    public WebSocketEndpoint(Coding coding, Actor facade ) {
+        this.facade = facade;
+        this.coding = coding;
+        registry = new RemoteRefRegistry(coding) {
+	        @Override
+	        public Actor getFacadeProxy() {
+	            return facade;
+	        }
+        };
+	    registry.publishActor(facade);
     }
 
-    public WebSocketEndpoint(Scheduler connectionScheduler) {
-        this.connectionScheduler = connectionScheduler;
+    public void onOpen(WebSocketChannelAdapter channel) {
+        MyWSObjectSocket socket = new MyWSObjectSocket(registry.getConf(), channel);
+        channel.setAttribute("socket",socket);
     }
 
-    public WebSocketEndpoint(Coding coding) {
-        this( coding, DEFAULT_MAX_THREADS, DEFAULT_CLIENTQ_SIZE );
+    public void onBinaryMessage(WebSocketChannelAdapter channel, byte[] buffer) {
+        MyWSObjectSocket sock = (MyWSObjectSocket) channel.getAttribute("socket");
+        sock.setNextMsg(buffer);
+        try {
+            while( registry.singleReceive(sock) ) {
+                // do nothing
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    public void onBinaryMessage(WebSocketCchannelAdapter ctx, byte[] buffer) {
-        System.out.println("onBinary");
-    }
-
-    public void onOpen(WebSocketCchannelAdapter ctx) {
-        System.out.println("onOpen");
-    }
-
-    public void onClose(WebSocketCchannelAdapter ctx) {
+    public void onClose(WebSocketChannelAdapter channel) {
+        MyWSObjectSocket sock = (MyWSObjectSocket) channel.getAttribute("socket");
+        // FIXME: remove remote refs for this channel
         System.out.println("onClose");
     }
 
-    public void onTextMessage(WebSocketCchannelAdapter ctx, String text) {
-        System.out.println("onText:" + text);
+    public void onTextMessage(WebSocketChannelAdapter channel, String text) {
+        // kontrakor uses binary messages only, however just forward text messages sent by a client
+        facade.$receive(new WebSocketTextMessage(text, channel));
     }
 
-    public void onPong(WebSocketCchannelAdapter ctx) {
-        System.out.println("onPong");
+    public void onPong(WebSocketChannelAdapter channel) {
+        // ping pong is implemented by adapter
     }
 
-    public void sendWSPingMessage(WebSocketCchannelAdapter tcx) {
+    public void onError(WebSocketChannelAdapter channel) {
+        // kontrakor uses binary messages only, however just forward text messages sent by a client
+        // to facade actor
+        Log.Lg.info(this, "websocket connection error " + channel);
+        facade.$receive(new WebSocketErrorMessage(channel));
+    }
+
+    class MyWSObjectSocket extends WebObjectSocket {
+        WebSocketChannelAdapter channel;
+
+        MyWSObjectSocket(FSTConfiguration conf, WebSocketChannelAdapter channel ) {
+            super(conf);
+            this.channel = channel;
+        }
+
+        @Override
+        public void writeObject(Object toWrite) throws Exception {
+            final byte[] b = conf.asByteArray(toWrite);
+            channel.sendBinaryMessage(b);
+        }
+
+        @Override
+        public FSTConfiguration getConf() {
+            return conf;
+        }
 
     }
 
-    public void sendWSBinaryMessage(WebSocketCchannelAdapter tcx, byte[] b) {
-
-    }
-
-    public void sendWSTextMessage(WebSocketCchannelAdapter tcx, String s) {
-
-    }
-
-    public void onError(WebSocketCchannelAdapter channel) {
-
-    }
 }

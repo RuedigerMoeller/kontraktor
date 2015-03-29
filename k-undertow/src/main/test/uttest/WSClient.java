@@ -8,12 +8,13 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.nustaq.kontraktor.impl.CallEntry;
+import org.nustaq.kontraktor.remoting.RemoteCallEntry;
+import org.nustaq.serialization.FSTConfiguration;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * Created by ruedi on 28/03/15.
@@ -73,17 +74,24 @@ public class WSClient {
             System.out.printf("Got connect: %s%n", session);
             this.session = session;
             try {
-                boolean run = true;
-                while( run) {
-                    Future<Void> fut;
-                    fut = session.getRemote().sendStringByFuture("Hello");
-                    fut.get(2, TimeUnit.SECONDS);
-                    fut = session.getRemote().sendStringByFuture("Thanks for the conversation.");
-                    fut.get(2, TimeUnit.SECONDS);
-                    Thread.sleep(1000);
-                    session.getRemote().sendPing(ByteBuffer.allocate(10));
-                }
-                session.close(StatusCode.NORMAL, "I'm done");
+                new Thread( () -> {
+                    boolean run = true;
+                    while( run) {
+                        Future<Void> fut;
+                        fut = session.getRemote().sendStringByFuture("Hello");
+                        try {
+                            fut.get(2, TimeUnit.SECONDS);
+                            fut = session.getRemote().sendStringByFuture("Thanks for the conversation.");
+                            fut.get(2, TimeUnit.SECONDS);
+                            Thread.sleep(1000);
+                            RemoteCallEntry callEntry = new RemoteCallEntry( 0, 1, "$init", new Object[0]);
+                            session.getRemote().sendBytes(ByteBuffer.wrap(FSTConfiguration.getDefaultConfiguration().asByteArray(callEntry)));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    session.close(StatusCode.NORMAL, "I'm done");
+                }).start();
             } catch (Throwable t) {
                 t.printStackTrace();
             }
