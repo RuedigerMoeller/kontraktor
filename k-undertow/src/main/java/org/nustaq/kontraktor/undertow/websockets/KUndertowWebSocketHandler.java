@@ -5,7 +5,6 @@ import io.undertow.websockets.WebSocketProtocolHandshakeHandler;
 import io.undertow.websockets.core.*;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
 import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
-import org.nustaq.kontraktor.remoting.websocket.WebSocketEndpoint;
 import org.xnio.Buffers;
 
 import java.io.IOException;

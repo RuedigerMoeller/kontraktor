@@ -1,9 +1,7 @@
 package org.nustaq.kontraktor.remoting.websocket;
 
-import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.remoting.Coding;
-import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketErrorMessage;
@@ -68,6 +66,7 @@ public class WebSocketActorServer extends ActorServer {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            // FIXME: cleanup ?
         }
     }
 

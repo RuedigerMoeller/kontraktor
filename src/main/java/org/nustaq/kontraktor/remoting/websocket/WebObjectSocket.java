@@ -11,7 +11,6 @@ import java.io.IOException;
 /**
  * Created by ruedi on 31.08.14.
  *
- * receive not threadsafe (must be single threaded)
  */
 public abstract class WebObjectSocket implements ObjectSocket {
 
@@ -55,6 +54,11 @@ public abstract class WebObjectSocket implements ObjectSocket {
             }
             throw e;
         }
+    }
+
+    @Override
+    public FSTConfiguration getConf() {
+        return conf;
     }
 
     @Override

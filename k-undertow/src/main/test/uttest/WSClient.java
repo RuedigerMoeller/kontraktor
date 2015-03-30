@@ -8,6 +8,7 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.client.ClientUpgradeRequest;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
 import org.nustaq.serialization.FSTConfiguration;
@@ -15,13 +16,14 @@ import org.nustaq.serialization.FSTConfiguration;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.concurrent.*;
+import java.util.concurrent.Future;
 
 /**
  * Created by ruedi on 28/03/15.
  */
 public class WSClient {
 
-    public static void main(String[] args) {
+    public static void main0(String[] args) {
         String destUri = "ws://localhost:8080/ws";
         if (args.length > 0) {
             destUri = args[0];
@@ -43,6 +45,19 @@ public class WSClient {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    public static void main(String[] args) {
+        String destUri = "ws://localhost:8080/ws";
+        if (args.length > 0) {
+            destUri = args[0];
+        }
+        try {
+            org.nustaq.kontraktor.Future<WSServer.TestA> connect = org.nustaq.kontraktor.remoting.websocket.WebSocketClient.Connect(WSServer.TestA.class, "ws://localhost:8080/ws", null);
+            connect.await().$init();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
