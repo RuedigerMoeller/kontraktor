@@ -4,8 +4,6 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 
-import java.io.IOException;
-
 /**
  * Created by ruedi on 09.08.14.
  */
@@ -16,7 +14,7 @@ public class ClientSideActor extends Actor<ClientSideActor> {
     }
 
     public static class TA extends Actor<TA> {
-        public void $run(ServerTestFacade test, ClientSideActor csa) {
+        public void $runTest(ServerTestFacade test, ClientSideActor csa) {
             delayed(1000, () -> {
                 test.$testCall("Hello", csa);
             });
@@ -28,7 +26,7 @@ public class ClientSideActor extends Actor<ClientSideActor> {
             delayed(1000, () -> {
                 test.$doubleMe("ToBeDoubled").then( (r,e) -> {
                     System.out.println(r+" "+Thread.currentThread().getName());
-                    self().$run(test,csa);
+                    self().$runTest(test, csa);
                 });
             });
         }
@@ -42,12 +40,12 @@ public class ClientSideActor extends Actor<ClientSideActor> {
                 boolean bench = true;
                 if (bench) {
                     while (true) {
-                        // test.$benchMark(13, "this is a longish string");
-                        test.$benchMark(13, null);
+                        test.$benchMark(13, "this is a longish string");
+//                        test.$benchMark(13, null);
                     }
                 } else {
                     TA t = Actors.AsActor(TA.class);
-                    t.$run(test, csa);
+                    t.$runTest(test, csa);
                 }
             }
         });

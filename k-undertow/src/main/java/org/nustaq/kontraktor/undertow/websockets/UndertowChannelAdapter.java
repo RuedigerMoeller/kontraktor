@@ -2,17 +2,17 @@ package org.nustaq.kontraktor.undertow.websockets;
 
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.core.WebSockets;
-import org.nustaq.kontraktor.remoting.http.websocket.WebSocketChannelAdapter;
+import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
 
 import java.nio.ByteBuffer;
 
 /**
  * Created by ruedi on 28/03/15.
  */
-public class UndertowChannel implements WebSocketChannelAdapter {
+public class UndertowChannelAdapter implements WebSocketChannelAdapter {
     private final WebSocketChannel channel;
 
-    public UndertowChannel(WebSocketChannel channel) {
+    public UndertowChannelAdapter(WebSocketChannel channel) {
         this.channel = channel;
     }
 

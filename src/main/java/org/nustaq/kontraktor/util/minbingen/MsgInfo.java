@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.minbingen;
+package org.nustaq.kontraktor.util.minbingen;
 
 import java.lang.reflect.Parameter;
 

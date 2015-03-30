@@ -141,7 +141,8 @@ public class ElasticScheduler implements Scheduler, Monitorable {
                     } else {
                         dl = ""+o;
                     }
-                    sendingActor.__addDeadLetter((Actor) receiver, dl);
+                    if ( sendingActor != null )
+                        sendingActor.__addDeadLetter((Actor) receiver, dl);
                     throw new StoppedActorTargetedException(dl);
                 }
                 if ( sendingActor != null && sendingActor.__throwExAtBlock )

@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.websocket;
+package org.nustaq.kontraktor.remoting.websocket;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;

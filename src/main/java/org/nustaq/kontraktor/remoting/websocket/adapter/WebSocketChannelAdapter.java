@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.websocket;
+package org.nustaq.kontraktor.remoting.websocket.adapter;
 
 /**
  * Created by ruedi on 28/03/15.

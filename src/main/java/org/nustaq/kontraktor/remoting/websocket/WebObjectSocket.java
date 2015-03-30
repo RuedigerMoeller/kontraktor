@@ -1,14 +1,12 @@
-package org.nustaq.kontraktor.remoting.http.websocket;
+package org.nustaq.kontraktor.remoting.websocket;
 
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.coders.FSTMinBinDecoder;
-import org.nustaq.serialization.minbin.MBPrinter;
 import org.nustaq.serialization.minbin.MinBin;
 
 import java.io.IOException;
-import java.io.Serializable;
 
 /**
  * Created by ruedi on 31.08.14.

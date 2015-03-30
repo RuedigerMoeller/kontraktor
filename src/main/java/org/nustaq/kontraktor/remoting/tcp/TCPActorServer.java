@@ -2,17 +2,13 @@ package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
-import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.remoting.ObjectSocket;
-import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,9 +24,8 @@ import java.util.function.Consumer;
  * For a moderate number of clients < ~200 blocking IO is not a problem. Depending on load expect significant performance
  * degradation starting with ~500 clients.
  */
-public class TCPActorServer {
+public class TCPActorServer extends ActorServer {
 
-    protected List<ActorServerClientConnection> connections = new ArrayList<>();
 
     public static TCPActorServer Publish(Actor act, int port ) throws Exception {
         return Publish(act,port,null);
@@ -43,7 +38,7 @@ public class TCPActorServer {
         new Thread( ()-> {
             try {
                 server.closeListener = closeListener;
-                server.start(success);
+                server.acceptLoop();
             } catch (Exception e) {
                 if ( !success.isSettled() )
                     success.settle(null, e);
@@ -66,107 +61,36 @@ public class TCPActorServer {
         return server;
     }
 
-    Consumer<Actor> closeListener;
-    Actor facadeActor;
     int port;
     ServerSocket welcomeSocket;
-    protected volatile boolean terminated = false;
 
-    public TCPActorServer(ActorProxy proxy, int port) throws IOException {
+    public TCPActorServer(ActorProxy proxy, int port) throws Exception {
+        super(proxy);
         this.port = port;
-        this.facadeActor = (Actor) proxy;
     }
 
-    public boolean isTerminated() {
-        return terminated;
+    @Override
+    protected void connectServerSocket() throws Exception {
+        welcomeSocket = new ServerSocket(port);
+        Log.Info(this, facade.getActor().getClass().getName() + " running on " + welcomeSocket.getLocalPort());
     }
 
-    public void setTerminated(boolean terminated) {
-        this.terminated = terminated;
-        connections.forEach( (con) -> con.setTerminated(true) );
+    @Override
+    protected ActorServerConnection acceptConnections() throws Exception {
+        Socket connectionSocket = welcomeSocket.accept();
+        ActorServerConnection res = new ActorServerConnection();
+        TCPSocket tcpSocket = new TCPSocket(connectionSocket, res.getConf());
+        res.init(tcpSocket, facade);
+        return res;
     }
 
-    /**
-     * warning: consumes calling thread !!
-     * @throws IOException
-     * @param success
-     */
-    public void start(Future success) throws IOException {
-        try {
-            welcomeSocket = new ServerSocket(port);
-            Log.Info(this,facadeActor.getActor().getClass().getName() + " running on " + welcomeSocket.getLocalPort());
-            while (!terminated) {
-                if ( success != null ) {
-                    success.settle();
-                    success = null;
-                }
-                Socket connectionSocket = welcomeSocket.accept();
-                ActorServerClientConnection clientConnection = new ActorServerClientConnection(connectionSocket, facadeActor);
-                connections.add(clientConnection);
-                clientConnection.start();
-            }
-        } finally {
-            setTerminated(true);
-        }
-    }
 
-    public void closeConnection() {
-        setTerminated(true);
+    @Override
+    protected void closeSocket() {
         try {
             welcomeSocket.close();
         } catch (IOException e) {
-            Log.Warn(this,e+"");
-        }
-    }
-
-    public class ActorServerClientConnection extends RemoteRefRegistry {
-        ObjectSocket channel;
-        Actor facade;
-
-        public ActorServerClientConnection(Socket s, Actor facade) throws IOException {
-            super();
-            this.channel = new TCPSocket(s,conf);
-            this.facade = facade;
-            this.disconnectHandler = closeListener;
-        }
-
-        public void start() {
-            publishActor(facade); // so facade is always 1
-            new Thread(() -> {
-                try {
-                    currentObjectSocket.set(channel);
-                    receiveLoop(channel);
-                } catch (Exception ex) {
-                    Log.Warn(this,ex,"");
-                }
-                setTerminated(true);
-                connections.remove(ActorServerClientConnection.this);
-            }, "receiver").start();
-            new Thread(() -> {
-                try {
-                    currentObjectSocket.set(channel);
-                    sendLoop(channel);
-                } catch (Exception ex) {
-                    Log.Warn(this,ex,"");
-                }
-                setTerminated(true);
-                connections.remove(ActorServerClientConnection.this);
-            }, "sender").start();
-        }
-
-        @Override
-        public void close() {
-            super.close();
-            try {
-                channel.close();
-            } catch (IOException e) {
-                Log.Warn(this,e,"");
-            }
-        }
-
-        @Override
-        public Actor getFacadeProxy() {
-            return facade;
+            Log.Warn(this, e + "");
         }
     }
 

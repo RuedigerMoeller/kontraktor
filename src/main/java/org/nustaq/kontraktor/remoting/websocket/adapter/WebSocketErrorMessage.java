@@ -1,4 +1,6 @@
-package org.nustaq.kontraktor.remoting.http.websocket;
+package org.nustaq.kontraktor.remoting.websocket.adapter;
+
+import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
 
 /**
  * Created by ruedi on 29/03/15.

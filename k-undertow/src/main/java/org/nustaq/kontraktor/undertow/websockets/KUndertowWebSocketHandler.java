@@ -4,7 +4,8 @@ import io.undertow.websockets.WebSocketConnectionCallback;
 import io.undertow.websockets.WebSocketProtocolHandshakeHandler;
 import io.undertow.websockets.core.*;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
-import org.nustaq.kontraktor.remoting.http.websocket.WebSocketEndpoint;
+import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
+import org.nustaq.kontraktor.remoting.websocket.WebSocketEndpoint;
 import org.xnio.Buffers;
 
 import java.io.IOException;
@@ -15,9 +16,9 @@ import java.nio.ByteBuffer;
  */
 public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler {
 
-    WebSocketEndpoint endpoint;
+    WebSocketActorServer endpoint;
 
-    public static WebSocketConnectionCallback Connect(WebSocketEndpoint endpoint) {
+    public static WebSocketConnectionCallback Connect(WebSocketActorServer endpoint) {
         KUndertowWebSocketHandler handler[] = {null};
         WebSocketConnectionCallback cb = (ex, ch) -> {
             handler[0].doConnect(ex, ch);
@@ -26,13 +27,13 @@ public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler
         return cb;
     }
 
-    protected KUndertowWebSocketHandler(WebSocketEndpoint endpoint, WebSocketConnectionCallback cb) {
+    protected KUndertowWebSocketHandler(WebSocketActorServer endpoint, WebSocketConnectionCallback cb) {
         super(cb);
         this.endpoint = endpoint;
     }
 
     public void doConnect(WebSocketHttpExchange exchange, WebSocketChannel channel) {
-        UndertowChannel utChannel = new UndertowChannel(channel);
+        UndertowChannelAdapter utChannel = new UndertowChannelAdapter(channel);
         channel.setAttribute("utchannel",utChannel);
 
         endpoint.onOpen(utChannel);

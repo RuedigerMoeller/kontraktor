@@ -1,4 +1,6 @@
-package org.nustaq.kontraktor.remoting.http.websocket;
+package org.nustaq.kontraktor.remoting.websocket.adapter;
+
+import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
 
 /**
  * Kontraktor uses binary messages to enable transparent communication,
