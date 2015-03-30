@@ -120,7 +120,7 @@ public class Promise<T> implements Future<T> {
      * see Future (inheriting Callback) interface
      */
     @Override
-    public <OUT> Future<OUT> then(final Function<T, Future<OUT>> function) {
+    public <OUT> Future<OUT> thenAnd(final Function<T, Future<OUT>> function) {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
@@ -159,7 +159,7 @@ public class Promise<T> implements Future<T> {
      * see Future (inheriting Callback) interface
      */
     @Override
-    public Future<T> then(Supplier<Future<T>> callable) {
+    public Future<T> thenAnd(Supplier<Future<T>> callable) {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override

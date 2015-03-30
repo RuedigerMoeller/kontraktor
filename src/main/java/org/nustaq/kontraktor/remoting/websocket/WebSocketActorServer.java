@@ -60,6 +60,8 @@ public class WebSocketActorServer extends ActorServer {
     public void onBinaryMessage(WebSocketChannelAdapter channel, byte[] buffer) {
         ActorServerConnection con = (ActorServerConnection) channel.getAttribute("con");
         ((MyWSObjectSocket)con.getObjSocket()).setNextMsg(buffer);
+        con.currentObjectSocket.set(con.getObjSocket());
+
         try {
             while( con.singleReceive(con.getObjSocket()) ) {
                 // do nothing

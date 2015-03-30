@@ -181,36 +181,36 @@ public class FutureCatch {
                count.addAndGet(1);
                System.out.println("EMPTYTHEN");
            })
-           .then( () -> { // supplier [=callable]
+           .thenAnd(() -> { // supplier [=callable]
                Promise p = new Promise();
                count.addAndGet(1);
-               new Thread( () -> {
-                   LockSupport.parkNanos(500l*1000* 1000);
+               new Thread(() -> {
+                   LockSupport.parkNanos(500l * 1000 * 1000);
                    p.resolve("supplier");
                }).start();
                return p;
            })
-           .then(r -> {
+           .thenAnd(r -> {
                System.out.println("" + r);
                count.addAndGet(1);
                return futCatch.$result(1);
            })
-           .then(r -> {
+           .thenAnd(r -> {
                System.out.println("" + r);
                count.addAndGet(2);
                return futCatch.$result(2);
            })
-           .then(r -> {
+           .thenAnd(r -> {
                System.out.println("" + r);
                count.addAndGet(3);
                return futCatch.$error(1);
            })
-           .then(r -> {
+           .thenAnd(r -> {
                System.out.println("" + r);
                count.addAndGet(4);
                return futCatch.$result(3);
            })
-           .then(r -> {
+           .thenAnd(r -> {
                System.out.println("" + r);
                count.addAndGet(5);
                return futCatch.$result(4);

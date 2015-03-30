@@ -81,10 +81,17 @@ public interface Callback<T> extends Serializable  // do not use interface, slow
     }
 
     /**
-     * invalid for Futures !. can be called more than once in order to stream objects to the sender.
+     * invalid for Futures !. can be called more than once on Callback's in order to stream objects to the sender.
      * @param result
      */
     default void stream(T result) {
         settle(result, Actor.CONT);
+    }
+
+    /**
+     * signal end of streamed objects (required for remoteref housekeeping if actors run remotely)
+     */
+    default void finish() {
+        settle(null,FIN);
     }
 }

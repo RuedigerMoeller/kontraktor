@@ -43,7 +43,7 @@ public interface Future<T> extends Callback<T> {
      *
      * @return a future ressolved with the Supüplier result after this
      */
-    public Future<T> then( Supplier<Future<T>> result );
+    public Future<T> thenAnd(Supplier<Future<T>> result);
 
     /**
      * called once any result of a future becomes available
@@ -54,7 +54,7 @@ public interface Future<T> extends Callback<T> {
      *
      * @return a future ressolved with the Function result after this
      */
-    public <OUT> Future<OUT> then(final Function<T, Future<OUT>> function);
+    public <OUT> Future<OUT> thenAnd(final Function<T, Future<OUT>> function);
 
     /**
      * called once any result of a future becomes available

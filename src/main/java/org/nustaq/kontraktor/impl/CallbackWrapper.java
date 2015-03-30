@@ -81,11 +81,11 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     }
 
     @Override
-    public Future<T> then(Supplier<Future<T>> result) {
+    public Future<T> thenAnd(Supplier<Future<T>> result) {
         if (realCallback instanceof Future == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).then(result);
+            return ((Future)realCallback).thenAnd(result);
     }
 
     @Override
@@ -121,11 +121,11 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     }
 
     @Override
-    public <OUT> Future<OUT> then(Function<T, Future<OUT>> function) {
+    public <OUT> Future<OUT> thenAnd(Function<T, Future<OUT>> function) {
         if (realCallback instanceof Future == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).then(function);
+            return ((Future)realCallback).thenAnd(function);
     }
 
     @Override

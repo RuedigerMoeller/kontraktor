@@ -65,7 +65,7 @@ public abstract class Spore<I,O> implements Serializable {
      * when using streaming to deliver multiple results, call this in order to signal no further
      * results are expected.
      */
-    public void finished() {
+    public void finish() {
         // signal finish of execution, so remoting can clean up callback id mappings
         // override if always single result or finish can be emitted by the remote method
         // note one can send FINSILENT to avoid the final message to be visible to receiver callback/spore

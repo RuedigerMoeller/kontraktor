@@ -58,6 +58,9 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
         return connected;
     }
 
+    public boolean runReceiveLoop() {
+        return true;
+    }
     /**
      *
      */
@@ -81,13 +84,16 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
                 },
                 "sender"
             ).start();
-            new Thread(
-                () -> {
-                    currentObjectSocket.set(chan);
-                    receiveLoop(chan);
-                },
-                "receiver"
-            ).start();
+
+            if (runReceiveLoop()) {
+                new Thread(
+                    () -> {
+                        currentObjectSocket.set(chan);
+                        receiveLoop(chan);
+                    },
+                    "receiver"
+                ).start();
+            }
         }
 
         public void close() {

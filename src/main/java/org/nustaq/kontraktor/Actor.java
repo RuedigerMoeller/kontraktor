@@ -108,6 +108,10 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return CONT.equals(o);
     }
 
+    public static boolean isResult(Object error) {
+        return error==null||isCont(error);
+    }
+
     /**
      * helper to check for "special" error objects.
      * @param o

@@ -68,6 +68,7 @@ public class WebSocketClient<T extends Actor> extends ActorClient<T> {
         public void onClose(Session userSession, CloseReason reason) {
             this.session = null;
             try {
+                Log.Info(this, "Connection closed "+reason);
                 sock.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -78,6 +79,7 @@ public class WebSocketClient<T extends Actor> extends ActorClient<T> {
         public void onMessage(byte[] message) {
             try {
                 sock.setNextMsg(message);
+                con.currentObjectSocket.set(sock);
                 while( con.singleReceive(sock) ) {
                     // do nothing
                 }
@@ -131,5 +133,10 @@ public class WebSocketClient<T extends Actor> extends ActorClient<T> {
 
     public String getAddr() {
         return addr;
+    }
+
+    @Override
+    public boolean runReceiveLoop() {
+        return false;
     }
 }

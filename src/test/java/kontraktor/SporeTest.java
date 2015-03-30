@@ -33,7 +33,7 @@ public class SporeTest {
             data.forEach( string -> {
                 query.remote( string );
             });
-            query.finished();
+            query.finish();
         }
 
     }
