@@ -47,7 +47,7 @@ public class TicketMachineTest {
         public void $process( final String stock, final long sequence ) {
             machine.getTicket(stock).then(new Callback<Future>() {
                 @Override
-                public void settle(final Future finSignal, Object error) {
+                public void complete(final Future finSignal, Object error) {
                     Long curSeq = seqTracker.get(stock);
                     if ( curSeq == null )
                         seqTracker.put(stock,curSeq);
@@ -60,9 +60,9 @@ public class TicketMachineTest {
 //                    System.out.println("working "+stock+" sq:"+sequence);
                     worker.$work((long) (Math.random()*1000*1000)).then(new Callback() {
                         @Override
-                        public void settle(Object result, Object error) {
+                        public void complete(Object result, Object error) {
                             System.out.println("fin work "+stock+" "+sequence);
-                            finSignal.settle("done", null); // tell i am done
+                            finSignal.complete("done", null); // tell i am done
                         }
                     });
                 }

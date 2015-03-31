@@ -285,7 +285,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
             Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
             if ( publishedCallback == null )
                 throw new RuntimeException("Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent");
-            publishedCallback.settle(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
+            publishedCallback.complete(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
             if (!isContinue)
                 removePublishedObject(read.getReceiverKey());
         }

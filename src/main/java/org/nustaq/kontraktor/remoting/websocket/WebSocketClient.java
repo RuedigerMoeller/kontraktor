@@ -32,10 +32,10 @@ public class WebSocketClient<T extends Actor> extends ActorClient<T> {
         new Thread(() -> {
             try {
                 client.connect();
-                res.settle(client.getFacadeProxy(), null);
+                res.complete(client.getFacadeProxy(), null);
             } catch (IOException e) {
                 Log.Info(WebSocketClient.class,null,""+e);
-                res.settle(null, e);
+                res.complete(null, e);
             }
         }, "connection thread "+client.getDescriptionString()).start();
         return res;

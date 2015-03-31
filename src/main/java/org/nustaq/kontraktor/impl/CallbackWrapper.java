@@ -40,7 +40,7 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
 
     static {
         try {
-            receiveRes = Callback.class.getMethod("settle", new Class[]{Object.class,Object.class});
+            receiveRes = Callback.class.getMethod("complete", new Class[]{Object.class,Object.class});
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
         }
@@ -55,7 +55,7 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     }
 
     @Override
-    public void settle(T result, Object error) {
+    public void complete(T result, Object error) {
         if ( realCallback == null ) {
             return;
         }

@@ -28,7 +28,7 @@ import java.io.Serializable;
  * Typically used to receive/stream results from outside the actor.
  * The underlying mechanics scans method arguments and schedules calls on the call back into the calling actors thread.
  * Note that the callback invocation is added as a message to the end of the calling actor.
- * e.g. actor.method( arg, new Callbacl() { public void settle(T result, Object error ) { ..runs in caller thread.. } }
+ * e.g. actor.method( arg, new Callbacl() { public void complete(T result, Object error ) { ..runs in caller thread.. } }
  */
 public interface Callback<T> extends Serializable  // do not use interface, slows down instanceof significantly
 {
@@ -54,44 +54,51 @@ public interface Callback<T> extends Serializable  // do not use interface, slow
      * @param result
      * @param error
      */
-    public void settle(T result, Object error);
+    public void complete(T result, Object error);
 
     /**
-     * same as settle(null,null)
+     * same as complete(null,null)
      */
-    default public void settle() {
-        settle(null,null);
+    default public void complete() {
+        complete(null, null);
     }
 
     /**
      * signal an error to sender. Will automatically "close" the callback if remoted.
+     * same as complete( null, error );
      *
      * @param error
      */
     default void reject(Object error) {
-        settle(null, error);
+        complete(null, error);
     }
 
     /**
      * pass a result object to the sender. This can be called only once (connection to sender will be closed afterwards).
+     * same as complete( result, null );
+     *
      * @param result
      */
     default void resolve(T result) {
-        settle(result, null);
+        complete(result, null);
     }
 
     /**
      * invalid for Futures !. can be called more than once on Callback's in order to stream objects to the sender.
+     * same as complete( result, CONT );
+     *
      * @param result
      */
     default void stream(T result) {
-        settle(result, Actor.CONT);
+        complete(result, CONT);
     }
 
     /**
      * signal end of streamed objects (required for remoteref housekeeping if actors run remotely)
+     * same as complete( null, FIN );
+     *
      */
     default void finish() {
-        settle(null,FIN);
+        complete(null, FIN);
     }
 }

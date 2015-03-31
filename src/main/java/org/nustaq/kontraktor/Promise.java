@@ -124,9 +124,9 @@ public class Promise<T> implements Future<T> {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
-            public void settle(T result, Object error) {
+            public void complete(T result, Object error) {
                 if ( Actor.isError(error) ) {
-                    res.settle(null, error);
+                    res.complete(null, error);
                 } else {
                     function.apply(result).then(res);
                 }
@@ -143,12 +143,12 @@ public class Promise<T> implements Future<T> {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
-            public void settle(T result, Object error) {
+            public void complete(T result, Object error) {
                 if ( Actor.isError(error) ) {
-                    res.settle(null, error);
+                    res.complete(null, error);
                 } else {
                     function.accept(result);
-                    res.settle();
+                    res.complete();
                 }
             }
         });
@@ -163,9 +163,9 @@ public class Promise<T> implements Future<T> {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
-            public void settle(T result, Object error) {
+            public void complete(T result, Object error) {
                 if ( Actor.isError(error) ) {
-                    res.settle(null, error);
+                    res.complete(null, error);
                 } else {
                     Future<T> call = null;
                     call = callable.get().then(res);
@@ -184,9 +184,9 @@ public class Promise<T> implements Future<T> {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
-            public void settle(T result, Object error) {
+            public void complete(T result, Object error) {
                 if ( ! Actor.isError(error) ) {
-                    res.settle(null, error);
+                    res.complete(null, error);
                 } else {
                     function.apply(error).then(res);
                 }
@@ -203,12 +203,12 @@ public class Promise<T> implements Future<T> {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
-            public void settle(T result, Object error) {
+            public void complete(T result, Object error) {
                 if ( ! Actor.isError(error) ) {
-                    res.settle(null, error);
+                    res.complete(null, error);
                 } else {
                     function.accept(error);
-                    res.settle();
+                    res.complete();
                 }
             }
         });
@@ -220,7 +220,7 @@ public class Promise<T> implements Future<T> {
      */
     public void timedOut( Timeout to ) {
         if (!hadResult ) {
-            settle(null, to);
+            complete(null, to);
         }
     }
 
@@ -240,11 +240,11 @@ public class Promise<T> implements Future<T> {
                 if (nextFuture == null) {
                     nextFuture = new Promise(result, error);
                     lock.set(false);
-                    resultCB.settle(result, error);
+                    resultCB.complete(result, error);
                 } else {
                     lock.set(false);
-                    resultCB.settle(result, error);
-                    nextFuture.settle(result, error);
+                    resultCB.complete(result, error);
+                    nextFuture.complete(result, error);
                     return nextFuture;
                 }
             }
@@ -309,7 +309,7 @@ public class Promise<T> implements Future<T> {
             if (hadResult) {
                 hasFired = true;
                 lock.set(false);
-                resultCB.settle(result, error);
+                resultCB.complete(result, error);
             }
         } finally {
             lock.set(false);
@@ -320,7 +320,7 @@ public class Promise<T> implements Future<T> {
      * see Future (inheriting Callback) interface
      */
     @Override
-    public final void settle(Object res, Object error) {
+    public final void complete(Object res, Object error) {
         this.result = res;
         Object prevErr = this.error;
         this.error = error;
@@ -343,13 +343,13 @@ public class Promise<T> implements Future<T> {
                 }
                 hasFired = true;
                 lock.set(false);
-                resultReceiver.settle(result, error);
+                resultReceiver.complete(result, error);
                 resultReceiver = null;
                 while (!lock.compareAndSet(false, true)) {
                 }
                 if (nextFuture != null) {
                     lock.set(false);
-                    nextFuture.settle(result, error);
+                    nextFuture.complete(result, error);
                 }
                 return;
             }

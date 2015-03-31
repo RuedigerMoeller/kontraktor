@@ -31,8 +31,18 @@ public abstract class ActorServer {
         return terminated;
     }
 
+    public Actor getFacade() {
+        return facade;
+    }
+
+    public List<ActorServerConnection> getConnections() {
+
+        return connections;
+    }
+
     public void setTerminated(boolean terminated) {
         this.terminated = terminated;
+
         connections.forEach( (con) -> con.setTerminated(true) );
     }
 

@@ -28,7 +28,7 @@ public class CallbackTest {
 
         public void $method(Callback cb) {
 //            LockSupport.parkNanos(1);
-            cb.settle("void", null);
+            cb.complete("void", null);
         }
 
         public void $ping( CBTCallActor pong, Callback cb ) {
@@ -38,7 +38,7 @@ public class CallbackTest {
 
         public void $pongong( Callback cb ) {
             assertTrue(Thread.currentThread() == __currentDispatcher);
-            cb.settle("yuppie", "none");
+            cb.complete("yuppie", "none");
         }
 
         public void $customCB( @InThread MyCB cb ) {
@@ -57,7 +57,7 @@ public class CallbackTest {
             cbt = Actors.AsActor(CBTActor.class, new ElasticScheduler(4,10000)); //  ensure different thread
             cbt.$method(new Callback() {
                 @Override
-                public void settle(Object result, Object error) {
+                public void complete(Object result, Object error) {
                     assertTrue(__currentDispatcher == Thread.currentThread());
                 }
             });
@@ -84,7 +84,7 @@ public class CallbackTest {
         public void $sendPing() {
             cbt.$ping(self(), new Callback() {
                 @Override
-                public void settle(Object result, Object error) {
+                public void complete(Object result, Object error) {
                     assertTrue(Thread.currentThread() == __currentDispatcher);
                     assertTrue("yuppie".equals(result));
                     assertTrue("none".equals(error));
@@ -120,7 +120,7 @@ public class CallbackTest {
         final CBTActor cbt = Actors.AsActor(CBTActor.class);
         cbt.$method(new Callback() {
             @Override
-            public void settle(Object result, Object error) {
+            public void complete(Object result, Object error) {
                 assertTrue(Thread.currentThread() == cbt.__currentDispatcher);
             }
         });

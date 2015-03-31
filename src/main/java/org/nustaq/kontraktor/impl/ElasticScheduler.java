@@ -82,8 +82,8 @@ public class ElasticScheduler implements Scheduler, Monitorable {
             fut = new Promise();
             e.setFutureCB(new CallbackWrapper( e.getSendingActor() ,new Callback() {
                 @Override
-                public void settle(Object result, Object error) {
-                    fut.settle(result, error);
+                public void complete(Object result, Object error) {
+                    fut.complete(result, error);
                 }
             }));
         } else
@@ -300,9 +300,9 @@ public class ElasticScheduler implements Scheduler, Monitorable {
         final CallbackWrapper<T> resultWrapper = new CallbackWrapper<>(emitter,resultHandler);
         exec.execute(() -> {
             try {
-                resultWrapper.settle(toCall.call(), null);
+                resultWrapper.complete(toCall.call(), null);
             } catch (Throwable th) {
-                resultWrapper.settle(null, th);
+                resultWrapper.complete(null, th);
             }
         });
     }

@@ -24,9 +24,9 @@ public class OuterActor extends Actor<OuterActor> {
         Promise<String> result = new Promise();
         center.$getOuter(id).then( (outer,err) -> {
             if (outer == null ) {
-                result.settle("id " + id + " not found.", null);
+                result.complete("id " + id + " not found.", null);
             } else {
-                outer.$testCall("hallo from "+myid).then( (s,err1) -> result.settle(s, err) );
+                outer.$testCall("hallo from "+myid).then( (s,err1) -> result.complete(s, err) );
             }
         });
         return result;

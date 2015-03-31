@@ -31,13 +31,11 @@ import org.nustaq.kontraktor.util.TicketMachine;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 /**
  * Baseclass for actor/eventloop implementations. Note that actors are not created using constructors.
@@ -76,7 +74,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      */
     public static final String CONT = Callback.CONT;
     /**
-     * use this value to signal no more messages. The receiver callback will settle the message.
+     * use this value to signal no more messages. The receiver callback will complete the message.
      * Note that any value except CONT will also close the callback channel. So this is informal.
      */
     public static final String FIN = Callback.FIN;
@@ -365,7 +363,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     protected TicketMachine __ticketMachine;
 
     /**
-     * enforce serial execution of asynchronous tasks. The 'toRun' closure must call '.settle()' (=empty result) on the given future
+     * enforce serial execution of asynchronous tasks. The 'toRun' closure must call '.complete()' (=empty result) on the given future
      * to signal his processing has finished and the next item locked on 'transactionKey' can be processed.
      *
      * @param transactionKey
@@ -436,7 +434,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         getActorRef().__stopped = true;
         getActor().__stopped = true;
         if (__stopHandlers!=null) {
-            __stopHandlers.forEach( (cb) -> cb.settle(self(), null) );
+            __stopHandlers.forEach( (cb) -> cb.complete(self(), null) );
             __stopHandlers.clear();
         }
         // remove ref to real actor as ref might still be referenced in threadlocals and
@@ -469,6 +467,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         Actors.AddDeadLetter(s);
     }
 
+    // FIXME: would be much better to do lookup at method invoke time INSIDE actor thread instead of doing it on callside (contended)
     ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
     @CallerSideMethod public Method __getCachedMethod(String methodName, Actor actor) {
         Method method = methodCache.get(methodName);

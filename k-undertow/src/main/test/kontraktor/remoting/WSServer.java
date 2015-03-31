@@ -1,7 +1,8 @@
-package uttest;
+package kontraktor.remoting;
 
 import io.undertow.Handlers;
-import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.ActorProxy;
+import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.SerializerType;
@@ -14,21 +15,22 @@ import org.nustaq.kontraktor.undertow.websockets.KUndertowWebSocketHandler;
  */
 public class WSServer {
 
-    public static void main(String a[]) {
+    public static WebSocketActorServer run() {
         DispatcherThread.DUMP_CATCHED = true;
         try {
             Knode knode = new Knode();
-            knode.mainStub(a);
-            WebSocketActorServer webSocketEndpoint = new WebSocketActorServer(new Coding(SerializerType.FSTSer), (ActorProxy)Actors.AsActor(WSTestActor.class));
+            knode.mainStub(new String[0]);
+            WebSocketActorServer webSocketActorServer = new WebSocketActorServer(new Coding(SerializerType.FSTSer), (ActorProxy)Actors.AsActor(ServerTestFacade.class));
             knode.getPathHandler().addExactPath("/ws",
                 Handlers.websocket(
-                    KUndertowWebSocketHandler.Connect(webSocketEndpoint)
+                    KUndertowWebSocketHandler.Connect(webSocketActorServer)
                 )
             );
+            return webSocketActorServer;
         } catch (Throwable th) {
             th.printStackTrace();
-            System.exit(-1);
         }
+        return null;
     }
 
 }

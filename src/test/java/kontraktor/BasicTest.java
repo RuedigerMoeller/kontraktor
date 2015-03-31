@@ -62,7 +62,7 @@ public class BasicTest {
         }
           
         public void getResult( Callback<Integer> cb ) {
-            cb.settle(count, null);
+            cb.complete(count, null);
         }
     }
 
@@ -75,7 +75,7 @@ public class BasicTest {
         final CountDownLatch latch = new CountDownLatch(1);
         bs.getResult( new Callback<Integer>() {
             @Override
-            public void settle(Integer result, Object error) {
+            public void complete(Integer result, Object error) {
                 assertTrue(result.intValue()==10);
                 bs.$stop();
                 latch.countDown();
@@ -181,11 +181,11 @@ public class BasicTest {
     public static class Overload extends Actor {
 
         public void a(int x, Callback<Integer> cb) {
-            cb.settle(x, null);
+            cb.complete(x, null);
         }
 
         public void a(int x, int y, Callback<Integer> cb) {
-            cb.settle(y, null);
+            cb.complete(y, null);
         }
 
     }
@@ -308,11 +308,11 @@ public class BasicTest {
                 ).then(
                     new Callback<String>() {
                         @Override
-                        public void settle(String result, Object error) {
+                        public void complete(String result, Object error) {
                             if (Thread.currentThread() == myThread) {
-                                content.settle(result, null);
+                                content.complete(result, null);
                             } else {
-                                content.settle(null, "wrong thread");
+                                content.complete(null, "wrong thread");
                             }
                         }
                     });
@@ -341,8 +341,8 @@ public class BasicTest {
             ft.getString("13")
                 .then(new Callback<String>() {
                     @Override
-                    public void settle(String result, Object error) {
-                        stringResult.settle(result, null);
+                    public void complete(String result, Object error) {
+                        stringResult.complete(result, null);
                     }
                 });
             return stringResult;
@@ -352,8 +352,8 @@ public class BasicTest {
             ft.getString("13")
                     .then(new Callback<String>() {
                         @Override
-                        public void settle(String result, Object error) {
-                            stringResult.settle(result, null);
+                        public void complete(String result, Object error) {
+                            stringResult.complete(result, null);
                         }
                     });
         }
@@ -365,7 +365,7 @@ public class BasicTest {
         final AtomicReference<String> outerresult0 = new AtomicReference<>();
         ft.getString("oj").then(new Callback<String>() {
             @Override
-            public void settle(String result, Object error) {
+            public void complete(String result, Object error) {
                 System.out.println("simple:" + result);
                 outerresult0.set(result);
             }
@@ -378,7 +378,7 @@ public class BasicTest {
         test.doTestCall()
             .then(new Callback<String>() {
                 @Override
-                public void settle(String result, Object error) {
+                public void complete(String result, Object error) {
                     System.out.println("outer result " + result);
                     outerresult.set(result);
                 }
@@ -389,7 +389,7 @@ public class BasicTest {
         test.doTestCall1(f);
         f.then(new Callback<String>() {
             @Override
-            public void settle(String result, Object error) {
+            public void complete(String result, Object error) {
                 System.out.println("outer1 result:"+result);
                 outerresult1.set(result);
             }
@@ -466,7 +466,7 @@ public class BasicTest {
         TestBlockingAPI actor = AsActor(TestBlockingAPI.class);
         actor.get("http://www.google.com" ).then( new Callback<String>() {
             @Override
-            public void settle(String result, Object error) {
+            public void complete(String result, Object error) {
             if ( error != null )
                 success.set(1);
             else
@@ -519,7 +519,7 @@ public class BasicTest {
 
         public Future $timeOutingMethod() {
             final Promise promise = new Promise();
-            delayed(4000, () -> promise.settle() );
+            delayed(4000, () -> promise.complete() );
             return promise;
         }
 
@@ -565,7 +565,7 @@ public class BasicTest {
                 return new Promise<>(null, "Error "+i);
             }
             Promise<String> res = new Promise<>();
-            delayed(1, () -> res.settle("AsyncResult " + i, null) );
+            delayed(1, () -> res.complete("AsyncResult " + i, null) );
             return res;
         }
 

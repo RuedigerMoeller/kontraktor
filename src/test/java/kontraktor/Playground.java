@@ -45,7 +45,7 @@ public class Playground {
             if ( other != null )
                 other.service(in, result);
             else
-                result.settle(in + "-result" + " in Thread " + Thread.currentThread().getName(), null);
+                result.complete(in + "-result" + " in Thread " + Thread.currentThread().getName(), null);
         }
 
         public Future<String> getFutureString() {
@@ -58,11 +58,11 @@ public class Playground {
             final Thread curt = Thread.currentThread();
             pokpok.then(new Callback<String>() {
                 @Override
-                public void settle(String result, Object error) {
+                public void complete(String result, Object error) {
                     if (Thread.currentThread()!=curt) throw new RuntimeException("wrong thread");
                     System.out.println("concat thread "+System.identityHashCode(curt));
                     result+="POKPOK";
-                    resultFuture.settle(result, null);
+                    resultFuture.complete(result, null);
                 }
             });
             return resultFuture;
@@ -127,7 +127,7 @@ public class Playground {
         final Future<String> futureString = actorA.getFutureString();
         actorB.concat(futureString).then(new Callback<String>() {
             @Override
-            public void settle(String result, Object error) {
+            public void complete(String result, Object error) {
                 System.out.println("uter result thread "+System.identityHashCode(Thread.currentThread()));
                 System.out.println("result:" + result);
             }
@@ -140,7 +140,7 @@ public class Playground {
             Thread.sleep(1000);
             actorA.service("Hallo", new Callback<String>() {
                 @Override
-                public void settle(String result, Object error) {
+                public void complete(String result, Object error) {
                     System.out.println("forward result in "+Thread.currentThread().getName());
                     actorB.printStuff(result);
                 }

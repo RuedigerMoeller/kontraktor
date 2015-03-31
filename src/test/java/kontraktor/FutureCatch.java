@@ -63,25 +63,25 @@ public class FutureCatch {
 
         public Future<String> $error(int num) {
             Promise res = new Promise();
-            delayed(500, () -> res.settle(null, "Error " + num));
+            delayed(500, () -> res.complete(null, "Error " + num));
             return res;
         }
 
         public Future<String> $badex(int num) {
             Promise res = new Promise();
-            delayed( 500, () -> res.settle(null, new Error("oh noes "+num)) );
+            delayed( 500, () -> res.complete(null, new Error("oh noes " + num)) );
             return res;
         }
 
         public Future<String> $result(int num) {
             Promise res = new Promise();
-            delayed( 500, () -> res.settle("Result " + num, null) );
+            delayed( 500, () -> res.complete("Result " + num, null) );
             return res;
         }
 
         public Future<String> $rand(int num) {
             Promise res = new Promise();
-            delayed( 500+(long)(Math.random()*500), () -> res.settle("Result " + num, null) );
+            delayed( 500+(long)(Math.random()*500), () -> res.complete("Result " + num, null) );
             return res;
         }
 

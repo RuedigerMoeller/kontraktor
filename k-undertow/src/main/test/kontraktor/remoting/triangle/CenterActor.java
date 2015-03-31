@@ -1,12 +1,9 @@
 package kontraktor.remoting.triangle;
 
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Future;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
 
-import java.io.IOException;
 import java.util.HashMap;
 
 /**

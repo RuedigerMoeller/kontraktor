@@ -1,17 +1,11 @@
 package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.impl.BackOffStrategy;
-import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
-import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.remoting.base.ActorClient;
-import org.nustaq.kontraktor.remoting.websocket.WebSocketClient;
 import org.nustaq.kontraktor.util.Log;
 
-import javax.management.relation.RoleUnresolved;
 import java.io.*;
-import java.net.SocketException;
 import java.util.function.Consumer;
 
 /**
@@ -61,10 +55,10 @@ public class TCPActorClient<T extends Actor> extends ActorClient<T> {
         new Thread(() -> {
             try {
                 client.connect();
-                res.settle(client.getFacadeProxy(), null);
+                res.complete(client.getFacadeProxy(), null);
             } catch (IOException e) {
                 Log.Info(TCPActorClient.class,null,""+e);
-                res.settle(null, e);
+                res.complete(null, e);
             }
         }, "connection thread "+client.getDescriptionString()).start();
         return res;

@@ -164,7 +164,7 @@ public class Actors {
         for (int i = 0; i < futures.length; i++) {
             futures[i].then( (r,e) -> {
                 if ( fin.compareAndSet(false,true) ) {
-                    p.settle(r,e);
+                    p.complete(r, e);
                 }
             });
         }
@@ -183,7 +183,7 @@ public class Actors {
         for (Iterator<Future<T>> iterator = futures.iterator(); iterator.hasNext(); ) {
             iterator.next().then( (r,e) -> {
                 if ( fin.compareAndSet(false,true) ) {
-                    p.settle(r,e);
+                    p.complete(r, e);
                 }
             });
         }
@@ -202,7 +202,7 @@ public class Actors {
         if ( index < futures.length ) {
             futures[index].then( (r,e) -> awaitSettle(futures, index + 1, result) );
         } else {
-            result.settle(futures, null);
+            result.complete(futures, null);
         }
     }
 
@@ -210,7 +210,7 @@ public class Actors {
         if ( index < futures.size() ) {
             futures.get(index).then((r, e) -> awaitSettle(futures, index + 1, result));
         } else {
-            result.settle(futures, null);
+            result.complete(futures, null);
         }
     }
 

@@ -2,6 +2,7 @@ package kontraktor.remoting;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
+import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
 import org.nustaq.kontraktor.util.RateMeasure;
 
 import java.util.Date;
@@ -17,7 +18,7 @@ public class ServerTestFacade extends Actor<ServerTestFacade> {
     }
 
     public void $testCallWithCB( long time, Callback<String> cb ) {
-        cb.settle(new Date(time).toString(), null);
+        cb.complete(new Date(time).toString(), null);
     }
 
     RateMeasure measure = new RateMeasure("calls",1000);
@@ -25,13 +26,22 @@ public class ServerTestFacade extends Actor<ServerTestFacade> {
         measure.count();
     }
 
+    public Future $benchMark1(int someVal, String someString) {
+        measure.count();
+        return new Promise<>("ok");
+    }
+
     public Future<String> $doubleMe( String s ) {
         return new Promise<>(s+" "+s);
     }
 
 
-    public static void main(String arg[]) throws Exception {
-        TCPActorServer.Publish(Actors.AsActor(ServerTestFacade.class), 7777);
+    public static TCPActorServer run() throws Exception {
+        return TCPActorServer.Publish(Actors.AsActor(ServerTestFacade.class), 7777);
+    }
+
+    public static WebSocketActorServer runWS() throws Exception {
+        return WSServer.run();
     }
 
 }

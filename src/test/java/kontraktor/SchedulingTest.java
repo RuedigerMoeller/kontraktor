@@ -128,7 +128,7 @@ public class SchedulingTest {
                         }
                     }
                 }
-                done.settle("void", null);
+                done.complete("void", null);
             });
             return done;
         }
@@ -170,7 +170,7 @@ public class SchedulingTest {
         }
         act.$dumpCalls().then(new Callback() {
             @Override
-            public void settle(Object result, Object error) {
+            public void complete(Object result, Object error) {
                 act.$stop();
                     new Thread() { public void run() {
                         try {

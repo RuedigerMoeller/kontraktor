@@ -41,7 +41,7 @@ public class TCPActorServer extends ActorServer {
                 server.acceptLoop();
             } catch (Exception e) {
                 if ( !success.isSettled() )
-                    success.settle(null, e);
+                    success.complete(null, e);
                 res.set(e);
             }
         }, "acceptor "+port ).start();

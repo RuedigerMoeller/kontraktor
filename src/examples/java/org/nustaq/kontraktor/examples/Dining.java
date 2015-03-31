@@ -8,7 +8,6 @@ import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
 import org.nustaq.kontraktor.util.Hoarde;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.locks.LockSupport;
 
@@ -38,7 +37,7 @@ public class Dining {
             num %= 5;
             forks[num].remove(0);
             if ( forks[num].size() > 0 )
-                forks[num].get(0).settle();
+                forks[num].get(0).complete();
         }
     }
 

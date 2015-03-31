@@ -107,8 +107,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.glassfish.tyrus</groupId>
-            <artifactId>tyrus-client</artifactId>
+            <groupId>org.glassfish.tyrus.bundles</groupId>
+                <artifactId>tyrus-standalone-client</artifactId>
             <version>1.10</version>
         </dependency>
 

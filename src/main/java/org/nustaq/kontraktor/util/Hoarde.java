@@ -98,7 +98,7 @@ public class Hoarde<T extends Actor> {
             return prev;
         } else {
             Promise p = new Promise();
-            prev.getNext().finallyDo((res, err) -> result.then((res1, err1) -> p.settle(res1, err1)));
+            prev.getNext().finallyDo((res, err) -> result.then((res1, err1) -> p.complete(res1, err1)));
             prev = p;
             return p;
         }

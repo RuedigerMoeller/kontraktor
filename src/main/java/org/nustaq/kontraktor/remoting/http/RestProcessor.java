@@ -19,8 +19,8 @@ public class RestProcessor {
                 return false;
             } else {
                 if ( restActorServer.remoteCallInterceptor != null && !restActorServer.remoteCallInterceptor.apply(target.actor,req.getPath(1)) ) {
-                    response.settle(RequestResponse.MSG_403, null);
-                    response.settle(null, RestActorServer.FINISHED);
+                    response.complete(RequestResponse.MSG_403, null);
+                    response.complete(null, RestActorServer.FINISHED);
                     return true;
                 } else
                     restActorServer.enqueueCall(target, req, response);

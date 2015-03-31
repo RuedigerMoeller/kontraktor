@@ -36,9 +36,9 @@ public class HoardeTest {
             Promise<Object> promise = new Promise<>();
             byte[] result = conf.asByteArray((Serializable) o);
             if ( previous == null ) {
-                promise.settle(result, null);
+                promise.complete(result, null);
             } else {
-                previous.then((res, err) -> promise.settle(result, null));
+                previous.then((res, err) -> promise.complete(result, null));
             }
             return promise;
         }

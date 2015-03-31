@@ -196,11 +196,11 @@ public class ActorProxyFactory {
                 // async methods at actor class. FIXME: add annotation
                  originalMethod.getName().equals("$getSubMonitorables") ||
                  originalMethod.getName().equals("$getReport") ||
-                 originalMethod.getName().equals("$sync") ||
+                 originalMethod.getName().equals("$ping") ||
                  originalMethod.getName().equals("$run") ||
                  originalMethod.getName().equals("$stop") ||
                  originalMethod.getName().equals("$receive") ||
-                 originalMethod.getName().equals("$settle") ||
+                 originalMethod.getName().equals("$complete") ||
                  originalMethod.getName().equals("$close")
             )
             {
