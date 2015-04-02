@@ -27,11 +27,11 @@ public class CallbackTest {
     public static class CBTActor extends Actor<CBTActor> {
 
         public void $method(Callback cb) {
-//            LockSupport.parkNanos(1);
-            cb.complete("void", null);
+            assertTrue(Thread.currentThread() == __currentDispatcher);
+            cb.complete(Thread.currentThread(), null);
         }
 
-        public void $ping( CBTCallActor pong, Callback cb ) {
+        public void $userping(CBTCallActor pong, Callback cb) {
             assertTrue(Thread.currentThread() == __currentDispatcher);
             pong.$pong(self(),cb);
         }
@@ -82,7 +82,7 @@ public class CallbackTest {
         }
 
         public void $sendPing() {
-            cbt.$ping(self(), new Callback() {
+            cbt.$userping(self(), new Callback() {
                 @Override
                 public void complete(Object result, Object error) {
                     assertTrue(Thread.currentThread() == __currentDispatcher);
@@ -112,15 +112,15 @@ public class CallbackTest {
         for (int i = 0; i < 10000; i++) // higher vals create deadlock, detect it !
         {
             act.$sendPing();
-//            if ( (i % 1000) == 0 ) {
-//                System.out.println("POK --");
-//            }
-//            LockSupport.parkNanos(1000);
         }
         final CBTActor cbt = Actors.AsActor(CBTActor.class);
+        cbt.$pongong( (r,e) -> System.out.println(r) );
         cbt.$method(new Callback() {
             @Override
             public void complete(Object result, Object error) {
+                System.out.println("Completion Caller Thread:" + result);
+                System.out.println("Thread:" + Thread.currentThread());
+                System.out.println("DispThread:" + cbt.__currentDispatcher.getName());
                 assertTrue(Thread.currentThread() == cbt.__currentDispatcher);
             }
         });

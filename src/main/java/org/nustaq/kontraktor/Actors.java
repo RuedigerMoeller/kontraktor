@@ -5,7 +5,10 @@ import org.nustaq.kontraktor.util.Log;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
@@ -34,7 +37,12 @@ import java.util.stream.Stream;
  */
 public class Actors {
 
+    public static final int MAX_EXTERNAL_THREADS_POOL_SIZE = 1000; // max threads used when externalizing blocking api
+    public static ExecutorService exec = Executors.newFixedThreadPool(MAX_EXTERNAL_THREADS_POOL_SIZE);
     public static ActorsImpl instance = new ActorsImpl(); // public for testing
+    public static Timer delayedCalls = new Timer();
+
+    public static Supplier<Scheduler> defaultScheduler = () -> new SimpleScheduler();
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
@@ -79,7 +87,7 @@ public class Actors {
      * @return
      */
     public static <T extends Actor> T AsActor(Class<T> actorClazz) {
-        return (T) instance.newProxy(actorClazz, new ElasticScheduler(1), -1);
+        return (T) instance.newProxy(actorClazz, defaultScheduler.get(), -1);
     }
 
     /**
@@ -91,7 +99,7 @@ public class Actors {
      * @return
      */
     public static <T extends Actor> T AsActor(Class<T> actorClazz, int qSize) {
-        return (T) instance.newProxy(actorClazz, new ElasticScheduler(1), qSize);
+        return (T) instance.newProxy(actorClazz, defaultScheduler.get(), qSize);
     }
 
     /**

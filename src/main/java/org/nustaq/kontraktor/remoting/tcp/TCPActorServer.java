@@ -32,7 +32,9 @@ public class TCPActorServer extends ActorServer {
     }
 
     public static TCPActorServer Publish(Actor act, int port, Consumer<Actor> closeListener ) throws Exception {
-        TCPActorServer server = new TCPActorServer((ActorProxy) act, port);
+        if ( act.getActorRef().__connections.peek() != null )
+            throw new RuntimeException("Actor can only published once");
+        TCPActorServer server = new TCPActorServer(act, port);
         Promise success = new Promise();
         AtomicReference<Object> res = new AtomicReference<>(null);
         new Thread( ()-> {
@@ -64,7 +66,7 @@ public class TCPActorServer extends ActorServer {
     int port;
     ServerSocket welcomeSocket;
 
-    public TCPActorServer(ActorProxy proxy, int port) throws Exception {
+    public TCPActorServer(Actor proxy, int port) throws Exception {
         super(proxy);
         this.port = port;
     }

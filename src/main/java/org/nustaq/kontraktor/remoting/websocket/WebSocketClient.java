@@ -80,7 +80,7 @@ public class WebSocketClient<T extends Actor> extends ActorClient<T> {
             try {
                 sock.setNextMsg(message);
                 con.currentObjectSocket.set(sock);
-                while( con.singleReceive(sock) ) {
+                while( ! con.isTerminated() && con.singleReceive(sock) ) {
                     // do nothing
                 }
             } catch (Exception e) {
@@ -101,6 +101,12 @@ public class WebSocketClient<T extends Actor> extends ActorClient<T> {
             session.getAsyncRemote().sendBinary(ByteBuffer.wrap(message));
         }
 
+        public void close() throws IOException {
+            con.close();
+            if ( session != null )
+                session.close();
+        }
+
     }
 
     String addr;
@@ -117,6 +123,12 @@ public class WebSocketClient<T extends Actor> extends ActorClient<T> {
             @Override
             public void writeObject(Object toWrite) throws Exception {
                 ep[0].sendBinary(getConf().asByteArray(toWrite));
+            }
+
+            @Override
+            public void close() throws IOException {
+                setTerminated(true);
+                ep[0].close();
             }
         };
         try {

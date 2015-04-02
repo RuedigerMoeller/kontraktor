@@ -37,7 +37,7 @@ public class ClientSideActor extends Actor<ClientSideActor> {
             });
             Thread t = Thread.currentThread();
             delayed(1000, () -> {
-                test.$doubleMe("ToBeDoubled").then( (r,e) -> {
+                test.$futureTest("ToBeDoubled").then( (r,e) -> {
                     if ( t != Thread.currentThread() )
                         error.incrementAndGet();
                     if ( count > 0 ) {

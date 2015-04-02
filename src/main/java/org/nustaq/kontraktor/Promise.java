@@ -1,7 +1,6 @@
 package org.nustaq.kontraktor;
 
 import org.nustaq.kontraktor.impl.DispatcherThread;
-import org.nustaq.kontraktor.impl.ElasticScheduler;
 
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -430,7 +429,7 @@ public class Promise<T> implements Future<T> {
         if ( actor != null )
             actor.delayed(millis, ()-> timedOut(Timeout.INSTANCE));
         else {
-            ElasticScheduler.delayedCalls.schedule( new TimerTask() {
+            Actors.delayedCalls.schedule( new TimerTask() {
                 @Override
                 public void run() {
                     timedOut(Timeout.INSTANCE);

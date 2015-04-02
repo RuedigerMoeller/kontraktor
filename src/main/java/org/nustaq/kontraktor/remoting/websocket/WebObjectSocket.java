@@ -74,7 +74,6 @@ public abstract class WebObjectSocket implements ObjectSocket {
     }
 
     @Override
-    public void close() throws IOException {
-    }
+    abstract public void close() throws IOException;
 
 }

@@ -20,7 +20,7 @@ public class WSServer {
         try {
             Knode knode = new Knode();
             knode.mainStub(new String[0]);
-            WebSocketActorServer webSocketActorServer = new WebSocketActorServer(new Coding(SerializerType.FSTSer), (ActorProxy)Actors.AsActor(ServerTestFacade.class));
+            WebSocketActorServer webSocketActorServer = new WebSocketActorServer(new Coding(SerializerType.FSTSer), Actors.AsActor(ServerTestFacade.class));
             knode.getPathHandler().addExactPath("/ws",
                 Handlers.websocket(
                     KUndertowWebSocketHandler.Connect(webSocketActorServer)

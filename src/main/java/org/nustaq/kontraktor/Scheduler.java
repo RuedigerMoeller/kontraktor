@@ -19,6 +19,7 @@ public interface Scheduler extends Monitorable{
 
     int getDefaultQSize();
 
+    // yield during polling/spinlooping
     void pollDelay(int count);
 
     void put2QueuePolling(Queue q, boolean isCBQ, Object o, Object sender);

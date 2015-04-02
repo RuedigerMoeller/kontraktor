@@ -4,14 +4,11 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.util.Log;
 
-import java.io.Serializable;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -26,7 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ElasticScheduler implements Scheduler, Monitorable {
 
     public static final int MAX_STACK_ON_SYNC_CBDISPATCH = 100000;
-    public static final int MAX_EXTERNAL_THREADS_POOL_SIZE = 1000; // max threads used when externalizing blocking api
     public static int DEFQSIZE = 32768; // will be alligned to 2^x
 
     public static boolean DEBUG_SCHEDULING = false;
@@ -39,8 +35,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
     final DispatcherThread threads[];
 
     int defQSize = DEFQSIZE;
-    protected ExecutorService exec = Executors.newFixedThreadPool(MAX_EXTERNAL_THREADS_POOL_SIZE);
-    public static Timer delayedCalls = new Timer();
+
     private AtomicInteger isolateCount = new AtomicInteger(0);
 
     public ElasticScheduler(int maxThreads) {
@@ -287,7 +282,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
 
     @Override
     public void delayedCall(long millis, final Runnable toRun) {
-        delayedCalls.schedule(new TimerTask() {
+        Actors.delayedCalls.schedule(new TimerTask() {
             @Override
             public void run() {
                 toRun.run();
@@ -298,7 +293,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
     @Override
     public <T> void runBlockingCall(Actor emitter, final Callable<T> toCall, Callback<T> resultHandler) {
         final CallbackWrapper<T> resultWrapper = new CallbackWrapper<>(emitter,resultHandler);
-        exec.execute(() -> {
+        Actors.exec.execute(() -> {
             try {
                 resultWrapper.complete(toCall.call(), null);
             } catch (Throwable th) {
@@ -529,30 +524,6 @@ public class ElasticScheduler implements Scheduler, Monitorable {
                 res[count++] = current[i];
         }
         return new Promise<>(res);
-    }
-
-    public static class SchedulingReport implements Serializable {
-
-        int numDispatchers;
-        int defQSize;
-        int isolatedThreads;
-
-        public SchedulingReport() {
-        }
-
-        public SchedulingReport(int numDispatchers, int defQSize, int isolatedThreads) {
-            this.numDispatchers = numDispatchers;
-            this.defQSize = defQSize;
-            this.isolatedThreads = isolatedThreads;
-        }
-
-        public int getNumDispatchers() {
-            return numDispatchers;
-        }
-
-        public int getDefQSize() {
-            return defQSize;
-        }
     }
 
 }

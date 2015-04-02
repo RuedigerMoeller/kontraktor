@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.impl;
 
 import io.jaq.mpsc.MpscConcurrentQueue;
 import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Scheduler;
 
 import java.util.Queue;
@@ -73,7 +74,7 @@ public class ActorsImpl {
         }
         try {
             if ( sched == null )
-                sched = new ElasticScheduler(1,qsize);
+                sched = Actors.defaultScheduler.get();
             if ( qsize < 1 )
                 qsize = sched.getDefaultQSize();
             return makeProxy(clz, sched.assignDispatcher(70), qsize);

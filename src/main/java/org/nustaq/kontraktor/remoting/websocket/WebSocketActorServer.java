@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.remoting.websocket;
 
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
@@ -9,6 +10,8 @@ import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketTextMessage;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
+import java.io.IOException;
+
 /**
  * Created by ruedi on 30.03.2015.
  */
@@ -16,9 +19,12 @@ public class WebSocketActorServer extends ActorServer {
 
     protected Coding coding;
 
-    public WebSocketActorServer(Coding coding, ActorProxy facade) {
+    public WebSocketActorServer(Coding coding, Actor facade) {
         super(facade);
         this.coding = coding;
+        if ( facade.getActorRef().__connections.peek() != null )
+            throw new RuntimeException("Actor can only published once");
+
     }
 
     @Override
@@ -55,6 +61,7 @@ public class WebSocketActorServer extends ActorServer {
         MyWSObjectSocket socket = new MyWSObjectSocket(con.getConf(), channel);
         con.init(socket, facade);
         channel.setAttribute("con",con);
+        doAccept(con);
     }
 
     public void onBinaryMessage(WebSocketChannelAdapter channel, byte[] buffer) {
@@ -110,7 +117,13 @@ public class WebSocketActorServer extends ActorServer {
         }
 
         @Override
+        public void close() throws IOException {
+
+        }
+
+        @Override
         public FSTConfiguration getConf() {
+            // FIXME: unpublish or what ? TODO
             return conf;
         }
 

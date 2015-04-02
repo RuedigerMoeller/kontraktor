@@ -17,8 +17,20 @@ public class ServerTestFacade extends Actor<ServerTestFacade> {
         actorRef.$alsoHello("XX "+arg, 113);
     }
 
+    public Future<String> $futureTest(String s) {
+        return new Promise<>(s+" "+s);
+    }
+
     public void $testCallWithCB( long time, Callback<String> cb ) {
         cb.complete(new Date(time).toString(), null);
+    }
+
+    public void $sporeTest( Spore<Integer,Integer> spore ) {
+        spore.remote(1);
+        spore.remote(2);
+        spore.remote(3);
+        spore.remote(4);
+        spore.finish();
     }
 
     RateMeasure measure = new RateMeasure("calls",1000);
@@ -30,11 +42,6 @@ public class ServerTestFacade extends Actor<ServerTestFacade> {
         measure.count();
         return new Promise<>("ok");
     }
-
-    public Future<String> $doubleMe( String s ) {
-        return new Promise<>(s+" "+s);
-    }
-
 
     public static TCPActorServer run() throws Exception {
         return TCPActorServer.Publish(Actors.AsActor(ServerTestFacade.class), 7777);

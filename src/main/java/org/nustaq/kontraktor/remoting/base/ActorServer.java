@@ -23,8 +23,8 @@ public abstract class ActorServer {
     protected Actor facade;
     protected volatile boolean terminated = false;
 
-    public ActorServer(ActorProxy proxy) {
-        this.facade = (Actor) proxy;
+    public ActorServer(Actor proxy) {
+        this.facade = proxy;
     }
 
     public boolean isTerminated() {
