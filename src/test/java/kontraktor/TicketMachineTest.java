@@ -18,7 +18,7 @@ public class TicketMachineTest {
 
     public static class AsyncWork extends Actor<AsyncWork> {
 
-        public Future $work(final long nanos) {
+        public IPromise $work(final long nanos) {
             Promise promise = new Promise<>();
             exec(new Callable<Object>() {
                 @Override
@@ -45,9 +45,9 @@ public class TicketMachineTest {
         }
 
         public void $process( final String stock, final long sequence ) {
-            machine.getTicket(stock).then(new Callback<Future>() {
+            machine.getTicket(stock).then(new Callback<IPromise>() {
                 @Override
-                public void complete(final Future finSignal, Object error) {
+                public void complete(final IPromise finSignal, Object error) {
                     Long curSeq = seqTracker.get(stock);
                     if ( curSeq == null )
                         seqTracker.put(stock,curSeq);

@@ -256,7 +256,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                     }
                 }
                 if (callEntry.getFutureCB() != null) {
-                    final Future futureCB = callEntry.getFutureCB();   // the future of caller side
+                    final IPromise futureCB = callEntry.getFutureCB();   // the future of caller side
                     final Promise invokeResult = (Promise) invoke;  // the future returned sync from call
                     if ( invokeResult != null ) { // if return null instead a promise, method is handled like void
                         invokeResult.then(
@@ -444,12 +444,12 @@ public class DispatcherThread extends Thread implements Monitorable {
     }
 
     @Override
-    public Future $getReport() {
+    public IPromise $getReport() {
         return new Promise(new DispatcherReport(getName(), actors.length, getLoad(),getAccumulatedQSizes() ));
     }
 
     @Override
-    public Future<Monitorable[]> $getSubMonitorables() {
+    public IPromise<Monitorable[]> $getSubMonitorables() {
         return new Promise(getActors());
     }
 

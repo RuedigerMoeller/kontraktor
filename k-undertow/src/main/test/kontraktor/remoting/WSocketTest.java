@@ -1,5 +1,7 @@
 package kontraktor.remoting;
 
+import kontraktor.remoting.helpers.ClientSideActor;
+import kontraktor.remoting.helpers.ServerTestFacade;
 import org.junit.Test;
 import org.nustaq.kontraktor.remoting.websocket.WebSocketClient;
 
@@ -34,5 +36,15 @@ public class WSocketTest extends TCPTest {
     @Override @Test
     public void basics() throws Exception {
         super.basics();
+    }
+
+    @Override @Test
+    public void ordering() throws Exception {
+        super.ordering();
+    }
+
+    @Override @Test
+    public void multiUse() throws Exception {
+        super.multiUse();
     }
 }

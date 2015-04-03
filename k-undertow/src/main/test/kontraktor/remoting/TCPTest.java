@@ -1,10 +1,10 @@
 package kontraktor.remoting;
 
-import junit.framework.Assert;
+import kontraktor.remoting.helpers.ClientSideActor;
+import kontraktor.remoting.helpers.ServerTestFacade;
+import org.junit.Assert;
 import org.junit.Test;
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.Spore;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 
@@ -49,6 +49,40 @@ public class TCPTest {
         Thread.sleep(1000);
 
         Assert.assertTrue(remoterefs == server.getConnections().size());
+    }
+
+    @Test
+    public void ordering() throws Exception {
+        setup();
+        ServerTestFacade run = createClientFac();
+        IPromise<IPromise<String>[]> all = Actors.all(
+            run.$futureTest("A"),
+            run.$futureTest("B"),
+            run.$futureTest("C")
+        );
+        run.$ping().await();
+        run.$close();
+        IPromise<String>[] res = all.await();
+        Assert.assertTrue(res.length == 3);
+    }
+
+    @Test
+    public void multiUse() throws Exception {
+        setup();
+        ServerTestFacade local = (ServerTestFacade) server.getFacade();
+        ServerTestFacade remote = createClientFac();
+        IPromise<IPromise<String>[]> all = Actors.all(
+            remote.$futureTest("A"),
+            local.$futureTest("A"),
+            remote.$futureTest("B"),
+            local.$futureTest("B"),
+            remote.$futureTest("C"),
+            local.$futureTest("C")
+        );
+        remote.$ping().await();
+        remote.$close();
+        IPromise<String>[] res = all.await();
+        Assert.assertTrue(res.length == 6);
     }
 
     @Test

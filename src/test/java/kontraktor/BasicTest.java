@@ -1,7 +1,7 @@
 package kontraktor;
 
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.Promise;
 import org.junit.Test;
@@ -111,7 +111,7 @@ public class BasicTest {
             callback.callbackReceived("Hallo");
         }
 
-        public Future<String> concat(String other) {
+        public IPromise<String> concat(String other) {
             return new Promise<>("Hallo"+other);
         }
 
@@ -208,16 +208,16 @@ public class BasicTest {
 
         private String name;
 
-        public Future init(String na) {
+        public IPromise init(String na) {
             name = na;
             return new Promise(na);
         }
 
-        public Future<String> getName() {
+        public IPromise<String> getName() {
             return new Promise<>(name);
         }
 
-        public Future $sleep(long millis) {
+        public IPromise $sleep(long millis) {
             try {
                 Thread.sleep(millis);
             } catch (InterruptedException e) {
@@ -226,7 +226,7 @@ public class BasicTest {
             return new Promise<>("void");
         }
 
-        public Future<Long> sleep() {
+        public IPromise<Long> sleep() {
             long millis = (long) (Math.random() * 1000);
             try {
                 Thread.sleep(millis);
@@ -236,7 +236,7 @@ public class BasicTest {
             return new Promise<>(millis);
         }
 
-        public Future<String> say( String s ) {
+        public IPromise<String> say( String s ) {
             System.out.println(name+" says '"+s+"'");
             return new Promise<>("result "+s);
         }
@@ -245,11 +245,11 @@ public class BasicTest {
 
     public static class SleepCallerActor extends Actor<SleepCallerActor> {
         SleepActor act[];
-        Future<Long> results[];
+        IPromise<Long> results[];
 
         public void test() {
             act = new SleepActor[10];
-            results = new Future[act.length];
+            results = new IPromise[act.length];
             for (int i = 0; i < act.length; i++) {
                 act[i] = Actors.AsActor(SleepActor.class);
                 act[i].init("("+i+")");
@@ -262,7 +262,7 @@ public class BasicTest {
             all(results).then( (result, error) -> {
                 System.out.println("now "+System.currentTimeMillis());
                 for (int i = 0; i < result.length; i++) {
-                    Future future = result[i];
+                    IPromise future = result[i];
                     System.out.println("sleep "+i+" "+future.get());
                 }
             });
@@ -296,7 +296,7 @@ public class BasicTest {
 
     public static class TestBlockingAPI extends Actor<TestBlockingAPI> {
 
-        public Future<String> get( final String url ) {
+        public IPromise<String> get( final String url ) {
             final Promise<String> content = new Promise();
             final Thread myThread = Thread.currentThread();
             exec(new Callable<String>() {
@@ -322,7 +322,7 @@ public class BasicTest {
 
     public static class FutureTest extends Actor<FutureTest> {
 
-        public Future<String> getString( String s ) {
+        public IPromise<String> getString( String s ) {
             return new Promise<>(s+"_String");
         }
 
@@ -336,7 +336,7 @@ public class BasicTest {
             ft = Actors.AsActor(FutureTest.class);
         }
 
-        public Future<String> doTestCall() {
+        public IPromise<String> doTestCall() {
             final Promise<String> stringResult = new Promise<String>().setId("doTestCall");
             ft.getString("13")
                 .then(new Callback<String>() {
@@ -348,7 +348,7 @@ public class BasicTest {
             return stringResult;
         }
 
-        public void doTestCall1(final Future<String> stringResult) {
+        public void doTestCall1(final IPromise<String> stringResult) {
             ft.getString("13")
                     .then(new Callback<String>() {
                         @Override
@@ -385,7 +385,7 @@ public class BasicTest {
             });
 
         final AtomicReference<String> outerresult1 = new AtomicReference<>();
-        Future<String> f = new Promise<>();
+        IPromise<String> f = new Promise<>();
         test.doTestCall1(f);
         f.then(new Callback<String>() {
             @Override
@@ -517,7 +517,7 @@ public class BasicTest {
     static AtomicInteger tocount = new AtomicInteger(0);
     public static class TimeOuter extends Actor<TimeOuter> {
 
-        public Future $timeOutingMethod() {
+        public IPromise $timeOutingMethod() {
             final Promise promise = new Promise();
             delayed(4000, () -> promise.complete() );
             return promise;
@@ -557,7 +557,7 @@ public class BasicTest {
 
     public static class OnFutTest extends Actor<OnFutTest> {
 
-        public Future<String> $returnErrorOrResult(int i) {
+        public IPromise<String> $returnErrorOrResult(int i) {
             if ( Math.random() > .5 ) {
                 return new Promise<>("Result "+i);
             }

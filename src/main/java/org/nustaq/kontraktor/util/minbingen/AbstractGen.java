@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.util.minbingen;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.serialization.FSTConfiguration;
@@ -119,7 +119,7 @@ public abstract class AbstractGen {
 		    if (Modifier.isPublic(method.getModifiers()) &&
 			    method.getAnnotation(CallerSideMethod.class) == null &&
 			    method.getAnnotation(Local.class) == null &&
-			    ( method.getReturnType() == void.class || Future.class.isAssignableFrom(method.getReturnType()) ) &&
+			    ( method.getReturnType() == void.class || IPromise.class.isAssignableFrom(method.getReturnType()) ) &&
 				method.getDeclaringClass() != Object.class &&
                 !Modifier.isStatic(method.getModifiers())
 			) {
@@ -133,7 +133,7 @@ public abstract class AbstractGen {
 					    addClz(clazzSet, parameterType, infoMap);
 				    }
 			    }
-			    if ( Future.class.isAssignableFrom( method.getReturnType() ) ) {
+			    if ( IPromise.class.isAssignableFrom( method.getReturnType() ) ) {
 				    Type genericReturnType = method.getGenericReturnType();
 				    if (genericReturnType instanceof ParameterizedType) {
 						ParameterizedType pm = (ParameterizedType) genericReturnType;

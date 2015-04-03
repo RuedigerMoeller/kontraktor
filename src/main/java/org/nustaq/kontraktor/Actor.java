@@ -46,9 +46,9 @@ import java.util.function.Consumer;
  * public class MyActor extends Actor<MyActor> {
  *
  *     // public async API
- *     public Future $init() {..}
+ *     public IPromise $init() {..}
  *     public void $asyncMessage(String arg) { .. }
- *     public Future $asyncMessage(String arg) { .. }
+ *     public IPromise $asyncMessage(String arg) { .. }
  *     public void $asyncMessage(int arg, Callback aCallback) { .. }
  *
  *     // synchronous methods
@@ -194,7 +194,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * @param message
      * @return
      */
-    public Future $receive( Object message ) {
+    public IPromise $receive( Object message ) {
         return null;
     }
 
@@ -208,7 +208,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * @param <T>
      * @return
      */
-    protected <T> Future<T> exec( @InThread Callable<T> callable) {
+    protected <T> IPromise<T> exec( @InThread Callable<T> callable) {
         Promise<T> prom = new Promise<>();
         __scheduler.runBlockingCall(self(),callable,prom);
         return prom;
@@ -356,7 +356,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * can be used to wait for all messages having been processed and get a signal from the returned future once this is complete
      * @return
      */
-    public Future $ping() {
+    public IPromise $ping() {
         return new Promise<>("pong");
     }
 
@@ -369,7 +369,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * @param transactionKey
      * @param toRun
      */
-    protected void serialOn( Object transactionKey, Consumer<Future> toRun ) {
+    protected void serialOn( Object transactionKey, Consumer<IPromise> toRun ) {
         if ( isProxy() )
             throw new RuntimeException("cannot call on actor proxy object");
         if ( __ticketMachine == null ) {
@@ -491,12 +491,12 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     //
 
     @Override
-    public Future $getReport() {
+    public IPromise $getReport() {
         return new Promise( new ActorReport(getActor().getClass().getSimpleName(), getMailboxSize(), getCallbackSize() ) );
     }
 
     @Override
-    public Future<Monitorable[]> $getSubMonitorables() {
+    public IPromise<Monitorable[]> $getSubMonitorables() {
         return new Promise<>(new Monitorable[0]);
     }
 

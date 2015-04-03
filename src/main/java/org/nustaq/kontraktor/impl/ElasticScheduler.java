@@ -71,8 +71,8 @@ public class ElasticScheduler implements Scheduler, Monitorable {
     }
 
 //    @Override
-    public Future put2QueuePolling(CallEntry e) {
-        final Future fut;
+    public IPromise put2QueuePolling(CallEntry e) {
+        final IPromise fut;
         if (e.hasFutureResult() && ! (e.getFutureCB() instanceof CallbackWrapper) ) {
             fut = new Promise();
             e.setFutureCB(new CallbackWrapper( e.getSendingActor() ,new Callback() {
@@ -499,7 +499,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
     // monitorable
 
     @Override
-    public Future $getReport() {
+    public IPromise $getReport() {
         int count = 0;
         for (int i = 0; i < threads.length; i++) {
             if ( threads[i] != null ) {
@@ -510,7 +510,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
     }
 
     @Override
-    public Future<Monitorable[]> $getSubMonitorables() {
+    public IPromise<Monitorable[]> $getSubMonitorables() {
         DispatcherThread[] current = threads;
         int count = 0;
         for (int i = 0; i < current.length; i++) {

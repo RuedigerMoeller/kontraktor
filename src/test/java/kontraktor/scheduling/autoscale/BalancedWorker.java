@@ -1,11 +1,10 @@
 package kontraktor.scheduling.autoscale;
 
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 /**
  * Created by ruedi on 18.10.14.
@@ -20,11 +19,11 @@ public class BalancedWorker extends Actor<BalancedWorker> {
         connected = siblings;
     }
 
-    public Future<Integer> $getItemCount() {
+    public IPromise<Integer> $getItemCount() {
         return new Promise(items.size());
     }
 
-    public Future $addItems(String it[]) {
+    public IPromise $addItems(String it[]) {
         for (int i = 0; i < it.length; i++) {
             items.add(it[i]);
         }

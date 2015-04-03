@@ -34,7 +34,7 @@ import java.util.function.Supplier;
 /**
  * ..
  */
-public class CallbackWrapper<T> implements Future<T>, Serializable {
+public class CallbackWrapper<T> implements IPromise<T>, Serializable {
 
     static Method receiveRes;
 
@@ -73,130 +73,130 @@ public class CallbackWrapper<T> implements Future<T>, Serializable {
     }
 
     @Override
-    public Future<T> then(Runnable result) {
-        if (realCallback instanceof Future == false)
+    public IPromise<T> then(Runnable result) {
+        if (realCallback instanceof IPromise == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).then(result);
+            return ((IPromise)realCallback).then(result);
     }
 
     @Override
-    public Future<T> thenAnd(Supplier<Future<T>> result) {
-        if (realCallback instanceof Future == false)
+    public IPromise<T> thenAnd(Supplier<IPromise<T>> result) {
+        if (realCallback instanceof IPromise == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).thenAnd(result);
+            return ((IPromise)realCallback).thenAnd(result);
     }
 
     @Override
-    public Future then(Callback<T> result) {
-        if (realCallback instanceof Future == false)
+    public IPromise then(Callback<T> result) {
+        if (realCallback instanceof IPromise == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).then(result);
+            return ((IPromise)realCallback).then(result);
     }
 
     @Override
-    public Future<T> onResult(Consumer<T> resultHandler) {
-        if (realCallback instanceof Future == false)
+    public IPromise<T> onResult(Consumer<T> resultHandler) {
+        if (realCallback instanceof IPromise == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).onResult(resultHandler);
+            return ((IPromise)realCallback).onResult(resultHandler);
     }
 
     @Override
-    public Future<T> onError(Consumer errorHandler) {
-        if (realCallback instanceof Future == false)
+    public IPromise<T> onError(Consumer errorHandler) {
+        if (realCallback instanceof IPromise == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).onError(errorHandler);
+            return ((IPromise)realCallback).onError(errorHandler);
     }
 
     @Override
-    public Future<T> onTimeout(Consumer timeoutHandler) {
-        if (realCallback instanceof Future == false)
+    public IPromise<T> onTimeout(Consumer timeoutHandler) {
+        if (realCallback instanceof IPromise == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).onTimeout(timeoutHandler);
+            return ((IPromise)realCallback).onTimeout(timeoutHandler);
     }
 
     @Override
-    public <OUT> Future<OUT> thenAnd(Function<T, Future<OUT>> function) {
-        if (realCallback instanceof Future == false)
+    public <OUT> IPromise<OUT> thenAnd(Function<T, IPromise<OUT>> function) {
+        if (realCallback instanceof IPromise == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).thenAnd(function);
+            return ((IPromise)realCallback).thenAnd(function);
     }
 
     @Override
-    public <OUT> Future<OUT> then(Consumer<T> function) {
-        if (realCallback instanceof Future == false)
+    public <OUT> IPromise<OUT> then(Consumer<T> function) {
+        if (realCallback instanceof IPromise == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).then(function);
+            return ((IPromise)realCallback).then(function);
     }
 
     @Override
-    public <OUT> Future<OUT> catchError(Function<Object, Future<OUT>> function) {
-        if (realCallback instanceof Future == false)
+    public <OUT> IPromise<OUT> catchError(Function<Object, IPromise<OUT>> function) {
+        if (realCallback instanceof IPromise == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).catchError(function);
+            return ((IPromise)realCallback).catchError(function);
     }
 
     @Override
-    public <OUT> Future<OUT> catchError(Consumer<Object> function) {
-        if (realCallback instanceof Future == false)
+    public <OUT> IPromise<OUT> catchError(Consumer<Object> function) {
+        if (realCallback instanceof IPromise == false)
             throw new RuntimeException("this is an error.");
         else
-            return ((Future)realCallback).catchError(function);
+            return ((IPromise)realCallback).catchError(function);
     }
 
     @Override
     public T get() {
-        if (realCallback instanceof Future == false)
+        if (realCallback instanceof IPromise == false)
             return null;
         else
-            return (T) ((Future)realCallback).get();
+            return (T) ((IPromise)realCallback).get();
     }
 
     @Override
     public T await() {
-        if (realCallback instanceof Future == false)
+        if (realCallback instanceof IPromise == false)
             return null;
         else
-            return ((Future<T>)realCallback).await();
+            return ((IPromise<T>)realCallback).await();
     }
 
     @Override
-    public Future<T> awaitFuture() {
-        if (realCallback instanceof Future == false)
+    public IPromise<T> awaitPromise() {
+        if (realCallback instanceof IPromise == false)
             return null;
         else
-            return ((Future<T>)realCallback).awaitFuture();
+            return ((IPromise<T>)realCallback).awaitPromise();
     }
 
     @Override
     public Object getError() {
-        if (realCallback instanceof Future == false)
+        if (realCallback instanceof IPromise == false)
             return null;
         else
-            return (T) ((Future)realCallback).getError();
+            return (T) ((IPromise)realCallback).getError();
     }
 
     @Override
-    public Future timeoutIn(long millis) {
-        if (realCallback instanceof Future == false)
+    public IPromise timeoutIn(long millis) {
+        if (realCallback instanceof IPromise == false)
             throw new RuntimeException( "currently supported for futures only" );
-        ((Future)realCallback).timeoutIn(millis);
+        ((IPromise)realCallback).timeoutIn(millis);
         return this;
     }
 
     @Override
     public boolean isSettled() {
-        if (realCallback instanceof Future == false)
+        if (realCallback instanceof IPromise == false)
             throw new RuntimeException( "currently supported for futures only" );
         else
-            return ((Future)realCallback).isSettled();
+            return ((IPromise)realCallback).isSettled();
     }
 }

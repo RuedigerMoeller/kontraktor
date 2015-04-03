@@ -1,6 +1,6 @@
 package org.nustaq.kontraktor.util;
 
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -13,17 +13,17 @@ import java.util.concurrent.atomic.AtomicInteger;
  * used as a result could be implemented if needed.
  * Usually used for pure signaling (so result is "void")
  */
-public class FutureLatch<T> {
+public class PromiseLatch<T> {
 
-    Future<T> wrapped;
+    IPromise<T> wrapped;
     AtomicInteger count;
 
-    public FutureLatch(Future<T> wrapped) {
+    public PromiseLatch(IPromise<T> wrapped) {
         this.wrapped = wrapped;
         count = new AtomicInteger(1);
     }
 
-    public FutureLatch(Future<T> wrapped, int counter) {
+    public PromiseLatch(IPromise<T> wrapped, int counter) {
         this.wrapped = wrapped;
         count = new AtomicInteger(counter);
     }

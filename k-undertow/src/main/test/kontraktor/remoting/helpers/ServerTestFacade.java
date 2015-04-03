@@ -1,4 +1,4 @@
-package kontraktor.remoting;
+package kontraktor.remoting.helpers;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
@@ -12,12 +12,13 @@ import java.util.Date;
  */
 public class ServerTestFacade extends Actor<ServerTestFacade> {
 
+
     public void $testCall( String arg, ClientSideActor actorRef ) {
         System.out.println("received testcall");
         actorRef.$alsoHello("XX "+arg, 113);
     }
 
-    public Future<String> $futureTest(String s) {
+    public IPromise<String> $futureTest(String s) {
         return new Promise<>(s+" "+s);
     }
 
@@ -38,7 +39,7 @@ public class ServerTestFacade extends Actor<ServerTestFacade> {
         measure.count();
     }
 
-    public Future $benchMark1(int someVal, String someString) {
+    public IPromise $benchMark1(int someVal, String someString) {
         measure.count();
         return new Promise<>("ok");
     }

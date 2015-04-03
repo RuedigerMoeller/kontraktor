@@ -5,12 +5,13 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Future interface. The only implementation is "Promise" currenlty. I try to stick
+ * IPromise interface. Promise is another term for Future, however avid naming clashes with JDK.
+ * The only implementation is "Promise" currenlty. I try to stick
  * to ES6/7 terminology where possible.
- * Future is the interface implemented by the "Promise" class. So if you come from a JS background
+ * IPromise is the interface implemented by the "Promise" class. So if you come from a JS background
  * think of Future == Promise.
  */
-public interface Future<T> extends Callback<T> {
+public interface IPromise<T> extends Callback<T> {
 
     /**
      * called once any result of a future becomes available
@@ -21,7 +22,7 @@ public interface Future<T> extends Callback<T> {
      *
      * @return a future ressolved after this
      */
-    public Future<T> then( Runnable result );
+    public IPromise<T> then( Runnable result );
 
     /**
      * called once any result of a future becomes available
@@ -32,7 +33,7 @@ public interface Future<T> extends Callback<T> {
      *
      * @return a future ressolved with the Callable result after this
      */
-    public Future<T> then( Callback<T> result );
+    public IPromise<T> then( Callback<T> result );
 
     /**
      * called once any result of a future becomes available
@@ -43,7 +44,7 @@ public interface Future<T> extends Callback<T> {
      *
      * @return a future ressolved with the Supüplier result after this
      */
-    public Future<T> thenAnd(Supplier<Future<T>> result);
+    public IPromise<T> thenAnd(Supplier<IPromise<T>> result);
 
     /**
      * called once any result of a future becomes available
@@ -54,7 +55,7 @@ public interface Future<T> extends Callback<T> {
      *
      * @return a future ressolved with the Function result after this
      */
-    public <OUT> Future<OUT> thenAnd(final Function<T, Future<OUT>> function);
+    public <OUT> IPromise<OUT> thenAnd(final Function<T, IPromise<OUT>> function);
 
     /**
      * called once any result of a future becomes available
@@ -65,28 +66,28 @@ public interface Future<T> extends Callback<T> {
      *
      * @return a future ressolved empty after this
      */
-    public <OUT> Future<OUT> then(final Consumer<T> function);
+    public <OUT> IPromise<OUT> then(final Consumer<T> function);
 
     /**
      * called if an error has been signaled by one of the futures in the previous future chain.
      *
      * e.e. actor.$async().then( ).then( ).then( ).catchError( error -> .. );
      */
-    public <OUT> Future<OUT> catchError(final Function<Object, Future<OUT>> function);
+    public <OUT> IPromise<OUT> catchError(final Function<Object, IPromise<OUT>> function);
 
     /**
      * called if an error has been signaled by one of the futures in the previous future chain.
      *
      * e.e. actor.$async().then( ).then( ).then( ).catchError( () -> .. );
      */
-    public <OUT> Future<OUT> catchError(final Consumer<Object> function);
+    public <OUT> IPromise<OUT> catchError(final Consumer<Object> function);
 
     /**
      * called when a valid result of a future becomes available.
      * forwards to (new) "then" variant.
      * @return
      */
-    default public Future<T> onResult( Consumer<T> resultHandler ) {
+    default public IPromise<T> onResult( Consumer<T> resultHandler ) {
         return then(resultHandler);
     }
 
@@ -95,7 +96,7 @@ public interface Future<T> extends Callback<T> {
      * forwards to (new) "catchError" variant.
      * @return
      */
-    default public Future<T> onError( Consumer<Object> errorHandler ) {
+    default public IPromise<T> onError( Consumer<Object> errorHandler ) {
         return catchError(errorHandler);
     }
 
@@ -104,7 +105,7 @@ public interface Future<T> extends Callback<T> {
      * @param timeoutHandler
      * @return
      */
-    public Future<T> onTimeout(Consumer timeoutHandler);
+    public IPromise<T> onTimeout(Consumer timeoutHandler);
 
     /**
      * Warning: this is different to JDK's BLOCKING future
@@ -130,9 +131,9 @@ public interface Future<T> extends Callback<T> {
      * In case this is called from a non-actor thread, the current thread is blocked
      * until the result is avaiable.
      *
-     * @return the settled future. No Exception is thrown, but the exception can be obtained by Future.getError()
+     * @return the settled promise. No Exception is thrown, but the exception can be obtained by IPromise.getError()
      */
-    public Future<T> awaitFuture();
+    public IPromise<T> awaitPromise();
 
     /**
      * @return error if avaiable
@@ -145,7 +146,7 @@ public interface Future<T> extends Callback<T> {
      * @param millis
      * @return this for chaining
      */
-    public Future timeoutIn(long millis);
+    public IPromise timeoutIn(long millis);
 
     /**
      * @return wether an error or a result has been set to this future

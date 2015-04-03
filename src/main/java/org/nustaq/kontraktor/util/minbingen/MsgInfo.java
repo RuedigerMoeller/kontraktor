@@ -47,6 +47,6 @@ public class MsgInfo {
         return parameters;
     }
 	public boolean hasFutureResult() {
-		return returnType.equals("Future");
+		return returnType.equals("IPromise");
 	}
 }

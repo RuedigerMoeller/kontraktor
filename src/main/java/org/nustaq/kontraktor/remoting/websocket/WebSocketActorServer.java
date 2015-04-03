@@ -22,9 +22,6 @@ public class WebSocketActorServer extends ActorServer {
     public WebSocketActorServer(Coding coding, Actor facade) {
         super(facade);
         this.coding = coding;
-        if ( facade.getActorRef().__connections.peek() != null )
-            throw new RuntimeException("Actor can only published once");
-
     }
 
     @Override

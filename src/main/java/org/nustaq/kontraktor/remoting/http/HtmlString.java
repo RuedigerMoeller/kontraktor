@@ -8,7 +8,7 @@ package org.nustaq.kontraktor.remoting.http;
  *
  * example async method:
  *
- * public Future<HtmlString> $linkResponse( String id ) {
+ * public IPromise<HtmlString> $linkResponse( String id ) {
  *     return new Promise(new HtmlString("<html>not found</html>"));
  * }
  *

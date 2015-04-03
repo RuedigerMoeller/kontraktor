@@ -2,7 +2,7 @@ package kontraktor;
 
 import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -20,8 +20,8 @@ public class FutureCatch {
     public static class Generator {
 
         public volatile boolean fin = false;
-        public Future in = new Promise<>();
-        public Future out = new Promise<>();
+        public IPromise in = new Promise<>();
+        public IPromise out = new Promise<>();
 
         public Object next( Object o ) {
             System.out.println("next "+fin);
@@ -38,7 +38,7 @@ public class FutureCatch {
         public void run() {
             System.out.println("run");
             for ( int i = 0; i < 10; i++ ) {
-                Future inPrev = in;
+                IPromise inPrev = in;
                 in = new Promise<>();
                 final int finalI = i;
                 inPrev.then(r -> {
@@ -61,31 +61,31 @@ public class FutureCatch {
             }
         }
 
-        public Future<String> $error(int num) {
+        public IPromise<String> $error(int num) {
             Promise res = new Promise();
             delayed(500, () -> res.complete(null, "Error " + num));
             return res;
         }
 
-        public Future<String> $badex(int num) {
+        public IPromise<String> $badex(int num) {
             Promise res = new Promise();
             delayed( 500, () -> res.complete(null, new Error("oh noes " + num)) );
             return res;
         }
 
-        public Future<String> $result(int num) {
+        public IPromise<String> $result(int num) {
             Promise res = new Promise();
             delayed( 500, () -> res.complete("Result " + num, null) );
             return res;
         }
 
-        public Future<String> $rand(int num) {
+        public IPromise<String> $rand(int num) {
             Promise res = new Promise();
             delayed( 500+(long)(Math.random()*500), () -> res.complete("Result " + num, null) );
             return res;
         }
 
-        public Future<Integer> $testESYield() {
+        public IPromise<Integer> $testESYield() {
             int correctCount = 0;
             AtomicInteger count = new AtomicInteger(0);
             try {

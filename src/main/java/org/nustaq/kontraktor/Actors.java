@@ -125,24 +125,24 @@ public class Actors {
     }
 
     /**
-     * similar to es6 Promise.all method, however non-Future objects are not allowed
+     * similar to es6 Promise.all method, however non-IPromise objects are not allowed
      *
-     * returns a future which is settled once all futures provided are settled
+     * returns a future which is settled once all promises provided are settled
      *
      */
-    public static <T> Future<Future<T>[]> all(Future<T> ... futures) {
+    public static <T> IPromise<IPromise<T>[]> all(IPromise<T>... futures) {
         Promise res = new Promise();
         awaitSettle(futures, 0, res);
         return res;
     }
 
     /**
-     * similar to es6 Promise.all method, however non-Future objects are not allowed
+     * similar to es6 Promise.all method, however non-IPromise objects are not allowed
      *
-     * returns a future which is settled once all futures provided are settled
+     * returns a future which is settled once all promises provided are settled
      *
      */
-    public static <T> Future<List<Future<T>>> all(List<Future<T>> futures) {
+    public static <T> IPromise<List<IPromise<T>>> all(List<IPromise<T>> futures) {
         Promise res = new Promise();
         awaitSettle(futures, 0, res);
         return res;
@@ -152,21 +152,21 @@ public class Actors {
      * await until all futures are settled and stream them
      *
      */
-    protected <T> Stream<T> stream(Future<T>... futures) {
+    protected <T> Stream<T> stream(IPromise<T>... futures) {
         return streamHelper(all(futures).await());
     }
 
-    protected <T> Stream<T> stream(List<Future<T>> futures) {
+    protected <T> Stream<T> stream(List<IPromise<T>> futures) {
         return streamHelper(all(futures).await());
     }
 
     /**
-     * similar to es6 Promise.race method, however non-Future objects are not allowed
+     * similar to es6 Promise.race method, however non-IPromise objects are not allowed
      *
      * returns a future which is settled once one of the futures provided gets settled
      *
      */
-    public static <T> Future<T> race( Future<T> ... futures ) {
+    public static <T> IPromise<T> race( IPromise<T>... futures ) {
         Promise p = new Promise();
         AtomicBoolean fin = new AtomicBoolean(false);
         for (int i = 0; i < futures.length; i++) {
@@ -180,15 +180,15 @@ public class Actors {
     }
 
     /**
-     * similar to es6 Promise.race method, however non-Future objects are not allowed
+     * similar to es6 Promise.race method, however non-IPromise objects are not allowed
      *
      * returns a future which is settled once one of the futures provided gets settled
      *
      */
-    public static <T> Future<T> race( Collection<Future<T>> futures ) {
+    public static <T> IPromise<T> race( Collection<IPromise<T>> futures ) {
         Promise p = new Promise();
         AtomicBoolean fin = new AtomicBoolean(false);
-        for (Iterator<Future<T>> iterator = futures.iterator(); iterator.hasNext(); ) {
+        for (Iterator<IPromise<T>> iterator = futures.iterator(); iterator.hasNext(); ) {
             iterator.next().then( (r,e) -> {
                 if ( fin.compareAndSet(false,true) ) {
                     p.complete(r, e);
@@ -206,7 +206,7 @@ public class Actors {
     //
     // helper
 
-    private static <T> void awaitSettle(final Future<T> futures[], final int index, final Future result) {
+    private static <T> void awaitSettle(final IPromise<T> futures[], final int index, final IPromise result) {
         if ( index < futures.length ) {
             futures[index].then( (r,e) -> awaitSettle(futures, index + 1, result) );
         } else {
@@ -214,7 +214,7 @@ public class Actors {
         }
     }
 
-    private static <T> void awaitSettle(final List<Future<T>> futures, final int index, final Future result) {
+    private static <T> void awaitSettle(final List<IPromise<T>> futures, final int index, final IPromise result) {
         if ( index < futures.size() ) {
             futures.get(index).then((r, e) -> awaitSettle(futures, index + 1, result));
         } else {
@@ -227,16 +227,16 @@ public class Actors {
      * Note this can be used only on "settled" or "completed" futures. If one of the futures has been rejected,
      * a null value is streamed.
      *
-     * @param settledFutures
+     * @param completedPromises
      * @param <T>
      * @return
      */
-    private static <T> Stream<T> streamHelper(Future<T>... settledFutures) {
-        return Arrays.stream(settledFutures).map(future -> future.get());
+    private static <T> Stream<T> streamHelper(IPromise<T>... completedPromises) {
+        return Arrays.stream(completedPromises).map(future -> future.get());
     }
 
-    private static <T> Stream<T> streamHelper(List<Future<T>> settledFutures) {
-        return settledFutures.stream().map(future -> future.get());
+    private static <T> Stream<T> streamHelper(List<IPromise<T>> completedPromises) {
+        return completedPromises.stream().map(future -> future.get());
     }
 
     @SuppressWarnings("unchecked")

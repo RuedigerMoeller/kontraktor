@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.examples;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
@@ -26,7 +26,7 @@ public class Dining {
                 forks[i] = new ArrayList<>();
         }
 
-        public Future $getFork(int num) {
+        public IPromise $getFork(int num) {
             num %= 5;
             Promise res = forks[num].size() == 0 ? new Promise("void") : new Promise();
             forks[num].add(res);
@@ -78,7 +78,7 @@ public class Dining {
             });
         }
 
-        public Future<String> $getState() {
+        public IPromise<String> $getState() {
             return new Promise( name+" "+state+" eaten:"+eatCount );
         }
 

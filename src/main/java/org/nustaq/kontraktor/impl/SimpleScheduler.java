@@ -64,8 +64,8 @@ public class SimpleScheduler implements Scheduler {
         }
     }
 
-    public Future put2QueuePolling(CallEntry e) {
-        final Future fut;
+    public IPromise put2QueuePolling(CallEntry e) {
+        final IPromise fut;
         if (e.hasFutureResult() && ! (e.getFutureCB() instanceof CallbackWrapper) ) {
             fut = new Promise();
             e.setFutureCB(new CallbackWrapper( e.getSendingActor() ,new Callback() {
@@ -197,12 +197,12 @@ public class SimpleScheduler implements Scheduler {
     }
 
     @Override
-    public Future $getReport() {
+    public IPromise $getReport() {
         return new Promise<>(new SchedulingReport(1,getDefaultQSize(),0));
     }
 
     @Override
-    public Future<Monitorable[]> $getSubMonitorables() {
+    public IPromise<Monitorable[]> $getSubMonitorables() {
         return new Promise<>(new Monitorable[] { myThread } );
     }
 }

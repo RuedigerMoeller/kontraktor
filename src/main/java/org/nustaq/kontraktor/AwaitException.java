@@ -1,8 +1,8 @@
 package org.nustaq.kontraktor;
 
 /**
- * if await is used on a Future to wait for its result (non-blocking!) any error object
- * returned by the Future (Promise) will trigger a this Exception. In case the error
+ * if await is used on a Promise to wait for its result (non-blocking!) any error object
+ * returned by the Promise will trigger a this Exception. In case the error
  * object is instance of Throwable, this will be thrown directly.
  */
 public class AwaitException extends RuntimeException {

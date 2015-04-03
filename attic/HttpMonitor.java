@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.monitoring.Monitorable;
@@ -27,7 +27,7 @@ public class HttpMonitor extends Actor<HttpMonitor> {
         return instance;
     }
 
-    public Future<String[]> getMonitorableKeys(String simpleClzName) {
+    public IPromise<String[]> getMonitorableKeys(String simpleClzName) {
         ArrayList<String> result = new ArrayList();
         monitored.entrySet().forEach( (entry) -> {
             Monitorable mon = entry.getValue();
@@ -61,7 +61,7 @@ public class HttpMonitor extends Actor<HttpMonitor> {
         }
     }
 
-    protected Future<Object[]> getMonitorables(int depth, Monitorable monitorable) {
+    protected IPromise<Object[]> getMonitorables(int depth, Monitorable monitorable) {
 //        System.out.println("dumpmon " + monitorable);
         Promise p = new Promise();
         monitorable.$getReport().then( ( report, err ) -> {
@@ -71,15 +71,15 @@ public class HttpMonitor extends Actor<HttpMonitor> {
                 if ( monitorables.length > 0 && depth >= 1 ) {
                     Object[] subResult = new Object[monitorables.length];
                     result[1] = subResult;
-                    Future futs[] = new Future[monitorables.length];
+                    IPromise futs[] = new IPromise[monitorables.length];
                     for (int i = 0; i < monitorables.length; i++) {
                         Monitorable submon = monitorables[i];
                         futs[i] = getMonitorables(depth - 1, submon);
                     }
                     all(futs).then( (futArr, err0) -> {
-                        Future futures[] = (Future[]) futArr;
+                        IPromise futures[] = (IPromise[]) futArr;
                         for (int i = 0; i < futures.length; i++) {
-                            Future future = futures[i];
+                            IPromise future = futures[i];
                             subResult[i] = future.get();
                         }
                         p.settle(result, null);

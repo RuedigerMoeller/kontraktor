@@ -2,7 +2,7 @@ package kontraktor.scheduling;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 
 /**
@@ -14,7 +14,7 @@ public class DeadLocks {
         boolean signaled = false;
         volatile int msgcount = 0;
 
-        public void $deadLock( Future signal, boolean controlFlow ) {
+        public void $deadLock( IPromise signal, boolean controlFlow ) {
             msgcount++;
             if ( msgcount < 10000 ) {
                 if (controlFlow && isMailboxPressured()) {

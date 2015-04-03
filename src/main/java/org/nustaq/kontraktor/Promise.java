@@ -10,14 +10,14 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * implementation of the Future interface.
+ * implementation of the IPromise interface.
  *
  * A Promise is unfulfilled or "unsettled" once it has not been set a result.
  * Its 'rejected' once an error has been set "reject(..)".
  * Its 'resolved' once a result has been set "resolve(..)".
  * Its 'settled' once a result or error has been set.
  */
-public class Promise<T> implements Future<T> {
+public class Promise<T> implements IPromise<T> {
     protected Object result = null;
     protected Object error;
     protected Callback resultReceiver;
@@ -30,7 +30,7 @@ public class Promise<T> implements Future<T> {
     // note: if removed some field must set to volatile
     final AtomicBoolean lock = new AtomicBoolean(false); // (AtomicFieldUpdater is slower!)
     String id;
-    Future nextFuture;
+    IPromise nextFuture;
 
     /**
      * create a settled Promise by either providing an result or error.
@@ -72,18 +72,18 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future interface
+     * see IPromise interface
      */
     @Override
-    public Future<T> then(Runnable result) {
+    public IPromise<T> then(Runnable result) {
         return then( (r,e) -> result.run() );
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
-    public Future<T> onResult(Consumer<T> resultHandler) {
+    public IPromise<T> onResult(Consumer<T> resultHandler) {
         return then( (r,e) -> {
             if ( e == null ) {
                 resultHandler.accept((T) r);
@@ -92,10 +92,10 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
-    public Future<T> onError(Consumer errorHandler) {
+    public IPromise<T> onError(Consumer errorHandler) {
         return then( (r,e) -> {
             if ( e != null && e != Timeout.INSTANCE) {
                 errorHandler.accept(e);
@@ -104,10 +104,10 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
-    public Future<T> onTimeout(Consumer timeoutHandler) {
+    public IPromise<T> onTimeout(Consumer timeoutHandler) {
         return then( (r,e) -> {
             if ( e == Timeout.INSTANCE ) {
                 timeoutHandler.accept(e);
@@ -116,10 +116,10 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
-    public <OUT> Future<OUT> thenAnd(final Function<T, Future<OUT>> function) {
+    public <OUT> IPromise<OUT> thenAnd(final Function<T, IPromise<OUT>> function) {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
@@ -135,10 +135,10 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
-    public <OUT> Future<OUT> then(Consumer<T> function) {
+    public <OUT> IPromise<OUT> then(Consumer<T> function) {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
@@ -155,10 +155,10 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
-    public Future<T> thenAnd(Supplier<Future<T>> callable) {
+    public IPromise<T> thenAnd(Supplier<IPromise<T>> callable) {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
@@ -166,7 +166,7 @@ public class Promise<T> implements Future<T> {
                 if ( Actor.isError(error) ) {
                     res.complete(null, error);
                 } else {
-                    Future<T> call = null;
+                    IPromise<T> call = null;
                     call = callable.get().then(res);
                 }
             }
@@ -176,10 +176,10 @@ public class Promise<T> implements Future<T> {
 
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
-    public <OUT> Future<OUT> catchError(final Function<Object, Future<OUT>> function) {
+    public <OUT> IPromise<OUT> catchError(final Function<Object, IPromise<OUT>> function) {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
@@ -195,10 +195,10 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
-    public <OUT> Future<OUT> catchError(Consumer<Object> function) {
+    public <OUT> IPromise<OUT> catchError(Consumer<Object> function) {
         Promise res = new Promise<>();
         then( new Callback<T>() {
             @Override
@@ -215,7 +215,7 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     public void timedOut( Timeout to ) {
         if (!hadResult ) {
@@ -224,10 +224,10 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
-    public Future then(Callback resultCB) {
+    public IPromise then(Callback resultCB) {
         // FIXME: this can be implemented more efficient
         while( !lock.compareAndSet(false,true) ) {}
         try {
@@ -247,8 +247,8 @@ public class Promise<T> implements Future<T> {
                     return nextFuture;
                 }
             }
-            if (resultCB instanceof Future) {
-                return (Future) resultCB;
+            if (resultCB instanceof IPromise) {
+                return (IPromise) resultCB;
             }
             lock.set(false);
             while( !lock.compareAndSet(false,true) ) {}
@@ -280,7 +280,7 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     public Promise getLast() {
         while( !lock.compareAndSet(false,true) ) {}
@@ -295,7 +295,7 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * same as then, but avoid creation of new future
+     * same as then, but avoid creation of new promise
      * @param resultCB
      */
     public void finallyDo(Callback resultCB) {
@@ -316,7 +316,7 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
     public final void complete(Object res, Object error) {
@@ -358,7 +358,7 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
     public T get() {
@@ -366,19 +366,19 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
     public T await() {
-        awaitFuture();
+        awaitPromise();
         return awaitHelper();
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
-    public Future<T> awaitFuture() {
+    public IPromise<T> awaitPromise() {
         if ( Thread.currentThread() instanceof DispatcherThread ) {
             DispatcherThread dt = (DispatcherThread) Thread.currentThread();
             Scheduler scheduler = dt.getScheduler();
@@ -421,10 +421,10 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
-    public Future timeoutIn(long millis) {
+    public IPromise timeoutIn(long millis) {
         final Actor actor = Actor.sender.get();
         if ( actor != null )
             actor.delayed(millis, ()-> timedOut(Timeout.INSTANCE));
@@ -440,7 +440,7 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
     public Object getError() {
@@ -448,7 +448,7 @@ public class Promise<T> implements Future<T> {
     }
 
     /**
-     * see Future (inheriting Callback) interface
+     * see IPromise (inheriting Callback) interface
      */
     @Override
     public boolean isSettled() {

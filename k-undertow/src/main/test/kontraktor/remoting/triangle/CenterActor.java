@@ -1,7 +1,7 @@
 package kontraktor.remoting.triangle;
 
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 
 import java.util.HashMap;
@@ -17,7 +17,7 @@ public class CenterActor extends Actor<CenterActor> {
         registry.put(id,outer);
     }
 
-    public Future<OuterActor> $getOuter(int id) {
+    public IPromise<OuterActor> $getOuter(int id) {
         return new Promise<>(registry.get(id));
     }
 

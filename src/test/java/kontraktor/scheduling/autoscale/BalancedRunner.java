@@ -2,7 +2,7 @@ package kontraktor.scheduling.autoscale;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.impl.ElasticScheduler;
 import org.nustaq.kontraktor.util.Hoarde;
 
@@ -39,7 +39,7 @@ public class BalancedRunner extends Actor<BalancedRunner> {
         all(h.map((worker, i) -> worker.$getItemCount())).then( (futures,err) -> {
             int count = 0;
             for (int i = 0; i < futures.length; i++) {
-                Future future = futures[i];
+                IPromise future = futures[i];
                 if ( ((Number)future.get()).intValue() > 0 ) {
                     count++;
                 }

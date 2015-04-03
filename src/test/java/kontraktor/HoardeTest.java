@@ -2,7 +2,7 @@ package kontraktor;
 
 import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Hoarde;
 import org.nustaq.serialization.FSTConfiguration;
@@ -28,11 +28,11 @@ public class HoardeTest {
 
         }
 
-        public Future decode(Object o) {
+        public IPromise decode(Object o) {
             return new Promise<>(conf.asByteArray((Serializable) o));
         }
 
-        public Future decodeOrdered(Future previous, Object o) {
+        public IPromise decodeOrdered(IPromise previous, Object o) {
             Promise<Object> promise = new Promise<>();
             byte[] result = conf.asByteArray((Serializable) o);
             if ( previous == null ) {

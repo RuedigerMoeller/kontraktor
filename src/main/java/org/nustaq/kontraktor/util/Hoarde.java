@@ -44,8 +44,8 @@ public class Hoarde<T extends Actor> {
         }
     }
 
-    public <X> Future<T>[] map(BiFunction<T, Integer, Future<X>> init) {
-        Future res[] = new Future[actors.length];
+    public <X> IPromise<T>[] map(BiFunction<T, Integer, IPromise<X>> init) {
+        IPromise res[] = new IPromise[actors.length];
         for (int i = 0; i < actors.length; i++) {
             T actor = (T) actors[i];
             res[i] = init.apply(actor,i);
@@ -87,8 +87,8 @@ public class Hoarde<T extends Actor> {
      * @param toCall
      * @return
      */
-    public Future ordered(Function<T, Future> toCall) {
-        final Future result = toCall.apply((T) actors[index]);
+    public IPromise ordered(Function<T, IPromise> toCall) {
+        final IPromise result = toCall.apply((T) actors[index]);
         index++;
         if (index==actors.length)
             index = 0;

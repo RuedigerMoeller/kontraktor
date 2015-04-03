@@ -43,7 +43,7 @@ public class SchedulingTest {
             System.out.println("" + i + " - " + callsReceived);
         }
 
-        public Future<Integer> $getCalls() {
+        public IPromise<Integer> $getCalls() {
             return new Promise(callsReceived);
         }
 
@@ -102,9 +102,9 @@ public class SchedulingTest {
         }
 
 
-        public Future $dumpCalls() {
+        public IPromise $dumpCalls() {
             final Promise done = new Promise();
-            Future<Integer> results[] = new Future[test.length];
+            IPromise<Integer> results[] = new IPromise[test.length];
             for (int i = 0; i < test.length; i++) {
                 results[i] = test[i].$getCalls();
             }

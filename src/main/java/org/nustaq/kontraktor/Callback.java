@@ -84,7 +84,7 @@ public interface Callback<T> extends Serializable  // do not use interface, slow
     }
 
     /**
-     * invalid for Futures !. can be called more than once on Callback's in order to stream objects to the sender.
+     * invalid for Promises!. can be called more than once on Callback's in order to stream objects to the sender.
      * same as complete( result, CONT );
      *
      * @param result

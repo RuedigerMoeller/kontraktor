@@ -20,7 +20,7 @@ import java.util.function.Consumer;
 public class WebSocketClient<T extends Actor> extends ActorClient<T> {
 
 
-    public static <AC extends Actor> Future<AC> Connect( Class<AC> clz, String adr, Consumer<Actor> disconnectHandler ) throws Exception {
+    public static <AC extends Actor> IPromise<AC> Connect( Class<AC> clz, String adr, Consumer<Actor> disconnectHandler ) throws Exception {
         if ( disconnectHandler != null ) {
             disconnectHandler = Actors.InThread(disconnectHandler);
         }

@@ -3,7 +3,6 @@ package org.nustaq.kontraktor.impl;
 import org.nustaq.kontraktor.*;
 
 import java.lang.reflect.Method;
-import java.util.Arrays;
 
 /**
 * Created by ruedi on 18.05.14.
@@ -12,7 +11,7 @@ public class CallEntry<T> implements Message<T> {
 
     final private Method method;
     final private Object[] args;
-    private Future futureCB;
+    private IPromise futureCB;
     transient final private T target;    // target and target actor are not necessary equal. E.g. target can be callback, but calls are put onto sendingActor Q
     transient private Actor sendingActor; // defines the sender of this message. null in case of outside call
     transient private Actor targetActor;  // defines actor assignment in case target is callback
@@ -68,13 +67,13 @@ public class CallEntry<T> implements Message<T> {
 //    }
 
     public boolean hasFutureResult() {
-        return method.getReturnType() == Future.class;
+        return method.getReturnType() == IPromise.class;
     }
 
-    public void setFutureCB(Future futureCB) {
+    public void setFutureCB(IPromise futureCB) {
         this.futureCB = futureCB;
     }
-    public Future getFutureCB() {
+    public IPromise getFutureCB() {
         return futureCB;
     }
 

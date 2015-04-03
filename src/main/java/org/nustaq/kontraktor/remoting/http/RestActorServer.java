@@ -158,7 +158,7 @@ public class RestActorServer {
                 };
                 try {
                     target.getActor().__getCachedMethod(call.getMethod(), target.getActor());
-                    Future future = (Future) target.getActor().__scheduler.enqueueCall(server.getServingActor(), target.getActor(), call.getMethod(), call.getArgs(), false);
+                    IPromise future = (IPromise) target.getActor().__scheduler.enqueueCall(server.getServingActor(), target.getActor(), call.getMethod(), call.getArgs(), false);
                     future.then(cb);
                 } catch (Exception e) {
                     Log.Warn(this,e);
@@ -226,7 +226,7 @@ public class RestActorServer {
                         return;
                     }
                     if (Callback.class.isAssignableFrom(parameterType)) {
-                        if (cbCount > 0 || Future.class.isAssignableFrom(m.getReturnType())) {
+                        if (cbCount > 0 || IPromise.class.isAssignableFrom(m.getReturnType())) {
 //                            response.complete(RequestResponse.MSG_500, null);
                             response.complete(new RequestResponse(
                                                                      "method not http enabled, more than one callback " +
@@ -241,8 +241,8 @@ public class RestActorServer {
                 }
 
                 Object future = target.getActor().__scheduler.enqueueCall(server.getServingActor(), target.getActor(), call.getMethod(), call.getArgs(), false);
-                if (future instanceof Future) {
-                    ((Future) future).then(cb);
+                if (future instanceof IPromise) {
+                    ((IPromise) future).then(cb);
                 } else if (m.getReturnType() == void.class && cbCount == 0) {
                     respPerS.count();
                     if ( countDown.decrementAndGet() == 0 ) {

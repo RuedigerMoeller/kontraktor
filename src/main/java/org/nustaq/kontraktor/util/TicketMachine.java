@@ -1,7 +1,7 @@
 package org.nustaq.kontraktor.util;
 
 import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 
 import java.util.ArrayList;
@@ -34,16 +34,16 @@ import java.util.List;
 public class TicketMachine {
 
     static class Ticket {
-        Ticket(Future signalProcessingStart, Future signalProcessingFinished) {
+        Ticket(IPromise signalProcessingStart, IPromise signalProcessingFinished) {
             this.signalProcessingStart = signalProcessingStart;
             this.signalProcessingFinished = signalProcessingFinished;
         }
-        Future signalProcessingStart;
-        Future signalProcessingFinished;
+        IPromise signalProcessingStart;
+        IPromise signalProcessingFinished;
     }
 
     HashMap<Object,List<Ticket>> tickets = new HashMap<>();
-    public Future<Future> getTicket( final Object channelKey ) {
+    public IPromise<IPromise> getTicket( final Object channelKey ) {
         List<Ticket> futures = tickets.get(channelKey);
         if ( futures == null ) {
             futures = new ArrayList<>(3);
@@ -51,7 +51,7 @@ public class TicketMachine {
         }
 
         Promise<Object> signalFin = new Promise<>();
-        Future signalStart = new Promise();
+        IPromise signalStart = new Promise();
         final Ticket ticket = new Ticket(signalStart,signalFin);
         futures.add(ticket);
 

@@ -48,13 +48,13 @@ public class Playground {
                 result.complete(in + "-result" + " in Thread " + Thread.currentThread().getName(), null);
         }
 
-        public Future<String> getFutureString() {
+        public IPromise<String> getFutureString() {
             System.out.println("getfutstring thread "+System.identityHashCode(Thread.currentThread()));
             return new Promise<>("FString");
         }
 
-        public Future<String> concat(final Future<String> pokpok) {
-            final Future<String> resultFuture = new Promise();
+        public IPromise<String> concat(final IPromise<String> pokpok) {
+            final IPromise<String> resultFuture = new Promise();
             final Thread curt = Thread.currentThread();
             pokpok.then(new Callback<String>() {
                 @Override
@@ -124,7 +124,7 @@ public class Playground {
             bench(actorA);
         }
 
-        final Future<String> futureString = actorA.getFutureString();
+        final IPromise<String> futureString = actorA.getFutureString();
         actorB.concat(futureString).then(new Callback<String>() {
             @Override
             public void complete(String result, Object error) {

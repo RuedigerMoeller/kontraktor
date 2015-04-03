@@ -32,8 +32,6 @@ public class TCPActorServer extends ActorServer {
     }
 
     public static TCPActorServer Publish(Actor act, int port, Consumer<Actor> closeListener ) throws Exception {
-        if ( act.getActorRef().__connections.peek() != null )
-            throw new RuntimeException("Actor can only published once");
         TCPActorServer server = new TCPActorServer(act, port);
         Promise success = new Promise();
         AtomicReference<Object> res = new AtomicReference<>(null);

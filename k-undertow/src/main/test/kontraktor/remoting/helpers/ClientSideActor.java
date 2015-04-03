@@ -1,8 +1,8 @@
-package kontraktor.remoting;
+package kontraktor.remoting.helpers;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.Future;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 import org.nustaq.kontraktor.remoting.websocket.WebSocketClient;
@@ -21,7 +21,7 @@ public class ClientSideActor extends Actor<ClientSideActor> {
     }
 
     public static class TA extends Actor<TA> {
-        public Future $runTest(ServerTestFacade test, ClientSideActor csa, int count) {
+        public IPromise $runTest(ServerTestFacade test, ClientSideActor csa, int count) {
             Promise p0 = new Promise();
             Promise p1 = new Promise();
             Promise p2 = new Promise();
