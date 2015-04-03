@@ -247,12 +247,32 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     public boolean singleReceive(ObjectSocket channel) throws Exception {
         // read object
         final Object response = channel.readObject();
-        if (response instanceof RemoteCallEntry == false) {
-            if ( response != null )
-                Log.Lg.error(this, null, "unexpected response:" + response); // fixme
-            return true;
+        if ( response instanceof Object[] ) {
+            Object arr[] = (Object[]) response;
+            boolean hadResp = false;
+            for (int i = 0; i < arr.length; i++) {
+                Object resp = arr[i];
+                if (resp instanceof RemoteCallEntry == false) {
+                    if ( resp != null )
+                        Log.Lg.error(this, null, "unexpected response:" + response); // fixme
+                    hadResp = true;
+                } else if (processRemoteCallEntry(channel, (RemoteCallEntry) response))
+                    hadResp = true;
+            }
+            return hadResp;
+        } else {
+            if (response instanceof RemoteCallEntry == false) {
+                if ( response != null )
+                    Log.Lg.error(this, null, "unexpected response:" + response); // fixme
+                return true;
+            }
+            if (processRemoteCallEntry(channel, (RemoteCallEntry) response)) return true;
         }
-        RemoteCallEntry read = (RemoteCallEntry) response;
+        return false;
+    }
+
+    protected boolean processRemoteCallEntry(ObjectSocket channel, RemoteCallEntry response) throws Exception {
+        RemoteCallEntry read = response;
         boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
         if ( isContinue )
             read.getArgs()[1] = Callback.CONT; // enable ==
