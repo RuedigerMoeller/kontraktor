@@ -26,11 +26,13 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.InThread;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
+import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.TicketMachine;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -51,7 +53,7 @@ import java.util.function.Consumer;
  *     public IPromise $asyncMessage(String arg) { .. }
  *     public void $asyncMessage(int arg, Callback aCallback) { .. }
  *
- *     // synchronous methods
+ *     // synchronous methods (safe as cannot be called by foreign threads)
  *     protected String syncMethod() { .. }
  * }
  *
@@ -134,7 +136,8 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     public Actor __self; // the proxy object
     public int __remoteId; // id in case this actor is published via network
     public boolean __throwExAtBlock = false; // if true, trying to send a message to full queue will throw an exception instead of blocking
-    public volatile ConcurrentLinkedQueue<RemoteConnection> __connections; // a list of connections required to be notified on close
+    public volatile ConcurrentLinkedQueue<RemoteConnection> __connections; // a list of connections required to be notified on close (publisher/server side))
+    public RemoteConnection __clientConnection; // remoteconnection this in case of remote ref
     // register callbacks notified on stop
     ConcurrentLinkedQueue<Callback<SELF>> __stopHandlers;
     // <- internal
@@ -169,7 +172,15 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * $$stop receiving events. If there are no actors left on the underlying dispatcher,
      * the dispatching thread will be terminated.
      */
-    public void $stop() {
+    @CallerSideMethod public void $stop() {
+        if ( isRemote() ) {
+            throw new RuntimeException("Cannot stop remote ref");
+        }
+        self().async$stop();
+    }
+
+    // internal. tweak to check for remote ref before sending
+    public void async$stop() {
         __stop();
     }
 
@@ -434,19 +445,22 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             return;
         getActorRef().__stopped = true;
         getActor().__stopped = true;
+        getActorRef().__throwExAtBlock = true;
+        getActor().__throwExAtBlock = true;
         if (__stopHandlers!=null) {
             __stopHandlers.forEach( (cb) -> cb.complete(self(), null) );
             __stopHandlers.clear();
         }
         // remove ref to real actor as ref might still be referenced in threadlocals and
         // queues.
-        try {
-            getActorRef().getClass().getField("__target").set( getActorRef(), null );
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (NoSuchFieldException e) {
-            e.printStackTrace();
-        }
+        //FIXME: this causes NPE instead of dedaletter
+//        try {
+//            getActorRef().getClass().getField("__target").set( getActorRef(), null );
+//        } catch (IllegalAccessException e) {
+//            e.printStackTrace();
+//        } catch (NoSuchFieldException e) {
+//            e.printStackTrace();
+//        }
         throw InternalActorStoppedException.Instance;
     }
 
@@ -469,15 +483,15 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     // FIXME: would be much better to do lookup at method invoke time INSIDE actor thread instead of doing it on callside (contended)
-    ConcurrentHashMap<String, Method> methodCache = new ConcurrentHashMap<>();
+    ThreadLocal<HashMap<String, Method>> methodCache = ThreadLocal.withInitial(() -> new HashMap<>());
     @CallerSideMethod public Method __getCachedMethod(String methodName, Actor actor) {
-        Method method = methodCache.get(methodName);
+        Method method = methodCache.get().get(methodName);
         if ( method == null ) {
             Method[] methods = actor.getClass().getMethods();
             for (int i = 0; i < methods.length; i++) {
                 Method m = methods[i];
                 if ( m.getName().equals(methodName) ) {
-                    methodCache.put(methodName,m);
+                    methodCache.get().put(methodName, m);
                     method = m;
                     break;
                 }

@@ -198,6 +198,17 @@ public class Actors {
         return p;
     }
 
+    /**
+     * plain utility additiona to java 8 streams
+     *
+     * @param t
+     * @param <T>
+     * @return
+     */
+    public static <T> Stream<T> stream( T ... t ) {
+        return Arrays.stream(t);
+    }
+
     // end static API
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

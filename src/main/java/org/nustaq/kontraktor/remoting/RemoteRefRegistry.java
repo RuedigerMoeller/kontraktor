@@ -155,6 +155,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
         act = act.getActorRef();
         remoteActorSet.put(act.__remoteId,act);
         remoteActors.add(act);
+        act.__clientConnection = this;
         act.__addStopHandler((actor, err) -> {
             remoteRefStopped((Actor) actor);
         });
@@ -170,6 +171,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
             res.__addStopHandler( (actor,err) -> {
                 remoteRefStopped((Actor) actor);
             });
+            res.__clientConnection = this;
             return res;
         }
         return actorRef;
@@ -347,14 +349,10 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
                 CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
                 if ( ce != null) {
                     if ( ce.getMethod().getName().equals("$close") ) {
-                        chan.close();
+                        closeRef(ce,chan);
                     } else
-                    if ( ce.getMethod().getName().equals("$stop") ) {
-                        new Thread( () -> { // ??
-                            try {
-                                remoteActor.getActor().$stop();
-                            } catch (InternalActorStoppedException ex) {}
-                        }, "stopper thread").start();
+                    if ( ce.getMethod().getName().equals("async$stop") ) {
+                        Log.Lg.error(this, null, "cannot stop remote actors" );
                     } else {
                         int futId = 0;
                         if (ce.hasFutureResult()) {
@@ -371,7 +369,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
                             if (toRemove == null)
                                 toRemove = new ArrayList();
                             toRemove.add(remoteActor);
-                            remoteActor.$stop();
+                            remoteActor.__stop();
                             Log.Lg.infoLong(this, ex, "connection closed");
                             break;
                         }
@@ -385,6 +383,15 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
         } while ( sumQueued > 0 && fullqueued < MAX_BATCH_CALLS);
         chan.flush();
         return res;
+    }
+
+    protected void closeRef(CallEntry ce, ObjectSocket chan) throws IOException {
+        if (ce.getTargetActor().getActorRef() == getFacadeProxy().getActorRef() ) {
+            // invalidating connections should cleanup all refs
+            chan.close();
+        } else {
+            removeRemoteActor(ce.getTargetActor());
+        }
     }
 
     protected void writeObject(ObjectSocket chan, RemoteCallEntry rce) throws Exception {

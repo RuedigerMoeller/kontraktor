@@ -228,7 +228,12 @@ public class DispatcherThread extends Thread implements Monitorable {
                 // before calling the actor method, set current sender
                 // to target, so for each method/callback invoked by the actor method,
                 // sender has correct value
-                Actor.sender.set(callEntry.getTargetActor());
+                Actor targetActor = callEntry.getTargetActor();
+                Actor.sender.set(targetActor);
+                if (targetActor.__stopped) {
+                    targetActor.__addDeadLetter(targetActor,callEntry.getMethod().getName());
+                    return true;
+                }
                 Object invoke = null;
                 try {
                     invoke = invoke(callEntry);

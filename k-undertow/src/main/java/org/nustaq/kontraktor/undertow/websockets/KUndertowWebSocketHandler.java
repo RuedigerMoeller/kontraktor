@@ -17,7 +17,7 @@ public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler
 
     WebSocketActorServer endpoint;
 
-    public static WebSocketConnectionCallback Connect(WebSocketActorServer endpoint) {
+    public static WebSocketConnectionCallback With(WebSocketActorServer endpoint) {
         KUndertowWebSocketHandler handler[] = {null};
         WebSocketConnectionCallback cb = (ex, ch) -> {
             handler[0].doConnect(ex, ch);

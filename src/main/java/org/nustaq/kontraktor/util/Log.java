@@ -83,7 +83,7 @@ public class Log extends Actor<Log> {
 
     LogWrapper logger = defaultLogger;
 
-    volatile int severity = 0;
+    volatile int severity = INFO;
 
     public void $setLogWrapper(LogWrapper delegate) {
         this.logger = delegate;

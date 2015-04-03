@@ -34,7 +34,7 @@ public class WSServer {
             );
             knode.getPathHandler().addExactPath("/ws",
                 Handlers.websocket(
-                    KUndertowWebSocketHandler.Connect(webSocketActorServer)
+                    KUndertowWebSocketHandler.With(webSocketActorServer)
                 )
             );
             return webSocketActorServer;

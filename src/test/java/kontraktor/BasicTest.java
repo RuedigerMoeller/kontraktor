@@ -50,6 +50,8 @@ public class BasicTest {
     public void callBench() {
         Bench b = AsActor(Bench.class);
         bench(b);
+        bench(b);
+        bench(b);
         long callsPerSec = bench(b);
         b.$stop();
 //        assertTrue(callsPerSec > 1 * 1000 * 1000);

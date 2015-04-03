@@ -28,7 +28,7 @@ public class KUndertowHttpServerAdapter implements NioHttpServer {
 
     @Override
     public void addHandler(String path, WebSocketActorServer webSocketServer) {
-        WebSocketConnectionCallback handler = KUndertowWebSocketHandler.Connect(webSocketServer);
+        WebSocketConnectionCallback handler = KUndertowWebSocketHandler.With(webSocketServer);
         pathHandler.addPrefixPath(path, new KUndertowWebSocketHandler(webSocketServer,handler));
     }
 
