@@ -17,7 +17,7 @@ public interface ObjectSocket {
     // blocking
     public void writeObject(Object toWrite) throws Exception;
 
-    public void flush() throws IOException;
+    public void flush() throws IOException, Exception;
 
     void setLastError(Exception ex);
 

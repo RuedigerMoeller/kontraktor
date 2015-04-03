@@ -46,7 +46,7 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
             () -> {
                 try {
                     sendLoop(channel);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     Log.Warn(this, e, "");
                 }
             },

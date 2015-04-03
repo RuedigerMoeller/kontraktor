@@ -7,15 +7,18 @@ import org.nustaq.serialization.coders.FSTMinBinDecoder;
 import org.nustaq.serialization.minbin.MinBin;
 
 import java.io.IOException;
-import java.util.concurrent.Semaphore;
+import java.util.ArrayList;
 
 /**
  * Created by ruedi on 31.08.14.
+ *
+ * should be single writer
  *
  */
 public abstract class WebObjectSocket implements ObjectSocket {
 
     protected FSTConfiguration conf;
+    ArrayList toWrite = new ArrayList();
 
     /**
      * its expected conf has special registrations such as Callback and remoteactor ref
@@ -62,11 +65,30 @@ public abstract class WebObjectSocket implements ObjectSocket {
         return conf;
     }
 
-    @Override
-    abstract public void writeObject(Object toWrite) throws Exception;
+    abstract protected void writeAndFlushObject(Object toWrite) throws Exception;
 
     @Override
-    public void flush() throws IOException {
+    public void writeObject(Object o) throws Exception {
+        synchronized (toWrite) {
+            toWrite.add(o);
+        }
+    }
+
+    @Override
+    public void flush() throws Exception {
+        synchronized (toWrite) {
+            int size = toWrite.size();
+            if (size==0)
+                return;
+            if ( size == 1 ) {
+                writeAndFlushObject(toWrite.get(0));
+                toWrite.clear();
+                return;
+            }
+            Object[] objects = toWrite.toArray();
+            toWrite.clear();
+            writeAndFlushObject(objects);
+        }
     }
 
     @Override

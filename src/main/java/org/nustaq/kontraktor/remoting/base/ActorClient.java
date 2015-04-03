@@ -75,7 +75,7 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
                     currentObjectSocket.set(chan);
                     try {
                         sendLoop(chan);
-                    } catch (IOException e) {
+                    } catch (Exception e) {
                         if (e instanceof SocketException)
                             Log.Lg.infoLong(this,e,"");
                         else

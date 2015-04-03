@@ -112,7 +112,7 @@ public class WebSocketActorServer extends ActorServer {
         }
 
         @Override
-        public void writeObject(Object toWrite) throws Exception {
+        public void writeAndFlushObject(Object toWrite) throws Exception {
             final byte[] b = conf.asByteArray(toWrite);
             channel.sendBinaryMessage(b);
         }

@@ -121,7 +121,7 @@ public class WebSocketClient<T extends Actor> extends ActorClient<T> {
         WSClientEndpoint[] ep = new WSClientEndpoint[1];
         WebObjectSocket sock = new WebObjectSocket( getConf() ) {
             @Override
-            public void writeObject(Object toWrite) throws Exception {
+            public void writeAndFlushObject(Object toWrite) throws Exception {
                 ep[0].sendBinary(getConf().asByteArray(toWrite));
             }
 

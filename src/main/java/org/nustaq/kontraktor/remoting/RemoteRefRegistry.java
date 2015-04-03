@@ -26,6 +26,7 @@ import java.util.function.Consumer;
  */
 public abstract class RemoteRefRegistry implements RemoteConnection {
 
+    public static int MAX_BATCH_CALLS = 500;
     protected FSTConfiguration conf;
 
     protected RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
@@ -208,7 +209,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
         } catch (InternalActorStoppedException ase) {}
     }
 
-    protected void sendLoop(ObjectSocket channel) throws IOException {
+    protected void sendLoop(ObjectSocket channel) throws Exception {
         try {
             int count = 0;
             while (!isTerminated()) {
@@ -254,9 +255,9 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
                 Object resp = arr[i];
                 if (resp instanceof RemoteCallEntry == false) {
                     if ( resp != null )
-                        Log.Lg.error(this, null, "unexpected response:" + response); // fixme
+                        Log.Lg.error(this, null, "unexpected response:" + resp); // fixme
                     hadResp = true;
-                } else if (processRemoteCallEntry(channel, (RemoteCallEntry) response))
+                } else if (processRemoteCallEntry(channel, (RemoteCallEntry) resp))
                     hadResp = true;
             }
             return hadResp;
@@ -332,53 +333,57 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
      * poll remote actor proxies and send. return true if there was at least one message
      * @param chan
      */
-    public boolean singleSendLoop(ObjectSocket chan) throws IOException {
+    public boolean singleSendLoop(ObjectSocket chan) throws Exception {
         boolean res = false;
-        int sumQueued = 0;
         ArrayList<Actor> toRemove = null;
-        for (Iterator<Actor> iterator = remoteActors.iterator(); iterator.hasNext(); ) {
-            Actor remoteActor = iterator.next();
-            CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
-            if ( ce != null) {
-                if ( ce.getMethod().getName().equals("$close") ) {
-                    chan.close();
-                } else
-                if ( ce.getMethod().getName().equals("$stop") ) {
-                    new Thread( () -> { // ??
+        int sumQueued;
+        int fullqueued = 0;
+        int iter = 0;
+        do {
+            sumQueued = 0;
+            iter++;
+            for (Iterator<Actor> iterator = remoteActors.iterator(); iterator.hasNext(); ) {
+                Actor remoteActor = iterator.next();
+                CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
+                if ( ce != null) {
+                    if ( ce.getMethod().getName().equals("$close") ) {
+                        chan.close();
+                    } else
+                    if ( ce.getMethod().getName().equals("$stop") ) {
+                        new Thread( () -> { // ??
+                            try {
+                                remoteActor.getActor().$stop();
+                            } catch (InternalActorStoppedException ex) {}
+                        }, "stopper thread").start();
+                    } else {
+                        int futId = 0;
+                        if (ce.hasFutureResult()) {
+                            futId = registerPublishedCallback(ce.getFutureCB());
+                        }
                         try {
-                            remoteActor.getActor().$stop();
-                        } catch (InternalActorStoppedException ex) {}
-                    }, "stopper thread").start();
-                } else {
-                    sumQueued += remoteActor.__mailbox.size();
-                    int futId = 0;
-                    if (ce.hasFutureResult()) {
-                        futId = registerPublishedCallback(ce.getFutureCB());
-                    }
-                    try {
-                        RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs());
-                        rce.setQueue(rce.MAILBOX);
-                        writeObject(chan, rce);
-                        res = true;
-                    } catch (Exception ex) {
-                        chan.setLastError(ex);
-                        if (toRemove == null)
-                            toRemove = new ArrayList();
-                        toRemove.add(remoteActor);
-                        remoteActor.$stop();
-                        Log.Lg.infoLong(this, ex, "connection closed");
-                        break;
+                            RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs());
+                            rce.setQueue(rce.MAILBOX);
+                            writeObject(chan, rce);
+                            sumQueued++;
+                            res = true;
+                        } catch (Exception ex) {
+                            chan.setLastError(ex);
+                            if (toRemove == null)
+                                toRemove = new ArrayList();
+                            toRemove.add(remoteActor);
+                            remoteActor.$stop();
+                            Log.Lg.infoLong(this, ex, "connection closed");
+                            break;
+                        }
                     }
                 }
             }
-        }
-        if (toRemove!=null) {
-            toRemove.forEach( (act) -> removeRemoteActor(act) );
-        }
-        if ( sumQueued < 100 )
-        {
-            chan.flush();
-        }
+            if (toRemove!=null) {
+                toRemove.forEach( (act) -> removeRemoteActor(act) );
+            }
+            fullqueued += sumQueued;
+        } while ( sumQueued > 0 && fullqueued < MAX_BATCH_CALLS);
+        chan.flush();
         return res;
     }
 
