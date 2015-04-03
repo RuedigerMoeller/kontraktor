@@ -4,6 +4,7 @@ import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.core.WebSockets;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
@@ -34,6 +35,11 @@ public class UndertowChannelAdapter implements WebSocketChannelAdapter {
     @Override
     public void sendTextMessage(String s) {
         WebSockets.sendText(s, channel, null);
+    }
+
+    @Override
+    public void close() throws IOException {
+        channel.close();
     }
 
     @Override

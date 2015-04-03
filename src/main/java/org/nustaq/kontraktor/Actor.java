@@ -429,7 +429,8 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     @CallerSideMethod public void __stop() {
-        if ( getActorRef() == null || getActor() == null || (getActorRef().isStopped() && getActor().isStopped()) )
+        Actor self = __self;
+        if ( self == null || getActor() == null || (self.isStopped() && getActor().isStopped()) )
             return;
         getActorRef().__stopped = true;
         getActor().__stopped = true;

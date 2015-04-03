@@ -2,6 +2,8 @@ package kontraktor.remoting;
 
 import kontraktor.remoting.helpers.ClientSideActor;
 import kontraktor.remoting.helpers.ServerTestFacade;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.nustaq.kontraktor.remoting.websocket.WebSocketClient;
 
@@ -10,7 +12,8 @@ import org.nustaq.kontraktor.remoting.websocket.WebSocketClient;
  */
 public class WSocketTest extends TCPTest {
 
-    public void setup() throws Exception {
+    @BeforeClass
+    public static void setup() throws Exception {
         if ( server == null ) {
             server = ServerTestFacade.runWS();
         }

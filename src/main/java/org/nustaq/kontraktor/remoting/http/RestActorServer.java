@@ -257,23 +257,13 @@ public class RestActorServer {
     }
 
     /**
-     * init server and start
-     * @param port
-     * @param server
-     */
-    public void startOnServer(int port, NioHttpServer server) {
-        this.server = server;
-        server.$init(port, new RestProcessor(this));
-        server.$receive();
-    }
-
-    /**
      * set self as a http processor for a running server instance
      * @param server
      */
-    public void joinServer(NioHttpServer server) {
+    public void joinServer(String path,NioHttpServer server) {
         this.server = server;
-        server.$setHttpProcessor(this.restProcessor = new RestProcessor(this));
+        this.restProcessor = new RestProcessor(this);
+        server.addHandler( path, restProcessor );
     }
 
     public PublishedActor publish( String name, Actor obj ) {

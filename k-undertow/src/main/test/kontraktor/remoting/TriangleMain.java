@@ -42,10 +42,9 @@ public class TriangleMain {
             TCPTest.server = null;
         }
         CenterActor actor = Actors.AsActor(CenterActor.class);
-        final ActorServer server = WSServer.getWebSocketActorServer(actor,8888);
-        CenterActor remoted = WebSocketClient.Connect(CenterActor.class, "ws://localhost:8888/ws",null).await();
+        final ActorServer server = WSServer.getWebSocketActorServer(actor,8080);
+        CenterActor remoted = WebSocketClient.Connect(CenterActor.class, "ws://localhost:8080/ws",null).await();
         doTest(remoted);
-
 
         server.closeConnection();
     }

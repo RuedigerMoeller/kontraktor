@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.SerializerType;
 import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
 import org.nustaq.kontraktor.undertow.Knode;
+import org.nustaq.kontraktor.undertow.websockets.KUndertowHttpServerAdapter;
 import org.nustaq.kontraktor.undertow.websockets.KUndertowWebSocketHandler;
 
 /**
@@ -25,10 +26,15 @@ public class WSServer {
         try {
             Knode knode = new Knode();
             knode.mainStub(new String[] {"-p",""+port});
-            WebSocketActorServer webSocketActorServer = new WebSocketActorServer(new Coding(SerializerType.FSTSer), actor);
+            WebSocketActorServer webSocketActorServer
+                = new WebSocketActorServer(
+                    new KUndertowHttpServerAdapter(knode.getServer(),knode.getPathHandler()),
+                    new Coding(SerializerType.FSTSer),
+                    actor
+            );
             knode.getPathHandler().addExactPath("/ws",
                 Handlers.websocket(
-                        KUndertowWebSocketHandler.Connect(webSocketActorServer)
+                    KUndertowWebSocketHandler.Connect(webSocketActorServer)
                 )
             );
             return webSocketActorServer;

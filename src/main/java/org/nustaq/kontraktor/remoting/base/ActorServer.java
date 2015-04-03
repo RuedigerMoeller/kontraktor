@@ -2,6 +2,8 @@ package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.util.Log;
@@ -102,9 +104,10 @@ public abstract class ActorServer {
 //        }
 //    }
 
-    public void closeConnection() {
+    public IPromise closeConnection() {
         setTerminated(true);
         closeSocket();
+        return new Promise<>("");
     }
 
     public class ActorServerConnection extends RemoteRefRegistry {

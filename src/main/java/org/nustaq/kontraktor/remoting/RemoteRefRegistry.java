@@ -189,7 +189,11 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
             if ( disconnectHandler != null )
                 disconnectHandler.accept(actor);
             //don't call remoteRefStopped here as its designed to be overridden
-            removeRemoteActor(actor);
+            try {
+                removeRemoteActor(actor);
+            } catch (Exception e) {
+                Log.Warn(this,e);
+            }
             actor.getActorRef().__stopped = true;
             if ( actor.getActor() != null )
                 actor.getActor().__stopped = true;

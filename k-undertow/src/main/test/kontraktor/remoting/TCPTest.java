@@ -2,7 +2,9 @@ package kontraktor.remoting;
 
 import kontraktor.remoting.helpers.ClientSideActor;
 import kontraktor.remoting.helpers.ServerTestFacade;
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
@@ -19,9 +21,17 @@ public class TCPTest {
 
     static ActorServer server;
 
-    public void setup() throws Exception {
+    @BeforeClass
+    public static void setup() throws Exception {
         if ( server == null ) {
             server = ServerTestFacade.run();
+        }
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        if ( server != null ) {
+            server.closeConnection().await();
         }
     }
 

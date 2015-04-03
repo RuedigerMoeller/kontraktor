@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.http.NioHttpServer;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketErrorMessage;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketTextMessage;
@@ -17,11 +18,13 @@ import java.io.IOException;
  */
 public class WebSocketActorServer extends ActorServer {
 
+    protected NioHttpServer server;
     protected Coding coding;
 
-    public WebSocketActorServer(Coding coding, Actor facade) {
+    public WebSocketActorServer( NioHttpServer server, Coding coding, Actor facade) {
         super(facade);
         this.coding = coding;
+        this.server = server;
     }
 
     @Override
@@ -44,11 +47,12 @@ public class WebSocketActorServer extends ActorServer {
     @Override
     protected void connectServerSocket() throws Exception {
         // needs to be wired from outside
+        throw new RuntimeException("unsupported operation");
     }
 
     @Override
     protected void closeSocket() {
-        // todo
+        server.stopServer();
     }
 
     ///////////////////////////////////////////////// ws adapter callbacks
@@ -115,12 +119,12 @@ public class WebSocketActorServer extends ActorServer {
 
         @Override
         public void close() throws IOException {
+            channel.close();
 
         }
 
         @Override
         public FSTConfiguration getConf() {
-            // FIXME: unpublish or what ? TODO
             return conf;
         }
 
