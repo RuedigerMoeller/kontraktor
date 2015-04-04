@@ -29,11 +29,13 @@ public class UndertowChannelAdapter implements WebSocketChannelAdapter {
 
     @Override
     public void sendBinaryMessage(byte[] b) {
+        //FIXME: needs to block until complete !
         WebSockets.sendBinary(ByteBuffer.wrap(b),channel,null);
     }
 
     @Override
     public void sendTextMessage(String s) {
+        //FIXME: needs to block until complete !
         WebSockets.sendText(s, channel, null);
     }
 

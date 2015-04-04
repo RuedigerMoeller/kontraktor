@@ -26,7 +26,7 @@ public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler
         return cb;
     }
 
-    protected KUndertowWebSocketHandler(WebSocketActorServer endpoint, WebSocketConnectionCallback cb) {
+    public KUndertowWebSocketHandler(WebSocketActorServer endpoint, WebSocketConnectionCallback cb) {
         super(cb);
         this.endpoint = endpoint;
     }

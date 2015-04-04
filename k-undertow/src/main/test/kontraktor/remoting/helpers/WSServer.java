@@ -8,7 +8,7 @@ import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.SerializerType;
 import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
 import org.nustaq.kontraktor.undertow.Knode;
-import org.nustaq.kontraktor.undertow.websockets.KUndertowHttpServerAdapter;
+import org.nustaq.kontraktor.undertow.KUndertowHttpServerAdapter;
 import org.nustaq.kontraktor.undertow.websockets.KUndertowWebSocketHandler;
 
 /**
