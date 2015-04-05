@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.Register;
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.http.encoding.JSonMsgCoder;
 import org.nustaq.kontraktor.remoting.http.encoding.KsonMsgCoder;
@@ -267,6 +268,11 @@ public class RestActorServer {
     }
 
     public PublishedActor publish( String name, Actor obj ) {
+        Register toReg = (Register) obj.getActor().getClass().getAnnotation(Register.class);
+        if (toReg!=null) {
+            map(toReg.value());
+        }
+
         PublishedActor pa = new PublishedActor(obj,classNameMappings);
         publishedActors.put(name, pa);
         return pa;

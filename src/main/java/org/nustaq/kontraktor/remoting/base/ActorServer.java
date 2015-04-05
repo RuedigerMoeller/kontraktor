@@ -4,6 +4,8 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.annotations.Register;
+import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.util.Log;
@@ -115,6 +117,15 @@ public abstract class ActorServer {
         Actor facade;
 
         public ActorServerConnection() {
+        }
+
+        @Override
+        protected void configureConfiguration(Coding code) {
+            super.configureConfiguration(code);
+                Register toReg = (Register) facade.getActor().getClass().getAnnotation(Register.class);
+                if (toReg!=null) {
+                    conf.registerClass(toReg.value());
+                }
         }
 
         public ActorServerConnection(ObjectSocket s, Actor facade) throws Exception {

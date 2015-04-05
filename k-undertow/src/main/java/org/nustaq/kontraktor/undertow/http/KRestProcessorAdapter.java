@@ -2,20 +2,27 @@ package org.nustaq.kontraktor.undertow.http;
 
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.util.HeaderValues;
 import io.undertow.util.Headers;
+import io.undertow.util.HttpString;
 import io.undertow.util.Methods;
 import org.nustaq.kontraktor.remoting.http.KontraktorHttpRequest;
 import org.nustaq.kontraktor.remoting.http.RequestResponse;
 import org.nustaq.kontraktor.remoting.http.RestActorServer;
 import org.nustaq.kontraktor.remoting.http.RestProcessor;
 import org.nustaq.kontraktor.util.Log;
+import org.xnio.channels.StreamSinkChannel;
+import org.xnio.channels.StreamSourceChannel;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by ruedi on 04.04.2015.
+ *
+ * decodes html request into actor calls and routes back results of promises and callbacks
  */
 public class KRestProcessorAdapter implements HttpHandler {
 
@@ -28,16 +35,48 @@ public class KRestProcessorAdapter implements HttpHandler {
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
         exchange.dispatch();
-        rp.processRequest(new KUTReq(exchange), (resp,e) -> {
-            System.out.println("RESP:"+resp+" "+e);
+        AtomicReference<StreamSinkChannel> responseChannel = new AtomicReference<>();
+        KUTReq req = new KUTReq(exchange);
+        if ( req.isPOST() ) {
+            StreamSourceChannel requestChannel = exchange.getRequestChannel();
+            String first = exchange.getRequestHeaders().getFirst(Headers.CONTENT_LENGTH);
+            int len = Integer.parseInt(first);
+            ByteBuffer buf = ByteBuffer.allocate(len);
+            while ( buf.remaining() > 0 ) {
+                if ( requestChannel.read(buf) < 0 ) {
+                    throw new RuntimeException("failed to read "+len+" bytes from request");
+                }
+            }
+            req.setContent( new String(buf.array(), "UTF-8") );
+        }
+        rp.processRequest(req, (resp,e) -> {
             if ( resp != null ) {
-                try {
-                    writeBlocking(exchange, resp);
-                } catch (Exception e1) {
-                    e1.printStackTrace();
-                    Log.Lg.warnLong(this,e1,"write http response");
-                    exchange.endExchange();
-                    return;
+                if ( resp == RequestResponse.MSG_200 ) {
+                    exchange.setResponseCode(200);
+                    exchange.getResponseHeaders().add( new HttpString("Access-Control-Allow-Origin"), "*" );
+                    aquireChannel(exchange, responseChannel);
+                } else if ( resp.getStatusCode() == 302 ) { // redirect
+                    exchange.setResponseCode(302);
+                    exchange.getResponseHeaders().add(Headers.LOCATION, resp.getLocation());
+                    aquireChannel(exchange, responseChannel);
+                } else if ( resp == RequestResponse.MSG_403 ) {
+                    exchange.setResponseCode(403);
+                    aquireChannel(exchange, responseChannel);
+                } else if ( resp == RequestResponse.MSG_404 ) {
+                    exchange.setResponseCode(404);
+                    aquireChannel(exchange, responseChannel);
+                }else if ( resp == RequestResponse.MSG_500 ) {
+                    exchange.setResponseCode(500);
+                    aquireChannel(exchange, responseChannel);
+                } else {
+                    try {
+                        writeBlocking(exchange, responseChannel.get(), resp);
+                    } catch (Exception e1) {
+                        e1.printStackTrace();
+                        Log.Lg.warnLong(this,e1,"write http response");
+                        exchange.endExchange();
+                        return;
+                    }
                 }
             }
             if ( e == RestActorServer.FINISHED )
@@ -45,11 +84,18 @@ public class KRestProcessorAdapter implements HttpHandler {
         });
     }
 
-    protected void writeBlocking(HttpServerExchange exchange, RequestResponse resp) throws IOException {
+    protected void aquireChannel(HttpServerExchange exchange, AtomicReference<StreamSinkChannel> responseChannel) {
+        if ( responseChannel.get() != null ) {
+            Log.Warn(this, "response already started, ignoring sent header");
+        }
+        responseChannel.set(exchange.getResponseChannel());
+    }
+
+    protected void writeBlocking(HttpServerExchange exchange, StreamSinkChannel responseChannel, RequestResponse resp) throws IOException {
         byte[] binary = resp.getBinary();
         ByteBuffer wrap = ByteBuffer.wrap(binary);
         while( wrap.remaining() > 0 )
-            exchange.getResponseChannel().write(wrap);
+            responseChannel.write(wrap);
     }
 
     static class KUTReq implements KontraktorHttpRequest {
@@ -83,6 +129,10 @@ public class KRestProcessorAdapter implements HttpHandler {
             return ex.getRequestMethod().equals(Methods.POST);
         }
 
+        public void setContent(String content) {
+            this.content = content;
+        }
+
         @Override
         public CharSequence getText(){
             return content;
@@ -90,7 +140,7 @@ public class KRestProcessorAdapter implements HttpHandler {
 
         @Override
         public String getAccept() {
-            return ex.getRequestHeaders().get(Headers.ACCEPT).toString();
+            return ex.getRequestHeaders().get(Headers.ACCEPT).getFirst();
         }
 
         // probably deprecated

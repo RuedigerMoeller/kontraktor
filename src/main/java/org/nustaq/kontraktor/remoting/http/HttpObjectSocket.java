@@ -68,8 +68,10 @@ public class HttpObjectSocket implements ObjectSocket {
                     }
 
                     BufferedReader read = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF8"));
-                    String head = read.readLine();
-                    read.readLine(); // empty line after header
+                    String head;
+                    while( (head = read.readLine()).trim().length() != 0 ) {
+                        //
+                    }
                     // fixme: check error
                     int ch;
                     sb.setLength(0);
@@ -98,7 +100,7 @@ public class HttpObjectSocket implements ObjectSocket {
                     Log.Warn(this, e, "");
                 }
             }
-        }, "ObjectSocket:"+host+":"+port+actorPath ).start();
+        }, "HttpObjectSocket:"+host+":"+port+actorPath ).start();
     }
 
     public Kson getKson() {

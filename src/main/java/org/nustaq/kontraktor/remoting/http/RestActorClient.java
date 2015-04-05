@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.remoting.http;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.annotations.Register;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
@@ -10,6 +11,7 @@ import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -33,6 +35,10 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
         facadeProxy = Actors.AsActor(actorClazz, new RemoteScheduler());
         facadeProxy.__remoteId = 0;
         registerRemoteRefDirect(facadeProxy);
+        Register toReg = (Register) clz.getAnnotation(Register.class);
+        if (toReg!=null) {
+            map(toReg.value());
+        }
     }
 
     public T getFacadeProxy() {
