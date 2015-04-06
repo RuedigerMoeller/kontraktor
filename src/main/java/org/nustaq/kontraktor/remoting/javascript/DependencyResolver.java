@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.remoting.javascript;
 
 import org.nustaq.kson.Kson;
 
-import java.io.File;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -14,9 +14,17 @@ import java.util.function.Function;
  */
 public class DependencyResolver {
 
-    public static boolean DevMode = true;
+    public static boolean DEBUG = true;
     File resourcePath[];
     File lookupDirs[];
+
+    public DependencyResolver() {
+    }
+
+    public DependencyResolver( String root, String[] resourcePath ) {
+        setResourcePath(resourcePath);
+        setRootComponent(root);
+    }
 
     public DependencyResolver setResourcePath( String ... path ) {
         resourcePath = new File[path.length];
@@ -37,6 +45,13 @@ public class DependencyResolver {
         dependentDirs.toArray(lookupDirs);
     }
 
+    /**
+     * iterates all component directorys, list each (nonrecursively) and return all filenames
+     * where filter returns true.
+     *
+     * @param filter
+     * @return
+     */
     public List<String> findFilesInDirs( Function<String,Boolean> filter ) {
         HashSet<String> done = new HashSet<>();
         ArrayList<String> result = new ArrayList<>();
@@ -49,6 +64,37 @@ public class DependencyResolver {
                     result.add(file);
                 }
                 done.add(file);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * iterate component directories in order and return full path of first file matching
+     *
+     * @param name
+     * @return
+     */
+    public File locateResource( String name ) {
+        for (int i = 0; i < lookupDirs.length; i++) {
+            File fi = new File(lookupDirs[i],name);
+            if ( fi.exists() )
+                return fi;
+        }
+        return null;
+    }
+
+    /**
+     * @param name
+     * @return a priority ordered list of directories containing files for a given component.
+     */
+    public List<File> locateComponent( String name ) {
+        List<File> result = new ArrayList<>();
+        for (int i = 0; i < resourcePath.length; i++) {
+            File file = resourcePath[i];
+            File newOne = new File(file,name);
+            if ( newOne.exists() && newOne.isDirectory() ) {
+                result.add(newOne);
             }
         }
         return result;
@@ -93,6 +139,101 @@ public class DependencyResolver {
         return li;
     }
 
+    /**
+     * returns document.write() script tags for each dependent js library.
+     * DEV MODE only. In production mode, all .js will be merged into a single document, which is
+     * hard to debug with. Therefore in development just generate a bunch of single JS-file includes
+     *
+     * @param jsFileNames
+     * @return
+     */
+    public byte[] createScriptTags( List<String> jsFileNames ) {
+        // inefficient, however SPA's load once, so expect not too many requests
+        ByteArrayOutputStream bout = new ByteArrayOutputStream(200000);
+        PrintStream ps = new PrintStream(bout);
+        for (int i = 0; i < jsFileNames.size(); i++) {
+            String f = jsFileNames.get(i);
+            if ( f.endsWith(".js") ) {
+                if (DEBUG)
+                    System.out.println("   " + f + " size:" + f.length());
+                ps.println("document.write(\"<script src='lookup/"+f+"'></script>\")");
+                if (DEBUG)
+                    System.out.println("document.write(\"<script src='lookup/" + f + "'></script>\")");
+            }
+        }
+        ps.flush();
+        byte[] bytes = bout.toByteArray();
+        return bytes;
+    }
+
+    /**
+     * lookup (ordered directory computed by resourcepath) and merge scripts into a single byte[].
+     *
+     * use in production mode (debugging will be hard)
+     *
+     * for dev use createScriptTags() instead
+     *
+     * @param jsFileNames list script (.js) filenames
+     * @return
+     */
+    public byte[] mergeScripts( List<String> jsFileNames ) {
+        // inefficient, however SPA's load once, so expect not too many requests
+        ByteArrayOutputStream bout = new ByteArrayOutputStream(200000);
+        for (int i = 0; i < jsFileNames.size(); i++) {
+            String jsFileName = jsFileNames.get(i);
+            File f = locateResource(jsFileName);
+            String absolutePath = f.getAbsolutePath();
+            if ( f.getName().endsWith(".js") ) {
+                if (DEBUG)
+                    System.out.println("   "+f.getName()+" size:"+f.length());
+                byte[] bytes = new byte[(int) f.length()];
+                try (FileInputStream fileInputStream = new FileInputStream(f)) {
+                    fileInputStream.read(bytes);
+                    bout.write(bytes);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        byte[] bytes = bout.toByteArray();
+        return bytes;
+    }
+
+    /**
+     * locate ressource file on the directory path and merge them in a document.write file.
+     * Does some text replacements (?? forgot why)
+     *
+     * @param names
+     * @return
+     */
+    public byte[] mergeTextSnippets( List<String> names ) {
+        ByteArrayOutputStream bout = new ByteArrayOutputStream(2000);
+        HashSet hs = new HashSet();
+        PrintStream pout = new PrintStream(bout);
+        pout.println("document.write('\\");
+        for (int i = 0; i < names.size(); i++) {
+            String jsFileName = names.get(i);
+            File f = locateResource(jsFileName);
+            if ( f.getName().endsWith(".html") )
+            {
+                try (FileReader fileInputStream = new FileReader(f)) {
+                    BufferedReader in = new BufferedReader(fileInputStream);
+                    while (in.ready()) {
+                        String line = in.readLine();
+                        line = line.replace("\'", "\\'");
+                        pout.println(line+"\\");
+                    }
+                    in.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        pout.println("');");
+        pout.flush();
+        return bout.toByteArray();
+    }
+
     public static void main(String a[]) {
         DependencyResolver dep = new DependencyResolver();
         dep.setResourcePath(
@@ -105,7 +246,7 @@ public class DependencyResolver {
         dep.setRootComponent("app");
         System.out.println(Arrays.toString(dep.lookupDirs));
 
-        dep.findFilesInDirs( fnme -> fnme.endsWith(".js") ).forEach( res -> System.out.println(res) );
-        dep.findFilesInDirs( fnme -> fnme.endsWith(".tpl.html") ).forEach( res -> System.out.println(res) );
+        dep.findFilesInDirs( fnme -> fnme.endsWith(".js") ).forEach( res -> { System.out.println(res+" => "+dep.locateResource(res).getAbsolutePath()); } );
+        dep.findFilesInDirs( fnme -> fnme.endsWith(".tpl.html") ).forEach( res -> System.out.println(res+" => "+dep.locateResource(res).getAbsolutePath()) );
     }
 }
