@@ -92,9 +92,13 @@ public class MultiRefTest {
         sa2.$fun().then((r, e) -> System.out.println(r + " " + e));
 
         Thread.sleep(1000);
-        Assert.assertTrue(sa2.isStopped()&& ((RemoteRefRegistry)con).getRemoteActors().size()==3);
+        Assert.assertTrue(sa2.isStopped() && ((RemoteRefRegistry) con).getRemoteActors().size() == 3);
 
+        sa1.$stopFromRemote();
+        sa3.$stopFromRemote();
+
+        Thread.sleep(1000);
         srv.closeConnection();
-        Thread.sleep(2000);
+        Thread.sleep(1000);
     }
 }

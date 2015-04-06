@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.Promise;
 import org.junit.Test;
 import org.nustaq.kontraktor.impl.ActorBlockedException;
+import org.nustaq.kontraktor.impl.DispatcherThread;
 
 import java.net.URL;
 import java.util.*;
@@ -301,23 +302,16 @@ public class BasicTest {
         public IPromise<String> get( final String url ) {
             final Promise<String> content = new Promise();
             final Thread myThread = Thread.currentThread();
-            exec(new Callable<String>() {
-                     @Override
-                     public String call() throws Exception {
-                         return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
-                     }
-                 }
-                ).then(
-                    new Callback<String>() {
-                        @Override
-                        public void complete(String result, Object error) {
-                            if (Thread.currentThread() == myThread) {
-                                content.complete(result, null);
-                            } else {
-                                content.complete(null, "wrong thread");
-                            }
-                        }
-                    });
+            exec( () -> {
+                assertTrue( Thread.currentThread() instanceof DispatcherThread == false );
+                return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
+            }).then( (result, error) -> {
+                if (Thread.currentThread() == myThread) {
+                  content.complete(result, null);
+                } else {
+                  content.complete(null, "wrong thread");
+                }
+            });
             return content;
         }
     }
@@ -466,15 +460,14 @@ public class BasicTest {
     public void testBlockingCall() {
         final AtomicInteger success = new AtomicInteger(0);
         TestBlockingAPI actor = AsActor(TestBlockingAPI.class);
-        actor.get("http://www.google.com" ).then( new Callback<String>() {
-            @Override
-            public void complete(String result, Object error) {
-            if ( error != null )
-                success.set(1);
-            else
-                success.set(2);
-            }
-        });
+        actor.get("http://www.google.com" ).then(
+            (result, error) -> {
+                assertTrue( Thread.currentThread() == actor.__currentDispatcher);
+                if ( error != null )
+                    success.set(1);
+                else
+                    success.set(2);
+            });
         try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {

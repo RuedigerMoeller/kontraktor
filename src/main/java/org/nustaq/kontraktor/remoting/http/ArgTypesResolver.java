@@ -35,7 +35,10 @@ public class ArgTypesResolver implements KsonArgTypesResolver {
             Method method = allowed[i];
             final int mods = method.getModifiers();
             if ( !Modifier.isStatic(mods) && ! Modifier.isAbstract(mods) && Modifier.isPublic(mods)
-               && method.getDeclaringClass() != Object.class && method.getDeclaringClass() != Actor.class )
+               && method.getDeclaringClass() != Object.class
+               && ! method.getName().equals("§stop")
+//               && method.getDeclaringClass() != Actor.class want to call ping !
+            )
             {
                 methodMap.put(method.getName(), method.getParameterTypes());
             }

@@ -56,13 +56,13 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
                     Log.Warn(this, e, "");
                 }
             },
-            "sender"
+            "httpclient:sender"
         ).start();
         new Thread(
             () -> {
                 receiveLoop(channel);
             },
-            "receiver"
+            "httpclient:receiver"
         ).start();
         return this;
     }

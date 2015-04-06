@@ -19,7 +19,8 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class HttpObjectSocket implements ObjectSocket {
 
-    public static final int MAX_BATCHED_REQUESTS = 500;
+    public static int MAX_BATCHED_REQUESTS = 500;
+    public static boolean DUMP_REQUESTS = false;
 
     Class actorClz;
     int port = 9999;
@@ -47,7 +48,7 @@ public class HttpObjectSocket implements ObjectSocket {
         kson.getMapper().setUseSimplClzName(false);
         resolver = new ArgTypesResolver(actorClz);
 
-        httpReqQueue = new LinkedBlockingQueue<>();
+        httpReqQueue = new LinkedBlockingQueue<>(10_000);
         httpRespQueue = new LinkedBlockingQueue<>();
         new Thread( ()->{
             ArrayList<String> calls = new ArrayList<>();
@@ -67,13 +68,20 @@ public class HttpObjectSocket implements ObjectSocket {
                         }
                     }
 
-                    BufferedReader read = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF8"));
-                    String head;
-                    while( (head = read.readLine()).trim().length() != 0 ) {
-                        //
+                    InputStreamReader read = new InputStreamReader(new BufferedInputStream(socket.getInputStream(),64000), "UTF8");
+                    int slashNCount = 0;
+                    int ch;
+                    while( (ch=read.read()) != 0 ) {
+                        if ( ch == 10 ) {
+                            slashNCount++;
+                            if ( slashNCount >= 2) {
+                                break;
+                            }
+                        } else if ( ch != 13 ) {
+                            slashNCount = 0;
+                        }
                     }
                     // fixme: check error
-                    int ch;
                     sb.setLength(0);
                     while ( (ch=read.read()) > 0 ) {
                         sb.append((char)ch);
@@ -85,7 +93,7 @@ public class HttpObjectSocket implements ObjectSocket {
                         KsonStringCharInput in = new KsonStringCharInput(ksonString);
                         final KsonDeserializer deserializer = new KsonDeserializer(in, kson.getMapper());
                         while (in.position()<ksonString.length()) {
-                            Object o = deserializer.readObject(RemoteCallEntry.class, String.class, null);
+                            Object o = deserializer.readObject(RemoteCallEntry[].class, String.class, null);
                             if ( o != null ) {
                                 httpRespQueue.put(o);
                                 resp++;
@@ -116,6 +124,8 @@ public class HttpObjectSocket implements ObjectSocket {
     public void writeObject(Object toWrite) throws Exception {
         // expect callentry
         String sendString = kson.writeObject(toWrite,false);
+        if ( DUMP_REQUESTS )
+            System.out.println("SEND:\n"+sendString);
         httpReqQueue.put(sendString);
     }
 

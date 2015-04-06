@@ -1,6 +1,7 @@
 package kontraktor.remoting.helpers;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.Register;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
 import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
 import org.nustaq.kontraktor.util.RateMeasure;

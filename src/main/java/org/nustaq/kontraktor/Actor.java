@@ -226,17 +226,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
-     * execute a Runnable on the actors thread, similar to invokeLater in Swing
-     *
-     * self().$run( () -> .. ) - run the runnable after the current message has been processed
-     * this.$run( () -> .. )   - runs the runnable synchronous (actually useless, could call it directly)
-     *
-     */
-    public void $run(Runnable toRun) {
-        toRun.run();
-    }
-
-    /**
      * schedule an action or call delayed.
      * typical use case:
      * delayed( 100, () -> { self().doAction( x, y,  ); } );

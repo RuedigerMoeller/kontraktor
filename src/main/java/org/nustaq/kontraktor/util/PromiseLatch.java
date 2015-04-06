@@ -23,6 +23,10 @@ public class PromiseLatch<T> {
         count = new AtomicInteger(1);
     }
 
+    public PromiseLatch(int counter, IPromise<T> wrapped) {
+        this( wrapped,counter);
+    }
+
     public PromiseLatch(IPromise<T> wrapped, int counter) {
         this.wrapped = wrapped;
         count = new AtomicInteger(counter);

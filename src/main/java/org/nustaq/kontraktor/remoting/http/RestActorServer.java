@@ -24,6 +24,7 @@ import java.util.function.BiFunction;
  */
 public class RestActorServer {
 
+    public static boolean STATS = false;
     public static String FINISHED = "FIN"; // must be sent once all responses are sent
 
     /**
@@ -92,7 +93,7 @@ public class RestActorServer {
     public RestActorServer() {
     }
 
-    RateMeasure respPerS = new RateMeasure("responaes/s", 1000);
+    RateMeasure respPerS = new RateMeasure("responses/s", 1000);
     protected void enqueueCall(PublishedActor target, KontraktorHttpRequest req, Callback<RequestResponse> response) {
         final Method m = target.getActor().__getCachedMethod(req.getPath(1), target.getActor());
         if ( m == null ) {
@@ -186,11 +187,13 @@ public class RestActorServer {
 
                 int finalCB = cbid;
                 final Method m = target.getActor().__getCachedMethod(call.getMethod(), target.getActor());
+                int cbstate[] = { 0 }; // hack to count responses
                 Callback cb = (r, e) -> {
                     //FIXME: termination logic is contrary to kontraktor: only if error occurs or error = RequestProcessor.FINISHED
                     //FIXME: response will be closed.
                     boolean isContinue = !Actor.isFinal(e) && !(r instanceof HtmlString);
-                    respPerS.count();
+                    if ( STATS )
+                        respPerS.count();
                     if ( !isContinue ) {
                         countDown.decrementAndGet();
                     }
@@ -203,7 +206,8 @@ public class RestActorServer {
                     resCall.setQueue(resCall.CBQ);
 
                     try {
-                        final String encode = coder.encode(resCall);
+                        final String encode = ( (cbstate[0] == 0) ? "[" : "") + coder.encode(resCall) + (isContinue ? " , " : "]");
+                        cbstate[0]++; // safe, calback comes from actor thread
 //                        System.out.println("resp:\n"+encode);
                         response.complete(new RequestResponse(encode), isContinue ? null : fin);
                     } catch (Exception ex) {
@@ -220,9 +224,9 @@ public class RestActorServer {
                     if (Actor.class.isAssignableFrom(parameterType)) {
 //                        response.complete(RequestResponse.MSG_500, null);
                         response.complete(new RequestResponse(
-                                                                 "method not http enabled, actor remote references " +
-                                                                     "cannot be supported for Http based REST (use TCP stack)"),
-                                             FINISHED
+                            "method not http enabled, actor remote references " +
+                            "cannot be supported for Http based REST (use TCP stack)"),
+                            FINISHED
                         );
                         return;
                     }
@@ -230,9 +234,9 @@ public class RestActorServer {
                         if (cbCount > 0 || IPromise.class.isAssignableFrom(m.getReturnType())) {
 //                            response.complete(RequestResponse.MSG_500, null);
                             response.complete(new RequestResponse(
-                                                                     "method not http enabled, more than one callback " +
-                                                                         "object in args, or callback and also returns future"),
-                                                 FINISHED
+                                "method not http enabled, more than one callback " +
+                                "object in args, or callback and also returns future"),
+                                FINISHED
                             );
                             return;
                         }
@@ -245,7 +249,8 @@ public class RestActorServer {
                 if (future instanceof IPromise) {
                     ((IPromise) future).then(cb);
                 } else if (m.getReturnType() == void.class && cbCount == 0) {
-                    respPerS.count();
+                    if ( STATS )
+                        respPerS.count();
                     if ( countDown.decrementAndGet() == 0 ) {
                         response.complete(null, FINISHED);
                     }
@@ -253,7 +258,7 @@ public class RestActorServer {
             }
         } catch (Exception e) {
             Log.Warn(this,e,"");
-            response.complete(RequestResponse.MSG_500, "" + e);
+            response.complete(RequestResponse.MSG_500, e);
         }
     }
 

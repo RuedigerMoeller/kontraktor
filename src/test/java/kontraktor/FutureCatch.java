@@ -52,15 +52,6 @@ public class FutureCatch {
 
     public static class FutCatch extends Actor<FutCatch> {
 
-        public void $generator() {
-            Generator gen = new Generator();
-            self().$run(() -> gen.run());
-            int count = 0;
-            while (!gen.fin) {
-                System.out.println("GEN:" + gen.next("POK " + count++));
-            }
-        }
-
         public IPromise<String> $error(int num) {
             Promise res = new Promise();
             delayed(500, () -> res.complete(null, "Error " + num));
@@ -122,17 +113,6 @@ public class FutureCatch {
             System.out.println();
             System.out.println("rc "+race);
             return new Promise<>(correctCount+count.get());
-        }
-    }
-
-//    @Test
-    public void testGen() {
-        FutCatch futCatch = AsActor(FutCatch.class);
-        futCatch.$generator();
-        try {
-            Thread.sleep(100000);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
     }
 

@@ -56,6 +56,21 @@
         <version>1.30</version>
     </dependency>
 
+    <!-- TEST dependencies -->
+    <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>fluent-hc</artifactId>
+        <version>4.3.6</version>
+        <scope>test</scope>
+    </dependency>
+
+    <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>4.4.1</version>
+        <scope>test</scope>
+    </dependency>
+
 </dependencies>
 
 </project>

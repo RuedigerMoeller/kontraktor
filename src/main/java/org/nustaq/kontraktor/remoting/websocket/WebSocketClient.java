@@ -46,7 +46,7 @@ public class WebSocketClient<T extends Actor> extends ActorClient<T> {
 
         private final WebSocketClient con;
         protected WebObjectSocket sock;
-        protected Session session = null;
+        protected volatile Session session = null;
 
         public WSClientEndpoint(URI endpointURI, WebObjectSocket sock, WebSocketClient con) {
             try {
@@ -122,6 +122,8 @@ public class WebSocketClient<T extends Actor> extends ActorClient<T> {
         WebObjectSocket sock = new WebObjectSocket( getConf() ) {
             @Override
             public void writeAndFlushObject(Object toWrite) throws Exception {
+                while ( ep[0] == null || ep[0].session == null ) // ugly hack, just startup issue
+                    Thread.yield();
                 ep[0].sendBinary(getConf().asByteArray(toWrite));
             }
 

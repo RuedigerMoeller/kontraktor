@@ -1,0 +1,70 @@
+<html>
+<script type="text/javascript">
+function call( method, arglist, resultFun /*result, error*/ ) {
+    var data = JSON.stringify([
+        {
+            futureKey: 1,
+            method: method,
+            args: arglist
+        }
+    ]);
+
+    var req = new XMLHttpRequest();
+    req.open("POST","http://localhost:8080/api/test");
+    req.onreadystatechange = function () {
+        if (req.readyState == 4) {
+            if (req.status == 200) {
+                try {
+                    var result = JSON.parse(req.responseText);
+                    if ( resultFun ) {
+                        for (var i = 0; i < result.length; i++) {
+                            resultFun.apply(null,[ result[i].args[0], result[i].args[1] ])
+                        }
+                    }
+                } catch (error) {
+                    if ( resultFun ) {
+                        resultFun.apply(null,[ null, req.responseText ]);
+                    }
+                }
+            }
+        }
+    };
+    req.send(data);
+}
+
+call(
+    "$callback", [ "dummy", { _type: 'rcb', cbid: 2 } ],
+    function( result, error ) {
+        if ( error !== 'FIN' && // denotes end of stream
+             error !== 'CNT' )  // denotes more to come
+            console.log( "$callback error:"+error );
+        else {
+            if ( error !== 'FIN' ) // suppress end of stream
+                console.log( result );
+        }
+    }
+);
+
+call(
+    "$promise", [ "aString" ],
+    function( result, error ) {
+        if ( error )
+            console.log( "$promise error:"+error );
+        else
+            console.log( result );
+    }
+);
+
+call(
+    "$clonePojo",
+    [ { _type: 'Pojo', name: 'Hello', id: 10, follower: ["Herbert", "anonymous"] } ],
+    function( result, error ) {
+        if ( error )
+            console.log( "$clonePojo error:"+error );
+        else
+            console.log( result );
+    }
+);
+
+</script>
+</html>
