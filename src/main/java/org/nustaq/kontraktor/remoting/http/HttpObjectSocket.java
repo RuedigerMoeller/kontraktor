@@ -19,7 +19,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 public class HttpObjectSocket implements ObjectSocket {
 
-    public static int MAX_BATCHED_REQUESTS = 500;
+    public static int MAX_BATCHED_REQUESTS = 100;
     public static boolean DUMP_REQUESTS = false;
 
     Class actorClz;

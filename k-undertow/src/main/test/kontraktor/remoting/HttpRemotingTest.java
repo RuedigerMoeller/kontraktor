@@ -8,13 +8,16 @@ import org.apache.http.entity.ContentType;
 import org.junit.Test;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Register;
-import org.nustaq.kontraktor.remoting.http.HttpObjectSocket;
-import org.nustaq.kontraktor.remoting.http.RestActorClient;
-import org.nustaq.kontraktor.remoting.http.RestActorServer;
+import org.nustaq.kontraktor.remoting.RemoteCallEntry;
+import org.nustaq.kontraktor.remoting.http.*;
 import org.nustaq.kontraktor.undertow.KUndertowHttpServerAdapter;
 import org.nustaq.kontraktor.undertow.Knode;
 import org.nustaq.kontraktor.util.PromiseLatch;
 import org.nustaq.kontraktor.util.RateMeasure;
+import org.nustaq.kson.Kson;
+import org.nustaq.kson.KsonDeserializer;
+import org.nustaq.kson.KsonSerializer;
+import org.nustaq.kson.KsonStringCharInput;
 
 import java.io.File;
 import java.io.IOException;
@@ -98,6 +101,72 @@ public class HttpRemotingTest {
             return new Promise<>(pojo);
         }
 
+    }
+
+    @Test
+    public void benchKson() throws Exception {
+        Kson kson = new Kson()
+            .map("call", RemoteCallEntry.class)
+            .map("calls", RemoteCallEntry[].class)
+            .map("rcb", HttpRemotedCB.class)
+            .map(Pojo.class);
+        kson.getMapper().setUseSimplClzName(false);
+        String ksonString = "[{\n" +
+                          "  receiverKey: 1\n" +
+                          "  method: complete\n" +
+                          "  args:\n" +
+                          "    [ \n" +
+                          "      Pojo {\n" +
+                          "        name: bla\n" +
+                          "        id: 14\n" +
+                          "        follower:\n" +
+                          "          [ \n" +
+                          "            X\n" +
+                          "            Y\n" +
+                          "            \"Z Z\"\n" +
+                          "          ]\n" +
+                          "      }\n" +
+                          "      null\n" +
+                          "    ]\n" +
+                          "  queue: 1\n" +
+                          "}\n" +
+                          "]";
+        deser(kson, ksonString);
+        deser(kson, ksonString);
+        deser(kson, ksonString);
+        deser(kson, ksonString);
+        deser(kson, ksonString);
+
+        System.out.println("------------ ser ------------------");
+        KsonStringCharInput in = new KsonStringCharInput(ksonString);
+        KsonDeserializer deserializer = new KsonDeserializer(in, kson.getMapper());
+        Object o = deserializer.readObject(RemoteCallEntry[].class,String.class,null);
+
+        ser(kson, o);
+        ser(kson, o);
+        ser(kson, o);
+
+    }
+
+    protected void ser(Kson kson, Object o) throws Exception {RateMeasure m = new RateMeasure("serialize");
+        for ( int i = 0; i < 1000000; i++ ) {
+            kson.writeObject(o);
+            m.count();
+        }
+    }
+
+    protected void deser(Kson kson, String ksonString) {
+        RateMeasure m = new RateMeasure("deserialize");
+        for ( int i = 0; i <  1000000; i++ ) {
+            try {
+                KsonStringCharInput in = new KsonStringCharInput(ksonString);
+                KsonDeserializer deserializer = new KsonDeserializer(in, kson.getMapper());
+                Object o = deserializer.readObject(RemoteCallEntry[].class,String.class,null);
+                m.count();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Test
@@ -276,7 +345,7 @@ public class HttpRemotingTest {
         }
 
         RateMeasure measure = new RateMeasure("plain void req");
-        for (int i = 0; i < 200_000; i++) {
+        for (int i = 0; i < 2_000_000; i++) {
             clientProxy.$bench(null);
             measure.count();
         }
@@ -306,6 +375,7 @@ public class HttpRemotingTest {
         Thread.sleep(10000);
         Assert.assertTrue(callCount.get() == 3);
 
+        System.out.println("Stopping");
         knode.getServer().stop();
         Thread.sleep(1000);
     }

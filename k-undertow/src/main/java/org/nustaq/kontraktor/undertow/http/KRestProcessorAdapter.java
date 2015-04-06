@@ -48,7 +48,6 @@ public class KRestProcessorAdapter implements HttpHandler {
         if ( exchange.getRequestMethod() == Methods.OPTIONS ) {
             exchange.setResponseCode(200);
             exchange.getResponseHeaders().add( new HttpString("Access-Control-Allow-Origin"), "*");
-            exchange.getResponseHeaders().add( new HttpString("Access-Control-Allow-Headers"), "*" );
             aquireChannel(exchange, responseChannel);
             exchange.endExchange();
             return;

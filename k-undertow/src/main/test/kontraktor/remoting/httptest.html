@@ -1,5 +1,6 @@
 <html>
 <script type="text/javascript">
+
 function call( method, arglist, resultFun /*result, error*/ ) {
     var data = JSON.stringify([
         {
@@ -32,37 +33,43 @@ function call( method, arglist, resultFun /*result, error*/ ) {
     req.send(data);
 }
 
+// example for method streaming back multiple results (callback)
 call(
     "$callback", [ "dummy", { _type: 'rcb', cbid: 2 } ],
     function( result, error ) {
         if ( error !== 'FIN' && // denotes end of stream
              error !== 'CNT' )  // denotes more to come
-            console.log( "$callback error:"+error );
+            document.writeln( "$callback error:"+error );
         else {
             if ( error !== 'FIN' ) // suppress end of stream
-                console.log( result );
+                document.writeln( "$callback:" + result );
         }
+        document.write("<br>");
     }
 );
 
+// example for method returning a promise
 call(
     "$promise", [ "aString" ],
     function( result, error ) {
         if ( error )
-            console.log( "$promise error:"+error );
+            document.writeln( "$promise error:"+error );
         else
-            console.log( result );
+            document.writeln( "$promise:" + result );
+        document.write("<br>");
     }
 );
 
+// example for method returning a promise and has a Pojo argument (see @Register annotation at service class)
 call(
     "$clonePojo",
     [ { _type: 'Pojo', name: 'Hello', id: 10, follower: ["Herbert", "anonymous"] } ],
     function( result, error ) {
         if ( error )
-            console.log( "$clonePojo error:"+error );
+            document.writeln( "$clonePojo error:"+error );
         else
-            console.log( result );
+            document.writeln( "$clonePojo:" + result );
+        document.write("<br>");
     }
 );
 
