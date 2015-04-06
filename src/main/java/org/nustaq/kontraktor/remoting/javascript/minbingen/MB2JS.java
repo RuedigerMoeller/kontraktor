@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.util.minbingen;
+package org.nustaq.kontraktor.remoting.javascript.minbingen;
 
 
 import java.util.*;

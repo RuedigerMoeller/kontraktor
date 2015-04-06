@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.util.minbingen;
+package org.nustaq.kontraktor.remoting.javascript.minbingen;
 
 import org.nustaq.kontraktor.annotations.RemoteActorInterface;
 import org.nustaq.serialization.FSTClazzInfo;
