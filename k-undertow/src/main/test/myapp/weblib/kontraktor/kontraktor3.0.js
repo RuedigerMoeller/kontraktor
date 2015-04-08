@@ -37,6 +37,7 @@ var K = new function() {
     self.ws = null; // a Websocket object
     self.socketConnected = false;
     self.restPrefix = 'http';
+    self.sessionId = '';
 
     self.cbmap = {};
     self.cbid = 13;
@@ -150,6 +151,7 @@ var K = new function() {
                             serverProxy.$getSession(res).then( function(session,e) {
                                 if ( result.isCompleted )
                                     return;
+                                self.sessionId = res;
                                 if ( session ) {
                                     console.log( "got session "+session);
                                     var ping = function() {
