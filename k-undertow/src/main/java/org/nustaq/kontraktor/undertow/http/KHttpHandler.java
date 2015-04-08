@@ -19,7 +19,7 @@ public class KHttpHandler<T extends KHttpHandler> extends Actor<T> implements Ht
     }
 
     public void $handleRequest(HttpServerExchange exchange) {
-
+        exchange.endExchange();
     }
 
 }

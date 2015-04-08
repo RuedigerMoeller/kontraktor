@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.remoting.javascript;
 
+import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kson.Kson;
 
 import java.io.*;
@@ -12,11 +13,13 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 06.04.2015.
  */
+@Local
 public class DependencyResolver {
 
     public static boolean DEBUG = true;
     File resourcePath[];
     File lookupDirs[];
+    String baseDir = ".";
 
     public DependencyResolver() {
     }
@@ -26,11 +29,31 @@ public class DependencyResolver {
         setRootComponent(root);
     }
 
-    public DependencyResolver setResourcePath( String ... path ) {
+    public DependencyResolver( String baseDir, String root, String[] resourcePath ) {
+        setBaseDir(baseDir);
+        setResourcePath(resourcePath);
+        setRootComponent(root);
+    }
+
+    public DependencyResolver(String appDir) {
+        setBaseDir(appDir);
+    }
+
+    public String getBaseDir() {
+        return baseDir;
+    }
+
+    // must be called before setting path and base comp
+    protected DependencyResolver setBaseDir(String baseDir) {
+        this.baseDir = baseDir;
+        return this;
+    }
+
+    protected DependencyResolver setResourcePath( String ... path ) {
         resourcePath = new File[path.length];
         for (int i = 0; i < path.length; i++) {
-            String dir = path[i];
-            File f = new File( dir );
+            String dir = baseDir+"/"+path[i];
+            File f = new File( dir ).getAbsoluteFile();
             if ( f.exists() && ! f.isDirectory() ) {
                 throw new RuntimeException("only directorys can reside on resourcepath");
             }
@@ -39,8 +62,14 @@ public class DependencyResolver {
         return this;
     }
 
-    public void setRootComponent( String name ) {
-        List<File> dependentDirs = getDependentDirs(name, new ArrayList<>(), new HashSet<>());
+    // call after setResourcePath
+    protected void setRootComponent( String name ) {
+        List<File> dependentDirs = null;
+        try {
+            dependentDirs = getDependentDirs(name, new ArrayList<>(), new HashSet<>());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         lookupDirs = new File[dependentDirs.size()];
         dependentDirs.toArray(lookupDirs);
     }
@@ -110,7 +139,7 @@ public class DependencyResolver {
      * @param alreadyCheckedDependencies - already visited components
      * @return an ordered list of directories which can be searched later on when doing single file lookup
      */
-    protected List<File> getDependentDirs(String comp, List<File> li, HashSet<String> alreadyCheckedDependencies) {
+    protected List<File> getDependentDirs(String comp, List<File> li, HashSet<String> alreadyCheckedDependencies) throws IOException {
         if (alreadyCheckedDependencies.contains(comp)) {
             return li;
         }
@@ -133,7 +162,7 @@ public class DependencyResolver {
                     }
                 }
                 if ( ! li.contains(newOne) )
-                    li.add(newOne);
+                    li.add(newOne.getCanonicalFile());
             }
         }
         return li;
@@ -235,7 +264,7 @@ public class DependencyResolver {
     }
 
     public static void main(String a[]) {
-        DependencyResolver dep = new DependencyResolver();
+        DependencyResolver dep = new DependencyResolver("/home/ruedi/projects/reax2/src/main/webroot");
         dep.setResourcePath(
             "4k",
             "tmp",

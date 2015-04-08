@@ -122,7 +122,7 @@ public class KRestProcessorAdapter implements HttpHandler {
             } catch (Exception e) {
                 String resp = getTraceAsString(e);
                 aquireChannel(exchange,responseChannel);
-                exchange.setResponseCode(500);
+//                exchange.setResponseCode(500);
                 try {
                     writeBlocking(responseChannel.get(), resp.getBytes("UTF-8"));
                 } catch (IOException e1) {

@@ -1,0 +1,24 @@
+<html>
+
+<head>
+    <script src="scripts.js"></script>
+</head>
+    <body>
+    Hello !
+
+    <script>
+        var server = new JSPAServer(1); // only valid after successful connect
+        var session = null;
+        K.authenticateAndConnectSession("me","pwd",server).then( function( newSession, error ) {
+            if ( newSession ) {
+                session = newSession;
+                server.$receive("Hello Server");
+                session.$receive("Hello Session");
+            } else {
+                alert("login failed:"+error);
+            }
+        });
+    </script>
+
+    </body>
+</html>

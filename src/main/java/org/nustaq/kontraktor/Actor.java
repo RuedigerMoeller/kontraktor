@@ -24,6 +24,7 @@ package org.nustaq.kontraktor;
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.InThread;
+import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
@@ -180,6 +181,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     // internal. tweak to check for remote ref before sending
+    @Local
     public void async$stop() {
         __stop();
     }
@@ -333,6 +335,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     /**
      * closes associated remote connection(s) if present. NOP otherwise.
      */
+    @Local
     public void $close() {
         if (__connections != null) {
             final ConcurrentLinkedQueue<RemoteConnection> prevCon = __connections;
@@ -356,6 +359,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * can be used to wait for all messages having been processed and get a signal from the returned future once this is complete
      * @return
      */
+    @Local
     public IPromise $ping() {
         return new Promise<>("pong");
     }
@@ -392,8 +396,9 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * @param b
      * @return
      */
-    protected SELF setThrowExWhenBlocked( boolean b ) {
-        __throwExAtBlock = b;
+    @CallerSideMethod public SELF setThrowExWhenBlocked( boolean b ) {
+        getActorRef().__throwExAtBlock = b;
+        getActor().__throwExAtBlock = b;
         return (SELF) this;
     }
 
@@ -494,12 +499,12 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     // Monitoring
     //
 
-    @Override
+    @Override @Local
     public IPromise $getReport() {
         return new Promise( new ActorReport(getActor().getClass().getSimpleName(), getMailboxSize(), getCallbackSize() ) );
     }
 
-    @Override
+    @Override @Local
     public IPromise<Monitorable[]> $getSubMonitorables() {
         return new Promise<>(new Monitorable[0]);
     }

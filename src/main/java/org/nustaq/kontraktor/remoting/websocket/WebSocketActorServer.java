@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.http.NioHttpServer;
+import org.nustaq.kontraktor.remoting.spa.FourKSession;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketErrorMessage;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketTextMessage;
@@ -58,7 +59,7 @@ public class WebSocketActorServer extends ActorServer {
     ///////////////////////////////////////////////// ws adapter callbacks
 
     public void onOpen(WebSocketChannelAdapter channel) {
-        ActorServerConnection con = new ActorServerConnection();
+        ActorServerConnection con = new ActorServerConnection(coding);
         MyWSObjectSocket socket = new MyWSObjectSocket(con.getConf(), channel);
         con.init(socket, facade);
         channel.setAttribute("con",con);
@@ -69,7 +70,6 @@ public class WebSocketActorServer extends ActorServer {
         ActorServerConnection con = (ActorServerConnection) channel.getAttribute("con");
         ((MyWSObjectSocket)con.getObjSocket()).setNextMsg(buffer);
         con.currentObjectSocket.set(con.getObjSocket());
-
         try {
             while( con.singleReceive(con.getObjSocket()) ) {
                 // do nothing
@@ -86,7 +86,11 @@ public class WebSocketActorServer extends ActorServer {
     }
 
     public void onTextMessage(WebSocketChannelAdapter channel, String text) {
+        if ( text.equals("KTR_PING") ) {
+            return;
+        }
         // kontrakor uses binary messages only, however just forward text messages sent by a client
+        ActorServerConnection con = (ActorServerConnection) channel.getAttribute("con");
         facade.$receive(new WebSocketTextMessage(text, channel));
     }
 

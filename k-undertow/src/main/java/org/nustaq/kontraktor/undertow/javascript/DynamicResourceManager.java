@@ -34,6 +34,13 @@ public class DynamicResourceManager extends FileResourceManager {
         setBase(dependencyResolver.locateComponent(root).get(0));
     }
 
+    public DynamicResourceManager(boolean devMode, String root, DependencyResolver dependencyResolver) {
+        super(new File("."), 100);
+        this.devMode = devMode;
+        this.dependencyResolver = dependencyResolver;
+        setBase(dependencyResolver.locateComponent(root).get(0));
+    }
+
     @Override
     public Resource getResource(String p0) {
         String p = p0;
@@ -123,16 +130,15 @@ public class DynamicResourceManager extends FileResourceManager {
             exchange.startBlocking();
             try {
                 exchange.getOutputStream().write(bytes);
-                exchange.getOutputStream().flush();
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            completionCallback.onComplete(exchange, sender);
+//            completionCallback.onComplete(exchange, sender);
         }
 
         @Override
         public Long getContentLength() {
-            return null;
+            return Long.valueOf(bytes.length);
         }
 
         @Override

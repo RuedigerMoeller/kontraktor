@@ -7,6 +7,7 @@ import java.io.*;
 // add imports you need during generation =>
 import com.lukehutch.fastclasspathscanner.FastClasspathScanner;
 import org.nustaq.kontraktor.annotations.GenRemote;
+import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.serialization.*;
 
 // this header is always required to make it work. Cut & Paste this as template
@@ -16,15 +17,29 @@ public class MB2JS {
         AbstractGen gen = new AbstractGen() {
             @Override
             protected void genClzList(String outFile, ArrayList<String> finallist, GenContext ctx, HashMap<Class, List<MsgInfo>> infoMap, String templateFile) throws Exception {
-                    GenClazzInfo infos[] = new GenClazzInfo[finallist.size()];
-                    for (int i = 0; i < infos.length; i++) {
-                        infos[i] = new GenClazzInfo( conf.getClassInfo(Class.forName(finallist.get(i))) );
+                GenClazzInfo infos[] = new GenClazzInfo[finallist.size()];
+                int skipCount = 0;
+                for (int i = 0; i < infos.length; i++) {
+                    Class<?> type = Class.forName(finallist.get(i));
+                    if ( type.getAnnotation(Local.class) == null ) {
+                        infos[i] = new GenClazzInfo( conf.getClassInfo(type) );
                         infos[i].setMsgs(infoMap.get(infos[i].getClzInfo().getClazz()));
-                        if ( infos[i] != null )
-                            System.out.println("generating clz "+finallist.get(i));
+                        System.out.println("generating clz "+finallist.get(i));
                     }
-                    ctx.clazzInfos = infos;
-                    new MB2JS().receiveContext(ctx, new PrintStream(new FileOutputStream(outputFile)));
+                    else
+                        skipCount++;
+                }
+                if ( skipCount > 0 ) {
+                    GenClazzInfo newInfos[] = new GenClazzInfo[infos.length-skipCount];
+                    int icount = 0;
+                    for (int i = 0; i < infos.length; i++) {
+                        if ( infos[i] != null )
+                            newInfos[icount++] = infos[i];
+                    }
+                    infos = newInfos;
+                }
+                ctx.clazzInfos = infos;
+                new MB2JS().receiveContext(ctx, new PrintStream(new FileOutputStream(outputFile)));
             }
 
             @Override
@@ -110,9 +125,9 @@ public class MB2JS {
                     out.println("            ])"); // template line:50
                     out.println("        });"); // template line:51
                     if (mi.hasFutureResult()) { // template line:51
-                        out.println("        return Kontraktor.send(call,true);"); // template line:52
+                        out.println("        return K.send(call,true);"); // template line:52
                     } else {// template line:52
-                        out.println("        return Kontraktor.send(call);"); // template line:53
+                        out.println("        return K.send(call);"); // template line:53
                     } // template line:53
                     out.println("    };"); // template line:54
                 } else { // template line:54

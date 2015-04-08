@@ -2,13 +2,23 @@ package org.nustaq.kontraktor.undertow;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.handlers.PathHandler;
 import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.server.handlers.resource.ResourceHandler;
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.remoting.Coding;
+import org.nustaq.kontraktor.remoting.SerializerType;
+import org.nustaq.kontraktor.remoting.http.HttpObjectSocket;
+import org.nustaq.kontraktor.remoting.http.RestActorServer;
+import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
+import org.nustaq.kontraktor.undertow.websockets.KUndertowWebSocketHandler;
 
 import java.io.File;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A simple webserver created by wrapping the undertow webserver + some preconfiguration.
@@ -42,6 +52,10 @@ public class Knode {
         return server;
     }
 
+    public void stop() {
+        getServer().stop();
+    }
+
     /**
      * use this to add in handlers using addXX methods
      *
@@ -63,8 +77,37 @@ public class Knode {
                    .setHandler(createRootHttpHandler()).build();
     }
 
-    public HttpHandler createRootHttpHandler() {
+    protected HttpHandler createRootHttpHandler() {
         return exchange -> pathHandler.handleRequest(exchange);
+    }
+
+    public void publishOnWebsocket( String prefixPath, SerializerType encoding, Actor actor ) {
+        WebSocketActorServer webSocketActorServer
+            = new WebSocketActorServer(
+                new KUndertowHttpServerAdapter(getServer(),getPathHandler()),
+                new Coding(encoding),
+                actor
+        );
+        getPathHandler().addExactPath(prefixPath,
+            Handlers.websocket(
+                KUndertowWebSocketHandler.With(webSocketActorServer)
+            )
+        );
+    }
+
+    ConcurrentHashMap<String, RestActorServer> installedHttpServers = new ConcurrentHashMap<>();
+    public void publishOnHttp( String prefixPath, String serviceName, Actor service ) {
+        RestActorServer raServer = installedHttpServers.get(prefixPath);
+        if ( raServer == null ) {
+            KUndertowHttpServerAdapter sAdapt = new KUndertowHttpServerAdapter(
+                getServer(),
+                getPathHandler()
+            );
+            raServer = new RestActorServer();
+            raServer.joinServer(prefixPath, sAdapt);
+            installedHttpServers.put(prefixPath,raServer);
+        }
+        raServer.publish( serviceName, service);
     }
 
     protected PathHandler createPathHandler() {
@@ -76,6 +119,7 @@ public class Knode {
         );
         return pathHandler;
     }
+
 
     protected HttpHandler createDefaultHandler() {
         FileResourceManager fileResourceManager = createResourceManager();

@@ -1,0 +1,2 @@
+# set of functions to communicate with 4k kontraktor server
+{ depends: [minbin] }

@@ -1,0 +1,14 @@
+{
+    # define lookup order.
+    componentPath: [
+        .                     # application (+overrides)
+        weblib                # libs
+        tmp                   # generated stuff
+    ]
+
+    # root module (triggers others via dependencies)
+    rootComponent: app
+
+    # packages to scan for @GenRemote annotated classes
+    scan4Remote: [ myapp ]
+}

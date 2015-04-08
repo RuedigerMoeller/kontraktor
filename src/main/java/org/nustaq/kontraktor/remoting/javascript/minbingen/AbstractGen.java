@@ -32,6 +32,9 @@ public abstract class AbstractGen {
 	    conf.setForceSerializable(true);
 
         Class c = Class.forName(clazzName);
+        if ( c.getAnnotation(Local.class) != null ) {
+            return;
+        }
         try {
             if ( Actor.class.isAssignableFrom(c) ) {
 //                clazzSet.add(c.getName());
@@ -76,7 +79,7 @@ public abstract class AbstractGen {
             File f = new File(outFile);
             if (!f.isDirectory())
                 f = f.getParentFile();
-            f = new File(f, "name-then.kson");
+            f = new File(f, "name-map.kson");
             PrintStream pout = new PrintStream(new FileOutputStream(f));
             pout.println("{");
             clazzSet.stream().forEach(clzStr -> {

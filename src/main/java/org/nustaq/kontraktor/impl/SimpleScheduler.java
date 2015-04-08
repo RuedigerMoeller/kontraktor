@@ -19,8 +19,15 @@ public class SimpleScheduler implements Scheduler {
 
     protected BackOffStrategy backOffStrategy = new BackOffStrategy();
     DispatcherThread myThread;
+    int qsize = DEFQSIZE;
 
     public SimpleScheduler() {
+        myThread = new DispatcherThread(this);
+        myThread.start();
+    }
+
+    public SimpleScheduler(int qsize) {
+        this.qsize = qsize;
         myThread = new DispatcherThread(this);
         myThread.start();
     }
@@ -32,7 +39,7 @@ public class SimpleScheduler implements Scheduler {
 
     @Override
     public int getDefaultQSize() {
-        return DEFQSIZE;
+        return qsize;
     }
 
     @Override

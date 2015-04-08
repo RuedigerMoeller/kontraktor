@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.spa.FourKSession;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
@@ -115,6 +116,10 @@ public abstract class ActorServer {
         Actor facade;
 
         public ActorServerConnection() {
+        }
+
+        public ActorServerConnection(Coding coding) {
+            super(coding);
         }
 
         @Override
