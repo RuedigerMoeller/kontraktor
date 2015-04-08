@@ -14,6 +14,63 @@
                 session = newSession;
                 server.$receive("Hello Server");
                 session.$receive("Hello Session");
+
+                ///////////////////////// test ws server object
+                server.$testVoid( 13, "Hello" );
+                server.$testCB( 13, "Hello", function( res, err ) {
+                    document.write("testCB:"+res+" "+err);
+                });
+                server.$testPromise( "a Promise").then( function( res,err ) {
+                    document.write("promise '"+res+"' err:"+err+"<br>");
+                });
+
+                server.$createPojo().then( function(r,e) {
+                    document.write("created Pojo:"+JSON.stringify(r)+"<br>");
+                    server.$promisePojo(r).then( function( r1, e1 ) {
+                        document.write("promise pojo:"+JSON.stringify(r1)+"<br>");
+                    });
+                });
+
+                var pojo = new JSPAPojo({
+                    num: 13,
+                    doub: 13.13,
+                    string: 'Hello',
+                    list: ['1',2,3],
+                    set: ['Blubb',234.234],
+                    map: { "key": "value" , "nextKey" : 234.234, "arrkey": [1,2,3,4] }
+                });
+                server.$promisePojo(pojo).then( function( r, e ) {
+                    document.write("js created pojo:"+JSON.stringify(r)+"<br>");
+                });
+
+                ///////////////////////// test ws session object
+                session.$testVoid( 13, "Hello" );
+                session.$testCB( 13, "Hello", function( res, err ) {
+                    document.write("session testCB:"+res+" "+err);
+                });
+                session.$testPromise( "a Promise").then( function( res,err ) {
+                    document.write("session promise '"+res+"' err:"+err+"<br>");
+                });
+
+                server.$createPojo().then( function(r,e) {
+                    document.write("session created Pojo:"+JSON.stringify(r)+"<br>");
+                    session.$promisePojo(r).then( function( r1, e1 ) {
+                        document.write("session promise pojo:"+JSON.stringify(r1)+"<br>");
+                    });
+                });
+
+                var pojo = new JSPAPojo({
+                    num: 13,
+                    doub: 13.13,
+                    string: 'Hello',
+                    list: ['1',2,3],
+                    set: ['Blubb',234.234],
+                    map: { "key": "value" , "nextKey" : 234.234, "arrkey": [1,2,3,4] }
+                });
+                session.$promisePojo(pojo).then( function( r, e ) {
+                    document.write("session js created pojo:"+JSON.stringify(r)+"<br>");
+                });
+
             } else {
                 alert("login failed:"+error);
             }

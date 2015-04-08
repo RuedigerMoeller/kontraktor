@@ -16,9 +16,11 @@ import org.nustaq.kontraktor.remoting.http.HttpObjectSocket;
 import org.nustaq.kontraktor.remoting.http.RestActorServer;
 import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
 import org.nustaq.kontraktor.undertow.websockets.KUndertowWebSocketHandler;
+import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.File;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * A simple webserver created by wrapping the undertow webserver + some preconfiguration.
@@ -81,11 +83,11 @@ public class Knode {
         return exchange -> pathHandler.handleRequest(exchange);
     }
 
-    public void publishOnWebsocket( String prefixPath, SerializerType encoding, Actor actor ) {
+    public void publishOnWebsocket( String prefixPath, SerializerType encoding, Actor actor, Consumer<FSTConfiguration> configurator ) {
         WebSocketActorServer webSocketActorServer
             = new WebSocketActorServer(
                 new KUndertowHttpServerAdapter(getServer(),getPathHandler()),
-                new Coding(encoding),
+                new Coding(encoding, configurator),
                 actor
         );
         getPathHandler().addExactPath(prefixPath,

@@ -10,12 +10,14 @@ import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.javascript.DependencyResolver;
 import org.nustaq.kontraktor.remoting.javascript.minbingen.MB2JS;
 import org.nustaq.kson.Kson;
+import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 @Local
 public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> extends Actor<SERVER> {
@@ -25,7 +27,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
     protected Scheduler clientScheduler; // set of threads processing client requests
     protected AppConf conf;
     protected DependencyResolver loader;
-
+    protected HashMap<String,String> shortClassNameMapping;
     protected String appRootDir = "./";
 
     @Local
@@ -112,7 +114,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
             getFile("tmp").mkdirs();
             generateRemoteStubs(conf,getClass().getPackage().getName());
 
-            HashMap<String,String> shortClassNameMapping = new HashMap<>();
+            shortClassNameMapping = new HashMap<>();
             if ( getFile("tmp/name-map.kson").exists() )
                 shortClassNameMapping = (HashMap<String, String>) new Kson().supportJSon(false).readObject(getFile("tmp/name-map.kson"), HashMap.class);
 
@@ -161,4 +163,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
         MB2JS.Gen(genBase, appRootDir+"/tmp/generated.js");
     }
 
+    public IPromise<Consumer<FSTConfiguration>> $getRemotingConfigurator() {
+        return new Promise<>( conf -> shortClassNameMapping.forEach( (k,v) -> conf.registerCrossPlatformClassMapping(k,v) ) );
+    }
 }

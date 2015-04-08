@@ -250,48 +250,58 @@ var K = new function() {
             } else {
                 // parse binary MinBin message
                 fr.onloadend = function (event) {
-                    var msg = MinBin.decode(event.target.result);
-                    var strMsg = MinBin.prettyPrint(msg);
+                    var msg0 = MinBin.decode(event.target.result);
+                    var msgArr;
+                    //var strMsg = MinBin.prettyPrint(msg);
+                    if ( msg0.__typeInfo === 'array' ) {
+                        msgArr = msg0;
+                    } else {
+                        msgArr = [msg0];
+                    }
 //                    console.log("callback:\n "+strMsg);
                     // handle message
-                    if ( msg.queue || msg.queue == 0 ) {
-                        if ( msg.queue == 1 ) { // callback
-                            var cbfunc = self.cbmap[msg.receiverKey];
-                            if ( cbfunc ) {
-                                if ( cbfunc.isPromise ) {
-                                    delete self.cbmap[msg.receiverKey];
-                                    cbfunc.complete(msg.args[0],msg.args[1]);
-                                } else {
-                                    if ("CNT" != msg.args[1]) {
-                                        console.log("finishing callback transmission "+msg.args[0])
+                    var arrayLength = msgArr.length
+                    for ( var ai = 0; ai < arrayLength; ai++ ) {
+                        var msg = msgArr[ai];
+                        if ( msg.queue || msg.queue == 0 ) {
+                            if ( msg.queue == 1 ) { // callback
+                                var cbfunc = self.cbmap[msg.receiverKey];
+                                if ( cbfunc ) {
+                                    if ( cbfunc.isPromise ) {
                                         delete self.cbmap[msg.receiverKey];
+                                        cbfunc.complete(msg.args[0],msg.args[1]);
+                                    } else {
+                                        if ("CNT" != msg.args[1]) {
+                                            console.log("finishing callback transmission "+msg.args[0])
+                                            delete self.cbmap[msg.receiverKey];
+                                        }
+                                        //if ( msg.args[0] && msg.args[0].tableId && msg.args[0].tableId == 'Instrument' ) {
+                                        //    console.log("instr update: "+msg.args[0]);
+                                        //}
+                                        cbfunc.apply(null, msg.args);
                                     }
-                                    //if ( msg.args[0] && msg.args[0].tableId && msg.args[0].tableId == 'Instrument' ) {
-                                    //    console.log("instr update: "+msg.args[0]);
-                                    //}
-                                    cbfunc.apply(null, msg.args);
-                                }
-                            } else
-                                console.error("no function found for callback");
-                        } else if ( msg.queue == 0 ) {
-                            var actor = self.cbmap[msg.receiverKey];
-                            var futKey = msg.futureKey;
-                            if (!actor)
-                                throw "unknown actor with id "+msg.receiverKey;
-                            var future = actor[msg.method].apply(actor,msg.args);
-                            if ( future ) {
-                                future.then( function(r,e) {
-                                    var call = MinBin.obj("call", {
-                                        receiverKey: futKey,
-                                        queue: 1,
-                                        "args" : MinBin.jarray([ r, e ])
+                                } else
+                                    console.error("no function found for callback");
+                            } else if ( msg.queue == 0 ) {
+                                var actor = self.cbmap[msg.receiverKey];
+                                var futKey = msg.futureKey;
+                                if (!actor)
+                                    throw "unknown actor with id "+msg.receiverKey;
+                                var future = actor[msg.method].apply(actor,msg.args);
+                                if ( future ) {
+                                    future.then( function(r,e) {
+                                        var call = MinBin.obj("call", {
+                                            receiverKey: futKey,
+                                            queue: 1,
+                                            "args" : MinBin.jarray([ r, e ])
+                                        });
+                                        Kontraktor.send(call);
                                     });
-                                    Kontraktor.send(call);
-                                });
+                                }
                             }
-                        }
-                    } else
-                        console.error("unrecognized callback message"+msg);
+                        } else
+                            console.error("unrecognized callback message"+msg);
+                    }
                 };
                 // error handling is missing
                 fr.readAsArrayBuffer(message.data);

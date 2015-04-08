@@ -9,6 +9,9 @@ import org.nustaq.kontraktor.remoting.spa.AppConf;
 import org.nustaq.kontraktor.undertow.Knode;
 import myapp.SPAServer;
 import org.nustaq.kontraktor.undertow.javascript.DynamicResourceManager;
+import org.nustaq.serialization.FSTConfiguration;
+
+import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 07/04/15.
@@ -32,7 +35,9 @@ public class SPATest {
         DynamicResourceManager man = new DynamicResourceManager(true, conf.getRootComponent(), loader);
 
         knode.publishOnHttp(appRootPath+"http/", "api", mySpa);
-        knode.publishOnWebsocket(appRootPath+"ws/", SerializerType.MinBin, mySpa);
+        Consumer<FSTConfiguration> configurator = mySpa.$getRemotingConfigurator().await();
+
+        knode.publishOnWebsocket(appRootPath+"ws/", SerializerType.MinBin, mySpa, configurator);
         knode.getPathHandler().addPrefixPath(appRootPath, new ResourceHandler(man));
 
 

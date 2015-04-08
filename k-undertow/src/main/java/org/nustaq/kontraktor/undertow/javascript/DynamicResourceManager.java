@@ -127,7 +127,7 @@ public class DynamicResourceManager extends FileResourceManager {
 
         @Override
         public void serve(Sender sender, HttpServerExchange exchange, IoCallback completionCallback) {
-            exchange.startBlocking();
+            exchange.startBlocking(); // rarely called (once per login) also served from in mem in production mode
             try {
                 exchange.getOutputStream().write(bytes);
             } catch (IOException e) {
