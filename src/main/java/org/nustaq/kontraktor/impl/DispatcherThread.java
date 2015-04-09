@@ -70,8 +70,15 @@ public class DispatcherThread extends Thread implements Monitorable {
 
     public ArrayList<Promise> __stack = new ArrayList();
     volatile boolean isIsolated = false;
+    private boolean autoShutDown = true;
 
     public DispatcherThread(Scheduler scheduler) {
+        this.scheduler = scheduler;
+        setName("DispatcherThread "+dtcount.incrementAndGet());
+    }
+
+    public DispatcherThread(Scheduler scheduler, boolean autoShutDown) {
+        this.autoShutDown = autoShutDown;
         this.scheduler = scheduler;
         setName("DispatcherThread "+dtcount.incrementAndGet());
     }
@@ -142,7 +149,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                         scheduleTickTime = 0;
                         schedulePendingAdds();
                         if ( System.currentTimeMillis()-created > 1000 ) {
-                            if ( actors.length == 0 && toAdd.peek() == null ) {
+                            if ( autoShutDown && actors.length == 0 && toAdd.peek() == null) {
                                 shutDown();
                             } else {
                                 scheduler.tryStopThread(this);

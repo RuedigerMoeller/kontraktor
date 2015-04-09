@@ -75,7 +75,7 @@ public class DependencyResolver {
     }
 
     /**
-     * iterates all component directorys, list each (nonrecursively) and return all filenames
+     * iterates all component directorys, list each (nonrecursively) and return all component/filenames
      * where filter returns true.
      *
      * @param filter
@@ -90,7 +90,7 @@ public class DependencyResolver {
             for (int j = 0; j < list.length; j++) {
                 String file = list[j];
                 if ( !done.contains(file) && filter.apply(file) ) {
-                    result.add(file);
+                    result.add(lookupDir.getName()+"/"+file);
                 }
                 done.add(file);
             }
@@ -105,15 +105,16 @@ public class DependencyResolver {
      * @return
      */
     public File locateResource( String name ) {
-        for (int i = 0; i < lookupDirs.length; i++) {
-            File fi = new File(lookupDirs[i],name);
-            if ( fi.exists() )
-                return fi;
-        }
         // search for explicit includes along resource path (e.g. lookup/dir/lib.js) to allow for exclusion
         // of libs from sripts.js
         for (int i = 0; i < resourcePath.length; i++) {
             File fi = new File(resourcePath[i].getAbsolutePath()+File.separator+name);
+            if ( fi.exists() )
+                return fi;
+        }
+        // last resort look flat for a file named "name"
+        for (int i = 0; i < lookupDirs.length; i++) {
+            File fi = new File(lookupDirs[i],name);
             if ( fi.exists() )
                 return fi;
         }
@@ -209,17 +210,46 @@ public class DependencyResolver {
      *
      * for dev use createScriptTags() instead
      *
-     * @param jsFileNames list script (.js) filenames
+     * @param fileNames list script (.js) filenames
      * @return
      */
-    public byte[] mergeScripts( List<String> jsFileNames ) {
+    public byte[] mergeScripts(List<String> fileNames) {
         // inefficient, however SPA's load once, so expect not too many requests
         ByteArrayOutputStream bout = new ByteArrayOutputStream(200000);
-        for (int i = 0; i < jsFileNames.size(); i++) {
-            String jsFileName = jsFileNames.get(i);
+        for (int i = 0; i < fileNames.size(); i++) {
+            String jsFileName = fileNames.get(i);
             File f = locateResource(jsFileName);
             String absolutePath = f.getAbsolutePath();
             if ( f.getName().endsWith(".js") ) {
+                if (DEBUG)
+                    System.out.println("   "+f.getName()+" size:"+f.length());
+                byte[] bytes = new byte[(int) f.length()];
+                try (FileInputStream fileInputStream = new FileInputStream(f)) {
+                    fileInputStream.read(bytes);
+                    bout.write(bytes);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        byte[] bytes = bout.toByteArray();
+        return bytes;
+    }
+
+    /**
+     * lookup (ordered directory computed by resourcepath) and merge scripts into a single byte[].
+     *
+     * @param fileNames list of filenames to merge
+     * @return
+     */
+    public byte[] mergeBinary(List<String> fileNames) {
+        // inefficient, however SPA's load once, so expect not too many requests
+        ByteArrayOutputStream bout = new ByteArrayOutputStream(200000);
+        for (int i = 0; i < fileNames.size(); i++) {
+            String jsFileName = fileNames.get(i);
+            File f = locateResource(jsFileName);
+            String absolutePath = f.getAbsolutePath();
+            if ( f != null ) {
                 if (DEBUG)
                     System.out.println("   "+f.getName()+" size:"+f.length());
                 byte[] bytes = new byte[(int) f.length()];
@@ -242,15 +272,15 @@ public class DependencyResolver {
      * @param names
      * @return
      */
-    public byte[] mergeTextSnippets( List<String> names ) {
+    public byte[] mergeTextSnippets( List<String> names, String startTag, String endTag ) {
         ByteArrayOutputStream bout = new ByteArrayOutputStream(2000);
         HashSet hs = new HashSet();
         PrintStream pout = new PrintStream(bout);
-        pout.println("document.write('\\");
+        pout.println("document.write('\\"+startTag);
         for (int i = 0; i < names.size(); i++) {
-            String jsFileName = names.get(i);
-            File f = locateResource(jsFileName);
-            if ( f.getName().endsWith(".html") )
+            String finam = names.get(i);
+            File f = locateResource(finam);
+            if ( f != null )
             {
                 try (FileReader fileInputStream = new FileReader(f)) {
                     BufferedReader in = new BufferedReader(fileInputStream);
@@ -265,7 +295,7 @@ public class DependencyResolver {
                 }
             }
         }
-        pout.println("');");
+        pout.println(endTag+"');");
         pout.flush();
         return bout.toByteArray();
     }

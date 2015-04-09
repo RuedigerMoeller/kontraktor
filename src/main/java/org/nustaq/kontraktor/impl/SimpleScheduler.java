@@ -22,13 +22,13 @@ public class SimpleScheduler implements Scheduler {
     int qsize = DEFQSIZE;
 
     public SimpleScheduler() {
-        myThread = new DispatcherThread(this);
+        myThread = new DispatcherThread(this,false);
         myThread.start();
     }
 
     public SimpleScheduler(int qsize) {
         this.qsize = qsize;
-        myThread = new DispatcherThread(this);
+        myThread = new DispatcherThread(this,false);
         myThread.start();
     }
 

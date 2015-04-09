@@ -59,9 +59,14 @@ public class DynamicResourceManager extends FileResourceManager {
             p = p.substring("merged/".length());
             final String finalP = p;
             List<String> filesInDirs = dependencyResolver.findFilesInDirs(finam -> finam.endsWith(finalP));
-            byte[] bytes = dependencyResolver.mergeTextSnippets(filesInDirs);
+            byte[] bytes = null;
+            if ( finalP.endsWith(".css") ) {
+                bytes = dependencyResolver.mergeBinary(filesInDirs);
+            } else {
+                bytes = dependencyResolver.mergeTextSnippets(filesInDirs,"","");
+            }
             return new MyResource(p0, finalP, bytes);
-        } else if ( p.equals("scripts.js") ) { // expect simple ending like '.js'
+        } else if (p.equals("scripts.js") ) { // expect simple ending like '.js'
             final String finalP = p;
             List<String> filesInDirs = dependencyResolver.findFilesInDirs(finam -> finam.endsWith(".js"));
             byte[] bytes = null;

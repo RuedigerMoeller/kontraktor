@@ -154,7 +154,7 @@ public class Knode {
 
     public static class Options {
         @Parameter( names = { "-h", "-host" }, description = "the hostname" )
-        String host = "localhost";
+        String host = "0.0.0.0";
         @Parameter( names = { "-p", "-port"}, description = "port to serve on" )
         int port = 8080;
         @Parameter( names = { "-?", "-help", "--help" }, description = "display help")
