@@ -110,6 +110,13 @@ public class DependencyResolver {
             if ( fi.exists() )
                 return fi;
         }
+        // search for explicit includes along resource path (e.g. lookup/dir/lib.js) to allow for exclusion
+        // of libs from sripts.js
+        for (int i = 0; i < resourcePath.length; i++) {
+            File fi = new File(resourcePath[i].getAbsolutePath()+File.separator+name);
+            if ( fi.exists() )
+                return fi;
+        }
         return null;
     }
 
