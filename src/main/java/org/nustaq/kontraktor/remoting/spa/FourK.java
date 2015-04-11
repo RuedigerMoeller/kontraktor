@@ -111,6 +111,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
             // patch conf from args
             conf = (AppConf) new Kson().supportJSon(false).readObject(getFile("conf.kson"), AppConf.class.getName());
 
+
             getFile("tmp").mkdirs();
             generateRemoteStubs(conf,getClass().getPackage().getName());
 

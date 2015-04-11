@@ -41,6 +41,14 @@ public class DynamicResourceManager extends FileResourceManager {
         setBase(dependencyResolver.locateComponent(root).get(0));
     }
 
+    public boolean isDevMode() {
+        return devMode;
+    }
+
+    public void setDevMode(boolean devMode) {
+        this.devMode = devMode;
+    }
+
     @Override
     public Resource getResource(String p0) {
         String p = p0;
