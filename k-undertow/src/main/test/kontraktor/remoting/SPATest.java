@@ -11,6 +11,7 @@ import myapp.SPAServer;
 import org.nustaq.kontraktor.undertow.javascript.DynamicResourceManager;
 import org.nustaq.serialization.FSTConfiguration;
 
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -29,16 +30,18 @@ public class SPATest {
         String appRootDirectory = "/home/ruedi/projects/kontraktor/k-undertow/src/main/test/myapp/";
         String appRootPath = "myapp/";
 
-        DependencyResolver loader = mySpa.$main(appRootDirectory).await();
+        Map<String,DependencyResolver> loader = mySpa.$main(appRootDirectory).await();
         AppConf conf = mySpa.$getConf().await();
 
-        DynamicResourceManager man = new DynamicResourceManager(true, conf.getRootComponent(), loader);
 
         knode.publishOnHttp(appRootPath+"http/", "api", mySpa);
         Consumer<FSTConfiguration> configurator = mySpa.$getRemotingConfigurator().await();
-
         knode.publishOnWebsocket(appRootPath+"ws/", SerializerType.MinBin, mySpa, configurator);
-        knode.getPathHandler().addPrefixPath(appRootPath, new ResourceHandler(man));
+
+        loader.forEach( (relPath, deploader) -> {
+            DynamicResourceManager man = new DynamicResourceManager(true, deploader.getRootComponent(), deploader);
+            knode.getPathHandler().addPrefixPath(appRootPath, new ResourceHandler(man));
+        });
 
 
         Thread.sleep(1000000);

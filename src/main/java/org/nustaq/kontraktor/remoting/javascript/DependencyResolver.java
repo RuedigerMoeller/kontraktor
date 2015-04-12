@@ -4,10 +4,7 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kson.Kson;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 
 /**
@@ -20,6 +17,7 @@ public class DependencyResolver {
     File resourcePath[];
     File lookupDirs[];
     String baseDir = ".";
+    String rootComponent; // e.g. app (~subapplication)
 
     public DependencyResolver() {
     }
@@ -64,6 +62,7 @@ public class DependencyResolver {
 
     // call after setResourcePath
     protected void setRootComponent( String name ) {
+        this.rootComponent = name;
         List<File> dependentDirs = null;
         try {
             dependentDirs = getDependentDirs(name, new ArrayList<>(), new HashSet<>());
@@ -71,7 +70,12 @@ public class DependencyResolver {
             e.printStackTrace();
         }
         lookupDirs = new File[dependentDirs.size()];
+//        Collections.reverse(dependentDirs); wrong !
         dependentDirs.toArray(lookupDirs);
+    }
+
+    public String getRootComponent() {
+        return rootComponent;
     }
 
     /**

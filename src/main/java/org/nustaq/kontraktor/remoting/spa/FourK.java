@@ -22,11 +22,20 @@ import java.util.function.Consumer;
 @Local
 public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> extends Actor<SERVER> {
 
+    public static String StripDoubleSeps(String s) {
+        int len;
+        do {
+            len = s.length();
+            s = s.replace("//","/");
+        } while ( s.length() != len );
+        return s;
+    }
+
     protected Map<String, SESSION> sessions;
     protected long sessionIdCounter = 1;
     protected Scheduler clientScheduler; // set of threads processing client requests
     protected AppConf conf;
-    protected DependencyResolver loader;
+    protected Map<String,DependencyResolver> loader = new HashMap<>();
     protected HashMap<String,String> shortClassNameMapping;
     protected String appRootDir = "./";
 
@@ -105,7 +114,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
      * @throws Exception
      */
     @Local
-    public IPromise<DependencyResolver> $main(String appRootDir) {
+    public IPromise<Map<String,DependencyResolver>> $main(String appRootDir) {
         try {
             this.appRootDir = appRootDir;
             // patch conf from args
@@ -121,8 +130,10 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
 
             SimpleScheduler scheduler = new SimpleScheduler(conf.clientQSize); // fixme: add more / auto-unblock
 
-            // install handler to automatically search and bundle jslibs + template snippets
-            loader = new DependencyResolver( appRootDir, conf.rootComponent, conf.componentPath );
+            conf.getAppMappings().forEach( (k,v) -> {
+                // install handler to automatically search and bundle jslibs + template snippets
+                loader.put( k, new DependencyResolver( appRootDir, v, conf.componentPath ) );
+            });
 
             $init(scheduler);
 

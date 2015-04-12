@@ -11,6 +11,7 @@ import io.undertow.util.ETag;
 import io.undertow.util.MimeMappings;
 import org.nustaq.kontraktor.remoting.javascript.DependencyResolver;
 import org.nustaq.kontraktor.undertow.Knode;
+import org.nustaq.kontraktor.util.Log;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,7 +39,11 @@ public class DynamicResourceManager extends FileResourceManager {
         super(new File("."), 100);
         this.devMode = devMode;
         this.dependencyResolver = dependencyResolver;
-        setBase(dependencyResolver.locateComponent(root).get(0));
+        List<File> files = dependencyResolver.locateComponent(root);
+        if ( files.size() == 0 ) {
+            Log.Lg.error(this,null, "Fatal Error: unable to locate root component '"+root+"' on resourcepath.");
+        }
+        setBase(files.get(0));
     }
 
     public boolean isDevMode() {

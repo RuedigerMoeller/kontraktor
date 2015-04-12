@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.annotations.Local;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by ruedi on 07/04/15.
@@ -14,7 +15,7 @@ public class AppConf {
 
     public boolean devmode = true;
     public String componentPath[];
-    public String rootComponent = "app";
+    public HashMap<String,String> appMappings = new HashMap<>();
 
     public int clientQSize = 1000;
     public String scan4Remote[];
@@ -43,12 +44,12 @@ public class AppConf {
         return this;
     }
 
-    public String getRootComponent() {
-        return rootComponent;
+    public Map<String,String> getAppMappings() {
+        return appMappings;
     }
 
-    public AppConf setRootComponent(String rootComponent) {
-        this.rootComponent = rootComponent;
+    public AppConf putAppMapping( String relpath, String componentName ) {
+        appMappings.put(relpath,componentName);
         return this;
     }
 
