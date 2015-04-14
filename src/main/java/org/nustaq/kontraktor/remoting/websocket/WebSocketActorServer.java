@@ -102,8 +102,6 @@ public class WebSocketActorServer extends ActorServer {
     }
 
     public void onError(WebSocketChannelAdapter channel) {
-        // kontrakor uses binary messages only, however just forward text messages sent by a client
-        // to facade actor
         Log.Lg.info(this, "websocket connection error " + channel);
         facade.$receive(new WebSocketErrorMessage(channel));
         ActorServerConnection con = (ActorServerConnection) channel.getAttribute("con");

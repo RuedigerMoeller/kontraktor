@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.annotations.Register;
+import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
@@ -44,6 +45,22 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
     public T getFacadeProxy() {
         return facadeProxy;
     }
+
+    BackOffStrategy backOffStrategy = new BackOffStrategy();
+    protected void sendLoop(ObjectSocket channel) throws Exception {
+        try {
+            int count = 0;
+            while (!isTerminated()) {
+                if (singleSendLoop(channel)) {
+                    count = 0;
+                }
+                backOffStrategy.yield(count++);
+            }
+        } finally {
+            stopRemoteRefs();
+        }
+    }
+
 
     public RestActorClient<T> connect() {
         channel = new HttpObjectSocket(actorClazz, port, host, actorPath);

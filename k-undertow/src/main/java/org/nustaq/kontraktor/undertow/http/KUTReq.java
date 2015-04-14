@@ -62,6 +62,11 @@ public class KUTReq implements KontraktorHttpRequest {
     }
 
     @Override
+    public byte[] getBinary() {
+        return binaryContent;
+    }
+
+    @Override
     public String getAccept() {
         HeaderValues strings = ex.getRequestHeaders().get(Headers.ACCEPT);
         if ( strings == null )
@@ -79,6 +84,11 @@ public class KUTReq implements KontraktorHttpRequest {
     @Override
     public boolean isComplete() {
         return true;
+    }
+
+    @Override
+    public Object getSession() {
+        return null;
     }
 
     @Override

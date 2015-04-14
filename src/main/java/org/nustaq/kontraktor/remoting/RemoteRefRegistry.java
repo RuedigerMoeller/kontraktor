@@ -36,7 +36,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     ConcurrentHashMap<Integer, Object> publishedActorMapping = new ConcurrentHashMap<>();
     ConcurrentHashMap<Object, Integer> publishedActorMappingReverse = new ConcurrentHashMap<>();
 
-    BackOffStrategy backOffStrategy = new BackOffStrategy();
+
 
     // have disabled dispacther thread
     ConcurrentLinkedQueue<Actor> remoteActors = new ConcurrentLinkedQueue<>();
@@ -187,7 +187,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
         actor.getActor().__stopped = true;
     }
 
-    protected void stopRemoteRefs() {
+    public void stopRemoteRefs() {
         new ArrayList<>(remoteActors).forEach((actor) -> {
             if ( disconnectHandler != null )
                 disconnectHandler.accept(actor);
@@ -209,20 +209,6 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
         try {
             act.__stop();
         } catch (InternalActorStoppedException ase) {}
-    }
-
-    protected void sendLoop(ObjectSocket channel) throws Exception {
-        try {
-            int count = 0;
-            while (!isTerminated()) {
-                if (singleSendLoop(channel)) {
-                    count = 0;
-                }
-                backOffStrategy.yield(count++);
-            }
-        } finally {
-            stopRemoteRefs();
-        }
     }
 
     protected void receiveLoop(ObjectSocket channel) {

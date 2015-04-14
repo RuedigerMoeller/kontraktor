@@ -68,6 +68,21 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
 
         ObjectSocket chan;
 
+        protected void sendLoop(ObjectSocket channel) throws Exception {
+            try {
+                int count = 0;
+                while (!isTerminated()) {
+                    if (singleSendLoop(channel)) {
+                        count = 0;
+                    }
+                    backOffStrategy.yield(count++);
+                }
+            } finally {
+                stopRemoteRefs();
+            }
+        }
+
+
         public ConnectedActorHandler(ObjectSocket socket) throws IOException {
             chan = socket;
             new Thread(

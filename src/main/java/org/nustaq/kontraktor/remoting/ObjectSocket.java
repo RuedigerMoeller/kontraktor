@@ -14,7 +14,7 @@ public interface ObjectSocket {
 
     // blocking
     public Object readObject() throws Exception;
-    // blocking
+    // can be blocking
     public void writeObject(Object toWrite) throws Exception;
 
     public void flush() throws IOException, Exception;

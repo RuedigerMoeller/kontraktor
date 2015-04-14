@@ -21,7 +21,7 @@ public abstract class WebObjectSocket implements ObjectSocket {
     ArrayList toWrite = new ArrayList();
 
     /**
-     * its expected conf has special registrations such as Callback and remoteactor ref
+     * its expected conf has special registrations such as Callback and remoteactor ref serializers
      * @param conf
      */
     public WebObjectSocket(FSTConfiguration conf) {
@@ -69,7 +69,7 @@ public abstract class WebObjectSocket implements ObjectSocket {
 
     @Override
     public void writeObject(Object o) throws Exception {
-        synchronized (toWrite) {
+        synchronized (toWrite) {  // FIXME:
             toWrite.add(o);
         }
     }

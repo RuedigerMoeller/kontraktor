@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.remoting.base;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
@@ -13,6 +14,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Created by ruedi on 30.03.2015.
@@ -78,7 +80,7 @@ public abstract class ActorServer {
     }
 
     /**
-     * @return wether to spwan a thread per client
+     * @return wether to spawn a thread per client
      */
     protected boolean isThreadPerClient() {
         return true;
@@ -148,7 +150,7 @@ public abstract class ActorServer {
 
         public void start(boolean spawnThread) {
             if ( spawnThread ) {
-                new Thread(() -> {
+                scheduleReceiveLoop(() -> {
                     try {
                         currentObjectSocket.set(objSocket);
                         receiveLoop(objSocket);
@@ -156,19 +158,11 @@ public abstract class ActorServer {
                         Log.Warn(this, ex, "");
                     }
                     handleTermination();
-                }, "receiver").start();
+                });
             }
             // FIXME: polling remoted actor proxies per client can be done with one single thread
             // currently one per client used
-            new Thread(() -> {
-                try {
-                    currentObjectSocket.set(objSocket);
-                    sendLoop(objSocket);
-                } catch (Exception ex) {
-                    Log.Warn(this,ex,"");
-                }
-                handleTermination();
-            }, "sender").start();
+            sendThread.scheduleSendLoop( objSocket, this ).then(() -> handleTermination());
         }
 
         // cleanup after error/disconnect.
@@ -196,6 +190,82 @@ public abstract class ActorServer {
         public ObjectSocket getObjSocket() {
             return objSocket;
         }
+    }
+
+    protected void scheduleReceiveLoop(Runnable runnable) {
+        new Thread( runnable, "ActorConnnection.receiver").start();
+    }
+
+
+    static class ScheduleEntry {
+        public ScheduleEntry(ObjectSocket channel, RemoteRefRegistry reg, Promise promise) {
+            this.channel = channel;
+            this.reg = reg;
+            this.promise = promise;
+        }
+
+        ObjectSocket channel;
+        RemoteRefRegistry reg;
+        IPromise promise;
+    }
+
+    // currently a single thread per process is assigned to encoding (depends on object socket impl. WebObjectSocket impl just queues).
+    // could be a bottleneck
+    public static SenderLoop sendThread = new SenderLoop();
+    static class SenderLoop implements Runnable {
+
+        ArrayList<ScheduleEntry> sendJobs = new ArrayList<>();
+        BackOffStrategy backOffStrategy = new BackOffStrategy();
+
+        public SenderLoop() {
+            new Thread(this, "ActorServer.senderloop").start();
+        }
+
+        public IPromise scheduleSendLoop(ObjectSocket socket, RemoteRefRegistry reg) {
+            synchronized (sendJobs) {
+                Promise promise = new Promise();
+                sendJobs.add(new ScheduleEntry(socket, reg, promise));
+                return promise;
+            }
+        }
+
+        @Override
+        public void run() {
+            int count = 0;
+            while( true ) {
+                try {
+                synchronized (sendJobs) {
+                    for (int i = 0; i < sendJobs.size(); i++) {
+                        ScheduleEntry entry = sendJobs.get(i);
+                        if ( entry.reg.isTerminated() ) {
+                            terminateEntry(i, entry, "terminated", null );
+                            i--;
+                            continue;
+                        }
+                        try {
+                            if (entry.reg.singleSendLoop(entry.channel)) {
+                                count = 0;
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            terminateEntry(i, entry, null, e);
+                            i--;
+                        }
+                    }
+                }
+                backOffStrategy.yield(count++);
+                } catch (Throwable t) {
+                    Log.Warn(this,t);
+                }
+            }
+        }
+
+        protected void terminateEntry(int i, ScheduleEntry entry, Object res, Exception e) {
+            entry.reg.stopRemoteRefs();
+            sendJobs.remove(i);
+            entry.promise.complete(res,e);
+        }
+
     }
 
 }
