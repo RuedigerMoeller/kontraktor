@@ -16,5 +16,5 @@ public interface NioHttpServer {
     void startServer();
     void stopServer();
 
-    Actor getServingActor(); // fixme: wrong (mor than one) but needed currently by http remoting
+    Actor getServingActor(); // fixme: wrong (more than one) but needed currently by http remoting
 }

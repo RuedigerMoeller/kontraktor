@@ -76,7 +76,7 @@ public class FutureCatch {
             return res;
         }
 
-        public IPromise<Integer> $testESYield() {
+        public IPromise<Integer> $testAwait() {
             int correctCount = 0;
             AtomicInteger count = new AtomicInteger(0);
             try {
@@ -144,7 +144,7 @@ public class FutureCatch {
     @Test
     public void testESY() {
         final FutCatch futCatch = AsActor(FutCatch.class);
-        Integer sync = futCatch.$testESYield().await();
+        Integer sync = futCatch.$testAwait().await();
         System.out.println("Done");
         assertTrue(sync.intValue() == 6);
         futCatch.$stop();
@@ -155,6 +155,14 @@ public class FutureCatch {
         AtomicBoolean res = new AtomicBoolean(true);
         final FutCatch futCatch = AsActor(FutCatch.class);
         AtomicInteger count = new AtomicInteger(0);
+
+        futCatch.$error(1)
+            .then( r -> System.out.println("NEVER SHOULD BE CALLED") )
+            .then( () -> System.out.println("oops") )
+            .catchError(err -> {
+                System.out.println("the expected error");
+                count.incrementAndGet();
+            });
 
         futCatch.$result(0)
            .then(() -> { // Runnable
@@ -202,7 +210,7 @@ public class FutureCatch {
            .then((r, e) -> System.out.println("done "+count.get()))
            .await();
 
-        assertTrue(count.get() == 13);
+        assertTrue(count.get() == 14);
         futCatch.$stop();
     }
 

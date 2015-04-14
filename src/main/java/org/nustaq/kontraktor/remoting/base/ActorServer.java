@@ -16,6 +16,9 @@ import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 30.03.2015.
+ *
+ * multiplexes incoming packets/messages to a set of connections/session and manages/maps remote actor references
+ *
  */
 public abstract class ActorServer {
 

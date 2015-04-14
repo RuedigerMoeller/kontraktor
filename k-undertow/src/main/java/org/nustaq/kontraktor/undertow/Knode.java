@@ -84,17 +84,22 @@ public class Knode {
     }
 
     public void publishOnWebsocket( String prefixPath, SerializerType encoding, Actor actor, Consumer<FSTConfiguration> configurator ) {
+        KUndertowHttpServerAdapter adapter = new KUndertowHttpServerAdapter(getServer(), getPathHandler());
         WebSocketActorServer webSocketActorServer
             = new WebSocketActorServer(
-                new KUndertowHttpServerAdapter(getServer(),getPathHandler()),
+                adapter,
                 new Coding(encoding, configurator),
                 actor
         );
+        KUndertowWebSocketHandler.WithResult wsAdapter = KUndertowWebSocketHandler.With(webSocketActorServer);
         getPathHandler().addExactPath(prefixPath,
             Handlers.websocket(
-                KUndertowWebSocketHandler.With(webSocketActorServer)
+                wsAdapter.cb
             )
         );
+        // install longpollhandler if present
+        if ( wsAdapter.handler.getLongPollFallbackHandler() != null )
+            getPathHandler().addPrefixPath(prefixPath, wsAdapter.handler.getLongPollFallbackHandler() );
     }
 
     ConcurrentHashMap<String, RestActorServer> installedHttpServers = new ConcurrentHashMap<>();

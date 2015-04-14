@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.remoting.http;
 
 import javassist.bytecode.Descriptor;
+import org.nustaq.kontraktor.remoting.base.ActorServer;
 
 import java.nio.ByteBuffer;
 
@@ -15,7 +16,10 @@ public interface KontraktorHttpRequest {
     // return i'th element of path. if at end return ""
     String getPath(int i);
     boolean isPOST();
+    // optional post
     CharSequence getText();
+    // optional post if handled explicitely binary
+    byte[] getBinary();
     String getAccept();
     void append(ByteBuffer buffer, int bytesread);
     boolean isComplete();
@@ -29,4 +33,6 @@ public interface KontraktorHttpRequest {
         return res.toString();
     }
 
+    // optional, must be set by adapter
+    Object getSession();
 }

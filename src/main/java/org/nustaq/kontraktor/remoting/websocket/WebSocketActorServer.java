@@ -2,8 +2,11 @@ package org.nustaq.kontraktor.remoting.websocket;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.ActorProxy;
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.http.KontraktorHttpRequest;
 import org.nustaq.kontraktor.remoting.http.NioHttpServer;
 import org.nustaq.kontraktor.remoting.spa.FourKSession;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
@@ -105,6 +108,39 @@ public class WebSocketActorServer extends ActorServer {
         facade.$receive(new WebSocketErrorMessage(channel));
         ActorServerConnection con = (ActorServerConnection) channel.getAttribute("con");
         con.handleTermination();
+    }
+
+    public IPromise<byte[]> handleLongPoll(KontraktorHttpRequest req) {
+        if ( req.getBinary() != null  )
+        {
+            if ( req.getBinary().length == 4 ) { // indicates sequence of empty longoll req. somewhat quirksy, however any serialized obj will be longer
+                // todo:
+                // read up to N messages from messages store and send response.
+                // sending of messages has to also be redirected to message store
+                // optionally (no reliability) just poll queue and send results back.
+                //
+                // need a per session WebObjectSocket with patched write method
+                // as the original socket is dead (in case of fallback). Can be created on
+                // demand here (similar to onOpen), need strat to time them out though
+                //
+                ActorServerConnection con = (ActorServerConnection) req.getSession();
+                return new Promise<>(new byte[0]);
+            } else {
+                //
+                ActorServerConnection con = (ActorServerConnection) req.getSession();
+                ((MyWSObjectSocket)con.getObjSocket()).setNextMsg(req.getBinary());
+                con.currentObjectSocket.set(con.getObjSocket());
+                try {
+                    while( con.singleReceive(con.getObjSocket()) ) {
+                        // do nothing
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    // FIXME: cleanup ?
+                }
+            }
+        }
+        return new Promise<>(new byte[0]);
     }
 
     class MyWSObjectSocket extends WebObjectSocket {
