@@ -2,6 +2,7 @@ package kontraktor.remoting;
 
 import kontraktor.remoting.helpers.ClientSideActor;
 import kontraktor.remoting.helpers.ServerTestFacade;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -28,7 +29,13 @@ public class WSocketTest extends TCPTest {
 
     @Override @Test
     public void bench() throws Exception {
-        super.bench();
+        setup();
+        int remoterefs = server.getConnections().size();
+        ServerTestFacade run = createClientFacade(true);
+
+        run.$close();
+        Thread.sleep(1000);
+        Assert.assertTrue(remoterefs == server.getConnections().size());
     }
 
     @Override @Test

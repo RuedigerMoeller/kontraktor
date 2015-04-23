@@ -26,6 +26,7 @@ import java.util.function.Consumer;
  */
 public abstract class RemoteRefRegistry implements RemoteConnection {
 
+    public static final Object OUT_OF_ORDER_SEQ = "OOOS";
     public static int MAX_BATCH_CALLS = 500;
     protected FSTConfiguration conf;
 
@@ -236,10 +237,12 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     public boolean singleReceive(ObjectSocket channel) throws Exception {
         // read object
         final Object response = channel.readObject();
-        if ( response instanceof Object[] ) {
+        if ( response == OUT_OF_ORDER_SEQ )
+            return false;
+        if ( response instanceof Object[] ) { // bundling. last element contains sequence
             Object arr[] = (Object[]) response;
             boolean hadResp = false;
-            for (int i = 0; i < arr.length; i++) {
+            for (int i = 0; i < arr.length-1; i++) {
                 Object resp = arr[i];
                 if (resp instanceof RemoteCallEntry == false) {
                     if ( resp != null )

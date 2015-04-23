@@ -8,11 +8,13 @@ import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.http.KontraktorHttpRequest;
 import org.nustaq.kontraktor.remoting.http.NioHttpServer;
+import org.nustaq.kontraktor.remoting.messagestore.MessageStore;
 import org.nustaq.kontraktor.remoting.spa.FourKSession;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketErrorMessage;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketTextMessage;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.offheap.bytez.bytesource.ByteArrayByteSource;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.IOException;
@@ -65,21 +67,23 @@ public class WebSocketActorServer extends ActorServer {
         ActorServerConnection con = new ActorServerConnection(coding);
         MyWSObjectSocket socket = new MyWSObjectSocket(con.getConf(), channel);
         con.init(socket, facade);
-        channel.setAttribute("con",con);
+        channel.setAttribute("con", con);
         doAccept(con);
     }
 
     public void onBinaryMessage(WebSocketChannelAdapter channel, byte[] buffer) {
         ActorServerConnection con = (ActorServerConnection) channel.getAttribute("con");
-        ((MyWSObjectSocket)con.getObjSocket()).setNextMsg(buffer);
-        con.currentObjectSocket.set(con.getObjSocket());
-        try {
-            while( con.singleReceive(con.getObjSocket()) ) {
-                // do nothing
+        synchronized (con.currentObjectSocket) {
+            ((MyWSObjectSocket)con.getObjSocket()).setNextMsg(buffer);
+            con.currentObjectSocket.set(con.getObjSocket());
+            try {
+                while( con.singleReceive(con.getObjSocket()) ) {
+                    // do nothing
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                // FIXME: cleanup ?
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            // FIXME: cleanup ?
         }
     }
 
@@ -143,6 +147,7 @@ public class WebSocketActorServer extends ActorServer {
 
     class MyWSObjectSocket extends WebObjectSocket {
         WebSocketChannelAdapter channel;
+        protected MessageStore sendHistory;
 
         MyWSObjectSocket(FSTConfiguration conf, WebSocketChannelAdapter channel ) {
             super(conf);
@@ -152,6 +157,9 @@ public class WebSocketActorServer extends ActorServer {
         @Override
         public void writeAndFlushObject(Object toWrite) throws Exception {
             final byte[] b = conf.asByteArray(toWrite);
+            if ( sendHistory != null ) {
+                sendHistory.putMessage("dummy",writeSequence.get()-1, new ByteArrayByteSource(b));
+            }
             channel.sendBinaryMessage(b);
         }
 

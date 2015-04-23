@@ -40,7 +40,10 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
     @Override
     @Local
     public void $hasBeenUnpublished() {
-        app.$clientTerminated(self()).then(() -> self().$stop());
+        app.$clientTerminated(self()).then(() -> {
+            if (app.isStickySessions())
+                self().$stop();
+        });
         self().$close();
     }
 

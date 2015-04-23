@@ -77,15 +77,17 @@ public class WebSocketClient<T extends Actor> extends ActorClient<T> {
 
         @OnMessage
         public void onMessage(byte[] message) {
-            try {
-                sock.setNextMsg(message);
-                con.currentObjectSocket.set(sock);
-                while( ! con.isTerminated() && con.singleReceive(sock) ) {
-                    // do nothing
+            synchronized (con.currentObjectSocket) {
+                try {
+                    sock.setNextMsg(message);
+                    con.currentObjectSocket.set(sock);
+                    while( ! con.isTerminated() && con.singleReceive(sock) ) {
+                        // do nothing
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    // FIXME: cleanup ?
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                // FIXME: cleanup ?
             }
         }
 

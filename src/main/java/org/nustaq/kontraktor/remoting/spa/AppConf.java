@@ -13,6 +13,7 @@ import java.util.Map;
 @Local
 public class AppConf {
 
+    public boolean stickySessions = true;
     public boolean devmode = true;
     public String componentPath[];
     public HashMap<String,String> appMappings = new HashMap<>();
@@ -59,6 +60,11 @@ public class AppConf {
 
     public AppConf setClientQSize(int clientQSize) {
         this.clientQSize = clientQSize;
+        return this;
+    }
+
+    public AppConf setSticky(boolean stickkySessions) {
+        this.stickySessions = stickkySessions;
         return this;
     }
 

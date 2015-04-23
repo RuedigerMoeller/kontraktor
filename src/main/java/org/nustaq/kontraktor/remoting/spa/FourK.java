@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.Scheduler;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.monitoring.Monitorable;
@@ -38,11 +39,25 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
     protected Map<String,DependencyResolver> loader = new HashMap<>();
     protected HashMap<String,String> shortClassNameMapping;
     protected String appRootDir = "./";
+    volatile protected boolean stickySessions;
 
+    /**
+     *
+     * @param clientScheduler
+     * @param stickySessions if sticky session is true, sessions will expire by timeout only. A
+     *                       disconnect will unpublish the session actor, however it can be reconnected
+     *                       using "reconnectSession" later on.
+     */
     @Local
-    public void $init(Scheduler clientScheduler) {
+    public void $init(Scheduler clientScheduler, boolean stickySessions) {
         this.sessions = new HashMap<>();
         this.clientScheduler = clientScheduler;
+        this.stickySessions = stickySessions;
+    }
+
+    @CallerSideMethod
+    public boolean isStickySessions() {
+        return ((FourK)getActor()).stickySessions;
     }
 
     /**
@@ -77,11 +92,25 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
         return new Promise<>(session);
     }
 
+    public IPromise<SESSION> $reconnectSession(String id) {
+        SESSION session = sessions.get(id);
+        return new Promise<>(session);
+    }
+
+    /**
+     * called upon disconnect from a client.
+     * by default, this also destroys the session. If sticky sessions are enabled,
+     * sessionactor is unpublished, but can be reactivated using reconnectSession
+     *
+     * @param session
+     * @return
+     */
     @Local
     public IPromise $clientTerminated(SESSION session) {
         Promise p = new Promise();
         session.$getId().then((id, err) -> {
-            sessions.remove(id);
+            if ( ! stickySessions )
+                sessions.remove(id);
             p.complete();
         });
         return p;
@@ -135,7 +164,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
                 loader.put( k, new DependencyResolver( appRootDir, v, conf.componentPath ) );
             });
 
-            $init(scheduler);
+            $init(scheduler, conf.stickySessions);
 
             // fixme: slowish
             BiFunction<Actor,String,Boolean> methodSecurity = (actor, method) -> {
