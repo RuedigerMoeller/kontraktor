@@ -9,7 +9,9 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -62,7 +64,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 		    default:
 			    conf = FSTConfiguration.createDefaultConfiguration();
 	    }
-	    configureConfiguration( code );
+	    configureConfiguration(code);
 	}
 
     public BiFunction<Actor, String, Boolean> getRemoteCallInterceptor() {
@@ -116,16 +118,30 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
         Integer integer = publishedActorMappingReverse.get(act.getActorRef());
         if ( integer == null ) {
             integer = actorIdCount.incrementAndGet();
-            publishedActorMapping.put(integer, act.getActorRef());
-            publishedActorMappingReverse.put(act.getActorRef(), integer);
-            act.__addRemoteConnection(this);
+            publishActorDirect(integer, act);
         }
         return integer;
     }
 
-    public void unpublishActor(Actor act) {
+    private void publishActorDirect(Integer integer, Actor act) {
+        publishedActorMapping.put(integer, act.getActorRef());
+        publishedActorMappingReverse.put(act.getActorRef(), integer);
+        act.__addRemoteConnection(this);
+    }
+
+    /**
+     * remove current <remoteId,actor> mappings if present.
+     * return map containing removed mappings (for reconnection)
+     *
+     * @param act
+     * @return
+     */
+    @Override
+    public RemotedActorMappingSnapshot unpublishActor(Actor act) {
+        RemotedActorMappingSnapshot sn = new RemotedActorMappingSnapshot();
         Integer integer = publishedActorMappingReverse.get(act.getActorRef());
         if ( integer != null ) {
+            sn.getActorMapping().put(integer,act.getActorRef());
             publishedActorMapping.remove(integer);
             publishedActorMappingReverse.remove(act.getActorRef());
             act.__removeRemoteConnection(this);
@@ -133,6 +149,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
                 ((RemotableActor) act).$hasBeenUnpublished();
             }
         }
+        return sn;
     }
 
     public int registerPublishedCallback(Callback cb) {
@@ -169,7 +186,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
             res.__remoteId = remoteId;
             remoteActorSet.put(remoteId,res);
             remoteActors.add(res);
-            res.__addStopHandler( (actor,err) -> {
+            res.__addStopHandler((actor, err) -> {
                 remoteRefStopped((Actor) actor);
             });
             res.__clientConnection = this;
@@ -287,7 +304,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
                 return true;
             }
 
-            Object future = targetActor.getScheduler().enqueueCall(null, targetActor, read.getMethod(), read.getArgs(), false);
+            Object future = targetActor.getScheduler().enqueueCallFromRemote(this, null, targetActor, read.getMethod(), read.getArgs(), false);
             if ( future instanceof IPromise) {
                 ((IPromise) future).then( (r,e) -> {
                     try {
@@ -426,6 +443,11 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
         return integer == null ? -1 : integer;
     }
 
+    public void reMap(RemotedActorMappingSnapshot snapshot) {
+        snapshot.getActorMapping().entrySet().forEach( entry -> {
+            publishActorDirect(entry.getKey(),entry.getValue());
+        });
+    }
 }
 
 

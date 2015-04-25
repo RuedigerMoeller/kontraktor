@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.RemotedActorMappingSnapshot;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
@@ -61,6 +62,7 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
     public boolean runReceiveLoop() {
         return true;
     }
+
     /**
      *
      */
@@ -127,6 +129,11 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
         @Override
         public int getRemoteId(Actor act) {
             return ActorClient.this.getRemoteId(act);
+        }
+
+        @Override
+        public RemotedActorMappingSnapshot unpublishActor(Actor self) {
+            return ActorClient.this.unpublishActor(self);
         }
     }
 

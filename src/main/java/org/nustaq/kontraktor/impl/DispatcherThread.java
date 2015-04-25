@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.impl;
 import io.jaq.mpsc.MpscConcurrentQueue;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
+import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.util.Log;
 
 import java.lang.reflect.*;
@@ -318,6 +319,8 @@ public class DispatcherThread extends Thread implements Monitorable {
 
     private Object invoke(CallEntry poll) throws IllegalAccessException, InvocationTargetException {
         final Object target = poll.getTarget();
+        RemoteRefRegistry remoteRefRegistry = poll.getRemoteRefRegistry();
+        Actor.registry.set(remoteRefRegistry);
         return poll.getMethod().invoke(target, poll.getArgs());
     }
 

@@ -6,6 +6,8 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.RemotableActor;
+import org.nustaq.kontraktor.remoting.RemotedActorMappingSnapshot;
+import org.nustaq.kontraktor.util.Log;
 
 import java.util.Date;
 
@@ -17,8 +19,9 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
 
     protected long creationTime = System.currentTimeMillis();
     volatile protected long lastHB = System.currentTimeMillis();
-    protected String sessionId;
+    volatile protected String sessionId;
     protected SERVER app;
+    protected RemotedActorMappingSnapshot snapshot; // last disconnection snapshot
 
     public void $initFromServer(String sessionId, SERVER spaServer, Object resultFromIsLoginValid) {
         this.app = spaServer;
@@ -34,17 +37,16 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
     }
 
     public void $heartBeat() {
+        Log.Info(this, "Hearbeat from " + sessionId);
         lastHB = System.currentTimeMillis();
     }
 
-    @Override
-    @Local
+    @Override @Local
     public void $hasBeenUnpublished() {
         app.$clientTerminated(self()).then(() -> {
             if (app.isStickySessions())
-                self().$stop();
+                self().$close();
         });
-        self().$close();
     }
 
     @CallerSideMethod @Local
@@ -52,4 +54,16 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
         return lastHB;
     }
 
+    @CallerSideMethod @Local
+    public String getSessionId() {
+        return getActor().sessionId;
+    }
+
+    public void $setSnapshot(RemotedActorMappingSnapshot snapshot) {
+        this.snapshot = snapshot;
+    }
+
+    public IPromise<RemotedActorMappingSnapshot> $getSnapshot() {
+        return new Promise<RemotedActorMappingSnapshot>(snapshot);
+    }
 }

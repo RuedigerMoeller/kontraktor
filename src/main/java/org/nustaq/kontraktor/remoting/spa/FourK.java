@@ -8,20 +8,25 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.monitoring.Monitorable;
+import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.RemotedActorMappingSnapshot;
 import org.nustaq.kontraktor.remoting.javascript.DependencyResolver;
 import org.nustaq.kontraktor.remoting.javascript.minbingen.MB2JS;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Local
 public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> extends Actor<SERVER> {
+
+    public static long SESSION_FULL_TIMEOUT = 1000 * 60 * 60; // give one hour for reconnect
+    public static int SESSION_HB_TIMEOUT = 30000; // client side ping timeout trigger
 
     public static String StripDoubleSeps(String s) {
         int len;
@@ -53,7 +58,36 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
         this.sessions = new HashMap<>();
         this.clientScheduler = clientScheduler;
         this.stickySessions = stickySessions;
+        delayed( 1000, () -> $checkSessions() );
     }
+
+    @Local
+    public void $checkSessions() {
+        // fixme: add security sort out
+        long now = System.currentTimeMillis();
+        List toRemove = new ArrayList();
+        List<IPromise<RemotedActorMappingSnapshot>> snapshots = new ArrayList<>();
+        sessions.values().forEach(session -> {
+            if (!session.isPublished()) {
+                if (now - session.getLastHB() > SESSION_FULL_TIMEOUT) {
+                    Log.Info(this, "full timeout. deleting session " + session.getSessionId());
+                    toRemove.add(session.getSessionId());
+                }
+            } else if (now - session.getLastHB() > SESSION_HB_TIMEOUT) {
+                Log.Info(this, "timeout. closing connection for session " + session.getSessionId());
+                IPromise<RemotedActorMappingSnapshot> unpub = session.$unpublish();
+                IPromise<RemotedActorMappingSnapshot> next = new Promise<RemotedActorMappingSnapshot>();
+                snapshots.add(next);
+                unpub.then( snapshot -> { session.$setSnapshot(snapshot); next.resolve(snapshot); } );
+            }
+        });
+
+        toRemove.forEach(sessionKey -> sessions.remove(sessionKey));
+        all(snapshots).await(); // just await before returning/rescheduling
+
+        delayed( 2000, () -> $checkSessions() );
+    }
+
 
     @CallerSideMethod
     public boolean isStickySessions() {
@@ -72,29 +106,54 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
     public IPromise<String> $authenticate(String user, String pwd) {
         Promise p = new Promise();
         isLoginValid(user, pwd).then(
-          (result, e) -> {
-            if (result != null ) {
-                String sessionId = Long.toHexString((long) (Math.random()*Long.MAX_VALUE)) + "" + sessionIdCounter++; // FIXME: use strings
-                SESSION newSession = createSessionActor(sessionId, clientScheduler, result);
-                newSession.$initFromServer(sessionId, (FourK) self(), result);
-                sessions.put(sessionId, newSession);
-                newSession.setThrowExWhenBlocked(true);
-                p.complete(sessionId, null);
-            } else {
-                p.complete(null, "authentication failure");
-            }
-        });
+            (result, e) -> {
+                if (result != null) {
+                    String sessionId = Long.toHexString((long) (Math.random() * Long.MAX_VALUE)) + "" + sessionIdCounter++; // FIXME: use strings
+                    SESSION newSession = createSessionActor(sessionId, clientScheduler, result);
+                    newSession.$initFromServer(sessionId, (FourK) self(), result);
+                    sessions.put(sessionId, newSession);
+                    newSession.setThrowExWhenBlocked(true);
+                    p.complete(sessionId, null);
+                } else {
+                    p.complete(null, "authentication failure");
+                }
+            });
         return p;
     }
 
     public IPromise<SESSION> $getSession(String id) {
+        System.out.println("getSession registry "+Actor.registry.get());
         SESSION session = sessions.get(id);
         return new Promise<>(session);
     }
 
-    public IPromise<SESSION> $reconnectSession(String id) {
+    public IPromise<Boolean> $reconnectSession(String id, int sequence) {
+        RemoteRefRegistry remoteRefRegistry = Actor.registry.get(); // caveat NOT available in callbacks
+        // FIXME: protect against brute force
         SESSION session = sessions.get(id);
-        return new Promise<>(session);
+        if ( session != null ) {
+            session.$heartBeat();
+            Promise res = new Promise<>();
+            Log.Info(this,"try reconnect session "+id);
+            session.$getSnapshot().then( snapshot -> {
+                if ( snapshot != null ) {
+                    if ( remoteRefRegistry != null ) {
+                        remoteRefRegistry.reMap((RemotedActorMappingSnapshot) snapshot);
+                        Log.Info(this, "reconnection successful. session " + id);
+                        res.resolve(true);
+                    } else {
+                        Log.Info(this, "reconnection failed, no registry set " + id);
+                        res.resolve(false);
+                    }
+                } else {
+                    Log.Info(this, "reconnection failed, no snapshot set " + id);
+                    res.resolve(false);
+                }
+            });
+            return res;
+        }
+        Log.Info(this, "reconnection session failed " + id);
+        return new Promise(false);
     }
 
     /**
@@ -109,7 +168,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
     public IPromise $clientTerminated(SESSION session) {
         Promise p = new Promise();
         session.$getId().then((id, err) -> {
-            if ( ! stickySessions )
+            if (!stickySessions)
                 sessions.remove(id);
             p.complete();
         });

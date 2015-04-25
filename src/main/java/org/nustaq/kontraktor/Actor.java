@@ -28,6 +28,7 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.RemotedActorMappingSnapshot;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.TicketMachine;
 
@@ -126,6 +127,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * contains sender of a message if one actor messages to another actor
      */
     public static ThreadLocal<Actor> sender = new ThreadLocal<>();
+    public static ThreadLocal<RemoteRefRegistry> registry = new ThreadLocal<>();
 
     // internal ->
     public Queue __mailbox; // mailbox/eventloop queue
@@ -223,7 +225,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      */
     protected <T> IPromise<T> exec( @InThread Callable<T> callable) {
         Promise<T> prom = new Promise<>();
-        __scheduler.runBlockingCall(self(),callable,prom);
+        __scheduler.runBlockingCall(self(), callable, prom);
         return prom;
     }
 
@@ -407,6 +409,27 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
 
+    @CallerSideMethod public boolean isPublished() {
+        return __connections != null && __connections.peek() != null;
+    }
+
+    /**
+     * unpublish this actor from remote registry, but do not stop
+     * FIXME: returned Snapshot currently works for a single connection. If an actor is published twice, the
+     *        snapshot will be incomplete
+     */
+    public IPromise<RemotedActorMappingSnapshot> $unpublish() {
+        Promise<RemotedActorMappingSnapshot> p = new Promise<>();
+        if ( __connections != null && __connections.peek() != null ) {
+            RemotedActorMappingSnapshot res = new RemotedActorMappingSnapshot();
+            __connections.forEach(
+                remoteCon -> res.merge(remoteCon,remoteCon.unpublishActor(self()))
+            );
+            p.resolve(res);
+        }
+        return p;
+    }
+
 
 ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
@@ -424,7 +447,9 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             getActorRef().__connections = new ConcurrentLinkedQueue<RemoteConnection>();
             getActor().__connections = getActorRef().__connections;
         }
-        __connections.add(con);
+        if ( ! __connections.contains(con) ) {
+            __connections.add(con);
+        }
     }
 
     @CallerSideMethod public void __removeRemoteConnection( RemoteConnection con ) {

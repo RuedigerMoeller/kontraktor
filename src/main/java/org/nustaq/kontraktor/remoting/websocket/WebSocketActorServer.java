@@ -73,17 +73,16 @@ public class WebSocketActorServer extends ActorServer {
 
     public void onBinaryMessage(WebSocketChannelAdapter channel, byte[] buffer) {
         ActorServerConnection con = (ActorServerConnection) channel.getAttribute("con");
-        synchronized (con.currentObjectSocket) {
-            ((MyWSObjectSocket)con.getObjSocket()).setNextMsg(buffer);
-            con.currentObjectSocket.set(con.getObjSocket());
-            try {
-                while( con.singleReceive(con.getObjSocket()) ) {
-                    // do nothing
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                // FIXME: cleanup ?
-            }
+        ((MyWSObjectSocket)con.getObjSocket()).setNextMsg(buffer);
+        con.currentObjectSocket.set(con.getObjSocket());
+        try {
+            con.singleReceive(con.getObjSocket());
+//            while( con.singleReceive(con.getObjSocket()) ) {
+//                 do nothing
+//            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            // FIXME: cleanup ?
         }
     }
 
