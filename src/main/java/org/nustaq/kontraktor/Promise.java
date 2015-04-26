@@ -369,35 +369,48 @@ public class Promise<T> implements IPromise<T> {
      * see IPromise (inheriting Callback) interface
      */
     @Override
-    public T await() {
-        awaitPromise();
+    public T await(long timeoutMillis) {
+        awaitPromise(timeoutMillis);
         return awaitHelper();
     }
 
     /**
      * see IPromise (inheriting Callback) interface
+     * @param timeout
      */
     @Override
-    public IPromise<T> awaitPromise() {
+    public IPromise<T> awaitPromise(long timeout) {
+        long endtime = 0;
+        if ( timeout > 0 ) {
+            endtime = System.currentTimeMillis() + timeout;
+        }
         if ( Thread.currentThread() instanceof DispatcherThread ) {
             DispatcherThread dt = (DispatcherThread) Thread.currentThread();
             Scheduler scheduler = dt.getScheduler();
             int idleCount = 0;
+            dt.__stack.add(this);
             while( ! isSettled() ) {
                 if ( ! dt.pollQs() ) {
                     idleCount++;
-                    dt.__stack.add(this);
                     scheduler.pollDelay(idleCount);
-                    dt.__stack.remove(dt.__stack.size()-1);
                 } else {
                     idleCount = 0;
                 }
+                if ( endtime != 0 && System.currentTimeMillis() > endtime ) {
+                    timedOut(Timeout.INSTANCE);
+                    break;
+                }
             }
+            dt.__stack.remove(dt.__stack.size()-1);
             return this;
         } else {
             // if outside of actor machinery, just block (warning actually polls)
             while( ! isSettled() ) {
-                LockSupport.parkNanos(1000*500);
+                LockSupport.parkNanos(1000 * 500);
+                if ( endtime != 0 && System.currentTimeMillis() > endtime ) {
+                    timedOut(Timeout.INSTANCE);
+                    break;
+                }
             }
             return this;
         }
@@ -411,7 +424,7 @@ public class Promise<T> implements IPromise<T> {
             }
             else {
                 if ( getError() == Timeout.INSTANCE ) {
-                    throw new TimeoutException();
+                    throw new KTimeoutException();
                 }
                 throw new AwaitException(getError());
             }

@@ -7,14 +7,13 @@ import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
-import org.nustaq.kontraktor.remoting.spa.FourKSession;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 /**
  * Created by ruedi on 30.03.2015.
@@ -117,7 +116,7 @@ public abstract class ActorServer {
     }
 
     public class ActorServerConnection extends RemoteRefRegistry {
-        ObjectSocket objSocket;
+        AtomicReference<ObjectSocket> objSocket = new AtomicReference<>(null);
         Actor facade;
 
         public ActorServerConnection() {
@@ -142,7 +141,7 @@ public abstract class ActorServer {
         }
 
         public void init(ObjectSocket s, Actor facade) {
-            this.objSocket = s;
+            this.objSocket.set(s);
             this.facade = facade;
             this.disconnectHandler = closeListener;
             publishActor(facade); // so facade is always 1
@@ -152,17 +151,15 @@ public abstract class ActorServer {
             if ( spawnThread ) {
                 scheduleReceiveLoop(() -> {
                     try {
-                        currentObjectSocket.set(objSocket);
-                        receiveLoop(objSocket);
+                        receiveLoop(objSocket.get());
                     } catch (Exception ex) {
                         Log.Warn(this, ex, "");
                     }
                     handleTermination();
                 });
             }
-            // FIXME: polling remoted actor proxies per client can be done with one single thread
-            // currently one per client used
-            sendThread.scheduleSendLoop( objSocket, this ).then(() -> handleTermination());
+            // FIXME: polling remoted actor proxies per client can be done with one single thread (see webobjectsocket)
+            sendThread.scheduleSendLoop( objSocket.get(), this ).then(() -> handleTermination());
         }
 
         // cleanup after error/disconnect.
@@ -176,7 +173,7 @@ public abstract class ActorServer {
         public void close() {
             super.close();
             try {
-                objSocket.close();
+                objSocket.get().close();
             } catch (IOException e) {
                 Log.Warn(this,e,"");
             }
@@ -187,7 +184,12 @@ public abstract class ActorServer {
             return facade;
         }
 
-        public ObjectSocket getObjSocket() {
+        @Override
+        public AtomicReference<ObjectSocket> getObjectSocket() {
+            return objSocket;
+        }
+
+        public AtomicReference<ObjectSocket> getObjSocket() {
             return objSocket;
         }
     }
@@ -212,10 +214,23 @@ public abstract class ActorServer {
     // currently a single thread per process is assigned to encoding (depends on object socket impl. WebObjectSocket impl just queues).
     // could be a bottleneck
     public static SenderLoop sendThread = new SenderLoop();
+
+    /**
+     * polls queues of remote actor proxies and serializes messages to their associated object sockets.
+     *
+     * Terminated / Disconnected remote actors (registries) are removed from the entry list,
+     * so regular actor messages sent to a terminated remote actor queue up in its mailbox.
+     * Callbacks/Future results from exported callbacks/futures still reach the object socket
+     * as these are redirected directly inside serializers. Those queue up in the webobjectsocket's list,
+     * as flush is not called anymore because of removement from SendLoop list.
+     *
+     * in short: regular messages to disconected remote actors queue up in mailbox, callbacks in object socket buffer
+     *
+     */
     static class SenderLoop implements Runnable {
 
         ArrayList<ScheduleEntry> sendJobs = new ArrayList<>();
-        BackOffStrategy backOffStrategy = new BackOffStrategy();
+        BackOffStrategy backOffStrategy = new BackOffStrategy().setNanosToPark(1000*1000*2);
 
         public SenderLoop() {
             new Thread(this, "ActorServer.senderloop").start();

@@ -13,13 +13,18 @@ import java.util.concurrent.locks.*;
  */
 public class BackOffStrategy {
 
+    public static int SLEEP_NANOS = 1000 * 300;
+    public static int SPIN_UNTIL_YIELD = 5000;
+    public static int YIELD_UNTIL_PARK = 1000;
+    public static int PARK_UNTIL_SLEEP = 10;
+
     int yieldCount;
     int parkCount;
     int sleepCount;
-    int nanosToPark  = 1000*300; // 1/3 milli (=latency peak on burst ..)
+    int nanosToPark  = SLEEP_NANOS; // 1/3 milli (=latency peak on burst ..)
 
     public BackOffStrategy() {
-        setCounters(5000,1000,10);
+        setCounters(SPIN_UNTIL_YIELD, YIELD_UNTIL_PARK, PARK_UNTIL_SLEEP);
     }
 
     /**
@@ -41,8 +46,8 @@ public class BackOffStrategy {
         return nanosToPark;
     }
 
-    public void setNanosToPark(int nanosToPark) {
-        this.nanosToPark = nanosToPark;
+    public BackOffStrategy setNanosToPark(int nanosToPark) {
+        this.nanosToPark = nanosToPark; return this;
     }
 
     public void yield(int count) {

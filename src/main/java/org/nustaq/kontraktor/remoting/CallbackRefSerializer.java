@@ -8,6 +8,7 @@ import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by ruedi on 09.08.14.
@@ -33,10 +34,10 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
         // fixme: detect local actors returned from foreign
         int id = in.readInt();
-        ObjectSocket chan = reg.currentObjectSocket.get();
+        AtomicReference<ObjectSocket> chan = reg.getObjectSocket();
         Callback cb = (Object result, Object error) -> {
             try {
-                reg.receiveCBResult(chan,id,result,error);
+                reg.receiveCBResult(chan.get(),id,result,error);
             } catch (Exception e) {
                 Log.Warn(this, e, "");
             }

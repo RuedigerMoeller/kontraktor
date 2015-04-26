@@ -6,9 +6,9 @@ package org.nustaq.kontraktor;
  * only thrown in context of an all call
  *
  */
-public class TimeoutException extends AwaitException {
+public class KTimeoutException extends AwaitException {
 
-    public TimeoutException() {
+    public KTimeoutException() {
         super("Timeout");
     }
 }

@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.remoting.websocket;
 
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.RemotedActorMappingSnapshot;
 import org.nustaq.kontraktor.remoting.messagestore.MessageStore;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectInput;
@@ -25,6 +26,7 @@ public abstract class WebObjectSocket implements ObjectSocket {
     protected ArrayList toWrite = new ArrayList();
     protected AtomicInteger writeSequence = new AtomicInteger(1);
     protected AtomicInteger readSequence = new AtomicInteger(0);
+    private RemotedActorMappingSnapshot snapshot;
 
     /**
      * its expected conf has special registrations such as Callback and remoteactor ref serializers
@@ -118,6 +120,7 @@ public abstract class WebObjectSocket implements ObjectSocket {
     public void writeObject(Object o) throws Exception {
         synchronized (toWrite) {  // FIXME:
             toWrite.add(o);
+            System.out.println("writing to socket Q siz:" + toWrite.size());
         }
     }
 
@@ -131,6 +134,25 @@ public abstract class WebObjectSocket implements ObjectSocket {
             Object[] objects = toWrite.toArray();
             toWrite.clear();
             writeAndFlushObject(objects);
+        }
+    }
+
+    @Override
+    public void mergePendingWrites(ObjectSocket o) {
+        if ( o instanceof WebObjectSocket ) {
+            WebObjectSocket other = (WebObjectSocket) o;
+            // note can only be done right after construction when this socket is not exposed to
+            // other threads !!
+            // append pending callback writes to my queue
+            // some might be underway so use the list of the old socket. As the writeList can only contain callback
+            // invokcation, order of messages is not an issue here
+            synchronized (other.toWrite) {
+                ArrayList prevToWrite = this.toWrite;
+                toWrite = other.toWrite;
+                toWrite.addAll(prevToWrite);
+            }
+        } else {
+            throw new RuntimeException("cannot merge WebObjectSocket with "+o);
         }
     }
 

@@ -21,7 +21,7 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
     volatile protected long lastHB = System.currentTimeMillis();
     volatile protected String sessionId;
     protected SERVER app;
-    protected RemotedActorMappingSnapshot snapshot; // last disconnection snapshot
+    protected RemotedActorMappingSnapshot snapshot;
 
     public void $initFromServer(String sessionId, SERVER spaServer, Object resultFromIsLoginValid) {
         this.app = spaServer;
@@ -37,21 +37,31 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
     }
 
     public void $heartBeat() {
-        Log.Info(this, "Hearbeat from " + sessionId);
-        lastHB = System.currentTimeMillis();
+        heartBeat();
+    }
+
+    public IPromise<RemotedActorMappingSnapshot> $getSnapshot() {
+        return new Promise<>(snapshot);
     }
 
     @Override @Local
-    public void $hasBeenUnpublished() {
+    public void $hasBeenUnpublished(RemotedActorMappingSnapshot snapshot) {
+        this.snapshot = snapshot;
         app.$clientTerminated(self()).then(() -> {
-            if (app.isStickySessions())
+            if (!app.isStickySessions())
                 self().$close();
         });
     }
 
     @CallerSideMethod @Local
+    public void heartBeat() {
+        Log.Info(this, "Hearbeat from " + sessionId);
+        getActor().lastHB = System.currentTimeMillis();
+    }
+
+    @CallerSideMethod @Local
     public long getLastHB() {
-        return lastHB;
+        return getActor().lastHB;
     }
 
     @CallerSideMethod @Local
@@ -59,11 +69,4 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
         return getActor().sessionId;
     }
 
-    public void $setSnapshot(RemotedActorMappingSnapshot snapshot) {
-        this.snapshot = snapshot;
-    }
-
-    public IPromise<RemotedActorMappingSnapshot> $getSnapshot() {
-        return new Promise<RemotedActorMappingSnapshot>(snapshot);
-    }
 }

@@ -24,4 +24,16 @@ public interface ObjectSocket {
     void close() throws IOException;
 
     public FSTConfiguration getConf();
+
+    /**
+     * used for seamless reconnection. Not all ObjectSockets support this (only FourK created WebObjectSockets for now)
+     *
+     * @param o
+     */
+    default void mergePendingWrites(ObjectSocket o) {
+        throw new RuntimeException("unimplemented");
+    }
+
+    boolean isClosed();
+
 }

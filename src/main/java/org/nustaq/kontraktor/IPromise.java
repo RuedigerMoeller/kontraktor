@@ -123,7 +123,21 @@ public interface IPromise<T> extends Callback<T> {
      *
      * @return the futures result or throw exception in case of error
      */
-    public T await();
+    default public T await() {
+        return await(0l);
+    }
+
+    /**
+     * schedule other events/messages until future is resolved/settled (Nonblocking delay).
+     *
+     * In case this is called from a non-actor thread, the current thread is blocked
+     * until the result is avaiable.
+     *
+     * If the future is rejected (resolves to an error) an excpetion is raised.
+     *
+     * @return the futures result or throw exception in case of error
+     */
+    public T await(long timeoutMillis);
 
     /**
      * schedule other events/messages until future is resolved/settled (Nonblocking delay).
@@ -132,8 +146,13 @@ public interface IPromise<T> extends Callback<T> {
      * until the result is avaiable.
      *
      * @return the settled promise. No Exception is thrown, but the exception can be obtained by IPromise.getError()
+     * @param timeout
      */
-    public IPromise<T> awaitPromise();
+    public IPromise<T> awaitPromise(long timeout);
+
+    default public IPromise<T> awaitPromise() {
+        return awaitPromise(0);
+    }
 
     /**
      * @return error if avaiable

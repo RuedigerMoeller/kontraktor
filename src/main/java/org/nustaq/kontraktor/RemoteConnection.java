@@ -16,6 +16,7 @@ public interface RemoteConnection {
     /**
      * unpublishes this actor by removing mappings and stuff. Does not actively close the underlying connection
      * @param self
+     * @param snapshot
      */
-    public RemotedActorMappingSnapshot unpublishActor(Actor self);
+    public void unpublishActor(Actor self, RemotedActorMappingSnapshot snapshot);
 }

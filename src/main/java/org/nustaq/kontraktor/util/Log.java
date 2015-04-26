@@ -26,6 +26,9 @@ public class Log extends Actor<Log> {
     public static void Info( Object source, String msg ) {
         Lg.info(source,msg);
     }
+    public static void Info( Object source, Throwable ex ) {
+        Lg.infoLong(source, ex, null);
+    }
     public static void Debug( String msg ) {
         Lg.debug(null, msg);
     }
@@ -64,10 +67,10 @@ public class Log extends Actor<Log> {
                         source = source.getClass().getSimpleName();
                 }
                 String tname = t == null ? "-" : t.getName();
-                String svString = "i ";
+                String svString = "I ";
                 switch (sev) {
-                    case WARN: svString = "! "; break;
-                    case ERROR: svString = "!! "; break;
+                    case WARN: svString = "W "; break;
+                    case ERROR: svString = "E "; break;
                 }
                 System.out.println(svString+formatter.format(new Date())+" : "+ tname +" : "+source+" : "+msg);
                 if ( ex != null ) {

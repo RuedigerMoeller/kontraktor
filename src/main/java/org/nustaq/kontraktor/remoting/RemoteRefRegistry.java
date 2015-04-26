@@ -9,12 +9,11 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -30,6 +29,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 
     public static final Object OUT_OF_ORDER_SEQ = "OOOS";
     public static int MAX_BATCH_CALLS = 500;
+
     protected FSTConfiguration conf;
 
     protected RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
@@ -39,13 +39,10 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     ConcurrentHashMap<Integer, Object> publishedActorMapping = new ConcurrentHashMap<>();
     ConcurrentHashMap<Object, Integer> publishedActorMappingReverse = new ConcurrentHashMap<>();
 
-
-
     // have disabled dispacther thread
     ConcurrentLinkedQueue<Actor> remoteActors = new ConcurrentLinkedQueue<>();
     ConcurrentHashMap<Integer,Actor> remoteActorSet = new ConcurrentHashMap<>();
 
-    public ThreadLocal<ObjectSocket> currentObjectSocket = new ThreadLocal<>();
     protected volatile boolean terminated = false;
     BiFunction<Actor,String,Boolean> remoteCallInterceptor;
     protected Consumer<Actor> disconnectHandler;
@@ -107,7 +104,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     }
 
     public boolean isTerminated() {
-        return terminated;
+        return terminated || getObjectSocket().get().isClosed();
     }
 
     public void setTerminated(boolean terminated) {
@@ -134,21 +131,31 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
      * return map containing removed mappings (for reconnection)
      *
      * @param act
-     * @return
+     * @param snapshot
      */
     @Override
-    public RemotedActorMappingSnapshot unpublishActor(Actor act) {
-        RemotedActorMappingSnapshot sn = new RemotedActorMappingSnapshot();
+    public void unpublishActor(Actor act, RemotedActorMappingSnapshot snapshot) {
         Integer integer = publishedActorMappingReverse.get(act.getActorRef());
         if ( integer != null ) {
-            sn.getActorMapping().put(integer,act.getActorRef());
             publishedActorMapping.remove(integer);
             publishedActorMappingReverse.remove(act.getActorRef());
             act.__removeRemoteConnection(this);
             if ( act instanceof RemotableActor) {
-                ((RemotableActor) act).$hasBeenUnpublished();
+                ((RemotableActor) act).$hasBeenUnpublished(snapshot);
             }
         }
+    }
+
+    RemotedActorMappingSnapshot getSnapshot() {
+        //FIXME: currently only published actors are preserverd.
+        // actors obtained from remote connection are not restored
+        // callbacks are rerouted implicitely as underlying objectsocket is
+        // redirected.
+        RemotedActorMappingSnapshot sn = new RemotedActorMappingSnapshot();
+        sn.setObjSocketHolder(getObjectSocket());
+        publishedActorMapping.forEach((key, val) -> {
+            sn.getActorMapping().put(key, (Actor) val);
+        });
         return sn;
     }
 
@@ -207,16 +214,16 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 
     public void stopRemoteRefs() {
         new ArrayList<>(remoteActors).forEach((actor) -> {
-            if ( disconnectHandler != null )
+            if (disconnectHandler != null)
                 disconnectHandler.accept(actor);
             //don't call remoteRefStopped here as its designed to be overridden
             try {
                 removeRemoteActor(actor);
             } catch (Exception e) {
-                Log.Warn(this,e);
+                Log.Warn(this, e);
             }
             actor.getActorRef().__stopped = true;
-            if ( actor.getActor() != null )
+            if (actor.getActor() != null)
                 actor.getActor().__stopped = true;
         });
     }
@@ -329,10 +336,11 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
      * cleanup after connection close
      */
     public void cleanUp() {
+        RemotedActorMappingSnapshot remotedActorMappingSnapshot = getSnapshot();
         stopRemoteRefs();
-        publishedActorMappingReverse.keySet().forEach( (act) ->  {
-            if ( act instanceof  Actor)
-                unpublishActor((Actor) act);
+        publishedActorMappingReverse.keySet().forEach((act) -> {
+            if (act instanceof Actor)
+                unpublishActor((Actor) act,remotedActorMappingSnapshot);
         });
         getFacadeProxy().__removeRemoteConnection(this);
     }
@@ -342,14 +350,12 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
      * @param chan
      */
     public boolean singleSendLoop(ObjectSocket chan) throws Exception {
-        boolean res = false;
+        boolean hadAnyMsg = false;
         ArrayList<Actor> toRemove = null;
         int sumQueued;
         int fullqueued = 0;
-        int iter = 0;
         do {
             sumQueued = 0;
-            iter++;
             for (Iterator<Actor> iterator = remoteActors.iterator(); iterator.hasNext(); ) {
                 Actor remoteActor = iterator.next();
                 CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
@@ -369,7 +375,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
                             rce.setQueue(rce.MAILBOX);
                             writeObject(chan, rce);
                             sumQueued++;
-                            res = true;
+                            hadAnyMsg = true;
                         } catch (Exception ex) {
                             chan.setLastError(ex);
                             if (toRemove == null)
@@ -388,7 +394,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
             fullqueued += sumQueued;
         } while ( sumQueued > 0 && fullqueued < MAX_BATCH_CALLS);
         chan.flush();
-        return res;
+        return hadAnyMsg;
     }
 
     protected void closeRef(CallEntry ce, ObjectSocket chan) throws IOException {
@@ -445,9 +451,16 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
 
     public void reMap(RemotedActorMappingSnapshot snapshot) {
         snapshot.getActorMapping().entrySet().forEach( entry -> {
-            publishActorDirect(entry.getKey(),entry.getValue());
+            System.out.println("remapping "+entry.getKey()+" "+entry.getValue().getClass().getName() );
+            publishActorDirect(entry.getKey(), entry.getValue());
         });
+        getObjectSocket().get().mergePendingWrites(snapshot.getObjSocketHolder().get());
+        snapshot.getObjSocketHolder().set(getObjectSocket().get()); // redirect connection
+        // pending messages in the mailbox will be submitted implicitely as the remote actor gets
+        // scheduled again on SendLoop
     }
+
+    public abstract AtomicReference<ObjectSocket> getObjectSocket();
 }
 
 

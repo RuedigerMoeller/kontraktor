@@ -11,9 +11,8 @@ import org.nustaq.kontraktor.remoting.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.util.Log;
 
-import java.io.IOException;
-import java.lang.annotation.Annotation;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by ruedi on 14.08.2014.
@@ -25,7 +24,7 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
     String host;
     String actorPath;
     Class<T> actorClazz;
-    HttpObjectSocket channel;
+    AtomicReference<ObjectSocket> objSocket = new AtomicReference<>(null);
     ConcurrentHashMap<String,Class> mappings = new ConcurrentHashMap<>();
 
     public RestActorClient( String host, int port, String actorPath, Class clz) {
@@ -46,6 +45,11 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
         return facadeProxy;
     }
 
+    @Override
+    public AtomicReference<ObjectSocket> getObjectSocket() {
+        return objSocket;
+    }
+
     BackOffStrategy backOffStrategy = new BackOffStrategy();
     protected void sendLoop(ObjectSocket channel) throws Exception {
         try {
@@ -63,12 +67,12 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
 
 
     public RestActorClient<T> connect() {
-        channel = new HttpObjectSocket(actorClazz, port, host, actorPath);
-        mappings.forEach( (k,v) -> channel.getKson().map(k,v) );
+        objSocket.set(new HttpObjectSocket(actorClazz, port, host, actorPath));
+        mappings.forEach( (k,v) -> getHttpObjectSocket().getKson().map(k,v) );
         new Thread(
             () -> {
                 try {
-                    sendLoop(channel);
+                    sendLoop(objSocket.get());
                 } catch (Exception e) {
                     Log.Warn(this, e, "");
                 }
@@ -77,12 +81,14 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
         ).start();
         new Thread(
             () -> {
-                receiveLoop(channel);
+                receiveLoop(objSocket.get());
             },
             "httpclient:receiver"
         ).start();
         return this;
     }
+
+    private HttpObjectSocket getHttpObjectSocket() {return (HttpObjectSocket) objSocket.get();}
 
     @Override
     protected void writeObject(ObjectSocket chan, RemoteCallEntry rce) throws Exception {
@@ -102,8 +108,8 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
 
     public RestActorClient<T> map( String s, Class clz ) {
         mappings.put(s, clz);
-        if (channel !=null) {
-            channel.getKson().map(s,clz);
+        if (objSocket.get() !=null) {
+            getHttpObjectSocket().getKson().map(s,clz);
         }
         return this;
     }

@@ -161,19 +161,19 @@ public class CallbackWrapper<T> implements IPromise<T>, Serializable {
     }
 
     @Override
-    public T await() {
+    public T await(long timeout) {
         if (realCallback instanceof IPromise == false)
             return null;
         else
-            return ((IPromise<T>)realCallback).await();
+            return ((IPromise<T>)realCallback).await(timeout);
     }
 
     @Override
-    public IPromise<T> awaitPromise() {
+    public IPromise<T> awaitPromise(long timeout) {
         if (realCallback instanceof IPromise == false)
             return null;
         else
-            return ((IPromise<T>)realCallback).awaitPromise();
+            return ((IPromise<T>)realCallback).awaitPromise(timeout);
     }
 
     @Override

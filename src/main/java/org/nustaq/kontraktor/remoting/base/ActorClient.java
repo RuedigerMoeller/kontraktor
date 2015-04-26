@@ -12,6 +12,7 @@ import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by ruedi on 30/03/15.
@@ -24,6 +25,7 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
 
     protected ConnectedActorHandler client;
     protected volatile boolean connected = false;
+    protected AtomicReference<ObjectSocket> objectSocket = new AtomicReference<>(null);
 
     public ActorClient(Class<T> clz) throws IOException {
         actorClazz = clz;
@@ -38,7 +40,8 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
 
     public void connect() throws IOException {
         try {
-            client = new ConnectedActorHandler(createObjectSocket());
+            objectSocket.set(createObjectSocket());
+            client = new ConnectedActorHandler(objectSocket.get());
             connected = true;
             facadeProxy.__addRemoteConnection(client);
         } catch (Exception ioe) {
@@ -89,7 +92,6 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
             chan = socket;
             new Thread(
                 () -> {
-                    currentObjectSocket.set(chan);
                     try {
                         sendLoop(chan);
                     } catch (Exception e) {
@@ -105,7 +107,6 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
             if (runReceiveLoop()) {
                 new Thread(
                     () -> {
-                        currentObjectSocket.set(chan);
                         receiveLoop(chan);
                     },
                     "receiver"
@@ -132,8 +133,8 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
         }
 
         @Override
-        public RemotedActorMappingSnapshot unpublishActor(Actor self) {
-            return ActorClient.this.unpublishActor(self);
+        public void unpublishActor(Actor self, RemotedActorMappingSnapshot snapshot) {
+            ActorClient.this.unpublishActor(self, snapshot);
         }
     }
 
@@ -148,4 +149,8 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
         }
     }
 
+    @Override
+    public AtomicReference<ObjectSocket> getObjectSocket() {
+        return objectSocket;
+    }
 }

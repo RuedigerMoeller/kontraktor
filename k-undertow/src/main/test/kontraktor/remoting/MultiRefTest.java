@@ -13,14 +13,11 @@ import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
-import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
 import org.nustaq.kontraktor.remoting.websocket.WebSocketClient;
 
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
-import static java.util.Arrays.*;
 /**
  * Created by ruedi on 03.04.2015.
  */

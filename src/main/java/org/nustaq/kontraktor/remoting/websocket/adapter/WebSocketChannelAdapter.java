@@ -14,4 +14,5 @@ public interface WebSocketChannelAdapter {
     public void sendBinaryMessage(byte[] b);
     public void sendTextMessage(String s);
     public void close() throws IOException;
+    public boolean isClosed();
 }

@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.remoting.ObjectSocket;
+import org.nustaq.kontraktor.remoting.RemotedActorMappingSnapshot;
 import org.nustaq.net.TCPObjectSocket;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectOutput;
@@ -25,4 +26,10 @@ public class TCPSocket extends TCPObjectSocket implements ObjectSocket {
     public TCPSocket(Socket socket, FSTConfiguration conf) throws IOException {
         super(socket, conf);
     }
+
+    @Override
+    public boolean isClosed() {
+        return getSocket().isClosed();
+    }
+
 }

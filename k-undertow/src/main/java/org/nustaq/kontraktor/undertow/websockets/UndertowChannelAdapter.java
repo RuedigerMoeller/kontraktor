@@ -1,8 +1,10 @@
 package org.nustaq.kontraktor.undertow.websockets;
 
+import io.undertow.websockets.core.WebSocketCallback;
 import io.undertow.websockets.core.WebSocketChannel;
 import io.undertow.websockets.core.WebSockets;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
+import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -30,7 +32,27 @@ public class UndertowChannelAdapter implements WebSocketChannelAdapter {
     @Override
     public void sendBinaryMessage(byte[] b) {
         //FIXME: needs to block until complete !
-        WebSockets.sendBinary(ByteBuffer.wrap(b),channel,null);
+        System.out.println("send ..");
+        WebSockets.sendBinary(ByteBuffer.wrap(b),channel, new WebSocketCallback() {
+            @Override
+            public void complete(WebSocketChannel channel, Object context) {
+                System.out.println("send OK");
+            }
+
+            @Override
+            public void onError(WebSocketChannel channel, Object context, Throwable throwable) {
+                System.out.println("send ERROR "+throwable);
+                try {
+                    channel.close();
+                } catch (IOException e) {
+                    Log.Info(this,e);
+                }
+            }
+        });
+    }
+
+    public boolean isClosed() {
+        return ! channel.isOpen();
     }
 
     @Override

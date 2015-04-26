@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.GenRemote;
 import org.nustaq.kontraktor.annotations.Local;
+import org.nustaq.kontraktor.remoting.RemotedActorMappingSnapshot;
 import org.nustaq.kontraktor.remoting.spa.FourKSession;
 import org.nustaq.kontraktor.util.Log;
 
@@ -22,9 +23,9 @@ public class SPASession extends FourKSession<SPAServer,SPASession> {
     }
 
     @Override @Local
-    public void $hasBeenUnpublished() {
+    public void $hasBeenUnpublished(RemotedActorMappingSnapshot snapshot) {
         // cleanup stuff
-        super.$hasBeenUnpublished(); // disconnects
+        super.$hasBeenUnpublished(snapshot); // disconnects
     }
 
     @Override

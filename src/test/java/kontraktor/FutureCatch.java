@@ -17,39 +17,6 @@ import static org.nustaq.kontraktor.Actors.*;
  */
 public class FutureCatch {
 
-    public static class Generator {
-
-        public volatile boolean fin = false;
-        public IPromise in = new Promise<>();
-        public IPromise out = new Promise<>();
-
-        public Object next( Object o ) {
-            System.out.println("next "+fin);
-            if ( fin ) {
-                return null;
-            }
-            in.resolve(o);
-            Object res = out.await();
-            System.out.println("out yielded");
-            out = new Promise<>();
-            return res;
-        }
-
-        public void run() {
-            System.out.println("run");
-            for ( int i = 0; i < 10; i++ ) {
-                IPromise inPrev = in;
-                in = new Promise<>();
-                final int finalI = i;
-                inPrev.then(r -> {
-                    System.out.println("in yielded");
-                    out.resolve(finalI);
-                });
-            }
-            fin = true;
-        }
-    }
-
     public static class FutCatch extends Actor<FutCatch> {
 
         public IPromise<String> $error(int num) {
@@ -133,11 +100,19 @@ public class FutureCatch {
             suc++;
         }
         try {
+            long now = System.currentTimeMillis();
+            String await = futCatch.$result(12).await(10);
+            System.out.println("res:"+await+" "+(System.currentTimeMillis()-now));
+        } catch ( Throwable t ) {
+            t.printStackTrace();
+            suc++;
+        }
+        try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        assertTrue(suc == 1);
+        assertTrue(suc == 2);
         futCatch.$stop();
     }
 

@@ -73,10 +73,9 @@ public class WebSocketActorServer extends ActorServer {
 
     public void onBinaryMessage(WebSocketChannelAdapter channel, byte[] buffer) {
         ActorServerConnection con = (ActorServerConnection) channel.getAttribute("con");
-        ((MyWSObjectSocket)con.getObjSocket()).setNextMsg(buffer);
-        con.currentObjectSocket.set(con.getObjSocket());
+        ((MyWSObjectSocket)con.getObjSocket().get()).setNextMsg(buffer);
         try {
-            con.singleReceive(con.getObjSocket());
+            con.singleReceive(con.getObjSocket().get());
 //            while( con.singleReceive(con.getObjSocket()) ) {
 //                 do nothing
 //            }
@@ -129,10 +128,9 @@ public class WebSocketActorServer extends ActorServer {
             } else {
                 //
                 ActorServerConnection con = (ActorServerConnection) req.getSession();
-                ((MyWSObjectSocket)con.getObjSocket()).setNextMsg(req.getBinary());
-                con.currentObjectSocket.set(con.getObjSocket());
+                ((MyWSObjectSocket)con.getObjSocket().get()).setNextMsg(req.getBinary());
                 try {
-                    while( con.singleReceive(con.getObjSocket()) ) {
+                    while( con.singleReceive(con.getObjSocket().get()) ) {
                         // do nothing
                     }
                 } catch (Exception e) {
@@ -147,6 +145,7 @@ public class WebSocketActorServer extends ActorServer {
     class MyWSObjectSocket extends WebObjectSocket {
         WebSocketChannelAdapter channel;
         protected MessageStore sendHistory;
+        volatile boolean closed = false;
 
         MyWSObjectSocket(FSTConfiguration conf, WebSocketChannelAdapter channel ) {
             super(conf);
@@ -154,7 +153,15 @@ public class WebSocketActorServer extends ActorServer {
         }
 
         @Override
+        public void writeObject(Object o) throws Exception {
+            super.writeObject(o);
+        }
+
+        @Override
         public void writeAndFlushObject(Object toWrite) throws Exception {
+            if ( closed ) {
+                throw new RuntimeException("channel is closed");
+            }
             final byte[] b = conf.asByteArray(toWrite);
             if ( sendHistory != null ) {
                 sendHistory.putMessage("dummy",writeSequence.get()-1, new ByteArrayByteSource(b));
@@ -164,13 +171,18 @@ public class WebSocketActorServer extends ActorServer {
 
         @Override
         public void close() throws IOException {
+            closed = true;
             channel.close();
-
         }
 
         @Override
         public FSTConfiguration getConf() {
             return conf;
+        }
+
+        @Override
+        public boolean isClosed() {
+            return channel == null || channel.isClosed();
         }
 
     }

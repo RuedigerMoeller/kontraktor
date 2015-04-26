@@ -340,8 +340,9 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     @Local
     public void $close() {
         if (__connections != null) {
-            final ConcurrentLinkedQueue<RemoteConnection> prevCon = __connections;
-            __connections = null;
+            final ConcurrentLinkedQueue<RemoteConnection> prevCon = getActorRef().__connections;
+            getActorRef().__connections = null;
+            getActor().__connections = null;
             prevCon.forEach((con) -> con.close());
         }
     }
@@ -413,26 +414,9 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return __connections != null && __connections.peek() != null;
     }
 
-    /**
-     * unpublish this actor from remote registry, but do not stop
-     * FIXME: returned Snapshot currently works for a single connection. If an actor is published twice, the
-     *        snapshot will be incomplete
-     */
-    public IPromise<RemotedActorMappingSnapshot> $unpublish() {
-        Promise<RemotedActorMappingSnapshot> p = new Promise<>();
-        if ( __connections != null && __connections.peek() != null ) {
-            RemotedActorMappingSnapshot res = new RemotedActorMappingSnapshot();
-            __connections.forEach(
-                remoteCon -> res.merge(remoteCon,remoteCon.unpublishActor(self()))
-            );
-            p.resolve(res);
-        }
-        return p;
-    }
 
 
 ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
-
 
     @CallerSideMethod public void __addStopHandler( Callback<SELF> cb ) {
         if ( __stopHandlers == null ) {
@@ -472,7 +456,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         }
         // remove ref to real actor as ref might still be referenced in threadlocals and
         // queues.
-        //FIXME: this causes NPE instead of dedaletter
+        //FIXME: this causes NPE instead of deadletter
 //        try {
 //            getActorRef().getClass().getField("__target").set( getActorRef(), null );
 //        } catch (IllegalAccessException e) {

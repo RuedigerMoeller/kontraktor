@@ -1,9 +1,6 @@
 package org.nustaq.kontraktor.remoting.spa;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.Scheduler;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
@@ -20,7 +17,6 @@ import java.io.File;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 @Local
 public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> extends Actor<SERVER> {
@@ -63,29 +59,20 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
 
     @Local
     public void $checkSessions() {
-        // fixme: add security sort out
+        // fixme: add worst case session timeout in case to much connections
         long now = System.currentTimeMillis();
         List toRemove = new ArrayList();
-        List<IPromise<RemotedActorMappingSnapshot>> snapshots = new ArrayList<>();
         sessions.values().forEach(session -> {
             if (!session.isPublished()) {
                 if (now - session.getLastHB() > SESSION_FULL_TIMEOUT) {
                     Log.Info(this, "full timeout. deleting session " + session.getSessionId());
                     toRemove.add(session.getSessionId());
                 }
-            } else if (now - session.getLastHB() > SESSION_HB_TIMEOUT) {
-                Log.Info(this, "timeout. closing connection for session " + session.getSessionId());
-                IPromise<RemotedActorMappingSnapshot> unpub = session.$unpublish();
-                IPromise<RemotedActorMappingSnapshot> next = new Promise<RemotedActorMappingSnapshot>();
-                snapshots.add(next);
-                unpub.then( snapshot -> { session.$setSnapshot(snapshot); next.resolve(snapshot); } );
             }
         });
 
         toRemove.forEach(sessionKey -> sessions.remove(sessionKey));
-        all(snapshots).await(); // just await before returning/rescheduling
-
-        delayed( 2000, () -> $checkSessions() );
+        delayed(2000, () -> $checkSessions());
     }
 
 
@@ -106,48 +93,53 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
     public IPromise<String> $authenticate(String user, String pwd) {
         Promise p = new Promise();
         isLoginValid(user, pwd).then(
-            (result, e) -> {
-                if (result != null) {
-                    String sessionId = Long.toHexString((long) (Math.random() * Long.MAX_VALUE)) + "" + sessionIdCounter++; // FIXME: use strings
-                    SESSION newSession = createSessionActor(sessionId, clientScheduler, result);
-                    newSession.$initFromServer(sessionId, (FourK) self(), result);
-                    sessions.put(sessionId, newSession);
-                    newSession.setThrowExWhenBlocked(true);
-                    p.complete(sessionId, null);
-                } else {
-                    p.complete(null, "authentication failure");
-                }
-            });
+                                        (result, e) -> {
+                                            if (result != null) {
+                                                String sessionId = Long.toHexString((long) (Math.random() * Long.MAX_VALUE)) + "" + sessionIdCounter++; // FIXME: use strings
+                                                SESSION newSession = createSessionActor(sessionId, clientScheduler, result);
+                                                newSession.$initFromServer(sessionId, (FourK) self(), result);
+                                                sessions.put(sessionId, newSession);
+                                                newSession.setThrowExWhenBlocked(true);
+                                                p.complete(sessionId, null);
+                                            } else {
+                                                p.complete(null, "authentication failure");
+                                            }
+                                        });
         return p;
     }
 
     public IPromise<SESSION> $getSession(String id) {
-        System.out.println("getSession registry "+Actor.registry.get());
+        System.out.println("getSession registry " + Actor.registry.get());
         SESSION session = sessions.get(id);
         return new Promise<>(session);
     }
 
     public IPromise<Boolean> $reconnectSession(String id, int sequence) {
+        Log.Info(this, "try reconnect session " + id);
         RemoteRefRegistry remoteRefRegistry = Actor.registry.get(); // caveat NOT available in callbacks
         // FIXME: protect against brute force
         SESSION session = sessions.get(id);
         if ( session != null ) {
-            session.$heartBeat();
             Promise res = new Promise<>();
-            Log.Info(this,"try reconnect session "+id);
-            session.$getSnapshot().then( snapshot -> {
-                if ( snapshot != null ) {
-                    if ( remoteRefRegistry != null ) {
-                        remoteRefRegistry.reMap((RemotedActorMappingSnapshot) snapshot);
-                        Log.Info(this, "reconnection successful. session " + id);
-                        res.resolve(true);
+            serialOn( session, finSignal -> {
+                try {
+                    RemotedActorMappingSnapshot snapshot = (RemotedActorMappingSnapshot) session.$getSnapshot().await();
+                    if ( snapshot != null ) {
+                        if ( remoteRefRegistry != null ) {
+                            session.heartBeat();
+                            remoteRefRegistry.reMap((RemotedActorMappingSnapshot) snapshot);
+                            Log.Info(this, "reconnection successful. session " + id);
+                            res.resolve(true);
+                        } else {
+                            Log.Info(this, "reconnection failed, no registry set " + id);
+                            res.resolve(false);
+                        }
                     } else {
-                        Log.Info(this, "reconnection failed, no registry set " + id);
+                        Log.Info(this, "reconnection failed, no snapshot set " + id);
                         res.resolve(false);
                     }
-                } else {
-                    Log.Info(this, "reconnection failed, no snapshot set " + id);
-                    res.resolve(false);
+                } finally {
+                    finSignal.complete();
                 }
             });
             return res;
