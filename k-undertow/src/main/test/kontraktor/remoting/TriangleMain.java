@@ -6,9 +6,9 @@ import kontraktor.remoting.triangle.CenterActor;
 import kontraktor.remoting.triangle.OuterActor;
 import org.junit.Test;
 import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.base.ActorServerAdapter;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
-import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
+import org.nustaq.kontraktor.remoting.tcp.TCPActorServerAdapter;
 import org.nustaq.kontraktor.remoting.websocket.WebSocketClient;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,7 +27,7 @@ public class TriangleMain {
             TCPTest.server.closeConnection();
             TCPTest.server = null;
         }
-        final TCPActorServer server = TCPActorServer.Publish(Actors.AsActor(CenterActor.class), 7778);
+        final TCPActorServerAdapter server = TCPActorServerAdapter.Publish(Actors.AsActor(CenterActor.class), 7778);
         CenterActor remoted = TCPActorClient.Connect(CenterActor.class, "localhost", 7778).await();
         doTest(remoted);
 
@@ -42,7 +42,7 @@ public class TriangleMain {
             TCPTest.server = null;
         }
         CenterActor actor = Actors.AsActor(CenterActor.class);
-        final ActorServer server = WSServer.getWebSocketActorServer(actor,8080);
+        final ActorServerAdapter server = WSServer.getWebSocketActorServer(actor,8080);
         CenterActor remoted = WebSocketClient.Connect(CenterActor.class, "ws://localhost:8080/ws",null).await();
         doTest(remoted);
 

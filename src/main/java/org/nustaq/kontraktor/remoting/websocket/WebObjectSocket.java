@@ -2,8 +2,8 @@ package org.nustaq.kontraktor.remoting.websocket;
 
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
-import org.nustaq.kontraktor.remoting.RemotedActorMappingSnapshot;
-import org.nustaq.kontraktor.remoting.messagestore.MessageStore;
+import org.nustaq.kontraktor.remoting.base.ActorServerAdapter;
+import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.coders.FSTMinBinDecoder;
@@ -26,7 +26,6 @@ public abstract class WebObjectSocket implements ObjectSocket {
     protected ArrayList toWrite = new ArrayList();
     protected AtomicInteger writeSequence = new AtomicInteger(1);
     protected AtomicInteger readSequence = new AtomicInteger(0);
-    private RemotedActorMappingSnapshot snapshot;
 
     /**
      * its expected conf has special registrations such as Callback and remoteactor ref serializers
@@ -130,31 +129,31 @@ public abstract class WebObjectSocket implements ObjectSocket {
             int size = toWrite.size();
             if (size==0)
                 return;
-            toWrite.add(writeSequence.getAndIncrement());
-            Object[] objects = toWrite.toArray();
-            toWrite.clear();
-            writeAndFlushObject(objects);
+            if ( ! isClosed() ) {
+                toWrite.add(writeSequence.getAndIncrement());
+                Object[] objects = toWrite.toArray(); // fixme performance
+                toWrite.clear();
+                writeAndFlushObject(objects);
+            }
         }
     }
 
-    @Override
-    public void mergePendingWrites(ObjectSocket o) {
-        if ( o instanceof WebObjectSocket ) {
-            WebObjectSocket other = (WebObjectSocket) o;
-            // note can only be done right after construction when this socket is not exposed to
-            // other threads !!
-            // append pending callback writes to my queue
-            // some might be underway so use the list of the old socket. As the writeList can only contain callback
-            // invokcation, order of messages is not an issue here
-            synchronized (other.toWrite) {
-                ArrayList prevToWrite = this.toWrite;
-                toWrite = other.toWrite;
-                toWrite.addAll(prevToWrite);
-            }
-        } else {
-            throw new RuntimeException("cannot merge WebObjectSocket with "+o);
+    /**
+     * handover my object socket to a (cached) registry. To get this atomic, also update the ref here
+     */
+    public void mergePendingWritesAndReplaceInRef(ActorServerAdapter.ActorServerConnection oldRegistry) {
+        WebObjectSocket discardedOS = (WebObjectSocket) oldRegistry.getObjectSocket().get();
+        // note: can only be done right after construction when this socket is not exposed to
+        // other threads !!
+        synchronized (discardedOS.toWrite) {
+            toWrite = discardedOS.toWrite;
+            oldRegistry.getObjectSocket().set(this);
+            // replace registry in adapter
+            getChannel().setAttribute("con", oldRegistry);
         }
     }
+
+    public abstract WebSocketChannelAdapter getChannel();
 
     public AtomicInteger getWriteSequence() {
         return writeSequence;

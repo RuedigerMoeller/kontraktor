@@ -1,9 +1,8 @@
 package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.base.ActorServerAdapter;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.*;
@@ -24,15 +23,15 @@ import java.util.function.Consumer;
  * For a moderate number of clients < ~200 blocking IO is not a problem. Depending on load expect significant performance
  * degradation starting with ~500 clients.
  */
-public class TCPActorServer extends ActorServer {
+public class TCPActorServerAdapter extends ActorServerAdapter {
 
 
-    public static TCPActorServer Publish(Actor act, int port ) throws Exception {
+    public static TCPActorServerAdapter Publish(Actor act, int port ) throws Exception {
         return Publish(act,port,null);
     }
 
-    public static TCPActorServer Publish(Actor act, int port, Consumer<Actor> closeListener ) throws Exception {
-        TCPActorServer server = new TCPActorServer(act, port);
+    public static TCPActorServerAdapter Publish(Actor act, int port, Consumer<Actor> closeListener ) throws Exception {
+        TCPActorServerAdapter server = new TCPActorServerAdapter(act, port);
         Promise success = new Promise();
         AtomicReference<Object> res = new AtomicReference<>(null);
         new Thread( ()-> {
@@ -64,7 +63,7 @@ public class TCPActorServer extends ActorServer {
     int port;
     ServerSocket welcomeSocket;
 
-    public TCPActorServer(Actor proxy, int port) throws Exception {
+    public TCPActorServerAdapter(Actor proxy, int port) throws Exception {
         super(proxy);
         this.port = port;
     }

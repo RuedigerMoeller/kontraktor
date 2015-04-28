@@ -10,9 +10,9 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.RemoteConnection;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
-import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.base.ActorServerAdapter;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
-import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
+import org.nustaq.kontraktor.remoting.tcp.TCPActorServerAdapter;
 import org.nustaq.kontraktor.remoting.websocket.WebSocketClient;
 
 import java.util.function.Function;
@@ -41,7 +41,7 @@ public class MultiRefTest {
     public void multirefTCP() throws Exception {
         Function server = act -> {
             try {
-                return TCPActorServer.Publish((Actor) act, 7777);
+                return TCPActorServerAdapter.Publish((Actor) act, 7777);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -62,7 +62,7 @@ public class MultiRefTest {
         MultiRefExposingActor multiRefExposingActor = Actors.AsActor(MultiRefExposingActor.class);
         Assert.assertTrue( !multiRefExposingActor.isRemote() );
 
-        ActorServer srv = (ActorServer) server.apply(multiRefExposingActor);
+        ActorServerAdapter srv = (ActorServerAdapter) server.apply(multiRefExposingActor);
 
         MultiRefExposingActor client1 = (MultiRefExposingActor) clientSup.get();
 

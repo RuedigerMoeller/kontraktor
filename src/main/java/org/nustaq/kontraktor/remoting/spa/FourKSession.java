@@ -6,7 +6,7 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.RemotableActor;
-import org.nustaq.kontraktor.remoting.RemotedActorMappingSnapshot;
+import org.nustaq.kontraktor.remoting.base.ActorServerAdapter;
 import org.nustaq.kontraktor.util.Log;
 
 import java.util.Date;
@@ -21,7 +21,6 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
     volatile protected long lastHB = System.currentTimeMillis();
     volatile protected String sessionId;
     protected SERVER app;
-    protected RemotedActorMappingSnapshot snapshot;
 
     public void $initFromServer(String sessionId, SERVER spaServer, Object resultFromIsLoginValid) {
         this.app = spaServer;
@@ -37,26 +36,21 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
     }
 
     public void $heartBeat() {
-        heartBeat();
+        Log.Info(this, "Hearbeat from " + sessionId);
+        getActor().lastHB = System.currentTimeMillis();
     }
 
-    public IPromise<RemotedActorMappingSnapshot> $getSnapshot() {
-        return new Promise<>(snapshot);
-    }
-
+    /**
+     * called once a websocket connection terminates/closes. The snapshot
+     * contains all active published <actors,id> mappings to enable reconnect / long poll
+     * fallback.
+     */
     @Override @Local
-    public void $hasBeenUnpublished(RemotedActorMappingSnapshot snapshot) {
-        this.snapshot = snapshot;
+    public void $hasBeenUnpublished() {
         app.$clientTerminated(self()).then(() -> {
             if (!app.isStickySessions())
                 self().$close();
         });
-    }
-
-    @CallerSideMethod @Local
-    public void heartBeat() {
-        Log.Info(this, "Hearbeat from " + sessionId);
-        getActor().lastHB = System.currentTimeMillis();
     }
 
     @CallerSideMethod @Local
@@ -67,6 +61,11 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
     @CallerSideMethod @Local
     public String getSessionId() {
         return getActor().sessionId;
+    }
+
+    @CallerSideMethod @Local
+    public ActorServerAdapter.ActorServerConnection getRegistry() {
+        return ((ActorServerAdapter.ActorServerConnection)getActor().__connections.peek());
     }
 
 }

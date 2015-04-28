@@ -6,7 +6,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.SerializerType;
-import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
+import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServerAdapter;
 import org.nustaq.kontraktor.undertow.Knode;
 import org.nustaq.kontraktor.undertow.KUndertowHttpServerAdapter;
 import org.nustaq.kontraktor.undertow.websockets.KUndertowWebSocketHandler;
@@ -16,21 +16,21 @@ import org.nustaq.kontraktor.undertow.websockets.KUndertowWebSocketHandler;
  */
 public class WSServer {
 
-    public static WebSocketActorServer run() {
+    public static WebSocketActorServerAdapter run() {
         Class<ServerTestFacade> actorClazz = ServerTestFacade.class;
         return getWebSocketActorServer(Actors.AsActor(actorClazz),8080);
     }
 
-    public static WebSocketActorServer getWebSocketActorServer(Actor actor,int port) {
+    public static WebSocketActorServerAdapter getWebSocketActorServer(Actor actor,int port) {
         DispatcherThread.DUMP_CATCHED = true;
         try {
             Knode knode = new Knode();
             knode.mainStub(new String[] {"-p",""+port});
-            WebSocketActorServer webSocketActorServer
-                = new WebSocketActorServer(
+            WebSocketActorServerAdapter webSocketActorServer
+                = new WebSocketActorServerAdapter(
                     new KUndertowHttpServerAdapter(knode.getServer(),knode.getPathHandler()),
                     new Coding(SerializerType.FSTSer),
-                    actor
+                    actor, false
             );
             knode.getPathHandler().addExactPath("/ws",
                 Handlers.websocket(

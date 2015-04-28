@@ -1,7 +1,6 @@
 package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.remoting.ObjectSocket;
-import org.nustaq.kontraktor.remoting.RemotedActorMappingSnapshot;
 import org.nustaq.net.TCPObjectSocket;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectOutput;

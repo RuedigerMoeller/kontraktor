@@ -36,7 +36,7 @@ public class SPATest {
 
         knode.publishOnHttp(appRootPath+"http/", "api", mySpa);
         Consumer<FSTConfiguration> configurator = mySpa.$getRemotingConfigurator().await();
-        knode.publishOnWebsocket(appRootPath+"ws/", SerializerType.MinBin, mySpa, configurator);
+        knode.publishOnWebsocket(appRootPath+"ws/", SerializerType.MinBin, mySpa, configurator, true);
 
         loader.forEach( (relPath, deploader) -> {
             DynamicResourceManager man = new DynamicResourceManager(true, deploader.getRootComponent(), deploader);

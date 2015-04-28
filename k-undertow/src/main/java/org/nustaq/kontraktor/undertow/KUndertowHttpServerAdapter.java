@@ -2,11 +2,10 @@ package org.nustaq.kontraktor.undertow;
 
 import io.undertow.Undertow;
 import io.undertow.server.handlers.PathHandler;
-import io.undertow.websockets.WebSocketConnectionCallback;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.http.NioHttpServer;
 import org.nustaq.kontraktor.remoting.http.RestProcessor;
-import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
+import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServerAdapter;
 import org.nustaq.kontraktor.undertow.http.KRestProcessorAdapter;
 import org.nustaq.kontraktor.undertow.websockets.KUndertowWebSocketHandler;
 
@@ -29,7 +28,7 @@ public class KUndertowHttpServerAdapter implements NioHttpServer {
     }
 
     @Override
-    public void addHandler(String path, WebSocketActorServer webSocketServer) {
+    public void addHandler(String path, WebSocketActorServerAdapter webSocketServer) {
         KUndertowWebSocketHandler.WithResult wr = KUndertowWebSocketHandler.With(webSocketServer);
         pathHandler.addPrefixPath(path, wr.handler );
     }

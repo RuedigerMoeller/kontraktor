@@ -7,7 +7,6 @@ import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
-import org.nustaq.kontraktor.remoting.RemotedActorMappingSnapshot;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
@@ -133,8 +132,8 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
         }
 
         @Override
-        public void unpublishActor(Actor self, RemotedActorMappingSnapshot snapshot) {
-            ActorClient.this.unpublishActor(self, snapshot);
+        public void unpublishActor(Actor self) {
+            ActorClient.this.unpublishActor(self);
         }
     }
 

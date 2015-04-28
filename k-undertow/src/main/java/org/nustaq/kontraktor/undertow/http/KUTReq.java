@@ -5,6 +5,7 @@ import io.undertow.util.HeaderValues;
 import io.undertow.util.Headers;
 import io.undertow.util.Methods;
 import org.nustaq.kontraktor.remoting.http.KontraktorHttpRequest;
+import org.nustaq.kontraktor.remoting.spa.FourK;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -31,12 +32,19 @@ public class KUTReq implements KontraktorHttpRequest {
     @Override
     public String getPath(int i) {
         if (splitPath == null ) {
-            splitPath = ex.getRelativePath().split("/");
+            splitPath = FourK.StripDoubleSeps(ex.getRelativePath()).split("/");
         }
         if ( i+1 < splitPath.length ) {
             return splitPath[i+1];
         }
         return "";
+    }
+
+    @Override
+    public int getPathLen() {
+        if ( splitPath == null )
+            getPath(0);
+        return splitPath.length-1;
     }
 
     public byte[] getBinaryContent() {
@@ -84,11 +92,6 @@ public class KUTReq implements KontraktorHttpRequest {
     @Override
     public boolean isComplete() {
         return true;
-    }
-
-    @Override
-    public Object getSession() {
-        return null;
     }
 
     @Override

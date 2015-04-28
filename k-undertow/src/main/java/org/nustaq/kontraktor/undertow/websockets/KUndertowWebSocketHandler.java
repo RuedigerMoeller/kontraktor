@@ -9,7 +9,7 @@ import io.undertow.websockets.WebSocketConnectionCallback;
 import io.undertow.websockets.WebSocketProtocolHandshakeHandler;
 import io.undertow.websockets.core.*;
 import io.undertow.websockets.spi.WebSocketHttpExchange;
-import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
+import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServerAdapter;
 import org.nustaq.kontraktor.undertow.http.KRestProcessorAdapter;
 import org.nustaq.kontraktor.undertow.http.KUTReq;
 import org.nustaq.kontraktor.util.Log;
@@ -24,7 +24,7 @@ import java.nio.ByteBuffer;
  */
 public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler implements HttpHandler {
 
-    WebSocketActorServer endpoint;
+    WebSocketActorServerAdapter endpoint;
     WSLongPollFallbackHandler longPollFallbackHandler;
 
     public static class WithResult {
@@ -37,7 +37,7 @@ public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler
         public WebSocketConnectionCallback cb;
         public KUndertowWebSocketHandler handler;
     }
-    public static WithResult With(WebSocketActorServer endpoint) {
+    public static WithResult With(WebSocketActorServerAdapter endpoint) {
         KUndertowWebSocketHandler handler[] = {null};
         WebSocketConnectionCallback cb = (ex, ch) -> handler[0].doConnect(ex, ch);
         handler[0] = new KUndertowWebSocketHandler(endpoint, cb, new WSLongPollFallbackHandler());
@@ -48,7 +48,7 @@ public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler
         return longPollFallbackHandler;
     }
 
-    protected KUndertowWebSocketHandler(WebSocketActorServer endpoint, WebSocketConnectionCallback cb, WSLongPollFallbackHandler lpHandler) {
+    protected KUndertowWebSocketHandler(WebSocketActorServerAdapter endpoint, WebSocketConnectionCallback cb, WSLongPollFallbackHandler lpHandler) {
         super(cb, lpHandler);
         this.endpoint = endpoint;
         lpHandler.endpoint = endpoint;
@@ -57,7 +57,7 @@ public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler
 
     public static class WSLongPollFallbackHandler implements HttpHandler {
 
-        WebSocketActorServer endpoint;
+        WebSocketActorServerAdapter endpoint;
 
         @Override
         public void handleRequest(HttpServerExchange exchange) throws Exception {

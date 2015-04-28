@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.remoting.websocket;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.base.ActorClient;
+import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
 import org.nustaq.kontraktor.util.Log;
 
 import javax.websocket.*;
@@ -124,6 +125,11 @@ public class WebSocketClient<T extends Actor> extends ActorClient<T> {
                 while ( ep[0] == null || ep[0].session == null ) // ugly hack, just startup issue
                     Thread.yield();
                 ep[0].sendBinary(getConf().asByteArray(toWrite));
+            }
+
+            @Override
+            public WebSocketChannelAdapter getChannel() {
+                return null;
             }
 
             @Override

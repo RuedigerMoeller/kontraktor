@@ -6,6 +6,6 @@ package org.nustaq.kontraktor.remoting;
  */
 public interface RemotableActor {
 
-    public void $hasBeenUnpublished(RemotedActorMappingSnapshot snapshot);
+    public void $hasBeenUnpublished();
 
 }

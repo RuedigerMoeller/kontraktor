@@ -1,8 +1,7 @@
 package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
+import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServerAdapter;
 
 /**
  * Created by ruedi on 18.08.14.
@@ -10,7 +9,7 @@ import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
 public interface NioHttpServer {
 
     void addHandler(String path, RestProcessor restProcessor);
-    void addHandler(String path, WebSocketActorServer webSocketAdapter);
+    void addHandler(String path, WebSocketActorServerAdapter webSocketAdapter);
     void removeHandler(String path);
 
     void startServer();

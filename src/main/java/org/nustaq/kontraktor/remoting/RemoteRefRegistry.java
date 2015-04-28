@@ -104,7 +104,7 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     }
 
     public boolean isTerminated() {
-        return terminated || getObjectSocket().get().isClosed();
+        return terminated;
     }
 
     public void setTerminated(boolean terminated) {
@@ -129,34 +129,20 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     /**
      * remove current <remoteId,actor> mappings if present.
      * return map containing removed mappings (for reconnection)
+     *  @param act
      *
-     * @param act
-     * @param snapshot
      */
     @Override
-    public void unpublishActor(Actor act, RemotedActorMappingSnapshot snapshot) {
+    public void unpublishActor(Actor act) {
         Integer integer = publishedActorMappingReverse.get(act.getActorRef());
         if ( integer != null ) {
             publishedActorMapping.remove(integer);
             publishedActorMappingReverse.remove(act.getActorRef());
             act.__removeRemoteConnection(this);
             if ( act instanceof RemotableActor) {
-                ((RemotableActor) act).$hasBeenUnpublished(snapshot);
+                ((RemotableActor) act).$hasBeenUnpublished();
             }
         }
-    }
-
-    RemotedActorMappingSnapshot getSnapshot() {
-        //FIXME: currently only published actors are preserverd.
-        // actors obtained from remote connection are not restored
-        // callbacks are rerouted implicitely as underlying objectsocket is
-        // redirected.
-        RemotedActorMappingSnapshot sn = new RemotedActorMappingSnapshot();
-        sn.setObjSocketHolder(getObjectSocket());
-        publishedActorMapping.forEach((key, val) -> {
-            sn.getActorMapping().put(key, (Actor) val);
-        });
-        return sn;
     }
 
     public int registerPublishedCallback(Callback cb) {
@@ -336,11 +322,10 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
      * cleanup after connection close
      */
     public void cleanUp() {
-        RemotedActorMappingSnapshot remotedActorMappingSnapshot = getSnapshot();
         stopRemoteRefs();
         publishedActorMappingReverse.keySet().forEach((act) -> {
             if (act instanceof Actor)
-                unpublishActor((Actor) act,remotedActorMappingSnapshot);
+                unpublishActor((Actor) act);
         });
         getFacadeProxy().__removeRemoteConnection(this);
     }
@@ -350,6 +335,8 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
      * @param chan
      */
     public boolean singleSendLoop(ObjectSocket chan) throws Exception {
+        if ( chan == null )
+            return false;
         boolean hadAnyMsg = false;
         ArrayList<Actor> toRemove = null;
         int sumQueued;
@@ -447,17 +434,6 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
     public int getRemoteId(Actor act) {
         Integer integer = publishedActorMappingReverse.get(act.getActorRef());
         return integer == null ? -1 : integer;
-    }
-
-    public void reMap(RemotedActorMappingSnapshot snapshot) {
-        snapshot.getActorMapping().entrySet().forEach( entry -> {
-            System.out.println("remapping "+entry.getKey()+" "+entry.getValue().getClass().getName() );
-            publishActorDirect(entry.getKey(), entry.getValue());
-        });
-        getObjectSocket().get().mergePendingWrites(snapshot.getObjSocketHolder().get());
-        snapshot.getObjSocketHolder().set(getObjectSocket().get()); // redirect connection
-        // pending messages in the mailbox will be submitted implicitely as the remote actor gets
-        // scheduled again on SendLoop
     }
 
     public abstract AtomicReference<ObjectSocket> getObjectSocket();

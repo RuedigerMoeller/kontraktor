@@ -2,7 +2,6 @@ package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
-import org.nustaq.kontraktor.remoting.RemotedActorMappingSnapshot;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
 import org.nustaq.kson.KsonDeserializer;

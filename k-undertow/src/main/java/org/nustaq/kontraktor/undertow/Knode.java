@@ -9,12 +9,10 @@ import io.undertow.server.handlers.PathHandler;
 import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.server.handlers.resource.ResourceHandler;
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.SerializerType;
-import org.nustaq.kontraktor.remoting.http.HttpObjectSocket;
 import org.nustaq.kontraktor.remoting.http.RestActorServer;
-import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServer;
+import org.nustaq.kontraktor.remoting.websocket.WebSocketActorServerAdapter;
 import org.nustaq.kontraktor.undertow.websockets.KUndertowWebSocketHandler;
 import org.nustaq.serialization.FSTConfiguration;
 
@@ -83,13 +81,13 @@ public class Knode {
         return exchange -> pathHandler.handleRequest(exchange);
     }
 
-    public void publishOnWebsocket( String prefixPath, SerializerType encoding, Actor actor, Consumer<FSTConfiguration> configurator ) {
+    public void publishOnWebsocket( String prefixPath, SerializerType encoding, Actor actor, Consumer<FSTConfiguration> configurator, boolean virtualConnection ) {
         KUndertowHttpServerAdapter adapter = new KUndertowHttpServerAdapter(getServer(), getPathHandler());
-        WebSocketActorServer webSocketActorServer
-            = new WebSocketActorServer(
+        WebSocketActorServerAdapter webSocketActorServer
+            = new WebSocketActorServerAdapter(
                 adapter,
                 new Coding(encoding, configurator),
-                actor
+                actor, virtualConnection
         );
         KUndertowWebSocketHandler.WithResult wsAdapter = KUndertowWebSocketHandler.With(webSocketActorServer);
         getPathHandler().addExactPath(prefixPath,

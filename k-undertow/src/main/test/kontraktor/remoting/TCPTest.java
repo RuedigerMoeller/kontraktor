@@ -7,7 +7,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.base.ActorServerAdapter;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
 
 import java.util.ArrayList;
@@ -19,7 +19,7 @@ import java.util.Date;
 
 public class TCPTest {
 
-    static ActorServer server;
+    static ActorServerAdapter server;
 
     @BeforeClass
     public static void setup() throws Exception {
