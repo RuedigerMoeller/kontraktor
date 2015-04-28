@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -47,6 +48,31 @@ public class Actors {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // static API
+
+    /**
+     * utility function. Executed in foreign thread. Use Actor::delayed() to have the runnable executed inside actor thread
+     */
+    public static void SubmitDelayed( long millis, Runnable task ) {
+        Actors.delayedCalls.schedule( new TimerTask() {
+            @Override
+            public void run() {
+                task.run();
+            }
+        },millis);
+    }
+
+    public static void SubmitPeriodic( long startMillis, Function<Long,Long> task ) {
+        Actors.delayedCalls.schedule( new TimerTask() {
+            @Override
+            public void run() {
+                Long tim = task.apply(startMillis);
+                if ( tim != null && tim > 0 ) {
+                    SubmitPeriodic(tim, in -> task.apply(in) );
+                }
+            }
+        },startMillis);
+    }
+
 
     public static void AddDeadLetter(String s) {
         Log.Lg.warn(null,s);

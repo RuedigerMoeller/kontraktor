@@ -67,7 +67,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
                 if (now - session.getLastHB() > SESSION_FULL_TIMEOUT) {
                     Log.Info(this, "full timeout. deleting session " + session.getSessionId());
                     toRemove.add(session.getSessionId());
-                    session.getRegistry().setIsObsolete(true);
+                    session.__getRegistry().setIsObsolete(true);
                 }
             }
         });
@@ -126,7 +126,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
                 try {
                     if ( newRemoteRefRegistry != null ) {
                         Log.Info(this, "reconnection successful. session " + id);
-                        ((ActorServerAdapter.ActorServerConnection)newRemoteRefRegistry).handOverTo(session.getRegistry());
+                        ((ActorServerAdapter.ActorServerConnection)newRemoteRefRegistry).handOverTo(session.__getRegistry());
                         System.out.println("session remote con size "+session.__connections.size());
                         res.resolve(true);
                     } else {

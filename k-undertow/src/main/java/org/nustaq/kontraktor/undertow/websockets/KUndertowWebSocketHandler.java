@@ -80,6 +80,7 @@ public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler
                 }
             }
             req.setBinaryContent(buf.array());
+            exchange.dispatch();
             endpoint.handleLongPoll(req).then( bytarr -> {
                 exchange.setResponseCode(200);
                 exchange.getResponseHeaders().add( new HttpString("Access-Control-Allow-Origin"), "*" );

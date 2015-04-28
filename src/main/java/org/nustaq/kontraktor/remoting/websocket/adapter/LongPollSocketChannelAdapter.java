@@ -25,7 +25,7 @@ public class LongPollSocketChannelAdapter implements WebSocketChannelAdapter {
 
     @Override
     public void sendBinaryMessage(byte[] b) {
-
+        System.out.println("POK LP send binary");
     }
 
     @Override
