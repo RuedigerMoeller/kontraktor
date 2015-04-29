@@ -73,26 +73,30 @@ public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler
             String first = exchange.getRequestHeaders().getFirst(Headers.CONTENT_LENGTH);
             int len = Integer.parseInt(first);
             // read post data. FIXME: this is blocking (??). need to handle this async !!
+            long tim = System.nanoTime();
             ByteBuffer buf = ByteBuffer.allocate(len);
             while ( buf.remaining() > 0 ) {
                 if ( requestChannel.read(buf) < 0 ) {
                     Log.Warn(this, "failed to read " + len + " bytes from request");
                 }
             }
+            System.out.println("post read poll "+(System.nanoTime()-tim));
             req.setBinaryContent(buf.array());
             exchange.dispatch();
             endpoint.handleLongPoll(req).then( bytarr -> {
                 exchange.setResponseCode(200);
                 exchange.getResponseHeaders().add( new HttpString("Access-Control-Allow-Origin"), "*" );
                 try {
-                    KRestProcessorAdapter.writeBlocking( exchange.getResponseChannel(), bytarr );
+                    if ( bytarr != null && bytarr.length > 0 )
+                        KRestProcessorAdapter.writeBlocking(exchange.getResponseChannel(), bytarr);
                     exchange.endExchange();
                 } catch (IOException e) {
                     Log.Warn(this,e);
                     exchange.endExchange();
                 }
             }).catchError(error -> {
-                // TODO: send 500
+                exchange.setResponseCode(500);
+                exchange.endExchange();
             });
         }
     }

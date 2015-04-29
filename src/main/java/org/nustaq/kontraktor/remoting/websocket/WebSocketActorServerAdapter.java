@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.base.ActorServerAdapter;
 import org.nustaq.kontraktor.remoting.http.KontraktorHttpRequest;
 import org.nustaq.kontraktor.remoting.http.NioHttpServer;
+import org.nustaq.kontraktor.remoting.messagestore.HeapMessageStore;
 import org.nustaq.kontraktor.remoting.messagestore.MessageStore;
 import org.nustaq.kontraktor.remoting.spa.FourK;
 import org.nustaq.kontraktor.remoting.spa.FourKSession;
@@ -16,8 +17,11 @@ import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketErrorMessage;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketTextMessage;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.offheap.bytez.ByteSource;
 import org.nustaq.offheap.bytez.bytesource.ByteArrayByteSource;
+import org.nustaq.offheap.bytez.onheap.HeapBytez;
 import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.minbin.MinBin;
 
 import java.io.IOException;
 
@@ -116,13 +120,16 @@ public class WebSocketActorServerAdapter extends ActorServerAdapter {
     }
 
     public IPromise<byte[]> handleLongPoll(KontraktorHttpRequest req) {
+        // comes in XNIO thread
         Promise res = new Promise();
         if ( req.getBinary() != null )
         {
             // long poll fallback for FourK server tweaked in ..
+            // temporary non-actor based implementation. TODO: consider handling long polls from a dedicated actor
             String sessionId = req.getPath(req.getPathLen() - 1);
             if ( getFacade() instanceof FourK ) {
                 ((FourK)getFacade()).$getSession(sessionId).then( (session,e) -> {
+                    // runs in main session dispatcher
                     if ( session != null ) {
                         FourKSession fks = (FourKSession)session;
                         ActorServerConnection con = fks.__getRegistry();
@@ -139,35 +146,42 @@ public class WebSocketActorServerAdapter extends ActorServerAdapter {
 
                         // same as send binary
                         MyWSObjectSocket myWSObjectSocket = (MyWSObjectSocket) con.getObjectSocket().get();
-                        if ( req.getBinary().length > 1 ) {
-                            synchronized (myWSObjectSocket) { // defensive, should be single threaded
-                                myWSObjectSocket.setNextMsg(req.getBinary());
-                                try {
-                                    con.singleReceive(myWSObjectSocket);
-                                } catch (Exception xe) {
-                                    Log.Warn(this, xe);
-                                }
+
+                        if ( req.getBinary().length > 5 ) { // not a long poll
+                            myWSObjectSocket.setNextMsg(req.getBinary());
+                            try {
+                                con.singleReceive(myWSObjectSocket);
+                            } catch (Exception xe) {
+                                Log.Warn(this, xe);
                             }
+                            res.complete();
+                        } else {
+                            Object sequence = myWSObjectSocket.getConf().asObject(req.getBinary());
+                            long lseq;
+                            if ( sequence instanceof Number ) {
+                                lseq = ((Number)sequence).longValue();
+                            } else
+                                lseq = 0;
+                            // result will already be enqueued for majority of cases
+                            Actors.SubmitPeriodic(100, tim -> {
+                                synchronized (myWSObjectSocket) {
+                                    // read outgoing queue
+                                    byte[] result = myWSObjectSocket.flushToArray(lseq);
+                                    if (result.length > 0) {
+                                        res.resolve(result);
+                                        return null;
+                                    } else {
+                                        if ( tim < 500 )
+                                            return tim+100;
+                                        if ( tim > 510 ) {
+                                            res.resolve(null);
+                                            return null;
+                                        }
+                                        return tim+1;
+                                    }
+                                }
+                            });
                         }
-
-                        // result will already be enqueued for majority of cases
-
-                        Actors.SubmitPeriodic(100, tim -> {
-                            // read outgoing queue
-                            byte[] result = myWSObjectSocket.flushToArray();
-                            if (result.length > 0) {
-                                res.resolve(result);
-                                return null;
-                            } else {
-                                if ( tim < 900 )
-                                    return tim+200;
-                                if ( tim > 905 ) {
-                                    res.resolve(new byte[0]);
-                                    return 0l;
-                                }
-                                return tim+1;
-                            }
-                        });
                     } else {
                         res.resolve(new byte[0]);
                     }
@@ -214,17 +228,32 @@ public class WebSocketActorServerAdapter extends ActorServerAdapter {
             super.flush();
         }
 
-        public byte[] flushToArray() {
+        public byte[] flushToArray(long clientSequence) {
             synchronized (toWrite) {
+                if ( sendHistory == null ) {
+                    sendHistory = new HeapMessageStore(10);
+                }
+                if ( clientSequence > 0 && clientSequence != writeSequence.get()-1 ) {
+                    Log.Warn(this, "sequence gap my:"+writeSequence.get()+" client:"+clientSequence);
+                    ByteSource def = sendHistory.getMessage("DEF", clientSequence+1);
+                    if ( def != null ) {
+                        // FIXME: does not hold true for all possible implementations of sendHistory
+                        return ((ByteArrayByteSource)def).getArr();
+                    } else {
+                        Log.Lg.error(this,null,"unrecoverable sequence gap "+writeSequence.get()+" client:"+clientSequence);
+                    }
+                }
                 int size = toWrite.size();
                 if (size==0)
                     return new byte[0];
-                toWrite.add(writeSequence.getAndIncrement());
+                int newSequence = writeSequence.getAndIncrement();
+                toWrite.add(newSequence);
                 Object[] objects = toWrite.toArray(); // fixme performance
                 toWrite.clear();
                 final byte[] b = conf.asByteArray(objects);
+                System.out.println("lp flushing "+newSequence+" size:"+b.length);
                 if ( sendHistory != null ) {
-                    sendHistory.putMessage("dummy",writeSequence.get()-1, new ByteArrayByteSource(b));
+                    sendHistory.putMessage("DEF",newSequence, new ByteArrayByteSource(b));
                 }
                 return b;
             }

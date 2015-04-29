@@ -164,9 +164,9 @@ public class Knode {
         boolean help;
 
         // just used to pass stuff to kontraktor
-        public int workerThreads = 1;
+        public int workerThreads = 2;
         @Parameter( names = {"-iot","-iothreads"}, description = "undertow epoll threads. just used for polling io, not processing")
-        public int ioThreads = 2;
+        public int ioThreads = 4;
 
         public String getHost() {
             return host;

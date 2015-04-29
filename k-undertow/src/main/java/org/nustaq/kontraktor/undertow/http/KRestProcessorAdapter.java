@@ -147,7 +147,8 @@ public class KRestProcessorAdapter implements HttpHandler {
         writeBlocking(responseChannel, binary);
     }
 
-    public static void writeBlocking(StreamSinkChannel responseChannel, byte[] binary) throws IOException {ByteBuffer wrap = ByteBuffer.wrap(binary);
+    public static void writeBlocking(StreamSinkChannel responseChannel, byte[] binary) throws IOException {
+        ByteBuffer wrap = ByteBuffer.wrap(binary);
         while( wrap.remaining() > 0 )
             responseChannel.write(wrap);
     }
