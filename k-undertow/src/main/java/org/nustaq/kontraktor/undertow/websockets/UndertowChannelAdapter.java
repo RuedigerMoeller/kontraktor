@@ -31,7 +31,7 @@ public class UndertowChannelAdapter implements WebSocketChannelAdapter {
 
     @Override
     public void sendBinaryMessage(byte[] b) {
-        //FIXME: needs to block until complete !
+        //FIXME: needs to block until complete
         System.out.println("send ..");
         WebSockets.sendBinary(ByteBuffer.wrap(b),channel, new WebSocketCallback() {
             @Override
@@ -57,7 +57,7 @@ public class UndertowChannelAdapter implements WebSocketChannelAdapter {
 
     @Override
     public void sendTextMessage(String s) {
-        //FIXME: needs to block until complete !
+        //FIXME: needs to block until complete
         WebSockets.sendText(s, channel, null);
     }
 

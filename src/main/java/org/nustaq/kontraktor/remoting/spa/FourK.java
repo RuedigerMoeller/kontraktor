@@ -28,6 +28,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
         int len;
         do {
             len = s.length();
+            s = s.replace("\\","/");
             s = s.replace("//","/");
         } while ( s.length() != len );
         return s;

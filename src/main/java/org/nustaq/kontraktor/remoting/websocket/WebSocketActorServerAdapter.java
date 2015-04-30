@@ -30,6 +30,8 @@ import java.io.IOException;
  */
 public class WebSocketActorServerAdapter extends ActorServerAdapter {
 
+    public static final byte[] UNKNOWN = FSTConfiguration.createMinBinConfiguration().asByteArray(null);
+
     protected NioHttpServer server;
     protected Coding coding;
     public WebSocketActorServerAdapter(NioHttpServer server, Coding coding, Actor facade, boolean virtualConnection) {
@@ -183,7 +185,8 @@ public class WebSocketActorServerAdapter extends ActorServerAdapter {
                             });
                         }
                     } else {
-                        res.resolve(new byte[0]);
+                        // session is null
+                        res.resolve(UNKNOWN);
                     }
                 });
             }

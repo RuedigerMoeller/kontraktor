@@ -38,7 +38,7 @@ import java.util.*;
 
 /**
  * generate an actor proxy. This class is in awful state as it has been moved from fast-cast + extended iterative.
- * Out of fear of breaking stuff, a major refactoring will be done with next major release.
+ * Out of fear of breaking stuff, a major refactoring is postponed.
  */
 public class ActorProxyFactory {
 

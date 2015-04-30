@@ -72,7 +72,7 @@ public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler
             StreamSourceChannel requestChannel = exchange.getRequestChannel();
             String first = exchange.getRequestHeaders().getFirst(Headers.CONTENT_LENGTH);
             int len = Integer.parseInt(first);
-            // read post data. FIXME: this is blocking (??). need to handle this async !!
+            // read post data. FIXME: this is blocking (??). need to handle this async ?
             long tim = System.nanoTime();
             ByteBuffer buf = ByteBuffer.allocate(len);
             while ( buf.remaining() > 0 ) {
@@ -80,7 +80,7 @@ public class KUndertowWebSocketHandler extends WebSocketProtocolHandshakeHandler
                     Log.Warn(this, "failed to read " + len + " bytes from request");
                 }
             }
-            System.out.println("post read poll "+(System.nanoTime()-tim));
+//            System.out.println("post read poll "+(System.nanoTime()-tim));
             req.setBinaryContent(buf.array());
             exchange.dispatch();
             endpoint.handleLongPoll(req).then( bytarr -> {
