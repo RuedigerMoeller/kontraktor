@@ -252,7 +252,10 @@ public abstract class RemoteRefRegistry implements RemoteConnection {
         if ( response instanceof Object[] ) { // bundling. last element contains sequence
             Object arr[] = (Object[]) response;
             boolean hadResp = false;
-            for (int i = 0; i < arr.length-1; i++) {
+            int max = arr.length - 1;
+            if (arr[max] instanceof Number == false) // no sequencing
+                max++;
+            for (int i = 0; i < max; i++) {
                 Object resp = arr[i];
                 if (resp instanceof RemoteCallEntry == false) {
                     if ( resp != null )

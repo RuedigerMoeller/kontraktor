@@ -17,7 +17,7 @@ public class KsonMsgCoder implements HttpMsgCoder {
 
     public KsonMsgCoder( Class servingActor ) {
         resolver = new ArgTypesResolver( servingActor );
-        kson = new Kson()
+        kson = new Kson().supportJSon(true)
                 .map("call", RemoteCallEntry.class)
                 .map("calls", RemoteCallEntry[].class)
                 .map("rcb", HttpRemotedCB.class);
