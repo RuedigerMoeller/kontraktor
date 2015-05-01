@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.*;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -106,14 +107,51 @@ public class ShowCaseActor extends Actor<ShowCaseActor> {
         }
     }
 
-    public void $timedExecution( String output ) {
-        delayed( 1000, () -> $timedExecution(output) );
+    public void $timedExecutionLoop(String output) {
+        delayed( 1000, () -> $timedExecutionLoop(output) );
         System.out.println(output);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     //
+    // callbacks / streaming
+    //
+
+    public void $match(String toMatch, Callback<String> cb) {
+        stuff.forEach( e -> {
+            if (e.indexOf(toMatch) >= 0) {
+                cb.stream(e);
+            }
+        });
+        cb.finish();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // spores
+    //
+
+    public void $sporeDemoFullList( Spore<List<String>> spore ) {
+        spore.remote(stuff);
+        spore.finish();
+    }
+
+    public void $sporeDemoIterating( Spore<String> spore ) {
+        for (int i = 0; i < stuff.size() && ! spore.isFinished(); i++) {
+            String s = stuff.get(i);
+            spore.remote(s);
+        }
+        spore.finish();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
     // transactions/ordered processing
+    //
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // synchronous access
     //
 
 }
