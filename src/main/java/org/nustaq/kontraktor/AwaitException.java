@@ -6,11 +6,14 @@ package org.nustaq.kontraktor;
  * object is instance of Throwable, this will be thrown directly.
  */
 public class AwaitException extends RuntimeException {
-    Object o;
+    Object error;
 
-    public AwaitException(Object o) {
-        super(""+o);
-        this.o = o;
+    public AwaitException(Object error) {
+        super(""+error);
+        this.error = error;
     }
 
+    public Object getError() {
+        return error;
+    }
 }

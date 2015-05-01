@@ -239,6 +239,14 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
+     * just enqueue given runable to this actors callback queue
+     * @param toRun
+     */
+    protected void run( final Runnable toRun ) {
+        __scheduler.delayedCall( 0, inThread(self(),toRun) );
+    }
+
+    /**
      * @return true if mailbox fill size is ~half capacity
      */
     @CallerSideMethod public boolean isMailboxPressured() {
