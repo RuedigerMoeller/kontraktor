@@ -1,6 +1,8 @@
 package org.nustaq.kontraktor.showcase;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.annotations.Local;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -49,7 +51,7 @@ public class ShowCaseActor extends Actor<ShowCaseActor> {
 
     public IPromise<Integer> $combinePromise11( IPromise<Integer> a, IPromise<Integer> b) {
         IPromise<Integer>[] resArr = all(a, b).await();
-        return new Promise<>(Math.max(resArr[0].get(), resArr[1].get())));
+        return new Promise<>(Math.max(resArr[0].get(), resArr[1].get()));
     }
 
     public IPromise<Integer> $combinePromise2( IPromise<Integer> a, IPromise<Integer> b) {
@@ -66,8 +68,8 @@ public class ShowCaseActor extends Actor<ShowCaseActor> {
     //
 
     public IPromise<String> $getUrl(URL url) {
-        return exec(() -> {
-            return new Scanner(url.openStream(), "UTF-8").useDelimiter("\\A").next());
+        return exec( () -> {
+            return new Scanner(url.openStream(), "UTF-8").useDelimiter("\\A").next();
         });
     }
 
@@ -91,12 +93,14 @@ public class ShowCaseActor extends Actor<ShowCaseActor> {
         .then( contentC -> {
             System.out.println("C received");
         })
-        .catchError( err -> System.out.println("error:"+err) );
+        .catchError( err -> {
+            System.out.println("error:"+err);
+        });
     }
 
     public void $thenVariations1UsingAwait( URL urlA, URL urlB, URL urlC ) {
         try {
-            run( () -> System.out.println("I am running"));
+            self().$submit(() -> System.out.println("I am running"));
             String a = $getUrl(urlA).await(5000);
             String b = $getUrl(urlB).await(5000);
             String c = $getUrl(urlC).await(5000);
@@ -131,12 +135,12 @@ public class ShowCaseActor extends Actor<ShowCaseActor> {
     // spores
     //
 
-    public void $sporeDemoFullList( Spore<List<String>> spore ) {
+    public void $sporeDemoFullList( Spore<List<String>,Object> spore ) {
         spore.remote(stuff);
         spore.finish();
     }
 
-    public void $sporeDemoIterating( Spore<String> spore ) {
+    public void $sporeDemoIterating( Spore<String,String> spore ) {
         for (int i = 0; i < stuff.size() && ! spore.isFinished(); i++) {
             String s = stuff.get(i);
             spore.remote(s);
@@ -151,7 +155,13 @@ public class ShowCaseActor extends Actor<ShowCaseActor> {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    // synchronous access
+    // synchronous access, threading trickery
     //
+
+    @CallerSideMethod @Local
+    public int getSyncState() {
+        return getActor().syncState;
+    }
+
 
 }

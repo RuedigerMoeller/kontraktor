@@ -239,11 +239,11 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
-     * just enqueue given runable to this actors callback queue
+     * just enqueue given runable to this actors mailbox and execute on the actor's thread
      * @param toRun
      */
-    protected void run( final Runnable toRun ) {
-        __scheduler.delayedCall( 0, inThread(self(),toRun) );
+    public void $submit(@InThread Runnable toRun) {
+        toRun.run();
     }
 
     /**

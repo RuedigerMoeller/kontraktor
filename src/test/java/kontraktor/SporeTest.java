@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Spore;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -46,31 +47,37 @@ public class SporeTest {
             Thread.currentThread().setName("Caller");
             checkThread();
             data.$doQuery(
-                    new Spore<String, Object>() {
+                new Spore<String, Object>() {
 
-                        String toSearch; // data required remotely
+                    String toSearch; // data required remotely
 
-                        {
-                            toSearch = subs; // capture data from current context
+                    {
+                        toSearch = subs; // capture data from current context
+                    }
+
+                    // the method executed remotely
+                    public void remote(String input) {
+                        assert Thread.currentThread().getName().equals("DataHolder");
+                        if (input.indexOf(subs) >= 0) {
+                            stream(input);
                         }
+                    }
 
-                        // the method executed remotely
-                        public void remote(String input) {
-                            assert Thread.currentThread().getName().equals("DataHolder");
-                            if (input.indexOf(subs) >= 0) {
-                                stream(input);
-                            }
-                        }
-
-                    } // result receiving executed locally
-                    .forEach((result, error) -> {
-                        assert Thread.currentThread().getName().equals("Caller");
-                        int i = res.incrementAndGet();
-                        System.out.println("result " + i + ":" + result + " err:" + error);
-                        checkThread();
-                    })
-                    .onFinish(() -> System.out.println("DONE"))
+                } // result receiving executed locally
+                .forEach((result, error) -> {
+                    assert Thread.currentThread().getName().equals("Caller");
+                    int i = res.incrementAndGet();
+                    System.out.println("result " + i + ":" + result + " err:" + error);
+                    checkThread();
+                })
+                .onFinish(() -> System.out.println("DONE"))
             );
+            Thread t = Thread.currentThread();
+            data.$submit( () -> {
+                if ( t == Thread.currentThread() ) {
+                    res.incrementAndGet();
+                }
+            });
         }
     }
 
@@ -81,6 +88,6 @@ public class SporeTest {
         Caller caller = Actors.AsActor(Caller.class);
         caller.$testSpore(data, "maybe");
         Thread.sleep(2000);
-        Assert.assertTrue( res.get() == 72 );
+        Assert.assertTrue( res.get() == 73 );
     }
 }
