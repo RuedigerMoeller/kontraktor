@@ -114,17 +114,19 @@ public interface IPromise<T> extends Callback<T> {
     public T get();
 
     /**
-     * schedule other events/messages until future is resolved/settled (Nonblocking delay).
+     * schedule other events/messages until future is resolved/settled (Nonblocking wait).
      *
      * In case this is called from a non-actor thread, the current thread is blocked
      * until the result is avaiable.
      *
-     * If the future is rejected (resolves to an error) an excpetion is raised.
+     * If the future is rejected (resolves to an error) an exception is raised.
+     *
+     * This method is aequivalent to await(15000) = 15 seconds timeout. use await(0) to wait infinetely.
      *
      * @return the futures result or throw exception in case of error
      */
     default public T await() {
-        return await(0l);
+        return await(15000l);
     }
 
     /**
@@ -134,6 +136,8 @@ public interface IPromise<T> extends Callback<T> {
      * until the result is avaiable.
      *
      * If the future is rejected (resolves to an error) an excpetion is raised.
+     *
+     * if timeout is 0l - wait forever.
      *
      * @return the futures result or throw exception in case of error
      */

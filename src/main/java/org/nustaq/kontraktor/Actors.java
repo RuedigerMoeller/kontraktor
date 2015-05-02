@@ -163,6 +163,23 @@ public class Actors {
     }
 
     /**
+     * similar to all method, however stream the results.
+     */
+    public static <T> Stream<T> awaitAll(long timeoutMS, IPromise<T>... futures) {
+        IPromise<IPromise<T>[]> res = new Promise<>();
+        awaitSettle(futures, 0, res);
+        res.await(timeoutMS);
+        return Arrays.stream(res.get()).map( elem -> elem.get() );
+    }
+
+    /**
+     * similar to all method, however stream the results. (default timeout is 15000 ms)
+     */
+    public static <T> Stream<T> awaitAll(IPromise<T>... futures) {
+        return awaitAll(15000,futures);
+    }
+
+    /**
      * similar to es6 Promise.all method, however non-IPromise objects are not allowed
      *
      * returns a future which is settled once all promises provided are settled

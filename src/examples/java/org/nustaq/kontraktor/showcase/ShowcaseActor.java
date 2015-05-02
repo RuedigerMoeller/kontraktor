@@ -12,7 +12,7 @@ import java.util.Scanner;
 /**
  * Created by ruedi on 01.05.2015.
  */
-public class ShowCaseActor extends Actor<ShowCaseActor> {
+public class ShowcaseActor extends Actor<ShowcaseActor> {
 
     volatile int syncState = 99;
 
@@ -50,8 +50,7 @@ public class ShowCaseActor extends Actor<ShowCaseActor> {
     }
 
     public IPromise<Integer> $combinePromise11( IPromise<Integer> a, IPromise<Integer> b) {
-        IPromise<Integer>[] resArr = all(a, b).await();
-        return new Promise<>(Math.max(resArr[0].get(), resArr[1].get()));
+        return new Promise<>(awaitAll(a, b).max((va, vb) -> va - vb).get());
     }
 
     public IPromise<Integer> $combinePromise2( IPromise<Integer> a, IPromise<Integer> b) {
@@ -90,11 +89,11 @@ public class ShowCaseActor extends Actor<ShowCaseActor> {
             System.out.println("B received");
             return self().$getUrl(urlC);
         })
-        .then( contentC -> {
+        .then(contentC -> {
             System.out.println("C received");
         })
-        .catchError( err -> {
-            System.out.println("error:"+err);
+        .catchError(err -> {
+            System.out.println("error:" + err);
         });
     }
 
@@ -104,6 +103,17 @@ public class ShowCaseActor extends Actor<ShowCaseActor> {
             String a = $getUrl(urlA).await(5000);
             String b = $getUrl(urlB).await(5000);
             String c = $getUrl(urlC).await(5000);
+        } catch (KTimeoutException timeout) {
+            System.out.println("timeout");
+        } catch ( AwaitException ex ) {
+            System.out.println(ex.getError());
+        }
+    }
+
+    public void $thenVariations1StartAllConcurrentAndWaitForAll( URL urlA, URL urlB, URL urlC ) {
+        try {
+            awaitAll( $getUrl(urlA), $getUrl(urlB), $getUrl(urlC) )
+                .forEach( System.out::println );
         } catch (KTimeoutException timeout) {
             System.out.println("timeout");
         } catch ( AwaitException ex ) {
