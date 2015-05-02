@@ -67,8 +67,10 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
 
 
     public RestActorClient<T> connect() {
-        objSocket.set(new HttpObjectSocket(actorClazz, port, host, actorPath));
-        mappings.forEach( (k,v) -> getHttpObjectSocket().getKson().map(k,v) );
+        HttpObjectSocket httpSocket = new HttpObjectSocket(actorClazz, port, host, actorPath);
+        httpSocket.getKson().supportJSon(true);
+        objSocket.set(httpSocket);
+        mappings.forEach((k, v) -> getHttpObjectSocket().getKson().map(k, v));
         new Thread(
             () -> {
                 try {
