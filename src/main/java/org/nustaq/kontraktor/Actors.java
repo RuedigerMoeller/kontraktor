@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -38,7 +39,8 @@ import java.util.stream.Stream;
  */
 public class Actors {
 
-    public static final int MAX_EXTERNAL_THREADS_POOL_SIZE = 1000; // max threads used when externalizing blocking api
+    public static int MAX_EXTERNAL_THREADS_POOL_SIZE = 1000; // max threads used when externalizing blocking api
+    public static int DEFAULT_TIMOUT = 15000;
     public static ExecutorService exec = Executors.newFixedThreadPool(MAX_EXTERNAL_THREADS_POOL_SIZE);
     public static ActorsImpl instance = new ActorsImpl(); // public for testing
     public static Timer delayedCalls = new Timer();
@@ -48,6 +50,61 @@ public class Actors {
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // static API
+
+    // constants from Callback class for convenience
+    /**
+     * use value to signal no more messages. THE RECEIVER CALLBACK WILL NOT SEE THIS MESSAGE.
+     */
+    public static final String FINSILENT = Callback.FINSILENT;
+    /**
+     * use value as error to indicate more messages are to come (else remoting will close channel).
+     */
+    public static final String CONT = Callback.CONT;
+    /**
+     * use this value to signal no more messages. The receiver callback will complete the message.
+     * Note that any value except CONT will also close the callback channel. So this is informal.
+     */
+    public static final String FIN = Callback.FIN;
+
+    /**
+     * return if given error Object signals end of callback stream
+     * @param error
+     * @return
+     */
+    public static boolean isFinal(Object error) {
+        return FIN.equals(error) || FINSILENT.equals(error) || ! CONT.equals(error);
+    }
+
+    /**
+     * helper to check for "special" error objects.
+     * @param o
+     * @return
+     */
+    public static boolean isSilentFinal(Object o) {
+        return FINSILENT.equals(o);
+    }
+
+    /**
+     * helper to check for "special" error objects.
+     * @param o
+     * @return
+     */
+    public static boolean isCont(Object o) {
+        return CONT.equals(o);
+    }
+
+    public static boolean isResult(Object error) {
+        return error==null||isCont(error);
+    }
+
+    /**
+     * helper to check for "special" error objects.
+     * @param o
+     * @return
+     */
+    public static boolean isError(Object o) {
+        return o != null && ! FIN.equals(o) && ! FINSILENT.equals(o) && ! CONT.equals(o);
+    }
 
     /**
      * utility function. Executed in foreign thread. Use Actor::delayed() to have the runnable executed inside actor thread
@@ -163,23 +220,6 @@ public class Actors {
     }
 
     /**
-     * similar to all method, however stream the results.
-     */
-    public static <T> Stream<T> awaitAll(long timeoutMS, IPromise<T>... futures) {
-        IPromise<IPromise<T>[]> res = new Promise<>();
-        awaitSettle(futures, 0, res);
-        res.await(timeoutMS);
-        return Arrays.stream(res.get()).map( elem -> elem.get() );
-    }
-
-    /**
-     * similar to all method, however stream the results. (default timeout is 15000 ms)
-     */
-    public static <T> Stream<T> awaitAll(IPromise<T>... futures) {
-        return awaitAll(15000,futures);
-    }
-
-    /**
      * similar to es6 Promise.all method, however non-IPromise objects are not allowed
      *
      * returns a future which is settled once all promises provided are settled
@@ -193,13 +233,16 @@ public class Actors {
 
     /**
      * await until all futures are settled and stream them
-     *
      */
-    protected <T> Stream<T> stream(IPromise<T>... futures) {
+    protected <T> Stream<T> awaitAll(long timeoutMS, IPromise<T>... futures) {
+        return streamHelper(all(futures).await(timeoutMS));
+    }
+
+    protected <T> Stream<T> awaitAll(IPromise<T>... futures) {
         return streamHelper(all(futures).await());
     }
 
-    protected <T> Stream<T> stream(List<IPromise<T>> futures) {
+    protected <T> Stream<T> awaitAll(List<IPromise<T>> futures) {
         return streamHelper(all(futures).await());
     }
 
@@ -232,8 +275,8 @@ public class Actors {
         Promise p = new Promise();
         AtomicBoolean fin = new AtomicBoolean(false);
         for (Iterator<IPromise<T>> iterator = futures.iterator(); iterator.hasNext(); ) {
-            iterator.next().then( (r,e) -> {
-                if ( fin.compareAndSet(false,true) ) {
+            iterator.next().then((r, e) -> {
+                if (fin.compareAndSet(false, true)) {
                     p.complete(r, e);
                 }
             });
@@ -248,8 +291,87 @@ public class Actors {
      * @param <T>
      * @return
      */
-    public static <T> Stream<T> stream( T ... t ) {
+    public static <T> Stream<T> stream(T... t) {
         return Arrays.stream(t);
+    }
+
+    /**
+     * abbreviation for Promise creation to make code more concise
+     *
+     * @param res
+     * @param <T>
+     * @return
+     */
+    public static <T> IPromise<T> resolve( T res ) {
+        return new Promise<>(res);
+    }
+
+    /**
+     * abbreviation for Promise creation to make code more concise
+     *
+     */
+    public static <T> IPromise<T> reject( Object err ) {
+        return new Promise<>(null,err);
+    }
+
+    /**
+     * abbreviation for Promise creation to make code more concise
+     *
+     */
+    public static <T> IPromise<T> complete( T res, Object err ) {
+        return new Promise<>(res,err);
+    }
+
+    /**
+     * processes messages from mailbox / callbackqueue until no messages are left
+     *
+     */
+    public static void yield() {
+        yield(0);
+    }
+
+    /**
+     * process messages on the mailbox/callback queue until timeout is reached. In case timeout is 0,
+     * process until empty.
+     *
+     * If called from a non-actor thread, either sleep until timeout or (if timeout == 0) its a NOP.
+     *
+     * @param timeout
+     */
+    public static void yield(long timeout) {
+        long endtime = 0;
+        if ( timeout > 0 ) {
+            endtime = System.currentTimeMillis() + timeout;
+        }
+        if ( Thread.currentThread() instanceof DispatcherThread ) {
+            DispatcherThread dt = (DispatcherThread) Thread.currentThread();
+            Scheduler scheduler = dt.getScheduler();
+            boolean term = false;
+            int idleCount = 0;
+            while ( ! term ) {
+                boolean hadSome = dt.pollQs();
+                if ( ! hadSome ) {
+                    idleCount++;
+                    scheduler.pollDelay(idleCount);
+                    if ( endtime == 0 ) {
+                        term = true;
+                    }
+                } else {
+                    idleCount = 0;
+                }
+                if ( endtime != 0 && System.currentTimeMillis() > endtime ) {
+                    term = true;
+                }
+            }
+        } else {
+            if ( timeout > 0 ) {
+                try {
+                    Thread.sleep(timeout);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     // end static API

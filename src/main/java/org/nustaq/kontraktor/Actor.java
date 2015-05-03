@@ -66,62 +66,6 @@ import java.util.function.Consumer;
  */
 public class Actor<SELF extends Actor> extends Actors implements Serializable, Monitorable {
 
-    // constants from Callback class for convenience
-
-    /**
-     * use value to signal no more messages. THE RECEIVER CALLBACK WILL NOT SEE THIS MESSAGE.
-     */
-    public static final String FINSILENT = Callback.FINSILENT;
-    /**
-     * use value as error to indicate more messages are to come (else remoting will close channel).
-     */
-    public static final String CONT = Callback.CONT;
-    /**
-     * use this value to signal no more messages. The receiver callback will complete the message.
-     * Note that any value except CONT will also close the callback channel. So this is informal.
-     */
-    public static final String FIN = Callback.FIN;
-
-    /**
-     * return if given error Object signals end of callback stream
-     * @param error
-     * @return
-     */
-    public static boolean isFinal(Object error) {
-        return FIN.equals(error) || FINSILENT.equals(error) || ! CONT.equals(error);
-    }
-
-    /**
-     * helper to check for "special" error objects.
-     * @param o
-     * @return
-     */
-    public static boolean isSilentFinal(Object o) {
-        return FINSILENT.equals(o);
-    }
-
-    /**
-     * helper to check for "special" error objects.
-     * @param o
-     * @return
-     */
-    public static boolean isCont(Object o) {
-        return CONT.equals(o);
-    }
-
-    public static boolean isResult(Object error) {
-        return error==null||isCont(error);
-    }
-
-    /**
-     * helper to check for "special" error objects.
-     * @param o
-     * @return
-     */
-    public static boolean isError(Object o) {
-        return o != null && ! FIN.equals(o) && ! FINSILENT.equals(o) && ! CONT.equals(o);
-    }
-
     /**
      * contains sender of a message if one actor messages to another actor
      */

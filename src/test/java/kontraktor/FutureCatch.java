@@ -66,10 +66,10 @@ public class FutureCatch {
                 correctCount++;
                 e.printStackTrace();
             }
-            stream( self().$rand(1),
-                    self().$rand(2),
-                    self().$rand(3),
-                    self().$rand(4)
+            awaitAll(self().$rand(1),
+                        self().$rand(2),
+                        self().$rand(3),
+                        self().$rand(4)
             ).forEach( r -> { System.out.print("," + r); count.incrementAndGet(); });
 
             String race = race(self().$rand(1),

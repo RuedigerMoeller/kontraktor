@@ -28,7 +28,7 @@ public class ShowcaseActor extends Actor<ShowcaseActor> {
     //
 
     public IPromise<Integer> $indexOfPromise(String what) {
-        return new Promise(stuff.indexOf(what));
+        return resolve(stuff.indexOf(what));
     }
 
     public IPromise<Integer> $combinePromise0( IPromise<Integer> a, IPromise<Integer> b) {
@@ -50,15 +50,15 @@ public class ShowcaseActor extends Actor<ShowcaseActor> {
     }
 
     public IPromise<Integer> $combinePromise11( IPromise<Integer> a, IPromise<Integer> b) {
-        return new Promise<>(awaitAll(a, b).max((va, vb) -> va - vb).get());
+        return resolve(awaitAll(a, b).max((va, vb) -> va - vb).get());
     }
 
     public IPromise<Integer> $combinePromise2( IPromise<Integer> a, IPromise<Integer> b) {
-        return new Promise<>( Math.max( a.await(), b.await() ) );
+        return resolve( Math.max( a.await(), b.await() ) );
     }
 
     public IPromise<Integer> $racePromise0( IPromise<Integer> a, IPromise<Integer> b) {
-        return new Promise<>( race(a, b).await() );
+        return resolve( race(a, b).await() );
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////
@@ -67,9 +67,7 @@ public class ShowcaseActor extends Actor<ShowcaseActor> {
     //
 
     public IPromise<String> $getUrl(URL url) {
-        return exec( () -> {
-            return new Scanner(url.openStream(), "UTF-8").useDelimiter("\\A").next();
-        });
+        return exec( () -> new Scanner(url.openStream(), "UTF-8").useDelimiter("\\A").next() );
     }
 
     public void $thenVariations0( URL urlA, URL urlB ) {

@@ -28,7 +28,7 @@ public class CallbackTest {
 
         public void $method(Callback cb) {
             assertTrue(Thread.currentThread() == __currentDispatcher);
-            cb.complete(Thread.currentThread(), null);
+            cb.resolve(Thread.currentThread());
         }
 
         public void $userping(CBTCallActor pong, Callback cb) {

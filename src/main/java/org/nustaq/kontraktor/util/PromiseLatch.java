@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.util;
 
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -27,13 +28,13 @@ public class PromiseLatch<T> {
         this( wrapped,counter);
     }
 
+    public PromiseLatch(int counter) {
+        this( new Promise<>(), counter);
+    }
+
     public PromiseLatch(IPromise<T> wrapped, int counter) {
         this.wrapped = wrapped;
         count = new AtomicInteger(counter);
-    }
-
-    public void receive(T result, Object error) {
-        countDown(result,error);
     }
 
     public void countDown() {
@@ -61,4 +62,7 @@ public class PromiseLatch<T> {
         return count.get();
     }
 
+    public IPromise<T> getPromise() {
+        return wrapped;
+    }
 }

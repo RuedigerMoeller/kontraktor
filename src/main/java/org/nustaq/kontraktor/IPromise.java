@@ -126,7 +126,7 @@ public interface IPromise<T> extends Callback<T> {
      * @return the futures result or throw exception in case of error
      */
     default public T await() {
-        return await(15000l);
+        return await(Actors.DEFAULT_TIMOUT);
     }
 
     /**
