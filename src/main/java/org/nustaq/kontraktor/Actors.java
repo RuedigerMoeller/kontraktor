@@ -295,7 +295,7 @@ public class Actors {
     }
 
     /**
-     * plain utility additiona to java 8 streams
+     * utility addition to java 8 streams
      *
      * @param t
      * @param <T>
