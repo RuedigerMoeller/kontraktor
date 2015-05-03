@@ -6,7 +6,6 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.util.PromiseLatch;
 
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 03/05/15.

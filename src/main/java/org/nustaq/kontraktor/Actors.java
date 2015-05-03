@@ -138,8 +138,11 @@ public class Actors {
 
     /**
      * in case called from an actor, wraps the given interface instance into a proxy such that
-     * a calls on the interface get schedulled on the actors thread (avoids accidental multithreading
+     * all calls on the interface get scheduled on the calling actors thread (avoids accidental multithreading
      * when handing out callback/listener interfaces from an actor)
+     *
+     * if called from outside an actor thread, NOP
+     *
      * @param anInterface
      * @param <T>
      * @return
@@ -232,18 +235,25 @@ public class Actors {
     }
 
     /**
-     * await until all futures are settled and stream them
+     * await until all futures are settled and stream their results
      */
     protected <T> Stream<T> awaitAll(long timeoutMS, IPromise<T>... futures) {
         return streamHelper(all(futures).await(timeoutMS));
     }
 
+    /**
+     * await until all futures are settled and stream their results. Uses Actors.DEFAULT_TIMEOUT
+     */
     protected <T> Stream<T> awaitAll(IPromise<T>... futures) {
         return streamHelper(all(futures).await());
     }
 
     protected <T> Stream<T> awaitAll(List<IPromise<T>> futures) {
         return streamHelper(all(futures).await());
+    }
+
+    protected <T> Stream<T> awaitAll(long timeoutMS, List<IPromise<T>> futures) {
+        return streamHelper(all(futures).await(timeoutMS));
     }
 
     /**
@@ -324,7 +334,7 @@ public class Actors {
 
     /**
      * processes messages from mailbox / callbackqueue until no messages are left
-     *
+     * NOP if called from non actor thread.
      */
     public static void yield() {
         yield(0);
