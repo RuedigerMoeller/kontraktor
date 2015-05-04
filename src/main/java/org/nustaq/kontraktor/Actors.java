@@ -333,6 +333,14 @@ public class Actors {
     }
 
     /**
+     * abbreviation for Promise creation to make code more concise
+     *
+     */
+    public static IPromise complete() {
+        return new Promise<>("dummy");
+    }
+
+    /**
      * processes messages from mailbox / callbackqueue until no messages are left
      * NOP if called from non actor thread.
      */

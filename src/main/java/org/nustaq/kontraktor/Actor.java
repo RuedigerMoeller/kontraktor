@@ -38,6 +38,7 @@ import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
 /**
@@ -64,7 +65,7 @@ import java.util.function.Consumer;
  *
  * </pre>
  */
-public class Actor<SELF extends Actor> extends Actors implements Serializable, Monitorable {
+public class Actor<SELF extends Actor> extends Actors implements Serializable, Monitorable, Executor {
 
     /**
      * contains sender of a message if one actor messages to another actor
@@ -454,6 +455,11 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return method;
     }
 
+    @CallerSideMethod @Local @Override
+    public void execute(Runnable command) {
+        self().$submit(command);
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // Monitoring
@@ -468,6 +474,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     public IPromise<Monitorable[]> $getSubMonitorables() {
         return new Promise<>(new Monitorable[0]);
     }
+
 
     public static class ActorReport {
         String clz;

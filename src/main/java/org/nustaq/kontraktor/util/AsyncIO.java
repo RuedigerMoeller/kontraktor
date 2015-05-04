@@ -8,9 +8,14 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.CompletionHandler;
+import java.nio.file.OpenOption;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.FileAttribute;
 import java.util.EnumSet;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -28,13 +33,13 @@ public class AsyncIO {
      * stream a file asynchronously with given chunk size. The Pair in the callback class contains position and
      * the chunk data.
      *
-     * Warning: as the buffer might get reused, its required to consume (copy or parse) it inside the callback.
+     * Warning: as the buffer might get reused, its required to consume (copy or parse) it inside the callback immediately.
      *
      * @param filepath
      * @param chunkSize
      * @param cb
      */
-    public void streamFile(String filepath, int chunkSize, Callback<Pair<Integer, ByteBuffer>> cb) {
+    public void streamFile(String filepath, int chunkSize, Callback<Pair<Long, ByteBuffer>> cb) {
         Actor sender = Actor.sender.get();
         if ( sender == null )
             throw new RuntimeException("must be called from inside an actor thread");
