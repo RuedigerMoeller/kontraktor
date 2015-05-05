@@ -39,6 +39,7 @@ public class AsyncServerSocket {
         {
             throw new RuntimeException("only usable from within an actor");
         }
+        boolean hadStuff = false;
         try {
             selector.selectNow();
             for (Iterator<SelectionKey> iterator = selector.selectedKeys().iterator(); iterator.hasNext(); ) {
@@ -48,6 +49,7 @@ public class AsyncServerSocket {
                         if (key.isAcceptable()) {
                             SocketChannel accept = socket.accept();
                             if (accept != null) {
+                                hadStuff = true;
                                 accept.configureBlocking(false);
                                 SelectionKey newKey = accept.register(selector, SelectionKey.OP_READ);
                                 AsyncServerSocketConnection con = connectionFactory.apply(key, accept);
@@ -62,6 +64,7 @@ public class AsyncServerSocket {
                             if ( con == null ) {
                                 Log.Lg.warn(this, "con is null " + key);
                             } else {
+                                hadStuff = true;
                                 actor.execute(() -> {
                                     try {
                                         con.readData();
@@ -87,7 +90,11 @@ public class AsyncServerSocket {
             Actors.reject(e);
         }
         if ( ! isClosed() ) {
-            actor.delayed( 5, () -> receiveLoop() );
+            if ( hadStuff ) {
+                actor.execute( () -> receiveLoop() );
+            } else {
+                actor.delayed( 2, () -> receiveLoop() );
+            }
         }
     }
 

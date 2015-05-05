@@ -25,14 +25,15 @@ public abstract class AsyncServerSocketConnection {
     }
 
     public void closed(Exception ioe) {
-        System.out.println("connection closed");
+//        ioe.printStackTrace();
+        System.out.println("connection closed "+ioe);
     }
 
     public void readData() throws IOException {
         int read = chan.read(buf);
         if ( read == -1 )
             throw new EOFException("connection closed");
-        if ( buf.position() == buf.limit() ) {
+        if ( buf.position() == buf.capacity() ) {
             ByteBuffer newOne = ByteBuffer.allocate(buf.capacity()*2);
             buf.flip();
             newOne.put(buf);

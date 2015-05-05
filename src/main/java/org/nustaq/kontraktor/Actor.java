@@ -456,6 +456,11 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return method;
     }
 
+    /**
+     * put given runnable on this actors mailbox
+     *
+     * @param command
+     */
     @CallerSideMethod @Local @Override
     public void execute(Runnable command) {
         self().$submit(command);

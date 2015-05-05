@@ -9,13 +9,18 @@ import java.nio.channels.SocketChannel;
 
 /**
  * Created by moelrue on 5/5/15.
+ *
+ * A server socket connection which buffers incoming data in a binary queue so
+ * an application can easily parse and process data in chunks without having
+ * to maintain complex state machines.
+ *
  */
-public abstract class RingbufferingAsyncSSConnection extends AsyncServerSocketConnection {
+public abstract class QueuingAsyncSocketConnection extends AsyncServerSocketConnection {
 
     protected BinaryQueue queue = new BinaryQueue();
     protected ByteBufferBasicBytez wrapper = new ByteBufferBasicBytez(null);
 
-    public RingbufferingAsyncSSConnection(SelectionKey key, SocketChannel chan) {
+    public QueuingAsyncSocketConnection(SelectionKey key, SocketChannel chan) {
         super(key, chan);
     }
 
