@@ -4,8 +4,8 @@ import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.util.AsyncFile;
-import org.nustaq.kontraktor.util.AsyncFileIOEvent;
+import org.nustaq.kontraktor.asyncio.AsyncFile;
+import org.nustaq.kontraktor.asyncio.AsyncFileIOEvent;
 
 import java.io.*;
 import java.nio.ByteBuffer;

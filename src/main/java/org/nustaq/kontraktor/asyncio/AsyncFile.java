@@ -1,14 +1,14 @@
-package org.nustaq.kontraktor.util;
+package org.nustaq.kontraktor.asyncio;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.util.ActorExecutorService;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousFileChannel;
 import java.nio.channels.CompletionHandler;
@@ -33,6 +33,11 @@ public class AsyncFile {
     }
 
     byte tmp[];
+    /*
+     * return a pseudo-blocking input stream. Note: due to limitations of the current await implementation (stack based),
+     * when reading many files concurrently from a single actor thread don't mix high latency file locations (e.g. remote file systems vs. local)
+     * with low latency ones. If this is required, fall back to the more basic read/write methods returning futures.
+     */
     public InputStream asInputStream() {
 
         if ( tmp != null )
@@ -78,6 +83,13 @@ public class AsyncFile {
         };
     }
 
+    /**
+     * return a pseudo-blocking output stream. Note: due to limitations of the current await implementation (stack based),
+     * when writing many files concurrently from a single actor thread don't mix high latency file locations (e.g. remote file systems vs. local)
+     * with low latency ones. If this is required, fall back to the more basic read/write methods returning futures.
+     *
+     * @return
+     */
     public OutputStream asOutputStream() {
         if ( tmp != null )
             throw new RuntimeException("can create Input/OutputStream only once");

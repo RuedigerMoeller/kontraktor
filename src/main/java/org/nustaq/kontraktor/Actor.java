@@ -179,8 +179,9 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * delayed( 100, () -> { self().doAction( x, y,  ); } );
      *
      */
-    protected void delayed( long millis, final Runnable toRun ) {
-        __scheduler.delayedCall( millis, inThread(self(),toRun) );
+    @CallerSideMethod @Local
+    public void delayed( long millis, final Runnable toRun ) {
+        __scheduler.delayedCall(millis, inThread(self(), toRun));
     }
 
     /**

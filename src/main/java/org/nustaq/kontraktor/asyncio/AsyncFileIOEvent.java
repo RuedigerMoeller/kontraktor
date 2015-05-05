@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.util;
+package org.nustaq.kontraktor.asyncio;
 
 import java.nio.ByteBuffer;
 
