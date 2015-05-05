@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -59,7 +60,7 @@ public class AsyncServerSocket {
                             iterator.remove();
                             AsyncServerSocketConnection con = (AsyncServerSocketConnection) key.attachment();
                             if ( con == null ) {
-                                System.out.println("con is null "+key);
+                                Log.Lg.warn(this, "con is null " + key);
                             } else {
                                 actor.execute(() -> {
                                     try {
@@ -94,22 +95,4 @@ public class AsyncServerSocket {
         return false;
     }
 
-
-    public static class TA extends Actor<TA> {
-
-        public void $serve() {
-            AsyncServerSocket sock = new AsyncServerSocket();
-            try {
-                sock.connect( 8080, (key,con) -> new AsyncServerSocketConnection(key,con) );
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-    }
-
-    public static void main( String a[] ) throws InterruptedException {
-        Actors.AsActor(TA.class).$serve();
-        Thread.sleep(1000000l);
-    }
 }

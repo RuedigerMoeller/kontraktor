@@ -13,13 +13,11 @@ import java.util.function.Predicate;
 /**
  * Created by ruedi on 05/05/15.
  */
-public class AsyncServerSocketConnection {
+public abstract class AsyncServerSocketConnection {
 
-    protected ByteBuffer buf = ByteBuffer.allocate(10000);
+    protected ByteBuffer buf = ByteBuffer.allocate(1024);
     protected SelectionKey key;
     protected SocketChannel chan;
-    protected Predicate<ByteBuffer> condition;
-    protected Promise<ByteBuffer> promise;
 
     public AsyncServerSocketConnection(SelectionKey key, SocketChannel chan) {
         this.key = key;
@@ -41,40 +39,43 @@ public class AsyncServerSocketConnection {
             buf = newOne;
             readData();
         }
-        testCondition();
-        // debug
-        byte b[] = new byte[buf.position()];
-        System.arraycopy(buf.array(),0,b,0,buf.position());
-        System.out.println(new String(b,0));
+        buf.flip();
+        if ( buf.limit() > 0 )
+            dataReceived(buf);
     }
 
-    protected void testCondition() {
-        if ( condition.test(buf) ) {
-            buf.flip();
-            promise.resolve(buf);
-        }
-    }
+    public abstract void dataReceived(ByteBuffer buf);
 
-    public IPromise<ByteBuffer> when( Predicate<ByteBuffer> predicate ) {
-        condition = predicate;
-        promise = new Promise<>();
-        testCondition();
-        return promise;
-    }
-
-    public IPromise<ByteBuffer> whenAvailable(int bytez) {
-        return when(buffer -> buffer.position() >= bytez );
-    }
-
-    // fixme: maybe byte oriented stream interface fits better
-    // consider ringbuffering for reading
-    public void parse() {
-        whenAvailable(4).then( buf0 -> {
-            int len = buf0.getInt();
-            whenAvailable(len).then(buf1 -> {
-                //decoder.readObject(buffer);
-            });
-        });
-    }
+//    protected Predicate<ByteBuffer> condition;
+//    protected Promise<ByteBuffer> promise;
+//
+//    protected void testCondition() {
+//        if ( condition.test(buf) ) {
+//            buf.flip();
+//            promise.resolve(buf);
+//        }
+//    }
+//
+//    public IPromise<ByteBuffer> when( Predicate<ByteBuffer> predicate ) {
+//        condition = predicate;
+//        promise = new Promise<>();
+//        testCondition();
+//        return promise;
+//    }
+//
+//    public IPromise<ByteBuffer> whenAvailable(int bytez) {
+//        return when(buffer -> buffer.position() >= bytez );
+//    }
+//
+//    // fixme: maybe byte oriented stream interface fits better
+//    // consider ringbuffering for reading
+//    public void parse() {
+//        whenAvailable(4).then( buf0 -> {
+//            int len = buf0.getInt();
+//            whenAvailable(len).then(buf1 -> {
+//                //decoder.readObject(buffer);
+//            });
+//        });
+//    }
 
 }

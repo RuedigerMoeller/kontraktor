@@ -396,7 +396,7 @@ public class Promise<T> implements IPromise<T> {
                 } else {
                     idleCount = 0;
                 }
-                if ( endtime != 0 && System.currentTimeMillis() > endtime ) {
+                if ( endtime != 0 && System.currentTimeMillis() > endtime && ! isSettled() ) {
                     timedOut(Timeout.INSTANCE);
                     break;
                 }
