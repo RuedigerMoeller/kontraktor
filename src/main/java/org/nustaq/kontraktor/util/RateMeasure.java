@@ -1,5 +1,7 @@
 package org.nustaq.kontraktor.util;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Created with IntelliJ IDEA.
  * User: ruedi
@@ -10,7 +12,7 @@ package org.nustaq.kontraktor.util;
  */
 public class RateMeasure {
 
-    int count;
+    AtomicInteger count = new AtomicInteger(0);
     long lastStats;
     int checkEachMask = 127;
     long statInterval = 1000;
@@ -28,8 +30,8 @@ public class RateMeasure {
     }
 
     public void count() {
-        count++;
-        if ( (count & ~checkEachMask) == count ) {
+        int c = count.incrementAndGet();
+        if ( (c & ~checkEachMask) == c ) {
             checkStats();
         }
     }
@@ -38,9 +40,9 @@ public class RateMeasure {
         long now = System.currentTimeMillis();
         long diff = now-lastStats;
         if ( diff > statInterval ) {
-            lastRatePersecond = count*1000l/diff;
+            lastRatePersecond = count.get()*1000l/diff;
             lastStats = now;
-            count = 0;
+            count.set(0);
             statsUpdated(lastRatePersecond);
         }
     }

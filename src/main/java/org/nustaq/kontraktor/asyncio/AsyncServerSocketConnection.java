@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.asyncio;
 
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 
@@ -8,14 +9,14 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.function.Predicate;
 
 /**
- * Created by ruedi on 05/05/15.
+ * Baseclass for handling async io. Its strongly recommended to use QueuingAsyncSocketConnection as this
+ * eases things quite a lot.
  */
 public abstract class AsyncServerSocketConnection {
 
-    protected ByteBuffer buf = ByteBuffer.allocate(1024);
+    protected ByteBuffer readBuf = ByteBuffer.allocate(4096);
     protected SelectionKey key;
     protected SocketChannel chan;
 
@@ -25,58 +26,52 @@ public abstract class AsyncServerSocketConnection {
     }
 
     public void closed(Exception ioe) {
-//        ioe.printStackTrace();
-        System.out.println("connection closed "+ioe);
+        System.out.println("connection closed " + ioe);
     }
 
     public void readData() throws IOException {
-        int read = chan.read(buf);
+        readBuf.position(0); readBuf.limit(readBuf.capacity());
+        int read = chan.read(readBuf);
         if ( read == -1 )
             throw new EOFException("connection closed");
-        if ( buf.position() == buf.capacity() ) {
-            ByteBuffer newOne = ByteBuffer.allocate(buf.capacity()*2);
-            buf.flip();
-            newOne.put(buf);
-            buf = newOne;
-            readData();
+        readBuf.flip();
+        if ( readBuf.limit() > 0 )
+            dataReceived(readBuf);
+    }
+
+    /**
+     * writes given buffer content. In case of partial write, another write is enqueued.
+     * once the write is completed, the returned promise is fulfilled
+     *
+     * @param buf
+     * @return
+     */
+    public IPromise directWrite(ByteBuffer buf) {
+        return directWrite(buf,null);
+    }
+
+    protected IPromise directWrite(ByteBuffer buf, Promise result) {
+        if ( result == null )
+            result = new Promise();
+        try {
+            int written = chan.write(buf);
+            if ( buf.remaining() > 0 ) {
+                Actor actor = Actor.sender.get();
+                if ( actor == null )
+                    throw new RuntimeException("can only by called from within actor Thread");
+                final Promise finalResult = result;
+                actor.execute( () -> {
+                    directWrite(buf, finalResult);
+                });
+            } else {
+                result.complete();
+            }
+        } catch (IOException e) {
+            result.reject(e);
         }
-        buf.flip();
-        if ( buf.limit() > 0 )
-            dataReceived(buf);
+        return result;
     }
 
     public abstract void dataReceived(ByteBuffer buf);
-
-//    protected Predicate<ByteBuffer> condition;
-//    protected Promise<ByteBuffer> promise;
-//
-//    protected void testCondition() {
-//        if ( condition.test(buf) ) {
-//            buf.flip();
-//            promise.resolve(buf);
-//        }
-//    }
-//
-//    public IPromise<ByteBuffer> when( Predicate<ByteBuffer> predicate ) {
-//        condition = predicate;
-//        promise = new Promise<>();
-//        testCondition();
-//        return promise;
-//    }
-//
-//    public IPromise<ByteBuffer> whenAvailable(int bytez) {
-//        return when(buffer -> buffer.position() >= bytez );
-//    }
-//
-//    // fixme: maybe byte oriented stream interface fits better
-//    // consider ringbuffering for reading
-//    public void parse() {
-//        whenAvailable(4).then( buf0 -> {
-//            int len = buf0.getInt();
-//            whenAvailable(len).then(buf1 -> {
-//                //decoder.readObject(buffer);
-//            });
-//        });
-//    }
 
 }

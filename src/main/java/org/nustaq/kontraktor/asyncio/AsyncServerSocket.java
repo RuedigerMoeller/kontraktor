@@ -11,6 +11,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.function.BiFunction;
 
 /**
@@ -26,8 +27,8 @@ public class AsyncServerSocket {
     public void connect( int port, BiFunction<SelectionKey,SocketChannel,AsyncServerSocketConnection> connectionFactory ) throws IOException {
         selector = Selector.open();
         socket = ServerSocketChannel.open();
-        socket.socket().bind(new java.net.InetSocketAddress(port));
         socket.configureBlocking(false);
+        socket.socket().bind(new java.net.InetSocketAddress(port));
         serverkey = socket.register(selector, SelectionKey.OP_ACCEPT);
         this.connectionFactory = connectionFactory;
         receiveLoop();
@@ -42,7 +43,8 @@ public class AsyncServerSocket {
         boolean hadStuff = false;
         try {
             selector.selectNow();
-            for (Iterator<SelectionKey> iterator = selector.selectedKeys().iterator(); iterator.hasNext(); ) {
+            Set<SelectionKey> selectionKeys = selector.selectedKeys();
+            for (Iterator<SelectionKey> iterator = selectionKeys.iterator(); iterator.hasNext(); ) {
                 SelectionKey key = iterator.next();
                 try {
                     if (key == serverkey) {
