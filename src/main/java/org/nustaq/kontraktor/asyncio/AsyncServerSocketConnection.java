@@ -40,8 +40,12 @@ public abstract class AsyncServerSocketConnection {
     }
 
     /**
-     * writes given buffer content. In case of partial write, another write is enqueued.
-     * once the write is completed, the returned promise is fulfilled
+     * writes given buffer content. In case of partial write, another write is enqueued internally.
+     * once the write is completed, the returned promise is fulfilled.
+     * the next write has to wait until the future has completed, else write order might get mixed up.
+     *
+     * Better use write* methods of QueuingAsyncSocketConnection as these will write to a binary queue
+     * which is read+sent behind the scenes.
      *
      * @param buf
      * @return
