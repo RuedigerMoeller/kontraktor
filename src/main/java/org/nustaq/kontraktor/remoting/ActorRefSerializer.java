@@ -13,9 +13,9 @@ import java.io.IOException;
  */
 public class ActorRefSerializer extends FSTBasicObjectSerializer {
 
-    RemoteRefRegistry reg;
+    RemoteRegistry reg;
 
-    public ActorRefSerializer(RemoteRefRegistry reg) {
+    public ActorRefSerializer(RemoteRegistry reg) {
         this.reg = reg;
     }
 

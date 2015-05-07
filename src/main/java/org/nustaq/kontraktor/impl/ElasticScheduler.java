@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
-import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.RemoteRegistry;
 import org.nustaq.kontraktor.util.Log;
 
 import java.lang.reflect.InvocationHandler;
@@ -197,7 +197,7 @@ public class ElasticScheduler implements Scheduler, Monitorable {
     }
 
     @Override
-    public Object enqueueCallFromRemote(RemoteRefRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
+    public Object enqueueCallFromRemote(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
         Actor actor = receiver.getActor();

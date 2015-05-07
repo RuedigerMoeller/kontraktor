@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.RemoteRegistry;
 
 import java.lang.reflect.InvocationHandler;
 import java.util.List;
@@ -27,7 +28,7 @@ public interface Scheduler extends Monitorable{
 
     Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object args[], boolean isCB);
 
-    Object enqueueCallFromRemote(RemoteRefRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object args[], boolean isCB);
+    Object enqueueCallFromRemote(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object args[], boolean isCB);
 
     void threadStopped(DispatcherThread th);
 

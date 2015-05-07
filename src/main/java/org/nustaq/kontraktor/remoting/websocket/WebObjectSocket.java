@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.remoting.websocket;
 
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
-import org.nustaq.kontraktor.remoting.base.ActorServerAdapter;
+import org.nustaq.kontraktor.remoting.base.ActorServerConnection;
 import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketChannelAdapter;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectInput;
@@ -141,7 +141,7 @@ public abstract class WebObjectSocket implements ObjectSocket {
     /**
      * handover my object socket to a (cached) registry. To get this atomic, also update the ref here
      */
-    public void mergePendingWritesAndReplaceInRef(ActorServerAdapter.ActorServerConnection oldRegistry) {
+    public void mergePendingWritesAndReplaceInRef(ActorServerConnection oldRegistry) {
         WebObjectSocket discardedOS = (WebObjectSocket) oldRegistry.getObjectSocket().get();
         // note: can only be done right after construction when this socket is not exposed to
         // other threads !!

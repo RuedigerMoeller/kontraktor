@@ -28,6 +28,7 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.RemoteRegistry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.TicketMachine;
 
@@ -71,7 +72,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * contains sender of a message if one actor messages to another actor
      */
     public static ThreadLocal<Actor> sender = new ThreadLocal<>();
-    public static ThreadLocal<RemoteRefRegistry> registry = new ThreadLocal<>();
+    public static ThreadLocal<RemoteRegistry> registry = new ThreadLocal<>();
 
     // internal ->
     public Queue __mailbox; // mailbox/eventloop queue

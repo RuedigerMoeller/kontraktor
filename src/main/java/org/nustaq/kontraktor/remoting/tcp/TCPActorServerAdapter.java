@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.remoting.tcp;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.ActorServerAdapter;
+import org.nustaq.kontraktor.remoting.base.ActorServerConnection;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.*;
@@ -77,7 +78,7 @@ public class TCPActorServerAdapter extends ActorServerAdapter {
     @Override
     protected ActorServerConnection acceptConnections() throws Exception {
         Socket connectionSocket = welcomeSocket.accept();
-        ActorServerConnection res = new ActorServerConnection();
+        ActorServerConnection res = new ActorServerConnection(TCPActorServerAdapter.this);
         TCPSocket tcpSocket = new TCPSocket(connectionSocket, res.getConf());
         res.init(tcpSocket, facade);
         return res;

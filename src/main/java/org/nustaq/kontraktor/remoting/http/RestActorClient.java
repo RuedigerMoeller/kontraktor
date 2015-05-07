@@ -9,6 +9,7 @@ import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.ObjectSocket;
 import org.nustaq.kontraktor.remoting.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.WriteObjectSocket;
 import org.nustaq.kontraktor.util.Log;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,7 +56,7 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
         try {
             int count = 0;
             while (!isTerminated()) {
-                if (singleSendLoop(channel)) {
+                if (pollAndSend2Remote(channel)) {
                     count = 0;
                 }
                 backOffStrategy.yield(count++);
@@ -93,7 +94,7 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
     private HttpObjectSocket getHttpObjectSocket() {return (HttpObjectSocket) objSocket.get();}
 
     @Override
-    protected void writeObject(ObjectSocket chan, RemoteCallEntry rce) throws Exception {
+    protected void writeObject(WriteObjectSocket chan, RemoteCallEntry rce) throws Exception {
         final Object[] args = rce.getArgs();
         for (int i = 0; i < args.length; i++) {
             Object o = args[i];

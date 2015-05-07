@@ -104,4 +104,7 @@ public class AsyncServerSocket {
         return false;
     }
 
+    public void close() throws IOException {
+        socket.close();
+    }
 }

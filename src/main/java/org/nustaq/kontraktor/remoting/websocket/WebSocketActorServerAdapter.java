@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.Coding;
 import org.nustaq.kontraktor.remoting.base.ActorServerAdapter;
+import org.nustaq.kontraktor.remoting.base.ActorServerConnection;
 import org.nustaq.kontraktor.remoting.http.KontraktorHttpRequest;
 import org.nustaq.kontraktor.remoting.http.NioHttpServer;
 import org.nustaq.kontraktor.remoting.messagestore.HeapMessageStore;
@@ -19,9 +20,7 @@ import org.nustaq.kontraktor.remoting.websocket.adapter.WebSocketTextMessage;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.offheap.bytez.ByteSource;
 import org.nustaq.offheap.bytez.bytesource.ByteArrayByteSource;
-import org.nustaq.offheap.bytez.onheap.HeapBytez;
 import org.nustaq.serialization.FSTConfiguration;
-import org.nustaq.serialization.minbin.MinBin;
 
 import java.io.IOException;
 
@@ -72,7 +71,7 @@ public class WebSocketActorServerAdapter extends ActorServerAdapter {
     ///////////////////////////////////////////////// ws adapter callbacks
 
     public void onOpen(WebSocketChannelAdapter channel) {
-        ActorServerConnection con = new ActorServerConnection(coding);
+        ActorServerConnection con = new ActorServerConnection(WebSocketActorServerAdapter.this, coding);
         MyWSObjectSocket socket = new MyWSObjectSocket(con.getConf(), channel);
         con.init(socket, facade);
         channel.setAttribute("con", con);
@@ -137,7 +136,7 @@ public class WebSocketActorServerAdapter extends ActorServerAdapter {
                         ActorServerConnection con = fks.__getRegistry();
                         if ( con == null ) {
                             // fake websocket open
-                            con = new ActorServerConnection(coding);
+                            con = new ActorServerConnection(WebSocketActorServerAdapter.this, coding);
                             LongPollSocketChannelAdapter channel = new LongPollSocketChannelAdapter();
                             MyWSObjectSocket socket = new MyWSObjectSocket(con.getConf(), channel);
                             con.init(socket, facade);

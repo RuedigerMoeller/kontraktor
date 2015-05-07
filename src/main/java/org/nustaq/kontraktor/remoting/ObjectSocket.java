@@ -8,19 +8,10 @@ import java.io.IOException;
 /**
  * Created by ruedi on 11.08.2014.
  */
-public interface ObjectSocket {
+public interface ObjectSocket extends WriteObjectSocket {
 
     // blocking
     public Object readObject() throws Exception;
-    // can be blocking
-    public void writeObject(Object toWrite) throws Exception;
-
-    public void flush() throws IOException, Exception;
-
-    void setLastError(Exception ex);
-
-    void close() throws IOException;
-
     public FSTConfiguration getConf();
 
     boolean isClosed();

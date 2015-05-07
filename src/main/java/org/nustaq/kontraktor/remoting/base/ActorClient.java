@@ -76,7 +76,7 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
             try {
                 int count = 0;
                 while (!isTerminated()) {
-                    if (singleSendLoop(channel)) {
+                    if (pollAndSend2Remote(channel)) {
                         count = 0;
                     }
                     backOffStrategy.yield(count++);

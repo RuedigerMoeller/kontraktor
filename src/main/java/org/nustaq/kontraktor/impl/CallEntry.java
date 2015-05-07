@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.RemoteRegistry;
 
 import java.lang.reflect.Method;
 
@@ -17,7 +18,7 @@ public class CallEntry<T> implements Message<T> {
     transient private Actor sendingActor; // defines the sender of this message. null in case of outside call
     transient private Actor targetActor;  // defines actor assignment in case target is callback
     transient private boolean onCBQueue;  // determines queue used
-    transient private RemoteRefRegistry remoteRefRegistry; // remote connection call came from
+    transient private RemoteRegistry remoteRefRegistry; // remote connection call came from
 
     public CallEntry(T target, Method method, Object[] args, Actor sender, Actor targetActor, boolean isCB) {
         this.target = target;
@@ -28,11 +29,11 @@ public class CallEntry<T> implements Message<T> {
         this.onCBQueue = isCB;
     }
 
-    public void setRemoteRefRegistry(RemoteRefRegistry remoteRefRegistry) {
+    public void setRemoteRefRegistry(RemoteRegistry remoteRefRegistry) {
         this.remoteRefRegistry = remoteRefRegistry;
     }
 
-    public RemoteRefRegistry getRemoteRefRegistry() {
+    public RemoteRegistry getRemoteRefRegistry() {
         return remoteRefRegistry;
     }
 

@@ -15,9 +15,9 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class CallbackRefSerializer extends FSTBasicObjectSerializer {
 
-    RemoteRefRegistry reg;
+    RemoteRegistry reg;
 
-    public CallbackRefSerializer(RemoteRefRegistry reg) {
+    public CallbackRefSerializer(RemoteRegistry reg) {
         this.reg = reg;
     }
 
@@ -34,7 +34,7 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
         // fixme: detect local actors returned from foreign
         int id = in.readInt();
-        AtomicReference<ObjectSocket> chan = reg.getObjectSocket();
+        AtomicReference<WriteObjectSocket> chan = reg.getWriteObjectSocket();
         Callback cb = (Object result, Object error) -> {
             try {
                 reg.receiveCBResult(chan.get(),id,result,error);

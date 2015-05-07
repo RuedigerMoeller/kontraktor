@@ -29,6 +29,10 @@ public abstract class AsyncServerSocketConnection {
         System.out.println("connection closed " + ioe);
     }
 
+    public void close() throws IOException {
+        chan.close();
+    }
+
     public void readData() throws IOException {
         readBuf.position(0); readBuf.limit(readBuf.capacity());
         int read = chan.read(readBuf);

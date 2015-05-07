@@ -6,7 +6,8 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
-import org.nustaq.kontraktor.remoting.base.ActorServerAdapter;
+import org.nustaq.kontraktor.remoting.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.ActorServerConnection;
 import org.nustaq.kontraktor.remoting.javascript.DependencyResolver;
 import org.nustaq.kontraktor.remoting.javascript.minbingen.MB2JS;
 import org.nustaq.kontraktor.util.Log;
@@ -118,7 +119,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
 
     public IPromise<Boolean> $reconnectSession(String id, int sequence) {
         Log.Info(this, "try reconnect session " + id);
-        RemoteRefRegistry newRemoteRefRegistry = Actor.registry.get(); // caveat NOT available in callbacks
+        RemoteRegistry newRemoteRefRegistry = Actor.registry.get(); // caveat NOT available in callbacks
         // FIXME: protect against brute force
         SESSION session = sessions.get(id);
         if ( session != null ) {
@@ -127,7 +128,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
                 try {
                     if ( newRemoteRefRegistry != null ) {
                         Log.Info(this, "reconnection successful. session " + id);
-                        ((ActorServerAdapter.ActorServerConnection)newRemoteRefRegistry).handOverTo(session.__getRegistry());
+                        ((ActorServerConnection)newRemoteRefRegistry).handOverTo(session.__getRegistry());
                         System.out.println("session remote con size "+session.__connections.size());
                         res.resolve(true);
                     } else {
