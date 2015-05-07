@@ -38,6 +38,19 @@ public abstract class RemoteRegistry implements RemoteConnection {
     protected Consumer<Actor> disconnectHandler;
     protected boolean isObsolete;
 
+	public RemoteRegistry(Coding code) {
+		if ( code == null )
+			code = new Coding(SerializerType.FSTSer);
+	    switch (code.getCoding()) {
+		    case MinBin:
+			    conf = FSTConfiguration.createMinBinConfiguration();
+			    break;
+		    default:
+			    conf = FSTConfiguration.createDefaultConfiguration();
+	    }
+	    configureSerialization(code);
+	}
+
     public BiFunction<Actor, String, Boolean> getRemoteCallInterceptor() {
         return remoteCallInterceptor;
     }

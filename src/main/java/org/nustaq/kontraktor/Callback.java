@@ -64,6 +64,13 @@ public interface Callback<T> extends Serializable  // do not use interface, slow
     }
 
     /**
+     * same as complete(null,null) and resolve(null)
+     */
+    default public void resolve() {
+        complete(null, null);
+    }
+
+    /**
      * signal an error to sender. Will automatically "close" the callback if remoted.
      * same as complete( null, error );
      *

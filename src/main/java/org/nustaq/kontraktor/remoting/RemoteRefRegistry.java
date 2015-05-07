@@ -14,6 +14,8 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * fixme: handle stop of published actor (best by talking back in case a message is received on a
  * stopped published actor).
+ *
+ * @Deprecated, phased out (redesign)
  */
 public abstract class RemoteRefRegistry extends RemoteRegistry {
 
@@ -23,18 +25,9 @@ public abstract class RemoteRefRegistry extends RemoteRegistry {
 		this(null);
 	}
 
-	public RemoteRefRegistry(Coding code) {
-		if ( code == null )
-			code = new Coding(SerializerType.FSTSer);
-	    switch (code.getCoding()) {
-		    case MinBin:
-			    conf = FSTConfiguration.createMinBinConfiguration();
-			    break;
-		    default:
-			    conf = FSTConfiguration.createDefaultConfiguration();
-	    }
-	    configureSerialization(code);
-	}
+    public RemoteRefRegistry(Coding code) {
+        super(code);
+    }
 
     protected void receiveLoop(ObjectSocket channel) {
         try {

@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.asyncio;
 
+import org.nustaq.kontraktor.remoting.WriteObjectSocket;
 import org.nustaq.offheap.BinaryQueue;
 import org.nustaq.serialization.FSTConfiguration;
 
@@ -12,9 +13,10 @@ import java.nio.channels.SocketChannel;
 /**
  * Created by moelrue on 5/7/15.
  */
-public class ObjectAsyncSocketConnection extends QueuingAsyncSocketConnection {
+public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConnection implements WriteObjectSocket {
 
     FSTConfiguration conf;
+    Exception lastError;
 
     public ObjectAsyncSocketConnection(FSTConfiguration conf, SelectionKey key, SocketChannel chan) {
         super(key, chan);
@@ -36,12 +38,25 @@ public class ObjectAsyncSocketConnection extends QueuingAsyncSocketConnection {
         }
     }
 
-    public void receivedObject(Object o) {
-
-    }
+    public abstract void receivedObject(Object o);
 
     public void writeObject(Object o) {
         byte[] bytes = conf.asByteArray(o);
+        write(bytes.length);
         write(bytes);
     }
+
+    @Override
+    public void flush() throws IOException, Exception {
+    }
+
+    @Override
+    public void setLastError(Exception ex) {
+        lastError = ex;
+    }
+
+    public Exception getLastError() {
+        return lastError;
+    }
+
 }
