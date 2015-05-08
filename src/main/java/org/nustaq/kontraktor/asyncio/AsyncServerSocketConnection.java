@@ -19,6 +19,8 @@ public abstract class AsyncServerSocketConnection {
     protected ByteBuffer readBuf = ByteBuffer.allocate(4096);
     protected SelectionKey key;
     protected SocketChannel chan;
+    protected Promise writePromise;
+    protected ByteBuffer writingBuffer;
 
     public AsyncServerSocketConnection(SelectionKey key, SocketChannel chan) {
         this.key = key;
@@ -49,35 +51,42 @@ public abstract class AsyncServerSocketConnection {
      * the next write has to wait until the future has completed, else write order might get mixed up.
      *
      * Better use write* methods of QueuingAsyncSocketConnection as these will write to a binary queue
-     * which is read+sent behind the scenes.
+     * which is read+sent behind the scenes in parallel.
      *
      * @param buf
      * @return
      */
-    public IPromise directWrite(ByteBuffer buf) {
-        return directWrite(buf,null);
-    }
-
-    protected IPromise directWrite(ByteBuffer buf, Promise result) {
-        if ( result == null )
-            result = new Promise();
+    protected IPromise directWrite(ByteBuffer buf) {
+        if ( writePromise != null )
+            throw new RuntimeException("concurrent write");
+        writePromise = new Promise();
+        writingBuffer = buf;
+        Promise res = writePromise;
         try {
             int written = chan.write(buf);
+            if (written<0) {
+                // TODO:closed
+            }
             if ( buf.remaining() > 0 ) {
-                Actor actor = Actor.sender.get();
-                if ( actor == null )
-                    throw new RuntimeException("can only by called from within actor Thread");
-                final Promise finalResult = result;
-                actor.execute( () -> {
-                    directWrite(buf, finalResult);
-                });
+//                key.interestOps(SelectionKey.OP_WRITE);
             } else {
-                result.complete();
+                finishWrite();
             }
         } catch (IOException e) {
-            result.reject(e);
+            res.reject(e);
         }
-        return result;
+        return res;
+    }
+
+    ByteBuffer getWritingBuffer() {
+        return writingBuffer;
+    }
+
+    void finishWrite() {
+        writingBuffer = null;
+        Promise wp = this.writePromise;
+        writePromise = null;
+        wp.complete();
     }
 
     public abstract void dataReceived(ByteBuffer buf);

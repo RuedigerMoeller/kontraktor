@@ -5,6 +5,9 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
+import java.net.SocketOption;
+import java.net.SocketOptions;
+import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -53,13 +56,28 @@ public class AsyncServerSocket {
                             if (accept != null) {
                                 hadStuff = true;
                                 accept.configureBlocking(false);
-                                SelectionKey newKey = accept.register(selector, SelectionKey.OP_READ);
+                                SelectionKey newKey = accept.register(selector, SelectionKey.OP_READ|SelectionKey.OP_WRITE);
                                 AsyncServerSocketConnection con = connectionFactory.apply(key, accept);
                                 newKey.attach(con);
                             }
                         }
                     } else {
                         SocketChannel client = (SocketChannel) key.channel();
+                        if (key.isWritable()) {
+                            AsyncServerSocketConnection con = (AsyncServerSocketConnection) key.attachment();
+                            ByteBuffer writingBuffer = con.getWritingBuffer();
+                            if ( writingBuffer != null ) {
+                                int written = con.chan.write(writingBuffer);
+                                if (written<0) {
+                                    // closed
+                                    con.finishWrite();
+                                } else
+                                if ( writingBuffer.remaining() == 0 ) {
+                                    con.finishWrite();
+                                    iterator.remove();
+                                }
+                            }
+                        }
                         if (key.isReadable()) {
                             iterator.remove();
                             AsyncServerSocketConnection con = (AsyncServerSocketConnection) key.attachment();
@@ -67,19 +85,17 @@ public class AsyncServerSocket {
                                 Log.Lg.warn(this, "con is null " + key);
                             } else {
                                 hadStuff = true;
-                                actor.execute(() -> {
+                                try {
+                                    con.readData();
+                                } catch (Exception ioe) {
+                                    con.closed(ioe);
+                                    key.cancel();
                                     try {
-                                        con.readData();
-                                    } catch (Exception ioe) {
-                                        con.closed(ioe);
-                                        key.cancel();
-                                        try {
-                                            client.close();
-                                        } catch (IOException e) {
-                                            Log.Warn(this, e);
-                                        }
+                                        client.close();
+                                    } catch (IOException e) {
+                                        Log.Warn(this, e);
                                     }
-                                });
+                                }
                             }
                         }
                     }

@@ -23,7 +23,6 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
         this.conf = conf;
     }
 
-
     @Override
     public void dataReceived(BinaryQueue q) {
         while ( q.available() > 4 ) {

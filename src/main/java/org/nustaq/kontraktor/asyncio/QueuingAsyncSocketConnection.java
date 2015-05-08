@@ -66,11 +66,17 @@ public abstract class QueuingAsyncSocketConnection extends AsyncServerSocketConn
     // quite some fiddling required to deal with various byte abstractions
 
     IPromise writeFuture;
-    ByteBuffer qWriteTmp = ByteBuffer.allocate(1024);
+    ThreadLocal<ByteBuffer> qWriteTmpTH = new ThreadLocal<ByteBuffer>() {
+        @Override
+        protected ByteBuffer initialValue() {
+            return ByteBuffer.allocate(16000);
+        }
+    };
     public void tryWrite() {
         if ( Thread.currentThread() instanceof DispatcherThread == false )
             throw new RuntimeException("noes");
         if ( writeFuture == null ) {
+            ByteBuffer qWriteTmp = qWriteTmpTH.get();
             qWriteTmp.position(0);
             qWriteTmp.limit(qWriteTmp.capacity());
             tmp.setBuffer(qWriteTmp);

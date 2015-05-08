@@ -9,6 +9,8 @@ import org.nustaq.kontraktor.remoting.RemoteRegistry;
 import org.nustaq.kontraktor.util.Log;
 
 import java.util.ArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * polls queues of remote actor proxies and serializes messages to their associated object sockets.
@@ -28,6 +30,9 @@ public class RemoteRefPolling implements Runnable {
 
     ArrayList<ActorServerAdapter.ScheduleEntry> sendJobs = new ArrayList<>();
 
+    public RemoteRefPolling() {
+    }
+
     /**
      * return a future which is completed upon connection close
      *
@@ -35,42 +40,49 @@ public class RemoteRefPolling implements Runnable {
      * @return
      */
     public IPromise scheduleSendLoop(RemoteRegistry reg) {
-        if (Actor.sender.get() == null )
-            throw new RuntimeException("must be used from inside an actor thread");
+        if ( Actor.sender.get() == null )
+            throw new RuntimeException("must be used from inside an actor thread or provide an executor");
         Promise promise = new Promise();
-        sendJobs.add(new ActorServerAdapter.ScheduleEntry(reg, promise));
-        if ( sendJobs.size() == 1 ) {
-            Actor.sender.get().execute(this);
+        synchronized (sendJobs) {
+            sendJobs.add(new ActorServerAdapter.ScheduleEntry(reg, promise));
+            if ( sendJobs.size() == 1 ) {
+                Actor.sender.get().execute(this);
+            }
         }
         return promise;
     }
 
-    int count = 0;
     public void run() {
-        for (int i = 0; i < sendJobs.size(); i++) {
-            ActorServerAdapter.ScheduleEntry entry = sendJobs.get(i);
-            if ( entry.reg.isTerminated() ) {
-                terminateEntry(i, entry, "terminated", null );
-                i--;
-                continue;
-            }
-            try {
-                if (entry.reg.pollAndSend2Remote(entry.reg.getWriteObjectSocket().get())) {
-                    count = 0;
+        int count = 1;
+        int maxit = 50;
+        while ( maxit > 0 && count > 0) {
+            count = 0;
+            synchronized (sendJobs) {
+                for (int i = 0; i < sendJobs.size(); i++) {
+                    ActorServerAdapter.ScheduleEntry entry = sendJobs.get(i);
+                    if ( entry.reg.isTerminated() ) {
+                        terminateEntry(i, entry, "terminated", null );
+                        i--;
+                        continue;
+                    }
+                    try {
+                        if (entry.reg.pollAndSend2Remote(entry.reg.getWriteObjectSocket().get())) {
+                            count++;
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        terminateEntry(i, entry, null, e);
+                        i--;
+                    }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                terminateEntry(i, entry, null, e);
-                i--;
+                maxit--;
             }
         }
         if ( sendJobs.size() > 0 ) {
-            Actor facade = Actor.sender.get();
-            if ( count < 10 ) {
-                facade.execute(this);
-            } else {
-                facade.delayed(2, this);
-            }
+            if (count == 0)
+                Actor.sender.get().delayed(2, this);
+            else
+                Actor.sender.get().execute(this);
         }
     }
 
