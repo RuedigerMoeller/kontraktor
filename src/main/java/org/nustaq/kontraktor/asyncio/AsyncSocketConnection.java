@@ -1,6 +1,5 @@
 package org.nustaq.kontraktor.asyncio;
 
-import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 
@@ -14,28 +13,36 @@ import java.nio.channels.SocketChannel;
  * Baseclass for handling async io. Its strongly recommended to use QueuingAsyncSocketConnection as this
  * eases things quite a lot.
  */
-public abstract class AsyncServerSocketConnection {
+public abstract class AsyncSocketConnection {
 
-    protected ByteBuffer readBuf = ByteBuffer.allocate(4096);
+    protected ByteBuffer readBuf = ByteBuffer.allocateDirect(4096);
+
     protected SelectionKey key;
     protected SocketChannel chan;
+
     protected Promise writePromise;
     protected ByteBuffer writingBuffer;
+    boolean isClosed;
 
-    public AsyncServerSocketConnection(SelectionKey key, SocketChannel chan) {
+    public AsyncSocketConnection(SelectionKey key, SocketChannel chan) {
         this.key = key;
         this.chan = chan;
     }
 
     public void closed(Exception ioe) {
         System.out.println("connection closed " + ioe);
+        isClosed = true;
     }
 
     public void close() throws IOException {
         chan.close();
     }
 
-    public void readData() throws IOException {
+    /**
+     * @return wether more reads are to expect
+     * @throws IOException
+     */
+    boolean readData() throws IOException {
         readBuf.position(0); readBuf.limit(readBuf.capacity());
         int read = chan.read(readBuf);
         if ( read == -1 )
@@ -43,6 +50,7 @@ public abstract class AsyncServerSocketConnection {
         readBuf.flip();
         if ( readBuf.limit() > 0 )
             dataReceived(readBuf);
+        return read == readBuf.capacity();
     }
 
     /**
@@ -58,21 +66,23 @@ public abstract class AsyncServerSocketConnection {
      */
     protected IPromise directWrite(ByteBuffer buf) {
         if ( writePromise != null )
-            throw new RuntimeException("concurrent write");
+            throw new RuntimeException("concurrent write con:"+chan.isConnected()+" open:"+chan.isOpen());
         writePromise = new Promise();
         writingBuffer = buf;
         Promise res = writePromise;
         try {
-            int written = chan.write(buf);
+            int written = 0;
+            written = chan.write(buf);
             if (written<0) {
                 // TODO:closed
+                writeFinished("disconnected");
             }
             if ( buf.remaining() > 0 ) {
 //                key.interestOps(SelectionKey.OP_WRITE);
             } else {
-                finishWrite();
+                writeFinished(null);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             res.reject(e);
         }
         return res;
@@ -82,13 +92,19 @@ public abstract class AsyncServerSocketConnection {
         return writingBuffer;
     }
 
-    void finishWrite() {
+    void writeFinished(Object error) {
         writingBuffer = null;
         Promise wp = this.writePromise;
         writePromise = null;
-        wp.complete();
+        if ( error != null )
+            wp.reject(error);
+        else
+            wp.complete();
     }
 
     public abstract void dataReceived(ByteBuffer buf);
 
+    public boolean isClosed() {
+        return !chan.isOpen() && ! isClosed;
+    }
 }

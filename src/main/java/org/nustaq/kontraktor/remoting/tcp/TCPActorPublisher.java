@@ -1,93 +1,97 @@
 package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.asyncio.AsyncServerSocket;
-import org.nustaq.kontraktor.asyncio.ObjectAsyncSocketConnection;
-import org.nustaq.kontraktor.remoting.*;
-import org.nustaq.kontraktor.remoting.base.RemoteRefPolling;
-import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.kontraktor.remoting.base.ActorServerAdapter;
+import org.nustaq.kontraktor.remoting.base.ActorServerConnection;
+import org.nustaq.kontraktor.util.Log;
 
-import java.io.IOException;
+import java.io.*;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
- * Created by moelrue on 5/7/15.
+ * Created by ruedi on 08.08.14.
+ *
+ * Publish an actor via TCP. actor refs/callbacks/futures handed out to clients are automatically transformed
+ * and rerouted, so remoting is mostly transparent.
+ *
+ * Currently old school blocking IO is used. Should be replaced by a NIO implementation to improve scaling.
+ * For a moderate number of clients < ~200 blocking IO is not a problem. Depending on load expect significant performance
+ * degradation starting with ~500 clients.
  */
-public class TCPActorPublisher
-{
+public class TCPActorPublisher extends ActorServerAdapter {
 
-    public static Promise publish( Actor facade, int port ) {
-        Promise finished = new Promise();
-        facade.execute( () -> {
-            TCPActorPublisher pub = new TCPActorPublisher(facade,port);
+
+    public static TCPActorPublisher Publish(Actor act, int port ) throws Exception {
+        return Publish(act,port,null);
+    }
+
+    public static TCPActorPublisher Publish(Actor act, int port, Consumer<Actor> closeListener ) throws Exception {
+        TCPActorPublisher server = new TCPActorPublisher(act, port);
+        Promise success = new Promise();
+        AtomicReference<Object> res = new AtomicReference<>(null);
+        new Thread( ()-> {
             try {
-                pub.connectServerSocket();
-                finished.complete();
+                server.closeListener = closeListener;
+                server.acceptLoop();
             } catch (Exception e) {
-                finished.reject(e);
+                if ( !success.isSettled() )
+                    success.complete(null, e);
+                res.set(e);
             }
+        }, "acceptor "+port ).start();
+        CountDownLatch latch = new CountDownLatch(1); // bad style, but won't change api now
+        success.then( (r,e) -> {
+            if ( e != null )
+                res.set(e);
+             latch.countDown();
         });
-        return finished;
+        try {
+            latch.await(5000, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        if ( res.get() instanceof Exception )
+            throw (Exception) res.get();
+        return server;
     }
 
     int port;
-    AsyncServerSocket socket;
-    Coding coding = new Coding(SerializerType.FSTSer);
-    Actor facade;
-    FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
-    RemoteRefPolling poller = new RemoteRefPolling();
+    ServerSocket welcomeSocket;
 
-    public TCPActorPublisher(Actor facade, int port) {
-        this.facade = facade;
+    public TCPActorPublisher(Actor proxy, int port) throws Exception {
+        super(proxy);
         this.port = port;
     }
 
-    public void connectServerSocket() throws Exception {
-        socket = new AsyncServerSocket();
-        socket.connect(port, (key, chan) -> {
-
-            AtomicReference<WriteObjectSocket> wsocket = new AtomicReference<>();
-            RemoteRegistry reg = new RemoteRegistry(coding) {
-                @Override
-                public Actor getFacadeProxy() {
-                    return facade;
-                }
-                @Override
-                public AtomicReference<WriteObjectSocket> getWriteObjectSocket() {
-                    return wsocket;
-                }
-            };
-
-            poller.scheduleSendLoop(reg);
-
-            ObjectAsyncSocketConnection sc = new ObjectAsyncSocketConnection(reg.getConf(),key,chan) {
-                @Override
-                public void receivedObject(Object o) {
-                    try {
-                        reg.receiveObject(this,o);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        try {
-                            close();
-                        } catch (IOException e1) {
-                            Actors.throwException(e1);
-                        }
-                    }
-                }
-            };
-
-            wsocket.set(sc);
-            reg.publishActor(facade);
-
-            return sc;
-        });
+    @Override
+    protected void connectServerSocket() throws Exception {
+        welcomeSocket = new ServerSocket(port);
+        Log.Info(this, facade.getActor().getClass().getName() + " running on " + welcomeSocket.getLocalPort());
     }
 
-    protected void close() throws IOException {
-        socket.close();
+    @Override
+    protected ActorServerConnection acceptConnections() throws Exception {
+        Socket connectionSocket = welcomeSocket.accept();
+        ActorServerConnection res = new ActorServerConnection(TCPActorPublisher.this);
+        TCPSocket tcpSocket = new TCPSocket(connectionSocket, res.getConf());
+        res.init(tcpSocket, facade);
+        return res;
+    }
+
+
+    @Override
+    protected void closeSocket() {
+        try {
+            welcomeSocket.close();
+        } catch (IOException e) {
+            Log.Warn(this, e + "");
+        }
     }
 
 }

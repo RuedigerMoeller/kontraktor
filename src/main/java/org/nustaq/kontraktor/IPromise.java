@@ -154,6 +154,11 @@ public interface IPromise<T> extends Callback<T> {
      */
     public IPromise<T> awaitPromise(long timeout);
 
+    /**
+     * similar to await but does not unwrap the promise. So a fulfilled promise is returned.
+     * In case of errors, no exception is thrown to the caller but the promise error is set.
+     * @return
+     */
     default public IPromise<T> awaitPromise() {
         return awaitPromise(0);
     }

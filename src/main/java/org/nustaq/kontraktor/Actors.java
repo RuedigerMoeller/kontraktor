@@ -118,6 +118,11 @@ public class Actors {
         },millis);
     }
 
+    /**
+     * utility function. Executed in foreign thread. Use Actor::delayed() to have the runnable executed inside actor thread.
+     * The given function receives the current interval and should return the interval for next execution. If the function returns
+     * 0, the perdiodic task is stopped.
+     */
     public static void SubmitPeriodic( long startMillis, Function<Long,Long> task ) {
         Actors.delayedCalls.schedule( new TimerTask() {
             @Override
@@ -129,7 +134,6 @@ public class Actors {
             }
         },startMillis);
     }
-
 
     public static void AddDeadLetter(String s) {
         Log.Lg.warn(null,s);

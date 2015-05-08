@@ -5,9 +5,6 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
-import java.net.SocketOption;
-import java.net.SocketOptions;
-import java.net.StandardSocketOptions;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -25,9 +22,9 @@ public class AsyncServerSocket {
     ServerSocketChannel socket;
     Selector selector;
     SelectionKey serverkey;
-    BiFunction<SelectionKey,SocketChannel,AsyncServerSocketConnection> connectionFactory;
+    BiFunction<SelectionKey,SocketChannel,AsyncSocketConnection> connectionFactory;
 
-    public void connect( int port, BiFunction<SelectionKey,SocketChannel,AsyncServerSocketConnection> connectionFactory ) throws IOException {
+    public void connect( int port, BiFunction<SelectionKey,SocketChannel,AsyncSocketConnection> connectionFactory ) throws IOException {
         selector = Selector.open();
         socket = ServerSocketChannel.open();
         socket.configureBlocking(false);
@@ -37,87 +34,110 @@ public class AsyncServerSocket {
         receiveLoop();
     }
 
+    Thread t = null;
     public void receiveLoop() {
         Actor actor = Actor.sender.get();
         if ( actor == null )
         {
             throw new RuntimeException("only usable from within an actor");
         }
+        if ( t == null )
+            t = Thread.currentThread();
+        else {
+            if ( t != Thread.currentThread() ) {
+                System.out.println("FATAL");
+                System.exit(-1);
+            }
+        }
         boolean hadStuff = false;
-        try {
-            selector.selectNow();
-            Set<SelectionKey> selectionKeys = selector.selectedKeys();
-            for (Iterator<SelectionKey> iterator = selectionKeys.iterator(); iterator.hasNext(); ) {
-                SelectionKey key = iterator.next();
-                try {
-                    if (key == serverkey) {
-                        if (key.isAcceptable()) {
-                            SocketChannel accept = socket.accept();
-                            if (accept != null) {
-                                hadStuff = true;
-                                accept.configureBlocking(false);
-                                SelectionKey newKey = accept.register(selector, SelectionKey.OP_READ|SelectionKey.OP_WRITE);
-                                AsyncServerSocketConnection con = connectionFactory.apply(key, accept);
-                                newKey.attach(con);
-                            }
-                        }
-                    } else {
-                        SocketChannel client = (SocketChannel) key.channel();
-                        if (key.isWritable()) {
-                            AsyncServerSocketConnection con = (AsyncServerSocketConnection) key.attachment();
-                            ByteBuffer writingBuffer = con.getWritingBuffer();
-                            if ( writingBuffer != null ) {
-                                int written = con.chan.write(writingBuffer);
-                                if (written<0) {
-                                    // closed
-                                    con.finishWrite();
-                                } else
-                                if ( writingBuffer.remaining() == 0 ) {
-                                    con.finishWrite();
-                                    iterator.remove();
+        int iterCount = 10;
+        do {
+            try {
+                selector.selectNow();
+                Set<SelectionKey> selectionKeys = selector.selectedKeys();
+                for (Iterator<SelectionKey> iterator = selectionKeys.iterator(); iterator.hasNext(); ) {
+                    SelectionKey key = iterator.next();
+                    try {
+                        if (key == serverkey) {
+                            if (key.isAcceptable()) {
+                                SocketChannel accept = socket.accept();
+                                if (accept != null) {
+                                    hadStuff = true;
+                                    accept.configureBlocking(false);
+                                    SelectionKey newKey = accept.register(selector, SelectionKey.OP_READ|SelectionKey.OP_WRITE);
+                                    AsyncSocketConnection con = connectionFactory.apply(key, accept);
+                                    newKey.attach(con);
                                 }
                             }
-                        }
-                        if (key.isReadable()) {
-                            iterator.remove();
-                            AsyncServerSocketConnection con = (AsyncServerSocketConnection) key.attachment();
-                            if ( con == null ) {
-                                Log.Lg.warn(this, "con is null " + key);
-                            } else {
-                                hadStuff = true;
-                                try {
-                                    con.readData();
-                                } catch (Exception ioe) {
-                                    con.closed(ioe);
-                                    key.cancel();
+                        } else {
+                            SocketChannel client = (SocketChannel) key.channel();
+                            int written = 0;
+                            if (key.isWritable()) {
+                                AsyncSocketConnection con = (AsyncSocketConnection) key.attachment();
+                                ByteBuffer writingBuffer = con.getWritingBuffer();
+                                if ( writingBuffer != null ) {
+                                    hadStuff = true;
                                     try {
-                                        client.close();
-                                    } catch (IOException e) {
-                                        Log.Warn(this, e);
+                                        written = con.chan.write(writingBuffer);
+                                        if (written<0) {
+                                            iterator.remove();
+                                            key.cancel();
+                                            // closed
+                                            con.writeFinished("disconnected");
+                                        } else if ( writingBuffer.remaining() == 0) {
+                                            iterator.remove();
+                                            con.writeFinished(null);
+                                        }
+                                    } catch (IOException ioe) {
+                                        iterator.remove();
+                                        key.cancel();
+                                        con.writeFinished("disconnected");
+                                    }
+                                }
+                            }
+                            if (key.isReadable() && written == 0) {
+                                iterator.remove();
+                                AsyncSocketConnection con = (AsyncSocketConnection) key.attachment();
+                                if ( con == null || con.isClosed() ) {
+                                    Log.Lg.warn(this, "con is null " + key);
+                                } else {
+                                    hadStuff = true;
+                                    try {
+                                        if ( ! con.readData() ) {
+                                        }
+                                    } catch (Exception ioe) {
+                                        ioe.printStackTrace();
+                                        con.closed(ioe);
+                                        key.cancel();
+                                        try {
+                                            client.close();
+                                        } catch (IOException e) {
+                                            Log.Warn(this, e);
+                                        }
                                     }
                                 }
                             }
                         }
+                    } catch (Throwable e) {
+                        Log.Warn(this,e,"");
                     }
-                } catch (Throwable e) {
-                    Log.Warn(this,e,"");
                 }
+            } catch (Throwable e) {
+                Log.Warn(this,e,"");
+                Actors.reject(e);
             }
-        } catch (Throwable e) {
-            Log.Warn(this,e,"");
-            Actors.reject(e);
-        }
+        } while (iterCount-- > 0 && hadStuff );
         if ( ! isClosed() ) {
             if ( hadStuff ) {
                 actor.execute( () -> receiveLoop() );
             } else {
-                actor.delayed( 2, () -> receiveLoop() );
+                actor.delayed( 1, () -> receiveLoop() );
             }
         }
     }
 
     public boolean isClosed() {
-        return false;
+        return !socket.isOpen();
     }
 
     public void close() throws IOException {

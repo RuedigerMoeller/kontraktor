@@ -13,9 +13,9 @@ import java.util.concurrent.locks.*;
  */
 public class BackOffStrategy {
 
-    public static int SLEEP_NANOS = 1000 * 300;
-    public static int SPIN_UNTIL_YIELD = 5000;
-    public static int YIELD_UNTIL_PARK = 1000;
+    public static int SLEEP_NANOS = 1000 * 1000;
+    public static int SPIN_UNTIL_YIELD = 100;
+    public static int YIELD_UNTIL_PARK = 100;
     public static int PARK_UNTIL_SLEEP = 10;
 
     int yieldCount;

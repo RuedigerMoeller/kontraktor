@@ -15,11 +15,15 @@ import java.util.concurrent.locks.LockSupport;
 /**
  * polls queues of remote actor proxies and serializes messages to their associated object sockets.
  *
+ * Note for transparent websocket/longpoll reconnect:
  * Terminated / Disconnected remote actors (registries) are removed from the entry list,
  * so regular actor messages sent to a terminated remote actor queue up in its mailbox.
  * Callbacks/Future results from exported callbacks/futures still reach the object socket
  * as these are redirected directly inside serializers. Those queue up in the webobjectsocket's list,
  * as flush is not called anymore because of removement from SendLoop list.
+ *
+ * In case of TCP remoting, an ActorStopped Exception is thrown if an attempt is made to send a message to a
+ * disconnected remote actor.
  *
  * in short: regular messages to disconected remote actors queue up in mailbox, callbacks in object socket buffer
  *
@@ -54,7 +58,7 @@ public class RemoteRefPolling implements Runnable {
 
     public void run() {
         int count = 1;
-        int maxit = 50;
+        int maxit = 1;
         while ( maxit > 0 && count > 0) {
             count = 0;
             synchronized (sendJobs) {

@@ -16,11 +16,15 @@ import java.util.concurrent.Callable;
  */
 public class SimpleScheduler implements Scheduler {
 
+    public static final boolean DEBUG_SCHEDULING = true;
     public static int DEFQSIZE = 32768; // will be alligned to 2^x
 
     protected BackOffStrategy backOffStrategy = new BackOffStrategy();
-    DispatcherThread myThread;
+    protected DispatcherThread myThread;
     int qsize = DEFQSIZE;
+
+    protected SimpleScheduler(String dummy) {
+    }
 
     public SimpleScheduler() {
         myThread = new DispatcherThread(this,false);
@@ -101,6 +105,8 @@ public class SimpleScheduler implements Scheduler {
         Actor actor = receiver.getActor();
         Method method = actor.__getCachedMethod(methodName, actor);
 
+        if ( method == null )
+            throw new RuntimeException("unknown method "+methodName+" on "+actor);
         // scan for callbacks in arguments ..
         for (int i = 0; i < args.length; i++) {
             Object arg = args[i];

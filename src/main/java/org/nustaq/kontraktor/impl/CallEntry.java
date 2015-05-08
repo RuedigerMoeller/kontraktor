@@ -9,7 +9,7 @@ import java.lang.reflect.Method;
 /**
 * Created by ruedi on 18.05.14.
 */
-public class CallEntry<T> implements Message<T> {
+public class CallEntry<T> {
 
     final private Method method;
     final private Object[] args;
@@ -48,34 +48,9 @@ public class CallEntry<T> implements Message<T> {
     }
     public Object[] getArgs() { return args; }
 
-    @Override
     public Actor getSendingActor() {
         return sendingActor;
     }
-
-//    public Message copy() {
-//        return withTarget(target, true);
-//    }
-
-//    public Message withTarget(T newTarget) {
-//        return withTarget(target, false);
-//    }
-
-//    public Message withTarget(T newTarget, boolean copyArgs) {
-//        Actor targetActor = null;
-//        if ( newTarget instanceof ActorProxy )
-//            newTarget = (T) ((ActorProxy) newTarget).getActor();
-//        if ( newTarget instanceof Actor) {
-//            targetActor = (Actor) newTarget;
-//        }
-//        if ( copyArgs ) {
-//            Object argCopy[] = new Object[args.length];
-//            System.arraycopy(args, 0, argCopy, 0, args.length);
-//            return new CallEntry(newTarget, method, argCopy, targetActor);
-//        } else {
-//            return new CallEntry(newTarget, method, args, targetActor);
-//        }
-//    }
 
     public boolean hasFutureResult() {
         return method.getReturnType() == IPromise.class;

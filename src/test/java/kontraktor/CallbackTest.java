@@ -6,7 +6,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.annotations.InThread;
-import org.nustaq.kontraktor.impl.ElasticScheduler;
+import org.nustaq.kontraktor.impl.SimpleScheduler;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -54,7 +54,7 @@ public class CallbackTest {
         CBTActor cbt;
 
         public void $init() {
-            cbt = Actors.AsActor(CBTActor.class, new ElasticScheduler(4,10000)); //  ensure different thread
+            cbt = Actors.AsActor(CBTActor.class, new SimpleScheduler(10000)); //  ensure different thread
             cbt.$method(new Callback() {
                 @Override
                 public void complete(Object result, Object error) {

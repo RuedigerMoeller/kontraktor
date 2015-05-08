@@ -27,6 +27,11 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
     public void dataReceived(BinaryQueue q) {
         while ( q.available() > 4 ) {
             int len = q.readInt();
+            if ( len <= 0 )
+            {
+                System.out.println("object len ?? "+len);
+                return;
+            }
             if ( q.available() >= len ) {
                 byte[] bytes = q.readByteArray(len);
                 receivedObject(conf.asObject(bytes));
@@ -43,6 +48,7 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
         byte[] bytes = conf.asByteArray(o);
         write(bytes.length);
         write(bytes);
+        tryFlush();
     }
 
     @Override

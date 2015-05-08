@@ -8,7 +8,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.asyncio.AsyncFile;
 import org.nustaq.kontraktor.asyncio.AsyncServerSocket;
-import org.nustaq.kontraktor.asyncio.AsyncServerSocketConnection;
+import org.nustaq.kontraktor.asyncio.AsyncSocketConnection;
 import org.nustaq.kontraktor.asyncio.QueuingAsyncSocketConnection;
 import org.nustaq.kontraktor.util.RateMeasure;
 import org.nustaq.net.TCPObjectServer;
@@ -23,7 +23,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by moelrue on 5/5/15.
@@ -35,7 +34,7 @@ public class AsyncServerSocketTest {
         public void $serve() {
             AsyncServerSocket sock = new AsyncServerSocket();
             try {
-                sock.connect( 8080, (key,con) -> new AsyncServerSocketConnection(key, con) {
+                sock.connect( 8080, (key,con) -> new AsyncSocketConnection(key, con) {
                     @Override
                     public void dataReceived(ByteBuffer buf) {
                         System.out.println(new String(buf.array(),0,0,buf.limit()));
@@ -96,13 +95,13 @@ public class AsyncServerSocketTest {
             return complete();
         }
 
-        public IPromise $serve3() {
+        public IPromise $serve3(int port) {
             receiveCount = 0;
             RateMeasure ms = new RateMeasure("async receive object");
             AsyncServerSocket sock = new AsyncServerSocket();
             FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
             try {
-                sock.connect( 8080, (key,con) -> new QueuingAsyncSocketConnection(key, con) {
+                sock.connect( port, (key,con) -> new QueuingAsyncSocketConnection(key, con) {
 
                     @Override
                     public void dataReceived(BinaryQueue q) {
@@ -128,6 +127,7 @@ public class AsyncServerSocketTest {
                                 int sum = 0;
                                 while( (read=inputStream.read(tmp)) >= 0 ) {
                                     write(tmp,0,read);
+                                    tryFlush();
                                     sum+=read;
                                 }
                                 inputStream.close();
@@ -150,13 +150,13 @@ public class AsyncServerSocketTest {
         }
     }
 
-    @Test @Ignore
+//    @Test @Ignore
     public void plain() throws InterruptedException {
         Actors.AsActor(TA.class).$serve();
         Thread.sleep(1000000l);
     }
 
-    @Test @Ignore
+//    @Test @Ignore
     public void queued() throws InterruptedException {
         TA ta = Actors.AsActor(TA.class);
         ta.$serve1();
@@ -193,7 +193,7 @@ public class AsyncServerSocketTest {
         Thread.sleep(1000);
         executorService.shutdown();
         executorService.awaitTermination(10, TimeUnit.DAYS);
-        Thread.sleep(1000);
+        Thread.sleep(5000);
         Integer count = ta.$getReceiveCount().await();
         System.out.println("COUNT " + count);
         Assert.assertTrue(count == MSG_COUNT);
@@ -206,7 +206,7 @@ public class AsyncServerSocketTest {
 
         AtomicInteger COUNT = new AtomicInteger(0);
 
-        TCPObjectServer tcpObjectServer = new TCPObjectServer(8080);
+        TCPObjectServer tcpObjectServer = new TCPObjectServer(8082);
         RateMeasure measure = new RateMeasure("count");
         tcpObjectServer.start((client) -> {
                 try {
@@ -239,7 +239,7 @@ public class AsyncServerSocketTest {
             executorService.execute(()->{
                 TCPObjectSocket sock = null;
                 try {
-                    sock = new TCPObjectSocket("localhost",8080);
+                    sock = new TCPObjectSocket("localhost",8082);
 //                    System.out.println("start "+finalIi);
                     for ( int i = 0; i < MSG_COUNT/NUM_CLIENTS; i++ ) {
                         sock.writeObject(testMap);
@@ -262,7 +262,7 @@ public class AsyncServerSocketTest {
     }
 
     @Test
-    public void writeTest() throws IOException {
+    public void writeTest() throws IOException, InterruptedException {
         File f = new File("/tmp/data.test");
         int NUMINT = 10_000_000;
         if ( ! f.exists() ) {
@@ -277,12 +277,12 @@ public class AsyncServerSocketTest {
         System.out.println("file len " + f.length());
 
         TA ta = Actors.AsActor(TA.class);
-        ta.$serve3().await();
+        ta.$serve3(8081).await();
         RateMeasure intFreq = new RateMeasure("int per sec");
 
         TCPObjectSocket sock = null;
         try {
-            sock = new TCPObjectSocket("localhost",8080);
+            sock = new TCPObjectSocket("localhost",8081);
             sock.writeObject(f);
             sock.flush();
             byte res[] = new byte[1024];
@@ -305,6 +305,7 @@ public class AsyncServerSocketTest {
             e.printStackTrace();
         }
         ta.$stop();
+        Thread.sleep(1000);
     }
 
 }

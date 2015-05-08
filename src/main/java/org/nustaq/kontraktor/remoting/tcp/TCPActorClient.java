@@ -21,28 +21,6 @@ public class TCPActorClient<T extends Actor> extends ActorClient<T> {
         return Connect(clz,host,port,null);
     }
 
-    public static <AC extends Actor> AC ConnectSync( Class<AC> clz, String host, int port ) throws Exception
-    {
-        return ConnectSync(clz,host,port,null);
-    }
-
-    /**
-     * do a "synchronous" connect (blocks on non-actor thread, awaits nonblocking when called from actor).
-     *
-     * @return an actor ref or nuöö
-     * @throws Exception
-     */
-    public static <AC extends Actor> AC ConnectSync( Class<AC> clz, String host, int port, Consumer<Actor> disconnectHandler ) throws Exception
-    {
-        try {
-            return Connect(clz, host, port, disconnectHandler).await();
-        } catch (Throwable throwable) {
-            if ( throwable instanceof Exception )
-                throw (Exception) throwable;
-            throw new RuntimeException(throwable);
-        }
-    }
-
     public static <AC extends Actor> IPromise<AC> Connect( Class<AC> clz, String host, int port, Consumer<Actor> disconnectHandler ) throws Exception {
         if ( disconnectHandler != null ) {
             disconnectHandler = Actors.InThread(disconnectHandler);

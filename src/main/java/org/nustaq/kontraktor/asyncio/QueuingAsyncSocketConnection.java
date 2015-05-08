@@ -10,6 +10,7 @@ import org.nustaq.offheap.bytez.onheap.HeapBytez;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by moelrue on 5/5/15.
@@ -19,7 +20,9 @@ import java.nio.channels.SocketChannel;
  * to maintain complex state machines.
  *
  */
-public abstract class QueuingAsyncSocketConnection extends AsyncServerSocketConnection {
+public abstract class QueuingAsyncSocketConnection extends AsyncSocketConnection {
+
+    public static long MAX_Q_SIZE_BYTES = 10_000_000;
 
     protected BinaryQueue readQueue = new BinaryQueue();
     protected BinaryQueue writeQueue = new BinaryQueue();
@@ -33,50 +36,40 @@ public abstract class QueuingAsyncSocketConnection extends AsyncServerSocketConn
     ByteBufferBasicBytez tmp = new ByteBufferBasicBytez(null);
     HeapBytez tmpBA = new HeapBytez(new byte[0]);
 
+    protected void checkQSize() {
+        if ( writeQueue.available() > MAX_Q_SIZE_BYTES ) {
+            LockSupport.parkNanos(1);
+        }
+    }
+
     public void write( ByteBuffer buf ) {
-        if ( Thread.currentThread() instanceof DispatcherThread == false )
-            throw new RuntimeException("noes");
+        checkQSize();
         tmp.setBuffer(buf);
         writeQueue.add(tmp);
-        tryWrite();
     }
 
     public void write( byte b[] ) {
-        if ( Thread.currentThread() instanceof DispatcherThread == false )
-            throw new RuntimeException("noes");
+        checkQSize();
         write(b, 0, b.length);
-        tryWrite();
     }
 
     public void write( byte b[], int off, int len ) {
-        if ( Thread.currentThread() instanceof DispatcherThread == false )
-            throw new RuntimeException("noes");
+        checkQSize();
         tmpBA.setBase(b, off, len);
         writeQueue.add(tmpBA);
-        tryWrite();
     }
 
     public void write( int val ) {
-        if ( Thread.currentThread() instanceof DispatcherThread == false )
-            throw new RuntimeException("noes");
+        checkQSize();
         writeQueue.addInt(val);
-        tryWrite();
     }
 
     // quite some fiddling required to deal with various byte abstractions
 
-    IPromise writeFuture;
-    ThreadLocal<ByteBuffer> qWriteTmpTH = new ThreadLocal<ByteBuffer>() {
-        @Override
-        protected ByteBuffer initialValue() {
-            return ByteBuffer.allocate(16000);
-        }
-    };
-    public void tryWrite() {
-        if ( Thread.currentThread() instanceof DispatcherThread == false )
-            throw new RuntimeException("noes");
+    IPromise writeFuture; // fires once next chunk from queue can be taken
+    ByteBuffer qWriteTmp = ByteBuffer.allocateDirect(128000);
+    public void tryFlush() {
         if ( writeFuture == null ) {
-            ByteBuffer qWriteTmp = qWriteTmpTH.get();
             qWriteTmp.position(0);
             qWriteTmp.limit(qWriteTmp.capacity());
             tmp.setBuffer(qWriteTmp);
@@ -86,13 +79,11 @@ public abstract class QueuingAsyncSocketConnection extends AsyncServerSocketConn
                 qWriteTmp.limit((int) poll);
                 writeFuture = directWrite(qWriteTmp);
                 writeFuture.then( (res,err) -> {
-                    if ( Thread.currentThread() instanceof DispatcherThread == false )
-                        throw new RuntimeException("noes");
                     writeFuture = null;
                     if ( err != null) {
                         Log.Lg.error(this, (Throwable) err,"write failure");
                     } else {
-                        tryWrite();
+                        tryFlush();
                     }
                 });
             }

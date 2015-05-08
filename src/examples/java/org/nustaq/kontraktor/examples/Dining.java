@@ -5,7 +5,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
-import org.nustaq.kontraktor.remoting.tcp.TCPActorServerAdapter;
+import org.nustaq.kontraktor.remoting.tcp.TCPActorPublisher;
 import org.nustaq.kontraktor.util.Hoarde;
 
 import java.util.ArrayList;
@@ -94,7 +94,7 @@ public class Dining {
     }
 
     public static void runServer() throws Exception {
-        TCPActorServerAdapter.Publish(Actors.AsActor(Table.class), 6789);
+        TCPActorPublisher.Publish(Actors.AsActor(Table.class), 6789);
     }
 
     static void runClient() throws Exception {

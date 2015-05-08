@@ -167,13 +167,13 @@ public class DispatcherThread extends Thread implements Monitorable {
         for ( int i = 0; i < 100; i++ ) { // FIXME: umh .. works in practice
             LockSupport.parkNanos(1000*1000*5);
             while ( actors.length > 0 || toAdd.peek() != null ) {
-                if ( ElasticScheduler.DEBUG_SCHEDULING)
+                if ( SimpleScheduler.DEBUG_SCHEDULING)
                     Log.Lg.warn(this, "Severe: zombie dispatcher thread detected");
                 scheduler.tryStopThread(this);
                 i = 0;
             }
         }
-        if ( ElasticScheduler.DEBUG_SCHEDULING)
+        if ( SimpleScheduler.DEBUG_SCHEDULING)
             Log.Info(this,"dispatcher thread terminated "+getName());
     }
 
