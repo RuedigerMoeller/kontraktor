@@ -19,7 +19,7 @@ import java.util.ArrayList;
  *
  * in short: regular messages to disconected remote actors queue up in mailbox, callbacks in object socket buffer
  *
- * Deprecated: to replaced by RemoteRefPollint
+ * FIXME: merge with RemoteRefPollint
  */
 public class SenderLoop implements Runnable {
 

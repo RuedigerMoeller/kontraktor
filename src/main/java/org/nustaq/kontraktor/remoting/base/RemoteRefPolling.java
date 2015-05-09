@@ -41,17 +41,17 @@ public class RemoteRefPolling implements Runnable {
      * return a future which is completed upon connection close
      *
      * @param reg
-     * @return
+     *
+     * @return future completed upon termination of scheduling
+     *
      */
     public IPromise scheduleSendLoop(RemoteRegistry reg) {
         if ( Actor.sender.get() == null )
             throw new RuntimeException("must be used from inside an actor thread or provide an executor");
         Promise promise = new Promise();
-        synchronized (sendJobs) {
-            sendJobs.add(new ActorServerAdapter.ScheduleEntry(reg, promise));
-            if ( sendJobs.size() == 1 ) {
-                Actor.sender.get().execute(this);
-            }
+        sendJobs.add(new ActorServerAdapter.ScheduleEntry(reg, promise));
+        if ( sendJobs.size() == 1 ) {
+            Actor.sender.get().execute(this);
         }
         return promise;
     }
@@ -61,26 +61,24 @@ public class RemoteRefPolling implements Runnable {
         int maxit = 1;
         while ( maxit > 0 && count > 0) {
             count = 0;
-            synchronized (sendJobs) {
-                for (int i = 0; i < sendJobs.size(); i++) {
-                    ActorServerAdapter.ScheduleEntry entry = sendJobs.get(i);
-                    if ( entry.reg.isTerminated() ) {
-                        terminateEntry(i, entry, "terminated", null );
-                        i--;
-                        continue;
-                    }
-                    try {
-                        if (entry.reg.pollAndSend2Remote(entry.reg.getWriteObjectSocket().get())) {
-                            count++;
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        terminateEntry(i, entry, null, e);
-                        i--;
-                    }
+            for (int i = 0; i < sendJobs.size(); i++) {
+                ActorServerAdapter.ScheduleEntry entry = sendJobs.get(i);
+                if ( entry.reg.isTerminated() ) {
+                    terminateEntry(i, entry, "terminated", null );
+                    i--;
+                    continue;
                 }
-                maxit--;
+                try {
+                    if (entry.reg.pollAndSend2Remote(entry.reg.getWriteObjectSocket().get())) {
+                        count++;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    terminateEntry(i, entry, null, e);
+                    i--;
+                }
             }
+            maxit--;
         }
         if ( sendJobs.size() > 0 ) {
             if (count == 0)

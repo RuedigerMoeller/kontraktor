@@ -1,6 +1,6 @@
 package org.nustaq.kontraktor.impl;
 
-import io.jaq.mpsc.MpscConcurrentQueue;
+import org.jctools.queues.MpscArrayQueue;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
@@ -343,12 +343,12 @@ public class DispatcherThread extends Thread implements Monitorable {
         int res = 0;
         final Actor actors[] = this.actors;
         for (int i = 0; i < actors.length; i++) {
-            MpscConcurrentQueue queue = (MpscConcurrentQueue) actors[i].__mailbox;
-            int load = queue.size() * 100 / queue.getCapacity();
+            MpscArrayQueue queue = (MpscArrayQueue) actors[i].__mailbox;
+            int load = queue.size() * 100 / actors[i].__mailboxCapacity;
             if ( load > res )
                 res = load;
-            queue = (MpscConcurrentQueue) actors[i].__cbQueue;
-            load = queue.size() * 100 / queue.getCapacity();
+            queue = (MpscArrayQueue) actors[i].__cbQueue;
+            load = queue.size() * 100 / actors[i].__mailboxCapacity;
             if ( load > res )
                 res = load;
         }

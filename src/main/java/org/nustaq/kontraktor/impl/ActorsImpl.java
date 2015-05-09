@@ -1,9 +1,10 @@
 package org.nustaq.kontraktor.impl;
 
-import io.jaq.mpsc.MpscConcurrentQueue;
+import org.jctools.queues.MpscArrayQueue;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Scheduler;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -34,9 +35,12 @@ public class ActorsImpl {
             if ( qs <= 100 )
                 qs = disp.getScheduler().getDefaultQSize();
 
+            qs = FSTUtil.nextPow2(qs);
+
             Actor realActor = clz.newInstance();
             realActor.__mailbox =  createQueue(qs);
-            realActor.__mbCapacity = ((MpscConcurrentQueue) realActor.__mailbox).getCapacity();
+            realActor.__mailboxCapacity = qs;
+            realActor.__mbCapacity = realActor.__mailboxCapacity;
             realActor.__cbQueue =  createQueue(qs);
 
             Actor selfproxy = getFactory().instantiateProxy(realActor);
@@ -44,6 +48,7 @@ public class ActorsImpl {
             selfproxy.__self = selfproxy;
 
             selfproxy.__mailbox = realActor.__mailbox;
+            selfproxy.__mailboxCapacity = qs;
             selfproxy.__mbCapacity = realActor.__mbCapacity;
             selfproxy.__cbQueue = realActor.__cbQueue;
 
@@ -63,7 +68,7 @@ public class ActorsImpl {
     }
 
     public Queue createQueue(int qSize) {
-        return new MpscConcurrentQueue(qSize);
+        return new MpscArrayQueue<>(qSize);
     }
 
     public Actor newProxy(Class<? extends Actor> clz, Scheduler sched, int qsize) {

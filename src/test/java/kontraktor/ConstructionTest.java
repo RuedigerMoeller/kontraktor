@@ -1,6 +1,5 @@
 package kontraktor;
 
-import io.jaq.mpsc.MpscConcurrentQueue;
 import junit.framework.Assert;
 import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
@@ -36,7 +35,7 @@ public class ConstructionTest {
             if ( Thread.currentThread() != __currentDispatcher ) {
                 errors.incrementAndGet();
             }
-            if ( ((MpscConcurrentQueue)__mailbox).getCapacity() != qSize ) {
+            if ( __mailboxCapacity != qSize ) {
                 errors.incrementAndGet();
             }
             if ( __scheduler != sched )

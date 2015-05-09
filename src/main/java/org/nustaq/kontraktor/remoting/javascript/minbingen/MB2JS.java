@@ -5,7 +5,7 @@ import java.util.*;
 import java.io.*;
 
 // add imports you need during generation =>
-import com.lukehutch.fastclasspathscanner.FastClasspathScanner;
+import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner;
 import org.nustaq.kontraktor.annotations.GenRemote;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.serialization.*;

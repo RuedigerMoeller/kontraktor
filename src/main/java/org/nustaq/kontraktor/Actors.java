@@ -241,22 +241,22 @@ public class Actors {
     /**
      * await until all futures are settled and stream their results
      */
-    protected <T> Stream<T> awaitAll(long timeoutMS, IPromise<T>... futures) {
+    public static <T> Stream<T> awaitAll(long timeoutMS, IPromise<T>... futures) {
         return streamHelper(all(futures).await(timeoutMS));
     }
 
     /**
      * await until all futures are settled and stream their results. Uses Actors.DEFAULT_TIMEOUT
      */
-    protected <T> Stream<T> awaitAll(IPromise<T>... futures) {
+    public static <T> Stream<T> awaitAll(IPromise<T>... futures) {
         return streamHelper(all(futures).await());
     }
 
-    protected <T> Stream<T> awaitAll(List<IPromise<T>> futures) {
+    public static <T> Stream<T> awaitAll(List<IPromise<T>> futures) {
         return streamHelper(all(futures).await());
     }
 
-    protected <T> Stream<T> awaitAll(long timeoutMS, List<IPromise<T>> futures) {
+    public static <T> Stream<T> awaitAll(long timeoutMS, List<IPromise<T>> futures) {
         return streamHelper(all(futures).await(timeoutMS));
     }
 

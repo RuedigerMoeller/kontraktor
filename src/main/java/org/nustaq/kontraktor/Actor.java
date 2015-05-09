@@ -88,6 +88,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     public RemoteConnection __clientConnection; // remoteconnection this in case of remote ref
     // register callbacks notified on stop
     ConcurrentLinkedQueue<Callback<SELF>> __stopHandlers;
+    public int __mailboxCapacity;
     // <- internal
 
     /**
