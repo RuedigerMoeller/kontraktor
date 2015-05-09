@@ -63,9 +63,6 @@ public class AsyncFile {
 
             @Override
             public int read(byte b[], int off, int len) throws IOException {
-                if ( Actor.sender.get() == null ) {
-                    throw new RuntimeException("Can only be used from within an actor thread");
-                }
                 if ( event == null ) {
                     event = new AsyncFileIOEvent(0,0, ByteBuffer.allocate(len));
                 }
@@ -104,9 +101,6 @@ public class AsyncFile {
 
             @Override
             public void write(byte[] b, int off, int len) throws IOException {
-                if ( Actor.sender.get() == null ) {
-                    throw new RuntimeException("Can only be used from within an actor thread");
-                }
                 if ( event == null ) {
                     event = new AsyncFileIOEvent(0,0, ByteBuffer.allocate(len));
                 }
@@ -156,9 +150,7 @@ public class AsyncFile {
     public void open(Path file, OpenOption... options) throws IOException {
         if ( fileChannel != null )
             throw new RuntimeException("can only open once");
-        Actor sender = Actor.sender.get();
-        if (sender == null)
-            throw new RuntimeException("must be called from inside an actor thread");
+        Actor sender = Actor.current();
         Set<OpenOption> set = new HashSet<OpenOption>(options.length);
         Collections.addAll(set, options);
         fileChannel = AsynchronousFileChannel.open(file, set, new ActorExecutorService(sender), NO_ATTRIBUTES);
@@ -185,9 +177,7 @@ public class AsyncFile {
     public IPromise<AsyncFileIOEvent> read(long position, int chunkSize, ByteBuffer target) {
         if (fileChannel == null)
             throw new RuntimeException("file not opened");
-        Actor sender = Actor.sender.get();
-        if (sender == null)
-            throw new RuntimeException("must be called from inside an actor thread");
+        Actor sender = Actor.current();
         Promise p = new Promise();
         if (target == null) {
             target = ByteBuffer.allocate(chunkSize);
@@ -216,9 +206,7 @@ public class AsyncFile {
     public IPromise<AsyncFileIOEvent> write(long filePosition, ByteBuffer source) {
         if (fileChannel == null)
             throw new RuntimeException("file not opened");
-        Actor sender = Actor.sender.get();
-        if (sender == null)
-            throw new RuntimeException("must be called from inside an actor thread");
+        Actor sender = Actor.current();
         Promise p = new Promise();
         final long bufferStartPos = source.position();
         final ByteBuffer finalTarget = source;

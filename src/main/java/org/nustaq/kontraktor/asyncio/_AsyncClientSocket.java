@@ -31,14 +31,10 @@ public class _AsyncClientSocket implements Runnable {
     AsyncSocketConnection con;
     Promise connectFuture;
 
-    Thread debug;
     public IPromise connect(String host, int port, BiFunction<SelectionKey,SocketChannel,AsyncSocketConnection> connectionFactory) {
         if ( connectFuture != null ) {
             throw new RuntimeException("illegal state, connect is underway");
         }
-        if ( Actor.sender.get() == null )
-            throw new RuntimeException("must be called from within actor thread");
-        debug = Thread.currentThread();
         connectFuture = new Promise<>();
         this.connectionFactory = connectionFactory;
         try {
@@ -47,7 +43,7 @@ public class _AsyncClientSocket implements Runnable {
             selector = Selector.open();
             channel.register(selector, SelectionKey.OP_CONNECT | SelectionKey.OP_READ | SelectionKey.OP_WRITE );
             channel.connect(new InetSocketAddress(host, port));
-            Actor.sender.get().execute(this);
+            Actor.current().execute(this);
         } catch (Exception e) {
             connectFuture.reject(e);
             connectFuture = null;
@@ -57,8 +53,6 @@ public class _AsyncClientSocket implements Runnable {
 
     @Override
     public void run() {
-        if ( Thread.currentThread() != debug )
-            throw new RuntimeException("wrong thread");
         boolean hadStuff = false;
         try {
             selector.selectNow();
@@ -122,9 +116,9 @@ public class _AsyncClientSocket implements Runnable {
         }
         if ( ! isClosed() ) {
             if ( hadStuff ) {
-                Actor.sender.get().execute(this);
+                Actor.current().execute(this);
             } else {
-                Actor.sender.get().delayed( 2, this );
+                Actor.current().delayed( 2, this );
             }
         } else
             System.out.println("loop terminated");

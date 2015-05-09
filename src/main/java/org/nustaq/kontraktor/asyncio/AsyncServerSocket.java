@@ -36,11 +36,7 @@ public class AsyncServerSocket {
 
     Thread t = null;
     public void receiveLoop() {
-        Actor actor = Actor.sender.get();
-        if ( actor == null )
-        {
-            throw new RuntimeException("only usable from within an actor");
-        }
+        Actor actor = Actor.current();
         if ( t == null )
             t = Thread.currentThread();
         else {

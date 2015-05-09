@@ -74,6 +74,20 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     public static ThreadLocal<Actor> sender = new ThreadLocal<>();
     public static ThreadLocal<RemoteRegistry> registry = new ThreadLocal<>();
 
+    /**
+     * @return current actor thread or throw an exception if not running inside an actor thread.
+     */
+    public static Actor current() {
+        Actor actor = sender.get();
+        if ( actor == null )
+            throw new MustBeRunFromActorThread();
+        return actor;
+    }
+
+    public static boolean innside() {
+        return sender.get() != null;
+    }
+
     // internal ->
     public Queue __mailbox; // mailbox/eventloop queue
     public int __mbCapacity;

@@ -46,12 +46,10 @@ public class RemoteRefPolling implements Runnable {
      *
      */
     public IPromise scheduleSendLoop(RemoteRegistry reg) {
-        if ( Actor.sender.get() == null )
-            throw new RuntimeException("must be used from inside an actor thread or provide an executor");
         Promise promise = new Promise();
         sendJobs.add(new ActorServerAdapter.ScheduleEntry(reg, promise));
         if ( sendJobs.size() == 1 ) {
-            Actor.sender.get().execute(this);
+            Actor.current().execute(this);
         }
         return promise;
     }
@@ -82,9 +80,9 @@ public class RemoteRefPolling implements Runnable {
         }
         if ( sendJobs.size() > 0 ) {
             if (count == 0)
-                Actor.sender.get().delayed(2, this);
+                Actor.current().delayed(2, this);
             else
-                Actor.sender.get().execute(this);
+                Actor.current().execute(this);
         }
     }
 
