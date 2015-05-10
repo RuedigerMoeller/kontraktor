@@ -11,6 +11,7 @@ import org.nustaq.net.TCPObjectSocket;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -71,8 +72,11 @@ public class TCPClientConnector implements ActorClientConnector {
                     Object o = socket.readObject();
                     sink.receiveObject(o);
                 } catch (Exception e) {
-                    if (e instanceof EOFException == false)
+                    if (e instanceof EOFException == false && e instanceof SocketException == false )
                         Log.Warn(this, e);
+                    else {
+                        Log.Warn( this, e.getMessage() );
+                    }
                 }
             }
             sink.sinkClosed();

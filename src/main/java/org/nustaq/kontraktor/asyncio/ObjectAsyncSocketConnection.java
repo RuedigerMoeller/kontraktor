@@ -27,6 +27,10 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
 
     public void setConf(FSTConfiguration conf) {this.conf = conf;}
 
+    public FSTConfiguration getConf() {
+        return conf;
+    }
+
     @Override
     public void dataReceived(BinaryQueue q) {
         while ( q.available() > 4 ) {

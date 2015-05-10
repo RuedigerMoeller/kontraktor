@@ -119,9 +119,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.glassfish.tyrus.bundles</groupId>
-                <artifactId>tyrus-standalone-client</artifactId>
-            <version>1.10</version>
+            <groupId>io.undertow</groupId>
+            <artifactId>undertow-core</artifactId>
+            <version>1.2.5.Final</version>
         </dependency>
 
     </dependencies>

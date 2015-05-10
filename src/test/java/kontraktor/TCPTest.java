@@ -11,6 +11,9 @@ import org.nustaq.kontraktor.util.RateMeasure;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by ruedi on 10/05/15.
@@ -23,8 +26,11 @@ public class TCPTest {
             return new Promise<>(s+" "+s);
         }
 
-        public void $callback( long time, Callback<String> cb ) {
-            cb.complete(new Date(time).toString(), null);
+        public void $callback( Callback<String> cb ) {
+            cb.stream("A");
+            cb.stream("B");
+            cb.stream("C");
+            cb.finish();
         }
 
         public void $spore( Spore<Integer,Integer> spore ) {
@@ -47,11 +53,33 @@ public class TCPTest {
 
     }
 
+    // fixme: add connect-from-actor tests
+
     @Test
     public void testNIO() throws Exception {
         TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
         ActorServer publisher = NIOServerConnector.Publish(service, 8081, null).await();
         runnit(publisher);
+        publisher.close();
+    }
+
+    @Test
+    public void testNIOMany() throws Exception {
+        TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
+        ActorServer publisher = NIOServerConnector.Publish(service, 8081, null).await();
+        ExecutorService exec = Executors.newCachedThreadPool();
+        for ( int i = 0; i < 10; i++ )
+        {
+            exec.execute(() -> {
+                try {
+                    runnit(publisher);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+        exec.awaitTermination(1, TimeUnit.DAYS);
+        publisher.close();
     }
 
     @Test
@@ -59,6 +87,27 @@ public class TCPTest {
         TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
         ActorServer publisher = TCPServerConnector.Publish(service, 8081, null).await();
         runnit(publisher);
+        publisher.close();
+    }
+
+    @Test
+    public void testBlockingMany() throws Exception {
+        TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
+        ActorServer publisher = TCPServerConnector.Publish(service, 8081, null).await();
+        ExecutorService exec = Executors.newCachedThreadPool();
+        for ( int i = 0; i < 10; i++ )
+        {
+            exec.execute(() -> {
+                try {
+                    runnit(publisher);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+        exec.awaitTermination(1, TimeUnit.DAYS);
+        publisher.close();
+
     }
 
     public void runnit(ActorServer publisher) throws Exception {
@@ -83,17 +132,17 @@ public class TCPTest {
         Assert.assertTrue(sporeResult.size() == 4);
 
         System.out.println("one way performance");
-        for ( int i = 0; i < 4_000_000; i++ ) {
+        for ( int i = 0; i < 5_000_000; i++ ) {
             client.$benchMarkVoid(13, null);
         }
         System.out.println("two way performance");
-        for ( int i = 0; i < 20_000_000; i++ ) {
+        for ( int i = 0; i < 5_000_000; i++ ) {
             if ( i%1_000_000==0 )
                 System.out.println("sent "+i);
             client.$benchMarkPromise(13, null);
         }
-
-        publisher.close();
+        System.out.println("done "+Thread.currentThread());
+        client.$close();
     }
 
 }

@@ -210,6 +210,14 @@ public abstract class RemoteRegistry implements RemoteConnection {
         } catch (InternalActorStoppedException ase) {}
     }
 
+    /**
+     * process a remote call entry or an array of remote call entries.
+     *
+     * @param channel - writer required to route callback messages
+     * @param response
+     * @return
+     * @throws Exception
+     */
     public boolean receiveObject(ObjectSocket channel, Object response) throws Exception {
         if ( response == RemoteRegistry.OUT_OF_ORDER_SEQ )
             return false;

@@ -96,10 +96,12 @@ public abstract class AsyncSocketConnection {
         writingBuffer = null;
         Promise wp = this.writePromise;
         writePromise = null;
-        if ( error != null )
-            wp.reject(error);
-        else
-            wp.complete();
+        if ( ! wp.isSettled() ) {
+            if ( error != null )
+                wp.reject(error);
+            else
+                wp.complete();
+        }
     }
 
     public abstract void dataReceived(ByteBuffer buf);

@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.asyncio.AsyncServerSocket;
 import org.nustaq.kontraktor.asyncio.ObjectAsyncSocketConnection;
 import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;

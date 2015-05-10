@@ -17,7 +17,13 @@ public interface ObjectSocket {
 
     public Throwable getLastError();
 
+    /**
+     * set by outer machinery
+     * @param conf
+     */
     public void setConf( FSTConfiguration conf );
+
+    public FSTConfiguration getConf();
 
     void close() throws IOException;
 
