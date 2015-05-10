@@ -8,10 +8,12 @@ import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.net.TCPObjectSocket;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -96,8 +98,36 @@ public class TCPClientConnector implements ActorClientConnector {
 
     static class MyTCPSocket extends TCPObjectSocket implements ObjectSocket {
 
+        ArrayList objects = new ArrayList();
+
         public MyTCPSocket(String host, int port) throws IOException {
             super(host, port);
+        }
+
+        @Override
+        public void writeObject(Object toWrite) throws Exception {
+            objects.add(toWrite);
+            if (objects.size()>100) {
+                flush();
+            }
+        }
+
+        @Override
+        public void flush() throws IOException {
+            if ( objects.size() == 0 ) {
+                return;
+            }
+            objects.add(0); // sequence
+            Object[] objArr = objects.toArray();
+            objects.clear();
+
+            try {
+                super.writeObject(objArr);
+            } catch (Exception e) {
+                FSTUtil.rethrow(e);
+            }
+
+            super.flush();
         }
     }
 

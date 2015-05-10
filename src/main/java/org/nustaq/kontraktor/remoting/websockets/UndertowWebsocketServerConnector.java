@@ -61,28 +61,32 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
         server.addExactPath(
             path,
             Handlers.websocket( (exchange, channel) -> { // connection callback
-                UTWebObjectSocket objectSocket = new UTWebObjectSocket(exchange,channel);
-                ObjectSink sink = factory.apply(objectSocket);
+                Runnable runnable = () -> {
+                    UTWebObjectSocket objectSocket = new UTWebObjectSocket(exchange, channel);
+                    ObjectSink sink = factory.apply(objectSocket);
 
-                channel.getReceiveSetter().set(new AbstractReceiveListener() {
-                    @Override
-                    protected void onCloseMessage(CloseMessage cm, WebSocketChannel channel) {
-                        try {
-                            channel.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                    channel.getReceiveSetter().set(new AbstractReceiveListener() {
+                        @Override
+                        protected void onCloseMessage(CloseMessage cm, WebSocketChannel channel) {
+                            try {
+                                channel.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            sink.sinkClosed();
                         }
-                        sink.sinkClosed();
-                    }
 
-                    @Override
-                    protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
-                        ByteBuffer[] data = message.getData().getResource();
-                        byte[] bytez = Buffers.take(data, 0, data.length);
-                        sink.receiveObject(objectSocket.getConf().asObject(bytez));
-                    }
-                });
-
+                        @Override
+                        protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
+                            ByteBuffer[] data = message.getData().getResource();
+                            byte[] bytez = Buffers.take(data, 0, data.length);
+                            sink.receiveObject(objectSocket.getConf().asObject(bytez));
+                        }
+                    });
+                };
+//                runnable.run();
+                facade.execute(runnable);
+                channel.resumeReceives();
             })
         );
     }
@@ -90,8 +94,8 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
     protected PathHandler createServer() {
         PathHandler pathHandler = new PathHandler();
         server = Undertow.builder()
-                   .setIoThreads( 1 )
-                   .setWorkerThreads( 1 )
+                   .setIoThreads( 2 )
+                   .setWorkerThreads( 2 )
                    .addHttpListener( port, host )
                    .setHandler(pathHandler)
                    .build();
@@ -121,12 +125,20 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
         @Override
         public void writeObject(Object toWrite) throws Exception {
             objects.add(toWrite);
+            if (objects.size() > 100 ) {
+                flush();
+            }
         }
 
         @Override
         public void flush() throws Exception {
-            Object[] objArr = this.objects.toArray();
+            if ( objects.size() == 0 ) {
+                return;
+            }
+            objects.add(0); // sequence
+            Object[] objArr = objects.toArray();
             objects.clear();
+            // fixme: catche exception thrown on close
             WebSockets.sendBinary(ByteBuffer.wrap( conf.asByteArray(objArr)), channel, new WebSocketCallback() {
                 @Override
                 public void complete(WebSocketChannel channel, Object context) {

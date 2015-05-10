@@ -1,10 +1,14 @@
 package org.nustaq.kontraktor.remoting.websockets;
 
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.remoting.base.ActorClient;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
+import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
@@ -13,12 +17,53 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 /**
  * Created by ruedi on 10/05/15.
  */
 public class WebsocketAPIClientConnector implements ActorClientConnector {
+
+
+    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Coding c ) {
+        Promise result = new Promise();
+        Runnable connect = () -> {
+            WebsocketAPIClientConnector client = null;
+            try {
+                client = new WebsocketAPIClientConnector(url);
+                ActorClient connector = new ActorClient(client,clz,c);
+                connector.connect().then(result);
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+                result.reject(e);
+            }
+        };
+        if ( ! Actor.inside() ) {
+            get().execute(() -> Thread.currentThread().setName("singleton remote client actor polling"));
+            get().execute(connect);
+        }
+        else
+            connect.run();
+        return result;
+    }
+
+    public static class RemotingHelper extends Actor<RemotingHelper> {}
+    static AtomicReference<RemotingHelper> singleton =  new AtomicReference<>();
+
+    /**
+     * in case clients are connected from non actor world, provide a global actor(thread) for remote client processing
+     * (=polling queues, encoding)
+     */
+    static RemotingHelper get() {
+        synchronized (singleton) {
+            if ( singleton.get() == null ) {
+                singleton.set(Actors.AsActor(RemotingHelper.class));
+            }
+            return singleton.get();
+        }
+    }
 
     WSClientEndpoint endpoint;
     URI uri;
@@ -52,6 +97,7 @@ public class WebsocketAPIClientConnector implements ActorClientConnector {
         protected volatile Session session = null;
         protected Throwable lastError;
         protected FSTConfiguration conf;
+        protected ArrayList objects = new ArrayList();
 
         public WSClientEndpoint(URI endpointURI, ObjectSink sink) {
             try {
@@ -107,12 +153,21 @@ public class WebsocketAPIClientConnector implements ActorClientConnector {
 
         @Override
         public void writeObject(Object toWrite) throws Exception {
-            sendBinary(conf.asByteArray(toWrite));
+            objects.add(toWrite);
+            if ( objects.size() > 100 ) {
+                flush();
+            }
         }
 
         @Override
         public void flush() throws Exception {
-            // batching not implemented for now
+            if ( objects.size() == 0 ) {
+                return;
+            }
+            objects.add(0); // sequence
+            Object[] objArr = objects.toArray();
+            objects.clear();
+            sendBinary(conf.asByteArray(objArr));
         }
 
         @Override

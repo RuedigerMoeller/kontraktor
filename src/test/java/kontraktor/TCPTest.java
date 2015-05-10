@@ -7,10 +7,11 @@ import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.tcp.NIOServerConnector;
 import org.nustaq.kontraktor.remoting.tcp.TCPClientConnector;
 import org.nustaq.kontraktor.remoting.tcp.TCPServerConnector;
+import org.nustaq.kontraktor.remoting.websockets.UndertowWebsocketServerConnector;
+import org.nustaq.kontraktor.remoting.websockets.WebsocketAPIClientConnector;
 import org.nustaq.kontraktor.util.RateMeasure;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -56,10 +57,19 @@ public class TCPTest {
     // fixme: add connect-from-actor tests
 
     @Test
+    public void testWS() throws Exception {
+        TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
+        ActorServer publisher = UndertowWebsocketServerConnector.Publish(service, "localhost", "/ws", 8081 , null ).await();
+        TCPTestService client = WebsocketAPIClientConnector.Connect(TCPTestService.class,"ws://localhost:8081/ws",null).await(9999999);
+        runnit(publisher,client);
+        publisher.close();
+    }
+
+    @Test
     public void testNIO() throws Exception {
         TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
         ActorServer publisher = NIOServerConnector.Publish(service, 8081, null).await();
-        runnit(publisher);
+        runnitTCP(publisher);
         publisher.close();
     }
 
@@ -72,7 +82,7 @@ public class TCPTest {
         {
             exec.execute(() -> {
                 try {
-                    runnit(publisher);
+                    runnitTCP(publisher);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -86,7 +96,7 @@ public class TCPTest {
     public void testBlocking() throws Exception {
         TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
         ActorServer publisher = TCPServerConnector.Publish(service, 8081, null).await();
-        runnit(publisher);
+        runnitTCP(publisher);
         publisher.close();
     }
 
@@ -99,7 +109,7 @@ public class TCPTest {
         {
             exec.execute(() -> {
                 try {
-                    runnit(publisher);
+                    runnitTCP(publisher);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -110,9 +120,19 @@ public class TCPTest {
 
     }
 
-    public void runnit(ActorServer publisher) throws Exception {
+    public void runnitTCP(ActorServer publisher) throws Exception {
         TCPTestService client = TCPClientConnector.Connect(TCPTestService.class, "localhost", 8081, null).await();
-        Assert.assertTrue("Hello Hello".equals(client.$promise("Hello").await()));
+        runWithClient(client);
+        client.$close();
+    }
+
+    public void runnit(ActorServer publisher,TCPTestService client) throws Exception {
+        runWithClient(client);
+        client.$close();
+    }
+
+    protected void runWithClient(TCPTestService client) {
+        Assert.assertTrue("Hello Hello".equals(client.$promise("Hello").await(999999)));
 
         ArrayList<Integer> sporeResult = new ArrayList<>();
         Promise sporeP = new Promise();
@@ -132,17 +152,16 @@ public class TCPTest {
         Assert.assertTrue(sporeResult.size() == 4);
 
         System.out.println("one way performance");
-        for ( int i = 0; i < 5_000_000; i++ ) {
+        for ( int i = 0; i < 10_000_000; i++ ) {
             client.$benchMarkVoid(13, null);
         }
         System.out.println("two way performance");
-        for ( int i = 0; i < 5_000_000; i++ ) {
+        for ( int i = 0; i < 10_000_000; i++ ) {
             if ( i%1_000_000==0 )
                 System.out.println("sent "+i);
             client.$benchMarkPromise(13, null);
         }
         System.out.println("done "+Thread.currentThread());
-        client.$close();
     }
 
 }
