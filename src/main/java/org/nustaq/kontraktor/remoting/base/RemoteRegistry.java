@@ -1,10 +1,12 @@
-package org.nustaq.kontraktor.remoting;
+package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.impl.InternalActorStoppedException;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
+import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
+import org.nustaq.kontraktor.remoting.encoding.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
@@ -125,8 +127,8 @@ public abstract class RemoteRegistry implements RemoteConnection {
             publishedActorMapping.remove(integer);
             publishedActorMappingReverse.remove(act.getActorRef());
             act.__removeRemoteConnection(this);
-            if ( act instanceof RemotableActor) {
-                ((RemotableActor) act).$hasBeenUnpublished();
+            if ( act instanceof RemotedActor) {
+                ((RemotedActor) act).$hasBeenUnpublished();
             }
         }
     }
@@ -208,7 +210,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         } catch (InternalActorStoppedException ase) {}
     }
 
-    public boolean receiveObject(WriteObjectSocket channel, Object response) throws Exception {
+    public boolean receiveObject(ObjectSocket channel, Object response) throws Exception {
         if ( response == RemoteRefRegistry.OUT_OF_ORDER_SEQ )
             return false;
         if ( response instanceof Object[] ) { // bundling. last element contains sequence
@@ -238,7 +240,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         return false;
     }
 
-    protected boolean processRemoteCallEntry(WriteObjectSocket channel, RemoteCallEntry response) throws Exception {
+    protected boolean processRemoteCallEntry(ObjectSocket channel, RemoteCallEntry response) throws Exception {
         RemoteCallEntry read = response;
         boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
         if ( isContinue )
@@ -295,7 +297,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         getFacadeProxy().__removeRemoteConnection(this);
     }
 
-    protected void closeRef(CallEntry ce, WriteObjectSocket chan) throws IOException {
+    protected void closeRef(CallEntry ce, ObjectSocket chan) throws IOException {
         if (ce.getTargetActor().getActorRef() == getFacadeProxy().getActorRef() ) {
             // invalidating connections should cleanup all refs
             chan.close();
@@ -304,11 +306,11 @@ public abstract class RemoteRegistry implements RemoteConnection {
         }
     }
 
-    protected void writeObject(WriteObjectSocket chan, RemoteCallEntry rce) throws Exception {
+    protected void writeObject(ObjectSocket chan, RemoteCallEntry rce) throws Exception {
         chan.writeObject(rce);
     }
 
-    public void receiveCBResult(WriteObjectSocket chan, int id, Object result, Object error) throws Exception {
+    public void receiveCBResult(ObjectSocket chan, int id, Object result, Object error) throws Exception {
         if ( Callback.FINSILENT.equals(error) ) {
             return;
         }
@@ -348,7 +350,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
      * poll remote actor proxies and send. return true if there was at least one message
      * @param chan
      */
-    public boolean pollAndSend2Remote(WriteObjectSocket chan) throws Exception {
+    public boolean pollAndSend2Remote(ObjectSocket chan) throws Exception {
         if ( chan == null )
             return false;
         boolean hadAnyMsg = false;
@@ -398,7 +400,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         return hadAnyMsg;
     }
 
-    public abstract AtomicReference<WriteObjectSocket> getWriteObjectSocket();
+    public abstract AtomicReference<ObjectSocket> getWriteObjectSocket();
 
     public boolean isObsolete() {
         return isObsolete;

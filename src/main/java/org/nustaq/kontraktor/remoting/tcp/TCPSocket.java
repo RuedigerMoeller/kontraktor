@@ -1,18 +1,16 @@
 package org.nustaq.kontraktor.remoting.tcp;
 
-import org.nustaq.kontraktor.remoting.ObjectSocket;
+import org.nustaq.kontraktor.remoting.OldObjectSocket;
 import org.nustaq.net.TCPObjectSocket;
 import org.nustaq.serialization.FSTConfiguration;
-import org.nustaq.serialization.FSTObjectOutput;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by ruedi on 11.08.2014.
  */
-public class TCPSocket extends TCPObjectSocket implements ObjectSocket {
+public class TCPSocket extends TCPObjectSocket implements OldObjectSocket {
 
     public TCPSocket(String host, int port) throws IOException {
         super(host, port);
@@ -31,4 +29,18 @@ public class TCPSocket extends TCPObjectSocket implements ObjectSocket {
         return getSocket().isClosed();
     }
 
+    @Override
+    public void setLastError(Throwable ex) {
+
+    }
+
+    @Override
+    public Throwable getLastError() {
+        return null;
+    }
+
+    @Override
+    public void setConf(FSTConfiguration conf) {
+
+    }
 }

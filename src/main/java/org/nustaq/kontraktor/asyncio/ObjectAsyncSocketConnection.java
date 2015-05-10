@@ -1,27 +1,31 @@
 package org.nustaq.kontraktor.asyncio;
 
-import org.nustaq.kontraktor.remoting.WriteObjectSocket;
+import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.offheap.BinaryQueue;
 import org.nustaq.serialization.FSTConfiguration;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 /**
  * Created by moelrue on 5/7/15.
  */
-public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConnection implements WriteObjectSocket {
+public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConnection implements ObjectSocket {
 
     FSTConfiguration conf;
-    Exception lastError;
+    Throwable lastError;
+
+    public ObjectAsyncSocketConnection(SelectionKey key, SocketChannel chan) {
+        super(key, chan);
+    }
 
     public ObjectAsyncSocketConnection(FSTConfiguration conf, SelectionKey key, SocketChannel chan) {
         super(key, chan);
-        this.conf = conf;
+        setConf(conf);
     }
+
+    public void setConf(FSTConfiguration conf) {this.conf = conf;}
 
     @Override
     public void dataReceived(BinaryQueue q) {
@@ -55,13 +59,12 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
     public void flush() throws IOException, Exception {
     }
 
-    @Override
-    public void setLastError(Exception ex) {
-        lastError = ex;
-    }
-
-    public Exception getLastError() {
+    public Throwable getLastError() {
         return lastError;
     }
 
+    @Override
+    public void setLastError(Throwable ex) {
+        lastError = ex;
+    }
 }

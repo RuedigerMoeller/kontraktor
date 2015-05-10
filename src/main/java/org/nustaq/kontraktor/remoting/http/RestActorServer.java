@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Register;
-import org.nustaq.kontraktor.remoting.RemoteCallEntry;
+import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.http.encoding.JSonMsgCoder;
 import org.nustaq.kontraktor.remoting.http.encoding.KsonMsgCoder;
 import org.nustaq.kontraktor.remoting.http.encoding.PlainJSonCoder;

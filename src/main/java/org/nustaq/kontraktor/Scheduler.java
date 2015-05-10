@@ -1,14 +1,11 @@
 package org.nustaq.kontraktor;
 
 import org.nustaq.kontraktor.impl.BackOffStrategy;
-import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.monitoring.Monitorable;
-import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
-import org.nustaq.kontraktor.remoting.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 
 import java.lang.reflect.InvocationHandler;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 

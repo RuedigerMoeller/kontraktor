@@ -5,9 +5,7 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.monitoring.Monitorable;
-import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
-import org.nustaq.kontraktor.remoting.RemoteRegistry;
-import org.nustaq.kontraktor.remoting.base.ActorServerConnection;
+import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.remoting.javascript.DependencyResolver;
 import org.nustaq.kontraktor.remoting.javascript.minbingen.MB2JS;
 import org.nustaq.kontraktor.util.Log;
@@ -128,7 +126,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
                 try {
                     if ( newRemoteRefRegistry != null ) {
                         Log.Info(this, "reconnection successful. session " + id);
-                        ((ActorServerConnection)newRemoteRefRegistry).handOverTo(session.__getRegistry());
+//                        ((ActorServerConnection)newRemoteRefRegistry).handOverTo(session.__getRegistry());
                         System.out.println("session remote con size "+session.__connections.size());
                         res.resolve(true);
                     } else {

@@ -1,16 +1,10 @@
 package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.impl.BackOffStrategy;
-import org.nustaq.kontraktor.remoting.RemoteRegistry;
-import org.nustaq.kontraktor.util.Log;
 
 import java.util.ArrayList;
-import java.util.concurrent.Executor;
-import java.util.concurrent.locks.LockSupport;
 
 /**
  * polls queues of remote actor proxies and serializes messages to their associated object sockets.
@@ -32,7 +26,7 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class RemoteRefPolling implements Runnable {
 
-    ArrayList<ActorServerAdapter.ScheduleEntry> sendJobs = new ArrayList<>();
+    ArrayList<ScheduleEntry> sendJobs = new ArrayList<>();
 
     public RemoteRefPolling() {
     }
@@ -47,7 +41,7 @@ public class RemoteRefPolling implements Runnable {
      */
     public IPromise scheduleSendLoop(RemoteRegistry reg) {
         Promise promise = new Promise();
-        sendJobs.add(new ActorServerAdapter.ScheduleEntry(reg, promise));
+        sendJobs.add(new ScheduleEntry(reg, promise));
         if ( sendJobs.size() == 1 ) {
             Actor.current().execute(this);
         }
@@ -55,12 +49,13 @@ public class RemoteRefPolling implements Runnable {
     }
 
     public void run() {
+        Actor.current(); // fail fast
         int count = 1;
-        int maxit = 1;
+        int maxit = 10;
         while ( maxit > 0 && count > 0) {
             count = 0;
             for (int i = 0; i < sendJobs.size(); i++) {
-                ActorServerAdapter.ScheduleEntry entry = sendJobs.get(i);
+                ScheduleEntry entry = sendJobs.get(i);
                 if ( entry.reg.isTerminated() ) {
                     terminateEntry(i, entry, "terminated", null );
                     i--;
@@ -80,16 +75,25 @@ public class RemoteRefPolling implements Runnable {
         }
         if ( sendJobs.size() > 0 ) {
             if (count == 0)
-                Actor.current().delayed(2, this);
+                Actor.current().delayed(1, this);
             else
                 Actor.current().execute(this);
         }
     }
 
-    protected void terminateEntry(int i, ActorServerAdapter.ScheduleEntry entry, Object res, Exception e) {
+    protected void terminateEntry(int i, ScheduleEntry entry, Object res, Exception e) {
         entry.reg.stopRemoteRefs();
         sendJobs.remove(i);
         entry.promise.complete(res,e);
     }
 
+    public static class ScheduleEntry {
+        public ScheduleEntry( RemoteRegistry reg, Promise promise) {
+            this.reg = reg;
+            this.promise = promise;
+        }
+
+        RemoteRegistry reg;
+        IPromise promise;
+    }
 }

@@ -1,12 +1,10 @@
-package org.nustaq.kontraktor.remoting.base;
+package org.nustaq.kontraktor.remoting;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.RemoteConnection;
 import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
-import org.nustaq.kontraktor.remoting.ObjectSocket;
-import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
@@ -24,7 +22,7 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
 
     protected ConnectedActorHandler client;
     protected volatile boolean connected = false;
-    protected AtomicReference<ObjectSocket> objectSocket = new AtomicReference<>(null);
+    protected AtomicReference<OldObjectSocket> objectSocket = new AtomicReference<>(null);
 
     public ActorClient(Class<T> clz) throws IOException {
         actorClazz = clz;
@@ -48,7 +46,7 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
         }
     }
 
-    protected abstract ObjectSocket createObjectSocket();
+    protected abstract OldObjectSocket createObjectSocket();
 //    {
         //return new TCPSocket(host,port,conf);;
 //    }
@@ -70,9 +68,9 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
      */
     public class ConnectedActorHandler implements RemoteConnection {
 
-        ObjectSocket chan;
+        OldObjectSocket chan;
 
-        protected void sendLoop(ObjectSocket channel) throws Exception {
+        protected void sendLoop(OldObjectSocket channel) throws Exception {
             try {
                 int count = 0;
                 while (!isTerminated()) {
@@ -87,7 +85,7 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
         }
 
 
-        public ConnectedActorHandler(ObjectSocket socket) throws IOException {
+        public ConnectedActorHandler(OldObjectSocket socket) throws IOException {
             chan = socket;
             new Thread(
                 () -> {
@@ -149,7 +147,7 @@ public abstract class ActorClient<T extends Actor> extends RemoteRefRegistry {
     }
 
     @Override
-    public AtomicReference<ObjectSocket> getObjectSocket() {
+    public AtomicReference<OldObjectSocket> getObjectSocket() {
         return objectSocket;
     }
 }

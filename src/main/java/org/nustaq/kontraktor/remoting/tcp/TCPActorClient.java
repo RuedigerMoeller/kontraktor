@@ -1,8 +1,8 @@
 package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.remoting.ObjectSocket;
-import org.nustaq.kontraktor.remoting.base.ActorClient;
+import org.nustaq.kontraktor.remoting.OldObjectSocket;
+import org.nustaq.kontraktor.remoting.ActorClient;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.*;
@@ -52,7 +52,7 @@ public class TCPActorClient<T extends Actor> extends ActorClient<T> {
     }
 
     @Override
-    protected ObjectSocket createObjectSocket() {
+    protected OldObjectSocket createObjectSocket() {
         try {
             return new TCPSocket(host,port,conf);
         } catch (IOException e) {

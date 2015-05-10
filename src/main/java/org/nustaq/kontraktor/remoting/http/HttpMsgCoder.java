@@ -1,6 +1,6 @@
 package org.nustaq.kontraktor.remoting.http;
 
-import org.nustaq.kontraktor.remoting.RemoteCallEntry;
+import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 
 /**
  * Created by ruedi on 17.08.14.

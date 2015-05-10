@@ -1,7 +1,6 @@
 package org.nustaq.kontraktor.remoting.http;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.remoting.RemoteCallEntry;
+import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kson.Kson;
 import org.nustaq.kson.KsonArgTypesResolver;
 

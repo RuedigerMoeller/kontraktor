@@ -6,10 +6,10 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.annotations.Register;
 import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
-import org.nustaq.kontraktor.remoting.ObjectSocket;
-import org.nustaq.kontraktor.remoting.RemoteCallEntry;
+import org.nustaq.kontraktor.remoting.OldObjectSocket;
+import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
-import org.nustaq.kontraktor.remoting.WriteObjectSocket;
+import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.util.Log;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,7 +25,7 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
     String host;
     String actorPath;
     Class<T> actorClazz;
-    AtomicReference<ObjectSocket> objSocket = new AtomicReference<>(null);
+    AtomicReference<OldObjectSocket> objSocket = new AtomicReference<>(null);
     ConcurrentHashMap<String,Class> mappings = new ConcurrentHashMap<>();
 
     public RestActorClient( String host, int port, String actorPath, Class clz) {
@@ -47,12 +47,12 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
     }
 
     @Override
-    public AtomicReference<ObjectSocket> getObjectSocket() {
+    public AtomicReference<OldObjectSocket> getObjectSocket() {
         return objSocket;
     }
 
     BackOffStrategy backOffStrategy = new BackOffStrategy();
-    protected void sendLoop(ObjectSocket channel) throws Exception {
+    protected void sendLoop(OldObjectSocket channel) throws Exception {
         try {
             int count = 0;
             while (!isTerminated()) {
@@ -94,7 +94,7 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
     private HttpObjectSocket getHttpObjectSocket() {return (HttpObjectSocket) objSocket.get();}
 
     @Override
-    protected void writeObject(WriteObjectSocket chan, RemoteCallEntry rce) throws Exception {
+    protected void writeObject(ObjectSocket chan, RemoteCallEntry rce) throws Exception {
         final Object[] args = rce.getArgs();
         for (int i = 0; i < args.length; i++) {
             Object o = args[i];

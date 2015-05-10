@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
-import org.nustaq.kontraktor.remoting.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;

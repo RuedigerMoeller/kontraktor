@@ -1,7 +1,9 @@
 package org.nustaq.kontraktor.remoting;
 
+import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.ObjectSocket;
+import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.EOFException;
 import java.net.SocketException;
@@ -29,7 +31,7 @@ public abstract class RemoteRefRegistry extends RemoteRegistry {
         super(code);
     }
 
-    protected void receiveLoop(ObjectSocket channel) {
+    protected void receiveLoop(OldObjectSocket channel) {
         try {
             while (!isTerminated()) {
                 if (singleReceive(channel)) continue;
@@ -51,16 +53,16 @@ public abstract class RemoteRefRegistry extends RemoteRegistry {
      * @return true if no message could be read (either failure or nonblocking channel)
      * @throws Exception
      */
-    public boolean singleReceive(ObjectSocket channel) throws Exception {
+    public boolean singleReceive(OldObjectSocket channel) throws Exception {
         // read object
         final Object response = channel.readObject();
         return receiveObject(channel, response);
     }
 
-    public abstract AtomicReference<ObjectSocket> getObjectSocket();
+    public abstract AtomicReference<OldObjectSocket> getObjectSocket();
 
     @Override
-    public AtomicReference<WriteObjectSocket> getWriteObjectSocket() {
+    public AtomicReference<ObjectSocket> getWriteObjectSocket() {
         return ((AtomicReference) getObjectSocket());
     }
 

@@ -1,7 +1,7 @@
 package org.nustaq.kontraktor.remoting.http;
 
-import org.nustaq.kontraktor.remoting.ObjectSocket;
-import org.nustaq.kontraktor.remoting.RemoteCallEntry;
+import org.nustaq.kontraktor.remoting.OldObjectSocket;
+import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
 import org.nustaq.kson.KsonDeserializer;
@@ -17,7 +17,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * Created by ruedi on 14.08.2014.
  */
-public class HttpObjectSocket implements ObjectSocket {
+public class HttpObjectSocket implements OldObjectSocket {
 
     public static int MAX_BATCHED_REQUESTS = 100;
     public static boolean DUMP_REQUESTS = false;
@@ -133,6 +133,21 @@ public class HttpObjectSocket implements ObjectSocket {
     public void flush() throws IOException {
     }
 
+    @Override
+    public void setLastError(Throwable ex) {
+
+    }
+
+    @Override
+    public Throwable getLastError() {
+        return null;
+    }
+
+    @Override
+    public void setConf(FSTConfiguration conf) {
+        throw new RuntimeException("pok");
+    }
+
     private Socket post(ArrayList<String> requests) throws IOException {
         InetAddress addr = InetAddress.getByName(host);
 
@@ -154,11 +169,6 @@ public class HttpObjectSocket implements ObjectSocket {
         bw.write(post);
         bw.flush();
         return socket;
-    }
-
-    @Override
-    public void setLastError(Exception ex) {
-
     }
 
     @Override

@@ -7,10 +7,10 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.asyncio._AsyncClientSocket;
 import org.nustaq.kontraktor.asyncio.ObjectAsyncSocketConnection;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
-import org.nustaq.kontraktor.remoting.Coding;
-import org.nustaq.kontraktor.remoting.RemoteRegistry;
-import org.nustaq.kontraktor.remoting.SerializerType;
-import org.nustaq.kontraktor.remoting.WriteObjectSocket;
+import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.base.RemoteRefPolling;
 import org.nustaq.kontraktor.util.Log;
 
@@ -62,7 +62,7 @@ public class _NIOActorClient {
         socket = new _AsyncClientSocket();
         socket.connect(host, port, (key,channel) -> {
 
-            AtomicReference<WriteObjectSocket> ref = new AtomicReference<>();
+            AtomicReference<ObjectSocket> ref = new AtomicReference<>();
 
             reg = new RemoteRegistry(coding) {
                 @Override
@@ -70,12 +70,18 @@ public class _NIOActorClient {
                     return facadeProxy;
                 }
                 @Override
-                public AtomicReference<WriteObjectSocket> getWriteObjectSocket() {
+                public AtomicReference<ObjectSocket> getWriteObjectSocket() {
                     return ref;
                 }
             };
 
             ObjectAsyncSocketConnection osock = new ObjectAsyncSocketConnection(reg.getConf(), key, channel) {
+
+                @Override
+                public void setLastError(Throwable ex) {
+
+                }
+
                 @Override
                 public void receivedObject(Object o) {
                     try {

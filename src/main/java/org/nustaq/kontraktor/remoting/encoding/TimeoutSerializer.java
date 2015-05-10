@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting;
+package org.nustaq.kontraktor.remoting.encoding;
 
 import org.nustaq.kontraktor.Timeout;
 import org.nustaq.serialization.FSTBasicObjectSerializer;

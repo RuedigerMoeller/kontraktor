@@ -3,8 +3,7 @@ package org.nustaq.kontraktor.impl;
 import org.jctools.queues.MpscArrayQueue;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
-import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
-import org.nustaq.kontraktor.remoting.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.util.Log;
 
 import java.lang.reflect.*;

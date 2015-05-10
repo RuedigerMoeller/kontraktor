@@ -4,10 +4,10 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.remoting.Coding;
-import org.nustaq.kontraktor.remoting.RemoteRegistry;
-import org.nustaq.kontraktor.remoting.SerializerType;
-import org.nustaq.kontraktor.remoting.WriteObjectSocket;
+import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.base.RemoteRefPolling;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.net.TCPObjectSocket;
@@ -23,24 +23,20 @@ import java.util.function.Consumer;
 /**
  * Created by ruedi on 09/05/15.
  */
-public class TCPActorPublisher {
+public class TCPPublisher {
 
 
-    public static TCPActorPublisher Publish(Actor act, int port ) throws Exception {
+    public static TCPPublisher Publish(Actor act, int port ) throws Exception {
         return Publish(act,port,null);
     }
 
-    public static TCPActorPublisher Publish(Actor act, int port, Coding coding ) throws Exception {
-        TCPActorPublisher tcpapNew = new TCPActorPublisher(act, port, coding);
+    public static TCPPublisher Publish(Actor act, int port, Coding coding ) throws Exception {
+        TCPPublisher tcpapNew = new TCPPublisher(act, port, coding);
         tcpapNew.start();
         return tcpapNew;
     }
 
     static TCPSendLoop tcpActorPolling = Actors.AsActor(TCPSendLoop.class,100_000);
-
-    public Actor getFacade() {
-        return facade;
-    }
 
     public static class TCPSendLoop extends Actor<TCPSendLoop> {
 
@@ -62,7 +58,7 @@ public class TCPActorPublisher {
     protected Consumer<Actor> closeListener;
     protected Coding coding;
 
-    public TCPActorPublisher(Actor proxy, int port, Coding coding) throws Exception {
+    public TCPPublisher(Actor proxy, int port, Coding coding) throws Exception {
         this.port = port;
         this.coding = coding;
         this.facade = proxy;
@@ -83,14 +79,14 @@ public class TCPActorPublisher {
                 Socket clientSocket = acceptSocket.accept();
 
                 // setup registry
-                AtomicReference<WriteObjectSocket> ref = new AtomicReference<>();
+                AtomicReference<ObjectSocket> ref = new AtomicReference<>();
                 RemoteRegistry reg = new RemoteRegistry(coding) {
                     @Override
                     public Actor getFacadeProxy() {
                         return facade;
                     }
                     @Override
-                    public AtomicReference<WriteObjectSocket> getWriteObjectSocket() {
+                    public AtomicReference<ObjectSocket> getWriteObjectSocket() {
                         return ref;
                     }
                 };
@@ -110,6 +106,9 @@ public class TCPActorPublisher {
                                 Log.Warn(this,e);
                         }
                     }
+                    reg.cleanUp();
+                    reg.setTerminated(true);
+
                 }, "receiver ").start();
                 reg.publishActor(facade);
             }
@@ -133,15 +132,34 @@ public class TCPActorPublisher {
         return new Promise<>("done");
     }
 
+    public Actor getFacade() {
+        return facade;
+    }
+
     protected void connectServerSocket() throws Exception {
         acceptSocket = new ServerSocket(port);
         Log.Info(this, facade.getActor().getClass().getName() + " running on " + acceptSocket.getLocalPort());
     }
 
-    class ClientObjectSocket extends TCPObjectSocket implements WriteObjectSocket {
+    class ClientObjectSocket extends TCPObjectSocket implements ObjectSocket {
 
         public ClientObjectSocket(Socket socket, FSTConfiguration conf) throws IOException {
             super(socket, conf);
+        }
+
+        @Override
+        public void setLastError(Throwable ex) {
+
+        }
+
+        @Override
+        public Throwable getLastError() {
+            return null;
+        }
+
+        @Override
+        public void setConf(FSTConfiguration conf) {
+
         }
     }
 }

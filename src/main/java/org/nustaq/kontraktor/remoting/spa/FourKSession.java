@@ -5,8 +5,8 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
-import org.nustaq.kontraktor.remoting.RemotableActor;
-import org.nustaq.kontraktor.remoting.base.ActorServerConnection;
+import org.nustaq.kontraktor.remoting.base.RemotedActor;
+import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.util.Log;
 
 import java.util.Date;
@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * Created by ruedi on 07/04/15.
  */
 @Local
-public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> extends Actor<SESSION> implements RemotableActor {
+public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> extends Actor<SESSION> implements RemotedActor {
 
     protected long creationTime = System.currentTimeMillis();
     volatile protected long lastHB = System.currentTimeMillis();
@@ -67,16 +67,16 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
     //// internal.
 
     @CallerSideMethod @Local
-    public ActorServerConnection __getRegistry() {
+    public RemoteRegistry __getRegistry() {
         ConcurrentLinkedQueue connections = getActor().__connections;
         if ( connections == null )
             return null;
-        return (ActorServerConnection) connections.peek();
+        return (RemoteRegistry) connections.peek();
     }
 
     // for longpolling connection is set explictely
     @CallerSideMethod @Local
-    public void __setRegistry(ActorServerConnection registry) {
+    public void __setRegistry(RemoteRegistry registry) {
         __addRemoteConnection(registry);
         if ( __connections.size() > 1 ) {
             Log.Lg.error(this,null,"more than one connection on FourKSession");

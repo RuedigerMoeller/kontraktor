@@ -1,10 +1,10 @@
-package org.nustaq.kontraktor.remoting;
+package org.nustaq.kontraktor.remoting.base;
 
 /**
  * optional interface implementing some notification callbacks
  * related to remoting.
  */
-public interface RemotableActor {
+public interface RemotedActor {
 
     public void $hasBeenUnpublished();
 

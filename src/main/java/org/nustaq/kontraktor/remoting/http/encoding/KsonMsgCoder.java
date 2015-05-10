@@ -1,6 +1,6 @@
 package org.nustaq.kontraktor.remoting.http.encoding;
 
-import org.nustaq.kontraktor.remoting.RemoteCallEntry;
+import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.http.ArgTypesResolver;
 import org.nustaq.kontraktor.remoting.http.KontraktorHttpRequest;
 import org.nustaq.kontraktor.remoting.http.HttpMsgCoder;
