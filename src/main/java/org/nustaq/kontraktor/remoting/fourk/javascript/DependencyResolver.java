@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.javascript;
+package org.nustaq.kontraktor.remoting.fourk.javascript;
 
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kson.Kson;

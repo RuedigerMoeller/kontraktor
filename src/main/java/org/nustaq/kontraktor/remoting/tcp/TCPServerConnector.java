@@ -3,8 +3,8 @@ package org.nustaq.kontraktor.remoting.tcp;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.base.ActorServerConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
@@ -20,12 +20,12 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 10/05/15.
  */
-public class TCPActorServer implements ActorServer {
+public class TCPServerConnector implements ActorServerConnector {
 
-    public static Promise<ActorPublisher> Publish(Actor facade, int port, Coding coding) {
+    public static Promise<ActorServer> Publish(Actor facade, int port, Coding coding) {
         Promise finished = new Promise();
         try {
-            ActorPublisher publisher = new ActorPublisher(new TCPActorServer(port), facade, coding);
+            ActorServer publisher = new ActorServer(new TCPServerConnector(port), facade, coding);
             facade.execute(() -> {
                 try {
                     publisher.start();
@@ -44,7 +44,7 @@ public class TCPActorServer implements ActorServer {
     int port;
     protected ServerSocket acceptSocket;
 
-    public TCPActorServer(int port) {
+    public TCPServerConnector(int port) {
         super();
         this.port = port;
     }

@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting;
+package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
@@ -20,8 +20,6 @@ import java.util.concurrent.atomic.AtomicReference;
  * @Deprecated, phased out (redesign)
  */
 public abstract class RemoteRefRegistry extends RemoteRegistry {
-
-    public static final Object OUT_OF_ORDER_SEQ = "OOOS";
 
     public RemoteRefRegistry() {
 		this(null);

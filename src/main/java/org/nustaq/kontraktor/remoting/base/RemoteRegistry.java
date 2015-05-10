@@ -5,7 +5,6 @@ import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.impl.InternalActorStoppedException;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
-import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.remoting.encoding.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
@@ -24,6 +23,7 @@ import java.util.function.Consumer;
  * Created by moelrue on 5/7/15.
  */
 public abstract class RemoteRegistry implements RemoteConnection {
+    public static final Object OUT_OF_ORDER_SEQ = "OOOS";
 
     public static int MAX_BATCH_CALLS = 500;
     protected FSTConfiguration conf;
@@ -211,7 +211,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
     }
 
     public boolean receiveObject(ObjectSocket channel, Object response) throws Exception {
-        if ( response == RemoteRefRegistry.OUT_OF_ORDER_SEQ )
+        if ( response == RemoteRegistry.OUT_OF_ORDER_SEQ )
             return false;
         if ( response instanceof Object[] ) { // bundling. last element contains sequence
             Object arr[] = (Object[]) response;

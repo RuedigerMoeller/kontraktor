@@ -82,7 +82,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return actor;
     }
 
-    public static boolean innside() {
+    public static boolean inside() {
         return sender.get() != null;
     }
 

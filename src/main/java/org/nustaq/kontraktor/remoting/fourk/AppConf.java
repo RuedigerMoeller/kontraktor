@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.spa;
+package org.nustaq.kontraktor.remoting.fourk;
 
 import org.nustaq.kontraktor.annotations.Local;
 

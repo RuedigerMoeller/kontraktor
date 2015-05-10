@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting;
+package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.serialization.FSTConfiguration;
 

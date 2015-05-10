@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.javascript.minbingen;
+package org.nustaq.kontraktor.remoting.fourk.javascript.minbingen;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;

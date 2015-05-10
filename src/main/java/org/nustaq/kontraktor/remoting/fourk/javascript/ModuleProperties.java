@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.javascript;
+package org.nustaq.kontraktor.remoting.fourk.javascript;
 
 public class ModuleProperties {
 

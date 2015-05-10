@@ -4,8 +4,8 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
-import org.nustaq.kontraktor.remoting.tcp.TCPPublisher;
+import org.nustaq.kontraktor.remoting.tcp.TCPServerConnector;
+import org.nustaq.kontraktor.remoting.tcp.TCPClientConnector;
 import org.nustaq.kontraktor.util.Hoarde;
 
 import java.util.ArrayList;
@@ -94,11 +94,11 @@ public class Dining {
     }
 
     public static void runServer() throws Exception {
-        TCPPublisher.Publish(Actors.AsActor(Table.class), 6789);
+        TCPServerConnector.Publish(Actors.AsActor(Table.class), 6789, null);
     }
 
     static void runClient() throws Exception {
-        TCPActorClient.Connect(Table.class, "localhost", 6789).then( (table, error) -> {
+        TCPClientConnector.Connect(Table.class, "localhost", 6789, null).then( (table, error) -> {
             if (table != null) { // connection failure
                 runPhilosophers(table);
             } else {

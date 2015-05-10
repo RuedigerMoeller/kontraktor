@@ -6,9 +6,7 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.annotations.Register;
 import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
-import org.nustaq.kontraktor.remoting.OldObjectSocket;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
-import org.nustaq.kontraktor.remoting.RemoteRefRegistry;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.util.Log;
 

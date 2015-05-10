@@ -3,10 +3,10 @@ package kontraktor;
 import org.junit.Assert;
 import org.junit.Test;
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.remoting.base.ActorPublisher;
-import org.nustaq.kontraktor.remoting.tcp.NIOActorServer;
-import org.nustaq.kontraktor.remoting.tcp.TCPActorClient;
-import org.nustaq.kontraktor.remoting.tcp.TCPActorServer;
+import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.tcp.NIOServerConnector;
+import org.nustaq.kontraktor.remoting.tcp.TCPClientConnector;
+import org.nustaq.kontraktor.remoting.tcp.TCPServerConnector;
 import org.nustaq.kontraktor.util.RateMeasure;
 
 import java.util.ArrayList;
@@ -50,19 +50,19 @@ public class TCPTest {
     @Test
     public void testNIO() throws Exception {
         TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
-        ActorPublisher publisher = NIOActorServer.Publish(service, 8081, null).await();
+        ActorServer publisher = NIOServerConnector.Publish(service, 8081, null).await();
         runnit(publisher);
     }
 
     @Test
     public void testBlocking() throws Exception {
         TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
-        ActorPublisher publisher = TCPActorServer.Publish(service, 8081, null).await();
+        ActorServer publisher = TCPServerConnector.Publish(service, 8081, null).await();
         runnit(publisher);
     }
 
-    public void runnit(ActorPublisher publisher) throws Exception {
-        TCPTestService client = TCPActorClient.Connect(TCPTestService.class, "localhost", 8081).await();
+    public void runnit(ActorServer publisher) throws Exception {
+        TCPTestService client = TCPClientConnector.Connect(TCPTestService.class, "localhost", 8081, null).await();
         Assert.assertTrue("Hello Hello".equals(client.$promise("Hello").await()));
 
         ArrayList<Integer> sporeResult = new ArrayList<>();

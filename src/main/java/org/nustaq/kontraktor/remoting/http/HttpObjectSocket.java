@@ -1,6 +1,5 @@
 package org.nustaq.kontraktor.remoting.http;
 
-import org.nustaq.kontraktor.remoting.OldObjectSocket;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;

@@ -16,12 +16,12 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 10/05/15.
  */
-public class NIOActorServer extends AsyncServerSocket implements ActorServer {
+public class NIOServerConnector extends AsyncServerSocket implements ActorServerConnector {
 
-    public static Promise<ActorPublisher> Publish(Actor facade, int port, Coding coding) {
+    public static Promise<ActorServer> Publish(Actor facade, int port, Coding coding) {
         Promise finished = new Promise();
         try {
-            ActorPublisher publisher = new ActorPublisher(new NIOActorServer(port), facade, coding);
+            ActorServer publisher = new ActorServer(new NIOServerConnector(port), facade, coding);
             facade.execute(() -> {
                 try {
                     publisher.start();
@@ -39,7 +39,7 @@ public class NIOActorServer extends AsyncServerSocket implements ActorServer {
 
     int port;
 
-    public NIOActorServer(int port) {
+    public NIOServerConnector(int port) {
         super();
         this.port = port;
     }

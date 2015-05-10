@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.spa;
+package org.nustaq.kontraktor.remoting.fourk;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
@@ -6,8 +6,8 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
-import org.nustaq.kontraktor.remoting.javascript.DependencyResolver;
-import org.nustaq.kontraktor.remoting.javascript.minbingen.MB2JS;
+import org.nustaq.kontraktor.remoting.fourk.javascript.DependencyResolver;
+import org.nustaq.kontraktor.remoting.fourk.javascript.minbingen.MB2JS;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
 import org.nustaq.serialization.FSTConfiguration;

@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.messagestore;
+package org.nustaq.kontraktor.remoting.fourk.messagestore;
 
 import org.nustaq.offheap.bytez.ByteSource;
 

@@ -2,8 +2,7 @@ package kontraktor;
 
 import junit.framework.Assert;
 import org.junit.Test;
-import org.nustaq.kontraktor.remoting.messagestore.HeapMessageStore;
-import org.nustaq.kontraktor.util.Hoarde;
+import org.nustaq.kontraktor.remoting.fourk.messagestore.HeapMessageStore;
 import org.nustaq.offheap.bytez.ByteSource;
 import org.nustaq.offheap.bytez.bytesource.AsciiStringByteSource;
 
