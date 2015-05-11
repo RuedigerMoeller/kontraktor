@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.asyncio;
 
+import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.offheap.BinaryQueue;
 import org.nustaq.serialization.FSTConfiguration;
@@ -61,7 +62,7 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
             try {
                 flush();
             } catch (Exception e) {
-                FSTUtil.rethrow(e);
+                Actors.throwException(e);
             }
         }
     }

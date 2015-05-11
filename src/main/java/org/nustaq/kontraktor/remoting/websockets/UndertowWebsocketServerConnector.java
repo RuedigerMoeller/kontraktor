@@ -8,16 +8,11 @@ import io.undertow.websockets.spi.WebSocketHttpExchange;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.remoting.base.ActorServer;
-import org.nustaq.kontraktor.remoting.base.ActorServerConnector;
-import org.nustaq.kontraktor.remoting.base.ObjectSink;
-import org.nustaq.kontraktor.remoting.base.ObjectSocket;
+import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
-import org.nustaq.serialization.FSTConfiguration;
 import org.xnio.Buffers;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.function.Function;
 
 /**
@@ -109,13 +104,10 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
         return new Promise();
     }
 
-    static class UTWebObjectSocket implements ObjectSocket {
+    static class UTWebObjectSocket extends WebObjectSocket {
 
         WebSocketChannel channel;
         WebSocketHttpExchange ex;
-        ArrayList objects = new ArrayList();
-        FSTConfiguration conf;
-        Throwable lastError;
 
         public UTWebObjectSocket(WebSocketHttpExchange ex, WebSocketChannel channel) {
             this.ex = ex;
@@ -123,26 +115,11 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
         }
 
         @Override
-        public void writeObject(Object toWrite) throws Exception {
-            objects.add(toWrite);
-            if (objects.size() > 100 ) {
-                flush();
-            }
-        }
-
-        @Override
-        public void flush() throws Exception {
-            if ( objects.size() == 0 ) {
-                return;
-            }
-            objects.add(0); // sequence
-            Object[] objArr = objects.toArray();
-            objects.clear();
-            // fixme: catche exception thrown on close
-            WebSockets.sendBinary(ByteBuffer.wrap( conf.asByteArray(objArr)), channel, new WebSocketCallback() {
+        public void sendBinary(byte[] message) {
+            WebSockets.sendBinary(ByteBuffer.wrap( conf.asByteArray(message)), channel, new WebSocketCallback() {
                 @Override
                 public void complete(WebSocketChannel channel, Object context) {
-                    // FIXME: manage async write
+                    // FIXME: manage partial write ?
                 }
 
                 @Override
@@ -150,26 +127,6 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
                     setLastError(throwable);
                 }
             });
-        }
-
-        @Override
-        public void setLastError(Throwable ex) {
-            lastError = ex;
-        }
-
-        @Override
-        public Throwable getLastError() {
-            return lastError;
-        }
-
-        @Override
-        public void setConf(FSTConfiguration conf) {
-            this.conf = conf;
-        }
-
-        @Override
-        public FSTConfiguration getConf() {
-            return conf;
         }
 
         @Override

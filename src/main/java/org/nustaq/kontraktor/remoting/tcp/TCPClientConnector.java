@@ -107,7 +107,7 @@ public class TCPClientConnector implements ActorClientConnector {
         @Override
         public void writeObject(Object toWrite) throws Exception {
             objects.add(toWrite);
-            if (objects.size()>100) {
+            if (objects.size()>OBJECT_MAX_BATCH_SIZE) {
                 flush();
             }
         }
@@ -124,7 +124,7 @@ public class TCPClientConnector implements ActorClientConnector {
             try {
                 super.writeObject(objArr);
             } catch (Exception e) {
-                FSTUtil.rethrow(e);
+                Actors.throwException(e);
             }
 
             super.flush();

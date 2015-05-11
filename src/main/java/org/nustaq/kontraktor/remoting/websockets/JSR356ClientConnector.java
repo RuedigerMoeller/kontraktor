@@ -10,29 +10,27 @@ import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.serialization.FSTConfiguration;
 
 import javax.websocket.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 /**
  * Created by ruedi on 10/05/15.
  */
-public class WebsocketAPIClientConnector implements ActorClientConnector {
+public class JSR356ClientConnector implements ActorClientConnector {
 
 
     public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Coding c ) {
         Promise result = new Promise();
         Runnable connect = () -> {
-            WebsocketAPIClientConnector client = null;
+            JSR356ClientConnector client = null;
             try {
-                client = new WebsocketAPIClientConnector(url);
+                client = new JSR356ClientConnector(url);
                 ActorClient connector = new ActorClient(client,clz,c);
                 connector.connect().then(result);
             } catch (URISyntaxException e) {
@@ -68,7 +66,7 @@ public class WebsocketAPIClientConnector implements ActorClientConnector {
     WSClientEndpoint endpoint;
     URI uri;
 
-    public WebsocketAPIClientConnector( String uri ) throws URISyntaxException {
+    public JSR356ClientConnector(String uri) throws URISyntaxException {
         this.uri = new URI(uri);
     }
 
@@ -91,13 +89,10 @@ public class WebsocketAPIClientConnector implements ActorClientConnector {
     }
 
     @ClientEndpoint
-    protected static class WSClientEndpoint implements ObjectSocket {
+    protected static class WSClientEndpoint extends WebObjectSocket {
 
         protected ObjectSink sink;
         protected volatile Session session = null;
-        protected Throwable lastError;
-        protected FSTConfiguration conf;
-        protected ArrayList objects = new ArrayList();
 
         public WSClientEndpoint(URI endpointURI, ObjectSink sink) {
             try {
@@ -143,51 +138,22 @@ public class WebsocketAPIClientConnector implements ActorClientConnector {
         }
 
         public void sendBinary(byte[] message) {
+            Actor executor = Actor.current();
             session.getAsyncRemote().sendBinary(ByteBuffer.wrap(message), new SendHandler() {
                 @Override
                 public void onResult(SendResult result) {
-                    // FIXME:
+                    if ( ! result.isOK() ) {
+                        executor.execute( () -> {
+                            Actors.throwException(result.getException());
+                            try {
+                                close();
+                            } catch (IOException e) {
+                                Log.Warn(this,e);
+                            }
+                        });
+                    }
                 }
             });
-        }
-
-        @Override
-        public void writeObject(Object toWrite) throws Exception {
-            objects.add(toWrite);
-            if ( objects.size() > 100 ) {
-                flush();
-            }
-        }
-
-        @Override
-        public void flush() throws Exception {
-            if ( objects.size() == 0 ) {
-                return;
-            }
-            objects.add(0); // sequence
-            Object[] objArr = objects.toArray();
-            objects.clear();
-            sendBinary(conf.asByteArray(objArr));
-        }
-
-        @Override
-        public void setLastError(Throwable ex) {
-            lastError = ex;
-        }
-
-        @Override
-        public Throwable getLastError() {
-            return lastError;
-        }
-
-        @Override
-        public void setConf(FSTConfiguration conf) {
-            this.conf = conf;
-        }
-
-        @Override
-        public FSTConfiguration getConf() {
-            return conf;
         }
 
         public void close() throws IOException {
