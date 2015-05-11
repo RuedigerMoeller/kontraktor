@@ -1,11 +1,11 @@
-package org.nustaq.kontraktor.remoting.http;
+package org.nustaq.kontraktor.remoting.http_old;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Register;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
-import org.nustaq.kontraktor.remoting.http.encoding.JSonMsgCoder;
-import org.nustaq.kontraktor.remoting.http.encoding.KsonMsgCoder;
-import org.nustaq.kontraktor.remoting.http.encoding.PlainJSonCoder;
+import org.nustaq.kontraktor.remoting.http_old.encoding.JSonMsgCoder;
+import org.nustaq.kontraktor.remoting.http_old.encoding.KsonMsgCoder;
+import org.nustaq.kontraktor.remoting.http_old.encoding.PlainJSonCoder;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.RateMeasure;
 import org.nustaq.serialization.util.FSTUtil;

@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http;
+package org.nustaq.kontraktor.remoting.http_old;
 
 /**
  * Created by ruedi on 14.08.2014.

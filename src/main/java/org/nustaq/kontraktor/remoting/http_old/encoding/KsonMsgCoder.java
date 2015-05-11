@@ -1,10 +1,10 @@
-package org.nustaq.kontraktor.remoting.http.encoding;
+package org.nustaq.kontraktor.remoting.http_old.encoding;
 
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
-import org.nustaq.kontraktor.remoting.http.ArgTypesResolver;
-import org.nustaq.kontraktor.remoting.http.KontraktorHttpRequest;
-import org.nustaq.kontraktor.remoting.http.HttpMsgCoder;
-import org.nustaq.kontraktor.remoting.http.HttpRemotedCB;
+import org.nustaq.kontraktor.remoting.http_old.ArgTypesResolver;
+import org.nustaq.kontraktor.remoting.http_old.KontraktorHttpRequest;
+import org.nustaq.kontraktor.remoting.http_old.HttpMsgCoder;
+import org.nustaq.kontraktor.remoting.http_old.HttpRemotedCB;
 import org.nustaq.kson.Kson;
 
 /**

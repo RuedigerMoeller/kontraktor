@@ -10,9 +10,12 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.kontraktor.util.Pair;
 import org.xnio.Buffers;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -42,7 +45,9 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
     String host;
     String path;
     int port;
-    Undertow server;
+
+    // a map of port=>server also used by httpconnector
+    public static Map<Integer, Pair<PathHandler,Undertow>> serverMap = new ConcurrentHashMap<>();
 
     public UndertowWebsocketServerConnector(String path, int port, String host) {
         this.path = path;
@@ -52,7 +57,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
 
     @Override
     public void connect(Actor facade, Function<ObjectSocket, ObjectSink> factory) throws Exception {
-        PathHandler server = createServer();
+        PathHandler server = getServer(port).getFirst();
         server.addExactPath(
             path,
             Handlers.websocket( (exchange, channel) -> { // connection callback
@@ -86,22 +91,27 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
         );
     }
 
-    protected PathHandler createServer() {
-        PathHandler pathHandler = new PathHandler();
-        server = Undertow.builder()
-                   .setIoThreads( 2 )
-                   .setWorkerThreads( 2 )
-                   .addHttpListener( port, host )
-                   .setHandler(pathHandler)
-                   .build();
-        server.start();
-        return pathHandler;
+    protected Pair<PathHandler, Undertow> getServer(int port) {
+        Pair<PathHandler, Undertow> pair = serverMap.get(port);
+        if (pair == null) {
+            PathHandler pathHandler = new PathHandler();
+            Undertow server = Undertow.builder()
+                       .setIoThreads( 2 )
+                       .setWorkerThreads( 2 )
+                       .addHttpListener( port, host )
+                       .setHandler(pathHandler)
+                       .build();
+            server.start();
+            pair = new Pair<>(pathHandler,server);
+            serverMap.put(port,pair);
+        }
+        return pair;
     }
 
     @Override
     public IPromise closeServer() {
-        server.stop();
-        return new Promise();
+        getServer(port).getSecond().stop();
+        return new Promise(null);
     }
 
     static class UTWebObjectSocket extends WebObjectSocket {
@@ -116,7 +126,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
 
         @Override
         public void sendBinary(byte[] message) {
-            WebSockets.sendBinary(ByteBuffer.wrap( conf.asByteArray(message)), channel, new WebSocketCallback() {
+            WebSockets.sendBinary(ByteBuffer.wrap(message), channel, new WebSocketCallback() {
                 @Override
                 public void complete(WebSocketChannel channel, Object context) {
                     // FIXME: manage partial write ?

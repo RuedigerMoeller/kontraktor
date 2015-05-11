@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http;
+package org.nustaq.kontraktor.remoting.http_old;
 
 import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;

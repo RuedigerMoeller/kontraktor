@@ -26,7 +26,7 @@ import java.util.function.Function;
  * Currently does not work with undertow (spec drama). Have not tried with other impls. For now use UndertowWebsocketServerConnector
  *
  */
-@ServerEndpoint("ws")
+//@ServerEndpoint("ws")
 public class JSR356ServerConnector extends Endpoint implements ActorServerConnector {
 
     Actor facade;
