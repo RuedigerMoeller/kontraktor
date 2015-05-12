@@ -172,7 +172,7 @@ public class RemotingTest {
     }
 
     public void runnitTCP(CountDownLatch l) throws Exception {
-        TCPTestService client = TCPClientConnector.Connect(TCPTestService.class, "localhost", 8081, null).await();
+        TCPTestService client = TCPClientConnector.Connect(TCPTestService.class, "localhost", 8081, null, null).await();
         runWithClient(client,l);
         Thread.sleep(2000); // wait for outstanding callbacks
         client.$close();

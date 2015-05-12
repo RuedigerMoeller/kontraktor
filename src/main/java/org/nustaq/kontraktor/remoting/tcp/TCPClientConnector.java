@@ -1,9 +1,6 @@
 package org.nustaq.kontraktor.remoting.tcp;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.util.Log;
@@ -15,6 +12,7 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -22,11 +20,10 @@ import java.util.function.Function;
  */
 public class TCPClientConnector implements ActorClientConnector {
 
-
-    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String host, int port, Coding c ) {
+    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String host, int port, Callback<ActorClientConnector> disconnectCallback,Coding c ) {
         Promise result = new Promise();
         Runnable connect = () -> {
-            TCPClientConnector client = new TCPClientConnector(port,host);
+            TCPClientConnector client = new TCPClientConnector(port,host,disconnectCallback);
             ActorClient connector = new ActorClient(client,clz,c);
             connector.connect().then(result);
         };
@@ -58,10 +55,12 @@ public class TCPClientConnector implements ActorClientConnector {
     int port;
     String host;
     MyTCPSocket socket;
+    Callback<ActorClientConnector> disconnectCallback;
 
-    public TCPClientConnector(int port, String host) {
+    public TCPClientConnector(int port, String host, Callback<ActorClientConnector> disconnectCallback) {
         this.port = port;
         this.host = host;
+        this.disconnectCallback = disconnectCallback;
     }
 
     @Override
@@ -79,7 +78,15 @@ public class TCPClientConnector implements ActorClientConnector {
                     else {
                         Log.Warn( this, e.getMessage() );
                     }
+                    try {
+                        socket.close();
+                    } catch (IOException e1) {
+                        Log.Warn(this, e.getMessage());
+                    }
                 }
+            }
+            if ( disconnectCallback != null ) {
+                disconnectCallback.complete(this,null);
             }
             sink.sinkClosed();
         }, "tcp client receiver").start();
