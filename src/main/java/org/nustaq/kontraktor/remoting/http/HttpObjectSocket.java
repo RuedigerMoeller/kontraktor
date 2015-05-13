@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
+import org.nustaq.kontraktor.remoting.websockets.WebObjectSocket;
 import org.nustaq.offheap.BinaryQueue;
 import org.nustaq.offheap.bytez.onheap.HeapBytez;
 import org.nustaq.serialization.FSTConfiguration;
@@ -14,11 +15,11 @@ import java.io.IOException;
  * bidirectional http longpoll based objectsocket backed by a binary queue.
  *
  */
-public class HttpObjectSocket implements ObjectSocket {
+public class HttpObjectSocket extends WebObjectSocket {
 
+    long lastUse = System.currentTimeMillis();
+    long creation = lastUse;
     String sessionId;
-    FSTConfiguration conf;
-    Throwable lastError;
     BinaryQueue queue = new BinaryQueue(4096);
     ObjectSink sink;
 
@@ -30,34 +31,16 @@ public class HttpObjectSocket implements ObjectSocket {
         return sessionId;
     }
 
-    @Override
-    public void writeObject(Object toWrite) throws Exception {
-        queue.add( new HeapBytez(conf.asByteArray(toWrite)) );
+    public void updateTimeStamp() {
+        lastUse = System.currentTimeMillis();
     }
 
     @Override
-    public void flush() throws Exception {
-
-    }
-
-    @Override
-    public void setLastError(Throwable ex) {
-        lastError = ex;
-    }
-
-    @Override
-    public Throwable getLastError() {
-        return lastError;
-    }
-
-    @Override
-    public void setConf(FSTConfiguration conf) {
-        this.conf = conf;
-    }
-
-    @Override
-    public FSTConfiguration getConf() {
-        return conf;
+    public void sendBinary(byte[] message) {
+        synchronized (this) {
+            queue.addInt(message.length);
+            queue.add( new HeapBytez(message) );
+        }
     }
 
     @Override
@@ -71,5 +54,16 @@ public class HttpObjectSocket implements ObjectSocket {
 
     public ObjectSink getSink() {
         return sink;
+    }
+
+    public byte[] getNextQueuedMessage() {
+        synchronized (this) {
+            if ( queue.available() > 4 ) {
+                int len = queue.readInt();
+                return queue.readByteArray(len);
+            } else {
+                return new byte[0];
+            }
+        }
     }
 }

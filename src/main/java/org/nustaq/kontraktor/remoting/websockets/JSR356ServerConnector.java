@@ -23,7 +23,8 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 11/05/15.
  *
- * Currently does not work with undertow (spec drama). Have not tried with other impls. For now use UndertowWebsocketServerConnector
+ * Currently not implementable as JSR spec is too static (no API defined on how to dynamically open/close websockets).
+ * see https://java.net/jira/browse/WEBSOCKET_SPEC-236
  *
  */
 //@ServerEndpoint("ws")

@@ -64,7 +64,6 @@ public class RestActorClient<T extends Actor> extends RemoteRefRegistry {
         }
     }
 
-
     public RestActorClient<T> connect() {
         HttpObjectSocket httpSocket = new HttpObjectSocket(actorClazz, port, host, actorPath);
         httpSocket.getKson().supportJSon(true);

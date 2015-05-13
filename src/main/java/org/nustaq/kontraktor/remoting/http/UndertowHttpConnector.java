@@ -22,6 +22,8 @@ import org.xnio.ChannelListener;
 import org.xnio.channels.StreamSinkChannel;
 import org.xnio.channels.StreamSourceChannel;
 
+import javax.xml.ws.http.HTTPException;
+import javax.xml.ws.spi.http.HttpExchange;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -96,7 +98,7 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
             String[] split = path.split("/");
             HttpObjectSocket httpObjectSocket = sessions.get(split[0]);
             if ( httpObjectSocket != null ) {
-
+                handlePoll(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null );
             } else {
                 exchange.setResponseCode(404);
                 exchange.endExchange();
@@ -143,6 +145,46 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
             );
             sinkchannel.resumeWrites();
         }
+    }
+
+    public void handlePoll(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String sequence) {
+
+        httpObjectSocket.updateTimeStamp(); // keep alive
+
+        // dispatch incoming messages
+        if ( postData.length > 0 ) {
+            httpObjectSocket.getSink().receiveObject(conf.asObject(postData));
+        }
+
+        // read next batch of pending messages from binary queue and send them
+        byte response[];
+        //httpObjectSocket.getNextMessageLength();
+        // fixme: could be zero copy (complicated requires reserve operation on q), at least reuse byte array per objectsocket
+        response = httpObjectSocket.getNextQueuedMessage();
+        // TODO: if len == 0 => do long poll
+        ByteBuffer responseBuf = ByteBuffer.wrap(response);
+        exchange.setResponseCode(200);
+        exchange.setResponseContentLength(response.length);
+        StreamSinkChannel sinkchannel = exchange.getResponseChannel();
+        sinkchannel.getWriteSetter().set(
+            channel -> {
+                if ( responseBuf.remaining() > 0 )
+                    try {
+                        sinkchannel.write(responseBuf);
+                        if (responseBuf.remaining() == 0) {
+                            exchange.endExchange();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        exchange.endExchange();
+                    }
+                else
+                {
+                    exchange.endExchange();
+                }
+            }
+        );
+        sinkchannel.resumeWrites();
     }
 
     @Override
