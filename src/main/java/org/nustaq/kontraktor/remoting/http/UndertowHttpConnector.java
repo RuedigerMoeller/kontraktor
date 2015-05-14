@@ -31,6 +31,15 @@ import java.util.function.Function;
  *
  * A longpoll based connector. Only MinBin coding using POST requests is supported
  *
+ * Algorithm:
+ *
+ * Longpoll request is held until an event occurs or timeout.
+ *
+ * A method/callback call from client side is also piggy backed and used as a longpoll request in case.
+ * If a client does a regular remote call and there is already a long poll request in place, the long poll
+ * gets replaced and the new request is kept as long poll request instead. The previous poll returns
+ * empty then.
+ *
  */
 public class UndertowHttpConnector implements ActorServerConnector, HttpHandler {
 
@@ -88,6 +97,7 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
     }
 
     protected void requestReceived( HttpServerExchange exchange, byte[] postData, String path) {
+        // already executed in facade thread
         while ( path.startsWith("/") )
             path = path.substring(1);
 
@@ -117,17 +127,17 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
 
             // send auth response
             byte[] response = conf.asByteArray(sock.getSessionId());
-            ByteBuffer repsonseBuf = ByteBuffer.wrap(response);
+            ByteBuffer responseBuf = ByteBuffer.wrap(response);
 
             exchange.setResponseCode(200);
             exchange.setResponseContentLength(response.length);
             StreamSinkChannel sinkchannel = exchange.getResponseChannel();
             sinkchannel.getWriteSetter().set(
                 channel -> {
-                    if ( repsonseBuf.remaining() > 0 )
+                    if ( responseBuf.remaining() > 0 )
                         try {
-                            sinkchannel.write(repsonseBuf);
-                            if (repsonseBuf.remaining() == 0) {
+                            sinkchannel.write(responseBuf);
+                            if (responseBuf.remaining() == 0) {
                                 exchange.endExchange();
                             }
                         } catch (IOException e) {
@@ -145,44 +155,53 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
     }
 
     public void handlePoll(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String sequence) {
+        // already executed in facade thread
 
         httpObjectSocket.updateTimeStamp(); // keep alive
 
         // dispatch incoming messages
         if ( postData.length > 0 ) {
             httpObjectSocket.getSink().receiveObject(httpObjectSocket.getConf().asObject(postData));
-            Actor.current().yield(100);
+        }
+
+        StreamSinkChannel sinkchannel = exchange.getResponseChannel();
+
+        if ( httpObjectSocket.getLongPollTask() != null ) {
+            httpObjectSocket.triggerLongPoll();
         }
 
         // read next batch of pending messages from binary queue and send them
-        byte response[];
-        //httpObjectSocket.getNextMessageLength();
         // fixme: could be zero copy (complicated requires reserve operation on q), at least reuse byte array per objectsocket
-        response = httpObjectSocket.getNextQueuedMessage();
-        // TODO: if len == 0 => do long poll
-        ByteBuffer responseBuf = ByteBuffer.wrap(response);
-        exchange.setResponseCode(200);
-        exchange.setResponseContentLength(response.length);
-        StreamSinkChannel sinkchannel = exchange.getResponseChannel();
-        sinkchannel.getWriteSetter().set(
-            channel -> {
-                if ( responseBuf.remaining() > 0 )
-                    try {
-                        sinkchannel.write(responseBuf);
-                        if (responseBuf.remaining() == 0) {
+        byte response[] = httpObjectSocket.getNextQueuedMessage();
+        Runnable lpTask = () -> {
+            ByteBuffer responseBuf = ByteBuffer.wrap(response);
+            exchange.setResponseCode(200);
+            exchange.setResponseContentLength(response.length);
+            sinkchannel.getWriteSetter().set(
+                channel -> {
+                    if (responseBuf.remaining() > 0)
+                        try {
+                            sinkchannel.write(responseBuf);
+                            if (responseBuf.remaining() == 0) {
+                                exchange.endExchange();
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
                             exchange.endExchange();
                         }
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    else {
                         exchange.endExchange();
                     }
-                else
-                {
-                    exchange.endExchange();
                 }
-            }
-        );
+            );
+        };
         sinkchannel.resumeWrites();
+        if ( response.length > 0 ) {
+            lpTask.run();
+        } else {
+            httpObjectSocket.setLongPollTask(lpTask);
+        }
+
     }
 
     @Override

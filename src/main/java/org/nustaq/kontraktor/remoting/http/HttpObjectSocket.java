@@ -1,11 +1,9 @@
 package org.nustaq.kontraktor.remoting.http;
 
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
-import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.websockets.WebObjectSocket;
 import org.nustaq.offheap.BinaryQueue;
 import org.nustaq.offheap.bytez.onheap.HeapBytez;
-import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.IOException;
 
@@ -23,6 +21,10 @@ public class HttpObjectSocket extends WebObjectSocket {
     BinaryQueue queue = new BinaryQueue(4096);
     ObjectSink sink;
 
+    Runnable longPollTask;
+
+    Thread myThread;
+
     public HttpObjectSocket(String sessionId) {
         this.sessionId = sessionId;
     }
@@ -37,10 +39,13 @@ public class HttpObjectSocket extends WebObjectSocket {
 
     @Override
     public void sendBinary(byte[] message) {
-        synchronized (this) {
-            queue.addInt(message.length);
-            queue.add( new HeapBytez(message) );
-        }
+        if ( myThread == null )
+            myThread = Thread.currentThread();
+        else if ( myThread != Thread.currentThread() )
+            System.out.println("unexpected multithreading detected:"+myThread.getName()+" curr:"+Thread.currentThread().getName());
+        queue.addInt(message.length);
+        queue.add( new HeapBytez(message) );
+        triggerLongPoll();
     }
 
     @Override
@@ -57,13 +62,28 @@ public class HttpObjectSocket extends WebObjectSocket {
     }
 
     public byte[] getNextQueuedMessage() {
-        synchronized (this) {
-            if ( queue.available() > 4 ) {
-                int len = queue.readInt();
-                return queue.readByteArray(len);
-            } else {
-                return new byte[0];
-            }
+        if ( myThread == null )
+            myThread = Thread.currentThread();
+        else if ( myThread != Thread.currentThread() )
+            System.out.println("unexpected multithreading detected:"+myThread.getName()+" curr:"+Thread.currentThread().getName());
+        if ( queue.available() > 4 ) {
+            int len = queue.readInt();
+            return queue.readByteArray(len);
+        } else {
+            return new byte[0];
         }
+    }
+
+    public Runnable getLongPollTask() {
+        return longPollTask;
+    }
+
+    public void triggerLongPoll() {
+        longPollTask.run();
+        longPollTask = null;
+    }
+
+    public void setLongPollTask(Runnable longPollTask) {
+        this.longPollTask = longPollTask;
     }
 }

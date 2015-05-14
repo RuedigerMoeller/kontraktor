@@ -45,7 +45,17 @@ public class HttpClientConnector implements ActorClientConnector {
         MyHttpWS myHttpWS = new MyHttpWS(host + "/" + sessionId);
         ObjectSink sink = factory.apply(myHttpWS);
         myHttpWS.setSink(sink);
-        // start longpoll Thread
+        // start longpoll
+        Runnable lp[] = {null};
+        lp[0] = () -> {
+            try {
+                myHttpWS.flush();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            Actor.current().delayed(100, lp[0]);
+        };
+        Actor.current().execute( lp[0] );
     }
 
     @Override
@@ -81,6 +91,14 @@ public class HttpClientConnector implements ActorClientConnector {
         }
 
         @Override
+        public void flush() throws Exception {
+            objects.add(0); // sequence
+            Object[] objArr = objects.toArray();
+            objects.clear();
+            sendBinary(conf.asByteArray(objArr));
+        }
+
+        @Override
         public void close() throws IOException {
 
         }
@@ -104,9 +122,13 @@ public class HttpClientConnector implements ActorClientConnector {
 
         HttpClientConnector con = new HttpClientConnector("http://localhost:8080/http");
         ActorClient actorClient = new ActorClient(con, UndertowHttpConnector.HTTPA.class, new Coding(SerializerType.MinBin));
-        da.execute( () -> {
+        da.execute(() -> {
             UndertowHttpConnector.HTTPA act = (UndertowHttpConnector.HTTPA) actorClient.connect().await();
-            act.hello("pok").then( r -> System.out.println("response"+r) );
+            int count[] = {0};
+            da.SubmitPeriodic(1000, time -> {
+                act.hello("pok").then(r -> System.out.println("response:"+count[0]++ +" " + r));
+                return time;
+            });
         });
         Thread.sleep(100000000);
     }
