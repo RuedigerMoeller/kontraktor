@@ -5,6 +5,7 @@ import org.apache.http.client.fluent.Request;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.ActorClient;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
@@ -14,6 +15,7 @@ import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.websockets.WebObjectSocket;
 import org.nustaq.serialization.FSTConfiguration;
 
+import java.awt.*;
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
@@ -26,6 +28,8 @@ import java.util.function.Function;
  * temp impl for testing. slow
  */
 public class HttpClientConnector implements ActorClientConnector {
+
+    public static int LP_TIMEOUT = 50000;
 
     String host;
     String sessionId;
@@ -48,12 +52,12 @@ public class HttpClientConnector implements ActorClientConnector {
         // start longpoll
         Runnable lp[] = {null};
         lp[0] = () -> {
-            try {
-                myHttpWS.flush();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            Actor.current().delayed(100, lp[0]);
+            myHttpWS.asyncFlush().then((r, e) -> {
+                if ( r != null )
+                    Actor.current().execute(lp[0]);
+                else
+                    Actor.current().delayed(1000,lp[0]);
+            });
         };
         Actor.current().execute( lp[0] );
     }
@@ -74,28 +78,55 @@ public class HttpClientConnector implements ActorClientConnector {
 
         @Override
         public void sendBinary(byte[] message) {
-            try {
-                Content content = Request.Post(url)
-                    .bodyByteArray(message)
-                    .execute()
-                    .returnContent();
+            asyncSend(message);
+        }
 
-                byte[] b = content.asBytes();
-                if ( b.length > 0 ) {
-                    Object o = getConf().asObject(b);
-                    sink.receiveObject(o);
+        public IPromise asyncSend(byte[] message) {
+            Promise p = new Promise();
+            Actor.current().$exec( () -> {
+                try {
+                    Content content = Request.Post(url)
+                        .socketTimeout(LP_TIMEOUT)
+                        .bodyByteArray(message)
+                        .execute()
+                        .returnContent();
+                    return content;
+                } catch (IOException e) {
+                    Actors.throwException(e);
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+                return null;
+            }).then((content, ex) -> {
+                if (content != null) {
+                    byte[] b = ((Content) content).asBytes();
+                    if (b.length > 0) {
+                        Object o = getConf().asObject(b);
+                        sink.receiveObject(o);
+                    }
+                } else {
+                    ((Throwable) ex).printStackTrace();
+                }
+                p.complete(content, ex);
+            });
+            return p;
         }
 
         @Override
-        public void flush() throws Exception {
+        public synchronized void writeObject(Object toWrite) throws Exception {
+            super.writeObject(toWrite);
+        }
+
+        @Override
+        public synchronized void flush() throws Exception {
+            if ( objects.size() == 0 )
+                return;
+            asyncFlush();
+        }
+
+        public synchronized IPromise asyncFlush() {
             objects.add(0); // sequence
             Object[] objArr = objects.toArray();
             objects.clear();
-            sendBinary(conf.asByteArray(objArr));
+            return asyncSend(conf.asByteArray(objArr));
         }
 
         @Override

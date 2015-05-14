@@ -35,7 +35,7 @@ import java.util.function.Function;
  *
  * Longpoll request is held until an event occurs or timeout.
  *
- * A method/callback call from client side is also piggy backed and used as a longpoll request in case.
+ * A method/callback call from client side is also piggy backed but not used as a longpoll request.
  * If a client does a regular remote call and there is already a long poll request in place, the long poll
  * gets replaced and the new request is kept as long poll request instead. The previous poll returns
  * empty then.
@@ -156,52 +156,65 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
 
     public void handlePoll(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String sequence) {
         // already executed in facade thread
-
+//        System.out.println("req "+postData.length);
         httpObjectSocket.updateTimeStamp(); // keep alive
 
+        Object received = httpObjectSocket.getConf().asObject(postData);
+
+        boolean isEmptyLP = received instanceof Object[] && ((Object[]) received).length == 1 && ((Object[]) received)[0] instanceof Number;
         // dispatch incoming messages
-        if ( postData.length > 0 ) {
-            httpObjectSocket.getSink().receiveObject(httpObjectSocket.getConf().asObject(postData));
+        if ( ! isEmptyLP ) {
+            httpObjectSocket.getSink().receiveObject(received);
+            exchange.endExchange();
+            return;
         }
 
         StreamSinkChannel sinkchannel = exchange.getResponseChannel();
-
-        if ( httpObjectSocket.getLongPollTask() != null ) {
-            httpObjectSocket.triggerLongPoll();
-        }
+        sinkchannel.resumeWrites();
 
         // read next batch of pending messages from binary queue and send them
         // fixme: could be zero copy (complicated requires reserve operation on q), at least reuse byte array per objectsocket
-        byte response[] = httpObjectSocket.getNextQueuedMessage();
         Runnable lpTask = () -> {
+            byte response[] = httpObjectSocket.getNextQueuedMessage();
             ByteBuffer responseBuf = ByteBuffer.wrap(response);
-            exchange.setResponseCode(200);
             exchange.setResponseContentLength(response.length);
-            sinkchannel.getWriteSetter().set(
-                channel -> {
-                    if (responseBuf.remaining() > 0)
-                        try {
-                            sinkchannel.write(responseBuf);
-                            if (responseBuf.remaining() == 0) {
+            if (response.length == 0) {
+//                System.out.println("EE2");
+                exchange.endExchange();
+            } else {
+                sinkchannel.getWriteSetter().set(
+                    channel -> {
+                        if (responseBuf.remaining() > 0)
+                            try {
+                                sinkchannel.write(responseBuf);
+                                if (responseBuf.remaining() == 0) {
+//                                    System.out.println("EE");
+                                    exchange.endExchange();
+                                }
+                            } catch (IOException e) {
+                                e.printStackTrace();
                                 exchange.endExchange();
                             }
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        else {
+//                            System.out.println("EE1");
                             exchange.endExchange();
                         }
-                    else {
-                        exchange.endExchange();
                     }
+                );
+                try {
+                    sinkchannel.write(responseBuf);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            );
+                if (responseBuf.remaining() == 0) {
+                    exchange.endExchange();
+                }
+            }
         };
-        sinkchannel.resumeWrites();
-        if ( response.length > 0 ) {
-            lpTask.run();
-        } else {
-            httpObjectSocket.setLongPollTask(lpTask);
+        if ( httpObjectSocket.getLongPollTask() != null ) {
+            httpObjectSocket.triggerLongPoll();
         }
-
+        httpObjectSocket.setLongPollTask(lpTask);
     }
 
     @Override

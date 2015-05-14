@@ -79,11 +79,15 @@ public class HttpObjectSocket extends WebObjectSocket {
     }
 
     public void triggerLongPoll() {
-        longPollTask.run();
-        longPollTask = null;
+        if (longPollTask!=null) {
+            System.out.println("trigger lp");
+            longPollTask.run();
+            longPollTask = null;
+        }
     }
 
     public void setLongPollTask(Runnable longPollTask) {
+        System.out.println("set lp");
         this.longPollTask = longPollTask;
     }
 }

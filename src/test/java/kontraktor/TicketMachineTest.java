@@ -20,7 +20,7 @@ public class TicketMachineTest {
 
         public IPromise $work(final long nanos) {
             Promise promise = new Promise<>();
-            exec(new Callable<Object>() {
+            $exec(new Callable<Object>() {
                 @Override
                 public Object call() throws Exception {
                     LockSupport.parkNanos(nanos);

@@ -4,9 +4,7 @@ import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.util.Log;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
@@ -41,7 +39,9 @@ public class Actors {
 
     public static int MAX_EXTERNAL_THREADS_POOL_SIZE = 1000; // max threads used when externalizing blocking api
     public static int DEFAULT_TIMOUT = 15000;
-    public static ExecutorService exec = Executors.newFixedThreadPool(MAX_EXTERNAL_THREADS_POOL_SIZE);
+    public static ExecutorService exec = new ThreadPoolExecutor(2, MAX_EXTERNAL_THREADS_POOL_SIZE,
+                                      0L, TimeUnit.MILLISECONDS,
+                                      new LinkedBlockingQueue<>());
     public static ActorsImpl instance = new ActorsImpl(); // public for testing
     public static Timer delayedCalls = new Timer();
 

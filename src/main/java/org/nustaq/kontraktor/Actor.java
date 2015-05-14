@@ -181,7 +181,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * @param <T>
      * @return
      */
-    protected <T> IPromise<T> exec( @InThread Callable<T> callable) {
+    public <T> IPromise<T> $exec(Callable<T> callable) {
         Promise<T> prom = new Promise<>();
         __scheduler.runBlockingCall(self(), callable, prom);
         return prom;

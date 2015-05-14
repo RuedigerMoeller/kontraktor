@@ -302,8 +302,8 @@ public class BasicTest {
         public IPromise<String> get( final String url ) {
             final Promise<String> content = new Promise();
             final Thread myThread = Thread.currentThread();
-            exec( () -> {
-                assertTrue( Thread.currentThread() instanceof DispatcherThread == false );
+            $exec(() -> {
+                assertTrue(Thread.currentThread() instanceof DispatcherThread == false);
                 return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
             }).then( (result, error) -> {
                 if (Thread.currentThread() == myThread) {

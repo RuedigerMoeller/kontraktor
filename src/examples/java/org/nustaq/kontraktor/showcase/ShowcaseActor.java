@@ -67,7 +67,7 @@ public class ShowcaseActor extends Actor<ShowcaseActor> {
     //
 
     public IPromise<String> $getUrl(URL url) {
-        return exec( () -> new Scanner(url.openStream(), "UTF-8").useDelimiter("\\A").next() );
+        return $exec(() -> new Scanner(url.openStream(), "UTF-8").useDelimiter("\\A").next());
     }
 
     public void $thenVariations0( URL urlA, URL urlB ) {
