@@ -182,6 +182,7 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
 //                System.out.println("EE2");
                 exchange.endExchange();
             } else {
+                // fixme .. can this be set only in case of incomplete write ?
                 sinkchannel.getWriteSetter().set(
                     channel -> {
                         if (responseBuf.remaining() > 0)
