@@ -354,7 +354,7 @@ public class Actors {
 
     /**
      * process messages on the mailbox/callback queue until timeout is reached. In case timeout is 0,
-     * process until empty.
+     * process until mailbox+callback queue is empty.
      *
      * If called from a non-actor thread, either sleep until timeout or (if timeout == 0) its a NOP.
      *

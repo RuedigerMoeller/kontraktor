@@ -12,9 +12,12 @@ import org.apache.http.entity.ContentType;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorServerConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
+import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.websockets.UndertowWebsocketServerConnector;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.FSTConfiguration;
@@ -153,7 +156,8 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
 
         // dispatch incoming messages
         if ( postData.length > 0 ) {
-            httpObjectSocket.getSink().receiveObject(conf.asObject(postData));
+            httpObjectSocket.getSink().receiveObject(httpObjectSocket.getConf().asObject(postData));
+            Actor.current().yield(100);
         }
 
         // read next batch of pending messages from binary queue and send them
@@ -200,25 +204,31 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
 
 
     public static class HTTPA extends Actor<HTTPA> {
-
+        public IPromise hello(String s) {
+            System.out.println(s+" received");
+            return resolve("Hello "+s);
+        }
     }
 
-    public static void main( String a[] ) throws IOException, InterruptedException {
+    public static void main( String a[] ) throws Exception {
         Pair<PathHandler, Undertow> serverPair = UndertowWebsocketServerConnector.GetServer(8080, "localhost");
-        UndertowHttpConnector con = new UndertowHttpConnector(Actors.AsActor(HTTPA.class));
+        HTTPA facade = Actors.AsActor(HTTPA.class);
+        UndertowHttpConnector con = new UndertowHttpConnector(facade);
+        ActorServer actorServer = new ActorServer(con, facade, new Coding(SerializerType.MinBin));
+        actorServer.start();
         serverPair.getFirst().addPrefixPath("http", con);
 
-        Thread.sleep(1000);
+        Thread.sleep(100000000);
 
-        FSTConfiguration mbc = FSTConfiguration.createMinBinConfiguration();
-        Content content = Request.Post("http://localhost:8080/http/")
-            .bodyByteArray(mbc.asByteArray(new Object[]{"ruedi", "me"}))
-            .execute()
-            .returnContent();
-        String sessionId = (String) mbc.asObject(content.asBytes());
-        content = Request.Post("http://localhost:8080/http/"+sessionId)
-            .bodyByteArray(mbc.asByteArray(new Object[]{"ruedi", "me"}))
-            .execute()
-            .returnContent();
+//        FSTConfiguration mbc = FSTConfiguration.createMinBinConfiguration();
+//        Content content = Request.Post("http://localhost:8080/http/")
+//            .bodyByteArray(mbc.asByteArray(new Object[]{"ruedi", "me"}))
+//            .execute()
+//            .returnContent();
+//        String sessionId = (String) mbc.asObject(content.asBytes());
+//        content = Request.Post("http://localhost:8080/http/"+sessionId)
+//            .bodyByteArray(mbc.asByteArray(new Object[]{"ruedi", "me"}))
+//            .execute()
+//            .returnContent();
     }
 }
