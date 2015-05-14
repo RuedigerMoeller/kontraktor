@@ -35,10 +35,7 @@ import java.util.function.Function;
  *
  * Longpoll request is held until an event occurs or timeout.
  *
- * A method/callback call from client side is also piggy backed but not used as a longpoll request.
- * If a client does a regular remote call and there is already a long poll request in place, the long poll
- * gets replaced and the new request is kept as long poll request instead. The previous poll returns
- * empty then.
+ * A method/callback call from client side does not piggy backed, so back channel is only from longpoll request.
  *
  */
 public class UndertowHttpConnector implements ActorServerConnector, HttpHandler {
