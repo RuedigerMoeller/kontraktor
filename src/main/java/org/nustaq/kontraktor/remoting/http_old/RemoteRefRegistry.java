@@ -54,7 +54,7 @@ public abstract class RemoteRefRegistry extends RemoteRegistry {
     public boolean singleReceive(OldObjectSocket channel) throws Exception {
         // read object
         final Object response = channel.readObject();
-        return receiveObject(channel, response);
+        return receiveObject(channel, null, response);
     }
 
     public abstract AtomicReference<OldObjectSocket> getObjectSocket();

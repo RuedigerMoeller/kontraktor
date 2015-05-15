@@ -65,7 +65,7 @@ public class ActorClient<T extends Actor> {
                     @Override
                     public void receiveObject(Object received) {
                         try {
-                            reg.receiveObject(socketRef.get(),received);
+                            reg.receiveObject(socketRef.get(),this,received);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }

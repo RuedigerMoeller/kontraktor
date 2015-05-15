@@ -213,28 +213,53 @@ public abstract class RemoteRegistry implements RemoteConnection {
     /**
      * process a remote call entry or an array of remote call entries.
      *
-     * @param channel - writer required to route callback messages
+     * @param responseChannel - writer required to route callback messages
      * @param response
      * @return
      * @throws Exception
      */
-    public boolean receiveObject(ObjectSocket channel, Object response) throws Exception {
+    public boolean receiveObject(ObjectSocket responseChannel, ObjectSink receiver, Object response) throws Exception {
         if ( response == RemoteRegistry.OUT_OF_ORDER_SEQ )
             return false;
         if ( response instanceof Object[] ) { // bundling. last element contains sequence
             Object arr[] = (Object[]) response;
             boolean hadResp = false;
             int max = arr.length - 1;
+            int inSequence = 0;
             if (arr[max] instanceof Number == false) // no sequencing
                 max++;
+            else
+                inSequence = ((Number) arr[max]).intValue();
+
+            if ( receiver.getLastSinkSequence() >= 0 ) {
+                if ( receiver.getLastSinkSequence() == 0 ) {
+                    receiver.setLastSinkSequence(inSequence);
+                } else if ( receiver.getLastSinkSequence() != inSequence-1 ) {
+                    if ( inSequence <= receiver.getLastSinkSequence() ) {
+                        Log.Info(this, "dropped double message on " + responseChannel + " " + inSequence);
+                        return false;
+                    } else { // gap, sequence is in future
+                        Log.Info(this,"gap detected on "+responseChannel+" "+inSequence+" last:"+receiver.getLastSinkSequence());
+                        receiver.storeGappedMessage(inSequence,response);
+                    }
+                    return false;
+                }
+                receiver.setLastSinkSequence(inSequence);
+            }
+
             for (int i = 0; i < max; i++) {
                 Object resp = arr[i];
                 if (resp instanceof RemoteCallEntry == false) {
                     if ( resp != null )
                         Log.Lg.error(this, null, "unexpected response:" + resp); // fixme
                     hadResp = true;
-                } else if (processRemoteCallEntry(channel, (RemoteCallEntry) resp))
+                } else if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) resp))
                     hadResp = true;
+            }
+            Object next = receiver.takeStoredMessage(inSequence + 1);
+            if (next!=null) {
+                Log.Info(this,"fill gap "+responseChannel+" "+(inSequence+1));
+                return hadResp || receiveObject(responseChannel,receiver,next);
             }
             return hadResp;
         } else {
@@ -243,7 +268,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                     Log.Lg.error(this, null, "unexpected response:" + response); // fixme
                 return true;
             }
-            if (processRemoteCallEntry(channel, (RemoteCallEntry) response)) return true;
+            if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) response)) return true;
         }
         return false;
     }

@@ -2,7 +2,7 @@ package kontraktor;
 
 import junit.framework.Assert;
 import org.junit.Test;
-import org.nustaq.kontraktor.remoting.fourk.messagestore.HeapMessageStore;
+import org.nustaq.kontraktor.remoting.base.messagestore.HeapMessageStore;
 import org.nustaq.offheap.bytez.ByteSource;
 import org.nustaq.offheap.bytez.bytesource.AsciiStringByteSource;
 
@@ -17,7 +17,7 @@ public class MessageStoreTest {
 
         for ( int i = 1; i < 233; i++ ) {
             mst.putMessage("Test", i, new AsciiStringByteSource(""+i));
-            ByteSource test = mst.getMessage("Test", i);
+            ByteSource test = (ByteSource) mst.getMessage("Test", i);
             Assert.assertTrue(test.toString().equals(""+i));
         }
 

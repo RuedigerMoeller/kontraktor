@@ -16,6 +16,7 @@ import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.websockets.UndertowWebsocketServerConnector;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.FSTConfiguration;
 import org.xnio.channels.StreamSinkChannel;
@@ -29,14 +30,25 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 12.05.2015.
  *
- * A longpoll based connector. Only MinBin coding using POST requests is supported
+ * A longpoll based connector. Only Binary/MinBin coding using POST requests is supported
  *
  * Algorithm:
  *
- * Longpoll request is held until an event occurs or timeout.
+ * Longpoll request is held until an event occurs or timeout. An incoming lp request reports
+ * last seen sequence in its url ../sessionId/sequence such that in case of network failure
+ * messages can be delivered more than once from a short (outgoing) message history.
  *
- * A method/callback call from client side does not piggy backed, so back channel is only from longpoll request.
+ * Incoming requests are sequenced also and are reordered in case http requests are
+ * delivered out of order because of network race conditions.
  *
+ * Back channel is done via long poll exclusively. Incoming calls are always replied empty.
+ * Designed to handle thousands of long poll clients on a single actor thread.
+ *
+ * TODO: close session in case of unrecoveralble loss
+ * TODO: lp timeout
+ * TODO: session timeout
+ * TODO: support temporary/discardable websocket connections if available.
+ * TODO: proxy support (trivial as provided by appache httpclient)
  */
 public class UndertowHttpConnector implements ActorServerConnector, HttpHandler {
 
@@ -117,7 +129,8 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
 
             // auth check goes here
 
-            HttpObjectSocket sock = new HttpObjectSocket(Long.toHexString((long) (Math.random()*Long.MAX_VALUE)));
+            String sessionId = Long.toHexString((long) (Math.random() * Long.MAX_VALUE));
+            HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(sessionId)));
             sessions.put( sock.getSessionId(), sock );
             ObjectSink sink = factory.apply(sock);
             sock.setSink(sink);
@@ -151,50 +164,100 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
         }
     }
 
-    public void handlePoll(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String sequence) {
-        // already executed in facade thread
-//        System.out.println("req "+postData.length);
+    protected HttpObjectSocket closeSession(String sessionId) {
+        return sessions.remove(sessionId);
+    }
+
+    public void handlePoll(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String lastSeenSequence) {
+        // executed in facade thread
+        int lastClientSeq = -1;
+
+        if (lastSeenSequence!=null) {
+            try {
+                lastClientSeq = Integer.parseInt(lastSeenSequence);
+            } catch (Throwable t) {
+                Log.Warn(this,t);
+            }
+        }
+
         httpObjectSocket.updateTimeStamp(); // keep alive
 
         Object received = httpObjectSocket.getConf().asObject(postData);
 
         boolean isEmptyLP = received instanceof Object[] && ((Object[]) received).length == 1 && ((Object[]) received)[0] instanceof Number;
-        // dispatch incoming messages
+        // dispatch incoming messages to actor(s)
         if ( ! isEmptyLP ) {
+            // sink peforms sequence reordering in case
             httpObjectSocket.getSink().receiveObject(received);
             exchange.endExchange();
+            // immediately return in case of non empty requests as these are
+            // expected to come in on a different http connection which should be freed asap
             return;
         }
 
         StreamSinkChannel sinkchannel = exchange.getResponseChannel();
+
+        if (lastClientSeq > 0 ) { // if lp response message has been sent, take it from history
+            byte[] msg = (byte[]) httpObjectSocket.takeStoredLPMessage(lastClientSeq + 1);
+            if (msg!=null) {
+                Log.Warn(this,"serve lp from history "+(lastClientSeq+1)+" cur "+httpObjectSocket.getSendSequence());
+                ByteBuffer responseBuf = ByteBuffer.wrap(msg);
+                exchange.setResponseContentLength(msg.length);
+                sinkchannel.getWriteSetter().set(
+                        channel -> {
+                            if (responseBuf.remaining() > 0)
+                                try {
+                                    sinkchannel.write(responseBuf);
+                                    if (responseBuf.remaining() == 0) {
+                                        exchange.endExchange();
+                                    } else
+                                        sinkchannel.resumeWrites(); // required ?
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                    exchange.endExchange();
+                                }
+                            else {
+                                exchange.endExchange();
+                            }
+                        }
+                );
+                sinkchannel.resumeWrites();
+                return;
+            }
+        }
+
         sinkchannel.resumeWrites();
 
         // read next batch of pending messages from binary queue and send them
         // fixme: could be zero copy (complicated requires reserve operation on q), at least reuse byte array per objectsocket
         Runnable lpTask = () -> {
-            byte response[] = httpObjectSocket.getNextQueuedMessage();
-            ByteBuffer responseBuf = ByteBuffer.wrap(response);
+            Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
+            byte response[] = nextQueuedMessage.getFirst();
             exchange.setResponseContentLength(response.length);
             if (response.length == 0) {
-//                System.out.println("EE2");
                 exchange.endExchange();
             } else {
-                // fixme .. can this be set only in case of incomplete write ?
+                httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
+
+//                Object debug[] = (Object[]) httpObjectSocket.getConf().asObject(response);
+//                System.out.println("seqobj "+ ((Number) debug[debug.length - 1]).intValue()+" : qseq "+nextQueuedMessage.getSecond());
+
+                ByteBuffer responseBuf = ByteBuffer.wrap(response);
+                // fixme .. this is too late as resumewrites has already been called
                 sinkchannel.getWriteSetter().set(
                     channel -> {
                         if (responseBuf.remaining() > 0)
                             try {
                                 sinkchannel.write(responseBuf);
                                 if (responseBuf.remaining() == 0) {
-//                                    System.out.println("EE");
                                     exchange.endExchange();
-                                }
+                                } else
+                                    sinkchannel.resumeWrites(); // required ?
                             } catch (IOException e) {
                                 e.printStackTrace();
                                 exchange.endExchange();
                             }
                         else {
-//                            System.out.println("EE1");
                             exchange.endExchange();
                         }
                     }
@@ -206,9 +269,11 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
                 }
                 if (responseBuf.remaining() == 0) {
                     exchange.endExchange();
-                }
+                } else
+                    sinkchannel.resumeWrites(); // required ?
             }
         };
+        // release previous long poll request if present
         if ( httpObjectSocket.getLongPollTask() != null ) {
             httpObjectSocket.triggerLongPoll();
         }
@@ -228,9 +293,10 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
 
 
     public static class HTTPA extends Actor<HTTPA> {
+        int count = 0;
         public IPromise hello(String s) {
-            System.out.println(s+" received");
-            return resolve("Hello "+s);
+            System.out.println("received "+count++);
+            return resolve(count-1);
         }
     }
 

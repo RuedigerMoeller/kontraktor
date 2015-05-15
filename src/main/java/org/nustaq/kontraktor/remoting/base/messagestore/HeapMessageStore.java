@@ -1,6 +1,4 @@
-package org.nustaq.kontraktor.remoting.fourk.messagestore;
-
-import org.nustaq.offheap.bytez.ByteSource;
+package org.nustaq.kontraktor.remoting.base.messagestore;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,7 +18,7 @@ public class HeapMessageStore implements MessageStore {
     }
 
     @Override
-    public ByteSource getMessage(CharSequence queueId, long sequence) {
+    public Object getMessage(CharSequence queueId, long sequence) {
         StoreEntry byteSources = map.get(queueId);
         if ( byteSources != null ) {
             return byteSources.get(sequence);
@@ -29,7 +27,7 @@ public class HeapMessageStore implements MessageStore {
     }
 
     @Override
-    public void putMessage(CharSequence queueId, long sequence, ByteSource message) {
+    public void putMessage(CharSequence queueId, long sequence, Object message) {
         StoreEntry byteSources = map.get(queueId);
         if ( byteSources == null ) {
             byteSources = new StoreEntry(maxStoreLength);
@@ -54,16 +52,16 @@ public class HeapMessageStore implements MessageStore {
     static class StoreEntry {
 
         public StoreEntry(int len) {
-            messages = new ByteSource[len];
+            messages = new Object[len];
             sequences = new long[len];
         }
 
-        ByteSource[] messages;
+        Object[] messages;
         long sequences[];
         int writePos;
         int readPos;
 
-        public void add(ByteSource msg, long seq) {
+        public void add(Object msg, long seq) {
             messages[writePos] = msg;
             sequences[writePos] = seq;
             writePos++;
@@ -99,7 +97,7 @@ public class HeapMessageStore implements MessageStore {
                 readPos = 0;
         }
 
-        public ByteSource get(long seq) {
+        public Object get(long seq) {
             int idx = readPos;
             for (int i = 0; i < messages.length; i++) {
                 if ( seq == sequences[idx] )

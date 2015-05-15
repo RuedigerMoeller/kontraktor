@@ -39,9 +39,15 @@ public class Actors {
 
     public static int MAX_EXTERNAL_THREADS_POOL_SIZE = 1000; // max threads used when externalizing blocking api
     public static int DEFAULT_TIMOUT = 15000;
-    public static ExecutorService exec = new ThreadPoolExecutor(2, MAX_EXTERNAL_THREADS_POOL_SIZE,
-                                      0L, TimeUnit.MILLISECONDS,
-                                      new LinkedBlockingQueue<>());
+    public static ThreadPoolExecutor exec;
+    static {
+        exec = new ThreadPoolExecutor(
+            MAX_EXTERNAL_THREADS_POOL_SIZE, MAX_EXTERNAL_THREADS_POOL_SIZE,
+            1L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<>()
+        );
+        exec.allowCoreThreadTimeOut(true);
+    }
     public static ActorsImpl instance = new ActorsImpl(); // public for testing
     public static Timer delayedCalls = new Timer();
 
@@ -116,23 +122,6 @@ public class Actors {
                 task.run();
             }
         },millis);
-    }
-
-    /**
-     * utility function. Executed in foreign thread. Use Actor::delayed() to have the runnable executed inside actor thread.
-     * The given function receives the current interval and should return the interval for next execution. If the function returns
-     * 0, the perdiodic task is stopped.
-     */
-    public static void SubmitPeriodic( long startMillis, Function<Long,Long> task ) {
-        Actors.delayedCalls.schedule( new TimerTask() {
-            @Override
-            public void run() {
-                Long tim = task.apply(startMillis);
-                if ( tim != null && tim > 0 ) {
-                    SubmitPeriodic(tim, in -> task.apply(in) );
-                }
-            }
-        },startMillis);
     }
 
     public static void AddDeadLetter(String s) {

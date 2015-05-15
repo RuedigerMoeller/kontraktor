@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.remoting.base;
 
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.IOException;
