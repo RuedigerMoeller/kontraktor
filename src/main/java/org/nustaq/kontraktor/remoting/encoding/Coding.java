@@ -6,6 +6,9 @@ import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 26.10.14.
+ *
+ * umh .. unfinished concept of custom serializers
+ *
  */
 public class Coding {
     SerializerType coding;

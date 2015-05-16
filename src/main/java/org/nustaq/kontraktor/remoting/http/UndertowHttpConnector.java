@@ -120,7 +120,6 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
                 exchange.endExchange();
             }
         } else { // new session
-
             Object auth = null;
             // create connection. postdata is auth data
             if ( postData != null && postData.length > 0 ) {
@@ -148,6 +147,7 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
                         try {
                             sinkchannel.write(responseBuf);
                             if (responseBuf.remaining() == 0) {
+                                Log.Info(this, "client connected " + sessionId);
                                 exchange.endExchange();
                             }
                         } catch (IOException e) {
@@ -156,6 +156,7 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
                         }
                     else
                     {
+                        Log.Info(this,"client connected "+sessionId);
                         exchange.endExchange();
                     }
                 }
@@ -187,6 +188,7 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
         boolean isEmptyLP = received instanceof Object[] && ((Object[]) received).length == 1 && ((Object[]) received)[0] instanceof Number;
         // dispatch incoming messages to actor(s)
         if ( ! isEmptyLP ) {
+            System.out.println("received request "+httpObjectSocket.getSessionId());
             // sink peforms sequence reordering in case
             httpObjectSocket.getSink().receiveObject(received);
             exchange.endExchange();
@@ -195,12 +197,13 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
             return;
         }
 
+        System.out.println("received LP "+httpObjectSocket.getSessionId());
         StreamSinkChannel sinkchannel = exchange.getResponseChannel();
 
         if (lastClientSeq > 0 ) { // if lp response message has been sent, take it from history
             byte[] msg = (byte[]) httpObjectSocket.takeStoredLPMessage(lastClientSeq + 1);
             if (msg!=null) {
-                Log.Warn(this,"serve lp from history "+(lastClientSeq+1)+" cur "+httpObjectSocket.getSendSequence());
+                Log.Warn(this, "serve lp from history " + (lastClientSeq + 1) + " cur " + httpObjectSocket.getSendSequence());
                 ByteBuffer responseBuf = ByteBuffer.wrap(msg);
                 exchange.setResponseContentLength(msg.length);
                 sinkchannel.getWriteSetter().set(
