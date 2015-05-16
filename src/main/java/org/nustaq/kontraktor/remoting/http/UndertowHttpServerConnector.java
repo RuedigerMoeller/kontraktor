@@ -9,6 +9,7 @@ import io.undertow.util.Methods;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorServerConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
@@ -24,7 +25,9 @@ import org.xnio.channels.StreamSourceChannel;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
@@ -44,22 +47,68 @@ import java.util.function.Function;
  * Back channel is done via long poll exclusively. Incoming calls are always replied empty.
  * Designed to handle thousands of long poll clients on a single actor thread.
  *
- * TODO: close session in case of unrecoveralble loss
- * TODO: lp timeout
- * TODO: session timeout
- * TODO: support temporary/discardable websocket connections if available.
- * TODO: proxy support (trivial as provided by appache httpclient)
+ * TODO: close session in case of unrecoverable loss
+ * TODO: support temporary/discardable websocket connections as a LP optimization.
+ * TODO: investigate optional use of http 2.0
  */
-public class UndertowHttpConnector implements ActorServerConnector, HttpHandler {
+public class UndertowHttpServerConnector implements ActorServerConnector, HttpHandler {
+
+    public static long SESSION_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(30); // 30 minutes
+
+    public static Promise<ActorServer> Publish( Actor facade, String hostName, String urlPath, int port, Coding coding ) {
+        ActorServer actorServer;
+        try {
+            facade.setThrowExWhenBlocked(true);
+            Pair<PathHandler, Undertow> serverPair = UndertowWebsocketServerConnector.GetServer(port, hostName);
+            UndertowHttpServerConnector con = new UndertowHttpServerConnector(facade);
+            actorServer = new ActorServer( con, facade, coding == null ? new Coding(SerializerType.FSTSer) : coding );
+            actorServer.start();
+            serverPair.getFirst().addPrefixPath(urlPath, con);
+        } catch (Exception e) {
+            Log.Warn(null,e);
+            return new Promise<>(null,e);
+        }
+        return new Promise<>(actorServer);
+    }
 
     Actor facade;
     HashMap<String,HttpObjectSocket> sessions = new HashMap<>(); // use only from facade thread
 
     FSTConfiguration conf = FSTConfiguration.createMinBinConfiguration(); // used for authdata
     Function<ObjectSocket, ObjectSink> factory;
+    long sessionTimeout = SESSION_TIMEOUT_MS;
+    volatile boolean isClosed = false;
 
-    public UndertowHttpConnector(Actor facade) {
+    public UndertowHttpServerConnector(Actor facade) {
         this.facade = facade;
+        facade.delayed( HttpObjectSocket.LP_TIMEOUT/2, () -> houseKeeping() );
+    }
+
+    public void houseKeeping() {
+        System.out.println("----------------- HOUSEKEEPING ------------------------");
+        long now = System.currentTimeMillis();
+        ArrayList<String> toRemove = new ArrayList<>(0);
+        sessions.entrySet().forEach( entry -> {
+            HttpObjectSocket socket = entry.getValue();
+            if ( now- socket.getLongPollTaskTime() >= HttpObjectSocket.LP_TIMEOUT/2 ) {
+                socket.triggerLongPoll();
+            }
+            if ( now- socket.getLastUse() > getSessionTimeout() ) {
+                toRemove.add(entry.getKey());
+            }
+        });
+        toRemove.forEach( sessionId -> closeSession(sessionId) );
+        if ( ! isClosed ) {
+            facade.delayed( HttpObjectSocket.LP_TIMEOUT/4, () -> houseKeeping() );
+        }
+    }
+
+    public void setSessionTimeout(long sessionTimeout) {
+        this.sessionTimeout = sessionTimeout;
+    }
+
+    public long getSessionTimeout() {
+        return sessionTimeout;
     }
 
     /**
@@ -96,6 +145,10 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
                         requestChannel.shutdownReads();
                     } catch (IOException e) {
                         e.printStackTrace();
+                    }
+                    if ( facade.isMailboxPressured() || facade.isCallbackQPressured() ) {
+                        exchange.setResponseCode(503);
+                        exchange.endExchange();
                     }
                     // switch to actor thread
                     facade.execute( () -> requestReceived( exchange, buf.array(), rpath ) );
@@ -166,6 +219,7 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
     }
 
     protected HttpObjectSocket closeSession(String sessionId) {
+        Log.Info(this,sessionId+" closed");
         return sessions.remove(sessionId);
     }
 
@@ -188,7 +242,7 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
         boolean isEmptyLP = received instanceof Object[] && ((Object[]) received).length == 1 && ((Object[]) received)[0] instanceof Number;
         // dispatch incoming messages to actor(s)
         if ( ! isEmptyLP ) {
-            System.out.println("received request "+httpObjectSocket.getSessionId());
+//            System.out.println("received request "+httpObjectSocket.getSessionId());
             // sink peforms sequence reordering in case
             httpObjectSocket.getSink().receiveObject(received);
             exchange.endExchange();
@@ -197,7 +251,7 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
             return;
         }
 
-        System.out.println("received LP "+httpObjectSocket.getSessionId());
+//        System.out.println("received LP "+httpObjectSocket.getSessionId());
         StreamSinkChannel sinkchannel = exchange.getResponseChannel();
 
         if (lastClientSeq > 0 ) { // if lp response message has been sent, take it from history
@@ -215,7 +269,7 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
                                         exchange.endExchange();
                                     } else
                                         sinkchannel.resumeWrites(); // required ?
-                                } catch (IOException e) {
+                                } catch (Exception e) {
                                     e.printStackTrace();
                                     exchange.endExchange();
                                 }
@@ -229,6 +283,8 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
             }
         }
 
+        // new longpoll request ..
+
         sinkchannel.resumeWrites();
 
         // read next batch of pending messages from binary queue and send them
@@ -241,9 +297,6 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
                 exchange.endExchange();
             } else {
                 httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
-
-//                Object debug[] = (Object[]) httpObjectSocket.getConf().asObject(response);
-//                System.out.println("seqobj "+ ((Number) debug[debug.length - 1]).intValue()+" : qseq "+nextQueuedMessage.getSecond());
 
                 ByteBuffer responseBuf = ByteBuffer.wrap(response);
                 // fixme .. this is too late as resumewrites has already been called
@@ -276,11 +329,17 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
                     sinkchannel.resumeWrites(); // required ?
             }
         };
+
         // release previous long poll request if present
         if ( httpObjectSocket.getLongPollTask() != null ) {
             httpObjectSocket.triggerLongPoll();
         }
         httpObjectSocket.setLongPollTask(lpTask);
+// too expensive in case of high traffic fast polling
+//        Actor.current().delayed(HttpObjectSocket.LP_TIMEOUT, () -> {
+//            if ( httpObjectSocket.getLongPollTask() == lpTask )
+//                httpObjectSocket.triggerLongPoll();
+//        });
     }
 
     @Override
@@ -291,7 +350,8 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
 
     @Override
     public IPromise closeServer() {
-        return null;
+        isClosed = true;
+        return new Promise<>(null); // FIXME: should wait for real finish
     }
 
 
@@ -304,24 +364,16 @@ public class UndertowHttpConnector implements ActorServerConnector, HttpHandler 
     }
 
     public static void main( String a[] ) throws Exception {
-        Pair<PathHandler, Undertow> serverPair = UndertowWebsocketServerConnector.GetServer(8080, "localhost");
+//        Pair<PathHandler, Undertow> serverPair = UndertowWebsocketServerConnector.GetServer(8080, "localhost");
+//        HTTPA facade = Actors.AsActor(HTTPA.class);
+//        UndertowHttpConnector con = new UndertowHttpConnector(facade);
+//        ActorServer actorServer = new ActorServer(con, facade, new Coding(SerializerType.MinBin));
+//        actorServer.start();
+//        serverPair.getFirst().addPrefixPath("http", con);
+
         HTTPA facade = Actors.AsActor(HTTPA.class);
-        UndertowHttpConnector con = new UndertowHttpConnector(facade);
-        ActorServer actorServer = new ActorServer(con, facade, new Coding(SerializerType.MinBin));
-        actorServer.start();
-        serverPair.getFirst().addPrefixPath("http", con);
+        Publish(facade,"localhost","myservice",8080,null);
 
         Thread.sleep(100000000);
-
-//        FSTConfiguration mbc = FSTConfiguration.createMinBinConfiguration();
-//        Content content = Request.Post("http://localhost:8080/http/")
-//            .bodyByteArray(mbc.asByteArray(new Object[]{"ruedi", "me"}))
-//            .execute()
-//            .returnContent();
-//        String sessionId = (String) mbc.asObject(content.asBytes());
-//        content = Request.Post("http://localhost:8080/http/"+sessionId)
-//            .bodyByteArray(mbc.asByteArray(new Object[]{"ruedi", "me"}))
-//            .execute()
-//            .returnContent();
     }
 }

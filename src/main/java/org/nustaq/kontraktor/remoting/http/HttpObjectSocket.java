@@ -18,6 +18,8 @@ import java.io.IOException;
  */
 public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
+    public static int LP_TIMEOUT = 15_000;
+
     public static int REORDERING_HISTORY_SIZE = 5; // amx size of recovered gaps on receiver side
 
     final Runnable closeAction;
@@ -29,6 +31,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     MessageStore store = new HeapMessageStore(REORDERING_HISTORY_SIZE);
     Runnable longPollTask;
     Thread myThread;
+    long longPollTaskTime;
 
     public HttpObjectSocket(String sessionId, Runnable closeAction ) {
         this.sessionId = sessionId;
@@ -41,6 +44,10 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
     public void updateTimeStamp() {
         lastUse = System.currentTimeMillis();
+    }
+
+    public long getLastUse() {
+        return lastUse;
     }
 
     @Override
@@ -78,7 +85,10 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         if ( queue.available() > 8 ) {
             int seq = queue.readInt();
             int len = queue.readInt();
-            return new Pair(queue.readByteArray(len),seq);
+            if ( queue.available() >= len )
+                return new Pair(queue.readByteArray(len),seq);
+            else
+                return new Pair(new byte[0],0);
         } else {
             return new Pair(new byte[0],0);
         }
@@ -89,6 +99,10 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     }
 
     public void triggerLongPoll() {
+        if ( myThread == null )
+            myThread = Thread.currentThread();
+        else if ( myThread != Thread.currentThread() )
+            System.out.println("unexpected multithreading detected:"+myThread.getName()+" curr:"+Thread.currentThread().getName());
         if (longPollTask!=null) {
             longPollTask.run();
             longPollTask = null;
@@ -97,6 +111,11 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
     public void setLongPollTask(Runnable longPollTask) {
         this.longPollTask = longPollTask;
+        this.longPollTaskTime = System.currentTimeMillis();
+    }
+
+    public long getLongPollTaskTime() {
+        return longPollTaskTime;
     }
 
     /////////////// add reordering support for sink

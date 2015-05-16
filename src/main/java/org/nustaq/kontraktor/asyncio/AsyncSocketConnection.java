@@ -11,7 +11,7 @@ import java.nio.channels.SocketChannel;
 
 /**
  * Baseclass for handling async io. Its strongly recommended to use QueuingAsyncSocketConnection as this
- * eases things quite a lot.
+ * eases things.
  */
 public abstract class AsyncSocketConnection {
 

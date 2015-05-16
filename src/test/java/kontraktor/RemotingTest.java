@@ -5,6 +5,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.http.HttpClientConnector;
+import org.nustaq.kontraktor.remoting.http.UndertowHttpServerConnector;
 import org.nustaq.kontraktor.remoting.tcp.NIOServerConnector;
 import org.nustaq.kontraktor.remoting.tcp.TCPClientConnector;
 import org.nustaq.kontraktor.remoting.tcp.TCPServerConnector;
@@ -23,7 +25,7 @@ import java.util.concurrent.Executors;
  */
 public class RemotingTest {
 
-    public static class TCPTestService extends Actor<TCPTestService> {
+    public static class RemotingTestService extends Actor<RemotingTestService> {
 
         public IPromise<String> $promise(String s) {
             return new Promise<>(s+" "+s);
@@ -62,9 +64,9 @@ public class RemotingTest {
 
     @Test @Ignore
     public void testWSJSR() throws Exception {
-        TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = JSR356ServerConnector.Publish(service, "ws://localhost:8081/ws", null).await();
-        TCPTestService client = JSR356ClientConnector.Connect(TCPTestService.class, "ws://localhost:8081/ws", null).await(9999999);
+        RemotingTestService client = JSR356ClientConnector.Connect(RemotingTestService.class, "ws://localhost:8081/ws", null).await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
         latch.await();
@@ -74,10 +76,44 @@ public class RemotingTest {
 
 
     @Test
+    public void testHttp() throws Exception {
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
+        ActorServer publisher = UndertowHttpServerConnector.Publish(service, "localhost", "/lp", 8082, null).await();
+        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null).await(9999999);
+        CountDownLatch latch = new CountDownLatch(1);
+        runWithClient( client, latch );
+        latch.await();
+        Thread.sleep(2000); // wait for outstanding callbacks
+        publisher.close();
+    }
+
+    @Test
+    public void testHttpMany() throws Exception {
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
+        ActorServer publisher = UndertowHttpServerConnector.Publish(service, "localhost", "/lp", 8082, null).await();
+        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null).await(9999999);
+        ExecutorService exec = Executors.newCachedThreadPool();
+        CountDownLatch latch = new CountDownLatch(10);
+        for ( int i = 0; i < 10; i++ )
+        {
+            exec.execute(() -> {
+                try {
+                    runWithClient(client, latch);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+        latch.await();
+        Thread.sleep(2000); // wait for outstanding callbacks
+        publisher.close();
+    }
+
+    @Test
     public void testWS() throws Exception {
-        TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = UndertowWebsocketServerConnector.Publish(service, "localhost", "/ws", 8081 , null ).await();
-        TCPTestService client = JSR356ClientConnector.Connect(TCPTestService.class, "ws://localhost:8081/ws", null).await(9999999);
+        RemotingTestService client = JSR356ClientConnector.Connect(RemotingTestService.class, "ws://localhost:8081/ws", null).await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
         latch.await();
@@ -87,9 +123,9 @@ public class RemotingTest {
 
     @Test
     public void testWSMany() throws Exception {
-        TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = UndertowWebsocketServerConnector.Publish(service, "localhost", "/ws", 8081 , null ).await();
-        TCPTestService client = JSR356ClientConnector.Connect(TCPTestService.class, "ws://localhost:8081/ws", null).await(9999999);
+        RemotingTestService client = JSR356ClientConnector.Connect(RemotingTestService.class, "ws://localhost:8081/ws", null).await(9999999);
         ExecutorService exec = Executors.newCachedThreadPool();
         CountDownLatch latch = new CountDownLatch(10);
         for ( int i = 0; i < 10; i++ )
@@ -109,7 +145,7 @@ public class RemotingTest {
 
     @Test
     public void testNIO() throws Exception {
-        TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = NIOServerConnector.Publish(service, 8081, null).await();
         CountDownLatch latch = new CountDownLatch(1);
         runnitTCP(latch);
@@ -120,7 +156,7 @@ public class RemotingTest {
 
     @Test
     public void testNIOMany() throws Exception {
-        TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = NIOServerConnector.Publish(service, 8081, null).await();
         ExecutorService exec = Executors.newCachedThreadPool();
         CountDownLatch latch = new CountDownLatch(10);
@@ -141,7 +177,7 @@ public class RemotingTest {
 
     @Test
     public void testBlocking() throws Exception {
-        TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = TCPServerConnector.Publish(service, 8081, null).await();
         CountDownLatch latch = new CountDownLatch(1);
         runnitTCP(latch);
@@ -152,7 +188,7 @@ public class RemotingTest {
 
     @Test
     public void testBlockingMany() throws Exception {
-        TCPTestService service = Actors.AsActor(TCPTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = TCPServerConnector.Publish(service, 8081, null).await();
         ExecutorService exec = Executors.newCachedThreadPool();
         CountDownLatch latch = new CountDownLatch(10);
@@ -172,13 +208,13 @@ public class RemotingTest {
     }
 
     public void runnitTCP(CountDownLatch l) throws Exception {
-        TCPTestService client = TCPClientConnector.Connect(TCPTestService.class, "localhost", 8081, null, null).await();
+        RemotingTestService client = TCPClientConnector.Connect(RemotingTestService.class, "localhost", 8081, null, null).await();
         runWithClient(client,l);
         Thread.sleep(2000); // wait for outstanding callbacks
         client.$close();
     }
 
-    protected void runWithClient(TCPTestService client, CountDownLatch l) {
+    protected void runWithClient(RemotingTestService client, CountDownLatch l) {
         Assert.assertTrue("Hello Hello".equals(client.$promise("Hello").await(999999)));
 
         ArrayList<Integer> sporeResult = new ArrayList<>();
@@ -195,18 +231,19 @@ public class RemotingTest {
             System.out.println("Finish");
             sporeP.complete();
         }));
-        sporeP.await();
+        sporeP.await(30_000);
         Assert.assertTrue(sporeResult.size() == 4);
 
         System.out.println("one way performance");
-        for ( int i = 0; i < 5_000_000; i++ ) {
+        for ( int i = 0; i < 15_000_000; i++ ) {
             client.$benchMarkVoid(13, null);
         }
         System.out.println("two way performance");
-        for ( int i = 0; i < 5_000_000; i++ ) {
+        for ( int i = 0; i < 15_000_000; i++ ) {
             if ( i%1_000_000==0 )
                 System.out.println("sent "+i);
             client.$benchMarkPromise(13, null);
+//            LockSupport.parkNanos(1);
         }
         System.out.println("done "+Thread.currentThread());
         l.countDown();

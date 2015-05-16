@@ -125,6 +125,11 @@
         </dependency>
 
         <!-- test -->
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpasyncclient</artifactId>
+            <version>4.1</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>

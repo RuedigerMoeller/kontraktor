@@ -16,6 +16,9 @@ import java.util.function.BiFunction;
 
 /**
  * Created by ruedi on 04/05/15.
+ *
+ * Implements NIO based TCP server
+ *
  */
 public class AsyncServerSocket {
 
