@@ -85,7 +85,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
     }
 
     public void houseKeeping() {
-        System.out.println("----------------- HOUSEKEEPING ------------------------");
+//        System.out.println("----------------- HOUSEKEEPING ------------------------");
         long now = System.currentTimeMillis();
         ArrayList<String> toRemove = new ArrayList<>(0);
         sessions.entrySet().forEach( entry -> {
@@ -182,7 +182,12 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             // auth check goes here
 
             String sessionId = Long.toHexString((long) (Math.random() * Long.MAX_VALUE));
-            HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(sessionId)));
+            HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(sessionId))) {
+                @Override
+                protected int getObjectMaxBatchSize() {
+                    return super.getObjectMaxBatchSize()*10;
+                }
+            };
             sessions.put( sock.getSessionId(), sock );
             ObjectSink sink = factory.apply(sock);
             sock.setSink(sink);
@@ -241,42 +246,58 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
         boolean isEmptyLP = received instanceof Object[] && ((Object[]) received).length == 1 && ((Object[]) received)[0] instanceof Number;
         // dispatch incoming messages to actor(s)
+        StreamSinkChannel sinkchannel = exchange.getResponseChannel();
+
         if ( ! isEmptyLP ) {
-//            System.out.println("received request "+httpObjectSocket.getSessionId());
-            // sink peforms sequence reordering in case
             httpObjectSocket.getSink().receiveObject(received);
-            exchange.endExchange();
-            // immediately return in case of non empty requests as these are
-            // expected to come in on a different http connection which should be freed asap
+
+            // piggy back outstanding lp messages, outstanding lp request is untouched
+            Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
+            byte response[] = nextQueuedMessage.getFirst();
+            exchange.setResponseContentLength(response.length);
+            if (response.length == 0) {
+                exchange.endExchange();
+            } else {
+                httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
+
+                ByteBuffer responseBuf = ByteBuffer.wrap(response);
+
+                while (responseBuf.remaining()>0) {
+                    try {
+                        sinkchannel.write(responseBuf);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                exchange.endExchange();
+//                httpObjectSocket.triggerLongPoll();
+            }
             return;
         }
-
-//        System.out.println("received LP "+httpObjectSocket.getSessionId());
-        StreamSinkChannel sinkchannel = exchange.getResponseChannel();
 
         if (lastClientSeq > 0 ) { // if lp response message has been sent, take it from history
             byte[] msg = (byte[]) httpObjectSocket.takeStoredLPMessage(lastClientSeq + 1);
             if (msg!=null) {
-                Log.Warn(this, "serve lp from history " + (lastClientSeq + 1) + " cur " + httpObjectSocket.getSendSequence());
+//                Log.Warn(this, "serve lp from history " + (lastClientSeq + 1) + " cur " + httpObjectSocket.getSendSequence());
                 ByteBuffer responseBuf = ByteBuffer.wrap(msg);
                 exchange.setResponseContentLength(msg.length);
                 sinkchannel.getWriteSetter().set(
-                        channel -> {
-                            if (responseBuf.remaining() > 0)
-                                try {
-                                    sinkchannel.write(responseBuf);
-                                    if (responseBuf.remaining() == 0) {
-                                        exchange.endExchange();
-                                    } else
-                                        sinkchannel.resumeWrites(); // required ?
-                                } catch (Exception e) {
-                                    e.printStackTrace();
+                    channel -> {
+                        if (responseBuf.remaining() > 0)
+                            try {
+                                sinkchannel.write(responseBuf);
+                                if (responseBuf.remaining() == 0) {
                                     exchange.endExchange();
-                                }
-                            else {
+                                } else
+                                    sinkchannel.resumeWrites(); // required ?
+                            } catch (Exception e) {
+                                e.printStackTrace();
                                 exchange.endExchange();
                             }
+                        else {
+                            exchange.endExchange();
                         }
+                    }
                 );
                 sinkchannel.resumeWrites();
                 return;
@@ -299,34 +320,46 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                 httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
 
                 ByteBuffer responseBuf = ByteBuffer.wrap(response);
-                // fixme .. this is too late as resumewrites has already been called
-                sinkchannel.getWriteSetter().set(
-                    channel -> {
-                        if (responseBuf.remaining() > 0)
-                            try {
-                                sinkchannel.write(responseBuf);
-                                if (responseBuf.remaining() == 0) {
-                                    exchange.endExchange();
-                                } else
-                                    sinkchannel.resumeWrites(); // required ?
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                exchange.endExchange();
-                            }
-                        else {
-                            exchange.endExchange();
+
+                if ( 1 != 0 ) {
+                    while (responseBuf.remaining()>0) {
+                        try {
+                            sinkchannel.write(responseBuf);
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
                     }
-                );
-                try {
-                    sinkchannel.write(responseBuf);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                if (responseBuf.remaining() == 0) {
                     exchange.endExchange();
-                } else
-                    sinkchannel.resumeWrites(); // required ?
+                } else {
+                    // fixme .. this is too late as resumewrites has already been called
+                    sinkchannel.getWriteSetter().set(
+                        channel -> {
+                            if (responseBuf.remaining() > 0)
+                                try {
+                                    sinkchannel.write(responseBuf);
+                                    if (responseBuf.remaining() == 0) {
+                                        exchange.endExchange();
+                                    } else
+                                        sinkchannel.resumeWrites(); // required ?
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                    exchange.endExchange();
+                                }
+                            else {
+                                exchange.endExchange();
+                            }
+                        }
+                    );
+                    try {
+                        sinkchannel.write(responseBuf);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    if (responseBuf.remaining() == 0) {
+                        exchange.endExchange();
+                    } else
+                        sinkchannel.resumeWrites(); // required ?
+                }
             }
         };
 

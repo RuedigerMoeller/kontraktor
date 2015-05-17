@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.http.HttpClientConnector;
+import org.nustaq.kontraktor.remoting.http.HttpObjectSocket;
 import org.nustaq.kontraktor.remoting.http.UndertowHttpServerConnector;
 import org.nustaq.kontraktor.remoting.tcp.NIOServerConnector;
 import org.nustaq.kontraktor.remoting.tcp.TCPClientConnector;
@@ -19,6 +20,8 @@ import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by ruedi on 10/05/15.
@@ -51,9 +54,9 @@ public class RemotingTest {
             measure.count();
         }
 
-        public IPromise $benchMarkPromise(int someVal, String someString) {
+        public IPromise<Integer> $benchMarkPromise(int someVal, String someString) {
             measure.count();
-            return new Promise<>("ok");
+            return new Promise<>(someVal);
         }
 
     }
@@ -214,9 +217,10 @@ public class RemotingTest {
         client.$close();
     }
 
-    protected void runWithClient(RemotingTestService client, CountDownLatch l) {
+    protected void runWithClient(RemotingTestService client, CountDownLatch l) throws InterruptedException {
         Assert.assertTrue("Hello Hello".equals(client.$promise("Hello").await(999999)));
 
+        AtomicInteger replyCount = new AtomicInteger(0);
         ArrayList<Integer> sporeResult = new ArrayList<>();
         Promise sporeP = new Promise();
         client.$spore(new Spore<Integer, Integer>() {
@@ -235,17 +239,40 @@ public class RemotingTest {
         Assert.assertTrue(sporeResult.size() == 4);
 
         System.out.println("one way performance");
-        for ( int i = 0; i < 15_000_000; i++ ) {
+        int numMsg = 15_000_000;
+        for ( int i = 0; i < numMsg/3; i++ ) {
             client.$benchMarkVoid(13, null);
         }
         System.out.println("two way performance");
-        for ( int i = 0; i < 15_000_000; i++ ) {
+        AtomicInteger errors = new AtomicInteger();
+        boolean seq[] = new boolean[numMsg];
+        for ( int i = 0; i < numMsg; i++ ) {
             if ( i%1_000_000==0 )
-                System.out.println("sent "+i);
-            client.$benchMarkPromise(13, null);
-//            LockSupport.parkNanos(1);
+                System.out.println("sent "+i+" "+replyCount.get());
+            client.$benchMarkPromise(i, null).then(s -> {
+                replyCount.incrementAndGet();
+                if (seq[s])
+                    errors.incrementAndGet();
+                seq[s] = true;
+            });
+
+            while (i-replyCount.get() > 200_000 )
+                LockSupport.parkNanos(1);
         }
-        System.out.println("done "+Thread.currentThread());
+        Thread.sleep(2000);
+        if (replyCount.get() != numMsg) {
+            System.out.println("extend wait ..");
+            Thread.sleep(HttpObjectSocket.LP_TIMEOUT);
+        }
+        for (int i = 0; i < seq.length; i++) {
+            boolean b = seq[i];
+            if ( !b ) {
+                System.out.println("missing:"+i);
+            }
+        }
+        System.out.println("done "+Thread.currentThread()+" "+replyCount);
+        junit.framework.Assert.assertTrue(replyCount.get()== numMsg);
+        junit.framework.Assert.assertTrue(errors.get()== 0);
         l.countDown();
     }
 

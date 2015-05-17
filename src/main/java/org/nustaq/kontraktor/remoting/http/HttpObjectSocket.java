@@ -18,7 +18,7 @@ import java.io.IOException;
  */
 public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
-    public static int LP_TIMEOUT = 15_000;
+    public static int LP_TIMEOUT = 5_000;
 
     public static int REORDERING_HISTORY_SIZE = 5; // amx size of recovered gaps on receiver side
 
@@ -52,14 +52,17 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
     @Override
     public void sendBinary(byte[] message) {
-        if ( myThread == null )
-            myThread = Thread.currentThread();
-        else if ( myThread != Thread.currentThread() )
-            System.out.println("unexpected multithreading detected:"+myThread.getName()+" curr:"+Thread.currentThread().getName());
+        checkThread();
         queue.addInt(sendSequence.get());
         queue.addInt(message.length);
         queue.add( new HeapBytez(message) );
         triggerLongPoll();
+    }
+
+    @Override
+    public void writeObject(Object toWrite) throws Exception {
+        checkThread();
+        super.writeObject(toWrite);
     }
 
     @Override
@@ -78,10 +81,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     }
 
     public Pair<byte[],Integer> getNextQueuedMessage() {
-        if ( myThread == null )
-            myThread = Thread.currentThread();
-        else if ( myThread != Thread.currentThread() )
-            System.out.println("unexpected multithreading detected:"+myThread.getName()+" curr:"+Thread.currentThread().getName());
+        checkThread();
         if ( queue.available() > 8 ) {
             int seq = queue.readInt();
             int len = queue.readInt();
@@ -94,15 +94,19 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         }
     }
 
+    protected void checkThread() {
+        if ( myThread == null )
+            myThread = Thread.currentThread();
+        else if ( myThread != Thread.currentThread() )
+            System.out.println("unexpected multithreading detected:"+myThread.getName()+" curr:"+Thread.currentThread().getName());
+    }
+
     public Runnable getLongPollTask() {
         return longPollTask;
     }
 
     public void triggerLongPoll() {
-        if ( myThread == null )
-            myThread = Thread.currentThread();
-        else if ( myThread != Thread.currentThread() )
-            System.out.println("unexpected multithreading detected:"+myThread.getName()+" curr:"+Thread.currentThread().getName());
+        checkThread();
         if (longPollTask!=null) {
             longPollTask.run();
             longPollTask = null;
@@ -110,6 +114,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     }
 
     public void setLongPollTask(Runnable longPollTask) {
+        checkThread();
         this.longPollTask = longPollTask;
         this.longPollTaskTime = System.currentTimeMillis();
     }

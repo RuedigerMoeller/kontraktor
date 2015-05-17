@@ -35,7 +35,11 @@ public class ActorClient<T extends Actor> {
         }
     }
 
-    public IPromise<T> connect()
+    public IPromise<T> connect() {
+        return connect(RemoteScheduler.DEFQSIZE);
+    }
+
+    public IPromise<T> connect(int qsiz)
     {
         Promise<T> result = new Promise<>();
         try {

@@ -22,6 +22,7 @@ import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
 
 /**
@@ -45,7 +46,10 @@ public class HttpClientConnector implements ActorClientConnector {
         con.disconnectCallback = disconnectCallback;
         ActorClient actorClient = new ActorClient(con, clz, c == null ? new Coding(SerializerType.FSTSer) : c);
         Promise p = new Promise();
-        getClientHelperActor().execute( () -> actorClient.connect().then(p) );
+        getRefPollActor().execute(() -> {
+            Thread.currentThread().setName("Http Ref Polling");
+            actorClient.connect().then(p);
+        });
         return p;
     }
 
@@ -92,7 +96,8 @@ public class HttpClientConnector implements ActorClientConnector {
                     Actor.current().delayed(1000, lp[0]);
             });
         };
-        Actor.current().execute( lp[0] );
+        getReceiveActor().__currentDispatcher.setName("Http LP dispatcher");
+        getReceiveActor().execute( lp[0] );
     }
 
     @Override
@@ -127,38 +132,50 @@ public class HttpClientConnector implements ActorClientConnector {
         String url;
         ObjectSink sink;
         int lastReceivedSequence = 0;
-        CloseableHttpAsyncClient client;
+        CloseableHttpAsyncClient asyncHttpClient;
+        CloseableHttpAsyncClient lpHttpClient;
         AtomicInteger openRequests = new AtomicInteger(0);
 
         public MyHttpWS(String url) {
             this.url = url;
-            client = HttpAsyncClients.custom().setDefaultIOReactorConfig(IOReactorConfig.custom().setIoThreadCount(2).build()).build();
-            client.start();
+            asyncHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).build() ).build();
+            asyncHttpClient.start();
+            lpHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).build() ).build();
+            lpHttpClient.start();
         }
 
         @Override
         public void sendBinary(byte[] message) {
-            HttpPost req = new HttpPost(url);
+            HttpPost req = new HttpPost(url+"/"+lastReceivedSequence);
             req.addHeader(NO_CACHE);
             req.setEntity(new ByteArrayEntity(message));
             openRequests.incrementAndGet();
-            if ( openRequests.get() % 10000 == 0 ) {
+            while (openRequests.get() > 10000) {
+//                Actor.current().yield(1);
+                LockSupport.parkNanos(1000*1000);
+            }
+
+            if ( openRequests.get() % 20000 == 0 ) {
                 System.out.println("OPEN "+openRequests.get());
             }
-            client.execute(req, new FutureCallback<HttpResponse>() {
+            asyncHttpClient.execute(req, new FutureCallback<HttpResponse>() {
                 @Override
                 public void completed(HttpResponse result) {
                     openRequests.decrementAndGet();
+                    Runnable processLPResponse = getProcessLPRunnable(new Promise(),result);
+                    getReceiveActor().execute(processLPResponse);
                 }
 
                 @Override
                 public void failed(Exception ex) {
                     // FIXME: resend
+                    ex.printStackTrace();
                     openRequests.decrementAndGet();
                 }
 
                 @Override
                 public void cancelled() {
+                    Log.Warn(this, "request cancelled");
                     openRequests.decrementAndGet();
                 }
             });
@@ -172,42 +189,11 @@ public class HttpClientConnector implements ActorClientConnector {
             req.addHeader(NO_CACHE);
             req.setEntity(new ByteArrayEntity(message));
 
-            client.execute(req, new FutureCallback<HttpResponse>() {
+            lpHttpClient.execute(req, new FutureCallback<HttpResponse>() {
                 @Override
                 public void completed(HttpResponse result) {
-                    getClientHelperActor().execute( () -> {
-                        if ( result.getStatusLine().getStatusCode() == 404 ) {
-                            getClientHelperActor().execute( () -> closeClient() );
-                            p.reject("Closed");
-                            return;
-                        }
-                        String cl = result.getFirstHeader("Content-Length").getValue();
-                        int len = Integer.parseInt(cl);
-                        if ( len > 0 ) {
-                            byte b[] = new byte[len];
-                            try {
-                                result.getEntity().getContent().read(b);
-                                        Object o = getConf().asObject(b);
-                                        boolean send = true;
-                                        if ( o instanceof Object[] ) {
-                                            Object ar[] = (Object[]) o;
-                                            int sequence = ((Number) ar[ar.length - 1]).intValue();
-                                            if ( lastReceivedSequence > 0 ) {
-                                                send = lastReceivedSequence == sequence - 1;
-                                            }
-                                            if (send)
-                                                lastReceivedSequence = sequence;
-                                        }
-                                        if (send)
-                                            sink.receiveObject(o);
-                                        else
-                                            System.out.println("IGNORED LP RESPONSE, OUT OF SEQ");
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        p.resolve();
-                    });
+                    Runnable processLPRespponse = getProcessLPRunnable(p,result);
+                    getReceiveActor().execute(processLPRespponse);
                 }
 
                 @Override
@@ -226,6 +212,45 @@ public class HttpClientConnector implements ActorClientConnector {
             return p;
         }
 
+        protected Runnable getProcessLPRunnable(Promise p, HttpResponse result) {
+            return () -> {
+                if (result.getStatusLine().getStatusCode() == 404) {
+                    closeClient();
+                    p.reject("Closed");
+                    return;
+                }
+                String cl = result.getFirstHeader("Content-Length").getValue();
+                int len = Integer.parseInt(cl);
+                if (len > 0) {
+                    byte b[] = new byte[len];
+                    try {
+                        result.getEntity().getContent().read(b);
+                        Object o = getConf().asObject(b);
+                        boolean send = true;
+                        if (o instanceof Object[]) {
+                            Object ar[] = (Object[]) o;
+                            int sequence = ((Number) ar[ar.length - 1]).intValue();
+                            if (lastReceivedSequence > 0) {
+                                send = lastReceivedSequence == sequence - 1;
+                            }
+                            if (send)
+                                lastReceivedSequence = sequence;
+                        }
+                        if (send) {
+//                                    getRefPollActor().execute( () -> sink.receiveObject(o) );
+                            sink.receiveObject(o);
+                        }
+                        else {
+//                            Log.Warn(this, "IGNORED LP RESPONSE, OUT OF SEQ");
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                p.resolve();
+            };
+        }
+
         @Override
         public synchronized void writeObject(Object toWrite) throws Exception {
             super.writeObject(toWrite);
@@ -233,7 +258,8 @@ public class HttpClientConnector implements ActorClientConnector {
 
         @Override
         public synchronized void flush() throws Exception {
-            super.flush();
+            if (openRequests.get() < 100 || objects.size() > 500)
+                super.flush();
         }
 
         public IPromise longPoll() {
@@ -260,14 +286,26 @@ public class HttpClientConnector implements ActorClientConnector {
     }
 
     /**
-     * helper actor to run long polling related tasks on
+     * helper actor receive side
      */
-    static HttpClientActor singleton = Actors.AsActor(HttpClientActor.class);
-    public static HttpClientActor getClientHelperActor() {
+    static HttpClientActor singletonRec = Actors.AsActor(HttpClientActor.class);
+    public static HttpClientActor getReceiveActor() {
         synchronized (HttpClientConnector.class) {
-            if (singleton == null )
-                singleton = Actors.AsActor(HttpClientActor.class);
-            return singleton;
+            if (singletonRec == null )
+                singletonRec = Actors.AsActor(HttpClientActor.class);
+            return singletonRec;
+        }
+    }
+
+    /**
+     * helper actor receive side
+     */
+    static HttpClientActor singletonRefPoll = Actors.AsActor(HttpClientActor.class);
+    public static HttpClientActor getRefPollActor() {
+        synchronized (HttpClientConnector.class) {
+            if (singletonRefPoll == null )
+                singletonRefPoll = Actors.AsActor(HttpClientActor.class);
+            return singletonRefPoll;
         }
     }
 

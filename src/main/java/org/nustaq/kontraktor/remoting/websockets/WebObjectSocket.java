@@ -24,9 +24,13 @@ public abstract class WebObjectSocket implements ObjectSocket {
     @Override
     public void writeObject(Object toWrite) throws Exception {
         objects.add(toWrite);
-        if (objects.size() > ActorClientConnector.OBJECT_MAX_BATCH_SIZE) {
+        if (objects.size() > getObjectMaxBatchSize()) {
             flush();
         }
+    }
+
+    protected int getObjectMaxBatchSize() {
+        return ActorClientConnector.OBJECT_MAX_BATCH_SIZE;
     }
 
     public abstract void sendBinary(byte[] message);
