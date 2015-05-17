@@ -85,7 +85,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         if ( queue.available() > 8 ) {
             int seq = queue.readInt();
             int len = queue.readInt();
-            if ( queue.available() >= len )
+            if ( len>0 && queue.available() >= len )
                 return new Pair(queue.readByteArray(len),seq);
             else
                 return new Pair(new byte[0],0);

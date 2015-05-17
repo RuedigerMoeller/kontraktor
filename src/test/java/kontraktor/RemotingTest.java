@@ -256,8 +256,8 @@ public class RemotingTest {
                 seq[s] = true;
             });
 
-            while (i-replyCount.get() > 200_000 )
-                LockSupport.parkNanos(1);
+//            while (i-replyCount.get() > 200_000 )
+//                LockSupport.parkNanos(1);
         }
         Thread.sleep(2000);
         if (replyCount.get() != numMsg) {

@@ -150,9 +150,9 @@ public class HttpClientConnector implements ActorClientConnector {
             req.addHeader(NO_CACHE);
             req.setEntity(new ByteArrayEntity(message));
             openRequests.incrementAndGet();
-            while (openRequests.get() > 10000) {
-//                Actor.current().yield(1);
-                LockSupport.parkNanos(1000*1000);
+            while (openRequests.get() > 200) {
+                Actor.current().yield(1);
+//                LockSupport.parkNanos(1000*1000);
             }
 
             if ( openRequests.get() % 20000 == 0 ) {
