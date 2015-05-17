@@ -7,7 +7,6 @@ import org.nustaq.kontraktor.asyncio.AsyncServerSocket;
 import org.nustaq.kontraktor.asyncio.ObjectAsyncSocketConnection;
 import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
-import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -75,7 +74,7 @@ public class NIOServerConnector extends AsyncServerSocket implements ActorServer
 
         public void init( ObjectSink sink ) { this.sink = sink; }
 
-        @Override public void receivedObject(Object o) { sink.receiveObject(o); }
+        @Override public void receivedObject(Object o) { sink.receiveObject(o, null); }
 
         public void close() throws IOException {
             chan.close();

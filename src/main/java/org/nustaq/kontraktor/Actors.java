@@ -215,6 +215,12 @@ public class Actors {
         return res;
     }
 
+//    public static <T> IPromise<IPromise[]> all(IPromise ... futures) {
+//        Promise res = new Promise();
+//        awaitSettle(futures, 0, res);
+//        return res;
+//    }
+
     /**
      * similar to es6 Promise.all method, however non-IPromise objects are not allowed
      *

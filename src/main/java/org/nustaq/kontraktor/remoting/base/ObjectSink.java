@@ -1,6 +1,9 @@
 package org.nustaq.kontraktor.remoting.base;
 
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.util.Log;
+
+import java.util.List;
 
 /**
  * Created by ruedi on 09/05/15.
@@ -9,10 +12,14 @@ import org.nustaq.kontraktor.util.Log;
  */
 public interface ObjectSink {
 
-    public void receiveObject(Object received);
-    public void sinkClosed();
+    void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures);
+    void sinkClosed();
 
     // sequencing is unimplemented by default
+
+    default void receiveObject(Object received, List<IPromise> createdFutures) {
+        receiveObject(this, received, createdFutures);
+    }
 
     default int getLastSinkSequence() {
         return -1;

@@ -6,10 +6,7 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.PathHandler;
 import io.undertow.util.Headers;
 import io.undertow.util.Methods;
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorServerConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
@@ -27,25 +24,28 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
  * Created by ruedi on 12.05.2015.
  *
- * A longpoll based connector. Only Binary/MinBin coding using POST requests is supported
+ * A longpoll+shortpoll based connector. Only Binary/MinBin coding using POST requests is supported
  *
- * Algorithm:
+ * Algorithm/Expected client behaviour:
  *
  * Longpoll request is held until an event occurs or timeout. An incoming lp request reports
  * last seen sequence in its url ../sessionId/sequence such that in case of network failure
  * messages can be delivered more than once from a short (outgoing) message history.
  *
- * Incoming requests are sequenced also and are reordered in case http requests are
- * delivered out of order because of network race conditions.
+ * Regular requests are expected to come in ordered (so next request is done only if first one was replied).
+ * This is necessary due to http 1.1 limitations (multiple connections+reordering would be required otherwise).
+ * Response to regular requests (actor messages) is piggy backed with long-poll outgoing data if avaiable. This may
+ * lead to out of sequence long polls (network race). SO a client has to implement sequence checking in order
+ * to prevent double processing of incoming messages.
  *
- * Back channel is done via long poll exclusively. Incoming calls are always replied empty.
- * Designed to handle thousands of long poll clients on a single actor thread.
+ * For shortpoll, a client sends "{ 'SP', sequence }" to indicate the poll reuqest should return immediately
  *
  * TODO: close session in case of unrecoverable loss
  * TODO: support temporary/discardable websocket connections as a LP optimization.
@@ -185,7 +185,8 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(sessionId))) {
                 @Override
                 protected int getObjectMaxBatchSize() {
-                    return super.getObjectMaxBatchSize()*10;
+                    // huge batch size to make up for stupid sync http 1.1 protocol enforcing latency inclusion
+                    return HttpObjectSocket.HTTP_BATCH_SIZE;
                 }
             };
             sessions.put( sock.getSessionId(), sock );
@@ -232,7 +233,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         // executed in facade thread
         int lastClientSeq = -1;
 
-        if (lastSeenSequence!=null) {
+        if ( lastSeenSequence!=null ) {
             try {
                 lastClientSeq = Integer.parseInt(lastSeenSequence);
             } catch (Throwable t) {
@@ -249,28 +250,37 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         StreamSinkChannel sinkchannel = exchange.getResponseChannel();
 
         if ( ! isEmptyLP ) {
-            httpObjectSocket.getSink().receiveObject(received);
+            ArrayList<IPromise> futures = new ArrayList<>();
+            httpObjectSocket.getSink().receiveObject(received, futures);
 
-            // piggy back outstanding lp messages, outstanding lp request is untouched
-            Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
-            byte response[] = nextQueuedMessage.getFirst();
-            exchange.setResponseContentLength(response.length);
-            if (response.length == 0) {
-                exchange.endExchange();
-            } else {
-                httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
+            Runnable reply = () -> {
+                // piggy back outstanding lp messages, outstanding lp request is untouched
+                Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
+                byte response[] = nextQueuedMessage.getFirst();
+                exchange.setResponseContentLength(response.length);
+                if (response.length == 0) {
+                    exchange.endExchange();
+                } else {
+                    httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
 
-                ByteBuffer responseBuf = ByteBuffer.wrap(response);
-
-                while (responseBuf.remaining()>0) {
-                    try {
-                        sinkchannel.write(responseBuf);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    ByteBuffer responseBuf = ByteBuffer.wrap(response);
+                    while (responseBuf.remaining()>0) {
+                        try {
+                            sinkchannel.write(responseBuf);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     }
+                    exchange.endExchange();
                 }
-                exchange.endExchange();
-//                httpObjectSocket.triggerLongPoll();
+            };
+            if ( futures == null || futures.size() == 0 ) {
+                reply.run();
+            } else {
+                Actors.all((List)futures).then( () -> {
+                    reply.run();
+                });
+                sinkchannel.resumeWrites();
             }
             return;
         }
@@ -368,11 +378,6 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             httpObjectSocket.triggerLongPoll();
         }
         httpObjectSocket.setLongPollTask(lpTask);
-// too expensive in case of high traffic fast polling
-//        Actor.current().delayed(HttpObjectSocket.LP_TIMEOUT, () -> {
-//            if ( httpObjectSocket.getLongPollTask() == lpTask )
-//                httpObjectSocket.triggerLongPoll();
-//        });
     }
 
     @Override
@@ -394,15 +399,20 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             System.out.println("received "+count++);
             return resolve(count-1);
         }
+
+        public void $cb( Callback cb ) {
+            for ( int i = 0; i < 10; i++ ) {
+                if ( i < 9 ) {
+                    cb.stream(i);
+                }
+                else
+                    cb.finish();
+            }
+
+        }
     }
 
     public static void main( String a[] ) throws Exception {
-//        Pair<PathHandler, Undertow> serverPair = UndertowWebsocketServerConnector.GetServer(8080, "localhost");
-//        HTTPA facade = Actors.AsActor(HTTPA.class);
-//        UndertowHttpConnector con = new UndertowHttpConnector(facade);
-//        ActorServer actorServer = new ActorServer(con, facade, new Coding(SerializerType.MinBin));
-//        actorServer.start();
-//        serverPair.getFirst().addPrefixPath("http", con);
 
         HTTPA facade = Actors.AsActor(HTTPA.class);
         Publish(facade,"localhost","myservice",8080,null);

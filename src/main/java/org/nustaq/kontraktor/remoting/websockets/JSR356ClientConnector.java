@@ -126,7 +126,7 @@ public class JSR356ClientConnector implements ActorClientConnector {
 
         @OnMessage
         public void onMessage(byte[] message) {
-            sink.receiveObject(conf.asObject(message));
+            sink.receiveObject(conf.asObject(message), null);
         }
 
         @OnMessage

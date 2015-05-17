@@ -21,12 +21,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by ruedi on 10/05/15.
  */
 public class RemotingTest {
+
+    static AtomicInteger errors = new AtomicInteger();
+    static boolean checkSequenceErrors = true;
 
     public static class RemotingTestService extends Actor<RemotingTestService> {
 
@@ -54,8 +56,14 @@ public class RemotingTest {
             measure.count();
         }
 
+        int prev = -1;
         public IPromise<Integer> $benchMarkPromise(int someVal, String someString) {
             measure.count();
+            if ( checkSequenceErrors && someVal != prev+1 ) {
+                errors.incrementAndGet();
+                System.out.println("error: received "+someVal+" curr:"+prev);
+            }
+            prev = someVal;
             return new Promise<>(someVal);
         }
 
@@ -67,6 +75,7 @@ public class RemotingTest {
 
     @Test @Ignore
     public void testWSJSR() throws Exception {
+        checkSequenceErrors = true;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = JSR356ServerConnector.Publish(service, "ws://localhost:8081/ws", null).await();
         RemotingTestService client = JSR356ClientConnector.Connect(RemotingTestService.class, "ws://localhost:8081/ws", null).await(9999999);
@@ -80,8 +89,10 @@ public class RemotingTest {
 
     @Test
     public void testHttp() throws Exception {
+        checkSequenceErrors = true;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = UndertowHttpServerConnector.Publish(service, "localhost", "/lp", 8082, null).await();
+//        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, true, 1000).await(9999999);
         RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null).await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
@@ -92,9 +103,10 @@ public class RemotingTest {
 
     @Test
     public void testHttpMany() throws Exception {
+        checkSequenceErrors = false;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = UndertowHttpServerConnector.Publish(service, "localhost", "/lp", 8082, null).await();
-        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null).await(9999999);
+        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, false, 0).await(9999999);
         ExecutorService exec = Executors.newCachedThreadPool();
         CountDownLatch latch = new CountDownLatch(10);
         for ( int i = 0; i < 10; i++ )
@@ -114,6 +126,7 @@ public class RemotingTest {
 
     @Test
     public void testWS() throws Exception {
+        checkSequenceErrors = true;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = UndertowWebsocketServerConnector.Publish(service, "localhost", "/ws", 8081 , null ).await();
         RemotingTestService client = JSR356ClientConnector.Connect(RemotingTestService.class, "ws://localhost:8081/ws", null).await(9999999);
@@ -126,6 +139,7 @@ public class RemotingTest {
 
     @Test
     public void testWSMany() throws Exception {
+        checkSequenceErrors = false;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = UndertowWebsocketServerConnector.Publish(service, "localhost", "/ws", 8081 , null ).await();
         RemotingTestService client = JSR356ClientConnector.Connect(RemotingTestService.class, "ws://localhost:8081/ws", null).await(9999999);
@@ -148,6 +162,7 @@ public class RemotingTest {
 
     @Test
     public void testNIO() throws Exception {
+        checkSequenceErrors = true;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = NIOServerConnector.Publish(service, 8081, null).await();
         CountDownLatch latch = new CountDownLatch(1);
@@ -159,6 +174,7 @@ public class RemotingTest {
 
     @Test
     public void testNIOMany() throws Exception {
+        checkSequenceErrors = false;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = NIOServerConnector.Publish(service, 8081, null).await();
         ExecutorService exec = Executors.newCachedThreadPool();
@@ -180,6 +196,7 @@ public class RemotingTest {
 
     @Test
     public void testBlocking() throws Exception {
+        checkSequenceErrors = true;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = TCPServerConnector.Publish(service, 8081, null).await();
         CountDownLatch latch = new CountDownLatch(1);
@@ -191,6 +208,7 @@ public class RemotingTest {
 
     @Test
     public void testBlockingMany() throws Exception {
+        checkSequenceErrors = false;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = TCPServerConnector.Publish(service, 8081, null).await();
         ExecutorService exec = Executors.newCachedThreadPool();
@@ -244,7 +262,7 @@ public class RemotingTest {
             client.$benchMarkVoid(13, null);
         }
         System.out.println("two way performance");
-        AtomicInteger errors = new AtomicInteger();
+        errors.set(0);
         boolean seq[] = new boolean[numMsg];
         for ( int i = 0; i < numMsg; i++ ) {
             if ( i%1_000_000==0 )
@@ -255,24 +273,22 @@ public class RemotingTest {
                     errors.incrementAndGet();
                 seq[s] = true;
             });
-
-//            while (i-replyCount.get() > 200_000 )
-//                LockSupport.parkNanos(1);
         }
         Thread.sleep(2000);
         if (replyCount.get() != numMsg) {
             System.out.println("extend wait ..");
-            Thread.sleep(HttpObjectSocket.LP_TIMEOUT);
+            Thread.sleep(HttpObjectSocket.LP_TIMEOUT*2);
         }
         for (int i = 0; i < seq.length; i++) {
             boolean b = seq[i];
             if ( !b ) {
                 System.out.println("missing:"+i);
+                errors.incrementAndGet();
             }
         }
         System.out.println("done "+Thread.currentThread()+" "+replyCount);
-        junit.framework.Assert.assertTrue(replyCount.get()== numMsg);
-        junit.framework.Assert.assertTrue(errors.get()== 0);
+        junit.framework.Assert.assertTrue(replyCount.get() == numMsg);
+        junit.framework.Assert.assertTrue(errors.get() == 0);
         l.countDown();
     }
 

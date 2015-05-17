@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.remoting.http;
 
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.messagestore.HeapMessageStore;
 import org.nustaq.kontraktor.remoting.base.messagestore.MessageStore;
@@ -9,6 +10,7 @@ import org.nustaq.offheap.BinaryQueue;
 import org.nustaq.offheap.bytez.onheap.HeapBytez;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Created by ruedi on 12.05.2015.
@@ -19,8 +21,9 @@ import java.io.IOException;
 public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
     public static int LP_TIMEOUT = 5_000;
-
-    public static int REORDERING_HISTORY_SIZE = 5; // amx size of recovered gaps on receiver side
+    public static final int MAX_CONC_CLIENT_REQ = 1; // cannot go higher because of reordering hassle
+    public static int REORDERING_HISTORY_SIZE = 3; // max size of recovered gaps/repolls on sender/receiver sides
+    public static int HTTP_BATCH_SIZE = 1_000; // batch messages to partially make up for http 1.1 synchronous design failure
 
     final Runnable closeAction;
     long lastUse = System.currentTimeMillis();
@@ -128,8 +131,8 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     int lastSinkSequence = 0; // fixme: check threading
 
     @Override
-    public void receiveObject(Object received) {
-        sink.receiveObject(received);
+    public void receiveObject(ObjectSink asink, Object received, List<IPromise> createdFutures) {
+        sink.receiveObject(asink,received, createdFutures);
     }
 
     @Override

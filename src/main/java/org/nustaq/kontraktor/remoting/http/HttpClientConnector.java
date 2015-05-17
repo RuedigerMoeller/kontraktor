@@ -22,7 +22,6 @@ import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.Function;
 
 /**
@@ -41,8 +40,16 @@ import java.util.function.Function;
  */
 public class HttpClientConnector implements ActorClientConnector {
 
-    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Coding c ) {
+    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Coding c) {
+        return Connect(clz,url,disconnectCallback,c,false,0);
+    }
+
+    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Coding c, boolean shortPoll, long shortPollIntervalMS ) {
         HttpClientConnector con = new HttpClientConnector(url);
+
+        con.shortPollMode = shortPoll;
+        con.shortPollIntervalMS = shortPollIntervalMS > 0 ? shortPollIntervalMS : con.shortPollIntervalMS;
+
         con.disconnectCallback = disconnectCallback;
         ActorClient actorClient = new ActorClient(con, clz, c == null ? new Coding(SerializerType.FSTSer) : c);
         Promise p = new Promise();
@@ -59,6 +66,11 @@ public class HttpClientConnector implements ActorClientConnector {
     volatile boolean isClosed = false;
     Promise closedNotification;
     Callback<ActorClientConnector> disconnectCallback;
+    boolean noPoll = true;
+
+    boolean shortPollMode = false;   // if true, do short polling instead
+    long shortPollIntervalMS = 5000;
+    long currentShortPollIntervalMS = shortPollIntervalMS;
 
     public HttpClientConnector(String host) {
         this.host = host;
@@ -77,27 +89,56 @@ public class HttpClientConnector implements ActorClientConnector {
         startLongPoll(myHttpWS);
     }
 
+    Runnable pollRunnable;
     protected void startLongPoll(MyHttpWS myHttpWS) {
-        // start longpoll
-        Runnable lp[] = {null};
-        lp[0] = () -> {
-            // sends either queued outgoing calls or creates LP request
-            myHttpWS.longPoll().then((r, e) -> {
-                if (isClosed) {
-                    if (closedNotification != null) {
-                        closedNotification.complete();
-                        closedNotification = null;
+        if ( noPoll )
+            return;
+        // start longpoll/shortpoll
+        currentShortPollIntervalMS = shortPollIntervalMS;
+        pollRunnable = () -> {
+            if ( shortPollMode ) {
+                getRefPollActor().delayed(currentShortPollIntervalMS, () -> {
+                    if (isClosed) {
+                        if (closedNotification != null) {
+                            closedNotification.complete();
+                            closedNotification = null;
+                        }
+                        return;
                     }
-                    return;
-                }
-                if (e == null)
-                    Actor.current().execute(lp[0]);
-                else // error
-                    Actor.current().delayed(1000, lp[0]);
-            });
+                    try {
+                        myHttpWS.writeObject("SP");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    Actor.current().delayed(currentShortPollIntervalMS, pollRunnable);
+                    if (currentShortPollIntervalMS < shortPollIntervalMS) {
+                        currentShortPollIntervalMS *= 2;
+                        currentShortPollIntervalMS = Math.min(shortPollIntervalMS, currentShortPollIntervalMS);
+                    }
+                });
+            } else {
+                // sends either queued outgoing calls or creates LP request
+                myHttpWS.longPoll().then((r, e) -> {
+                    if (isClosed) {
+                        if (closedNotification != null) {
+                            closedNotification.complete();
+                            closedNotification = null;
+                        }
+                        return;
+                    }
+                    if (e == null)
+                        Actor.current().execute(pollRunnable);
+                    else // error
+                        Actor.current().delayed(1000, pollRunnable);
+                });
+            }
         };
-        getReceiveActor().__currentDispatcher.setName("Http LP dispatcher");
-        getReceiveActor().execute( lp[0] );
+        if ( ! shortPollMode ) {
+            getReceiveActor().__currentDispatcher.setName("Http LP dispatcher");
+            getReceiveActor().execute(pollRunnable);
+        } else {
+            getRefPollActor().execute(pollRunnable);
+        }
     }
 
     @Override
@@ -140,8 +181,10 @@ public class HttpClientConnector implements ActorClientConnector {
             this.url = url;
             asyncHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).build() ).build();
             asyncHttpClient.start();
-            lpHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).build() ).build();
-            lpHttpClient.start();
+            if ( ! shortPollMode ) {
+                lpHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).build() ).build();
+                lpHttpClient.start();
+            }
         }
 
         @Override
@@ -150,7 +193,7 @@ public class HttpClientConnector implements ActorClientConnector {
             req.addHeader(NO_CACHE);
             req.setEntity(new ByteArrayEntity(message));
             openRequests.incrementAndGet();
-            while (openRequests.get() > 200) {
+            while (openRequests.get() > HttpObjectSocket.MAX_CONC_CLIENT_REQ) {
                 Actor.current().yield(1);
 //                LockSupport.parkNanos(1000*1000);
             }
@@ -162,7 +205,7 @@ public class HttpClientConnector implements ActorClientConnector {
                 @Override
                 public void completed(HttpResponse result) {
                     openRequests.decrementAndGet();
-                    Runnable processLPResponse = getProcessLPRunnable(new Promise(),result);
+                    Runnable processLPResponse = getProcessLPRunnable(new Promise(), result);
                     getReceiveActor().execute(processLPResponse);
                 }
 
@@ -238,7 +281,7 @@ public class HttpClientConnector implements ActorClientConnector {
                         }
                         if (send) {
 //                                    getRefPollActor().execute( () -> sink.receiveObject(o) );
-                            sink.receiveObject(o);
+                            sink.receiveObject(o, null);
                         }
                         else {
 //                            Log.Warn(this, "IGNORED LP RESPONSE, OUT OF SEQ");
@@ -253,13 +296,30 @@ public class HttpClientConnector implements ActorClientConnector {
 
         @Override
         public synchronized void writeObject(Object toWrite) throws Exception {
+            if ( ! "SP".equals(toWrite) ) { // short polling marker
+                // decrease poll interval temporary (backoff)
+                currentShortPollIntervalMS = 200;
+                // trigger next poll in 100 ms
+                getRefPollActor().delayed(100, () -> {
+                    try {
+                        writeObject("SP");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
             super.writeObject(toWrite);
         }
 
         @Override
         public synchronized void flush() throws Exception {
-            if (openRequests.get() < 100 || objects.size() > 500)
-                super.flush();
+            super.flush();
+        }
+
+        @Override
+        protected int getObjectMaxBatchSize() {
+            // huge batch size to make up for stupid sync http 1.1 protocol enforcing latency inclusion
+            return HttpObjectSocket.HTTP_BATCH_SIZE;
         }
 
         public IPromise longPoll() {
@@ -319,19 +379,26 @@ public class HttpClientConnector implements ActorClientConnector {
                         UndertowHttpServerConnector.HTTPA.class,
                         "http://localhost:8080/myservice",
                         (res, err) -> System.out.println("closed"),
-                        null //new Coding(SerializerType.MinBin)
+                        null, //new Coding(SerializerType.MinBin)
+                        true,
+                        0
                     ).await();
 
                 int count[] = {0};
                 Runnable pok[] = {null};
                 pok[0] = () -> {
-                    act.hello("pok").then(r -> {
+                    act.hello("pok").then( r -> {
                         System.out.println("response:" + count[0]++ + " " + r);
-        //                        if (count[0] - 1 != ((Number) r).intValue())
-        //                            System.exit(0);
-                        Actors.SubmitDelayed(100, pok[0]);
                     });
+                    Actors.SubmitDelayed((long) (Math.random()*1000), pok[0]);
                 };
+//                pok[0] = () -> {
+//                    System.out.println("Call => ");
+//                    act.$cb( (r,e) -> {
+//                        System.out.println("pok "+r);
+//                    });
+//                    Actors.SubmitDelayed((long) (Math.random()*10000), pok[0]);
+//                };
                 Actors.SubmitDelayed(1, pok[0]);
             }
         } catch (Exception e) {

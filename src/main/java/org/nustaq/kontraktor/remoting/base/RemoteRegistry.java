@@ -12,6 +12,7 @@ import org.nustaq.serialization.FSTConfiguration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -215,10 +216,11 @@ public abstract class RemoteRegistry implements RemoteConnection {
      *
      * @param responseChannel - writer required to route callback messages
      * @param response
+     * @param createdFutures - can be null. Contains futures created by the submitted callsequence
      * @return
      * @throws Exception
      */
-    public boolean receiveObject(ObjectSocket responseChannel, ObjectSink receiver, Object response) throws Exception {
+    public boolean receiveObject(ObjectSocket responseChannel, ObjectSink receiver, Object response, List<IPromise> createdFutures) throws Exception {
         if ( response == RemoteRegistry.OUT_OF_ORDER_SEQ )
             return false;
         if ( response instanceof Object[] ) { // bundling. last element contains sequence
@@ -231,7 +233,9 @@ public abstract class RemoteRegistry implements RemoteConnection {
             else
                 inSequence = ((Number) arr[max]).intValue();
 
-            if ( receiver.getLastSinkSequence() >= 0 ) {
+            if ( receiver.getLastSinkSequence() >= 0 && false ) {
+                // reordering turned off. History needs to have a huge size for reordering buffer in case of concurrent http requests
+                // very stupid protocol http 1.1
                 if ( receiver.getLastSinkSequence() == 0 ) {
                     receiver.setLastSinkSequence(inSequence);
                 } else if ( receiver.getLastSinkSequence() != inSequence-1 ) {
@@ -250,30 +254,30 @@ public abstract class RemoteRegistry implements RemoteConnection {
             for (int i = 0; i < max; i++) {
                 Object resp = arr[i];
                 if (resp instanceof RemoteCallEntry == false) {
-                    if ( resp != null )
+                    if ( resp != null && ! "SP".equals(resp) )
                         Log.Lg.error(this, null, "unexpected response:" + resp); // fixme
                     hadResp = true;
-                } else if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) resp))
+                } else if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) resp, createdFutures))
                     hadResp = true;
             }
             Object next = receiver.takeStoredMessage(inSequence + 1);
             if (next!=null) {
                 Log.Info(this,"fill gap "+responseChannel+" "+(inSequence+1));
-                return hadResp || receiveObject(responseChannel,receiver,next);
+                return hadResp || receiveObject(responseChannel,receiver,next,createdFutures);
             }
             return hadResp;
         } else {
             if (response instanceof RemoteCallEntry == false) {
-                if ( response != null )
+                if ( response != null && ! "SP".equals(response))
                     Log.Lg.error(this, null, "unexpected response:" + response); // fixme
                 return true;
             }
-            if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) response)) return true;
+            if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) response, createdFutures)) return true;
         }
         return false;
     }
 
-    protected boolean processRemoteCallEntry(ObjectSocket channel, RemoteCallEntry response) throws Exception {
+    protected boolean processRemoteCallEntry(ObjectSocket channel, RemoteCallEntry response, List<IPromise> createdFutures ) throws Exception {
         RemoteCallEntry read = response;
         boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
         if ( isContinue )
@@ -299,9 +303,17 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
             Object future = targetActor.getScheduler().enqueueCallFromRemote(this, null, targetActor, read.getMethod(), read.getArgs(), false);
             if ( future instanceof IPromise) {
+                Promise p = null;
+                if ( createdFutures != null ) {
+                    p = new Promise();
+                    createdFutures.add(p);
+                }
+                final Promise finalP = p;
                 ((IPromise) future).then( (r,e) -> {
                     try {
                         receiveCBResult(channel, read.getFutureKey(), r, e);
+                        if ( finalP != null )
+                            finalP.complete();
                     } catch (Exception ex) {
                         Log.Warn(this, ex, "");
                     }

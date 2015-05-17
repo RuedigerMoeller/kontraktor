@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -51,14 +52,16 @@ public class ActorServer {
             poller.get().scheduleSendLoop(reg);
             reg.publishActor(facade);
             return new ObjectSink() {
+
                 @Override
-                public void receiveObject(Object received) {
+                public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures) {
                     try {
-                        reg.receiveObject(socketRef.get(),this,received);
+                        reg.receiveObject(socketRef.get(),sink,received,createdFutures);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
                 }
+
                 @Override
                 public void sinkClosed() {
                     reg.setTerminated(true);

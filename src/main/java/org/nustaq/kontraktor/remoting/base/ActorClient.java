@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -67,9 +68,9 @@ public class ActorClient<T extends Actor> {
 
                 return new ObjectSink() {
                     @Override
-                    public void receiveObject(Object received) {
+                    public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures) {
                         try {
-                            reg.receiveObject(socketRef.get(),this,received);
+                            reg.receiveObject(socketRef.get(),sink,received, createdFutures);
                         } catch (Exception e) {
                             e.printStackTrace();
                         }

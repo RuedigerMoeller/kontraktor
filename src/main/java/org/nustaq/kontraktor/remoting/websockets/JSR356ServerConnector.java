@@ -11,7 +11,6 @@ import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.util.Log;
 
 import javax.websocket.*;
-import javax.websocket.server.ServerEndpoint;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
@@ -64,7 +63,7 @@ public class JSR356ServerConnector extends Endpoint implements ActorServerConnec
         session.addMessageHandler(new MessageHandler.Whole<byte[]>() {
             @Override
             public void onMessage(byte msg[]) {
-                sink.receiveObject(msg);
+                sink.receiveObject(msg, null);
             }
         });
     }

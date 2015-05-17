@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -98,7 +97,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
                         protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
                             ByteBuffer[] data = message.getData().getResource();
                             byte[] bytez = Buffers.take(data, 0, data.length);
-                            sink.receiveObject(objectSocket.getConf().asObject(bytez));
+                            sink.receiveObject(objectSocket.getConf().asObject(bytez), null);
                         }
                     });
                 };

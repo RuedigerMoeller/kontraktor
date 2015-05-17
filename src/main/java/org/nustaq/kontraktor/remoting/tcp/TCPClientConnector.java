@@ -5,14 +5,12 @@ import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.net.TCPObjectSocket;
-import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -71,7 +69,7 @@ public class TCPClientConnector implements ActorClientConnector {
             while (!socket.isClosed()) {
                 try {
                     Object o = socket.readObject();
-                    sink.receiveObject(o);
+                    sink.receiveObject(o, null);
                 } catch (Exception e) {
                     if (e instanceof EOFException == false && e instanceof SocketException == false )
                         Log.Warn(this, e);
