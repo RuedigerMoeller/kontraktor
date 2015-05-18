@@ -1,7 +1,6 @@
 package org.nustaq.kontraktor.asyncio;
 
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.offheap.BinaryQueue;
 import org.nustaq.offheap.bytez.niobuffers.ByteBufferBasicBytez;
@@ -43,33 +42,37 @@ public abstract class QueuingAsyncSocketConnection extends AsyncSocketConnection
     }
 
     public void write( ByteBuffer buf ) {
+        checkThread();
         checkQSize();
         tmp.setBuffer(buf);
         writeQueue.add(tmp);
     }
 
     public void write( byte b[] ) {
+        checkThread();
         checkQSize();
         write(b, 0, b.length);
     }
 
     public void write( byte b[], int off, int len ) {
+        checkThread();
         checkQSize();
         tmpBA.setBase(b, off, len);
         writeQueue.add(tmpBA);
     }
 
     public void write( int val ) {
+        checkThread();
         checkQSize();
         writeQueue.addInt(val);
     }
 
     // quite some fiddling required to deal with various byte abstractions
 
-    IPromise writeFuture; // fires once next chunk from queue can be taken
     ByteBuffer qWriteTmp = ByteBuffer.allocateDirect(128000);
     public void tryFlush() {
-        if ( writeFuture == null) {
+        checkThread();
+        if ( canWrite() ) {
             qWriteTmp.position(0);
             qWriteTmp.limit(qWriteTmp.capacity());
             tmp.setBuffer(qWriteTmp);
@@ -77,11 +80,10 @@ public abstract class QueuingAsyncSocketConnection extends AsyncSocketConnection
 //            System.out.println("try write "+poll+" avail:"+writeQueue.available()+" cap:"+writeQueue.capacity());
             if (poll > 0) {
                 qWriteTmp.limit((int) poll);
-                writeFuture = directWrite(qWriteTmp);
-                writeFuture.then( (res,err) -> {
-                    writeFuture = null;
-                    if ( err != null) {
-                        Log.Lg.error(this, (Throwable) err,"write failure");
+                IPromise queueDataAvailablePromise = directWrite(qWriteTmp);
+                queueDataAvailablePromise.then((res, err) -> {
+                    if (err != null) {
+                        Log.Lg.error(this, (Throwable) err, "write failure");
                     } else {
                         tryFlush();
                     }

@@ -37,6 +37,7 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
 
     @Override
     public void dataReceived(BinaryQueue q) {
+        checkThread();
         while ( q.available() > 4 ) {
             int len = q.readInt();
             if ( len <= 0 )
@@ -57,6 +58,7 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
     public abstract void receivedObject(Object o);
 
     public void writeObject(Object o) {
+        checkThread();
         objects.add(o);
         if (objects.size()>100) {
             try {
@@ -69,6 +71,7 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
 
     @Override
     public void flush() throws IOException, Exception {
+        checkThread();
         if ( objects.size() == 0 ) {
             return;
         }

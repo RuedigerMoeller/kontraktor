@@ -103,6 +103,7 @@ public class AsyncServerSocket {
                                     hadStuff = true;
                                     try {
                                         if ( ! con.readData() ) {
+                                            // yield ?
                                         }
                                     } catch (Exception ioe) {
                                         ioe.printStackTrace();

@@ -43,6 +43,7 @@ public abstract class AsyncSocketConnection {
      * @throws IOException
      */
     boolean readData() throws IOException {
+        checkThread();
         readBuf.position(0); readBuf.limit(readBuf.capacity());
         int read = chan.read(readBuf);
         if ( read == -1 )
@@ -51,6 +52,14 @@ public abstract class AsyncSocketConnection {
         if ( readBuf.limit() > 0 )
             dataReceived(readBuf);
         return read == readBuf.capacity();
+    }
+
+    protected void checkThread() {
+        if ( debug == null )
+            debug = Thread.currentThread();
+        else if ( debug != Thread.currentThread() ) {
+            throw new RuntimeException("unexpected multithreading");
+        }
     }
 
     /**
@@ -64,7 +73,9 @@ public abstract class AsyncSocketConnection {
      * @param buf
      * @return
      */
+    Thread debug;
     protected IPromise directWrite(ByteBuffer buf) {
+        checkThread();
         if ( writePromise != null )
             throw new RuntimeException("concurrent write con:"+chan.isConnected()+" open:"+chan.isOpen());
         writePromise = new Promise();
@@ -92,7 +103,13 @@ public abstract class AsyncSocketConnection {
         return writingBuffer;
     }
 
+    public boolean canWrite() {
+        return writePromise == null;
+    }
+
+
     void writeFinished(Object error) {
+        checkThread();
         writingBuffer = null;
         Promise wp = this.writePromise;
         writePromise = null;

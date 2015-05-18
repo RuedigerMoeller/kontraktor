@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Scanner;
 
 /**
- * Created by ruedi on 01.05.2015.
+ * Created by ruedi on 01.05.2015. Unfinished
  */
 public class ShowcaseActor extends Actor<ShowcaseActor> {
 
