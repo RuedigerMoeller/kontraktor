@@ -21,9 +21,8 @@ import java.util.List;
 public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
     public static int LP_TIMEOUT = 5_000;
-    public static final int MAX_CONC_CLIENT_REQ = 1; // cannot go higher because of reordering hassle
-    public static int REORDERING_HISTORY_SIZE = 3; // max size of recovered gaps/repolls on sender/receiver sides
-    public static int HTTP_BATCH_SIZE = 1_000; // batch messages to partially make up for http 1.1 synchronous design failure
+    public static int HISTORY_SIZE = 3; // max size of recovered polls on server sides
+    public static int HTTP_BATCH_SIZE = 500; // batch messages to partially make up for http 1.1 synchronous design failure
 
     final Runnable closeAction;
     long lastUse = System.currentTimeMillis();
@@ -31,7 +30,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     String sessionId;
     BinaryQueue queue = new BinaryQueue(4096);
     ObjectSink sink;
-    MessageStore store = new HeapMessageStore(REORDERING_HISTORY_SIZE);
+    MessageStore store = new HeapMessageStore(HISTORY_SIZE);
     Runnable longPollTask;
     Thread myThread;
     long longPollTaskTime;
@@ -126,10 +125,6 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         return longPollTaskTime;
     }
 
-    /////////////// add reordering support for sink
-
-    int lastSinkSequence = 0; // fixme: check threading
-
     @Override
     public void receiveObject(ObjectSink asink, Object received, List<IPromise> createdFutures) {
         sink.receiveObject(asink,received, createdFutures);
@@ -138,26 +133,6 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     @Override
     public void sinkClosed() {
         sink.sinkClosed();
-    }
-
-    @Override
-    public int getLastSinkSequence() {
-        return lastSinkSequence;
-    }
-
-    @Override
-    public void setLastSinkSequence(int ls) {
-        lastSinkSequence = ls;
-    }
-
-    @Override
-    public Object takeStoredMessage(int seq) {
-        return store.getMessage("rec",seq);
-    }
-
-    @Override
-    public void storeGappedMessage(int inSequence, Object response) {
-        store.putMessage("rec", inSequence, response);
     }
 
     public Object takeStoredLPMessage(int seq) {

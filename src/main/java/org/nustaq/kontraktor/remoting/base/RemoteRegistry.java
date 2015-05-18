@@ -233,24 +233,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
             else
                 inSequence = ((Number) arr[max]).intValue();
 
-            if ( receiver.getLastSinkSequence() >= 0 && false ) {
-                // reordering turned off. History needs to have a huge size for reordering buffer in case of concurrent http requests
-                // very stupid protocol http 1.1
-                if ( receiver.getLastSinkSequence() == 0 ) {
-                    receiver.setLastSinkSequence(inSequence);
-                } else if ( receiver.getLastSinkSequence() != inSequence-1 ) {
-                    if ( inSequence <= receiver.getLastSinkSequence() ) {
-                        Log.Info(this, "dropped double message on " + responseChannel + " " + inSequence);
-                        return false;
-                    } else { // gap, sequence is in future
-                        Log.Info(this,"gap detected on "+responseChannel+" "+inSequence+" last:"+receiver.getLastSinkSequence());
-                        receiver.storeGappedMessage(inSequence,response);
-                    }
-                    return false;
-                }
-                receiver.setLastSinkSequence(inSequence);
-            }
-
             for (int i = 0; i < max; i++) {
                 Object resp = arr[i];
                 if (resp instanceof RemoteCallEntry == false) {
@@ -259,11 +241,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
                     hadResp = true;
                 } else if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) resp, createdFutures))
                     hadResp = true;
-            }
-            Object next = receiver.takeStoredMessage(inSequence + 1);
-            if (next!=null) {
-                Log.Info(this,"fill gap "+responseChannel+" "+(inSequence+1));
-                return hadResp || receiveObject(responseChannel,receiver,next,createdFutures);
             }
             return hadResp;
         } else {
@@ -396,7 +373,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
      * @param chan
      */
     public boolean pollAndSend2Remote(ObjectSocket chan) throws Exception {
-        if ( chan == null )
+        if ( chan == null || ! chan.canWrite() )
             return false;
         boolean hadAnyMsg = false;
         ArrayList<Actor> toRemove = null;

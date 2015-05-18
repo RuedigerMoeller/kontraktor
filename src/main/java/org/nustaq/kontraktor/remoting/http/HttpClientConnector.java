@@ -41,15 +41,13 @@ import java.util.function.Function;
 public class HttpClientConnector implements ActorClientConnector {
 
     public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Coding c) {
-        return Connect(clz,url,disconnectCallback,c,false,0);
+        return Connect(clz,url,disconnectCallback,c,LONG_POLL);
     }
 
-    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Coding c, boolean shortPoll, long shortPollIntervalMS ) {
+    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Coding c, HttpClientConfig cfg ) {
         HttpClientConnector con = new HttpClientConnector(url);
 
-        con.shortPollMode = shortPoll;
-        con.shortPollIntervalMS = shortPollIntervalMS > 0 ? shortPollIntervalMS : con.shortPollIntervalMS;
-
+        con.cfg = cfg;
         con.disconnectCallback = disconnectCallback;
         ActorClient actorClient = new ActorClient(con, clz, c == null ? new Coding(SerializerType.FSTSer) : c);
         Promise p = new Promise();
@@ -60,17 +58,40 @@ public class HttpClientConnector implements ActorClientConnector {
         return p;
     }
 
+    public static HttpClientConfig LONG_POLL = new HttpClientConfig().noPoll(false);
+    public static HttpClientConfig SHORT_POLL = new HttpClientConfig().noPoll(false).shortPoll(true);
+    public static HttpClientConfig NO_POLL = new HttpClientConfig().noPoll(true);
+
+    public static class HttpClientConfig {
+        public boolean noPoll = true;
+        public boolean shortPollMode = false;   // if true, do short polling instead
+        public long shortPollIntervalMS = 5000;
+
+        public HttpClientConfig noPoll(boolean noPoll) {
+            this.noPoll = noPoll;
+            return this;
+        }
+
+        public HttpClientConfig shortPoll(boolean shortPollMode) {
+            this.shortPollMode = shortPollMode;
+            return this;
+        }
+
+        public HttpClientConfig shortPollIntervalMS(long shortPollIntervalMS) {
+            this.shortPollIntervalMS = shortPollIntervalMS;
+            return this;
+        }
+    }
+
     String host;
     String sessionId;
     FSTConfiguration authConf = FSTConfiguration.createMinBinConfiguration();
     volatile boolean isClosed = false;
     Promise closedNotification;
     Callback<ActorClientConnector> disconnectCallback;
-    boolean noPoll = true;
+    HttpClientConfig cfg = new HttpClientConfig();
 
-    boolean shortPollMode = false;   // if true, do short polling instead
-    long shortPollIntervalMS = 5000;
-    long currentShortPollIntervalMS = shortPollIntervalMS;
+    long currentShortPollIntervalMS = cfg.shortPollIntervalMS;
 
     public HttpClientConnector(String host) {
         this.host = host;
@@ -91,12 +112,12 @@ public class HttpClientConnector implements ActorClientConnector {
 
     Runnable pollRunnable;
     protected void startLongPoll(MyHttpWS myHttpWS) {
-        if ( noPoll )
+        if ( cfg.noPoll )
             return;
         // start longpoll/shortpoll
-        currentShortPollIntervalMS = shortPollIntervalMS;
+        currentShortPollIntervalMS = cfg.shortPollIntervalMS;
         pollRunnable = () -> {
-            if ( shortPollMode ) {
+            if ( cfg.shortPollMode ) {
                 getRefPollActor().delayed(currentShortPollIntervalMS, () -> {
                     if (isClosed) {
                         if (closedNotification != null) {
@@ -111,9 +132,9 @@ public class HttpClientConnector implements ActorClientConnector {
                         e.printStackTrace();
                     }
                     Actor.current().delayed(currentShortPollIntervalMS, pollRunnable);
-                    if (currentShortPollIntervalMS < shortPollIntervalMS) {
+                    if (currentShortPollIntervalMS < cfg.shortPollIntervalMS) {
                         currentShortPollIntervalMS *= 2;
-                        currentShortPollIntervalMS = Math.min(shortPollIntervalMS, currentShortPollIntervalMS);
+                        currentShortPollIntervalMS = Math.min(cfg.shortPollIntervalMS, currentShortPollIntervalMS);
                     }
                 });
             } else {
@@ -133,7 +154,7 @@ public class HttpClientConnector implements ActorClientConnector {
                 });
             }
         };
-        if ( ! shortPollMode ) {
+        if ( ! cfg.shortPollMode ) {
             getReceiveActor().__currentDispatcher.setName("Http LP dispatcher");
             getReceiveActor().execute(pollRunnable);
         } else {
@@ -181,7 +202,7 @@ public class HttpClientConnector implements ActorClientConnector {
             this.url = url;
             asyncHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).build() ).build();
             asyncHttpClient.start();
-            if ( ! shortPollMode ) {
+            if ( ! cfg.shortPollMode ) {
                 lpHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).build() ).build();
                 lpHttpClient.start();
             }
@@ -189,24 +210,23 @@ public class HttpClientConnector implements ActorClientConnector {
 
         @Override
         public void sendBinary(byte[] message) {
+            openRequests.incrementAndGet();
             HttpPost req = new HttpPost(url+"/"+lastReceivedSequence);
             req.addHeader(NO_CACHE);
             req.setEntity(new ByteArrayEntity(message));
-            openRequests.incrementAndGet();
-            while (openRequests.get() > HttpObjectSocket.MAX_CONC_CLIENT_REQ) {
-                Actor.current().yield(1);
-//                LockSupport.parkNanos(1000*1000);
-            }
-
-            if ( openRequests.get() % 20000 == 0 ) {
-                System.out.println("OPEN "+openRequests.get());
-            }
             asyncHttpClient.execute(req, new FutureCallback<HttpResponse>() {
                 @Override
                 public void completed(HttpResponse result) {
                     openRequests.decrementAndGet();
                     Runnable processLPResponse = getProcessLPRunnable(new Promise(), result);
                     getReceiveActor().execute(processLPResponse);
+                    getRefPollActor().execute(() -> {
+                        try {
+                            flush();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    });
                 }
 
                 @Override
@@ -295,7 +315,7 @@ public class HttpClientConnector implements ActorClientConnector {
         }
 
         @Override
-        public synchronized void writeObject(Object toWrite) throws Exception {
+        public void writeObject(Object toWrite) throws Exception {
             if ( ! "SP".equals(toWrite) ) { // short polling marker
                 // decrease poll interval temporary (backoff)
                 currentShortPollIntervalMS = 200;
@@ -308,12 +328,21 @@ public class HttpClientConnector implements ActorClientConnector {
                     }
                 });
             }
-            super.writeObject(toWrite);
+            objects.add(toWrite);
+            if (objects.size() > getObjectMaxBatchSize()) {
+                flush();
+            }
         }
 
         @Override
-        public synchronized void flush() throws Exception {
-            super.flush();
+        public boolean canWrite() {
+            return openRequests.get() == 0 || objects.size() < getObjectMaxBatchSize();
+        }
+
+        @Override
+        public void flush() throws Exception {
+            if (openRequests.get() == 0)
+                super.flush();
         }
 
         @Override
@@ -380,13 +409,13 @@ public class HttpClientConnector implements ActorClientConnector {
                         "http://localhost:8080/myservice",
                         (res, err) -> System.out.println("closed"),
                         null, //new Coding(SerializerType.MinBin)
-                        true,
-                        0
+                        NO_POLL
                     ).await();
 
                 int count[] = {0};
                 Runnable pok[] = {null};
                 pok[0] = () -> {
+                    act.$ui();
                     act.hello("pok").then( r -> {
                         System.out.println("response:" + count[0]++ + " " + r);
                     });

@@ -13,27 +13,10 @@ import java.util.List;
 public interface ObjectSink {
 
     void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures);
+    default void receiveObject(Object received, List<IPromise> createdFutures) {
+        receiveObject(this,received,createdFutures);
+    }
     void sinkClosed();
 
-    // sequencing is unimplemented by default
-
-    default void receiveObject(Object received, List<IPromise> createdFutures) {
-        receiveObject(this, received, createdFutures);
-    }
-
-    default int getLastSinkSequence() {
-        return -1;
-    }
-
-    default void setLastSinkSequence(int ls) {
-    }
-
-    default Object takeStoredMessage(int seq) {
-        return null;
-    }
-
-    default void storeGappedMessage(int inSequence, Object response) {
-        Log.Warn(this, "gap handling not supported");
-    }
 }
 

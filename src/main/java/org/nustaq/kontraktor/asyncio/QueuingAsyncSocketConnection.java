@@ -69,7 +69,7 @@ public abstract class QueuingAsyncSocketConnection extends AsyncSocketConnection
     IPromise writeFuture; // fires once next chunk from queue can be taken
     ByteBuffer qWriteTmp = ByteBuffer.allocateDirect(128000);
     public void tryFlush() {
-        if ( writeFuture == null ) {
+        if ( writeFuture == null) {
             qWriteTmp.position(0);
             qWriteTmp.limit(qWriteTmp.capacity());
             tmp.setBuffer(qWriteTmp);

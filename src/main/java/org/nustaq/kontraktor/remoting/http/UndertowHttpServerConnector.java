@@ -167,7 +167,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             String[] split = path.split("/");
             HttpObjectSocket httpObjectSocket = sessions.get(split[0]);
             if ( httpObjectSocket != null ) {
-                handlePoll(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null );
+                handleClientRequest(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null);
             } else {
                 exchange.setResponseCode(404);
                 exchange.endExchange();
@@ -186,7 +186,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                 @Override
                 protected int getObjectMaxBatchSize() {
                     // huge batch size to make up for stupid sync http 1.1 protocol enforcing latency inclusion
-                    return HttpObjectSocket.HTTP_BATCH_SIZE;
+                    return HttpObjectSocket.HTTP_BATCH_SIZE*4;
                 }
             };
             sessions.put( sock.getSessionId(), sock );
@@ -229,10 +229,26 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         return sessions.remove(sessionId);
     }
 
-    public void handlePoll(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String lastSeenSequence) {
+    public void handleClientRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String lastSeenSequence) {
         // executed in facade thread
-        int lastClientSeq = -1;
+        httpObjectSocket.updateTimeStamp(); // keep alive
 
+        Object received = httpObjectSocket.getConf().asObject(postData);
+
+        boolean isEmptyLP = received instanceof Object[] && ((Object[]) received).length == 1 && ((Object[]) received)[0] instanceof Number;
+
+        // dispatch incoming messages to actor(s)
+
+        StreamSinkChannel sinkchannel = exchange.getResponseChannel();
+        if ( ! isEmptyLP ) {
+            handleRegularRequest(exchange, httpObjectSocket, received, sinkchannel);
+            return;
+        }
+
+        // long poll request
+
+        // parse sequence
+        int lastClientSeq = -1;
         if ( lastSeenSequence!=null ) {
             try {
                 lastClientSeq = Integer.parseInt(lastSeenSequence);
@@ -241,75 +257,12 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             }
         }
 
-        httpObjectSocket.updateTimeStamp(); // keep alive
-
-        Object received = httpObjectSocket.getConf().asObject(postData);
-
-        boolean isEmptyLP = received instanceof Object[] && ((Object[]) received).length == 1 && ((Object[]) received)[0] instanceof Number;
-        // dispatch incoming messages to actor(s)
-        StreamSinkChannel sinkchannel = exchange.getResponseChannel();
-
-        if ( ! isEmptyLP ) {
-            ArrayList<IPromise> futures = new ArrayList<>();
-            httpObjectSocket.getSink().receiveObject(received, futures);
-
-            Runnable reply = () -> {
-                // piggy back outstanding lp messages, outstanding lp request is untouched
-                Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
-                byte response[] = nextQueuedMessage.getFirst();
-                exchange.setResponseContentLength(response.length);
-                if (response.length == 0) {
-                    exchange.endExchange();
-                } else {
-                    httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
-
-                    ByteBuffer responseBuf = ByteBuffer.wrap(response);
-                    while (responseBuf.remaining()>0) {
-                        try {
-                            sinkchannel.write(responseBuf);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    exchange.endExchange();
-                }
-            };
-            if ( futures == null || futures.size() == 0 ) {
-                reply.run();
-            } else {
-                Actors.all((List)futures).then( () -> {
-                    reply.run();
-                });
-                sinkchannel.resumeWrites();
-            }
-            return;
-        }
-
+        // check iif can be served from history
         if (lastClientSeq > 0 ) { // if lp response message has been sent, take it from history
             byte[] msg = (byte[]) httpObjectSocket.takeStoredLPMessage(lastClientSeq + 1);
             if (msg!=null) {
 //                Log.Warn(this, "serve lp from history " + (lastClientSeq + 1) + " cur " + httpObjectSocket.getSendSequence());
-                ByteBuffer responseBuf = ByteBuffer.wrap(msg);
-                exchange.setResponseContentLength(msg.length);
-                sinkchannel.getWriteSetter().set(
-                    channel -> {
-                        if (responseBuf.remaining() > 0)
-                            try {
-                                sinkchannel.write(responseBuf);
-                                if (responseBuf.remaining() == 0) {
-                                    exchange.endExchange();
-                                } else
-                                    sinkchannel.resumeWrites(); // required ?
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                exchange.endExchange();
-                            }
-                        else {
-                            exchange.endExchange();
-                        }
-                    }
-                );
-                sinkchannel.resumeWrites();
+                replyFromHistory(exchange, sinkchannel, msg);
                 return;
             }
         }
@@ -317,10 +270,17 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         // new longpoll request ..
 
         sinkchannel.resumeWrites();
-
         // read next batch of pending messages from binary queue and send them
-        // fixme: could be zero copy (complicated requires reserve operation on q), at least reuse byte array per objectsocket
-        Runnable lpTask = () -> {
+        Runnable lpTask = createLongPollTask(exchange, httpObjectSocket, sinkchannel);
+        // release previous long poll request if present
+        if ( httpObjectSocket.getLongPollTask() != null ) {
+            httpObjectSocket.triggerLongPoll();
+        }
+        httpObjectSocket.setLongPollTask(lpTask);
+    }
+
+    protected Runnable createLongPollTask(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, StreamSinkChannel sinkchannel) {
+        return () -> {
             Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
             byte response[] = nextQueuedMessage.getFirst();
             exchange.setResponseContentLength(response.length);
@@ -372,12 +332,65 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                 }
             }
         };
+    }
 
-        // release previous long poll request if present
-        if ( httpObjectSocket.getLongPollTask() != null ) {
-            httpObjectSocket.triggerLongPoll();
+    protected void replyFromHistory(HttpServerExchange exchange, StreamSinkChannel sinkchannel, byte[] msg) {
+        ByteBuffer responseBuf = ByteBuffer.wrap(msg);
+        exchange.setResponseContentLength(msg.length);
+        sinkchannel.getWriteSetter().set(
+            channel -> {
+                if (responseBuf.remaining() > 0)
+                    try {
+                        sinkchannel.write(responseBuf);
+                        if (responseBuf.remaining() == 0) {
+                            exchange.endExchange();
+                        } else
+                            sinkchannel.resumeWrites(); // required ?
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        exchange.endExchange();
+                    }
+                else {
+                    exchange.endExchange();
+                }
+            }
+        );
+        sinkchannel.resumeWrites();
+    }
+
+    protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object received, StreamSinkChannel sinkchannel) {
+        ArrayList<IPromise> futures = new ArrayList<>();
+        httpObjectSocket.getSink().receiveObject(received, futures);
+
+        Runnable reply = () -> {
+            // piggy back outstanding lp messages, outstanding lp request is untouched
+            Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
+            byte response[] = nextQueuedMessage.getFirst();
+            exchange.setResponseContentLength(response.length);
+            if (response.length == 0) {
+                exchange.endExchange();
+            } else {
+                httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
+
+                ByteBuffer responseBuf = ByteBuffer.wrap(response);
+                while (responseBuf.remaining()>0) {
+                    try {
+                        sinkchannel.write(responseBuf);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                exchange.endExchange();
+            }
+        };
+        if ( futures == null || futures.size() == 0 ) {
+            reply.run();
+        } else {
+            Actors.all((List) futures).timeoutIn(5000).then(() -> {
+                reply.run();
+            });
+            sinkchannel.resumeWrites();
         }
-        httpObjectSocket.setLongPollTask(lpTask);
     }
 
     @Override
@@ -394,10 +407,15 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
 
     public static class HTTPA extends Actor<HTTPA> {
+
         int count = 0;
         public IPromise hello(String s) {
             System.out.println("received "+count++);
             return resolve(count-1);
+        }
+
+        public void $ui() {
+            System.out.println("ui");
         }
 
         public void $cb( Callback cb ) {

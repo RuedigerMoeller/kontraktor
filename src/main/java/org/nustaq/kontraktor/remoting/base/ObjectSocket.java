@@ -28,4 +28,7 @@ public interface ObjectSocket {
 
     void close() throws IOException;
 
+    default boolean canWrite() {
+        return true;
+    }
 }

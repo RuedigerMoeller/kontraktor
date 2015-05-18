@@ -93,7 +93,7 @@ public class RemotingTest {
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = UndertowHttpServerConnector.Publish(service, "localhost", "/lp", 8082, null).await();
 //        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, true, 1000).await(9999999);
-        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null).await(9999999);
+        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, HttpClientConnector.LONG_POLL).await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
         latch.await();
@@ -106,7 +106,7 @@ public class RemotingTest {
         checkSequenceErrors = false;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = UndertowHttpServerConnector.Publish(service, "localhost", "/lp", 8082, null).await();
-        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, false, 0).await(9999999);
+        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null).await(9999999);
         ExecutorService exec = Executors.newCachedThreadPool();
         CountDownLatch latch = new CountDownLatch(10);
         for ( int i = 0; i < 10; i++ )
@@ -258,7 +258,7 @@ public class RemotingTest {
 
         System.out.println("one way performance");
         int numMsg = 15_000_000;
-        for ( int i = 0; i < numMsg/3; i++ ) {
+        for ( int i = 0; i < numMsg; i++ ) {
             client.$benchMarkVoid(13, null);
         }
         System.out.println("two way performance");
