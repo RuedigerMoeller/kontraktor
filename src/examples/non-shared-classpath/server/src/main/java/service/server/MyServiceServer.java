@@ -1,0 +1,61 @@
+package service.server;
+
+import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.remoting.tcp.NIOServerConnector;
+import service.common.MyService;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import static service.common.MyProtocol.*;
+
+/**
+ * Created by ruedi on 19/05/15.
+ */
+public class MyServiceServer extends MyService<MyServiceServer> {
+
+    List<Person> persons = new ArrayList<>();
+
+    @Override
+    public void $addPerson(Person p) {
+        persons.add(p);
+    }
+
+    @Override
+    public IPromise<Boolean> $removePerson(Person p) {
+        for (Iterator<Person> iterator = persons.iterator(); iterator.hasNext(); ) {
+            Person next = iterator.next();
+            if ( next.equals(p) ) {
+                return resolve(true);
+            }
+        }
+        return resolve(false);
+    }
+
+    @Override
+    public IPromise<Boolean> $existsPerson(Person p) {
+        return resolve(persons.stream().filter(person -> person.equals(p)).findFirst().get() != null);
+    }
+
+    @Override
+    public void $listPersons(String preName, String name, int age, Callback<Person> result) {
+        persons.forEach( person -> {
+            if ( ( preName == null || preName.equals(person.getPreName()) ) &&
+                 ( age <= 0 || age == person.getAge() ) &&
+                 ( name == null || name.equals(person.getName() ) )
+             ) {
+                result.stream(person);
+            }
+        });
+        result.finish();
+    }
+
+    public static void main( String a[] ) {
+        MyService myService = Actors.AsActor(MyServiceServer.class, 128_000);// give large queue to service
+        NIOServerConnector.Publish(myService, 6789, null).await();
+        System.out.println("server started on "+6789);
+    }
+
+}

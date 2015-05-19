@@ -9,8 +9,9 @@ import java.util.function.Function;
  * Created by ruedi on 10/05/15.
  */
 public interface ActorClientConnector {
+
     /**
-     * used in both client and server connector implementations
+     * used in most client and server connector implementations
      */
     public static int OBJECT_MAX_BATCH_SIZE = 100;
 

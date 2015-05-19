@@ -100,7 +100,7 @@ public class Dining {
     static void runClient() throws Exception {
         TCPClientConnector.Connect(Table.class, "localhost", 6789, null, null).then( (table, error) -> {
             if (table != null) { // connection failure
-                runPhilosophers(table);
+                runPhilosophers((Table) table);
             } else {
                 System.out.println("error:" + error);
             }

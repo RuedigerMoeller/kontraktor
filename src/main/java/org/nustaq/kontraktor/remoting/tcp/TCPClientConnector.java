@@ -18,7 +18,11 @@ import java.util.function.Function;
  */
 public class TCPClientConnector implements ActorClientConnector {
 
-    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String host, int port, Callback<ActorClientConnector> disconnectCallback,Coding c ) {
+    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor> clz, String host, int port, Callback<ActorClientConnector> disconnectCallback ) {
+        return Connect(clz,host,port,disconnectCallback,null);
+    }
+
+    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor> clz, String host, int port, Callback<ActorClientConnector> disconnectCallback,Coding c ) {
         Promise result = new Promise();
         Runnable connect = () -> {
             TCPClientConnector client = new TCPClientConnector(port,host,disconnectCallback);
