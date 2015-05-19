@@ -4,21 +4,22 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 
-import java.util.Collection;
-import java.util.List;
 import static service.common.MyProtocol.*;
 
 /**
  * Created by ruedi on 19/05/15.
  *
- * Abstract class defining the accessible (async) interface of the service/actor
+ * "Pseudo-Abstract" class defining the accessible (async) interface of the service/actor
+ *
+ * Currently for technical reasons this "Interface" class cannot be abstract nor can it be made an interface
+ * (trouble with byte code generation). However that's just a minor inconvenience ..
  *
  */
-public class MyService<T extends MyService> extends Actor<T> {
+public class MyServiceInterface<T extends MyServiceInterface> extends Actor<T> {
 
     public void $addPerson( Person p ) {}
     public IPromise<Boolean> $removePerson( Person p ) { return null; }
-    public IPromise<Boolean> $existsPerson( Person p ) { return null; };
+    public IPromise<Boolean> $existsPerson( Person p ) { return null; }
 
     /**
      * cannot use a spore here as client and server are not supposed to share a common clathpath

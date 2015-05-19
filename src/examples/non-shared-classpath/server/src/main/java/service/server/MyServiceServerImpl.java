@@ -4,7 +4,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.tcp.NIOServerConnector;
-import service.common.MyService;
+import service.common.MyServiceInterface;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -14,7 +14,7 @@ import static service.common.MyProtocol.*;
 /**
  * Created by ruedi on 19/05/15.
  */
-public class MyServiceServer extends MyService<MyServiceServer> {
+public class MyServiceServerImpl extends MyServiceInterface<MyServiceServerImpl> {
 
     List<Person> persons = new ArrayList<>();
 
@@ -53,7 +53,7 @@ public class MyServiceServer extends MyService<MyServiceServer> {
     }
 
     public static void main( String a[] ) {
-        MyService myService = Actors.AsActor(MyServiceServer.class, 128_000);// give large queue to service
+        MyServiceInterface myService = Actors.AsActor(MyServiceServerImpl.class, 128_000);// give large queue to service
         NIOServerConnector.Publish(myService, 6789, null).await();
         System.out.println("server started on "+6789);
     }

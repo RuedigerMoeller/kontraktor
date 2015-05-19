@@ -1,10 +1,9 @@
 package service.client;
 
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.tcp.TCPClientConnector;
 import static service.common.MyProtocol.*;
-import service.common.MyService;
+import service.common.MyServiceInterface;
 
 /**
  * Created by ruedi on 19/05/15.
@@ -17,7 +16,7 @@ import service.common.MyService;
 public class ServiceClient {
 
     public void run() {
-        MyService service = (MyService) TCPClientConnector.Connect(MyService.class, "localhost", 6789, (connector, error) -> {
+        MyServiceInterface service = (MyServiceInterface) TCPClientConnector.Connect(MyServiceInterface.class, "localhost", 6789, (connector, error) -> {
             System.out.println("Disconnected from service .. exiting");
             System.exit(0);
         }).await();
