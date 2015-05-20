@@ -19,6 +19,9 @@ import java.util.function.Function;
 
 /**
  * Created by ruedi on 10/05/15.
+ *
+ * Publishes an actor as a server via blocking TCP. Requires one thread for each client connecting.
+ *
  */
 public class TCPServerConnector implements ActorServerConnector {
 

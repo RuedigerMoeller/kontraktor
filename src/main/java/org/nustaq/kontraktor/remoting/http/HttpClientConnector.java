@@ -27,10 +27,8 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 13/05/15.
  *
- * uses sync http as i want to avoid fat dependencies for async http. should be ok for client side
- *
  * Long Poll, http 1.1 based connectivity with on top sequencing + reordering. Designed to handle network outages
- * and crappy connectivity (e.g. mobile's).
+ * and crappy connectivity.
  * This implies once it successfully connected, it won't go to "closed" except a session timeout/close happened (=>404) (even if server has been stopped after connection)
  *
  * TODO: proxy options
@@ -387,7 +385,7 @@ public class HttpClientConnector implements ActorClientConnector {
     }
 
     /**
-     * helper actor receive side
+     * helper actor send side
      */
     static HttpClientActor singletonRefPoll = Actors.AsActor(HttpClientActor.class);
     public static HttpClientActor getRefPollActor() {

@@ -6,6 +6,9 @@ import java.io.Serializable;
 
 /**
  * Created by ruedi on 19/05/15.
+ *
+ * Ofc these classes can be defined in separate files, however this way versioning is easy (e.g. MyProtocol_V1)
+ *
  */
 public class MyProtocol {
 

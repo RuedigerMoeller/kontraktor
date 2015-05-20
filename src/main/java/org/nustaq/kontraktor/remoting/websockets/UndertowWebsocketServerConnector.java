@@ -20,6 +20,8 @@ import java.util.function.Function;
 
 /**
  * Created by ruedi on 10/05/15.
+ *
+ * Publishes an actor as a websocket server using Undertow.
  */
 public class UndertowWebsocketServerConnector implements ActorServerConnector {
 

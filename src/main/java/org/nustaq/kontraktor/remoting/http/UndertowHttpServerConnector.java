@@ -31,7 +31,7 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 12.05.2015.
  *
- * A longpoll+shortpoll based connector. Only Binary/MinBin coding using POST requests is supported
+ * A longpoll+shortpoll+nopoll based connector. Only Binary/MinBin coding using POST requests is supported
  *
  * Algorithm/Expected client behaviour:
  *
@@ -41,11 +41,16 @@ import java.util.function.Function;
  *
  * Regular requests are expected to come in ordered (so next request is done only if first one was replied).
  * This is necessary due to http 1.1 limitations (multiple connections+reordering would be required otherwise).
- * Response to regular requests (actor messages) is piggy backed with long-poll outgoing data if avaiable. This may
- * lead to out of sequence long polls (network race). SO a client has to implement sequence checking in order
+ * Responses to regular requests (actor messages) are piggy backed with long-poll-data if avaiable. This may
+ * lead to out of sequence long polls (network race). So a client has to implement sequence checking in order
  * to prevent double processing of incoming messages.
  *
- * For shortpoll, a client sends "{ 'SP', sequence }" to indicate the poll reuqest should return immediately
+ * For shortpoll, a client sends "{ 'SP', sequence }" to indicate the poll request should return immediately.
+ * With many clients and connection limited clients (browser,mobiles) a short poll with larger intervals (>3s) can scale better
+ * at cost of latency.
+ *
+ * When used no-poll, streaming results to a callback is not supported. Only fire and forget (void methods) and IPromise-returning
+ * messages can be used.
  *
  * TODO: close session in case of unrecoverable loss
  * TODO: support temporary/discardable websocket connections as a LP optimization.
@@ -53,6 +58,7 @@ import java.util.function.Function;
  */
 public class UndertowHttpServerConnector implements ActorServerConnector, HttpHandler {
 
+    public static int REQUEST_TIMEOUT = 5000; // max wait time for a returned promise to fulfil
     public static long SESSION_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(30); // 30 minutes
 
     public static Promise<ActorServer> Publish( Actor facade, String hostName, String urlPath, int port, Coding coding ) {
@@ -386,7 +392,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         if ( futures == null || futures.size() == 0 ) {
             reply.run();
         } else {
-            Actors.all((List) futures).timeoutIn(5000).then(() -> {
+            Actors.all((List) futures).timeoutIn(REQUEST_TIMEOUT).then(() -> {
                 reply.run();
             });
             sinkchannel.resumeWrites();

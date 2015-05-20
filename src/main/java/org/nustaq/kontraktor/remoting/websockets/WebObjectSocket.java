@@ -9,6 +9,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by ruedi on 11/05/15.
+ *
+ * implements batching on a message-object level. This results in nice speed up and protocol compression,
+ * as serializing a batch of messages automatically strips double objects+strings.
+ *
  */
 public abstract class WebObjectSocket implements ObjectSocket {
 

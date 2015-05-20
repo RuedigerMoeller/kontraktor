@@ -15,6 +15,10 @@ import java.util.function.Function;
 
 /**
  * Created by ruedi on 10/05/15.
+ *
+ * Publishes an actor as a server using non-blocking IO backed TCP.
+ * The number of threads does not increase with the number of clients.
+ *
  */
 public class NIOServerConnector extends AsyncServerSocket implements ActorServerConnector {
 

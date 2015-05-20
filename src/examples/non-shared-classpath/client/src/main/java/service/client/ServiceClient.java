@@ -9,8 +9,7 @@ import service.common.MyServiceInterface;
  * Created by ruedi on 19/05/15.
  *
  * Client is not made an actor for simplicity
- * (and to demonstrate you don't need to move completely to actor-style in order
- * to make use of kkontraktor remoting)
+ * (and to demonstrate actor-style is not required in orderto make use of kontraktor remoting)
  *
  */
 public class ServiceClient {

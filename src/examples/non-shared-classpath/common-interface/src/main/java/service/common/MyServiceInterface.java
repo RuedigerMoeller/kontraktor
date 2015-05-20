@@ -22,7 +22,7 @@ public class MyServiceInterface<T extends MyServiceInterface> extends Actor<T> {
     public IPromise<Boolean> $existsPerson( Person p ) { return null; }
 
     /**
-     * cannot use a spore here as client and server are not supposed to share a common clathpath
+     * cannot use a spore here as client and server are not supposed to share a common classpath
      * @param name
      * @param secondName
      * @param age

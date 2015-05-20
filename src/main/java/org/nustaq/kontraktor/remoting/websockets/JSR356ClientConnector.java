@@ -21,6 +21,9 @@ import java.util.function.Function;
 
 /**
  * Created by ruedi on 10/05/15.
+ *
+ * Connects to a websocket-published actor using JSR356 websocket API
+ *
  */
 public class JSR356ClientConnector implements ActorClientConnector {
 
