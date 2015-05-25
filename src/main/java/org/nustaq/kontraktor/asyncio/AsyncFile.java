@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.ActorExecutorService;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -160,7 +161,7 @@ public class AsyncFile {
         try {
             return fileChannel.size();
         } catch (IOException e) {
-            Actors.throwException(e);
+            FSTUtil.<RuntimeException>rethrow(e);
         }
         return -1;
     }
@@ -238,7 +239,7 @@ public class AsyncFile {
             fileChannel.close();
             fileChannel = null;
         } catch (IOException e) {
-            Actors.throwException(e);
+            FSTUtil.<RuntimeException>rethrow(e);
         }
     }
 }

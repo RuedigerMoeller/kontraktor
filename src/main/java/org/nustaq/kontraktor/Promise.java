@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor;
 
 import org.nustaq.kontraktor.impl.DispatcherThread;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -419,7 +420,7 @@ public class Promise<T> implements IPromise<T> {
     private T awaitHelper() {
         if ( Actor.isError(getError()) ) {
             if ( getError() instanceof Throwable ) {
-                Actors.<RuntimeException>throwException((Throwable) getError());
+                FSTUtil.<RuntimeException>rethrow((Throwable) getError());
                 return null; // never reached
             }
             else {

@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.net.TCPObjectSocket;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -133,7 +134,7 @@ public class TCPClientConnector implements ActorClientConnector {
             try {
                 super.writeObject(objArr);
             } catch (Exception e) {
-                Actors.throwException(e);
+                FSTUtil.<RuntimeException>rethrow(e);
             }
 
             super.flush();

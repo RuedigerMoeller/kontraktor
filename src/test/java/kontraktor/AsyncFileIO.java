@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.asyncio.AsyncFile;
 import org.nustaq.kontraktor.asyncio.AsyncFileIOEvent;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -77,7 +78,7 @@ public class AsyncFileIO {
                 }
                 fi.close();
             } catch (IOException e) {
-                Actors.throwException(e);
+                FSTUtil.<RuntimeException>rethrow(e);
             }
             return complete();
         }

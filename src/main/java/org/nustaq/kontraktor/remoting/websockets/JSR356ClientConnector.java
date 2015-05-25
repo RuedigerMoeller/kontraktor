@@ -10,6 +10,7 @@ import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.serialization.util.FSTUtil;
 
 import javax.websocket.*;
 import java.io.IOException;
@@ -147,7 +148,7 @@ public class JSR356ClientConnector implements ActorClientConnector {
                 public void onResult(SendResult result) {
                     if ( ! result.isOK() ) {
                         executor.execute( () -> {
-                            Actors.throwException(result.getException());
+                            FSTUtil.<RuntimeException>rethrow(result.getException());
                             try {
                                 close();
                             } catch (IOException e) {

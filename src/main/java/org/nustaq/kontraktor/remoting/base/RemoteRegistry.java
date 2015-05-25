@@ -48,6 +48,12 @@ public abstract class RemoteRegistry implements RemoteConnection {
 		    case MinBin:
 			    conf = FSTConfiguration.createMinBinConfiguration();
 			    break;
+            case Json:
+			    conf = FSTConfiguration.createJsonConfiguration();
+			    break;
+            case UnsafeBinary:
+			    conf = FSTConfiguration.createFastBinaryConfiguration();
+			    break;
 		    default:
 			    conf = FSTConfiguration.createDefaultConfiguration();
 	    }

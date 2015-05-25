@@ -432,10 +432,4 @@ public class Actors {
         return completedPromises.stream().map(future -> future.get());
     }
 
-    @SuppressWarnings("unchecked")
-    public static <T extends Throwable> void throwException(Throwable exception) throws T
-    {
-        throw (T) exception;
-    }
-
 }

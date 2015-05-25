@@ -5,6 +5,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.HttpClientConnector;
 import org.nustaq.kontraktor.remoting.http.HttpObjectSocket;
 import org.nustaq.kontraktor.remoting.http.UndertowHttpServerConnector;
@@ -21,6 +23,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
 /**
  * Created by ruedi on 10/05/15.
@@ -89,11 +92,22 @@ public class RemotingTest {
 
     @Test
     public void testHttp() throws Exception {
+        Coding coding = new Coding(SerializerType.FSTSer);
+        runtHttp(coding);
+    }
+
+    @Test
+    public void testHttpJson() throws Exception {
+        Coding coding = new Coding(SerializerType.Json);
+        runtHttp(coding);
+    }
+
+    public void runtHttp(Coding coding) throws InterruptedException {
         checkSequenceErrors = true;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
-        ActorServer publisher = UndertowHttpServerConnector.Publish(service, "localhost", "/lp", 8082, null).await();
+        ActorServer publisher = UndertowHttpServerConnector.Publish(service, "localhost", "/lp", 8082, coding).await();
 //        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, true, 1000).await(9999999);
-        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, HttpClientConnector.LONG_POLL).await(9999999);
+        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, coding, HttpClientConnector.LONG_POLL).await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
         latch.await();
@@ -126,10 +140,21 @@ public class RemotingTest {
 
     @Test
     public void testWS() throws Exception {
+        Coding coding = new Coding(SerializerType.FSTSer);
+        runWS(coding);
+    }
+
+    @Test
+    public void testWSJson() throws Exception {
+        Coding coding = new Coding(SerializerType.Json);
+        runWS(coding);
+    }
+
+    public void runWS(Coding coding) throws InterruptedException {
         checkSequenceErrors = true;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
-        ActorServer publisher = UndertowWebsocketServerConnector.Publish(service, "localhost", "/ws", 8081 , null ).await();
-        RemotingTestService client = JSR356ClientConnector.Connect(RemotingTestService.class, "ws://localhost:8081/ws", null).await(9999999);
+        ActorServer publisher = UndertowWebsocketServerConnector.Publish(service, "localhost", "/ws", 8081, coding).await();
+        RemotingTestService client = JSR356ClientConnector.Connect(RemotingTestService.class, "ws://localhost:8081/ws", coding).await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
         latch.await();
@@ -267,6 +292,9 @@ public class RemotingTest {
         for ( int i = 0; i < numMsg; i++ ) {
             if ( i%1_000_000==0 )
                 System.out.println("sent "+i+" "+replyCount.get());
+            while ( i - replyCount.get() > 200_000 ) { // FIXME: remoteref registry should do this, but how to handle unanswered requests ?
+                LockSupport.parkNanos(1);
+            }
             client.$benchMarkPromise(i, null).then(s -> {
                 replyCount.incrementAndGet();
                 if (seq[s])

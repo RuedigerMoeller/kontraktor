@@ -64,7 +64,7 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
             try {
                 flush();
             } catch (Exception e) {
-                Actors.throwException(e);
+                FSTUtil.<RuntimeException>rethrow(e);
             }
         }
     }
