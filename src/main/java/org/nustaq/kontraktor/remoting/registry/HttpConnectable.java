@@ -8,15 +8,10 @@ import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 /**
  * Created by ruedi on 19/05/15.
  */
-public class HttpConnectable<T extends Actor> implements ConnectableActor<T> {
+public class HttpConnectable<T extends Actor> implements ConnectableActor {
 
     @Override
-    public IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback) {
-        return null;
-    }
-
-    @Override
-    public IPromise close() {
+    public <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback) {
         return null;
     }
 }

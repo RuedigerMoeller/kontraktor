@@ -38,6 +38,8 @@ import java.util.function.Function;
  */
 public class HttpClientConnector implements ActorClientConnector {
 
+    public static boolean DumpProtocol = false;
+
     public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Coding c) {
         return Connect(clz,url,disconnectCallback,c,LONG_POLL);
     }
@@ -83,7 +85,7 @@ public class HttpClientConnector implements ActorClientConnector {
 
     String host;
     String sessionId;
-    FSTConfiguration authConf = FSTConfiguration.createMinBinConfiguration();
+    FSTConfiguration authConf = FSTConfiguration.createJsonConfiguration();
     volatile boolean isClosed = false;
     Promise closedNotification;
     Callback<ActorClientConnector> disconnectCallback;
@@ -97,11 +99,27 @@ public class HttpClientConnector implements ActorClientConnector {
 
     @Override
     public void connect(Function<ObjectSocket, ObjectSink> factory) throws Exception {
+        byte[] req = authConf.asByteArray(new Object[]{"authentication", "data"});
+        if ( HttpClientConnector.DumpProtocol ) {
+            try {
+                System.out.println("auth-req:"+new String(req,"UTF-8"));
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+        }
         Content content = Request.Post(host)
-                              .bodyByteArray(authConf.asByteArray(new Object[]{"authentication", "data"}))
+                              .bodyByteArray(req)
                               .execute()
                               .returnContent();
-        sessionId = (String) authConf.asObject(content.asBytes());
+        byte[] resp = content.asBytes();
+        if ( HttpClientConnector.DumpProtocol ) {
+            try {
+                System.out.println("auth-resp:"+new String(resp,"UTF-8"));
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+        }
+        sessionId = (String) authConf.asObject(resp);
         MyHttpWS myHttpWS = new MyHttpWS(host + "/" + sessionId);
         ObjectSink sink = factory.apply(myHttpWS);
         myHttpWS.setSink(sink);
@@ -208,6 +226,13 @@ public class HttpClientConnector implements ActorClientConnector {
 
         @Override
         public void sendBinary(byte[] message) {
+            if ( HttpClientConnector.DumpProtocol ) {
+                try {
+                    System.out.println("req:"+new String(message,"UTF-8"));
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+            }
             openRequests.incrementAndGet();
             HttpPost req = new HttpPost(url+"/"+lastReceivedSequence);
             req.addHeader(NO_CACHE);
@@ -249,6 +274,13 @@ public class HttpClientConnector implements ActorClientConnector {
             HttpPost req = new HttpPost(url+"/"+seq);
             req.addHeader(NO_CACHE);
             req.setEntity(new ByteArrayEntity(message));
+            if ( HttpClientConnector.DumpProtocol ) {
+                try {
+                    System.out.println("resp:"+new String(message,"UTF-8"));
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+            }
 
             lpHttpClient.execute(req, new FutureCallback<HttpResponse>() {
                 @Override
@@ -286,6 +318,15 @@ public class HttpClientConnector implements ActorClientConnector {
                     byte b[] = new byte[len];
                     try {
                         result.getEntity().getContent().read(b);
+
+                        if ( HttpClientConnector.DumpProtocol ) {
+                            try {
+                                System.out.println("resp:"+new String(b,"UTF-8"));
+                            } catch (UnsupportedEncodingException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
                         Object o = getConf().asObject(b);
                         boolean send = true;
                         if (o instanceof Object[]) {
@@ -315,9 +356,11 @@ public class HttpClientConnector implements ActorClientConnector {
         @Override
         public void writeObject(Object toWrite) throws Exception {
             if ( ! "SP".equals(toWrite) ) { // short polling marker
+                // fixme: should check if short polling is enabled !
+                // a call is made
                 // decrease poll interval temporary (backoff)
                 currentShortPollIntervalMS = 200;
-                // trigger next poll in 100 ms
+                // trigger a short poll in 100 ms
                 getRefPollActor().delayed(100, () -> {
                     try {
                         writeObject("SP");

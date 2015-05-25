@@ -14,9 +14,8 @@ import java.io.Serializable;
  * can be passed around in order to tell other actors/services on how to reach/connect a certain actor.
  *
  */
-public interface ConnectableActor<T extends Actor> extends Serializable {
+public interface ConnectableActor extends Serializable {
 
-    IPromise<T> connect( Callback<ActorClientConnector> disconnectCallback );
-    IPromise close();
+    <T> IPromise<T> connect( Callback<ActorClientConnector> disconnectCallback );
 
 }

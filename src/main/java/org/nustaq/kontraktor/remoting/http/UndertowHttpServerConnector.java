@@ -13,6 +13,7 @@ import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.fourk.Http4K;
 import org.nustaq.kontraktor.remoting.websockets.UndertowWebsocketServerConnector;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
@@ -65,7 +66,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         ActorServer actorServer;
         try {
             facade.setThrowExWhenBlocked(true);
-            Pair<PathHandler, Undertow> serverPair = UndertowWebsocketServerConnector.GetServer(port, hostName);
+            Pair<PathHandler, Undertow> serverPair = Http4K.get().getServer(port, hostName);
             UndertowHttpServerConnector con = new UndertowHttpServerConnector(facade);
             actorServer = new ActorServer( con, facade, coding == null ? new Coding(SerializerType.FSTSer) : coding );
             actorServer.start();
@@ -80,7 +81,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
     Actor facade;
     HashMap<String,HttpObjectSocket> sessions = new HashMap<>(); // use only from facade thread
 
-    FSTConfiguration conf = FSTConfiguration.createMinBinConfiguration(); // used for authdata
+    FSTConfiguration conf = FSTConfiguration.createJsonConfiguration(); // used for authdata
     Function<ObjectSocket, ObjectSink> factory;
     long sessionTimeout = SESSION_TIMEOUT_MS;
     volatile boolean isClosed = false;

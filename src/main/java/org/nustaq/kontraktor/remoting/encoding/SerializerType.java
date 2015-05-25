@@ -10,5 +10,7 @@ public enum SerializerType {
     FSTSer,
     MinBin,
     Json,
+    JsonNoRef,
+    JsonNoRefPretty,
     UnsafeBinary
 }

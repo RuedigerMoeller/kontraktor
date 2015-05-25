@@ -9,26 +9,20 @@ import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 /**
  * Created by ruedi on 19/05/15.
  *
- * A connectable simply connecting to a local actor. A close connection event will never happen
- * and close is NOP.
+ * A connectable simply connecting to a local actor. A close connection event will never happen (FIXME: send on stop instead)
  *
  */
-public class LocalConnectable<T extends Actor> implements ConnectableActor<T>  {
+public class LocalConnectable implements ConnectableActor  {
 
-    T actor;
+    Actor actor;
 
-    public LocalConnectable(T actor) {
+    public LocalConnectable(Actor actor) {
         this.actor = actor;
     }
 
     @Override
-    public IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback) {
-        return new Promise<>(actor);
-    }
-
-    @Override
-    public IPromise close() {
-        return new Promise<>(null);
+    public <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback) {
+        return new Promise<>((T) actor);
     }
 
 }

@@ -51,6 +51,12 @@ public abstract class RemoteRegistry implements RemoteConnection {
             case Json:
 			    conf = FSTConfiguration.createJsonConfiguration();
 			    break;
+            case JsonNoRef:
+			    conf = FSTConfiguration.createJsonConfiguration(false,false);
+			    break;
+            case JsonNoRefPretty:
+			    conf = FSTConfiguration.createJsonConfiguration(true,false);
+			    break;
             case UnsafeBinary:
 			    conf = FSTConfiguration.createFastBinaryConfiguration();
 			    break;

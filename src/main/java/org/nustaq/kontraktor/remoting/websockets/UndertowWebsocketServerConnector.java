@@ -10,12 +10,11 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.kontraktor.remoting.fourk.Http4K;
 import org.nustaq.kontraktor.util.Pair;
 import org.xnio.Buffers;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -47,26 +46,6 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
     String host;
     String path;
     int port;
-
-    // a map of port=>server also used by httpconnector
-    public static Map<Integer, Pair<PathHandler,Undertow>> serverMap = new HashMap<>();
-
-    public static synchronized Pair<PathHandler, Undertow> GetServer(int port, String hostName) {
-        Pair<PathHandler, Undertow> pair = serverMap.get(port);
-        if (pair == null) {
-            PathHandler pathHandler = new PathHandler();
-            Undertow server = Undertow.builder()
-                    .setIoThreads( 2 )
-                    .setWorkerThreads( 2 )
-                    .addHttpListener( port, hostName)
-                    .setHandler(pathHandler)
-                    .build();
-            server.start();
-            pair = new Pair<>(pathHandler,server);
-            serverMap.put(port,pair);
-        }
-        return pair;
-    }
 
     public UndertowWebsocketServerConnector(String path, int port, String host) {
         this.path = path;
@@ -112,7 +91,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
 
     protected Pair<PathHandler, Undertow> getServer(int port) {
         String hostName = this.host;
-        return GetServer(port, hostName);
+        return Http4K.get().getServer(port, hostName);
     }
 
     @Override
