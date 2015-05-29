@@ -20,9 +20,18 @@ public class LocalConnectable implements ConnectableActor  {
         this.actor = actor;
     }
 
+    /**
+     * disconnect callback will never be called (local actor connection)
+     * @param disconnectCallback
+     * @param <T>
+     * @return
+     */
     @Override
     public <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback) {
         return new Promise<>((T) actor);
     }
 
+    public Actor getActor() {
+        return actor;
+    }
 }

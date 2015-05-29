@@ -3,29 +3,37 @@ package org.nustaq.kontraktor.util;
 /**
  * Created by ruedi on 03/05/15.
  */
-public class Pair<FIRST,SECOND> {
+public class Pair<CAR, CDR> {
 
-    FIRST first;
-    SECOND second;
+    CAR car;
+    CDR cdr;
 
-    public Pair(FIRST first, SECOND second) {
-        this.first = first;
-        this.second = second;
+    public Pair(CAR CAR, CDR CDR) {
+        this.car = CAR;
+        this.cdr = CDR;
     }
 
-    public FIRST getFirst() {
-        return first;
+    public CAR getFirst() {
+        return car;
     }
 
-    public SECOND getSecond() {
-        return second;
+    public CDR getSecond() {
+        return cdr;
+    }
+
+    public CAR car() {
+        return car;
+    }
+
+    public CDR cdr() {
+        return cdr;
     }
 
     @Override
     public String toString() {
         return "Pair{" +
-                   "first=" + first +
-                   ", second=" + second +
+                   "first=" + car +
+                   ", second=" + cdr +
                    '}';
     }
 }

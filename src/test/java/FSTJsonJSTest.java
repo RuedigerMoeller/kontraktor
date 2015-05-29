@@ -31,7 +31,7 @@ public class FSTJsonJSTest {
         JSActor jsa = Actors.AsActor(JSActor.class);
         UndertowHttpServerConnector.Publish(jsa,"localhost","/jsactor/",8080,new Coding(SerializerType.JsonNoRefPretty));
 
-        JSActor client = HttpClientConnector.Connect(JSActor.class, "http://localhost:8080/jsactor", null, new Coding(SerializerType.JsonNoRefPretty)).await();
+        JSActor client = HttpClientConnector.Connect(JSActor.class, "http://localhost:8080/jsactor", null, null, new Coding(SerializerType.JsonNoRefPretty)).await();
         System.out.println(client.say("blabla").await());
 
     }

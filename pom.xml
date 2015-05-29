@@ -138,18 +138,11 @@
             <!--<scope>test</scope>-->
         </dependency>
 
-        <!--<dependency>-->
-            <!--<groupId>org.apache.httpcomponents</groupId>-->
-            <!--<artifactId>httpclient</artifactId>-->
-            <!--<version>4.4.1</version>-->
-            <!--&lt;!&ndash;<scope>test</scope>&ndash;&gt;-->
-        <!--</dependency>-->
-
         <dependency>
             <groupId>io.undertow</groupId>
             <artifactId>undertow-websockets-jsr</artifactId>
             <version>1.2.6.Final</version>
-            <scope>test</scope>
+            <!--<scope>test</scope>-->
         </dependency>
 
     </dependencies>

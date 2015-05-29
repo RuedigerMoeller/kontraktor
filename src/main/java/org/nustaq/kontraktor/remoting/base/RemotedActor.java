@@ -6,6 +6,9 @@ package org.nustaq.kontraktor.remoting.base;
  */
 public interface RemotedActor {
 
+    /**
+     * notification method
+     */
     public void $hasBeenUnpublished();
 
 }

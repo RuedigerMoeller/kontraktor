@@ -28,6 +28,7 @@ import java.util.function.Function;
  */
 public class JSR356ClientConnector implements ActorClientConnector {
 
+    public static boolean DumpProtocol = false;
 
     public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Coding c ) {
         Promise result = new Promise();
@@ -128,13 +129,23 @@ public class JSR356ClientConnector implements ActorClientConnector {
             sink.sinkClosed();
         }
 
+        @OnError
+        public void onError( Throwable th ) {
+            Log.Warn(this,th);
+        }
+
         @OnMessage
         public void onMessage(byte[] message) {
+            if ( DumpProtocol ) {
+                System.out.println("resp:");
+                System.out.println(new String(message,0));
+            }
             sink.receiveObject(conf.asObject(message), null);
         }
 
         @OnMessage
         public void onTextMessage(String message) {
+            Log.Warn(this,"unhandled text message:"+message);
         }
 
         public void sendText(String message) {
@@ -142,6 +153,10 @@ public class JSR356ClientConnector implements ActorClientConnector {
         }
 
         public void sendBinary(byte[] message) {
+            if ( DumpProtocol ) {
+                System.out.println("requ:");
+                System.out.println(new String(message,0));
+            }
             Actor executor = Actor.current();
             session.getAsyncRemote().sendBinary(ByteBuffer.wrap(message), new SendHandler() {
                 @Override

@@ -4,6 +4,11 @@ import io.undertow.Undertow;
 import io.undertow.server.handlers.PathHandler;
 import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.server.handlers.resource.ResourceHandler;
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.kontraktor.remoting.websockets.UndertowWebsocketServerConnector;
 import org.nustaq.kontraktor.util.Pair;
 
 import java.io.File;
@@ -69,7 +74,20 @@ public class Http4K {
             throw new RuntimeException("root must be an existing direcory");
         }
         Pair<PathHandler, Undertow> server = getServer(port, hostName);
-        server.getFirst().addPrefixPath(urlPath, new ResourceHandler(new FileResourceManager(root,100)));
+        server.car().addPrefixPath(urlPath, new ResourceHandler(new FileResourceManager(root,100)));
+    }
+
+    /**
+     * utility, just redirects to approriate connector
+     *
+     * @param act
+     * @param hostName
+     * @param urlPath
+     * @param port
+     * @param coding
+     */
+    public Promise<ActorServer> publishOnWebSocket( Actor act, String hostName, String urlPath, int port, Coding coding ) {
+        return UndertowWebsocketServerConnector.Publish(act, hostName, urlPath, port, coding);
     }
 
 }

@@ -20,11 +20,11 @@ public class MyProtocol {
 
     public static class Person implements Serializable {
 
-        String name;
-        String preName;
+        final String name;
+        final String preName;
 
-        int age;
-        Sex sex;
+        final int age;
+        final Sex sex;
 
         public Person(String name, String preName, int age, Sex sex) {
             this.name = name;

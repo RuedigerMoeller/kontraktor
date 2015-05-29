@@ -107,7 +107,7 @@ public class RemotingTest {
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = UndertowHttpServerConnector.Publish(service, "localhost", "/lp", 8082, coding).await();
 //        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, true, 1000).await(9999999);
-        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, coding, HttpClientConnector.LONG_POLL).await(9999999);
+        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, coding, HttpClientConnector.LONG_POLL).await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
         latch.await();
@@ -120,7 +120,7 @@ public class RemotingTest {
         checkSequenceErrors = false;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = UndertowHttpServerConnector.Publish(service, "localhost", "/lp", 8082, null).await();
-        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null).await(9999999);
+        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, null).await(9999999);
         ExecutorService exec = Executors.newCachedThreadPool();
         CountDownLatch latch = new CountDownLatch(10);
         for ( int i = 0; i < 10; i++ )
@@ -187,11 +187,22 @@ public class RemotingTest {
 
     @Test
     public void testNIO() throws Exception {
+        Coding coding = new Coding(SerializerType.FSTSer);
+        runNio(coding);
+    }
+
+    @Test
+    public void testNIOJSon() throws Exception {
+        Coding coding = new Coding(SerializerType.Json);
+        runNio(coding);
+    }
+
+    public void runNio(Coding coding) throws Exception {
         checkSequenceErrors = true;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
-        ActorServer publisher = NIOServerConnector.Publish(service, 8081, null).await();
+        ActorServer publisher = NIOServerConnector.Publish(service, 8081, coding).await();
         CountDownLatch latch = new CountDownLatch(1);
-        runnitTCP(latch);
+        runnitTCP(latch,coding);
         latch.await();
         Thread.sleep(2000); // wait for outstanding callbacks
         publisher.close();
@@ -208,7 +219,7 @@ public class RemotingTest {
         {
             exec.execute(() -> {
                 try {
-                    runnitTCP(latch);
+                    runnitTCP(latch, null);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -225,7 +236,7 @@ public class RemotingTest {
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
         ActorServer publisher = TCPServerConnector.Publish(service, 8081, null).await();
         CountDownLatch latch = new CountDownLatch(1);
-        runnitTCP(latch);
+        runnitTCP(latch, null);
         latch.await();
         Thread.sleep(2000); // wait for outstanding callbacks
         publisher.close();
@@ -242,7 +253,7 @@ public class RemotingTest {
         {
             exec.execute(() -> {
                 try {
-                    runnitTCP(latch);
+                    runnitTCP(latch, null);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -253,8 +264,8 @@ public class RemotingTest {
         publisher.close();
     }
 
-    public void runnitTCP(CountDownLatch l) throws Exception {
-        RemotingTestService client = (RemotingTestService) TCPClientConnector.Connect(RemotingTestService.class, "localhost", 8081, null, null).await();
+    public void runnitTCP(CountDownLatch l, Coding coding) throws Exception {
+        RemotingTestService client = (RemotingTestService) TCPClientConnector.Connect(RemotingTestService.class, "localhost", 8081, null, coding).await();
         runWithClient(client,l);
         Thread.sleep(2000); // wait for outstanding callbacks
         client.$close();

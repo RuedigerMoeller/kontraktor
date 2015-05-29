@@ -33,18 +33,20 @@ import java.util.function.Function;
  *
  * TODO: proxy options
  * TODO: provide 1.7 compliant Android client impl
- * TODO: http auth
- * TODO: internal auth (impl is there, expose)
  */
 public class HttpClientConnector implements ActorClientConnector {
 
     public static boolean DumpProtocol = false;
 
-    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Coding c) {
-        return Connect(clz,url,disconnectCallback,c,LONG_POLL);
+    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback) {
+        return Connect(clz,url,disconnectCallback,new Object[]{"user","pwd"},new Coding(SerializerType.FSTSer),LONG_POLL);
     }
 
-    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Coding c, HttpClientConfig cfg ) {
+    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Object[] authData, Coding c) {
+        return Connect(clz,url,disconnectCallback,authData,c,LONG_POLL);
+    }
+
+    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Object[] authData, Coding c, HttpClientConfig cfg ) {
         HttpClientConnector con = new HttpClientConnector(url);
 
         con.cfg = cfg;
@@ -92,6 +94,7 @@ public class HttpClientConnector implements ActorClientConnector {
     HttpClientConfig cfg = new HttpClientConfig();
 
     long currentShortPollIntervalMS = cfg.shortPollIntervalMS;
+    public Object[] authData;
 
     public HttpClientConnector(String host) {
         this.host = host;
@@ -99,7 +102,7 @@ public class HttpClientConnector implements ActorClientConnector {
 
     @Override
     public void connect(Function<ObjectSocket, ObjectSink> factory) throws Exception {
-        byte[] req = authConf.asByteArray(new Object[]{"authentication", "data"});
+        byte[] req = authConf.asByteArray(authData);
         if ( HttpClientConnector.DumpProtocol ) {
             try {
                 System.out.println("auth-req:"+new String(req,"UTF-8"));
@@ -449,7 +452,8 @@ public class HttpClientConnector implements ActorClientConnector {
                         UndertowHttpServerConnector.HTTPA.class,
                         "http://localhost:8080/myservice",
                         (res, err) -> System.out.println("closed"),
-                        null, //new Coding(SerializerType.MinBin)
+                        null,
+                        null,
                         NO_POLL
                     ).await();
 

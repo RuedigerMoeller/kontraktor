@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>JS Test</title>
+</head>
+<body>
+
+<h1>Kontraktor Http Sample</h1>
+
+<script>
+    var socket = new WebSocket("ws://localhost:8080/ws");
+    exampleSocket.onopen = function (event) {
+        exampleSocket.send( JSON.stringify(
+            [ "user", "pwd" ]
+        ));
+    };
+    exampleSocket.onmessage = function(message) {
+        console.log(message);
+    }
+</script>
+</body>
+</html>
