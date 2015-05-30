@@ -45,6 +45,7 @@ public class MyHttpApp extends Actor<MyHttpApp> {
     }
 
     public void clientClosed(MyHttpAppSession session) {
+        System.out.println("client closed");
     }
 
     public static void main(String[] args) {

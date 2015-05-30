@@ -36,6 +36,9 @@
         return buildJObject( "call", { futureKey: callbackId, queue: 0, receiverKey: receiverKey, args: buildJArray(args) } );
     }
 
+
+
+
     var call = buildCallList(
         [
             buildCall( 1, 1, [ "user", "pwd" ] )
@@ -44,15 +47,26 @@
     );
     console.log( JSON.stringify(call) );
 
-
     var socket = new WebSocket("ws://localhost:8080/ws");
     socket.onmessage = function(message) {
         console.log(message);
-        console.log(JSON.parse(message.data));
+        if (typeof message.data == 'string') {
+            console.error("unexpected message:"+message.data);
+        } else {
+            // parse binary MinBin message
+            var fr = new FileReader();
+            fr.onloadend = function (event) {
+                var blob = event.target.result;
+                console.log(JSON.parse(blob));
+            };
+            fr.readAsBinaryString(message.data);
+        }
     };
+
     socket.onerror = function(err) {
         console.log(err);
     };
+
     socket.onclose = function() {
         console.log("close");
     };
