@@ -54,7 +54,7 @@ public class ActorServer {
             return new ObjectSink() {
 
                 @Override
-                public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures) {
+                public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures, int channelId) {
                     try {
                         reg.receiveObject(socketRef.get(),sink,received,createdFutures);
                     } catch (Exception e) {

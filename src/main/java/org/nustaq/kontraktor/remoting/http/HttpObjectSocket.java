@@ -126,8 +126,8 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     }
 
     @Override
-    public void receiveObject(ObjectSink asink, Object received, List<IPromise> createdFutures) {
-        sink.receiveObject(asink,received, createdFutures);
+    public void receiveObject(ObjectSink asink, Object received, List<IPromise> createdFutures, int channelId) {
+        sink.receiveObject(asink,received, createdFutures, 0);
     }
 
     @Override

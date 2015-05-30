@@ -14,7 +14,6 @@ import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.fourk.Http4K;
-import org.nustaq.kontraktor.remoting.websockets.UndertowWebsocketServerConnector;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.FSTConfiguration;
@@ -367,7 +366,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
     protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object received, StreamSinkChannel sinkchannel) {
         ArrayList<IPromise> futures = new ArrayList<>();
-        httpObjectSocket.getSink().receiveObject(received, futures);
+        httpObjectSocket.getSink().receiveObject(received, futures, 0);
 
         Runnable reply = () -> {
             // piggy back outstanding lp messages, outstanding lp request is untouched

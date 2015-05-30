@@ -72,7 +72,7 @@ public class TCPServerConnector implements ActorServerConnector {
                         while (!clientSocket.isClosed()) {
                             try {
                                 Object o = objectSocket.readObject();
-                                sink.receiveObject(o, null);
+                                sink.receiveObject(o, null, 0);
                             } catch (Exception e) {
                                 if (e instanceof EOFException == false)
                                     Log.Warn(this, e);

@@ -35,13 +35,16 @@ public class MyHttpApp extends Actor<MyHttpApp> {
             // deny access for admin's
             result.reject("Access denied");
         } else {
-            // create new session
+            // create new session. All sessions share one thread (scheduler). Create several schedulers to scale up
             MyHttpAppSession sess = AsActor(MyHttpAppSession.class,clientThread);
             sess.setThrowExWhenBlocked(true);
-            sess.init( self(), Arrays.asList("code","sleep","make music","family time") );
+            sess.init( self(), Arrays.asList("code","sleep","make music","family time", "girls time", "ignore *") );
             result.resolve(sess);
         }
         return result;
+    }
+
+    public void clientClosed(MyHttpAppSession session) {
     }
 
     public static void main(String[] args) {
@@ -60,7 +63,4 @@ public class MyHttpApp extends Actor<MyHttpApp> {
         Http4K.get().publishOnWebSocket( myHttpApp, hostName,"/ws", port, new Coding(SerializerType.JsonNoRefPretty) );
     }
 
-    public void clientClosed() {
-
-    }
 }

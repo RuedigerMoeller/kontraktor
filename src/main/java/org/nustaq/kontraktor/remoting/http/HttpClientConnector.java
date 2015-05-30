@@ -343,7 +343,7 @@ public class HttpClientConnector implements ActorClientConnector {
                         }
                         if (send) {
 //                                    getRefPollActor().execute( () -> sink.receiveObject(o) );
-                            sink.receiveObject(o, null);
+                            sink.receiveObject(o, null, 0);
                         }
                         else {
 //                            Log.Warn(this, "IGNORED LP RESPONSE, OUT OF SEQ");

@@ -266,7 +266,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         return false;
     }
 
-    protected boolean processRemoteCallEntry(ObjectSocket channel, RemoteCallEntry response, List<IPromise> createdFutures ) throws Exception {
+    protected boolean processRemoteCallEntry(ObjectSocket objSocket, RemoteCallEntry response, List<IPromise> createdFutures ) throws Exception {
         RemoteCallEntry read = response;
         boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
         if ( isContinue )
@@ -279,7 +279,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
             }
             if (targetActor.isStopped() || targetActor.getScheduler() == null ) {
                 Log.Lg.error(this, null, "actor found for key " + read + " is stopped and/or has no scheduler set");
-                receiveCBResult(channel, read.getFutureKey(), null, new RuntimeException("Actor has been stopped"));
+                receiveCBResult(objSocket, read.getFutureKey(), null, new RuntimeException("Actor has been stopped"));
                 return true;
             }
             if (remoteCallInterceptor != null && !remoteCallInterceptor.apply(targetActor,read.getMethod())) {
@@ -300,7 +300,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 final Promise finalP = p;
                 ((IPromise) future).then( (r,e) -> {
                     try {
-                        receiveCBResult(channel, read.getFutureKey(), r, e);
+                        receiveCBResult(objSocket, read.getFutureKey(), r, e);
                         if ( finalP != null )
                             finalP.complete();
                     } catch (Exception ex) {

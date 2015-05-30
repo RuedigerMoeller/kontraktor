@@ -9,15 +9,77 @@
 <h1>Kontraktor Http Sample</h1>
 
 <script>
-    var socket = new WebSocket("ws://localhost:8080/ws");
-    exampleSocket.onopen = function (event) {
-        exampleSocket.send( JSON.stringify(
-            [ "user", "pwd" ]
-        ));
-    };
-    exampleSocket.onmessage = function(message) {
-        console.log(message);
+
+    function buildJArray( list ) {
+        list.splice( 0, 0, list.length ); // insert number of elements at 0
+        return { styp: "array", seq: list };
     }
+
+    function buildCallList( list, seqNo ) {
+        var list1 = list.slice();
+        list1.push(seqNo);
+        return buildJArray(list1);
+    }
+
+    function buildJObject( type, obj ) {
+        return { typ: type, obj: obj }
+    }
+
+    /**
+     *
+     * @param callbackId - calback id in case method has a promise as a result
+     * @param receiverKey - target actor id
+     * @param args - [] of properly formated JObjects
+     * @returns {{typ, obj}|*}
+     */
+    function buildCall( callbackId, receiverKey, args ) {
+        return buildJObject( "call", { futureKey: callbackId, queue: 0, receiverKey: receiverKey, args: buildJArray(args) } );
+    }
+
+    var call = buildCallList(
+        [
+            buildCall( 1, 1, [ "user", "pwd" ] )
+        ],
+        0 // seqno
+    );
+    console.log( JSON.stringify(call) );
+
+
+    var socket = new WebSocket("ws://localhost:8080/ws");
+    socket.onmessage = function(message) {
+        console.log(message);
+        console.log(JSON.parse(message.data));
+    };
+    socket.onerror = function(err) {
+        console.log(err);
+    };
+    socket.onclose = function() {
+        console.log("close");
+    };
+
+    socket.onopen = function (event) {
+        setTimeout( function() {
+            socket.send( JSON.stringify(
+                {
+                  "styp" : "array",
+                  "seq" : [ 2, {
+                    "typ" : "call",
+                    "obj" : {
+                      "futureKey" : 1,
+                      "queue" : 0,
+                      "receiverKey" : 1,
+                      "args" : {
+                        "styp" : "array",
+                        "seq" : [ 2, "user", "pwd" ]
+                      },
+                      "method" : "login"
+                    }
+                  }, 1 ]
+                }
+            ));
+        }, 100);
+    };
+
 </script>
 </body>
 </html>

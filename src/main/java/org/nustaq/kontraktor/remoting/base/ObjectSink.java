@@ -1,7 +1,6 @@
 package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.util.Log;
 
 import java.util.List;
 
@@ -12,9 +11,16 @@ import java.util.List;
  */
 public interface ObjectSink {
 
-    void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures);
-    default void receiveObject(Object received, List<IPromise> createdFutures) {
-        receiveObject(this,received,createdFutures);
+    /**
+     *
+     * @param sink - usually this or a wrapper of this
+     * @param received - decoded object(s)
+     * @param createdFutures - list of futures/callbacks contained in the decoded object remote calls (unused)
+     * @param channelId - indicator for io channel (e.g. websocket text/binary)
+     */
+    void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures, int channelId);
+    default void receiveObject(Object received, List<IPromise> createdFutures, int channelId) {
+        receiveObject(this,received,createdFutures, channelId);
     }
     void sinkClosed();
 
