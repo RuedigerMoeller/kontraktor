@@ -124,7 +124,6 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
                 @Override
                 public void complete(WebSocketChannel channel, Object context) {
                     // FIXME: manage partial write ?
-                    System.out.println("complete");
                 }
 
                 @Override

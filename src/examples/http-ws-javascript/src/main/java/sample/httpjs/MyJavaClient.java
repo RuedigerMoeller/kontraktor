@@ -7,6 +7,9 @@ import org.nustaq.kontraktor.remoting.websockets.JSR356ClientConnector;
 
 /**
  * Created by ruedi on 30/05/15.
+ *
+ * Dev only. A pure java client useful to figure out JSON formatting of request/responses
+ *
  */
 public class MyJavaClient {
 

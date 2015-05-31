@@ -38,19 +38,18 @@ public class MyHttpApp extends Actor<MyHttpApp> {
             // create new session. All sessions share one thread (scheduler). Create several schedulers to scale up
             MyHttpAppSession sess = AsActor(MyHttpAppSession.class,clientThread);
             sess.setThrowExWhenBlocked(true);
-            sess.init( self(), Arrays.asList("code","sleep","make music","family time", "girls time", "ignore *") );
+            sess.init( self(), Arrays.asList("procrastinize", "ignore *") );
             result.resolve(sess);
         }
         return result;
     }
 
     public void clientClosed(MyHttpAppSession session) {
-        System.out.println("client closed");
+        System.out.println("client closed "+session);
     }
 
     public static void main(String[] args) {
-        String hostName = "localhost";
-        int port = 8080;
+        String hostName = "localhost"; int port = 8080;
         File root = new File("./web");
 
         if ( ! new File(root,"index.html").exists() ) {

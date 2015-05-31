@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.encoding.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -289,24 +290,32 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 }
                 return true;
             }
-
-            Object future = targetActor.getScheduler().enqueueCallFromRemote(this, null, targetActor, read.getMethod(), read.getArgs(), false);
-            if ( future instanceof IPromise) {
-                Promise p = null;
-                if ( createdFutures != null ) {
-                    p = new Promise();
-                    createdFutures.add(p);
-                }
-                final Promise finalP = p;
-                ((IPromise) future).then( (r,e) -> {
-                    try {
-                        receiveCBResult(objSocket, read.getFutureKey(), r, e);
-                        if ( finalP != null )
-                            finalP.complete();
-                    } catch (Exception ex) {
-                        Log.Warn(this, ex, "");
+            try {
+                Object future = targetActor.getScheduler().enqueueCallFromRemote(this, null, targetActor, read.getMethod(), read.getArgs(), false);
+                if ( future instanceof IPromise) {
+                    Promise p = null;
+                    if ( createdFutures != null ) {
+                        p = new Promise();
+                        createdFutures.add(p);
                     }
-                });
+                    final Promise finalP = p;
+                    ((IPromise) future).then( (r,e) -> {
+                        try {
+                            receiveCBResult(objSocket, read.getFutureKey(), r, e);
+                            if ( finalP != null )
+                                finalP.complete();
+                        } catch (Exception ex) {
+                            Log.Warn(this, ex, "");
+                        }
+                    });
+                }
+            } catch (Throwable th) {
+                Log.Warn(this,th);
+                if ( read.getFutureKey() > 0 ) {
+                    receiveCBResult(objSocket, read.getFutureKey(), null, FSTUtil.toString(th));
+                } else {
+                    FSTUtil.<RuntimeException>rethrow(th);
+                }
             }
         } else if (read.getQueue() == read.CBQ) {
             Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
