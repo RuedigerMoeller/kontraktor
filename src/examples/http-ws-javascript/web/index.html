@@ -96,22 +96,36 @@
         self.isPromise = false;
         self.cb = null;
         self.isCompleted = false;
+        self.nextPromise = null;
+
+        // private
+        self._notifyCB = function() {
+            var res = self.cb.apply(self.cb,self.res);
+            if ( self.nextPromise ) {
+                if ( res instanceof Promise ) {
+                    res.then(self.nextPromise);
+                } else {
+                    self.nextPromise.complete(self.res[0],self.res[1]);
+                }
+            }
+            self.cb = null;
+        };
 
         self.then = function(cb) {
-            if ( self.res )
-                cb.apply(null,self.res);
-            else
-                self.cb = cb;
+            if ( self.cb != null )
+                throw "only one callback can be set on promise";
+            self.nextPromise = new Promise();
+            self.cb = cb;
+            if ( self.isCompleted )
+                self._notifyCB();
         };
         self.complete = function(r,e) {
             if ( self.isCompleted )
                 throw "double completion on promise";
             self.res = [r,e];
             self.isCompleted = true;
-            if ( self.cb ) {
-                self.cb.apply(null,self.res);
-                self.cb = null;
-            }
+            if ( self.isCompleted )
+                self._notifyCB();
         };
     };
 
@@ -309,22 +323,22 @@
 
     socket.onopen( function (event) {
         MyHttpApp.send("login", [ "clientuser", "clientpwd" ])
-        .then( function(mySession,err) {
-            if ( err )
-                console.log(err);
-            else {
-                mySession.send("getToDo")
-                .then( function( res,err ) {
-                    console.log(res);
-                });
-                MyHttpApp.send("getServerTime")
-                .then( function( res,err ) {
+                .then( function(mySession,err) {
                     if ( err )
                         console.log(err);
-                    console.log(res);
-                })
-            }
-        });
+                    else {
+                        mySession.send("getToDo")
+                                .then( function( res,err ) {
+                                    console.log(res);
+                                });
+                        MyHttpApp.send("getServerTime")
+                                .then( function( res,err ) {
+                                    if ( err )
+                                        console.log(err);
+                                    console.log(res);
+                                })
+                    }
+                });
     });
 
 </script>
