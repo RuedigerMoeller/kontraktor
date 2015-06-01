@@ -2,12 +2,10 @@ package sample.httpjs;
 
 import io.undertow.Undertow;
 import io.undertow.server.handlers.PathHandler;
-import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.*;
+
 import static org.nustaq.kontraktor.Actors.*;
 
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.Scheduler;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
