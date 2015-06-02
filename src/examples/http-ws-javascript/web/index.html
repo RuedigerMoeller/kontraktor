@@ -3,7 +3,6 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title>JS Test</title>
-
 </head>
 <body>
 <p>
@@ -40,10 +39,7 @@
                 mySession.send( "streamToDo", [
                     "p", // filter
                     function( res, err ) {
-                        if ( err === 'CNT' )
-                            console.log("streamed:"+res);
-                        else
-                            console.log("streamed closed "+err);
+                      console.log("streamed:"+res+" "+err);
                     }
                 ]);
                 mySession.send( "subscribe", [ function(e,r) {
@@ -58,7 +54,7 @@
                             setTimeout(fun,50);
                         }
                     };
-                    fun.apply(null,[]);
+                    fun.apply();
                 }])
             }
         })
