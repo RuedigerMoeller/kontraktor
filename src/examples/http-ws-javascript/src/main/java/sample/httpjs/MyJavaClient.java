@@ -20,5 +20,7 @@ public class MyJavaClient {
         session.getToDo().then( list ->  {
             list.forEach(System.out::println);
         });
+
+        session.streamToDo( "p", (r,e) -> System.out.println(r+" "+e) );
     }
 }
