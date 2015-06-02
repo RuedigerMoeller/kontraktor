@@ -7,7 +7,7 @@ import org.nustaq.kontraktor.IPromise;
  */
 public interface Monitorable {
 
-    public IPromise $getReport();
-    public IPromise<Monitorable[]> $getSubMonitorables();
+    public IPromise getReport();
+    public IPromise<Monitorable[]> getSubMonitorables();
 
 }

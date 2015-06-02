@@ -31,7 +31,7 @@ public class AsyncServerSocketTest {
 
     public static class TA extends Actor<TA> {
 
-        public void $serve() {
+        public void serve() {
             AsyncServerSocket sock = new AsyncServerSocket();
             try {
                 sock.connect( 8080, (key,con) -> new AsyncSocketConnection(key, con) {
@@ -46,7 +46,7 @@ public class AsyncServerSocketTest {
             }
         }
 
-        public void $serve1() {
+        public void serve1() {
             AsyncServerSocket sock = new AsyncServerSocket();
             try {
                 sock.connect( 8080, (key,con) -> new QueuingAsyncSocketConnection(key, con) {
@@ -61,7 +61,7 @@ public class AsyncServerSocketTest {
         }
 
         int receiveCount = 0;
-        public IPromise $serve2() {
+        public IPromise serve2() {
             receiveCount = 0;
             RateMeasure ms = new RateMeasure("async receive object");
             AsyncServerSocket sock = new AsyncServerSocket();
@@ -95,7 +95,7 @@ public class AsyncServerSocketTest {
             return complete();
         }
 
-        public IPromise $serve3(int port) {
+        public IPromise serve3(int port) {
             receiveCount = 0;
             RateMeasure ms = new RateMeasure("async receive object");
             AsyncServerSocket sock = new AsyncServerSocket();
@@ -145,28 +145,28 @@ public class AsyncServerSocketTest {
             return complete();
         }
 
-        public IPromise<Integer> $getReceiveCount() {
+        public IPromise<Integer> getReceiveCount() {
             return resolve(receiveCount);
         }
     }
 
 //    @Test @Ignore
     public void plain() throws InterruptedException {
-        Actors.AsActor(TA.class).$serve();
+        Actors.AsActor(TA.class).serve();
         Thread.sleep(1000000l);
     }
 
 //    @Test @Ignore
     public void queued() throws InterruptedException {
         TA ta = Actors.AsActor(TA.class);
-        ta.$serve1();
+        ta.serve1();
         Thread.sleep(1000000l);
     }
 
     @Test
     public void serial() throws Exception {
         TA ta = Actors.AsActor(TA.class);
-        ta.$serve2().await();
+        ta.serve2().await();
         ExecutorService executorService = Executors.newCachedThreadPool();
         HashMap testMap = new HashMap();
         int MSG_COUNT = 10_000_000;
@@ -194,10 +194,10 @@ public class AsyncServerSocketTest {
         executorService.shutdown();
         executorService.awaitTermination(10, TimeUnit.DAYS);
         Thread.sleep(5000);
-        Integer count = ta.$getReceiveCount().await();
+        Integer count = ta.getReceiveCount().await();
         System.out.println("COUNT " + count);
         Assert.assertTrue(count == MSG_COUNT);
-        ta.$stop();
+        ta.stop();
 
     }
 
@@ -277,7 +277,7 @@ public class AsyncServerSocketTest {
         System.out.println("file len " + f.length());
 
         TA ta = Actors.AsActor(TA.class);
-        ta.$serve3(8081).await();
+        ta.serve3(8081).await();
         RateMeasure intFreq = new RateMeasure("int per sec");
 
         TCPObjectSocket sock = null;
@@ -304,7 +304,7 @@ public class AsyncServerSocketTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        ta.$stop();
+        ta.stop();
         Thread.sleep(1000);
     }
 

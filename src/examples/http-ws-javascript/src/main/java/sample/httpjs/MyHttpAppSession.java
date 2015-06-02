@@ -60,8 +60,8 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
     }
 
     @Override
-    public void $hasBeenUnpublished() {
+    public void hasBeenUnpublished() {
         app.clientClosed(self());
-        self().$stop();
+        self().stop();
     }
 }

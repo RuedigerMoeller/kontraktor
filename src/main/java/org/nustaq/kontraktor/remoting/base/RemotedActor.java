@@ -9,6 +9,6 @@ public interface RemotedActor {
     /**
      * notification method
      */
-    public void $hasBeenUnpublished();
+    public void hasBeenUnpublished();
 
 }

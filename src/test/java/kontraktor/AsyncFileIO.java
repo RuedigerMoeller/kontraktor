@@ -22,7 +22,7 @@ public class AsyncFileIO {
 
     public static class IOUsingActor extends Actor<IOUsingActor> {
 
-        public IPromise $readFile(String path) {
+        public IPromise readFile(String path) {
             try {
                 AsyncFile fi = new AsyncFile(path);
                 AsyncFileIOEvent event = new AsyncFileIOEvent(0, 0, ByteBuffer.allocate(100));
@@ -37,7 +37,7 @@ public class AsyncFileIO {
             return complete();
         }
 
-        public IPromise $readFileInputStream(String path) {
+        public IPromise readFileInputStream(String path) {
             try {
                 BufferedReader bufferedReader = new BufferedReader( new InputStreamReader( new AsyncFile(path).asInputStream()), 5000);
                 String line;
@@ -50,7 +50,7 @@ public class AsyncFileIO {
             return complete();
         }
 
-        public IPromise $writeFileOutputStream(String path) {
+        public IPromise writeFileOutputStream(String path) {
             try {
                 OutputStream outputStream = new AsyncFile(path,StandardOpenOption.WRITE, StandardOpenOption.CREATE).asOutputStream();
                 for ( int i = 0; i < 997; i++ ) {
@@ -64,7 +64,7 @@ public class AsyncFileIO {
             return complete();
         }
 
-        public IPromise $writeFile(String path) {
+        public IPromise writeFile(String path) {
             try {
                 AsyncFile fi = new AsyncFile(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE);
                 ByteBuffer buff = ByteBuffer.allocate(100);
@@ -83,7 +83,7 @@ public class AsyncFileIO {
             return complete();
         }
 
-        public IPromise $readFileFully(String path) {
+        public IPromise readFileFully(String path) {
             try {
                 AsyncFile fi = new AsyncFile(path);
                 AsyncFileIOEvent event = fi.readFully().await();
@@ -101,13 +101,13 @@ public class AsyncFileIO {
         count.set(0);
         String finam = "/tmp/test.data";
         IOUsingActor tester = Actors.AsActor(IOUsingActor.class);
-        tester.$writeFile(finam).await();
+        tester.writeFile(finam).await();
         System.out.println("finished writing " + new File(finam).length());
-        tester.$readFile(finam).await();
-        tester.$readFileFully(finam).await();
-        tester.$writeFileOutputStream(finam).await();
-        tester.$readFileInputStream(finam).await();
-        tester.$stop();
+        tester.readFile(finam).await();
+        tester.readFileFully(finam).await();
+        tester.writeFileOutputStream(finam).await();
+        tester.readFileInputStream(finam).await();
+        tester.stop();
     }
 
 

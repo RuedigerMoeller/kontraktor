@@ -37,7 +37,7 @@ public class MyHttpApp extends Actor<MyHttpApp> {
             // create new session. All sessions share one thread (scheduler). Create several schedulers to scale up
             MyHttpAppSession sess = AsActor(MyHttpAppSession.class,clientThread);
             sess.setThrowExWhenBlocked(true);
-            sess.init( self(), Arrays.asList("procrastinize", "ignore *") );
+            sess.init( self(), Arrays.asList("procrastinize", "drink coffee", "code", "play the piano", "ignore *") );
             result.resolve(sess);
         }
         return result;
@@ -62,7 +62,9 @@ public class MyHttpApp extends Actor<MyHttpApp> {
 
         // create and publish server actor
         MyHttpApp myHttpApp = AsActor(MyHttpApp.class);
+
         Http4K.get().publishOnWebSocket( myHttpApp, hostName,"/ws", port, new Coding(SerializerType.JsonNoRefPretty) );
+        Http4K.get().publishOnHttp( myHttpApp, hostName, "/api", port, new Coding(SerializerType.JsonNoRefPretty) );
     }
 
 }

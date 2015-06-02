@@ -18,7 +18,7 @@ public interface IPromise<T> extends Callback<T> {
      * Can be used in case a sender is not interested in the actual result
      * but when a remote method has finished processing.
      *
-     * e.g. actor.$asyncMehod().then( () -> furtherProcessing() );
+     * e.g. actor.asyncMehod().then( () -> furtherProcessing() );
      *
      * @return a future ressolved after this
      */
@@ -29,7 +29,7 @@ public interface IPromise<T> extends Callback<T> {
      * Can be used in case a sender is not interested in the actual result
      * but when a remote method has finished processing.
      *
-     * e.g. actor.$asyncMehod().then( () -> furtherProcessing() );
+     * e.g. actor.asyncMehod().then( () -> furtherProcessing() );
      *
      * @return a future ressolved with the Callable result after this
      */
@@ -40,7 +40,7 @@ public interface IPromise<T> extends Callback<T> {
      * Can be used in case a sender is not interested in the actual result
      * but when a remote method has finished processing.
      *
-     * e.g. actor.$asyncMehod().then( () -> { furtherProcessing(); return new Promise("result"); } );
+     * e.g. actor.asyncMehod().then( () -> { furtherProcessing(); return new Promise("result"); } );
      *
      * @return a future ressolved with the Supüplier result after this
      */
@@ -51,7 +51,7 @@ public interface IPromise<T> extends Callback<T> {
      * Can be used in case a sender is not interested in the actual result
      * but when a remote method has finished processing.
      *
-     * e.g. actor.$asyncMehod().then( () -> { furtherProcessing(); return new Promise("result"); } );
+     * e.g. actor.asyncMehod().then( () -> { furtherProcessing(); return new Promise("result"); } );
      *
      * @return a future ressolved with the Function result after this
      */
@@ -62,7 +62,7 @@ public interface IPromise<T> extends Callback<T> {
      * Can be used in case a sender is not interested in the actual result
      * but when a remote method has finished processing.
      *
-     * e.g. actor.$asyncMehod().then( () -> { furtherProcessing(); return new Promise("result"); } );
+     * e.g. actor.asyncMehod().then( () -> { furtherProcessing(); return new Promise("result"); } );
      *
      * @return a future ressolved empty after this
      */
@@ -71,14 +71,14 @@ public interface IPromise<T> extends Callback<T> {
     /**
      * called if an error has been signaled by one of the futures in the previous future chain.
      *
-     * e.e. actor.$async().then( ).then( ).then( ).catchError( error -> .. );
+     * e.e. actor.async().then( ).then( ).then( ).catchError( error -> .. );
      */
     public <OUT> IPromise<OUT> catchError(final Function<Object, IPromise<OUT>> function);
 
     /**
      * called if an error has been signaled by one of the futures in the previous future chain.
      *
-     * e.e. actor.$async().then( ).then( ).then( ).catchError( () -> .. );
+     * e.e. actor.async().then( ).then( ).then( ).catchError( () -> .. );
      */
     public <OUT> IPromise<OUT> catchError(final Consumer<Object> function);
 

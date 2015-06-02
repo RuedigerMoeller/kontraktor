@@ -18,9 +18,9 @@ public class TicketMachineTest {
 
     public static class AsyncWork extends Actor<AsyncWork> {
 
-        public IPromise $work(final long nanos) {
+        public IPromise work(final long nanos) {
             Promise promise = new Promise<>();
-            $exec(new Callable<Object>() {
+            exec(new Callable<Object>() {
                 @Override
                 public Object call() throws Exception {
                     LockSupport.parkNanos(nanos);
@@ -38,13 +38,13 @@ public class TicketMachineTest {
         AsyncWork worker;
         HashMap<Object,Long> seqTracker;
 
-        public void $init() {
+        public void init() {
             machine = new TicketMachine();
             worker = Actors.AsActor(AsyncWork.class);
             seqTracker = new HashMap<>();
         }
 
-        public void $process( final String stock, final long sequence ) {
+        public void process( final String stock, final long sequence ) {
             machine.getTicket(stock).then(new Callback<IPromise>() {
                 @Override
                 public void complete(final IPromise finSignal, Object error) {
@@ -58,7 +58,7 @@ public class TicketMachineTest {
                         }
                     }
 //                    System.out.println("working "+stock+" sq:"+sequence);
-                    worker.$work((long) (Math.random()*1000*1000)).then(new Callback() {
+                    worker.work((long) (Math.random()*1000*1000)).then(new Callback() {
                         @Override
                         public void complete(Object result, Object error) {
                             System.out.println("fin work "+stock+" "+sequence);
@@ -78,12 +78,12 @@ public class TicketMachineTest {
     @Test
     public void test() throws InterruptedException {
         TicketedProcessor proc = Actors.AsActor(TicketedProcessor.class);
-        proc.$init();
+        proc.init();
         String stocks[] = { "ALV", "BMW", "FDAX", "ODAX", "FGBL", "CCIP", "OGBL" };
         int seq[] = new int[stocks.length];
         for( int n = 0; n < 10000; n++) {
             int index = (int) (Math.random() * stocks.length);
-            proc.$process(stocks[index], seq[index]++ );
+            proc.process(stocks[index], seq[index]++ );
             LockSupport.parkNanos(1000*100);
         }
         Thread.sleep(1000*5);

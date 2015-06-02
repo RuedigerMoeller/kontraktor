@@ -142,7 +142,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
             publishedActorMappingReverse.remove(act.getActorRef());
             act.__removeRemoteConnection(this);
             if ( act instanceof RemotedActor) {
-                ((RemotedActor) act).$hasBeenUnpublished();
+                ((RemotedActor) act).hasBeenUnpublished();
             }
         }
     }
@@ -406,10 +406,10 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 Actor remoteActor = iterator.next();
                 CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
                 if ( ce != null) {
-                    if ( ce.getMethod().getName().equals("$close") ) {
+                    if ( ce.getMethod().getName().equals("close") ) {
                         closeRef(ce,chan);
                     } else
-                    if ( ce.getMethod().getName().equals("async$stop") ) {
+                    if ( ce.getMethod().getName().equals("asyncstop") ) {
                         Log.Lg.error(this, null, "cannot stop remote actors" );
                     } else {
                         int futId = 0;

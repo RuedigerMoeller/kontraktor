@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.kontraktor.remoting.http.UndertowHttpServerConnector;
 import org.nustaq.kontraktor.remoting.websockets.UndertowWebsocketServerConnector;
 import org.nustaq.kontraktor.util.Pair;
 
@@ -25,6 +26,9 @@ import java.util.Map;
 public class Http4K {
 
     protected static Http4K instance;
+    public static void set(Http4K http) {
+        instance = http;
+    }
 
     public static Http4K get() {
         synchronized (Http4K.class) {
@@ -38,6 +42,14 @@ public class Http4K {
     // a map of port=>server
     protected Map<Integer, Pair<PathHandler,Undertow>> serverMap = new HashMap<>();
 
+    /**
+     * creates or gets an undertow web server instance mapped by port.
+     * hostname must be given in case a new server instance has to be instantiated
+     *
+     * @param port
+     * @param hostName
+     * @return
+     */
     public synchronized Pair<PathHandler, Undertow> getServer(int port, String hostName) {
         Pair<PathHandler, Undertow> pair = serverMap.get(port);
         if (pair == null) {
@@ -58,10 +70,6 @@ public class Http4K {
     protected int getIoThreads() {return 2;}
     protected int getWorkerThreads() {return 2;}
 
-    public Object getGlobalLock() {
-        return Http4K.class;
-    }
-
     /**
      * publishes given file root
      * @param hostName
@@ -80,6 +88,12 @@ public class Http4K {
     /**
      * utility, just redirects to approriate connector
      *
+     * Publishes an actor/service via websockets protocol with given encoding.
+     * if this should be connectable from non-java code recommended coding is 'new Coding(SerializerType.JsonNoRefPretty)' (dev),
+     * 'new Coding(SerializerType.JsonNoRef)' (production)
+     *
+     * SerializerType.FSTSer is the most effective for java to java communication.
+     *
      * @param act
      * @param hostName
      * @param urlPath
@@ -88,6 +102,25 @@ public class Http4K {
      */
     public Promise<ActorServer> publishOnWebSocket( Actor act, String hostName, String urlPath, int port, Coding coding ) {
         return UndertowWebsocketServerConnector.Publish(act, hostName, urlPath, port, coding);
+    }
+
+    /**
+     * utility, just redirects to approriate connector.
+     *
+     * Publishes an actor/service via http with given encoding.
+     * if this should be connectable from non-java code recommended coding is 'new Coding(SerializerType.JsonNoRefPretty)' (dev),
+     * 'new Coding(SerializerType.JsonNoRef)' (production)
+     *
+     * SerializerType.FSTSer is the most effective for java to java communication.
+     *
+     * @param act
+     * @param hostName
+     * @param urlPath
+     * @param port
+     * @param coding
+     */
+    public Promise<ActorServer> publishOnHttp( Actor act, String hostName, String urlPath, int port, Coding coding ) {
+        return UndertowHttpServerConnector.Publish(act, hostName, urlPath, port, coding);
     }
 
 }

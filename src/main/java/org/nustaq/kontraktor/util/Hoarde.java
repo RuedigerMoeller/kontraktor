@@ -54,7 +54,7 @@ public class Hoarde<T extends Actor> {
     }
 
     /**
-     * iterate over each actor and execute tocall. E.g. hoarde.each( actor -> actor.$init() )
+     * iterate over each actor and execute tocall. E.g. hoarde.each( actor -> actor.init() )
      * @param tocall
      * @return
      */

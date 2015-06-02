@@ -23,20 +23,20 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
     volatile protected String sessionId;
     protected SERVER app;
 
-    public void $initFromServer(String sessionId, SERVER spaServer, Object resultFromIsLoginValid) {
+    public void initFromServer(String sessionId, SERVER spaServer, Object resultFromIsLoginValid) {
         this.app = spaServer;
         this.sessionId = sessionId;
         setThrowExWhenBlocked(true);
     }
 
-    public IPromise<String> $getId() {
+    public IPromise<String> getId() {
         return new Promise<>(sessionId);
     }
-    public IPromise<String> $getCreationTime() {
+    public IPromise<String> getCreationTime() {
         return new Promise<>(new Date(creationTime).toString() ); //JS no long :(
     }
 
-    public void $heartBeat() {
+    public void heartBeat() {
         Log.Info(this, "Hearbeat from " + sessionId);
         getActor().lastHB = System.currentTimeMillis();
     }
@@ -47,10 +47,10 @@ public class FourKSession<SERVER extends FourK,SESSION extends FourKSession> ext
      * fallback.
      */
     @Override @Local
-    public void $hasBeenUnpublished() {
-        app.$clientTerminated(self()).then(() -> {
+    public void hasBeenUnpublished() {
+        app.clientTerminated(self()).then(() -> {
             if (!app.isStickySessions())
-                self().$close();
+                self().close();
         });
     }
 

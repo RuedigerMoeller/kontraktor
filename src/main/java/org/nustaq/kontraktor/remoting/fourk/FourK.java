@@ -50,15 +50,15 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
      *                       using "reconnectSession" later on.
      */
     @Local
-    public void $init(Scheduler clientScheduler, boolean stickySessions) {
+    public void init(Scheduler clientScheduler, boolean stickySessions) {
         this.sessions = new HashMap<>();
         this.clientScheduler = clientScheduler;
         this.stickySessions = stickySessions;
-        delayed( 1000, () -> $checkSessions() );
+        delayed( 1000, () -> checkSessions() );
     }
 
     @Local
-    public void $checkSessions() {
+    public void checkSessions() {
         // fixme: add worst case session timeout in case to much connections
         long now = System.currentTimeMillis();
         List toRemove = new ArrayList();
@@ -73,7 +73,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
         });
 
         toRemove.forEach(sessionKey -> sessions.remove(sessionKey));
-        delayed(2000, () -> $checkSessions());
+        delayed(2000, () -> checkSessions());
     }
 
 
@@ -84,21 +84,21 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
 
     /**
      * to avoid the need for anonymous clients to create a websocket connection prior to login,
-     * this is exposed as a webservice and is called using $.get(). The Id returned then can be
+     * this is exposed as a webservice and is called using .get(). The Id returned then can be
      * used to obtain a valid session id for the websocket connection.
      *
      * @param user
      * @param pwd
      * @return
      */
-    public IPromise<String> $authenticate(String user, String pwd) {
+    public IPromise<String> authenticate(String user, String pwd) {
         Promise p = new Promise();
         isLoginValid(user, pwd).then(
             (result, e) -> {
                 if (result != null) {
                     String sessionId = Long.toHexString((long) (Math.random() * Long.MAX_VALUE)) + "" + sessionIdCounter++; // FIXME: use strings
                     SESSION newSession = createSessionActor(sessionId, clientScheduler, result);
-                    newSession.$initFromServer(sessionId, (FourK) self(), result);
+                    newSession.initFromServer(sessionId, (FourK) self(), result);
                     sessions.put(sessionId, newSession);
                     newSession.setThrowExWhenBlocked(true);
                     p.complete(sessionId, null);
@@ -109,13 +109,13 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
         return p;
     }
 
-    public IPromise<SESSION> $getSession(String id) {
+    public IPromise<SESSION> getSession(String id) {
         System.out.println("getSession registry " + Actor.registry.get());
         SESSION session = sessions.get(id);
         return new Promise<>(session);
     }
 
-    public IPromise<Boolean> $reconnectSession(String id, int sequence) {
+    public IPromise<Boolean> reconnectSession(String id, int sequence) {
         Log.Info(this, "try reconnect session " + id);
         RemoteRegistry newRemoteRefRegistry = Actor.registry.get(); // caveat NOT available in callbacks
         // FIXME: protect against brute force
@@ -152,9 +152,9 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
      * @return
      */
     @Local
-    public IPromise $clientTerminated(SESSION session) {
+    public IPromise clientTerminated(SESSION session) {
         Promise p = new Promise();
-        session.$getId().then((id, err) -> {
+        session.getId().then((id, err) -> {
             if (!stickySessions)
                 sessions.remove(id);
             p.complete();
@@ -167,20 +167,20 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
      * session object
      * @param user
      * @param pwd
-     * @return - null or user object passed to sessionactor $init
+     * @return - null or user object passed to sessionactor init
      */
     abstract protected IPromise<Object> isLoginValid(String user, String pwd);
     abstract protected SESSION createSessionActor(String sessionId, Scheduler clientScheduler, Object resultFromIsLoginValid);
 
     @Override @Local
-    public IPromise<Monitorable[]> $getSubMonitorables() {
+    public IPromise<Monitorable[]> getSubMonitorables() {
         Monitorable[] mon = new Monitorable[sessions.size()];
         sessions.values().toArray(mon);
         return new Promise<>(mon);
     }
 
     @Local
-    public IPromise<AppConf> $getConf() {
+    public IPromise<AppConf> getConf() {
         return new Promise<>(conf);
     }
 
@@ -189,7 +189,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
      * @throws Exception
      */
     @Local
-    public IPromise<Map<String,DependencyResolver>> $main(String appRootDir) {
+    public IPromise<Map<String,DependencyResolver>> main(String appRootDir) {
         try {
             this.appRootDir = appRootDir;
             // patch conf from args
@@ -210,7 +210,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
                 loader.put( k, new DependencyResolver( appRootDir, v, conf.componentPath ) );
             });
 
-            $init(scheduler, conf.stickySessions);
+            init(scheduler, conf.stickySessions);
 
             // fixme: slowish
             BiFunction<Actor,String,Boolean> methodSecurity = (actor, method) -> {
@@ -250,7 +250,7 @@ public abstract class FourK<SERVER extends Actor,SESSION extends FourKSession> e
         MB2JS.Gen(genBase, appRootDir+"/tmp/generated.js");
     }
 
-    public IPromise<Consumer<FSTConfiguration>> $getRemotingConfigurator() {
+    public IPromise<Consumer<FSTConfiguration>> getRemotingConfigurator() {
         return new Promise<>( conf -> shortClassNameMapping.forEach( (k,v) -> conf.registerCrossPlatformClassMapping(k,v) ) );
     }
 }

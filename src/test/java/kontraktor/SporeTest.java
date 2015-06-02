@@ -19,7 +19,7 @@ public class SporeTest {
 
         ArrayList<String> data = new ArrayList<>();
 
-        public void $init( int sizeCollection ) {
+        public void init( int sizeCollection ) {
             Thread.currentThread().setName("DataHolder");
             for ( int i=0; i < sizeCollection; i++ ) {
                 data.add("Kontraktor is "+i+" times cooler than ice.");
@@ -30,7 +30,7 @@ public class SporeTest {
             }
         }
 
-        public void $doQuery(Spore<String, Object> query) {
+        public void doQuery(Spore<String, Object> query) {
             data.forEach( string -> {
                 query.remote( string );
             });
@@ -43,10 +43,10 @@ public class SporeTest {
 
     public static class Caller extends Actor<Caller> {
 
-        public void $testSpore( DataHolder data, String subs ) {
+        public void testSpore( DataHolder data, String subs ) {
             Thread.currentThread().setName("Caller");
             checkThread();
-            data.$doQuery(
+            data.doQuery(
                 new Spore<String, Object>() {
 
                     String toSearch; // data required remotely
@@ -73,7 +73,7 @@ public class SporeTest {
                 .onFinish(() -> System.out.println("DONE"))
             );
             Thread t = Thread.currentThread();
-            data.$submit( () -> {
+            data.submit( () -> {
                 if ( t == Thread.currentThread() ) {
                     res.incrementAndGet();
                 }
@@ -84,9 +84,9 @@ public class SporeTest {
     @Test
     public void testSpore() throws InterruptedException {
         DataHolder data = Actors.AsActor(DataHolder.class);
-        data.$init(500);
+        data.init(500);
         Caller caller = Actors.AsActor(Caller.class);
-        caller.$testSpore(data, "maybe");
+        caller.testSpore(data, "maybe");
         Thread.sleep(2000);
         Assert.assertTrue( res.get() == 73 );
     }

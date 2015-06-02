@@ -54,7 +54,7 @@ public class BasicTest {
         bench(b);
         bench(b);
         long callsPerSec = bench(b);
-        b.$stop();
+        b.stop();
 //        assertTrue(callsPerSec > 1 * 1000 * 1000);
     }
 
@@ -80,7 +80,7 @@ public class BasicTest {
             @Override
             public void complete(Integer result, Object error) {
                 assertTrue(result.intValue()==10);
-                bs.$stop();
+                bs.stop();
                 latch.countDown();
             }
         });
@@ -176,8 +176,8 @@ public class BasicTest {
         Thread.sleep(1000);
 
         assertTrue(cbActor.getActor().success == 2);
-        cbActor.$stop();
-        service.$stop();
+        cbActor.stop();
+        service.stop();
 
     }
 
@@ -220,7 +220,7 @@ public class BasicTest {
             return new Promise<>(name);
         }
 
-        public IPromise $sleep(long millis) {
+        public IPromise sleep(long millis) {
             try {
                 Thread.sleep(millis);
             } catch (InterruptedException e) {
@@ -229,7 +229,7 @@ public class BasicTest {
             return new Promise<>("void");
         }
 
-        public IPromise<Long> sleep() {
+        public IPromise<Long> sleep1() {
             long millis = (long) (Math.random() * 1000);
             try {
                 Thread.sleep(millis);
@@ -259,7 +259,7 @@ public class BasicTest {
             }
 
             for (int i = 0; i < act.length; i++) {
-                results[i] = act[i].sleep();
+                results[i] = act[i].sleep1();
             }
 
             all(results).then( (result, error) -> {
@@ -272,11 +272,11 @@ public class BasicTest {
 
         }
 
-        public void $stop() {
+        public void stop() {
             for (int i = 0; i < act.length; i++) {
-                act[i].$stop();
+                act[i].stop();
             }
-             super.$stop();
+             super.stop();
         }
 
 
@@ -294,7 +294,7 @@ public class BasicTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        act.$stop();
+        act.stop();
     }
 
     public static class TestBlockingAPI extends Actor<TestBlockingAPI> {
@@ -302,7 +302,7 @@ public class BasicTest {
         public IPromise<String> get( final String url ) {
             final Promise<String> content = new Promise();
             final Thread myThread = Thread.currentThread();
-            $exec(() -> {
+            exec(() -> {
                 assertTrue(Thread.currentThread() instanceof DispatcherThread == false);
                 return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
             }).then( (result, error) -> {
@@ -406,7 +406,7 @@ public class BasicTest {
 
     public static class DelayedTest extends Actor<DelayedTest> {
 
-        public void $delay(long started) {
+        public void delay(long started) {
             delay_threads.set(__currentDispatcher == Thread.currentThread());
             if (!delay_threads.get()) {
                 System.out.println("current thread " + Thread.currentThread().getName());
@@ -425,18 +425,18 @@ public class BasicTest {
 
     public static class DelayedCaller extends Actor {
 
-        public void $dummy() {
+        public void dummy() {
             System.out.println("pok");
         }
 
-        public void $delay() {
+        public void delay() {
             final DelayedTest test = Actors.AsActor(DelayedTest.class);
             final long now = System.currentTimeMillis();
             delayed(100, () -> {
                 if ( Thread.currentThread() != __currentDispatcher )
                     delay_err.incrementAndGet();
-                test.$delay(now);
-                test.$stop();
+                test.delay(now);
+                test.stop();
             });
         }
     }
@@ -444,7 +444,7 @@ public class BasicTest {
     @Test
     public void testDelayed() {
         DelayedCaller caller = Actors.AsActor(DelayedCaller.class);
-        caller.$delay();
+        caller.delay();
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
@@ -453,7 +453,7 @@ public class BasicTest {
         assertTrue(delay_threads.get());
         assertTrue(delay_err.get()==0);
         assertTrue(delay_time.get() >= 100 && delay_time.get() < 500);
-        caller.$stop();
+        caller.stop();
     }
 
     @Test
@@ -474,25 +474,25 @@ public class BasicTest {
             e.printStackTrace();
         }
         assertTrue(success.get()!=1); // if no response (proxy etc) also return true
-        actor.$stop();
+        actor.stop();
     }
 
     public static class ExceptionThrower extends Actor<ExceptionThrower> {
 
         public volatile boolean hadEx = false;
 
-        public void $test() {
+        public void test() {
             setThrowExWhenBlocked(true);
             try {
                 for (int i=0; i < 100000; i++)
-                    $deadlockMySelf();
+                    deadlockMySelf();
             } catch ( ActorBlockedException abe ) {
                 hadEx = true;
             }
         }
 
-        public void $deadlockMySelf() {
-            self().$deadlockMySelf();
+        public void deadlockMySelf() {
+            self().deadlockMySelf();
         }
 
     }
@@ -500,7 +500,7 @@ public class BasicTest {
 
     @Test public void testBlockEx() {
         ExceptionThrower act = Actors.AsActor(ExceptionThrower.class, 1000);
-        act.$test();
+        act.test();
         try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {
@@ -512,15 +512,15 @@ public class BasicTest {
     static AtomicInteger tocount = new AtomicInteger(0);
     public static class TimeOuter extends Actor<TimeOuter> {
 
-        public IPromise $timeOutingMethod() {
+        public IPromise timeOutingMethod() {
             final Promise promise = new Promise();
             delayed(4000, () -> promise.complete() );
             return promise;
         }
 
-        public void $internalTimeout() {
+        public void internalTimeout() {
             checkThread();
-            self().$timeOutingMethod().timeoutIn(2000).then( (r,e) -> {
+            self().timeOutingMethod().timeoutIn(2000).then( (r,e) -> {
                 checkThread();
                 if ( e == Timeout.INSTANCE ) {
                     System.out.println("timed out");
@@ -532,8 +532,8 @@ public class BasicTest {
 
     @Test public void testTimout() {
         TimeOuter to = Actors.AsActor(TimeOuter.class);
-        to.$internalTimeout();
-        to.$timeOutingMethod()
+        to.internalTimeout();
+        to.timeOutingMethod()
           .timeoutIn(3000)
           .onResult( r -> tocount.set(9999) )
           .onError( err -> tocount.set(10000) )
@@ -547,12 +547,12 @@ public class BasicTest {
             e.printStackTrace();
         }
         assertTrue(tocount.get() == 2);
-        to.$stop();
+        to.stop();
     }
 
     public static class OnFutTest extends Actor<OnFutTest> {
 
-        public IPromise<String> $returnErrorOrResult(int i) {
+        public IPromise<String> returnErrorOrResult(int i) {
             if ( Math.random() > .5 ) {
                 return new Promise<>("Result "+i);
             }
@@ -567,7 +567,7 @@ public class BasicTest {
         // test when called from inside actor
         public void testMethod() {
             for ( int i = 20; i < 30; i++ ) {
-                self().$returnErrorOrResult(i)
+                self().returnErrorOrResult(i)
                    .onResult((result) -> System.out.println("result 1 " + result))
                    .onError((error) -> System.out.println("onerr 1 " + error))
                    .onResult((result) -> System.out.println("result 2 " + result))
@@ -587,7 +587,7 @@ public class BasicTest {
         Thread.sleep(2000);
         System.out.println("-----------------------------");
         for ( int i = 0; i < 10; i++ ) {
-            oft.$returnErrorOrResult(i)
+            oft.returnErrorOrResult(i)
                .onResult( (result) -> System.out.println("result 1 "+result))
                .onError(  (error)  -> System.out.println("onerr 1 "+error))
                .onResult( (result) -> System.out.println("result 2 "+result))
@@ -596,7 +596,7 @@ public class BasicTest {
                .then( (r,e) -> onFutCount.incrementAndGet());
         }
         Thread.sleep(2000);
-        oft.$stop();
+        oft.stop();
         assertTrue(onFutCount.get() == 20);
     }
 

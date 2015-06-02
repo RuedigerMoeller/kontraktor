@@ -279,7 +279,7 @@ public class HttpClientConnector implements ActorClientConnector {
             req.setEntity(new ByteArrayEntity(message));
             if ( HttpClientConnector.DumpProtocol ) {
                 try {
-                    System.out.println("resp:"+new String(message,"UTF-8"));
+                    System.out.println("req:"+new String(message,"UTF-8"));
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
@@ -342,7 +342,6 @@ public class HttpClientConnector implements ActorClientConnector {
                                 lastReceivedSequence = sequence;
                         }
                         if (send) {
-//                                    getRefPollActor().execute( () -> sink.receiveObject(o) );
                             sink.receiveObject(o, null, 0);
                         }
                         else {
@@ -351,7 +350,10 @@ public class HttpClientConnector implements ActorClientConnector {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
+                } else if ( HttpClientConnector.DumpProtocol ) {
+                    System.out.println("resp:<EMPTY>");
                 }
+
                 p.resolve();
             };
         }
@@ -460,7 +462,7 @@ public class HttpClientConnector implements ActorClientConnector {
                 int count[] = {0};
                 Runnable pok[] = {null};
                 pok[0] = () -> {
-                    act.$ui();
+                    act.ui();
                     act.hello("pok").then( r -> {
                         System.out.println("response:" + count[0]++ + " " + r);
                     });
@@ -468,7 +470,7 @@ public class HttpClientConnector implements ActorClientConnector {
                 };
 //                pok[0] = () -> {
 //                    System.out.println("Call => ");
-//                    act.$cb( (r,e) -> {
+//                    act.cb( (r,e) -> {
 //                        System.out.println("pok "+r);
 //                    });
 //                    Actors.SubmitDelayed((long) (Math.random()*10000), pok[0]);

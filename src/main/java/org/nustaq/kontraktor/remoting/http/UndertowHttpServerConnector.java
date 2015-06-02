@@ -31,7 +31,7 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 12.05.2015.
  *
- * A longpoll+shortpoll+nopoll based connector. Only Binary/MinBin coding using POST requests is supported
+ * A longpoll+shortpoll+nopoll based connector. Binary/MinBin/Json coding using POST requests is supported
  *
  * Algorithm/Expected client behaviour:
  *
@@ -46,10 +46,10 @@ import java.util.function.Function;
  * to prevent double processing of incoming messages.
  *
  * For shortpoll, a client sends "{ 'SP', sequence }" to indicate the poll request should return immediately.
- * With many clients and connection limited clients (browser,mobiles) a short poll with larger intervals (>3s) can scale better
+ * With many clients and connection limited clients (browser,mobiles) a short poll with larger intervals (>3s) might scale better
  * at cost of latency.
  *
- * When used no-poll, streaming results to a callback is not supported. Only fire and forget (void methods) and IPromise-returning
+ * When used no-poll, streaming results to a callback is not supported. Only 'tell' (void methods) and 'ask' (IPromise-returning)
  * messages can be used.
  *
  * TODO: close session in case of unrecoverable loss
@@ -420,11 +420,11 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             return resolve(count-1);
         }
 
-        public void $ui() {
+        public void ui() {
             System.out.println("ui");
         }
 
-        public void $cb( Callback cb ) {
+        public void cb( Callback cb ) {
             for ( int i = 0; i < 10; i++ ) {
                 if ( i < 9 ) {
                     cb.stream(i);

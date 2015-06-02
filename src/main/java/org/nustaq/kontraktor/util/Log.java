@@ -12,7 +12,7 @@ import java.util.Date;
  * Created by ruedi on 24.08.14.
  *
  * A wrapper for logging + metrics. This logger facade is asynchronous (so does not block by IO).
- * In order to redirect logging, use Log.Lg.$setLogWrapper( .. );
+ * In order to redirect logging, use Log.Lg.setLogWrapper( .. );
  *
  */
 public class Log extends Actor<Log> {
@@ -88,12 +88,12 @@ public class Log extends Actor<Log> {
 
     volatile int severity = INFO;
 
-    public void $setLogWrapper(LogWrapper delegate) {
+    public void setLogWrapper(LogWrapper delegate) {
         this.logger = delegate;
     }
 
 
-    public void $setSeverity(int severity) {
+    public void setSeverity(int severity) {
         this.severity = severity;
     }
 
@@ -110,33 +110,33 @@ public class Log extends Actor<Log> {
     }
 
     @CallerSideMethod public void infoLong(Object source, Throwable ex, String msg) {
-        self().$msg(Thread.currentThread(), INFO, source, ex, msg);
+        self().msg(Thread.currentThread(), INFO, source, ex, msg);
     }
 
     @CallerSideMethod public void debug( Object source, String msg ) {
-        self().$msg(Thread.currentThread(), INFO, source, null, msg);
+        self().msg(Thread.currentThread(), INFO, source, null, msg);
     }
 
     @CallerSideMethod public void info( Object source, String msg ) {
-        self().$msg(Thread.currentThread(), INFO, source, null, msg);
+        self().msg(Thread.currentThread(), INFO, source, null, msg);
     }
 
     @CallerSideMethod public void warnLong( Object source, Throwable ex, String msg ) {
-        self().$msg(Thread.currentThread(), WARN, source, ex, msg);
+        self().msg(Thread.currentThread(), WARN, source, ex, msg);
     }
 
     @CallerSideMethod public void warn( Object source, String msg ) {
-        self().$msg(Thread.currentThread(), WARN, source, null, msg);
+        self().msg(Thread.currentThread(), WARN, source, null, msg);
     }
 
     @CallerSideMethod public void error( Object source, Throwable ex, String msg ) {
-        self().$msg(Thread.currentThread(), ERROR, source, ex, msg);
+        self().msg(Thread.currentThread(), ERROR, source, ex, msg);
     }
 
     ////////////////////////////
 
     // async mother method
-    public void $msg( Thread t, int severity, Object source, Throwable ex, String msg ) {
+    public void msg( Thread t, int severity, Object source, Throwable ex, String msg ) {
         logger.msg( t, severity,source,ex,msg);
     }
 

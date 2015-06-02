@@ -285,7 +285,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                 return true;
             } catch ( Throwable e) {
                 if ( e instanceof InvocationTargetException && ((InvocationTargetException) e).getTargetException() == InternalActorStoppedException.Instance ) {
-                    // fixme: rare classcast exception with elasticscheduler seen here when $stop is called from a callback ..
+                    // fixme: rare classcast exception with elasticscheduler seen here when stop is called from a callback ..
                     Actor actor = (Actor) callEntry.getTarget();
                     actor.__stopped = true;
                     removeActorImmediate(actor.getActorRef());
@@ -459,12 +459,12 @@ public class DispatcherThread extends Thread implements Monitorable {
     }
 
     @Override
-    public IPromise $getReport() {
+    public IPromise getReport() {
         return new Promise(new DispatcherReport(getName(), actors.length, getLoad(),getAccumulatedQSizes() ));
     }
 
     @Override
-    public IPromise<Monitorable[]> $getSubMonitorables() {
+    public IPromise<Monitorable[]> getSubMonitorables() {
         return new Promise(getActors());
     }
 

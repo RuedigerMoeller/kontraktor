@@ -11,12 +11,22 @@
 
     Server Time: <span id="time"></span> <br><br>
     ToDo:<br>
-    <div id="todo"></div>
+    <div id="todo"></div><br>
+    ToDo filtered indexof('p'):<br><br>
+    <div id="filtered"></div>
 
 <script src="jsk/jsk.js"></script>
 
 <script>
     var server = null;
+
+    var lpSock = new jsk.KontraktorPollSocket("http://localhost:8080/api");
+    lpSock.onopen( function( event ) {
+        lpSock.send(
+        '{"styp":"array","seq":[2,{"typ":"call","obj":{"futureKey":1,"queue":0,"receiverKey":1,"args":{"styp":"array","seq":[2,"httpuser","apwd"]},"method":"login"}},2]}'
+        );
+    });
+
     var errCB = function( err ) { console.error(err); };
     jsk.connect("ws://localhost:8080/ws",errCB)
       .then( function( app, error ) {
@@ -26,27 +36,26 @@
         }
         server = app;
 
-        server.sendWithPromise("login", "clientuser", "clientpwd")
+        server.ask("login", "clientuser", "clientpwd")
           .then( function(mySession,err) {
             if ( err )
                 console.log(err);
             else {
-                mySession.sendWithPromise("getToDo").then( function( res,err ) {
+                mySession.ask("getToDo").then( function( res,err ) {
                     var li = "<ul>";
                     for ( var i=0; i < res.length; i++ )
                         li += "<li>"+res[i]+"</li>";
                     li += "</ul>";
                     document.getElementById("todo").innerHTML=li;
                 });
-                server.sendWithPromise("getServerTime").then( function( res,err ) {
-                    var tim = document.getElementById("time");
-                    tim.innerHTML=res;
+                server.ask("getServerTime").then( function( res,err ) {
+                    document.getElementById("time").innerHTML=res;
                 });
-                mySession.send( "streamToDo", "p", function( res, err ) {
-                      console.log("streamed:"+res+" "+err);
-                    }
-                );
-                mySession.send( "subscribe", function(e,r) {
+                mySession.tell( "streamToDo", "p", function( res, err ) {
+                    if ('FIN' !== err )
+                        document.getElementById("filtered").innerHTML += "'"+res+"',&nbsp;";
+                });
+                mySession.tell( "subscribe", function(e,r) {
                     var tim = document.getElementById("time");
                     tim.innerHTML=e;
                     var bright = 1.0;

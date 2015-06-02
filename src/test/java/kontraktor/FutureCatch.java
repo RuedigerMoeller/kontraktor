@@ -19,63 +19,63 @@ public class FutureCatch {
 
     public static class FutCatch extends Actor<FutCatch> {
 
-        public IPromise<String> $error(int num) {
+        public IPromise<String> error(int num) {
             Promise res = new Promise();
             delayed(500, () -> res.complete(null, "Error " + num));
             return res;
         }
 
-        public IPromise<String> $badex(int num) {
+        public IPromise<String> badex(int num) {
             Promise res = new Promise();
             delayed( 500, () -> res.complete(null, new Error("oh noes " + num)) );
             return res;
         }
 
-        public IPromise<String> $result(int num) {
+        public IPromise<String> result(int num) {
             Promise res = new Promise();
             delayed( 500, () -> res.complete("Result " + num, null) );
             return res;
         }
 
-        public IPromise<String> $rand(int num) {
+        public IPromise<String> rand(int num) {
             Promise res = new Promise();
             delayed( 500+(long)(Math.random()*500), () -> res.complete("Result " + num, null) );
             return res;
         }
 
-        public IPromise<Integer> $testAwait() {
+        public IPromise<Integer> testAwait() {
             int correctCount = 0;
             AtomicInteger count = new AtomicInteger(0);
             try {
-                System.out.println( self().$result(1).await() );
-                System.out.println( self().$result(2).await() );
-                System.out.println( self().$result(3).await() );
-                System.out.println( self().$result(4).await() );
-                System.out.println( self().$error(13).await() );
+                System.out.println( self().result(1).await() );
+                System.out.println( self().result(2).await() );
+                System.out.println( self().result(3).await() );
+                System.out.println( self().result(4).await() );
+                System.out.println( self().error(13).await() );
             } catch (Exception e) {
                 correctCount++;
                 e.printStackTrace();
             }
             try {
-                System.out.println( self().$result(1).await() );
-                System.out.println( self().$result(2).await() );
-                System.out.println( self().$result(3).await() );
-                System.out.println( self().$result(4).await() );
-                System.out.println( self().$badex(17).await() );
+                System.out.println( self().result(1).await() );
+                System.out.println( self().result(2).await() );
+                System.out.println( self().result(3).await() );
+                System.out.println( self().result(4).await() );
+                System.out.println( self().badex(17).await() );
             } catch (Throwable e) {
                 correctCount++;
                 e.printStackTrace();
             }
-            awaitAll(self().$rand(1),
-                        self().$rand(2),
-                        self().$rand(3),
-                        self().$rand(4)
+            awaitAll(self().rand(1),
+                        self().rand(2),
+                        self().rand(3),
+                        self().rand(4)
             ).forEach( r -> { System.out.print("," + r); count.incrementAndGet(); });
 
-            String race = race(self().$rand(1),
-                    self().$rand(2),
-                    self().$rand(3),
-                    self().$rand(4)
+            String race = race(self().rand(1),
+                    self().rand(2),
+                    self().rand(3),
+                    self().rand(4)
             ).await();
             System.out.println();
             System.out.println("rc "+race);
@@ -88,20 +88,20 @@ public class FutureCatch {
         FutCatch futCatch = AsActor(FutCatch.class);
         int suc = 0;
         try {
-            futCatch.$result(12).timeoutIn(100).await();
+            futCatch.result(12).timeoutIn(100).await();
         } catch ( Throwable t ) {
             t.printStackTrace();
             suc++;
         }
         try {
-            futCatch.$result(12).timeoutIn(1000).await();
+            futCatch.result(12).timeoutIn(1000).await();
         } catch ( Throwable t ) {
             t.printStackTrace();
             suc++;
         }
         try {
             long now = System.currentTimeMillis();
-            String await = futCatch.$result(12).await(10);
+            String await = futCatch.result(12).await(10);
             System.out.println("res:"+await+" "+(System.currentTimeMillis()-now));
         } catch ( Throwable t ) {
             t.printStackTrace();
@@ -113,16 +113,16 @@ public class FutureCatch {
             e.printStackTrace();
         }
         assertTrue(suc == 2);
-        futCatch.$stop();
+        futCatch.stop();
     }
 
     @Test
     public void testESY() {
         final FutCatch futCatch = AsActor(FutCatch.class);
-        Integer sync = futCatch.$testAwait().await();
+        Integer sync = futCatch.testAwait().await();
         System.out.println("Done");
         assertTrue(sync.intValue() == 6);
-        futCatch.$stop();
+        futCatch.stop();
     }
 
     @Test
@@ -131,7 +131,7 @@ public class FutureCatch {
         final FutCatch futCatch = AsActor(FutCatch.class);
         AtomicInteger count = new AtomicInteger(0);
 
-        futCatch.$error(1)
+        futCatch.error(1)
             .then( r -> System.out.println("NEVER SHOULD BE CALLED") )
             .then( () -> System.out.println("oops") )
             .catchError(err -> {
@@ -139,7 +139,7 @@ public class FutureCatch {
                 count.incrementAndGet();
             });
 
-        futCatch.$result(0)
+        futCatch.result(0)
            .then(() -> { // Runnable
                count.addAndGet(1);
                System.out.println("EMPTYTHEN");
@@ -156,27 +156,27 @@ public class FutureCatch {
            .thenAnd(r -> {
                System.out.println("" + r);
                count.addAndGet(1);
-               return futCatch.$result(1);
+               return futCatch.result(1);
            })
            .thenAnd(r -> {
                System.out.println("" + r);
                count.addAndGet(2);
-               return futCatch.$result(2);
+               return futCatch.result(2);
            })
            .thenAnd(r -> {
                System.out.println("" + r);
                count.addAndGet(3);
-               return futCatch.$error(1);
+               return futCatch.error(1);
            })
            .thenAnd(r -> {
                System.out.println("" + r);
                count.addAndGet(4);
-               return futCatch.$result(3);
+               return futCatch.result(3);
            })
            .thenAnd(r -> {
                System.out.println("" + r);
                count.addAndGet(5);
-               return futCatch.$result(4);
+               return futCatch.result(4);
            })
            .catchError(error -> {
                count.addAndGet(5);
@@ -186,7 +186,7 @@ public class FutureCatch {
            .await();
 
         assertTrue(count.get() == 14);
-        futCatch.$stop();
+        futCatch.stop();
     }
 
 }

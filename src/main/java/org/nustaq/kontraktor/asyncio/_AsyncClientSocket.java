@@ -140,7 +140,7 @@ public class _AsyncClientSocket implements Runnable {
     public static class CLSActor extends Actor<CLSActor> {
         _AsyncClientSocket sock;
 
-        public void $connect() {
+        public void connect() {
             sock = new _AsyncClientSocket();
             sock.connect("localhost",8080, (key,channel) ->
                 new QueuingAsyncSocketConnection( key, channel ) {
@@ -150,20 +150,20 @@ public class _AsyncClientSocket implements Runnable {
                     }
                 }
             ).await();
-            delayed( 1000, () -> $loop() );
+            delayed( 1000, () -> loop() );
         }
 
-        public void $loop() {
+        public void loop() {
             QueuingAsyncSocketConnection con = (QueuingAsyncSocketConnection) sock.getConnection();
             con.write("Hello\n".getBytes());
             con.tryFlush();
-            delayed(1000, () -> $loop());
+            delayed(1000, () -> loop());
         }
     }
 
     public static void main(String a[]) throws InterruptedException {
         CLSActor act = Actors.AsActor(CLSActor.class);
-        act.$connect();
+        act.connect();
         Thread.sleep(10000000l);
     }
 

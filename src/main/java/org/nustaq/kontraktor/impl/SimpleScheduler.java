@@ -217,12 +217,12 @@ public class SimpleScheduler implements Scheduler {
     }
 
     @Override
-    public IPromise $getReport() {
+    public IPromise getReport() {
         return new Promise<>(new SchedulingReport(1,getDefaultQSize(),0));
     }
 
     @Override
-    public IPromise<Monitorable[]> $getSubMonitorables() {
+    public IPromise<Monitorable[]> getSubMonitorables() {
         return new Promise<>(new Monitorable[] { myThread } );
     }
 }

@@ -146,7 +146,7 @@ public class ActorProxyFactory {
         for (int i = 0; i < methods.length; i++) {
             CtMethod method = methods[i];
             CtMethod originalMethod = method;
-            if ( method.getName().equals("$refDisconnected")) {
+            if ( method.getName().equals("refDisconnected")) {
                 int xx = 1;
             }
             if (method.getName().equals("getActor")) {
@@ -194,17 +194,19 @@ public class ActorProxyFactory {
             // exceptions: async built-in actor methods that can be called
             if ( //originalMethod.getName().equals("executeInActorThread") || // needed again ! see spore
                 // async methods at actor class. FIXME: add annotation
-                 originalMethod.getName().equals("$getSubMonitorables") ||
-                 originalMethod.getName().equals("$getReport") ||
-                 originalMethod.getName().equals("$__unpublish") ||
-                 originalMethod.getName().equals("$__republished") ||
-                 originalMethod.getName().equals("$ping") ||
-                 originalMethod.getName().equals("$submit") ||
-                 originalMethod.getName().equals("$exec") ||
-                 originalMethod.getName().equals("async$stop") ||
-                 originalMethod.getName().equals("$receive") ||
-                 originalMethod.getName().equals("$complete") ||
-                 originalMethod.getName().equals("$close")
+                 originalMethod.getName().equals("getSubMonitorables") ||
+                 originalMethod.getName().equals("getReport") ||
+                 originalMethod.getName().equals("ask") ||
+                 originalMethod.getName().equals("tell") ||
+                 originalMethod.getName().equals("__unpublish") ||
+                 originalMethod.getName().equals("__republished") ||
+                 originalMethod.getName().equals("ping") ||
+                 originalMethod.getName().equals("submit") ||
+                 originalMethod.getName().equals("exec") ||
+                 originalMethod.getName().equals("asyncstop") ||
+                 originalMethod.getName().equals("receive") ||
+                 originalMethod.getName().equals("complete") ||
+                 originalMethod.getName().equals("close")
             )
             {
                 allowed = true;
@@ -255,7 +257,7 @@ public class ActorProxyFactory {
                 } else if (
                     ! method.getName().equals("getActor") &&
                     ! method.getName().equals("delayed") &&
-//                    ! method.getName().equals("$run") &&
+//                    ! method.getName().equals("run") &&
                     ! method.getName().equals("exec")
                 )
                 {

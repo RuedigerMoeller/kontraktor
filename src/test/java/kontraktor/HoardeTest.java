@@ -24,7 +24,7 @@ public class HoardeTest {
     public static class DecAct extends Actor<DecAct> {
         FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
 
-        public void $init() {
+        public void init() {
 
         }
 
@@ -76,7 +76,7 @@ public class HoardeTest {
     private void testGenericAct(ArrayList toEncode, int threads, int max, boolean verify) throws InterruptedException {
         int actcount = 0;
         Hoarde<DecAct> oc = new Hoarde<DecAct>(threads,DecAct.class);
-        oc.each( dec -> dec.$init() );
+        oc.each( dec -> dec.init() );
         AtomicInteger count = new AtomicInteger(0);
         AtomicInteger lastVal = new AtomicInteger(-1);
         while( actcount < max) {
@@ -104,7 +104,7 @@ public class HoardeTest {
             count.set(0);
             actcount++;
         }
-        oc.each( (act) -> act.$stop());
+        oc.each( (act) -> act.stop());
     }
 
     private void testSingleThreaded(FSTConfiguration conf, ArrayList toEncode, int max) {

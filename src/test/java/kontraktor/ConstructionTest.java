@@ -19,19 +19,19 @@ public class ConstructionTest {
 
     public static class ConstructionSampleActor extends Actor<ConstructionSampleActor> {
 
-        public void $sameThread(Thread thread) {
+        public void sameThread(Thread thread) {
             if ( thread != __currentDispatcher ) {
                 errors.incrementAndGet();
             }
         }
 
-        public void $notSameThread(Thread thread) {
+        public void notSameThread(Thread thread) {
             if ( thread == __currentDispatcher ) {
                 errors.incrementAndGet();
             }
         }
 
-        public void $test(int qSize, Scheduler sched) {
+        public void test(int qSize, Scheduler sched) {
             if ( Thread.currentThread() != __currentDispatcher ) {
                 errors.incrementAndGet();
             }
@@ -49,18 +49,18 @@ public class ConstructionTest {
     public void creationTest() throws InterruptedException {
 
         ConstructionSampleActor act = Actors.AsActor(ConstructionSampleActor.class);
-        act.$test( SimpleScheduler.DEFQSIZE, act.__scheduler );
+        act.test( SimpleScheduler.DEFQSIZE, act.__scheduler );
         ConstructionSampleActor act1 = Actors.AsActor(ConstructionSampleActor.class);
-        act1.$sameThread(act1.__currentDispatcher);
-        act1.$test( SimpleScheduler.DEFQSIZE, act1.__scheduler);
+        act1.sameThread(act1.__currentDispatcher);
+        act1.test( SimpleScheduler.DEFQSIZE, act1.__scheduler);
 
         SimpleScheduler scheduler = new SimpleScheduler(7000);
         ConstructionSampleActor act2 = Actors.AsActor(ConstructionSampleActor.class, scheduler);
-        act2.$notSameThread(act.__currentDispatcher);
-        act2.$test(8192,scheduler);
+        act2.notSameThread(act.__currentDispatcher);
+        act2.test(8192,scheduler);
 
         ConstructionSampleActor act4 = Actors.AsActor(ConstructionSampleActor.class, scheduler, 60000);
-        act4.$test(65536,scheduler);
+        act4.test(65536,scheduler);
 
         Thread.sleep(200);
         Assert.assertTrue(errors.get()==0);

@@ -227,7 +227,7 @@ window.jsk = window.jsk || (function () {
    * "public IPromise myMethod( arg0, arg1, .. );"
    *
    */
-  _jsk.KontrActor.prototype.sendWithPromise = function( methodName, args ) {
+  _jsk.KontrActor.prototype.ask = function( methodName, args ) {
     if ( this.socketHolder.socket === null )
       throw "not connected";
     var argList = [];
@@ -247,7 +247,7 @@ window.jsk = window.jsk || (function () {
    *
    * "public void myMethod( arg0, arg1, .. );"
    */
-  _jsk.KontrActor.prototype.send = function( methodName, args ) {
+  _jsk.KontrActor.prototype.tell = function( methodName, args ) {
     if ( this.socketHolder.socket === null )
       throw "not connected";
     var argList = [];
@@ -377,11 +377,87 @@ window.jsk = window.jsk || (function () {
       self.socket.onopen = function (ev) {
         setTimeout(function () {
           eventListener.apply(self.socket, [ev])
-        }, 500); // FIXME: wait for correct state instead of dumb delay
+        }, 100); // FIXME: wait for correct state instead of dumb delay
       };
     };
 
   }; // KontraktorSocket
+
+
+  _jsk.KontraktorPollSocket = function( url ) {
+    var self = this;
+    self.url = url;
+    self.sessionId = null;
+    self.onopenHandler = null;
+    self.onerrorHandler = null;
+    self.lastError = null;
+
+    function fireOpen() {
+      self.onopenHandler.apply(self, [{event: "opened", session: self.sessionId}]);
+    }
+
+    function fireError() {
+      if (self.onerrorHandler && self.lastError) {
+        self.onerrorHandler.apply(self, [{event: "connection failure", status: self.lastError}]);
+      }
+    }
+
+    self.onopen = function(eventHandler) {
+      self.onopenHandler = eventHandler;
+      if ( self.sessionId ) {
+        fireOpen();
+      }
+    };
+
+    self.onerror = function (eventListener) {
+      self.onerrorHandler = eventListener;
+      fireError();
+    };
+
+    self.close = function( code, reaseon ) {
+      //TODO
+    };
+
+    self.send = function( data ) {
+      var request = new XMLHttpRequest();
+      request.onload = function () {
+        if ( request.status !== 200 ) {
+          self.lastError = request.statusText;
+          fireError();
+          return;
+        }
+        var resp = request.responseText; //JSON.parse(request.responseText);
+        console.log(resp);
+      };
+      request.open("POST", self.url+"/"+self.sessionId, true);
+      request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      request.send(data); // this is actually auth data currently unused. keep stuff websocket alike for now
+    };
+
+    self.onclose = function( eventListener ) {
+      self.socket.onclose = eventListener;
+    };
+
+    // connect and obtain sessionId
+    var request = new XMLHttpRequest();
+    request.onload = function () {
+      if ( request.status !== 200 ) {
+        self.lastError = request.statusText;
+        fireError();
+        return;
+      }
+      self.sessionId = JSON.parse(request.responseText);
+      console.log("sessionId:"+self.sessionId);
+      if ( self.onopenHandler ) {
+        fireOpen();
+      }
+    };
+
+    request.open("POST", self.url, true);
+    request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    request.send("null"); // this is actually auth data currently unused. keep stuff websocket alike for now
+
+  };
 
   return _jsk;
 }());

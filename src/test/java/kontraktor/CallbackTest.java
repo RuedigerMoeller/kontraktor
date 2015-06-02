@@ -26,26 +26,26 @@ public class CallbackTest {
 
     public static class CBTActor extends Actor<CBTActor> {
 
-        public void $method(Callback cb) {
+        public void method(Callback cb) {
             assertTrue(Thread.currentThread() == __currentDispatcher);
             cb.resolve(Thread.currentThread());
         }
 
-        public void $userping(CBTCallActor pong, Callback cb) {
+        public void userping(CBTCallActor pong, Callback cb) {
             assertTrue(Thread.currentThread() == __currentDispatcher);
-            pong.$pong(self(),cb);
+            pong.pong(self(),cb);
         }
 
-        public void $pongong( Callback cb ) {
+        public void pongong( Callback cb ) {
             assertTrue(Thread.currentThread() == __currentDispatcher);
             cb.complete("yuppie", "none");
         }
 
-        public void $customCB( @InThread MyCB cb ) {
+        public void customCB( @InThread MyCB cb ) {
             cb.cb("Hallo");
         }
 
-        public void $customCB1( MyCB cb ) {
+        public void customCB1( MyCB cb ) {
             cb.cb("Hallo");
         }
     }
@@ -53,21 +53,21 @@ public class CallbackTest {
     public static class CBTCallActor extends Actor<CBTCallActor> {
         CBTActor cbt;
 
-        public void $init() {
+        public void init() {
             cbt = Actors.AsActor(CBTActor.class, new SimpleScheduler(10000)); //  ensure different thread
-            cbt.$method(new Callback() {
+            cbt.method(new Callback() {
                 @Override
                 public void complete(Object result, Object error) {
                     assertTrue(__currentDispatcher == Thread.currentThread());
                 }
             });
-            cbt.$customCB(new MyCB() {
+            cbt.customCB(new MyCB() {
                 @Override
                 public void cb(Object o) {
                     assertTrue(__currentDispatcher == Thread.currentThread());
                 }
             });
-            cbt.$customCB1(inThread(self(),new MyCB() {
+            cbt.customCB1(inThread(self(),new MyCB() {
                 @Override
                 public void cb(Object o) {
                     assertTrue(__currentDispatcher == Thread.currentThread());
@@ -76,13 +76,13 @@ public class CallbackTest {
         }
 
         @Override
-        public void $stop() {
-            cbt.$stop();
-            super.$stop();
+        public void stop() {
+            cbt.stop();
+            super.stop();
         }
 
-        public void $sendPing() {
-            cbt.$userping(self(), new Callback() {
+        public void sendPing() {
+            cbt.userping(self(), new Callback() {
                 @Override
                 public void complete(Object result, Object error) {
                     assertTrue(Thread.currentThread() == __currentDispatcher);
@@ -92,9 +92,9 @@ public class CallbackTest {
             });
         }
 
-        public void $pong( CBTActor ping, Callback cb ) {
+        public void pong( CBTActor ping, Callback cb ) {
             assertTrue(Thread.currentThread() == __currentDispatcher);
-            ping.$pongong( cb );
+            ping.pongong( cb );
         }
 
     }
@@ -108,14 +108,14 @@ public class CallbackTest {
     @Test
     public void callbackTest() throws InterruptedException {
         CBTCallActor act = Actors.AsActor(CBTCallActor.class);
-        act.$init();
+        act.init();
         for (int i = 0; i < 10000; i++) // higher vals create deadlock, detect it !
         {
-            act.$sendPing();
+            act.sendPing();
         }
         final CBTActor cbt = Actors.AsActor(CBTActor.class);
-        cbt.$pongong( (r,e) -> System.out.println(r) );
-        cbt.$method(new Callback() {
+        cbt.pongong( (r,e) -> System.out.println(r) );
+        cbt.method(new Callback() {
             @Override
             public void complete(Object result, Object error) {
                 System.out.println("Completion Caller Thread:" + result);
@@ -125,8 +125,8 @@ public class CallbackTest {
             }
         });
         Thread.sleep(500);
-        cbt.$stop();
-        act.$stop();
+        cbt.stop();
+        act.stop();
         assertTrue(errors.get() == 0);
     }
 

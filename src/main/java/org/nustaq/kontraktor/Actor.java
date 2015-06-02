@@ -49,18 +49,18 @@ import java.util.function.Consumer;
  * public class MyActor extends Actor<MyActor> {
  *
  *     // public async API
- *     public IPromise $init() {..}
- *     public void $asyncMessage(String arg) { .. }
- *     public IPromise $asyncMessage(String arg) { .. }
- *     public void $asyncMessage(int arg, Callback aCallback) { .. }
+ *     public IPromise init() {..}
+ *     public void asyncMessage(String arg) { .. }
+ *     public IPromise asyncMessage(String arg) { .. }
+ *     public void asyncMessage(int arg, Callback aCallback) { .. }
  *
  *     // synchronous methods (safe as cannot be called by foreign threads)
  *     protected String syncMethod() { .. }
  * }
  *
  * MyActor act = Actors.AsActor(MyActor.class);
- * act.$init().then( () -> { System.out.println("done"); }
- * Object res = act.$asyncMessage("Hello").await();
+ * act.init().then( () -> { System.out.println("done"); }
+ * Object res = act.asyncMessage("Hello").await();
  *
  * </pre>
  */
@@ -130,20 +130,14 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
-     * $$stop receiving events. If there are no actors left on the underlying dispatcher,
+     * stop receiving events. If there are no actors left on the underlying dispatcher,
      * the dispatching thread will be terminated.
      */
-    @CallerSideMethod public void $stop() {
+    @CallerSideMethod public void stop() {
         if ( isRemote() ) {
             throw new RuntimeException("Cannot stop remote ref");
         }
-        self().async$stop();
-    }
-
-    // internal. tweak to check for remote ref before sending
-    @Local
-    public void async$stop() {
-        __stop();
+        self().asyncstop();
     }
 
     /**
@@ -161,15 +155,22 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
-     * generic method for untyped messages. Can be used e.g. for lifcycle signaling and can be called on
-     * any actor.
+     * generic method for untyped messages.
      *
      * @param message
      * @return
      */
-    public IPromise $receive( Object message ) {
+    public IPromise ask( Object message ) {
         return null;
     }
+
+    /**
+     * generic method for untyped messages.
+     *
+     * @param message
+     * @return
+     */
+    public void tell( Object message ) { }
 
     /**
      * execute a callable asynchronously (in a different thread) and return a future
@@ -181,7 +182,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * @param <T>
      * @return
      */
-    public <T> IPromise<T> $exec(Callable<T> callable) {
+    public <T> IPromise<T> exec(Callable<T> callable) {
         Promise<T> prom = new Promise<>();
         __scheduler.runBlockingCall(self(), callable, prom);
         return prom;
@@ -202,7 +203,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * just enqueue given runable to this actors mailbox and execute on the actor's thread
      * @param toRun
      */
-    public void $submit(@InThread Runnable toRun) {
+    public void submit(@InThread Runnable toRun) {
         toRun.run();
     }
 
@@ -305,7 +306,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * closes associated remote connection(s) if present. NOP otherwise.
      */
     @Local
-    public void $close() {
+    public void close() {
         if (__connections != null) {
             final ConcurrentLinkedQueue<RemoteConnection> prevCon = getActorRef().__connections;
             getActorRef().__connections = null;
@@ -314,14 +315,20 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         }
     }
 
+    // internal. tweak to check for remote ref before sending
+    @Local
+    public void asyncstop() {
+        __stop();
+    }
+
     /**
      * avoids exception when closing an actor after stop has been called.
      */
     @CallerSideMethod public void stopSafeClose() {
         if ( isStopped() ) {
-            getActor().$close(); // is threadsafe
+            getActor().close(); // is threadsafe
         } else {
-            self().$close();
+            self().close();
         }
     }
 
@@ -330,7 +337,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * @return
      */
     @Local
-    public IPromise $ping() {
+    public IPromise ping() {
         return new Promise<>("pong");
     }
 
@@ -437,7 +444,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     // dispatch an outgoing call to the target actor queue. Runs in Caller Thread
     @CallerSideMethod public Object __enqueueCall( Actor receiver, String methodName, Object args[], boolean isCB ) {
         if ( __stopped ) {
-            if ( methodName.equals("$stop") ) // ignore double stop
+            if ( methodName.equals("stop") ) // ignore double stop
                 return null;
             __addDeadLetter(receiver, methodName);
 //            throw new RuntimeException("Actor " + this + " received message after being stopped " + methodName);
@@ -477,7 +484,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      */
     @CallerSideMethod @Local @Override
     public void execute(Runnable command) {
-        self().$submit(command);
+        self().submit(command);
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -486,12 +493,12 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     //
 
     @Override @Local
-    public IPromise $getReport() {
+    public IPromise getReport() {
         return new Promise( new ActorReport(getActor().getClass().getSimpleName(), getMailboxSize(), getCallbackSize() ) );
     }
 
     @Override @Local
-    public IPromise<Monitorable[]> $getSubMonitorables() {
+    public IPromise<Monitorable[]> getSubMonitorables() {
         return new Promise<>(new Monitorable[0]);
     }
 

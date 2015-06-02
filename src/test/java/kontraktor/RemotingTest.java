@@ -35,18 +35,18 @@ public class RemotingTest {
 
     public static class RemotingTestService extends Actor<RemotingTestService> {
 
-        public IPromise<String> $promise(String s) {
+        public IPromise<String> promise(String s) {
             return new Promise<>(s+" "+s);
         }
 
-        public void $callback( Callback<String> cb ) {
+        public void callback( Callback<String> cb ) {
             cb.stream("A");
             cb.stream("B");
             cb.stream("C");
             cb.finish();
         }
 
-        public void $spore( Spore<Integer,Integer> spore ) {
+        public void spore( Spore<Integer,Integer> spore ) {
             spore.remote(1);
             spore.remote(2);
             spore.remote(3);
@@ -55,12 +55,12 @@ public class RemotingTest {
         }
 
         RateMeasure measure = new RateMeasure("calls",1000);
-        public void $benchMarkVoid(int someVal, String someString) {
+        public void benchMarkVoid(int someVal, String someString) {
             measure.count();
         }
 
         int prev = -1;
-        public IPromise<Integer> $benchMarkPromise(int someVal, String someString) {
+        public IPromise<Integer> benchMarkPromise(int someVal, String someString) {
             measure.count();
             if ( checkSequenceErrors && someVal != prev+1 ) {
                 errors.incrementAndGet();
@@ -268,16 +268,16 @@ public class RemotingTest {
         RemotingTestService client = (RemotingTestService) TCPClientConnector.Connect(RemotingTestService.class, "localhost", 8081, null, coding).await();
         runWithClient(client,l);
         Thread.sleep(2000); // wait for outstanding callbacks
-        client.$close();
+        client.close();
     }
 
     protected void runWithClient(RemotingTestService client, CountDownLatch l) throws InterruptedException {
-        Assert.assertTrue("Hello Hello".equals(client.$promise("Hello").await(999999)));
+        Assert.assertTrue("Hello Hello".equals(client.promise("Hello").await(999999)));
 
         AtomicInteger replyCount = new AtomicInteger(0);
         ArrayList<Integer> sporeResult = new ArrayList<>();
         Promise sporeP = new Promise();
-        client.$spore(new Spore<Integer, Integer>() {
+        client.spore(new Spore<Integer, Integer>() {
             @Override
             public void remote(Integer input) {
                 stream(input);
@@ -295,7 +295,7 @@ public class RemotingTest {
         System.out.println("one way performance");
         int numMsg = 15_000_000;
         for ( int i = 0; i < numMsg; i++ ) {
-            client.$benchMarkVoid(13, null);
+            client.benchMarkVoid(13, null);
         }
         System.out.println("two way performance");
         errors.set(0);
@@ -306,7 +306,7 @@ public class RemotingTest {
             while ( i - replyCount.get() > 200_000 ) { // FIXME: remoteref registry should do this, but how to handle unanswered requests ?
                 LockSupport.parkNanos(1);
             }
-            client.$benchMarkPromise(i, null).then(s -> {
+            client.benchMarkPromise(i, null).then(s -> {
                 replyCount.incrementAndGet();
                 if (seq[s])
                     errors.incrementAndGet();
