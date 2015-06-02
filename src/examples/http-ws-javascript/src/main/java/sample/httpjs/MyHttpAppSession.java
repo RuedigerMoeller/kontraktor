@@ -27,7 +27,6 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
     }
 
     public void loop() {
-        checkThread();
         if ( ! isStopped() ) {
             if ( subscription != null ) {
                 subscription.stream(new Date().toString());
@@ -58,10 +57,6 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
             subscription.finish();
             subscription = null;
         }
-    }
-
-    public void pushMessage( Object message ) {
-        subscription.stream(message);
     }
 
     @Override

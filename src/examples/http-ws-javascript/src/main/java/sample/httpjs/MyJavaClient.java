@@ -17,9 +17,9 @@ public class MyJavaClient {
         JSR356ClientConnector.DumpProtocol = true; // dev only
         MyHttpApp remoteApp = JSR356ClientConnector.Connect(MyHttpApp.class, "ws://localhost:8080/ws", new Coding(SerializerType.JsonNoRefPretty)).await();
         MyHttpAppSession session = remoteApp.login("someuser", "apwd").await();
-//        session.getToDo().then( list ->  {
-//            list.forEach(System.out::println);
-//        });
+        session.getToDo().then( list ->  {
+            list.forEach(System.out::println);
+        });
 
         session.streamToDo( "p", (r,e) -> System.out.println(r+" "+e) );
     }

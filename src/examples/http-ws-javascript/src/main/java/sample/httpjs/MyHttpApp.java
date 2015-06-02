@@ -13,6 +13,7 @@ import org.nustaq.kontraktor.remoting.fourk.Http4K;
 import org.nustaq.kontraktor.util.Pair;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 
@@ -46,17 +47,20 @@ public class MyHttpApp extends Actor<MyHttpApp> {
         System.out.println("client closed "+session);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         String hostName = "localhost"; int port = 8080;
         File root = new File("./web");
 
         if ( ! new File(root,"index.html").exists() ) {
-            System.out.println("Please run with working dir: '[..]/http-ws-client");
+            System.out.println("Please run with working dir: '[..]/http-ws-javascript");
             System.exit(-1);
         }
 
+        // link index.html and jsk.js dir to avoid copying
         Http4K.get().publishFileSystem(hostName, "/", port, root);
+        Http4K.get().publishFileSystem(hostName, "/jsk", port, new File(root.getCanonicalPath()+"/../../../main/javascript/"));
 
+        // create and publish server actor
         MyHttpApp myHttpApp = AsActor(MyHttpApp.class);
         Http4K.get().publishOnWebSocket( myHttpApp, hostName,"/ws", port, new Coding(SerializerType.JsonNoRefPretty) );
     }
