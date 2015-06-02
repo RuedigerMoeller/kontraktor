@@ -1,5 +1,5 @@
 // JavaScript to Kontraktor bridge
-// matches kontraktor 3.0 json-no-ref remoting
+// matches kontraktor 3.0 json-no-ref encoded remoting
 // as I am kind of a JS beginner, hints are welcome :)
 window.jsk = window.jsk || (function () {
 
@@ -227,11 +227,12 @@ window.jsk = window.jsk || (function () {
    * "public IPromise myMethod( arg0, arg1, .. );"
    *
    */
-  _jsk.KontrActor.prototype.sendWithPromise = function( methodName, argList ) {
+  _jsk.KontrActor.prototype.sendWithPromise = function( methodName, args ) {
     if ( this.socketHolder.socket === null )
       throw "not connected";
-    if ( ! argList )
-      argList = [];
+    var argList = [];
+    for ( var i = 1; i < arguments.length; i++ )
+      argList.push(arguments[i]);
     this.mapCBObjects(argList);
     var futID = sbIdCount++;
     var cb = new _jsk.Promise();
@@ -246,11 +247,12 @@ window.jsk = window.jsk || (function () {
    *
    * "public void myMethod( arg0, arg1, .. );"
    */
-  _jsk.KontrActor.prototype.send = function( methodName, argList ) {
+  _jsk.KontrActor.prototype.send = function( methodName, args ) {
     if ( this.socketHolder.socket === null )
       throw "not connected";
-    if ( ! argList )
-      argList = [];
+    var argList = [];
+    for ( var i = 1; i < arguments.length; i++ )
+      argList.push(arguments[i]);
     this.mapCBObjects(argList);
     var msg = this.buildCall( 0, this.id, methodName, argList );
     this.socketHolder.socket.send(JSON.stringify(this.buildCallList([msg],sendSequence++)));

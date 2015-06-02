@@ -9,8 +9,9 @@
 
 <h1>Kontraktor WebSocket Sample</h1>
 
-    Server Time:<bR>
-    <span id="time"></span>
+    Server Time: <span id="time"></span> <br><br>
+    ToDo:<br>
+    <div id="todo"></div>
 
 <script src="jsk/jsk.js"></script>
 
@@ -25,24 +26,27 @@
         }
         server = app;
 
-        server.sendWithPromise("login", [ "clientuser", "clientpwd" ])
+        server.sendWithPromise("login", "clientuser", "clientpwd")
           .then( function(mySession,err) {
             if ( err )
                 console.log(err);
             else {
                 mySession.sendWithPromise("getToDo").then( function( res,err ) {
-                    console.log(res);
+                    var li = "<ul>";
+                    for ( var i=0; i < res.length; i++ )
+                        li += "<li>"+res[i]+"</li>";
+                    li += "</ul>";
+                    document.getElementById("todo").innerHTML=li;
                 });
                 server.sendWithPromise("getServerTime").then( function( res,err ) {
-                    console.log(res);
+                    var tim = document.getElementById("time");
+                    tim.innerHTML=res;
                 });
-                mySession.send( "streamToDo", [
-                    "p", // filter
-                    function( res, err ) {
+                mySession.send( "streamToDo", "p", function( res, err ) {
                       console.log("streamed:"+res+" "+err);
                     }
-                ]);
-                mySession.send( "subscribe", [ function(e,r) {
+                );
+                mySession.send( "subscribe", function(e,r) {
                     var tim = document.getElementById("time");
                     tim.innerHTML=e;
                     var bright = 1.0;
@@ -55,7 +59,7 @@
                         }
                     };
                     fun.apply();
-                }])
+                })
             }
         })
     });
