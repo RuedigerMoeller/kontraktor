@@ -7,7 +7,7 @@
 <body>
 <p>
 
-<h1>Kontraktor WebSocket Sample</h1>
+<h1>Kontraktor LongPoll / WebSocket Sample</h1>
 
     Server Time: <span id="time"></span> <br><br>
     ToDo:<br>
@@ -20,15 +20,16 @@
 <script>
     var server = null;
 
-    var lpSock = new jsk.KontraktorPollSocket("http://localhost:8080/api");
-    lpSock.onopen( function( event ) {
-        lpSock.send(
-        '{"styp":"array","seq":[2,{"typ":"call","obj":{"futureKey":1,"queue":0,"receiverKey":1,"args":{"styp":"array","seq":[2,"httpuser","apwd"]},"method":"login"}},2]}'
-        );
-    });
+//    var lpSock = new jsk.KontraktorPollSocket("http://localhost:8080/api");
+//    lpSock.onopen( function( event ) {
+//        lpSock.send(
+//        '{"styp":"array","seq":[2,{"typ":"call","obj":{"futureKey":1,"queue":0,"receiverKey":1,"args":{"styp":"array","seq":[2,"httpuser","apwd"]},"method":"login"}},2]}'
+//        );
+//    });
 
     var errCB = function( err ) { console.error(err); };
-    jsk.connect("ws://localhost:8080/ws",errCB)
+//    jsk.connect("ws://localhost:8080/ws",errCB)
+      jsk.connect("http://localhost:8080/api",errCB,"HTLP")
       .then( function( app, error ) {
         if ( ! app ) {
             console.log("connection failure");
@@ -41,7 +42,9 @@
             if ( err )
                 console.log(err);
             else {
+                console.log("send getToDo");
                 mySession.ask("getToDo").then( function( res,err ) {
+                    console.log("received getToDo");
                     var li = "<ul>";
                     for ( var i=0; i < res.length; i++ )
                         li += "<li>"+res[i]+"</li>";

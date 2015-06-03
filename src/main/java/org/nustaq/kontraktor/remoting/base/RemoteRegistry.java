@@ -325,7 +325,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
             if (!isContinue)
                 removePublishedObject(read.getReceiverKey());
         }
-        return false;
+        return createdFutures != null && createdFutures.size() > 0;
     }
 
     /**

@@ -6,7 +6,6 @@ window.jsk = window.jsk || (function () {
   var futureMap = {}; // future id => promise
   var currentSocket = { socket: null }; // use indirection to refer to a socket in order to ease reconnects
   var sbIdCount = 1;
-  var sendSequence = 1;
 
   function jsk(){
   }
@@ -82,13 +81,31 @@ window.jsk = window.jsk || (function () {
   /////////////////////////////////////////////////////////////////////////////////////////////
   // actor remoting helper
 
-  _jsk.connect = function(wsurl,errorcallback) {
+  /**
+   * Connects to a json-published Actor Server with given url using either websockets, Http-Long-Poll or plain http.
+   * Note for "plain http" no push functionality via callbacks can be supported, however pure request response 'ask' and 'tell'
+   * works.
+   *
+   * @param wsurl - e.g. "ws://localhost:8080/ws" or "http://localhost:8080/api"
+   * @param connectionMode - 'WS' | 'HTLP' | 'HTTP'
+   * @param optErrorcallback
+   * @returns {jsk.Promise}
+   */
+  _jsk.connect = function(wsurl, connectionMode, optErrorcallback) {
     var res = new _jsk.Promise();
-    var socket = new _jsk.KontraktorSocket(wsurl);
+    var socket = null;
+    if ( 'WS' === connectionMode ) {
+      socket = new _jsk.KontraktorSocket(wsurl);
+    } else if ( "HTLP" === connectionMode || "HTTP" === connectionMode ) {
+      socket = new _jsk.KontraktorPollSocket(wsurl, "HTLP" === connectionMode );
+    } else {
+      console.log("unknown connectionMode, default to HTLP");
+      socket = new _jsk.KontraktorPollSocket(wsurl, true );
+    }
     var myHttpApp = new _jsk.KontrActor(1,"RemoteApp");
     socket.onmessage( function(message) {
-      if ( errorcallback ) {
-        errorcallback.apply(null,[message]);
+      if ( optErrorcallback ) {
+        optErrorcallback.apply(null,[message]);
       } else if (typeof message === MessageEvent ) {
         console.error("unexpected message:"+message.data);
       } else {
@@ -99,16 +116,16 @@ window.jsk = window.jsk || (function () {
     socket.onerror( function(err) {
       if ( ! res.isCompleted() )
         res.complete(null,err);
-      if ( errorcallback )
-        errorcallback.apply(null,[err]);
+      if ( optErrorcallback )
+        optErrorcallback.apply(null,[err]);
       else
         console.log(err);
     });
     socket.onclose( function() {
       if ( ! res.isCompleted() )
         res.complete(null,"closed");
-      if ( errorcallback )
-        errorcallback.apply(null,["closed"]);
+      if ( optErrorcallback )
+        optErrorcallback.apply(null,["closed"]);
       else
         console.log("close");
     });
@@ -238,7 +255,7 @@ window.jsk = window.jsk || (function () {
     var cb = new _jsk.Promise();
     futureMap[futID] = cb;
     var msg = this.buildCall( futID, this.id, methodName, argList );
-    this.socketHolder.socket.send(JSON.stringify(this.buildCallList([msg],sendSequence++)));
+    this.socketHolder.socket.send(JSON.stringify(this.buildCallList([msg],this.socketHolder.socket.lpSeqNo)));
     return cb;
   };
 
@@ -255,9 +272,44 @@ window.jsk = window.jsk || (function () {
       argList.push(arguments[i]);
     this.mapCBObjects(argList);
     var msg = this.buildCall( 0, this.id, methodName, argList );
-    this.socketHolder.socket.send(JSON.stringify(this.buildCallList([msg],sendSequence++)));
+    this.socketHolder.socket.send(JSON.stringify(this.buildCallList([msg],this.socketHolder.socket.lpSeqNo)));
     return this;
   };
+
+  function processSocketResponse(lastSeenSequence, decodedResponse, automaticTransformResults, messageListener, listenerThis) {
+    var respLen = decodedResponse.seq[0] - 1; // last one is sequence. FIXME: should do sequence check here
+    var sequence = decodedResponse.seq[decodedResponse.seq.length-1];
+    console.log("GOT SEQUENCE:"+sequence);
+    if ( sequence <= lastSeenSequence ) {
+      console.log("old data received:"+sequence+" last:"+lastSeenSequence);
+      return lastSeenSequence;
+    }
+    for (var i = 0; i < respLen; i++) {
+      var resp = decodedResponse.seq[i + 1];
+      if (!resp.obj.method && resp.obj.receiverKey) { // => callback
+        var cb = futureMap[resp.obj.receiverKey];
+        if (!cb) {
+          console.error("unhandled callback " + JSON.stringify(resp, null, 2));
+        } else {
+          if (cb instanceof _jsk.Promise || (cb instanceof _jsk.Callback && resp.obj.args.seq[2] !== 'CNT'))
+            delete futureMap[resp.obj.receiverKey];
+          if (automaticTransformResults) {
+            var transFun = function (obj) {
+              if (obj != null && obj instanceof Array && obj.length == 2 && typeof obj[1] === 'string' && obj[1].indexOf("_ActorProxy") > 0) {
+                return new _jsk.KontrActor(obj[0], obj[1]); // automatically create remote actor wrapper
+              }
+              return null;
+            };
+            cb.complete(_jsk.transform(resp.obj.args.seq[1], true, transFun), _jsk.transform(resp.obj.args.seq[2], transFun)); // promise.complete(result, error)
+          } else
+            cb.complete(resp.obj.args.seq[1], resp.obj.args.seq[2]); // promise.complete(result, error)
+        }
+      } else {
+        messageListener.apply(listenerThis, [resp]);
+      }
+    }
+    return sequence;
+  }
 
   /**
    * Websocket wrapper class. Only difference methods are used instead of properties for onmessage, onerror, ...
@@ -276,6 +328,7 @@ window.jsk = window.jsk || (function () {
 
     var incomingMessages = [];
     var inParse = false;
+    self.lpSeqNo = 0; // dummy for now
 
     self.automaticTransformResults = true;
 
@@ -324,31 +377,7 @@ window.jsk = window.jsk || (function () {
               try {
                 var blob = event.target.result;
                 var response = JSON.parse(blob);
-                var respLen = response.seq[0] - 1; // last one is sequence. FIXME: should do sequence check here
-                for (var i = 0; i < respLen; i++) {
-                  var resp = response.seq[i + 1];
-                  if (!resp.obj.method && resp.obj.receiverKey) { // => callback
-                    var cb = futureMap[resp.obj.receiverKey];
-                    if (!cb) {
-                      console.error("unhandled callback " + JSON.stringify(resp, null, 2));
-                    } else {
-                      if (cb instanceof _jsk.Promise || (cb instanceof _jsk.Callback && resp.obj.args.seq[2] !== 'CNT'))
-                        delete futureMap[resp.obj.receiverKey];
-                      if (self.automaticTransformResults) {
-                        var transFun = function (obj) {
-                          if (obj != null && obj instanceof Array && obj.length == 2 && typeof obj[1] === 'string' && obj[1].indexOf("_ActorProxy") > 0) {
-                            return new _jsk.KontrActor(obj[0], obj[1]); // automatically create remote actor wrapper
-                          }
-                          return null;
-                        };
-                        cb.complete(_jsk.transform(resp.obj.args.seq[1], true, transFun), _jsk.transform(resp.obj.args.seq[2], transFun)); // promise.complete(result, error)
-                      } else
-                        cb.complete(resp.obj.args.seq[1], resp.obj.args.seq[2]); // promise.complete(result, error)
-                    }
-                  } else {
-                    eventListener.apply(self, [resp]);
-                  }
-                }
+                processSocketResponse(-1,response, self.automaticTransformResults, eventListener, self);
               } catch (err) {
                 console.error("unhandled decoding error:" + err);
                 if (self.socket.onerror)
@@ -384,15 +413,22 @@ window.jsk = window.jsk || (function () {
   }; // KontraktorSocket
 
 
-  _jsk.KontraktorPollSocket = function( url ) {
+  _jsk.KontraktorPollSocket = function( url, doLongPoll ) {
     var self = this;
+
+    currentSocket.socket = self;
+
+    self.doLongPoll = doLongPoll ? doLongPoll : true;
     self.url = url;
     self.sessionId = null;
     self.onopenHandler = null;
     self.onerrorHandler = null;
+    self.oncloseHandler = null;
     self.lastError = null;
     self.isConnected = false;
     self.doStop = false;
+    self.onmessageHandler = null;
+    self.lpSeqNo = 0;
 
     function fireOpen() {
       self.onopenHandler.apply(self, [{event: "opened", session: self.sessionId}]);
@@ -412,9 +448,8 @@ window.jsk = window.jsk || (function () {
       setTimeout(self.longPoll,0);
     };
 
-    self.lpSeqNo = 0;
     self.longPoll = function() {
-      if ( self.doStop )
+      if ( self.doStop || ! self.doLongPoll )
         return;
       if ( ! self.isConnected ) {
         setTimeout(self.longPoll,2000);
@@ -428,13 +463,19 @@ window.jsk = window.jsk || (function () {
             setTimeout(self.longPoll,1000);
             return;
           }
-          var resp = request.responseText; //JSON.parse(request.responseText);
-          if ( resp && resp.trim().length > 0 ) {
-            console.log(resp);
-          } else {
-            console.log("resp is empty");
+          try {
+            setTimeout(self.longPoll,0);
+            var resp = request.responseText; //JSON.parse(request.responseText);
+            if ( resp && resp.trim().length > 0 ) {
+              var respObject = JSON.parse(resp);
+              self.lpSeqNo = processSocketResponse(self.lpSeqNo, respObject, true, self.onmessageHandler, self);
+            } else {
+              console.log("resp is empty");
+            }
+          } catch (err) {
+            console.error(err);
+            setTimeout(self.longPoll,1000);
           }
-          setTimeout(self.longPoll,0);
         };
         request.open("POST", self.url+"/"+self.sessionId, true);
         request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
@@ -447,8 +488,14 @@ window.jsk = window.jsk || (function () {
       fireError();
     };
 
+    self.onmessage = function(messageHandler) {
+      self.onmessageHandler = messageHandler;
+    };
+
     self.close = function( code, reaseon ) {
-      //TODO
+      self.doStop = true;
+      if ( self.oncloseHandler )
+        self.oncloseHandler.apply(self,["closed by application"]);
     };
 
     self.send = function( data ) {
@@ -461,7 +508,8 @@ window.jsk = window.jsk || (function () {
         }
         var resp = request.responseText; //JSON.parse(request.responseText);
         if ( resp && resp.trim().length > 0 ) {
-          console.log(resp);
+            var respObject = JSON.parse(resp);
+            self.lpSeqNo = processSocketResponse(self.lpSeqNo, respObject, true, self.onmessageHandler, self);
         } else {
           console.log("resp is empty");
         }
@@ -472,7 +520,7 @@ window.jsk = window.jsk || (function () {
     };
 
     self.onclose = function( eventListener ) {
-      self.socket.onclose = eventListener;
+      self.oncloseHandler = eventListener;
     };
 
     // connect and obtain sessionId
@@ -494,7 +542,7 @@ window.jsk = window.jsk || (function () {
     request.open("POST", self.url, true);
     request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     request.send("null"); // this is actually auth data currently unused. keep stuff websocket alike for now
-
+    return this;
   };
 
   return _jsk;

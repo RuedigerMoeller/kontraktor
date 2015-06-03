@@ -342,7 +342,7 @@ public class HttpClientConnector implements ActorClientConnector {
                                 lastReceivedSequence = sequence;
                         }
                         if (send) {
-                            sink.receiveObject(o, null, 0);
+                            sink.receiveObject(o, null);
                         }
                         else {
 //                            Log.Warn(this, "IGNORED LP RESPONSE, OUT OF SEQ");
@@ -443,45 +443,5 @@ public class HttpClientConnector implements ActorClientConnector {
             return singletonRefPoll;
         }
     }
-
-    public static void main( String a[] ) throws InterruptedException {
-
-        try {
-            for (int i = 0; i < 1; i++ ) {
-
-                UndertowHttpServerConnector.HTTPA act
-                    = Connect(
-                        UndertowHttpServerConnector.HTTPA.class,
-                        "http://localhost:8080/myservice",
-                        (res, err) -> System.out.println("closed"),
-                        null,
-                        null,
-                        NO_POLL
-                    ).await();
-
-                int count[] = {0};
-                Runnable pok[] = {null};
-                pok[0] = () -> {
-                    act.ui();
-                    act.hello("pok").then( r -> {
-                        System.out.println("response:" + count[0]++ + " " + r);
-                    });
-                    Actors.SubmitDelayed((long) (Math.random()*1000), pok[0]);
-                };
-//                pok[0] = () -> {
-//                    System.out.println("Call => ");
-//                    act.cb( (r,e) -> {
-//                        System.out.println("pok "+r);
-//                    });
-//                    Actors.SubmitDelayed((long) (Math.random()*10000), pok[0]);
-//                };
-                Actors.SubmitDelayed(1, pok[0]);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        Thread.sleep(100000000);
-    }
-
 
 }

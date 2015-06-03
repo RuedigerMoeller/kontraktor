@@ -3,10 +3,7 @@ package sample.httpjs;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.annotations.RemoteActorInterface;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
-
-import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -23,17 +20,9 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
     public void init(MyHttpApp app, List<String> todo) {
         this.app = app;
         toDo.addAll(todo);
-        loop();
+        pushEventLoop();
     }
 
-    public void loop() {
-        if ( ! isStopped() ) {
-            if ( subscription != null ) {
-                subscription.stream(new Date().toString());
-            }
-            delayed(2000,() -> loop());
-        }
-    }
 
     public IPromise<ArrayList<String>> getToDo() {
         return resolve(toDo);
@@ -56,6 +45,15 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
         if ( subscription != null ) {
             subscription.finish();
             subscription = null;
+        }
+    }
+
+    public void pushEventLoop() {
+        if ( ! isStopped() ) {
+            if ( subscription != null ) {
+                subscription.stream(new Date().toString()+", "+getScheduler().getNumActors()+" Session Actors");
+            }
+            delayed( 2000, () -> pushEventLoop() );
         }
     }
 

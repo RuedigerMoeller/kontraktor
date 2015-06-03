@@ -63,7 +63,7 @@ public class JSR356ServerConnector extends Endpoint implements ActorServerConnec
         session.addMessageHandler(new MessageHandler.Whole<byte[]>() {
             @Override
             public void onMessage(byte msg[]) {
-                sink.receiveObject(msg, null, 0);
+                sink.receiveObject(msg, null);
             }
         });
     }

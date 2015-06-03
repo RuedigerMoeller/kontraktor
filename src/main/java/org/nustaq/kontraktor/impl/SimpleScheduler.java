@@ -38,11 +38,6 @@ public class SimpleScheduler implements Scheduler {
     }
 
     @Override
-    public int getMaxThreads() {
-        return 1;
-    }
-
-    @Override
     public int getDefaultQSize() {
         return qsize;
     }
@@ -214,6 +209,11 @@ public class SimpleScheduler implements Scheduler {
     @Override
     public void tryIsolate(DispatcherThread dp, Actor actorRef) {
 
+    }
+
+    @Override
+    public int getNumActors() {
+        return myThread.getActorsNoCopy().length;
     }
 
     @Override

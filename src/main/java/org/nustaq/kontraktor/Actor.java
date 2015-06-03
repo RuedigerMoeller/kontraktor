@@ -280,13 +280,11 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * else false alarm might occur
      */
     protected final void checkThread() {
-        if (getScheduler().getMaxThreads() == 1 ) {
-            if (_t == null) {
-                _t = Thread.currentThread();
-            } else {
-                if (_t != Thread.currentThread()) {
-                    throw new RuntimeException("Wrong Thread");
-                }
+        if (_t == null) {
+            _t = Thread.currentThread();
+        } else {
+            if (_t != Thread.currentThread()) {
+                throw new RuntimeException("Wrong Thread");
             }
         }
     }

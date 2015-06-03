@@ -232,6 +232,10 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
     protected HttpObjectSocket closeSession(String sessionId) {
         Log.Info(this,sessionId+" closed");
+        HttpObjectSocket httpObjectSocket = sessions.get(sessionId);
+        if ( httpObjectSocket != null ) {
+            httpObjectSocket.sinkClosed();
+        }
         return sessions.remove(sessionId);
     }
 
@@ -252,7 +256,6 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         }
 
         // long poll request
-
         // parse sequence
         int lastClientSeq = -1;
         if ( lastSeenSequence!=null ) {
@@ -366,7 +369,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
     protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object received, StreamSinkChannel sinkchannel) {
         ArrayList<IPromise> futures = new ArrayList<>();
-        httpObjectSocket.getSink().receiveObject(received, futures, 0);
+        httpObjectSocket.getSink().receiveObject(received, futures);
 
         Runnable reply = () -> {
             // piggy back outstanding lp messages, outstanding lp request is untouched
@@ -411,36 +414,4 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         return new Promise<>(null); // FIXME: should wait for real finish
     }
 
-
-    public static class HTTPA extends Actor<HTTPA> {
-
-        int count = 0;
-        public IPromise hello(String s) {
-            System.out.println("received "+count++);
-            return resolve(count-1);
-        }
-
-        public void ui() {
-            System.out.println("ui");
-        }
-
-        public void cb( Callback cb ) {
-            for ( int i = 0; i < 10; i++ ) {
-                if ( i < 9 ) {
-                    cb.stream(i);
-                }
-                else
-                    cb.finish();
-            }
-
-        }
-    }
-
-    public static void main( String a[] ) throws Exception {
-
-        HTTPA facade = Actors.AsActor(HTTPA.class);
-        Publish(facade,"localhost","myservice",8080,null);
-
-        Thread.sleep(100000000);
-    }
 }

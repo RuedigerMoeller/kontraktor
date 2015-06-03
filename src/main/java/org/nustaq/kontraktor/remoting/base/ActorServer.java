@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ActorServer {
 
-    protected ActorServerConnector server;
+    protected ActorServerConnector connector;
     protected Actor facade;
     protected ThreadLocal<RemoteRefPolling> poller = new ThreadLocal<RemoteRefPolling>() {
         @Override
@@ -26,22 +26,27 @@ public class ActorServer {
     // fixme: RemoteRegistry currently is responsible for configuration. bad.
     protected Coding coding;
 
-    public ActorServer(ActorServerConnector server, Actor facade, Coding coding) throws Exception {
+    public ActorServerConnector getConnector() {
+        return connector;
+    }
+
+    public ActorServer(ActorServerConnector connector, Actor facade, Coding coding) throws Exception {
         this.facade = facade;
-        this.server = server;
+        this.connector = connector;
         if ( coding == null )
             coding = new Coding(SerializerType.FSTSer);
         this.coding = coding;
     }
 
     public void start() throws Exception {
-        server.connect(facade, writesocket -> {
+        connector.connect(facade, writesocket -> {
             AtomicReference<ObjectSocket> socketRef = new AtomicReference<>(writesocket);
             RemoteRegistry reg = new RemoteRegistry(coding) {
                 @Override
                 public Actor getFacadeProxy() {
                     return facade;
                 }
+
                 @Override
                 public AtomicReference<ObjectSocket> getWriteObjectSocket() {
                     return socketRef;
@@ -54,9 +59,9 @@ public class ActorServer {
             return new ObjectSink() {
 
                 @Override
-                public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures, int channelId) {
+                public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures) {
                     try {
-                        reg.receiveObject(socketRef.get(),sink,received,createdFutures);
+                        reg.receiveObject(socketRef.get(), sink, received, createdFutures);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -72,7 +77,7 @@ public class ActorServer {
     }
 
     public IPromise close() {
-        return server.closeServer();
+        return connector.closeServer();
     }
 
     public Actor getFacade() {

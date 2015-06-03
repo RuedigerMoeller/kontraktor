@@ -14,8 +14,6 @@ import java.util.concurrent.Callable;
  */
 public interface Scheduler extends Monitorable{
 
-    int getMaxThreads();
-
     int getDefaultQSize();
 
     // yield during polling/spinlooping
@@ -59,4 +57,9 @@ public interface Scheduler extends Monitorable{
 
     void tryIsolate(DispatcherThread dp, Actor actorRef);
 
+    /**
+     * @return number of actors scheduled by this scheduler. Note this
+     * is not precise as not thread safe'd.
+     */
+    int getNumActors();
 }

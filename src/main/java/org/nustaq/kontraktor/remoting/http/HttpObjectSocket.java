@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.remoting.websockets.WebObjectSocket;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.offheap.BinaryQueue;
 import org.nustaq.offheap.bytez.onheap.HeapBytez;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.IOException;
 import java.util.List;
@@ -20,7 +21,7 @@ import java.util.List;
  */
 public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
-    public static int LP_TIMEOUT = 5_000;
+    public static int LP_TIMEOUT = 15_000;
     public static int HISTORY_SIZE = 3; // max size of recovered polls on server sides
     public static int HTTP_BATCH_SIZE = 500; // batch messages to partially make up for http 1.1 synchronous design failure
 
@@ -54,17 +55,19 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
     @Override
     public void sendBinary(byte[] message) {
-        checkThread();
-        queue.addInt(sendSequence.get());
-        queue.addInt(message.length);
-        queue.add( new HeapBytez(message) );
-        triggerLongPoll();
+        synchronized (queue) {
+            queue.addInt(sendSequence.get());
+            queue.addInt(message.length);
+            queue.add( new HeapBytez(message) );
+            triggerLongPoll();
+        }
     }
 
     @Override
     public void writeObject(Object toWrite) throws Exception {
-        checkThread();
-        super.writeObject(toWrite);
+        synchronized (queue) {
+            super.writeObject(toWrite);
+        }
     }
 
     @Override
@@ -83,24 +86,34 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     }
 
     public Pair<byte[],Integer> getNextQueuedMessage() {
-        checkThread();
-        if ( queue.available() > 8 ) {
-            int seq = queue.readInt();
-            int len = queue.readInt();
-            if ( len>0 && queue.available() >= len )
-                return new Pair(queue.readByteArray(len),seq);
-            else
+        synchronized (queue) {
+            if ( queue.available() < 8 ) {
+                try {
+                    flush();
+                } catch (Exception e) {
+                    FSTUtil.rethrow(e);
+                }
+            }
+            if ( queue.available() > 8 ) {
+                int seq = queue.readInt();
+                int len = queue.readInt();
+                if ( len>0 && queue.available() >= len )
+                    return new Pair(queue.readByteArray(len),seq);
+                else
+                    return new Pair(new byte[0],0);
+            } else {
                 return new Pair(new byte[0],0);
-        } else {
-            return new Pair(new byte[0],0);
+            }
         }
     }
 
     protected void checkThread() {
         if ( myThread == null )
             myThread = Thread.currentThread();
-        else if ( myThread != Thread.currentThread() )
+        else if ( myThread != Thread.currentThread() ) {
             System.out.println("unexpected multithreading detected:"+myThread.getName()+" curr:"+Thread.currentThread().getName());
+            Thread.dumpStack();
+        }
     }
 
     public Runnable getLongPollTask() {
@@ -108,7 +121,6 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     }
 
     public void triggerLongPoll() {
-        checkThread();
         if (longPollTask!=null) {
             longPollTask.run();
             longPollTask = null;
@@ -116,7 +128,6 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     }
 
     public void setLongPollTask(Runnable longPollTask) {
-        checkThread();
         this.longPollTask = longPollTask;
         this.longPollTaskTime = System.currentTimeMillis();
     }
@@ -126,8 +137,8 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     }
 
     @Override
-    public void receiveObject(ObjectSink asink, Object received, List<IPromise> createdFutures, int channelId) {
-        sink.receiveObject(asink,received, createdFutures, 0);
+    public void receiveObject(ObjectSink asink, Object received, List<IPromise> createdFutures) {
+        sink.receiveObject(asink,received, createdFutures);
     }
 
     @Override

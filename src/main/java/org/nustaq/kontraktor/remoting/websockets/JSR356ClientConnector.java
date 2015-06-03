@@ -140,7 +140,7 @@ public class JSR356ClientConnector implements ActorClientConnector {
                 System.out.println("resp:");
                 System.out.println(new String(message,0));
             }
-            sink.receiveObject(conf.asObject(message), null, 0);
+            sink.receiveObject(conf.asObject(message), null);
         }
 
         @OnMessage

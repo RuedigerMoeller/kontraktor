@@ -74,7 +74,7 @@ public class TCPClientConnector implements ActorClientConnector {
             while (!socket.isClosed()) {
                 try {
                     Object o = socket.readObject();
-                    sink.receiveObject(o, null, 0);
+                    sink.receiveObject(o, null);
                 } catch (Exception e) {
                     if (e instanceof EOFException == false && e instanceof SocketException == false )
                         Log.Warn(this, e);
