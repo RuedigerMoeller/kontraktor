@@ -63,6 +63,9 @@ import java.util.function.Consumer;
  * Object res = act.asyncMessage("Hello").await();
  *
  * </pre>
+ *
+ * Note that unlike in other actor libraries, processing of Callback and Promise is transfered to the
+ * current actor thread, so its safe to close over actor state.
  */
 public class Actor<SELF extends Actor> extends Actors implements Serializable, Monitorable, Executor {
 
@@ -390,7 +393,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
 
 
 
-////////////////////////////// internals ///////////////////////////////////////////////////////////////////
+    ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     @CallerSideMethod public void __addStopHandler( Callback<SELF> cb ) {
         if ( __stopHandlers == null ) {
