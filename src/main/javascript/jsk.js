@@ -391,6 +391,8 @@ window.jsk = window.jsk || (function () {
     self.onopenHandler = null;
     self.onerrorHandler = null;
     self.lastError = null;
+    self.isConnected = false;
+    self.doStop = false;
 
     function fireOpen() {
       self.onopenHandler.apply(self, [{event: "opened", session: self.sessionId}]);
@@ -406,6 +408,37 @@ window.jsk = window.jsk || (function () {
       self.onopenHandler = eventHandler;
       if ( self.sessionId ) {
         fireOpen();
+      }
+      setTimeout(self.longPoll,0);
+    };
+
+    self.lpSeqNo = 0;
+    self.longPoll = function() {
+      if ( self.doStop )
+        return;
+      if ( ! self.isConnected ) {
+        setTimeout(self.longPoll,2000);
+      } else {
+        var reqData = '{"styp":"array","seq":[1,'+self.lpSeqNo+']}';
+        var request = new XMLHttpRequest();
+        request.onload = function () {
+          if ( request.status !== 200 ) {
+            self.lastError = request.statusText;
+            fireError();
+            setTimeout(self.longPoll,1000);
+            return;
+          }
+          var resp = request.responseText; //JSON.parse(request.responseText);
+          if ( resp && resp.trim().length > 0 ) {
+            console.log(resp);
+          } else {
+            console.log("resp is empty");
+          }
+          setTimeout(self.longPoll,0);
+        };
+        request.open("POST", self.url+"/"+self.sessionId, true);
+        request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        request.send(reqData); // this is actually auth data currently unused. keep stuff websocket alike for now
       }
     };
 
@@ -427,7 +460,11 @@ window.jsk = window.jsk || (function () {
           return;
         }
         var resp = request.responseText; //JSON.parse(request.responseText);
-        console.log(resp);
+        if ( resp && resp.trim().length > 0 ) {
+          console.log(resp);
+        } else {
+          console.log("resp is empty");
+        }
       };
       request.open("POST", self.url+"/"+self.sessionId, true);
       request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
@@ -447,6 +484,7 @@ window.jsk = window.jsk || (function () {
         return;
       }
       self.sessionId = JSON.parse(request.responseText);
+      self.isConnected = true;
       console.log("sessionId:"+self.sessionId);
       if ( self.onopenHandler ) {
         fireOpen();
