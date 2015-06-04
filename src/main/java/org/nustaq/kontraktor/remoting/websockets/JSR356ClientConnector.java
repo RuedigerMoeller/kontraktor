@@ -30,28 +30,6 @@ public class JSR356ClientConnector implements ActorClientConnector {
 
     public static boolean DumpProtocol = false;
 
-    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Coding c ) {
-        Promise result = new Promise();
-        Runnable connect = () -> {
-            JSR356ClientConnector client = null;
-            try {
-                client = new JSR356ClientConnector(url);
-                ActorClient connector = new ActorClient(client,clz,c);
-                connector.connect().then(result);
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-                result.reject(e);
-            }
-        };
-        if ( ! Actor.inside() ) {
-            get().execute(() -> Thread.currentThread().setName("singleton remote client actor polling"));
-            get().execute(connect);
-        }
-        else
-            connect.run();
-        return result;
-    }
-
     public static class RemotingHelper extends Actor<RemotingHelper> {}
     static AtomicReference<RemotingHelper> singleton =  new AtomicReference<>();
 
@@ -76,10 +54,11 @@ public class JSR356ClientConnector implements ActorClientConnector {
     }
 
     @Override
-    public void connect(Function<ObjectSocket, ObjectSink> factory) throws Exception {
+    public IPromise connect(Function<ObjectSocket, ObjectSink> factory) throws Exception {
         endpoint = new WSClientEndpoint(uri,null);
         ObjectSink sink = factory.apply(endpoint);
         endpoint.setSink(sink);
+        return new Promise<>(null);
     }
 
     @Override

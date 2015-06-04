@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.fourk.javascript;
+package org.nustaq.kontraktor.remoting.http.javascript;
 
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kson.Kson;
@@ -10,7 +10,6 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 06.04.2015.
  */
-@Local
 public class DependencyResolver {
 
     public static boolean DEBUG = true;

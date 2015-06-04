@@ -10,7 +10,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
-import org.nustaq.kontraktor.remoting.fourk.Http4K;
+import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.util.Pair;
 import org.xnio.Buffers;
 import java.io.IOException;
@@ -24,25 +24,6 @@ import java.util.function.Function;
  *
  */
 public class UndertowWebsocketServerConnector implements ActorServerConnector {
-
-    public static Promise<ActorServer> Publish(Actor facade, String host, String path, int port, Coding coding) {
-        Promise finished = new Promise();
-        try {
-            ActorServer publisher = new ActorServer(new UndertowWebsocketServerConnector(path,port,host), facade, coding);
-            facade.execute(() -> {
-                try {
-                    publisher.start();
-                    finished.resolve(publisher);
-                } catch (Exception e) {
-                    finished.reject(e);
-                }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new Promise(null,e);
-        }
-        return finished;
-    }
 
     String host;
     String path;

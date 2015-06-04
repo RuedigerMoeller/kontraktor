@@ -19,12 +19,12 @@ public class MyServiceServerImpl extends MyServiceInterface<MyServiceServerImpl>
     List<Person> persons = new ArrayList<>();
 
     @Override
-    public void $addPerson(Person p) {
+    public void addPerson(Person p) {
         persons.add(p);
     }
 
     @Override
-    public IPromise<Boolean> $removePerson(Person p) {
+    public IPromise<Boolean> removePerson(Person p) {
         for (Iterator<Person> iterator = persons.iterator(); iterator.hasNext(); ) {
             Person next = iterator.next();
             if ( next.equals(p) ) {
@@ -35,12 +35,12 @@ public class MyServiceServerImpl extends MyServiceInterface<MyServiceServerImpl>
     }
 
     @Override
-    public IPromise<Boolean> $existsPerson(Person p) {
+    public IPromise<Boolean> existsPerson(Person p) {
         return resolve(persons.stream().filter(person -> person.equals(p)).findFirst().get() != null);
     }
 
     @Override
-    public void $listPersons(String preName, String name, int age, Callback<Person> result) {
+    public void listPersons(String preName, String name, int age, Callback<Person> result) {
         persons.forEach( person -> {
             if ( ( preName == null || preName.equals(person.getPreName()) ) &&
                  ( age <= 0 || age == person.getAge() ) &&

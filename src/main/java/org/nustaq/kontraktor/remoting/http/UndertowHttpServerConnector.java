@@ -13,7 +13,6 @@ import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.fourk.Http4K;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.FSTConfiguration;
@@ -60,22 +59,6 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
     public static int REQUEST_TIMEOUT = 5000; // max wait time for a returned promise to fulfil
     public static long SESSION_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(30); // 30 minutes
-
-    public static Promise<ActorServer> Publish( Actor facade, String hostName, String urlPath, int port, Coding coding ) {
-        ActorServer actorServer;
-        try {
-            facade.setThrowExWhenBlocked(true);
-            Pair<PathHandler, Undertow> serverPair = Http4K.get().getServer(port, hostName);
-            UndertowHttpServerConnector con = new UndertowHttpServerConnector(facade);
-            actorServer = new ActorServer( con, facade, coding == null ? new Coding(SerializerType.FSTSer) : coding );
-            actorServer.start();
-            serverPair.getFirst().addPrefixPath(urlPath, con);
-        } catch (Exception e) {
-            Log.Warn(null,e);
-            return new Promise<>(null,e);
-        }
-        return new Promise<>(actorServer);
-    }
 
     Actor facade;
     HashMap<String,HttpObjectSocket> sessions = new HashMap<>(); // use only from facade thread

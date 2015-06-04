@@ -6,7 +6,8 @@ import org.nustaq.kontraktor.IPromise;
 import java.util.function.Function;
 
 /**
- * Created by ruedi on 10/05/15.
+ * Interface unifying remote actor connectors (the thingy translating local calls to remote calls).
+ * Mostly of internal interest.
  */
 public interface ActorClientConnector {
 
@@ -15,7 +16,7 @@ public interface ActorClientConnector {
      */
     public static int OBJECT_MAX_BATCH_SIZE = 100;
 
-    void connect(Function<ObjectSocket, ObjectSink> factory) throws Exception;
+    IPromise connect(Function<ObjectSocket, ObjectSink> factory) throws Exception;
     IPromise closeClient();
 
 }

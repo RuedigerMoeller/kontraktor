@@ -17,9 +17,9 @@ import static service.common.MyProtocol.*;
  */
 public class MyServiceInterface<T extends MyServiceInterface> extends Actor<T> {
 
-    public void $addPerson( Person p ) {}
-    public IPromise<Boolean> $removePerson( Person p ) { return null; }
-    public IPromise<Boolean> $existsPerson( Person p ) { return null; }
+    public void addPerson( Person p ) {}
+    public IPromise<Boolean> removePerson( Person p ) { return null; }
+    public IPromise<Boolean> existsPerson( Person p ) { return null; }
 
     /**
      * cannot use a spore here as client and server are not supposed to share a common classpath
@@ -28,6 +28,6 @@ public class MyServiceInterface<T extends MyServiceInterface> extends Actor<T> {
      * @param age
      * @param result
      */
-    public void $listPersons( String name, String secondName, int age, Callback<Person> result ) {}
+    public void listPersons( String name, String secondName, int age, Callback<Person> result ) {}
 
 }

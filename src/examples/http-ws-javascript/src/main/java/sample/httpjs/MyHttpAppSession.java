@@ -10,6 +10,9 @@ import java.util.List;
 
 /**
  * Created by ruedi on 30/05/15.
+ *
+ * per client session state+api obtained if a client successfully logged in
+ *
  */
 public class MyHttpAppSession extends Actor<MyHttpAppSession> implements RemotedActor {
 

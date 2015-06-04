@@ -279,7 +279,7 @@ window.jsk = window.jsk || (function () {
   function processSocketResponse(lastSeenSequence, decodedResponse, automaticTransformResults, messageListener, listenerThis) {
     var respLen = decodedResponse.seq[0] - 1; // last one is sequence. FIXME: should do sequence check here
     var sequence = decodedResponse.seq[decodedResponse.seq.length-1];
-    console.log("GOT SEQUENCE:"+sequence);
+    //console.log("GOT SEQUENCE:"+sequence);
     if ( sequence <= lastSeenSequence ) {
       console.log("old data received:"+sequence+" last:"+lastSeenSequence);
       return lastSeenSequence;

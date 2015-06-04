@@ -7,7 +7,8 @@ package org.nustaq.kontraktor.remoting.base;
 public interface RemotedActor {
 
     /**
-     * notification method
+     * notification method called once an actor has been unpublished. E.g. in case of a ClientSession role
+     * actor, this will be called once the client disconnects or times out
      */
     public void hasBeenUnpublished();
 

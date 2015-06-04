@@ -19,26 +19,6 @@ import java.util.function.Function;
  */
 public class TCPClientConnector implements ActorClientConnector {
 
-    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor> clz, String host, int port, Callback<ActorClientConnector> disconnectCallback ) {
-        return Connect(clz,host,port,disconnectCallback,null);
-    }
-
-    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor> clz, String host, int port, Callback<ActorClientConnector> disconnectCallback,Coding c ) {
-        Promise result = new Promise();
-        Runnable connect = () -> {
-            TCPClientConnector client = new TCPClientConnector(port,host,disconnectCallback);
-            ActorClient connector = new ActorClient(client,clz,c);
-            connector.connect().then(result);
-        };
-        if ( ! Actor.inside() ) {
-            get().execute(() -> Thread.currentThread().setName("singleton remote client actor polling"));
-            get().execute(connect);
-        }
-        else
-            connect.run();
-        return result;
-    }
-
     public static class RemotingHelper extends Actor<RemotingHelper> {}
     static AtomicReference<RemotingHelper> singleton =  new AtomicReference<>();
 
@@ -67,10 +47,12 @@ public class TCPClientConnector implements ActorClientConnector {
     }
 
     @Override
-    public void connect(Function<ObjectSocket, ObjectSink> factory) throws Exception {
+    public IPromise connect(Function<ObjectSocket, ObjectSink> factory) throws Exception {
+        Promise res = new Promise();
         socket = new MyTCPSocket(host,port);
         ObjectSink sink = factory.apply(socket);
         new Thread(() -> {
+            res.resolve();
             while (!socket.isClosed()) {
                 try {
                     Object o = socket.readObject();
@@ -93,6 +75,7 @@ public class TCPClientConnector implements ActorClientConnector {
             }
             sink.sinkClosed();
         }, "tcp client receiver").start();
+        return res;
     }
 
     @Override

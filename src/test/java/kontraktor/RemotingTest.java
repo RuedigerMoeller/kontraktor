@@ -7,15 +7,16 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.http.HttpClientConnector;
+import org.nustaq.kontraktor.remoting.http.HttpConnectable;
 import org.nustaq.kontraktor.remoting.http.HttpObjectSocket;
-import org.nustaq.kontraktor.remoting.http.UndertowHttpServerConnector;
+import org.nustaq.kontraktor.remoting.http.HttpPublisher;
 import org.nustaq.kontraktor.remoting.tcp.NIOServerConnector;
-import org.nustaq.kontraktor.remoting.tcp.TCPClientConnector;
+import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPServerConnector;
-import org.nustaq.kontraktor.remoting.websockets.JSR356ServerConnector;
+import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
+import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
+import org.nustaq.kontraktor.remoting.websockets._JSR356ServerConnector;
 import org.nustaq.kontraktor.remoting.websockets.UndertowWebsocketServerConnector;
-import org.nustaq.kontraktor.remoting.websockets.JSR356ClientConnector;
 import org.nustaq.kontraktor.util.RateMeasure;
 
 import java.util.ArrayList;
@@ -80,8 +81,11 @@ public class RemotingTest {
     public void testWSJSR() throws Exception {
         checkSequenceErrors = true;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
-        ActorServer publisher = JSR356ServerConnector.Publish(service, "ws://localhost:8081/ws", null).await();
-        RemotingTestService client = JSR356ClientConnector.Connect(RemotingTestService.class, "ws://localhost:8081/ws", null).await(9999999);
+        ActorServer publisher = _JSR356ServerConnector.Publish(service, "ws://localhost:8081/ws", null).await();
+        RemotingTestService client = (RemotingTestService)
+            new WebSocketConnectable(RemotingTestService.class, "ws://localhost:8081/ws")
+                .connect(null)
+                .await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
         latch.await();
@@ -105,9 +109,16 @@ public class RemotingTest {
     public void runtHttp(Coding coding) throws InterruptedException {
         checkSequenceErrors = true;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
-        ActorServer publisher = UndertowHttpServerConnector.Publish(service, "localhost", "/lp", 8082, coding).await();
-//        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, true, 1000).await(9999999);
-        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, coding, HttpClientConnector.LONG_POLL).await(9999999);
+        ActorServer publisher =
+            new HttpPublisher(service, "localhost", "/lp", 8082)
+                .coding(coding)
+                .publish()
+                .await();
+        RemotingTestService client = (RemotingTestService)
+            new HttpConnectable(RemotingTestService.class, "http://localhost:8082/lp")
+                .coding(coding)
+                .connect(null)
+                .await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
         latch.await();
@@ -119,8 +130,14 @@ public class RemotingTest {
     public void testHttpMany() throws Exception {
         checkSequenceErrors = false;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
-        ActorServer publisher = UndertowHttpServerConnector.Publish(service, "localhost", "/lp", 8082, null).await();
-        RemotingTestService client = HttpClientConnector.Connect(RemotingTestService.class, "http://localhost:8082/lp", null, null, null).await(9999999);
+        ActorServer publisher =
+            new HttpPublisher(service, "localhost", "/lp", 8082)
+                .publish()
+                .await();
+        RemotingTestService client = (RemotingTestService)
+            new HttpConnectable(RemotingTestService.class, "http://localhost:8082/lp")
+                .connect(null)
+                .await(9999999);
         ExecutorService exec = Executors.newCachedThreadPool();
         CountDownLatch latch = new CountDownLatch(10);
         for ( int i = 0; i < 10; i++ )
@@ -153,8 +170,12 @@ public class RemotingTest {
     public void runWS(Coding coding) throws InterruptedException {
         checkSequenceErrors = true;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
-        ActorServer publisher = UndertowWebsocketServerConnector.Publish(service, "localhost", "/ws", 8081, coding).await();
-        RemotingTestService client = JSR356ClientConnector.Connect(RemotingTestService.class, "ws://localhost:8081/ws", coding).await(9999999);
+        ActorServer publisher = new WebSocketPublisher(service, "localhost", "/ws", 8081).coding(coding).publish().await();
+        RemotingTestService client = (RemotingTestService)
+            new WebSocketConnectable(RemotingTestService.class, "ws://localhost:8081/ws")
+                .coding(coding)
+                .connect(null)
+                .await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
         latch.await();
@@ -166,8 +187,12 @@ public class RemotingTest {
     public void testWSMany() throws Exception {
         checkSequenceErrors = false;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
-        ActorServer publisher = UndertowWebsocketServerConnector.Publish(service, "localhost", "/ws", 8081 , null ).await();
-        RemotingTestService client = JSR356ClientConnector.Connect(RemotingTestService.class, "ws://localhost:8081/ws", null).await(9999999);
+        ActorServer publisher = new WebSocketPublisher(service, "localhost", "/ws", 8081).publish().await();
+        RemotingTestService client = (RemotingTestService)
+            new WebSocketConnectable(RemotingTestService.class, "ws://localhost:8081/ws")
+                .connect(null)
+                .await(9999999);
+
         ExecutorService exec = Executors.newCachedThreadPool();
         CountDownLatch latch = new CountDownLatch(10);
         for ( int i = 0; i < 10; i++ )
@@ -265,7 +290,14 @@ public class RemotingTest {
     }
 
     public void runnitTCP(CountDownLatch l, Coding coding) throws Exception {
-        RemotingTestService client = (RemotingTestService) TCPClientConnector.Connect(RemotingTestService.class, "localhost", 8081, null, coding).await();
+        RemotingTestService client = (RemotingTestService)
+            new TCPConnectable()
+                .actorClass(RemotingTestService.class)
+                .host("localhost")
+                .port(8081)
+                .coding(coding)
+                .connect(null)
+                .await();
         runWithClient(client,l);
         Thread.sleep(2000); // wait for outstanding callbacks
         client.close();

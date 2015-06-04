@@ -1,8 +1,6 @@
 package org.nustaq.kontraktor.remoting.http;
 
 import org.apache.http.*;
-import org.apache.http.client.fluent.Content;
-import org.apache.http.client.fluent.Request;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.ByteArrayEntity;
@@ -21,6 +19,7 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.*;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -38,95 +37,103 @@ public class HttpClientConnector implements ActorClientConnector {
 
     public static boolean DumpProtocol = false;
 
-    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback) {
-        return Connect(clz,url,disconnectCallback,new Object[]{"user","pwd"},new Coding(SerializerType.FSTSer),LONG_POLL);
-    }
-
-    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Object[] authData, Coding c) {
-        return Connect(clz,url,disconnectCallback,authData,c,LONG_POLL);
-    }
-
-    public static <T extends Actor> IPromise<T> Connect( Class<? extends Actor<T>> clz, String url, Callback<ActorClientConnector> disconnectCallback, Object[] authData, Coding c, HttpClientConfig cfg ) {
-        HttpClientConnector con = new HttpClientConnector(url);
-
-        con.cfg = cfg;
-        con.disconnectCallback = disconnectCallback;
-        ActorClient actorClient = new ActorClient(con, clz, c == null ? new Coding(SerializerType.FSTSer) : c);
-        Promise p = new Promise();
-        getRefPollActor().execute(() -> {
-            Thread.currentThread().setName("Http Ref Polling");
-            actorClient.connect().then(p);
-        });
-        return p;
-    }
-
-    public static HttpClientConfig LONG_POLL = new HttpClientConfig().noPoll(false);
-    public static HttpClientConfig SHORT_POLL = new HttpClientConfig().noPoll(false).shortPoll(true);
-    public static HttpClientConfig NO_POLL = new HttpClientConfig().noPoll(true);
-
-    public static class HttpClientConfig {
-        public boolean noPoll = true;
-        public boolean shortPollMode = false;   // if true, do short polling instead
-        public long shortPollIntervalMS = 5000;
-
-        public HttpClientConfig noPoll(boolean noPoll) {
-            this.noPoll = noPoll;
-            return this;
-        }
-
-        public HttpClientConfig shortPoll(boolean shortPollMode) {
-            this.shortPollMode = shortPollMode;
-            return this;
-        }
-
-        public HttpClientConfig shortPollIntervalMS(long shortPollIntervalMS) {
-            this.shortPollIntervalMS = shortPollIntervalMS;
-            return this;
+    protected static CloseableHttpAsyncClient asyncHttpClient;
+    public static CloseableHttpAsyncClient getClient() {
+        synchronized (HttpClientConnector.class) {
+            if (asyncHttpClient == null ) {
+                asyncHttpClient = HttpAsyncClients.custom()
+                    .setDefaultIOReactorConfig(
+                        IOReactorConfig.custom()
+                            .setIoThreadCount(1)
+                            .setSoKeepAlive(true)
+                            .build()
+                    ).build();
+                asyncHttpClient.start();
+            }
+            return asyncHttpClient;
         }
     }
 
-    String host;
     String sessionId;
     FSTConfiguration authConf = FSTConfiguration.createJsonConfiguration();
     volatile boolean isClosed = false;
     Promise closedNotification;
     Callback<ActorClientConnector> disconnectCallback;
-    HttpClientConfig cfg = new HttpClientConfig();
+    HttpConnectable cfg;
 
-    long currentShortPollIntervalMS = cfg.shortPollIntervalMS;
+    long currentShortPollIntervalMS;
     public Object[] authData;
 
-    public HttpClientConnector(String host) {
-        this.host = host;
+    public HttpClientConnector(HttpConnectable httpConnectable) {
+        this.cfg = httpConnectable;
+        currentShortPollIntervalMS = cfg.getShortPollIntervalMS();
     }
 
     @Override
-    public void connect(Function<ObjectSocket, ObjectSink> factory) throws Exception {
-        byte[] req = authConf.asByteArray(authData);
+    public IPromise connect(Function<ObjectSocket, ObjectSink> factory) throws Exception {
+        Promise res = new Promise();
+
+        byte[] message = authConf.asByteArray(authData);
         if ( HttpClientConnector.DumpProtocol ) {
             try {
-                System.out.println("auth-req:"+new String(req,"UTF-8"));
+                System.out.println("auth-req:"+new String(message,"UTF-8"));
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
         }
-        Content content = Request.Post(host)
-                              .bodyByteArray(req)
-                              .execute()
-                              .returnContent();
-        byte[] resp = content.asBytes();
-        if ( HttpClientConnector.DumpProtocol ) {
-            try {
-                System.out.println("auth-resp:"+new String(resp,"UTF-8"));
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
+        HttpPost req = new HttpPost(cfg.getUrl());
+        req.addHeader(NO_CACHE);
+        req.setEntity(new ByteArrayEntity(message));
+        Executor actor = Actor.current();
+        getClient().execute(req, new FutureCallback<HttpResponse>() {
+            @Override
+            public void completed(HttpResponse result) {
+                if (result.getStatusLine().getStatusCode() != 200) {
+                    closeClient();
+                    res.reject(result.getStatusLine().getStatusCode());
+                    return;
+                }
+                String cl = result.getFirstHeader("Content-Length").getValue();
+                int len = Integer.parseInt(cl);
+                if (len > 0) {
+                    byte resp[] = new byte[len];
+                    try {
+                        result.getEntity().getContent().read(resp);
+                        if (HttpClientConnector.DumpProtocol) {
+                            try {
+                                System.out.println("auth-resp:" + new String(resp, "UTF-8"));
+                            } catch (UnsupportedEncodingException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        actor.execute( () -> {
+                            sessionId = (String) authConf.asObject(resp);
+                            MyHttpWS myHttpWS = new MyHttpWS(cfg.getUrl() + "/" + sessionId);
+                            ObjectSink sink = factory.apply(myHttpWS);
+                            myHttpWS.setSink(sink);
+                            startLongPoll(myHttpWS);
+                            res.resolve();
+                        });
+                    } catch (Exception e) {
+                        Log.Warn(this, e);
+                        res.reject(e);
+                    }
+                } else {
+                    res.reject("connection rejected, no connection id");
+                }
             }
-        }
-        sessionId = (String) authConf.asObject(resp);
-        MyHttpWS myHttpWS = new MyHttpWS(host + "/" + sessionId);
-        ObjectSink sink = factory.apply(myHttpWS);
-        myHttpWS.setSink(sink);
-        startLongPoll(myHttpWS);
+
+            @Override
+            public void failed(Exception ex) {
+                res.reject(ex);
+            }
+
+            @Override
+            public void cancelled() {
+                res.reject("canceled");
+            }
+        });
+        return res;
     }
 
     Runnable pollRunnable;
@@ -158,7 +165,7 @@ public class HttpClientConnector implements ActorClientConnector {
                 });
             } else {
                 // sends either queued outgoing calls or creates LP request
-                myHttpWS.longPoll().then((r, e) -> {
+                myHttpWS.longPoll().then( (r, e) -> {
                     if (isClosed) {
                         if (closedNotification != null) {
                             closedNotification.complete();
@@ -213,14 +220,11 @@ public class HttpClientConnector implements ActorClientConnector {
         String url;
         ObjectSink sink;
         int lastReceivedSequence = 0;
-        CloseableHttpAsyncClient asyncHttpClient;
         CloseableHttpAsyncClient lpHttpClient;
         AtomicInteger openRequests = new AtomicInteger(0);
 
         public MyHttpWS(String url) {
             this.url = url;
-            asyncHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).build() ).build();
-            asyncHttpClient.start();
             if ( ! cfg.shortPollMode ) {
                 lpHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).build() ).build();
                 lpHttpClient.start();
@@ -240,7 +244,7 @@ public class HttpClientConnector implements ActorClientConnector {
             HttpPost req = new HttpPost(url+"/"+lastReceivedSequence);
             req.addHeader(NO_CACHE);
             req.setEntity(new ByteArrayEntity(message));
-            asyncHttpClient.execute(req, new FutureCallback<HttpResponse>() {
+            getClient().execute(req, new FutureCallback<HttpResponse>() {
                 @Override
                 public void completed(HttpResponse result) {
                     openRequests.decrementAndGet();

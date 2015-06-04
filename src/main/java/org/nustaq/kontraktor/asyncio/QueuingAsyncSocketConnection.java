@@ -37,7 +37,7 @@ public abstract class QueuingAsyncSocketConnection extends AsyncSocketConnection
 
     protected void checkQSize() {
         if ( writeQueue.available() > MAX_Q_SIZE_BYTES ) {
-            LockSupport.parkNanos(1);
+            LockSupport.parkNanos(1); // poor man's backpressure in case buffer is too large
         }
     }
 

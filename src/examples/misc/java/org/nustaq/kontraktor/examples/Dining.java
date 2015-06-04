@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPServerConnector;
 import org.nustaq.kontraktor.remoting.tcp.TCPClientConnector;
 import org.nustaq.kontraktor.util.Hoarde;
@@ -14,7 +15,7 @@ import java.util.concurrent.locks.LockSupport;
 /**
  * Created by ruedi on 24.09.14.
  *
- * Solution of the Dining Philosopher Problem using actors. (no attempt is made on being fair)
+ * (Distributed) Solution of the Dining Philosopher Problem using actors. (no attempt is made on being fair)
  */
 public class Dining {
 
@@ -26,14 +27,14 @@ public class Dining {
                 forks[i] = new ArrayList<>();
         }
 
-        public IPromise $getFork(int num) {
+        public IPromise getFork(int num) {
             num %= 5;
             Promise res = forks[num].size() == 0 ? new Promise("void") : new Promise();
             forks[num].add(res);
             return res;
         }
 
-        public void $returnFork(int num) {
+        public void returnFork(int num) {
             num %= 5;
             forks[num].remove(0);
             if ( forks[num].size() > 0 )
@@ -48,12 +49,12 @@ public class Dining {
         String state;
         int eatCount;
 
-        public void $start(String name, int nr, Table table) {
+        public void start(String name, int nr, Table table) {
             this.name = name; this.nr = nr; this.table = table;
-            $live();
+            live();
         }
 
-        public void $live() {
+        public void live() {
             state = "Think";
             long thinkTime = randomTimeMS();
             delayed(thinkTime, () -> {
@@ -63,22 +64,22 @@ public class Dining {
                 // odd numbered vice versa
                 int firstFork =  nr+(nr&1);
                 int secondFork = nr+(1-(nr&1));
-                table.$getFork( firstFork).then( (r, e) ->
-                    table.$getFork( secondFork).then( (r1, e1) -> {
+                table.getFork(firstFork).then( (r, e) ->
+                    table.getFork(secondFork).then( (r1, e1) -> {
                     state = "Eat";
                     long eatTime = randomTimeMS();
                     delayed( eatTime, () -> {
                         eatCount++;
-                        table.$returnFork(firstFork);
-                        table.$returnFork(secondFork);
-                        self().$live();
+                        table.returnFork(firstFork);
+                        table.returnFork(secondFork);
+                        self().live();
                     });
                   })
                 );
             });
         }
 
-        public IPromise<String> $getState() {
+        public IPromise<String> getState() {
             return new Promise( name+" "+state+" eaten:"+eatCount );
         }
 
@@ -89,7 +90,7 @@ public class Dining {
         String names[] = { "A", "B", "C", "D", "E" };
         Hoarde<Philosopher> phils =
             new Hoarde<>( 5, Philosopher.class )
-                .each( (phi, i) -> phi.$start(names[i], i, coord) );
+                .each( (phi, i) -> phi.start(names[i], i, coord) );
         startReportingThread(phils);
     }
 
@@ -98,13 +99,15 @@ public class Dining {
     }
 
     static void runClient() throws Exception {
-        TCPClientConnector.Connect(Table.class, "localhost", 6789, null, null).then( (table, error) -> {
-            if (table != null) { // connection failure
-                runPhilosophers((Table) table);
-            } else {
-                System.out.println("error:" + error);
-            }
-        });
+        new TCPConnectable("localhost",6789,Table.class)
+            .connect(null)
+            .then((table, error) -> {
+                if (table != null) { // connection failure
+                    runPhilosophers((Table) table);
+                } else {
+                    System.out.println("error:" + error);
+                }
+            });
     }
 
     public static void main( String arg[] ) throws Exception {
@@ -122,7 +125,7 @@ public class Dining {
         new Thread(() -> {
             while( true ) {
                 LockSupport.parkNanos(1000 * 1000l * 1000);
-                Actors.all(phils.map((phil, index) -> phil.$getState())).then( (futs, e) -> {
+                Actors.all(phils.map((phil, index) -> phil.getState())).then( (futs, e) -> {
                     for (int i = 0; i < futs.length; i++)
                         System.out.print(futs[i].get() + ", ");
                     System.out.println();

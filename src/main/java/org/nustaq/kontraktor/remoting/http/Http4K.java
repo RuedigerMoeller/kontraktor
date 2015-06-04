@@ -1,15 +1,12 @@
-package org.nustaq.kontraktor.remoting.fourk;
+package org.nustaq.kontraktor.remoting.http;
 
 import io.undertow.Undertow;
 import io.undertow.server.handlers.PathHandler;
 import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.server.handlers.resource.ResourceHandler;
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
-import org.nustaq.kontraktor.remoting.encoding.Coding;
-import org.nustaq.kontraktor.remoting.http.UndertowHttpServerConnector;
-import org.nustaq.kontraktor.remoting.websockets.UndertowWebsocketServerConnector;
+import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.util.Pair;
 
 import java.io.File;
@@ -77,12 +74,24 @@ public class Http4K {
      * @param port
      * @param root - directory to be published
      */
-    public void publishFileSystem( String hostName, String urlPath, int port, File root ) {
+    public Http4K publishFileSystem( String hostName, String urlPath, int port, File root ) {
         if ( ! root.isDirectory() ) {
             throw new RuntimeException("root must be an existing direcory");
         }
         Pair<PathHandler, Undertow> server = getServer(port, hostName);
         server.car().addPrefixPath(urlPath, new ResourceHandler(new FileResourceManager(root,100)));
+        return this;
+    }
+
+    /**
+     * utility to reduce boilerplate. Just use a HttpPublisher's hostName and port mapping.
+     * @param pub
+     * @param urlPath
+     * @param root
+     * @return
+     */
+    public Http4K publishFileSystem( HttpPublisher pub, String urlPath, File root ) {
+        return publishFileSystem(pub.getHostName(),urlPath,pub.getPort(),root);
     }
 
     /**
@@ -94,33 +103,16 @@ public class Http4K {
      *
      * SerializerType.FSTSer is the most effective for java to java communication.
      *
-     * @param act
-     * @param hostName
-     * @param urlPath
-     * @param port
-     * @param coding
      */
-    public Promise<ActorServer> publishOnWebSocket( Actor act, String hostName, String urlPath, int port, Coding coding ) {
-        return UndertowWebsocketServerConnector.Publish(act, hostName, urlPath, port, coding);
+    public IPromise<ActorServer> publish( WebSocketPublisher publisher ) {
+        return publisher.publish();
     }
 
     /**
      * utility, just redirects to approriate connector.
-     *
-     * Publishes an actor/service via http with given encoding.
-     * if this should be connectable from non-java code recommended coding is 'new Coding(SerializerType.JsonNoRefPretty)' (dev),
-     * 'new Coding(SerializerType.JsonNoRef)' (production)
-     *
-     * SerializerType.FSTSer is the most effective for java to java communication.
-     *
-     * @param act
-     * @param hostName
-     * @param urlPath
-     * @param port
-     * @param coding
      */
-    public Promise<ActorServer> publishOnHttp( Actor act, String hostName, String urlPath, int port, Coding coding ) {
-        return UndertowHttpServerConnector.Publish(act, hostName, urlPath, port, coding);
+    public IPromise<ActorServer> publish( HttpPublisher publisher ) {
+        return publisher.publish();
     }
 
 }

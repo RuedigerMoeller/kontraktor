@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.fourk.javascript.minbingen;
+package org.nustaq.kontraktor.remoting.http.javascript.minbingen;
 
 import java.lang.reflect.Parameter;
 

@@ -27,13 +27,13 @@ import java.util.function.Function;
  *
  */
 //@ServerEndpoint("ws")
-public class JSR356ServerConnector extends Endpoint implements ActorServerConnector {
+public class _JSR356ServerConnector extends Endpoint implements ActorServerConnector {
 
     Actor facade;
     Function<ObjectSocket, ObjectSink> factory;
 
     public static IPromise<ActorServer> Publish( Actor facade, String path, Coding coding) {
-        JSR356ServerConnector connector = new JSR356ServerConnector();
+        _JSR356ServerConnector connector = new _JSR356ServerConnector();
         try {
             ActorServer actorServer = new ActorServer(connector, facade, coding);
             actorServer.start();

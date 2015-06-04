@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class HeapMessageStore implements MessageStore {
 
-    int maxStoreLength = 512;
+    int maxStoreLength = 64;
     ConcurrentHashMap<CharSequence,StoreEntry> map = new ConcurrentHashMap<>();
 
     public HeapMessageStore(int maxStoreLength) {

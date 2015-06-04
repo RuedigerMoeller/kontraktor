@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.fourk.javascript.minbingen;
+package org.nustaq.kontraktor.remoting.http.javascript.minbingen;
 
 import org.nustaq.kontraktor.annotations.RemoteActorInterface;
 import org.nustaq.serialization.FSTClazzInfo;

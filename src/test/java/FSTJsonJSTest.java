@@ -1,11 +1,8 @@
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.fourk.Http4K;
-import org.nustaq.kontraktor.remoting.http.HttpClientConnector;
-import org.nustaq.kontraktor.remoting.http.UndertowHttpServerConnector;
+import org.nustaq.kontraktor.remoting.http.*;
 
 import java.io.File;
 
@@ -29,11 +26,18 @@ public class FSTJsonJSTest {
         Http4K.get().publishFileSystem("localhost","/",8080, root);
 
         JSActor jsa = Actors.AsActor(JSActor.class);
-        UndertowHttpServerConnector.Publish(jsa,"localhost","/jsactor/",8080,new Coding(SerializerType.JsonNoRefPretty));
 
-        JSActor client = HttpClientConnector.Connect(JSActor.class, "http://localhost:8080/jsactor", null, null, new Coding(SerializerType.JsonNoRefPretty)).await();
+        new HttpPublisher(jsa,"localhost","/jsactor/",8080)
+            .serType(SerializerType.JsonNoRefPretty)
+            .publish().await();
+
+        JSActor client = (JSActor)
+            new HttpConnectable(JSActor.class, "http://localhost:8080/jsactor")
+                .serType(SerializerType.JsonNoRefPretty)
+                .connect(null)
+                .await();
+
         System.out.println(client.say("blabla").await());
-
     }
 
 }

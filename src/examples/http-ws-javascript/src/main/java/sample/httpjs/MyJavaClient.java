@@ -1,10 +1,10 @@
 package sample.httpjs;
 
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.HttpClientConnector;
+import org.nustaq.kontraktor.remoting.http.HttpConnectable;
 import org.nustaq.kontraktor.remoting.websockets.JSR356ClientConnector;
+import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
 
 /**
  * Created by ruedi on 30/05/15.
@@ -15,14 +15,22 @@ import org.nustaq.kontraktor.remoting.websockets.JSR356ClientConnector;
 public class MyJavaClient {
 
     public static void main(String[] args) {
-        boolean http = true;
+        boolean http = false;
         MyHttpApp remoteApp;
         if ( http ) {
             HttpClientConnector.DumpProtocol = true;
-            remoteApp = HttpClientConnector.Connect(MyHttpApp.class, "http://localhost:8080/api", null, null, new Coding(SerializerType.JsonNoRefPretty)).await();
+            remoteApp = (MyHttpApp)
+                new HttpConnectable(MyHttpApp.class, "http://localhost:8080/api")
+                    .serType(SerializerType.JsonNoRefPretty)
+                    .connect(null)
+                    .await();
         } else {
             JSR356ClientConnector.DumpProtocol = true; // dev only
-            remoteApp = JSR356ClientConnector.Connect(MyHttpApp.class, "ws://localhost:8080/ws", new Coding(SerializerType.JsonNoRefPretty)).await();
+            remoteApp = (MyHttpApp)
+                new WebSocketConnectable(MyHttpApp.class, "ws://localhost:8080/ws")
+                    .serType(SerializerType.JsonNoRefPretty)
+                    .connect(null)
+                    .await();
         }
 
         MyHttpAppSession session = remoteApp.login("someuser", "apwd").await();

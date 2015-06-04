@@ -1,16 +1,18 @@
 package org.nustaq.kontraktor.remoting.base.messagestore;
 
-import org.nustaq.offheap.bytez.ByteSource;
-
 /**
  * Created by ruedi on 13/04/15.
+ *
+ * interface defining a message store capable of storing/retrieving sequenced messages.
+ * used e.g. as ringbuffer to support retransmission of lost messages (e.g. reliable long poll)
+ *
  */
 public interface MessageStore {
 
-    public Object getMessage( CharSequence queueId, long sequence );
-    public void   putMessage( CharSequence queueId, long sequence, Object message );
-    public void   confirmMessage( CharSequence queueId, long sequence );
+    Object getMessage( CharSequence queueId, long sequence );
+    void   putMessage( CharSequence queueId, long sequence, Object message );
+    void   confirmMessage( CharSequence queueId, long sequence );
 
-    public void killQueue( CharSequence queueId);
+    void killQueue( CharSequence queueId);
 
 }

@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.fourk.javascript.minbingen;
+package org.nustaq.kontraktor.remoting.http.javascript.minbingen;
 
 
 import java.util.*;
@@ -10,7 +10,12 @@ import org.nustaq.kontraktor.annotations.GenRemote;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.serialization.*;
 
-// this header is always required to make it work. Cut & Paste this as template
+/**
+ * generates JS wrappers for a set of actors and pojos capable to en/decode MinBin serialized messages.
+ * Though minbin is ~2 times more efficient than JSon regarding speed and bandwith, focus is mostly on
+ * Json currently. However it might an option switching to MinBin encoding in case of serious performance
+ * related trouble (minor changes in the JS client required then)
+ */
 public class MB2JS {
 
     public static void Gen( String packagesToScanColonSeparated, String outputFile ) throws Exception {

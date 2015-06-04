@@ -7,6 +7,9 @@ import java.io.IOException;
 
 /**
  * Created by moelrue on 5/7/15.
+ *
+ * capability to send objects
+ *
  */
 public interface ObjectSocket {
 

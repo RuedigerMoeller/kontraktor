@@ -23,6 +23,11 @@ import java.util.function.Consumer;
 
 /**
  * Created by moelrue on 5/7/15.
+ *
+ * Manages mapping of remote refs and callbacks. E.g. if an actor ref or callback or spore is sent to
+ * a remote actor, during serialization RemoteRegistry generates and maps the callback id's required
+ * to later on route incoming messages from remote to the appropriate local instances
+ *
  */
 public abstract class RemoteRegistry implements RemoteConnection {
     public static final Object OUT_OF_ORDER_SEQ = "OOOS";
