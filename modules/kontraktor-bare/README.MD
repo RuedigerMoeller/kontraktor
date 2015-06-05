@@ -14,10 +14,10 @@ example:
 RemoteActorConnection act = new RemoteActorConnection(false);
 act.connect("http://localhost:8080/api",false).then(new Callback<RemoteActor>() {
     @Override
-    public void receive(RemoteActor result, Object error) {
-        System.out.println("result:" + result+" err:"+error );
+    public void receive(RemoteActor facade, Object error) {
+        System.out.println("result:" + facade+" err:"+error );
 
-        result.ask("login", "user", "password").then(new Callback<RemoteActor>() {
+        facade.ask("login", "user", "password").then(new Callback<RemoteActor>() {
             @Override public void receive(RemoteActor session, Object error) {
                 System.out.println("session Actor received: "+session);
 
@@ -38,10 +38,10 @@ act.connect("http://localhost:8080/api",false).then(new Callback<RemoteActor>() 
 (or nicer with 1.8):
 ```java
 RemoteActorConnection act = new RemoteActorConnection(false);
-act.connect("http://localhost:8080/api",false).then( (result, error) -> {
-    System.out.println("result:" + result+" err:"+error );
+act.connect("http://localhost:8080/api",false).then( (facade, error) -> {
+    System.out.println("result:" + facade+" err:"+error );
     
-    result.ask("login", "user", "password").then( (session, error) -> {
+    facade.ask("login", "user", "password").then( (session, error) -> {
         System.out.println("session Actor received: "+session);
         
         session.ask("getToDo").then( (result, error) -> {
