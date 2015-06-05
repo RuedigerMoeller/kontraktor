@@ -13,16 +13,15 @@ example:
 ```java
 RemoteActorConnection act = new RemoteActorConnection(false);
 act.connect("http://localhost:8080/api",false).then(new Callback<RemoteActor>() {
-    @Override
+
     public void receive(RemoteActor facade, Object error) {
         System.out.println("result:" + facade+" err:"+error );
 
         facade.ask("login", "user", "password").then(new Callback<RemoteActor>() {
-            @Override public void receive(RemoteActor session, Object error) {
+            public void receive(RemoteActor session, Object error) {
                 System.out.println("session Actor received: "+session);
 
                 session.ask("getToDo").then(new Callback<ArrayList>() {
-                    @Override
                     public void receive(ArrayList result, Object error) {
                         for (int i = 0; i < result.size(); i++) {
                             Object o = result.get(i);
