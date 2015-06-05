@@ -20,7 +20,7 @@ public class BBCallbackRefSerializer extends FSTBasicObjectSerializer {
     }
 
     @Override
-    public void readObject(FSTObjectInput in, Object toRead, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy) throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException {
+    public void readObject(FSTObjectInput in, Object toRead, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy) throws Exception {
     }
 
     @Override
@@ -29,7 +29,7 @@ public class BBCallbackRefSerializer extends FSTBasicObjectSerializer {
     }
 
     @Override
-    public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+    public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws Exception {
 //        int id = in.readInt();
 //        AtomicReference<ObjectSocket> chan = reg.getWriteObjectSocket();
 //        Callback cb = (Object result, Object error) -> {
@@ -46,9 +46,8 @@ public class BBCallbackRefSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
-        // fixme: catch republish of foreign actor
-        int id = reg.registerPublishedCallback((Callback) toWrite); // register published host side
-        out.writeInt(id);
+//        int id = reg.registerPublishedCallback((Callback) toWrite); // register published host side
+//        out.writeInt(id);
     }
 
 }
