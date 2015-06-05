@@ -8,7 +8,7 @@ import java.util.Arrays;
  *
  * Mirrors Kontraktor's RemoteCallEntry
  */
-public class BBRemoteCallEntry implements Serializable {
+public class RemoteCallEntry implements Serializable {
 
     int receiverKey; // id of published actor in host, contains cbId in case of callbacks
     int futureKey; // id of future if any
@@ -16,7 +16,7 @@ public class BBRemoteCallEntry implements Serializable {
     Object args[];
     int queue;
 
-    public BBRemoteCallEntry(int receiverKey, int futureKey, String method, Object[] args, int queue) {
+    public RemoteCallEntry(int receiverKey, int futureKey, String method, Object[] args, int queue) {
         this.receiverKey = receiverKey;
         this.futureKey = futureKey;
         this.method = method;

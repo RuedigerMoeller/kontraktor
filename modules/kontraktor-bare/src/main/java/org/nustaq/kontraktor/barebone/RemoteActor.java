@@ -15,12 +15,12 @@ public class RemoteActor {
     }
 
     public void tell( String methodName, Object ... arguments ) {
-        con.addRequest(new BBRemoteCallEntry(remoteId,0,methodName,arguments,0), null);
+        con.addRequest(new RemoteCallEntry(remoteId,0,methodName,arguments,0), null);
     }
 
-    public BBPromise ask( String methodName, Object ... arguments ) {
-        BBPromise res = new BBPromise<>();
-        con.addRequest(new BBRemoteCallEntry(remoteId,0,methodName,arguments,0),res);
+    public Promise ask( String methodName, Object ... arguments ) {
+        Promise res = new Promise<>();
+        con.addRequest(new RemoteCallEntry(remoteId,0,methodName,arguments,0),res);
         return res;
     }
 

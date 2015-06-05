@@ -6,16 +6,15 @@ import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by ruedi on 09.08.14.
  */
-public class BBCallbackRefSerializer extends FSTBasicObjectSerializer {
+public class CallbackRefSerializer extends FSTBasicObjectSerializer {
 
     RemoteActorConnection reg;
 
-    public BBCallbackRefSerializer(RemoteActorConnection reg) {
+    public CallbackRefSerializer(RemoteActorConnection reg) {
         this.reg = reg;
     }
 
@@ -47,8 +46,7 @@ public class BBCallbackRefSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
-        // fixme: catch republish of foreign actor
-        int id = reg.registerCallback((BBCallback) toWrite); // register published host side
+        int id = reg.registerCallback((Callback) toWrite); // register published host side
         out.writeInt(id);
     }
 

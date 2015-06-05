@@ -3,9 +3,9 @@ package org.nustaq.kontraktor.barebone;
 /**
  * Created by ruedi on 05/06/15.
  */
-public class BBPromise<T> implements BBCallback<T> {
+public class Promise<T> implements Callback<T> {
 
-    BBCallback<T> cb;
+    Callback<T> cb;
     T result;
     Object error;
     boolean hasFired = false;
@@ -32,7 +32,7 @@ public class BBPromise<T> implements BBCallback<T> {
         }
     }
 
-    public void then( BBCallback<T> callback ) {
+    public void then( Callback<T> callback ) {
         synchronized (this) {
             if ( cb != null )
                 throw new RuntimeException("only one callback can be used");

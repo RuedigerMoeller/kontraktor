@@ -89,14 +89,14 @@ public class RemoteActorConnection {
         // support Json encoding only in order to deal with unknown classes
         conf = FSTConfiguration.createJsonConfiguration(DumpProtocol, !DumpProtocol && sharedRefs);
         conf.registerCrossPlatformClassMapping(new String[][]{
-            {"call", BBRemoteCallEntry.class.getName()},
-            {"cbw", BBCallback.class.getName()}
+            {"call", RemoteCallEntry.class.getName()},
+            {"cbw", Callback.class.getName()}
         });
-        conf.registerSerializer(BBCallback.class,new BBCallbackRefSerializer(this),true);
+        conf.registerSerializer(Callback.class,new CallbackRefSerializer(this),true);
     }
 
-    public BBPromise<RemoteActor> connect(final String url, boolean longPoll) {
-        final BBPromise res = new BBPromise();
+    public Promise<RemoteActor> connect(final String url, boolean longPoll) {
+        final Promise res = new Promise();
 
         byte[] message = conf.asByteArray(null);
         if (DumpProtocol) {
@@ -175,9 +175,9 @@ public class RemoteActorConnection {
         return res;
     }
 
-    ConcurrentHashMap<Integer,BBCallback> callbackMap = new ConcurrentHashMap<>();
+    ConcurrentHashMap<Integer,Callback> callbackMap = new ConcurrentHashMap<>();
     AtomicInteger idCount = new AtomicInteger(0);
-    protected void addRequest(BBRemoteCallEntry remoteCallEntry, BBPromise res) {
+    protected void addRequest(RemoteCallEntry remoteCallEntry, Promise res) {
         if ( res != null ) {
             int key = registerCallback(res);
             remoteCallEntry.futureKey = key;
@@ -212,7 +212,7 @@ public class RemoteActorConnection {
                         if ( seq == lastSeenSeq+1 || lastSeenSeq == 0 ) {
                             lastSeenSeq = seq;
                             for (int i = 0; i < o.length-1; i++) {
-                                BBRemoteCallEntry call = (BBRemoteCallEntry) o[i];
+                                RemoteCallEntry call = (RemoteCallEntry) o[i];
                                 if ( call.getQueue() == 1 ) // callback
                                 {
                                     // catch and transform remote actor reference
@@ -236,12 +236,12 @@ public class RemoteActorConnection {
                                         }
                                     }
                                     // process future callback or callback
-                                    BBCallback bbCallback = callbackMap.get(call.getReceiverKey());
-                                    if ( bbCallback == null ) {
+                                    Callback callback = callbackMap.get(call.getReceiverKey());
+                                    if ( callback == null ) {
                                         log("unknown callback receiver "+call);
                                     } else {
                                         callbackMap.remove(call.getReceiverKey());
-                                        bbCallback.receive(call.getArgs()[0],call.getArgs()[1]);
+                                        callback.receive(call.getArgs()[0],call.getArgs()[1]);
                                     }
                                 }
                             }
@@ -265,7 +265,7 @@ public class RemoteActorConnection {
         });
     }
 
-    public int registerCallback(BBCallback res) {
+    public int registerCallback(Callback res) {
         int key = idCount.incrementAndGet();
         callbackMap.put(key, res );
         return key;
@@ -288,15 +288,15 @@ public class RemoteActorConnection {
 
     public static void main(String[] args) throws InterruptedException {
         RemoteActorConnection act = new RemoteActorConnection(false);
-        act.connect("http://localhost:8080/api",false).then(new BBCallback<RemoteActor>() {
+        act.connect("http://localhost:8080/api",false).then(new Callback<RemoteActor>() {
             @Override
             public void receive(RemoteActor result, Object error) {
                 System.out.println("result:" + result+" err:"+error );
-                result.ask("login", "user", "password").then(new BBCallback<RemoteActor>() {
+                result.ask("login", "user", "password").then(new Callback<RemoteActor>() {
                     @Override
                     public void receive(RemoteActor session, Object error) {
                         System.out.println("session Actor received: "+session);
-                        session.ask("getToDo").then(new BBCallback<ArrayList>() {
+                        session.ask("getToDo").then(new Callback<ArrayList>() {
                             @Override
                             public void receive(ArrayList result, Object error) {
                                 for (int i = 0; i < result.size(); i++) {
