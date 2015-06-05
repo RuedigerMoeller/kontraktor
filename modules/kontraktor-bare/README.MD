@@ -1,4 +1,4 @@
-## Kontraktor-bare-bone client
+## Kontraktor 3 bare bone client
 
 1.7 / Android compatible client
 
