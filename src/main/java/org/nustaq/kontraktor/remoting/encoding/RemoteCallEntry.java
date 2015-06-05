@@ -2,7 +2,6 @@ package org.nustaq.kontraktor.remoting.encoding;
 
 
 import org.nustaq.kson.ArgTypes;
-
 import java.io.Serializable;
 import java.util.Arrays;
 

@@ -318,10 +318,32 @@ public class BasicTest {
 
     public static class FutureTest extends Actor<FutureTest> {
 
+        public AtomicInteger succCounter = new AtomicInteger(0);
+
         public IPromise<String> getString( String s ) {
             return new Promise<>(s+"_String");
         }
 
+        @Override
+        public void tell(Object message) {
+            succCounter.incrementAndGet();
+        }
+
+        @Override
+        public IPromise ask(Object message) {
+            return new Promise<>(message);
+        }
+
+    }
+
+    @Test
+    public void testUntyped() {
+        FutureTest futureTest = AsActor(FutureTest.class);
+        futureTest.tell("Hello");
+        String hello1 = (String) futureTest.ask("Hello1").await();
+        assertTrue( "Hello1".equals(hello1) );
+        assertTrue( futureTest.getActor().succCounter.get()==1 );
+        futureTest.stop();
     }
 
     public static class FutureTestCaller extends Actor<FutureTestCaller> {

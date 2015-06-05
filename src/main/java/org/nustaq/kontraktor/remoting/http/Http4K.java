@@ -51,12 +51,10 @@ public class Http4K {
         Pair<PathHandler, Undertow> pair = serverMap.get(port);
         if (pair == null) {
             PathHandler pathHandler = new PathHandler();
-            Undertow server = Undertow.builder()
-                    .setIoThreads(getIoThreads())
-                    .setWorkerThreads(getWorkerThreads())
-                    .addHttpListener( port, hostName)
-                    .setHandler(pathHandler)
-                    .build();
+            Undertow.Builder builder = Undertow.builder()
+                                           .setIoThreads(2)
+                                           .setWorkerThreads(2);
+            Undertow server = customize(builder,pathHandler,port,hostName).build();
             server.start();
             pair = new Pair<>(pathHandler,server);
             serverMap.put(port,pair);
@@ -64,8 +62,12 @@ public class Http4K {
         return pair;
     }
 
-    protected int getIoThreads() {return 2;}
-    protected int getWorkerThreads() {return 2;}
+    protected Undertow.Builder customize(Undertow.Builder builder, PathHandler rootPathHandler, int port, String hostName) {
+        return builder
+                .addHttpListener(port, hostName)
+//                .addHttpsListener(8443,hostName,null)
+                .setHandler(rootPathHandler);
+    }
 
     /**
      * publishes given file root

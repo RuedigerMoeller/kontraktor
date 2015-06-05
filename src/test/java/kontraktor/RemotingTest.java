@@ -31,6 +31,7 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class RemotingTest {
 
+    public static final int Q_SIZE = 256_000;
     static AtomicInteger errors = new AtomicInteger();
     static boolean checkSequenceErrors = true;
 
@@ -80,7 +81,7 @@ public class RemotingTest {
     @Test @Ignore
     public void testWSJSR() throws Exception {
         checkSequenceErrors = true;
-        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, Q_SIZE);
         ActorServer publisher = _JSR356ServerConnector.Publish(service, "ws://localhost:8081/ws", null).await();
         RemotingTestService client = (RemotingTestService)
             new WebSocketConnectable(RemotingTestService.class, "ws://localhost:8081/ws")
@@ -108,7 +109,7 @@ public class RemotingTest {
 
     public void runtHttp(Coding coding) throws InterruptedException {
         checkSequenceErrors = true;
-        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, Q_SIZE);
         ActorServer publisher =
             new HttpPublisher(service, "localhost", "/lp", 8082)
                 .coding(coding)
@@ -129,7 +130,7 @@ public class RemotingTest {
     @Test
     public void testHttpMany() throws Exception {
         checkSequenceErrors = false;
-        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, Q_SIZE);
         ActorServer publisher =
             new HttpPublisher(service, "localhost", "/lp", 8082)
                 .publish()
@@ -169,7 +170,7 @@ public class RemotingTest {
 
     public void runWS(Coding coding) throws InterruptedException {
         checkSequenceErrors = true;
-        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, Q_SIZE);
         ActorServer publisher = new WebSocketPublisher(service, "localhost", "/ws", 8081).coding(coding).publish().await();
         RemotingTestService client = (RemotingTestService)
             new WebSocketConnectable(RemotingTestService.class, "ws://localhost:8081/ws")
@@ -186,7 +187,7 @@ public class RemotingTest {
     @Test
     public void testWSMany() throws Exception {
         checkSequenceErrors = false;
-        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, Q_SIZE);
         ActorServer publisher = new WebSocketPublisher(service, "localhost", "/ws", 8081).publish().await();
         RemotingTestService client = (RemotingTestService)
             new WebSocketConnectable(RemotingTestService.class, "ws://localhost:8081/ws")
@@ -224,7 +225,7 @@ public class RemotingTest {
 
     public void runNio(Coding coding) throws Exception {
         checkSequenceErrors = true;
-        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, Q_SIZE);
         ActorServer publisher = NIOServerConnector.Publish(service, 8081, coding).await();
         CountDownLatch latch = new CountDownLatch(1);
         runnitTCP(latch,coding);
@@ -236,7 +237,7 @@ public class RemotingTest {
     @Test
     public void testNIOMany() throws Exception {
         checkSequenceErrors = false;
-        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, Q_SIZE);
         ActorServer publisher = NIOServerConnector.Publish(service, 8081, null).await();
         ExecutorService exec = Executors.newCachedThreadPool();
         CountDownLatch latch = new CountDownLatch(10);
@@ -258,7 +259,7 @@ public class RemotingTest {
     @Test
     public void testBlocking() throws Exception {
         checkSequenceErrors = true;
-        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, Q_SIZE);
         ActorServer publisher = TCPServerConnector.Publish(service, 8081, null).await();
         CountDownLatch latch = new CountDownLatch(1);
         runnitTCP(latch, null);
@@ -270,7 +271,7 @@ public class RemotingTest {
     @Test
     public void testBlockingMany() throws Exception {
         checkSequenceErrors = false;
-        RemotingTestService service = Actors.AsActor(RemotingTestService.class, 128000);
+        RemotingTestService service = Actors.AsActor(RemotingTestService.class, Q_SIZE);
         ActorServer publisher = TCPServerConnector.Publish(service, 8081, null).await();
         ExecutorService exec = Executors.newCachedThreadPool();
         CountDownLatch latch = new CountDownLatch(10);

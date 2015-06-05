@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.impl.InternalActorStoppedException;
@@ -11,6 +12,7 @@ import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -43,7 +45,14 @@ public abstract class RemoteRegistry implements RemoteConnection {
     protected ConcurrentLinkedQueue<Actor> remoteActors = new ConcurrentLinkedQueue<>();
     protected ConcurrentHashMap<Integer,Actor> remoteActorSet = new ConcurrentHashMap<>();
     protected volatile boolean terminated = false;
-    protected BiFunction<Actor,String,Boolean> remoteCallInterceptor;
+    protected BiFunction<Actor,String,Boolean> remoteCallInterceptor =
+    (actor,methodName) -> {
+        Method method = actor.__getCachedMethod(methodName, actor);
+        if ( method == null || method.getAnnotation(Local.class) != null ) {
+            return false;
+        }
+        return true;
+    };
     protected Consumer<Actor> disconnectHandler;
     protected boolean isObsolete;
 
@@ -290,10 +299,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
             }
             if (remoteCallInterceptor != null && !remoteCallInterceptor.apply(targetActor,read.getMethod())) {
                 Log.Warn(this,"remote message blocked by securityinterceptor "+targetActor.getClass().getName()+" "+read.getMethod());
-                if ( read.getFutureKey() > 0 ) {
-
-                }
-                return true;
+                return false;
             }
             try {
                 Object future = targetActor.getScheduler().enqueueCallFromRemote(this, null, targetActor, read.getMethod(), read.getArgs(), false);

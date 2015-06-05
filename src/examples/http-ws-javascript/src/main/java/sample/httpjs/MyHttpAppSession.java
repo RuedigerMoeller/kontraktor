@@ -26,7 +26,6 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
         pushEventLoop();
     }
 
-
     public IPromise<ArrayList<String>> getToDo() {
         return resolve(toDo);
     }
