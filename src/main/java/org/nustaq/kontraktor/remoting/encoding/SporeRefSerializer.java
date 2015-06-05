@@ -1,10 +1,8 @@
 package org.nustaq.kontraktor.remoting.encoding;
 
-import org.nustaq.kontraktor.Spore;
 import org.nustaq.serialization.*;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 
 /**
  * Created by ruedi on 26.08.14.
@@ -14,12 +12,12 @@ import java.lang.reflect.Field;
 public class SporeRefSerializer extends FSTBasicObjectSerializer {
 
     @Override
-    public void readObject(FSTObjectInput in, Object toRead, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy) throws IOException, ClassNotFoundException, IllegalAccessException, InstantiationException {
+    public void readObject(FSTObjectInput in, Object toRead, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy) throws Exception {
         in.defaultReadObject(referencedBy,clzInfo,toRead);
     }
 
     @Override
-    public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+    public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws Exception {
         return super.instantiate(objectClass, in, serializationInfo, referencee, streamPositioin);
     }
 

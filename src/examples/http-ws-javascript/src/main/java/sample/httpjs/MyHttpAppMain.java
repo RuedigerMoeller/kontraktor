@@ -17,7 +17,7 @@ import static org.nustaq.kontraktor.Actors.AsActor;
 public class MyHttpAppMain {
 
     public static void main(String[] args) throws IOException {
-        // just setup stuff manually here. Its easy to build a application specific
+        // just setup stuff manually here. Its easy to build an application specific
         // config using e.g. json or kson.
         File root = new File("./web");
 
@@ -31,9 +31,9 @@ public class MyHttpAppMain {
 
         HttpPublisher pub = new HttpPublisher( myHttpApp, "localhost", "/api", 8080 )
             .serType(SerializerType.JsonNoRefPretty)
-            .setSessionTimeout(30000);
+            .setSessionTimeout(30_000);
 
-        // link index.html and js4k.js dir to avoid copying stuff around my project
+        // link index.html and js4k.js dir to avoid copying stuff around the project
         Http4K.get()
             .publishFileSystem(pub, "/", root)
             .publishFileSystem(pub, "/jsk", new File(root.getCanonicalPath() + "/../../../main/javascript/"));

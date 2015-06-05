@@ -1,21 +1,21 @@
-package org.nustaq.kontraktor.barebone.serializers;
+package org.nustaq.kontraktor.barebone;
 
-import org.nustaq.kontraktor.barebone.RemoteActor;
 import org.nustaq.serialization.FSTBasicObjectSerializer;
 import org.nustaq.serialization.FSTClazzInfo;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by ruedi on 09.08.14.
  */
 public class BBCallbackRefSerializer extends FSTBasicObjectSerializer {
 
-    RemoteActor reg;
+    RemoteActorConnection reg;
 
-    public BBCallbackRefSerializer(RemoteActor reg) {
+    public BBCallbackRefSerializer(RemoteActorConnection reg) {
         this.reg = reg;
     }
 
@@ -30,7 +30,8 @@ public class BBCallbackRefSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws Exception {
-//        int id = in.readInt();
+        // fixme: detect local actors returned from foreign
+        int id = in.readInt();
 //        AtomicReference<ObjectSocket> chan = reg.getWriteObjectSocket();
 //        Callback cb = (Object result, Object error) -> {
 //            try {
@@ -46,8 +47,9 @@ public class BBCallbackRefSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
-//        int id = reg.registerPublishedCallback((Callback) toWrite); // register published host side
-//        out.writeInt(id);
+        // fixme: catch republish of foreign actor
+        int id = reg.registerCallback((BBCallback) toWrite); // register published host side
+        out.writeInt(id);
     }
 
 }

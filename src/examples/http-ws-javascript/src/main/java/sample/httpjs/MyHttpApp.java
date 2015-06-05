@@ -1,6 +1,7 @@
 package sample.httpjs;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import java.util.Arrays;
 import java.util.Date;
@@ -17,8 +18,10 @@ import java.util.Date;
  */
 public class MyHttpApp extends Actor<MyHttpApp> {
 
+    public static final int CLIENT_QSIZE = 1000;
+
     Scheduler clientThreads[] = {
-        new SimpleScheduler(1000) // only one session processor thread for now.
+        new SimpleScheduler(CLIENT_QSIZE) // only one session processor thread should be sufficient for most apps.
     };
 
     public IPromise<String> getServerTime() {
@@ -32,7 +35,7 @@ public class MyHttpApp extends Actor<MyHttpApp> {
             result.reject("Access denied");
         } else {
             // create new session and assign it a random scheduler (~thread). Note that with async nonblocking style
-            // one thread will be sufficient. For very computing intensive apps increase clientThreads to like 2-4
+            // one thread will be sufficient most of the time. For very computing intensive apps increase clientThreads to like 2-4
             MyHttpAppSession sess = AsActor(MyHttpAppSession.class,clientThreads[((int) (Math.random() * clientThreads.length))]);
             sess.setThrowExWhenBlocked(true);
             sess.init( self(), Arrays.asList("procrastinize", "drink coffee", "code", "play the piano", "ignore *") );
@@ -45,6 +48,7 @@ public class MyHttpApp extends Actor<MyHttpApp> {
         return resolve(clientThreads[0].getNumActors());
     }
 
+    @Local
     public void clientClosed(MyHttpAppSession session) {
         System.out.println("client closed "+session);
     }
