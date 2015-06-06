@@ -4,9 +4,9 @@
 
 Supports connecting to remote actors without requiring access to any remote class and few dependencies.
 Supports Http Long Poll / json encoding only. 
-Supports transparent Remote- ActorRefs,Promise,Callback routing but cannot publish an Actor by itself (pure client).
+Supports transparent Remote -ActorRefs,-Promise's,-Callback's routing but cannot publish an Actor by itself (pure client).
 
-This should be used to connect user client applications (e.g. mobiles), for system interconnect always prefer full kontraktor lib (order of a magnitude faster).
+**This should be used to connect user client applications (e.g. mobiles), for system interconnect always prefer full kontraktor lib (order of a magnitude faster).**
 
 example:
 1.7 / Android
