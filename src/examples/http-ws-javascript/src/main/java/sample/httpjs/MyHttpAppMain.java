@@ -3,6 +3,8 @@ package sample.httpjs;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.http.HttpPublisher;
+import org.nustaq.serialization.FSTConfiguration;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -30,7 +32,7 @@ public class MyHttpAppMain {
         MyHttpApp myHttpApp = AsActor(MyHttpApp.class);
 
         HttpPublisher pub = new HttpPublisher( myHttpApp, "localhost", "/api", 8080 )
-            .serType(SerializerType.JsonNoRefPretty)
+            .serType(SerializerType.JsonNoRef)
             .setSessionTimeout(30_000);
 
         // link index.html and js4k.js dir to avoid copying stuff around the project

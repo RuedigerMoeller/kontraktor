@@ -263,67 +263,44 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
         sinkchannel.resumeWrites();
         // read next batch of pending messages from binary queue and send them
-        Runnable lpTask = createLongPollTask(exchange, httpObjectSocket, sinkchannel);
+        Pair<Runnable,HttpServerExchange> lpTask = createLongPollTask(exchange, httpObjectSocket, sinkchannel);
         // release previous long poll request if present
-        if ( httpObjectSocket.getLongPollTask() != null ) {
-            httpObjectSocket.triggerLongPoll();
-        }
+        httpObjectSocket.cancelLongPoll();
         httpObjectSocket.setLongPollTask(lpTask);
     }
 
-    protected Runnable createLongPollTask(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, StreamSinkChannel sinkchannel) {
-        return () -> {
-            Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
-            byte response[] = nextQueuedMessage.getFirst();
-            exchange.setResponseContentLength(response.length);
-            if (response.length == 0) {
-                exchange.endExchange();
-            } else {
-                httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
-
-                ByteBuffer responseBuf = ByteBuffer.wrap(response);
-
-                if ( 1 != 0 ) {
-                    while (responseBuf.remaining()>0) {
-                        try {
-                            sinkchannel.write(responseBuf);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
+    protected Pair<Runnable,HttpServerExchange> createLongPollTask(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, StreamSinkChannel sinkchannel) {
+        return new Pair<>(
+            () -> {
+                if ( ! sinkchannel.isOpen() )
+                    return;
+                Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
+                byte response[] = nextQueuedMessage.getFirst();
+                exchange.setResponseContentLength(response.length);
+                if (response.length == 0) {
                     exchange.endExchange();
                 } else {
-                    // fixme .. this is too late as resumewrites has already been called
-                    sinkchannel.getWriteSetter().set(
-                        channel -> {
-                            if (responseBuf.remaining() > 0)
-                                try {
-                                    sinkchannel.write(responseBuf);
-                                    if (responseBuf.remaining() == 0) {
-                                        exchange.endExchange();
-                                    } else
-                                        sinkchannel.resumeWrites(); // required ?
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                    exchange.endExchange();
-                                }
-                            else {
-                                exchange.endExchange();
-                            }
-                        }
-                    );
+                    httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
+
+                    ByteBuffer responseBuf = ByteBuffer.wrap(response);
                     try {
-                        sinkchannel.write(responseBuf);
-                    } catch (IOException e) {
+                        while (responseBuf.remaining()>0) {
+                            sinkchannel.write(responseBuf);
+                        }
+                    } catch (Throwable e) {
+                        System.out.println("buffer size:"+response.length);
+                        try {
+                            sinkchannel.close();
+                        } catch (IOException e1) {
+                            e1.printStackTrace();
+                        }
                         e.printStackTrace();
                     }
-                    if (responseBuf.remaining() == 0) {
-                        exchange.endExchange();
-                    } else
-                        sinkchannel.resumeWrites(); // required ?
+                    exchange.endExchange();
                 }
-            }
-        };
+            },
+            exchange
+        );
     }
 
     protected void replyFromHistory(HttpServerExchange exchange, StreamSinkChannel sinkchannel, byte[] msg) {
@@ -362,7 +339,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             if (response.length == 0) {
                 exchange.endExchange();
             } else {
-                httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
+                httpObjectSocket.storeLPMessage(nextQueuedMessage.cdr(), response);
 
                 ByteBuffer responseBuf = ByteBuffer.wrap(response);
                 while (responseBuf.remaining()>0) {
@@ -378,7 +355,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         if ( futures == null || futures.size() == 0 ) {
             reply.run();
         } else {
-            Actors.all((List) futures).timeoutIn(REQUEST_TIMEOUT).then(() -> {
+            Actors.all((List) futures).timeoutIn(REQUEST_TIMEOUT).then( () -> {
                 reply.run();
             });
             sinkchannel.resumeWrites();

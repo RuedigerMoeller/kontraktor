@@ -4,6 +4,8 @@ import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.serialization.util.FSTUtil;
 
 import java.util.TimerTask;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
@@ -405,14 +407,19 @@ public class Promise<T> implements IPromise<T> {
             dt.__stack.remove(dt.__stack.size()-1);
             return this;
         } else {
-            // if outside of actor machinery, just block (warning actually polls)
-            while( ! isSettled() ) {
-                LockSupport.parkNanos(1000 * 500);
-                if ( endtime != 0 && System.currentTimeMillis() > endtime ) {
-                    timedOut(Timeout.INSTANCE);
-                    break;
-                }
+            // if outside of actor machinery, just block
+            CountDownLatch latch = new CountDownLatch(1);
+            then( (res, err) -> {
+                latch.countDown();
+            });
+            boolean timedOut = false;
+            try {
+                timedOut = ! latch.await(timeout, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
+            if ( timedOut )
+                timedOut(Timeout.INSTANCE);
             return this;
         }
     }

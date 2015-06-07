@@ -46,7 +46,7 @@ public class RemoteCallEntry implements Serializable {
 
     @Override
     public String toString() {
-        return "BBRemoteCallEntry{" +
+        return "RemoteCallEntry{" +
                    "receiverKey=" + receiverKey +
                    ", futureKey=" + futureKey +
                    ", method='" + method + '\'' +

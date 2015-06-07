@@ -48,6 +48,12 @@ public class MyHttpApp extends Actor<MyHttpApp> {
         return resolve(clientThreads[0].getNumActors());
     }
 
+    public void voidMethodForBenchmark() {}
+
+    public IPromise promiseMethodForBenchmark(int num) {
+        return new Promise<>(num);
+    }
+
     @Local
     public void clientClosed(MyHttpAppSession session) {
         System.out.println("client closed "+session);

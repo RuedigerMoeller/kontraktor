@@ -3,6 +3,7 @@ package sample.httpjs;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
 import java.util.ArrayList;
 import java.util.Date;
@@ -19,15 +20,27 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
     MyHttpApp app;
     ArrayList<String> toDo = new ArrayList<>();
     Callback subscription;
+    Pojo aPojo;
 
     public void init(MyHttpApp app, List<String> todo) {
         this.app = app;
+        aPojo = new Pojo("pojo");
+        aPojo.addPojo(new Pojo("otherPojo"));
+        aPojo.addPojo(new Pojo("yetAnother"));
         toDo.addAll(todo);
         pushEventLoop();
     }
 
     public IPromise<ArrayList<String>> getToDo() {
         return resolve(toDo);
+    }
+
+    public IPromise<Pojo> getPojo() {
+        return new Promise<>(aPojo);
+    }
+
+    public IPromise<Pojo> pojoRoundTrip(Pojo pojo) {
+        return new Promise<>(pojo);
     }
 
     public void streamToDo( String filter, Callback cb ) {

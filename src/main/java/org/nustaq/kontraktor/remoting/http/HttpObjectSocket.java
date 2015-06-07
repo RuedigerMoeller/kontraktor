@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.remoting.http;
 
+import io.undertow.server.HttpServerExchange;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.messagestore.HeapMessageStore;
@@ -32,7 +33,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     BinaryQueue queue = new BinaryQueue(4096);
     ObjectSink sink;
     MessageStore store = new HeapMessageStore(HISTORY_SIZE);
-    Runnable longPollTask;
+    Pair<Runnable, HttpServerExchange> longPollTask;
     Thread myThread;
     long longPollTaskTime;
 
@@ -87,7 +88,8 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
     public Pair<byte[],Integer> getNextQueuedMessage() {
         synchronized (queue) {
-            if ( queue.available() < 8 ) {
+//            if ( queue.available() < 8 )
+            {
                 try {
                     flush();
                 } catch (Exception e) {
@@ -116,20 +118,34 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         }
     }
 
-    public Runnable getLongPollTask() {
+    public Pair<Runnable,HttpServerExchange> getLongPollTask() {
         return longPollTask;
     }
 
-    public void triggerLongPoll() {
-        if (longPollTask!=null) {
-            longPollTask.run();
-            longPollTask = null;
+    public void cancelLongPoll() {
+        synchronized (this) {
+            if (longPollTask!=null) {
+                longPollTask.cdr().endExchange();
+                longPollTask = null;
+            }
         }
     }
 
-    public void setLongPollTask(Runnable longPollTask) {
-        this.longPollTask = longPollTask;
-        this.longPollTaskTime = System.currentTimeMillis();
+    public void triggerLongPoll() {
+        synchronized (this) {
+            if (longPollTask!=null) {
+                Runnable car = longPollTask.car();
+                longPollTask = null;
+                car.run();
+            }
+        }
+    }
+
+    public void setLongPollTask(Pair<Runnable, HttpServerExchange> longPollTask) {
+        synchronized (this) {
+            this.longPollTask = longPollTask;
+            this.longPollTaskTime = System.currentTimeMillis();
+        }
     }
 
     public long getLongPollTaskTime() {
