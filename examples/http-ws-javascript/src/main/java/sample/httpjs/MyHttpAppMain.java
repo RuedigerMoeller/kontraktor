@@ -3,7 +3,6 @@ package sample.httpjs;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.http.HttpPublisher;
-import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.File;
 import java.io.IOException;
@@ -36,9 +35,10 @@ public class MyHttpAppMain {
             .setSessionTimeout(30_000);
 
         // link index.html and js4k.js dir to avoid copying stuff around the project
+        File jsroot = new File(root.getCanonicalPath() + "/../../../modules/kontraktor-http/src/main/javascript/").getCanonicalFile();
         Http4K.get()
             .publishFileSystem(pub, "/", root)
-            .publishFileSystem(pub, "/jsk", new File(root.getCanonicalPath() + "/../../../main/javascript/"));
+            .publishFileSystem(pub, "/jsk", jsroot);
 
         // publish as long poll @ localhost:8080/api
         pub.publish();

@@ -1,18 +1,13 @@
 package org.nustaq.kontraktor.remoting.http;
 
-import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
-import io.undertow.server.handlers.PathHandler;
 import io.undertow.util.Headers;
 import io.undertow.util.Methods;
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorServerConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
-import org.nustaq.kontraktor.remoting.encoding.Coding;
-import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.FSTConfiguration;

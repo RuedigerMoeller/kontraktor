@@ -1,6 +1,5 @@
 package org.nustaq.kontraktor.remoting.http.javascript;
 
-import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kson.Kson;
 
 import java.io.*;

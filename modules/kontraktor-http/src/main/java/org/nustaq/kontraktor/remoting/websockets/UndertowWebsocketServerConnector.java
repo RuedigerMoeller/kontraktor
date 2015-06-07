@@ -9,7 +9,6 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.*;
-import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.util.Pair;
 import org.xnio.Buffers;

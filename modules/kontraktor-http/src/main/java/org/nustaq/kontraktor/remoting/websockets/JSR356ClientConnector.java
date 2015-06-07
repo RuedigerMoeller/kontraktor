@@ -4,11 +4,9 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.remoting.base.ActorClient;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
-import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.util.FSTUtil;
 

@@ -41,7 +41,7 @@ public class RemoteActorConnection {
     public static boolean DumpProtocol = false;
 
     protected static CloseableHttpAsyncClient asyncHttpClient;
-    protected boolean isConnected;
+    protected volatile boolean isConnected;
 
     public static CloseableHttpAsyncClient getClient() {
         synchronized (RemoteActorConnection.class) {
@@ -75,8 +75,7 @@ public class RemoteActorConnection {
     };
 
     protected FSTConfiguration conf;
-    protected Executor myExec = Executors.newSingleThreadExecutor();
-    protected Thread myThread;
+    protected ExecutorService myExec = Executors.newSingleThreadExecutor();
     protected String sessionId;
     protected String sessionUrl;
     protected int lastSeenSeq;
@@ -131,8 +130,7 @@ public class RemoteActorConnection {
         myExec.execute(new Runnable() {
             @Override
             public void run() {
-                myThread = Thread.currentThread();
-                myThread.setName("kontraktor-bare client");
+                Thread.currentThread().setName("kontraktor-bare client");
             }
         });
     }
@@ -151,7 +149,7 @@ public class RemoteActorConnection {
         conf.registerSerializer(Callback.class, new CallbackRefSerializer(this), true);
     }
 
-    public Promise<RemoteActor> connect(final String url, boolean longPoll) {
+    public Promise<RemoteActor> connect(final String url, final boolean longPoll) {
         final Promise res = new Promise();
 
         byte[] message = conf.asByteArray(null);
@@ -188,6 +186,9 @@ public class RemoteActorConnection {
                             public void run() {
                                 sessionId = (String) conf.asObject(resp);
                                 isConnected = true;
+                                if ( longPoll ) {
+                                    startLongPoll();
+                                }
                                 sessionUrl = url + "/" + sessionId;
                                 System.out.println("session id:" + sessionId);
                                 res.complete(new RemoteActor("App", 1, RemoteActorConnection.this), null);
@@ -214,62 +215,65 @@ public class RemoteActorConnection {
             }
         });
 
-        if ( longPoll ) {
-            final AtomicReference<Runnable> lp = new AtomicReference<>();
-            lp.set(new Runnable() {
-                @Override
-                public void run() {
-                    HttpPost request = createRequest(sessionUrl, conf.asByteArray(new Object[] { lastSeenSeq } ));
-                    getClient().execute(request, new FutureCallback<HttpResponse>() {
-                        @Override
-                        public void completed(HttpResponse result) {
-                            if (result.getStatusLine().getStatusCode() != 200) {
-                                log("unexpected return status "+result.getStatusLine().getReasonPhrase());
-                                delayed(lp.get(), 5000);
-                                return;
-                            }
-                            String cl = result.getFirstHeader("Content-Length").getValue();
-                            int len = Integer.parseInt(cl);
-                            if (len > 0) {
-                                final byte b[] = new byte[len];
-                                try {
-                                    result.getEntity().getContent().read(b);
-                                    myExec.execute(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                        processResponse(b);
-                                        }
-                                    });
-                                    myExec.execute(lp.get());
-                                } catch (Throwable e) {
-                                    log(e);
-                                    // delay next longpoll to avoid exception spam
-                                    delayed(lp.get(), 2000);
-                                }
-                            } else {
-                                myExec.execute(lp.get());
-                            }
-                        }
-
-                        @Override
-                        public void failed(Exception ex) {
-                            log(ex);
-                            // delay next longpoll to avoid exception spam
-                            delayed(lp.get(), 2000);
-                        }
-
-                        @Override
-                        public void cancelled() {
-                            log("request canceled");
-                            // delay next longpoll to avoid exception spam
-                            delayed(lp.get(), 2000);
-                        }
-                    });
-                }
-            });
-            delayed(lp.get(), 1000);
-        }
         return res;
+    }
+
+    protected void startLongPoll() {
+        final AtomicReference<Runnable> lp = new AtomicReference<>();
+        lp.set(new Runnable() {
+            @Override
+            public void run() {
+                if ( ! isConnected )
+                    return;
+                HttpPost request = createRequest(sessionUrl, conf.asByteArray(new Object[] { lastSeenSeq } ));
+                getClient().execute(request, new FutureCallback<HttpResponse>() {
+                    @Override
+                    public void completed(HttpResponse result) {
+                        if (result.getStatusLine().getStatusCode() != 200) {
+                            log("unexpected return status "+result.getStatusLine().getReasonPhrase());
+                            delayed(lp.get(), 5000);
+                            return;
+                        }
+                        String cl = result.getFirstHeader("Content-Length").getValue();
+                        int len = Integer.parseInt(cl);
+                        if (len > 0) {
+                            final byte b[] = new byte[len];
+                            try {
+                                result.getEntity().getContent().read(b);
+                                myExec.execute(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                    processResponse(b);
+                                    }
+                                });
+                                myExec.execute(lp.get());
+                            } catch (Throwable e) {
+                                log(e);
+                                // delay next longpoll to avoid exception spam
+                                delayed(lp.get(), 2000);
+                            }
+                        } else {
+                            myExec.execute(lp.get());
+                        }
+                    }
+
+                    @Override
+                    public void failed(Exception ex) {
+                        log(ex);
+                        // delay next longpoll to avoid exception spam
+                        delayed(lp.get(), 2000);
+                    }
+
+                    @Override
+                    public void cancelled() {
+                        log("request canceled");
+                        // delay next longpoll to avoid exception spam
+                        delayed(lp.get(), 2000);
+                    }
+                });
+            }
+        });
+        delayed(lp.get(), 1000);
     }
 
     protected Timer timer = new Timer();
@@ -472,11 +476,11 @@ public class RemoteActorConnection {
         if ( connectionListener != null ) {
             connectionListener.connectionClosed(s);
         }
+        lastSeenSeq = 0;
+        myExec.shutdown();
     }
 
     protected void processDecodedResultArray(Object[] o) {
-        if ( Thread.currentThread() != myThread)
-            throw new RuntimeException("invalid thread");
         for (int i = 0; i < o.length-1; i++) {
             final RemoteCallEntry call = (RemoteCallEntry) o[i];
             if ( call.getQueue() == 1 ) // callback
