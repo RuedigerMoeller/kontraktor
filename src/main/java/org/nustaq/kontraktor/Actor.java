@@ -160,20 +160,20 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     /**
      * generic method for untyped messages.
      *
-     * @param message
+     * @param messageId
      * @return
      */
-    public IPromise ask( Object message ) {
-        return null;
+    public IPromise ask( String messageId, Object ... args ) {
+        return resolve(null);
     }
 
     /**
      * generic method for untyped messages.
      *
-     * @param message
+     * @param messageId
      * @return
      */
-    public void tell( Object message ) { }
+    public void tell( String messageId, Object ... args ) { }
 
     /**
      * execute a callable asynchronously (in a different thread) and return a future

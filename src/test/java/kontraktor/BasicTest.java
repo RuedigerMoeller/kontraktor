@@ -325,13 +325,13 @@ public class BasicTest {
         }
 
         @Override
-        public void tell(Object message) {
+        public void tell(String messageId, Object ... args) {
             succCounter.incrementAndGet();
         }
 
         @Override
-        public IPromise ask(Object message) {
-            return new Promise<>(message);
+        public IPromise ask(String messageId, Object ... args) {
+            return new Promise<>(messageId);
         }
 
     }

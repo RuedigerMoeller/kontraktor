@@ -18,56 +18,56 @@
 <script src="jsk/js4k.js"></script>
 
 <script>
-    var server = null;
-    var errCB = function( err ) { console.error(err); };
+var server = null;
+var errCB = function( err ) { console.error(err); };
 //    jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets
-      jsk.connect("http://localhost:8080/api","HTLP",errCB) // use this for long poll
-      .then( function( app, error ) {
-        if ( ! app ) {
-            console.log("connection failure");
-            console.error(error);
+  jsk.connect("http://localhost:8080/api","HTLP",errCB) // use this for long poll
+  .then( function( app, error ) {
+    if ( ! app ) {
+      console.log("connection failure");
+      console.error(error);
+    }
+    server = app;
+
+    server.ask("login", "clientuser", "clientpwd")
+      .then( function(mySession,err) {
+        if ( err )
+          console.log(err);
+        else {
+          console.log("send getToDo");
+          mySession.ask("getToDo").then( function( res,err ) {
+            console.log("received getToDo");
+            var li = "<ul>";
+            for ( var i=0; i < res.length; i++ )
+              li += "<li>"+res[i]+"</li>";
+            li += "</ul>";
+            document.getElementById("todo").innerHTML=li;
+          });
+          server.ask("getServerTime").then( function( res,err ) {
+            document.getElementById("time").innerHTML=res;
+          });
+          mySession.tell( "streamToDo", "p", function( res, err ) {
+            if ('FIN' !== err )
+              document.getElementById("filtered").innerHTML += "'"+res+"',&nbsp;";
+          });
+          // subscribe to server time stream (push)
+          mySession.tell( "subscribe", function(e,r) {
+            var tim = document.getElementById("time");
+            tim.innerHTML=e;
+            var bright = 1.0;
+            // fadeout bgcolor with each event
+            var fun = function () {
+              tim.style.backgroundColor = "rgba(255,200,100," + bright + ")";
+              bright -= .03;
+              if (bright >= 0.0) {
+                setTimeout(fun,50);
+              }
+            };
+            fun.apply();
+          })
         }
-        server = app;
-
-        server.ask("login", "clientuser", "clientpwd")
-          .then( function(mySession,err) {
-            if ( err )
-                console.log(err);
-            else {
-                console.log("send getToDo");
-                mySession.ask("getToDo").then( function( res,err ) {
-                    console.log("received getToDo");
-                    var li = "<ul>";
-                    for ( var i=0; i < res.length; i++ )
-                        li += "<li>"+res[i]+"</li>";
-                    li += "</ul>";
-                    document.getElementById("todo").innerHTML=li;
-                });
-                server.ask("getServerTime").then( function( res,err ) {
-                    document.getElementById("time").innerHTML=res;
-                });
-                mySession.tell( "streamToDo", "p", function( res, err ) {
-                    if ('FIN' !== err )
-                        document.getElementById("filtered").innerHTML += "'"+res+"',&nbsp;";
-                });
-                mySession.tell( "subscribe", function(e,r) {
-                    var tim = document.getElementById("time");
-                    tim.innerHTML=e;
-                    var bright = 1.0;
-                    // fadeout bgcolor
-                    var fun = function () {
-                        tim.style.backgroundColor = "rgba(255,200,100," + bright + ")";
-                        bright -= .03;
-                        if (bright >= 0.0) {
-                            setTimeout(fun,50);
-                        }
-                    };
-                    fun.apply();
-                })
-            }
-        })
-    });
-
+    })
+});
 </script>
 </body>
 </html>

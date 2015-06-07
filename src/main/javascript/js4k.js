@@ -516,7 +516,7 @@ window.jsk = window.jsk || (function () {
       };
       request.open("POST", self.url+"/"+self.sessionId, true);
       request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-      request.send(data); // this is actually auth data currently unused. keep stuff websocket alike for now
+      request.send(data);
     };
 
     self.onclose = function( eventListener ) {
