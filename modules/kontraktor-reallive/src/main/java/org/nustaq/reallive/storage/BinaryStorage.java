@@ -1,4 +1,4 @@
-package org.nustaq.reallive.impl.storage;
+package org.nustaq.reallive.storage;
 
 import org.nustaq.offheap.bytez.ByteSource;
 import org.nustaq.offheap.bytez.Bytez;

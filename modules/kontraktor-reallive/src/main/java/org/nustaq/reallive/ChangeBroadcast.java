@@ -4,6 +4,7 @@ import org.nustaq.serialization.FSTClazzInfo;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.function.Predicate;
 
 /**
  * Created by ruedi on 05.07.14.
@@ -13,7 +14,7 @@ public class ChangeBroadcast<T extends Record> implements Serializable {
     public static final int UPDATE    = 0;
     public static final int ADD       = 1;
     public static final int REMOVE    = 2;
-    public static final int OPERATION = 3;
+//    public static final int OPERATION = 3;
     public static final int SNAPSHOT_DONE = 4;
     public static final int ERROR = 5;
 
@@ -55,6 +56,9 @@ public class ChangeBroadcast<T extends Record> implements Serializable {
         this.originator = origin;
     }
 
+    Predicate casCondition;
+    boolean addIfNotPresent = false;
+
     int type;
     String tableId;
     String recordKey;
@@ -63,6 +67,22 @@ public class ChangeBroadcast<T extends Record> implements Serializable {
     T newRecord; // state of record after update
     RecordChange<String,T> appliedChange; // in case of update contains old values of updated fields
     Object error;
+
+    public Predicate getCasCondition() {
+        return casCondition;
+    }
+
+    public void setCasCondition(Predicate casCondition) {
+        this.casCondition = casCondition;
+    }
+
+    public boolean isAddIfNotPresent() {
+        return addIfNotPresent;
+    }
+
+    public void setAddIfNotPresent(boolean addIfNotPresent) {
+        this.addIfNotPresent = addIfNotPresent;
+    }
 
     public int getOriginator() {
         return originator;

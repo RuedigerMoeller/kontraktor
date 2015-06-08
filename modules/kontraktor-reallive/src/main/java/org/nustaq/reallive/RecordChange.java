@@ -5,6 +5,7 @@ import org.nustaq.serialization.FSTClazzInfo;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Created by ruedi on 21.06.14.
@@ -29,7 +30,6 @@ public class RecordChange<K, T extends Record> implements Serializable {
         this.newVal = rc.newVal;
         this.fieldIndex = rc.fieldIndex;
         this.oldVals = rc.oldVals;
-
     }
 
     public int getOriginator() {
@@ -172,5 +172,6 @@ public class RecordChange<K, T extends Record> implements Serializable {
     public int[] getChangedFields() {
         return fieldIndex;
     }
+
 
 }

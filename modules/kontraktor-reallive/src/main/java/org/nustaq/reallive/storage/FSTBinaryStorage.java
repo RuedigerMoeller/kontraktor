@@ -1,10 +1,9 @@
-package org.nustaq.reallive.impl.storage;
+package org.nustaq.reallive.storage;
 
 import org.nustaq.offheap.FSTAsciiStringOffheapMap;
 import org.nustaq.offheap.FSTBinaryOffheapMap;
 import org.nustaq.offheap.bytez.ByteSource;
 import org.nustaq.offheap.bytez.Bytez;
-import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
 import org.nustaq.serialization.simpleapi.FSTCoder;
 

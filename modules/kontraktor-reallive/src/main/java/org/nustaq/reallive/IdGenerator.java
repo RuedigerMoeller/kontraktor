@@ -1,7 +1,6 @@
-package org.nustaq.reallive.impl;
+package org.nustaq.reallive;
 
-import org.nustaq.offheap.bytez.Bytez;
-import org.nustaq.reallive.impl.storage.BinaryStorage;
+import org.nustaq.reallive.storage.BinaryStorage;
 
 /**
  * Created by ruedi on 21.06.14.

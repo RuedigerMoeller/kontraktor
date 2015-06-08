@@ -1,7 +1,7 @@
-package org.nustaq.reallive.impl;
+package org.nustaq.reallive;
 
 import org.nustaq.offheap.bytez.Bytez;
-import org.nustaq.reallive.impl.storage.BinaryStorage;
+import org.nustaq.reallive.storage.BinaryStorage;
 
 /**
  * Threadsafe String id generator.

@@ -1,31 +1,24 @@
-package org.nustaq.reallive.impl;
+package org.nustaq.reallive;
 
-import org.nustaq.kontraktor.annotations.AsCallback;
 import org.nustaq.offheap.bytez.ByteSource;
-import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.annotations.CallerSideMethod;
-import org.nustaq.reallive.*;
-import org.nustaq.reallive.impl.storage.BinaryStorage;
-import org.nustaq.reallive.impl.storage.FSTBinaryStorage;
+import org.nustaq.reallive.storage.BinaryStorage;
+import org.nustaq.reallive.storage.FSTBinaryStorage;
 import org.nustaq.reallive.sys.annotations.InMem;
 import org.nustaq.reallive.sys.annotations.KeyLen;
-import org.nustaq.reallive.sys.tables.SysTable;
 import org.nustaq.serialization.FSTClazzInfo;
+import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.File;
+import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
 /**
  * Created by ruedi on 21.06.14.
  *
- * todo:
- * add CAS
- * add Client Object to be able to correlate changes and broadcasts
- * add striping
  */
 public class RLTable<T extends Record> {
 
@@ -34,18 +27,18 @@ public class RLTable<T extends Record> {
     String tableId;
     IdGenerator<String> idgen;
     BinaryStorage<String,Record> storage;
-    Class clazz;
+    Class recordClass;
 
-    RealLive realLive; // shared
     private ChangeBroadcastReceiver receiver;
     boolean isShutDown;
+    RecordContext context;
+    FSTConfiguration conf;
 
-    public void init( String tableId, RealLive realLive, Class<T> clz ) {
+    public void init( String tableId, String dataDirectoy, Class<T> clz, FSTConfiguration conf ) {
         Thread.currentThread().setName("TableImpl:"+tableId);
-        this.clazz = clz;
+        this.recordClass = clz;
         this.tableId = tableId;
-        this.realLive = realLive;
-        new File(realLive.getDataDirectory()).mkdirs();
+        new File(dataDirectoy).mkdirs();
         idgen = new StringIdGen("");
         try {
             FSTBinaryStorage<Record> recordFSTBinaryStorage = new FSTBinaryStorage<>();
@@ -57,7 +50,7 @@ public class RLTable<T extends Record> {
             }
             InMem inMem = clz.getAnnotation(InMem.class);
             recordFSTBinaryStorage.init(
-                realLive.getDataDirectory() + File.separator + tableId+".mmf",
+                    dataDirectoy + File.separator + tableId+".mmf",
                 DEFAULT_TABLE_MEM_MB, // 1 GB init size
                 100000, // num records
                 keyLen, // keylen
@@ -68,26 +61,21 @@ public class RLTable<T extends Record> {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        context = new MyRecordContext(conf.getClassInfo(recordClass).getFieldInfo(),tableId);
     }
 
     public Class getRowClazz() {
-        return clazz;
+        return recordClass;
     }
 
     public String getTableId() {
         return tableId;
     }
 
-    public RealLive getRealLive() {
-        return realLive;
-    }
-
-    public T createForAddWith(Class<? extends Record> clazz) {
+    T createForAddWith(Class<? extends Record> clazz) {
         try {
             T res = (T) clazz.newInstance();
-            res._setTable(this);
-            res.setClazzInfo(getClazzInfo(res));
-            res._setMode(Record.Mode.ADD);
+            res._setTable(getRecordContext());
             return res;
         } catch (InstantiationException e) {
             e.printStackTrace();
@@ -97,51 +85,48 @@ public class RLTable<T extends Record> {
         return null;
     }
 
-    public T createForAdd() {
-        return (T)createForAddWith(clazz);
+    T createForAdd() {
+        return (T)createForAddWith(recordClass);
     }
 
-    public T createForAddWithKey(String key) {
-        T forAdd = createForAdd();
-        forAdd._setRecordKey(key);
-        return forAdd;
+    private RecordContext getRecordContext() {
+        return null;
     }
 
-    public T createForUpdateWith(Class<? extends Record> clazz, String key, boolean addIfNotPresent) {
-        T res = createForAddWith(clazz);
-        res._setMode(addIfNotPresent ? Record.Mode.UPDATE_OR_ADD : Record.Mode.UPDATE);
-        res._setRecordKey(key);
-        T org = createForAdd();
-        org._setRecordKey(key);
-        res._setOriginalRecord(org);
-        return res;
-    }
+    static class MyRecordContext implements RecordContext, Serializable {
+        FSTClazzInfo.FSTFieldInfo[] fieldInfo;
+        String tableId;
+        transient ConcurrentHashMap<String, FSTClazzInfo.FSTFieldInfo> cache;
 
-    public T createForUpdate(String key, boolean addIfNotPresent) {
-        return createForUpdateWith((Class<T>) clazz, key, addIfNotPresent);
-    }
+        public MyRecordContext(FSTClazzInfo.FSTFieldInfo[] fieldInfo, String tableId) {
+            this.fieldInfo = fieldInfo;
+            this.tableId = tableId;
+        }
 
-    public void prepareForUpdate(T record) {
-        T res = null;
-        try {
-            res = (T) record.getClass().newInstance();
-            res._setTable(this);
-            if ( record.getClassInfo() == null )
-                record.setClazzInfo(getClazzInfo(record));
-            record._setMode(Record.Mode.UPDATE);
-            record.copyTo(res);
-            record._setOriginalRecord(res);
-            record._setTable(this);
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
+        @Override
+        public FSTClazzInfo.FSTFieldInfo[] getFieldInfo() {
+            return fieldInfo;
+        }
+
+        @Override
+        public FSTClazzInfo.FSTFieldInfo getFieldInfo(String fieldName) {
+            if ( cache == null ) {
+                cache = new ConcurrentHashMap<>();
+                Arrays.stream(fieldInfo).forEach( field -> cache.put(field.getName(),field));
+                return cache.get(fieldName);
+            }
+            return cache.get(fieldName);
+        }
+
+        @Override
+        public String getTableId() {
+            return tableId;
         }
     }
 
     //////////////////////////////////////////////////////////////////////
     //
-    // mutation
+    // mutation with broadcasting
     //
 
     public String addGetId(T object, int originator) {
@@ -164,7 +149,7 @@ public class RLTable<T extends Record> {
             object._setRecordKey(nextKey);
         }
         put(object.getRecordKey(), object);
-        broadCastAdd(object,originator);
+        broadCastAdd(object, originator);
     }
 
     public void put(String key, T newRec, int originator) {
@@ -177,10 +162,8 @@ public class RLTable<T extends Record> {
         Record record = storage.get(key);
         newRec._setRecordKey(key);
         if ( record != null ) {
-            record.setClazzInfo(getClazzInfo(record));
-            newRec.setClazzInfo(getClazzInfo(newRec));
             RecordChange recordChange = newRec.computeDiff(record, true);
-            update(recordChange, false);
+            update(recordChange,false);
         } else {
             storage.put(key, newRec);
             broadCastAdd(newRec, originator);
@@ -202,11 +185,7 @@ public class RLTable<T extends Record> {
         return record;
     }
 
-    private FSTClazzInfo getClazzInfo(Record record) {
-        return getRealLive().getConf().getClazzInfo(record.getClass());
-    }
-
-    public void update(RecordChange<String,T> change, boolean addIfNotPresent ) {
+    public void update(RecordChange<String, T> change, boolean addIfNotPresent) {
         if (isShutDown)
             return;
         T t = get(change.getId());
@@ -223,20 +202,6 @@ public class RLTable<T extends Record> {
         }
     }
 
-    public boolean updateCAS(RecordChange<String, T> change, Predicate<T> condition) {
-        if (isShutDown)
-            return false;
-        T t = get(change.getId());
-        if ( t == null ) {
-            return false;
-        }
-        boolean success = condition.test(t);
-        if ( success ) {
-            update(change,false);
-        }
-        return true;
-    }
-
     public void remove(String key, int originator) {
         if (isShutDown)
             return;
@@ -245,23 +210,8 @@ public class RLTable<T extends Record> {
             broadCastRemove(record,originator);
     }
 
-//    @AsCallback
-//    public void reportStats() {
-//        if (isShutDown)
-//            return;
-//        final RLTable st = getRealLive().getTable("SysTable");
-//        if (st!=null) {
-//            SysTable sysTable = (SysTable) st.createForUpdate(tableId, true);
-//            sysTable.setNumElems(storage.size());
-//            sysTable.setSizeMB(storage.getSizeMB());
-//            sysTable.setFreeMB(storage.getFreeMB());
-//            sysTable.apply(0);
-//            delayed(3000, () -> reportStats());
-//        }
-//    }
-
     //
-    // mutation
+    // mutation with broadcast generation
     //
     //////////////////////////////////////////////////////////////////////
 
@@ -302,7 +252,7 @@ public class RLTable<T extends Record> {
         while( vals.hasNext() ) {
             try {
                 T t = (T) vals.next();
-                t._setTable(this);
+                t._setTable(getRecordContext());
                 if (doProcess == null || doProcess.test(t)) {
                     resultReceiver.complete(t, null);
                 }
@@ -341,7 +291,7 @@ public class RLTable<T extends Record> {
         T res = (T) storage.get(key);
         if ( res == null )
             return null;
-        res._setTable(this);
+        res._setTable(getRecordContext());
         return res;
     }
 

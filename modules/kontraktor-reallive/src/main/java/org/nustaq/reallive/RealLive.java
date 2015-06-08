@@ -1,8 +1,5 @@
 package org.nustaq.reallive;
 
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.reallive.impl.RLTable;
 import org.nustaq.reallive.sys.annotations.ColOrder;
 import org.nustaq.reallive.sys.annotations.Description;
 import org.nustaq.reallive.sys.annotations.DisplayName;
@@ -21,9 +18,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * Created by ruedi on 07/06/15.
@@ -147,12 +141,12 @@ public class RealLive {
         model.putTable(name,tableMeta);
 
         RLTable<SysTable> sysTables = getTable("SysTable");
-        SysTable sysTab = sysTables.createForUpdate("name", true);
+        SysTable sysTab = sysTables.createForAdd();
+        sysTab._setRecordKey(name);
         sysTab.setTableName(name);
         sysTab.setDescription(model.getTable(name).getDescription());
         sysTab.setMeta(tableMeta);
-        sysTab._setRecordKey(name);
-        sysTab.apply(0);
+        sysTab.computeUpdateBcast(true,0);
     }
 
     private void processFieldAnnotations(int i, ColumnMeta cm, Field field) {
@@ -214,7 +208,7 @@ public class RealLive {
 
     protected void pureCreateTable(String name, Class<? extends Record> clazz) {
         RLTable table = new RLTable();
-        table.init(name, this, clazz);
+        table.init(name, getDataDirectory(), clazz,getConf());
         tables.put( name, table );
     }
 
