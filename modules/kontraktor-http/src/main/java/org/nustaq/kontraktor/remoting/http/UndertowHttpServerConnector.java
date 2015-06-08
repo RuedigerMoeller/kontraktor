@@ -5,6 +5,7 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import io.undertow.util.Methods;
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorServerConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
@@ -52,7 +53,7 @@ import java.util.function.Function;
  */
 public class UndertowHttpServerConnector implements ActorServerConnector, HttpHandler {
 
-    public static int REQUEST_TIMEOUT = 5000; // max wait time for a returned promise to fulfil
+    public static int REQUEST_TIMEOUT = 1000; // max wait time for a returned promise to fulfil
     public static long SESSION_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(30); // 30 minutes
 
     Actor facade;
@@ -62,6 +63,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
     Function<ObjectSocket, ObjectSink> factory;
     long sessionTimeout = SESSION_TIMEOUT_MS;
     volatile boolean isClosed = false;
+    private ActorServer actorServer;
 
     public UndertowHttpServerConnector(Actor facade) {
         this.facade = facade;
@@ -351,7 +353,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             reply.run();
         } else {
             Actors.all((List) futures).timeoutIn(REQUEST_TIMEOUT).then( () -> {
-                reply.run();
+                actorServer.scanQueues().then( () -> reply.run() );
             });
             sinkchannel.resumeWrites();
         }
@@ -369,4 +371,11 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         return new Promise<>(null); // FIXME: should wait for real finish
     }
 
+    public void setActorServer(ActorServer actorServer) {
+        this.actorServer = actorServer;
+    }
+
+    public ActorServer getActorServer() {
+        return actorServer;
+    }
 }

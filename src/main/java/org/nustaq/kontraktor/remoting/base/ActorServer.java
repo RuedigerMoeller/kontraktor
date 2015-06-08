@@ -2,10 +2,12 @@ package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -15,9 +17,15 @@ public class ActorServer {
 
     protected ActorServerConnector connector;
     protected Actor facade;
+    AtomicInteger pollerCount = new AtomicInteger(0);
     protected ThreadLocal<RemoteRefPolling> poller = new ThreadLocal<RemoteRefPolling>() {
         @Override
         protected RemoteRefPolling initialValue() {
+            if ( pollerCount.get() > 0 ) {
+                System.out.println("FATAL: more than one poller started. used poller from wrong thread");
+                Thread.dumpStack();
+            }
+            pollerCount.incrementAndGet();
             return new RemoteRefPolling();
         }
     };
@@ -84,4 +92,13 @@ public class ActorServer {
         return facade;
     }
 
+    public IPromise scanQueues() {
+        Promise res = new Promise();
+        // force poller to scan open queues
+        Actor.current().execute( () -> {
+            poller.get().run();
+            res.complete();
+        });
+        return res;
+    }
 }

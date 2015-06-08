@@ -60,6 +60,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
             UndertowHttpServerConnector con = new UndertowHttpServerConnector(facade);
             con.setSessionTimeout(sessionTimeout);
             actorServer = new ActorServer( con, facade, coding == null ? new Coding(SerializerType.FSTSer) : coding );
+            con.setActorServer(actorServer);
             actorServer.start();
             serverPair.getFirst().addPrefixPath(urlPath, con);
         } catch (Exception e) {

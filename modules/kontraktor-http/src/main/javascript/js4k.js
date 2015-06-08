@@ -6,6 +6,7 @@ window.jsk = window.jsk || (function () {
   var futureMap = {}; // future id => promise
   var currentSocket = { socket: null }; // use indirection to refer to a socket in order to ease reconnects
   var sbIdCount = 1;
+  var batch = [];
 
   function jsk(){
   }
@@ -16,11 +17,35 @@ window.jsk = window.jsk || (function () {
   // fst-Json Helpers
 
   /**
-   * create wrapper object to make given list a valid fst-json Java Object array or Collection for sending
+   * create wrapper object to make given list a valid fst-json Java array
    */
-  jsk.prototype.buildJList = function( list ) {
+  jsk.prototype.buildJArray = function( type, list ) {
     list.splice( 0, 0, list.length ); // insert number of elements at 0
-    return { styp: "array", seq: list };
+    return { styp: type, seq: list };
+  };
+
+  /**
+   *
+   * build java list style collection
+   * Does not work for java Map's
+   *
+   * @param type - 'list' for ArrayList, 'set' for HashSet, class name for subclassed
+   * @param list
+   */
+  jsk.prototype.buildJColl = function( type, list ) {
+    list.splice( 0, 0, list.length ); // insert number of elements at 0
+    return { typ: type, obj: list };
+  };
+
+  /**
+   * builds a java hashmap from array like '[ key, val, key, val ]'
+   *
+   * @param type - "map" or class name if subclassed map is used
+   * @param list
+   */
+  jsk.prototype.buildJMap = function( type, list ) {
+    list.splice( 0, 0, list.length/2 ); // insert number of elements at 0
+    return { typ: type, obj: list };
   };
 
   /**
@@ -207,7 +232,7 @@ window.jsk = window.jsk || (function () {
   _jsk.KontrActor.prototype.buildCallList = function( list, seqNo ) {
     var l = list.slice();
     l.push(seqNo);
-    return _jsk.buildJList(l);
+    return _jsk.buildJArray("array",l);
   };
 
   /**
@@ -218,7 +243,7 @@ window.jsk = window.jsk || (function () {
    * @returns {{typ, obj}|*}
    */
   _jsk.KontrActor.prototype.buildCall = function( callbackId, receiverKey, methodName, args ) {
-    return _jsk.buildJObject( "call", { futureKey: callbackId, queue: 0, method: methodName, receiverKey: receiverKey, args: _jsk.buildJList(args) } );
+    return _jsk.buildJObject( "call", { futureKey: callbackId, queue: 0, method: methodName, receiverKey: receiverKey, args: _jsk.buildJArray("array",args) } );
   };
 
   _jsk.KontrActor.prototype.buildCallback = function( callbackId ) {
@@ -238,7 +263,19 @@ window.jsk = window.jsk || (function () {
     }
   };
 
-  /**
+  _jsk.KontrActor.prototype.sendBatched = function(msg) {
+    batch.push(msg);
+    var socket = this.socketHolder.socket;
+    var othis = this;
+    socket.triggerNextSend(function () {
+      //console.log("send batched \n"+JSON.stringify(batch,null,2));
+      var data = JSON.stringify(othis.buildCallList(batch, socket.lpSeqNo));
+      batch = [];
+      socket.send(data);
+    });
+  };
+
+    /**
    * call an actor method returning a promise.
    *
    * "public IPromise myMethod( arg0, arg1, .. );"
@@ -255,7 +292,7 @@ window.jsk = window.jsk || (function () {
     var cb = new _jsk.Promise();
     futureMap[futID] = cb;
     var msg = this.buildCall( futID, this.id, methodName, argList );
-    this.socketHolder.socket.send(JSON.stringify(this.buildCallList([msg],this.socketHolder.socket.lpSeqNo)));
+    this.sendBatched.call(this,msg);
     return cb;
   };
 
@@ -272,7 +309,7 @@ window.jsk = window.jsk || (function () {
       argList.push(arguments[i]);
     this.mapCBObjects(argList);
     var msg = this.buildCall( 0, this.id, methodName, argList );
-    this.socketHolder.socket.send(JSON.stringify(this.buildCallList([msg],this.socketHolder.socket.lpSeqNo)));
+    this.sendBatched.call(this,msg);
     return this;
   };
 
@@ -339,6 +376,14 @@ window.jsk = window.jsk || (function () {
 
     self.close = function( code, reaseon ) {
       self.socket.close(code,reaseon);
+    };
+
+    /**
+     * calls back if ready to send. can be used for batching
+     * @param fun
+     */
+    self.triggerNextSend = function( fun ) {
+      fun.apply(this,[]);
     };
 
     self.send = function( data ) {
@@ -429,6 +474,7 @@ window.jsk = window.jsk || (function () {
     self.doStop = false;
     self.onmessageHandler = null;
     self.lpSeqNo = 0;
+    self.batchUnderway = false;
 
     function fireOpen() {
       self.onopenHandler.apply(self, [{event: "opened", session: self.sessionId}]);
@@ -452,7 +498,7 @@ window.jsk = window.jsk || (function () {
       if ( self.doStop || ! self.doLongPoll )
         return;
       if ( ! self.isConnected ) {
-        setTimeout(self.longPoll,2000);
+        setTimeout(self.longPoll,1000);
       } else {
         var reqData = '{"styp":"array","seq":[1,'+self.lpSeqNo+']}';
         var request = new XMLHttpRequest();
@@ -498,12 +544,34 @@ window.jsk = window.jsk || (function () {
         self.oncloseHandler.apply(self,["closed by application"]);
     };
 
+
+    self.sendFun = null;
+
+    /**
+     * calls back if ready to send. can be used for batching
+     * @param fun
+     */
+    self.triggerNextSend = function( fun ) {
+      if ( self.batchUnderway )
+        self.sendFun = fun;
+      else {
+        fun.apply(this,[]);
+      }
+    };
+
     self.send = function( data ) {
+      self.batchUnderway = true;
       var request = new XMLHttpRequest();
       request.onload = function () {
+        self.batchUnderway = false;
+        if ( self.sendFun ) {
+          var tmp = self.sendFun;
+          self.sendFun = null;
+          tmp.apply(self,[]);
+        }
         if ( request.status !== 200 ) {
           self.lastError = request.statusText;
-          fireError();
+          fireError(); // fixme: should retry batch
           return;
         }
         var resp = request.responseText; //JSON.parse(request.responseText);

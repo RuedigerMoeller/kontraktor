@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.ruedigermoeller</groupId>
-    <artifactId>http-ws-javascript</artifactId>
+    <artifactId>spa-kickstart-knockout</artifactId>
     <version>1.0-SNAPSHOT</version>
 
 <build>

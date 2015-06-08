@@ -1,5 +1,9 @@
-package org.nustaq.kontraktor;
+package org.nustaq.kontraktor.examples;
 
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 
