@@ -3,6 +3,7 @@ package sample.httpjs;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.http.HttpPublisher;
+import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,14 +24,14 @@ public class KOHttpAppMain {
         File root = new File("./web");
 
         if ( ! new File(root,"index.html").exists() ) {
-            System.out.println("Please run with working dir: '[..]/http-ws-javascript");
+            System.out.println("Please run with working dir: '[..]/spa-knockout");
             System.exit(-1);
         }
 
         // create server actor
-        KOHttpApp KOHttpApp = AsActor(KOHttpApp.class);
+        KOHttpApp app = AsActor(KOHttpApp.class);
 
-        HttpPublisher pub = new HttpPublisher(KOHttpApp, "localhost", "/api", 8080 )
+        HttpPublisher pub = new HttpPublisher(app, "localhost", "/api", 8080 )
             .serType(SerializerType.JsonNoRef)
             .setSessionTimeout(30_000);
 
@@ -38,11 +39,12 @@ public class KOHttpAppMain {
         File jsroot = new File(root.getCanonicalPath() + "/../../../modules/kontraktor-http/src/main/javascript/").getCanonicalFile();
         Http4K.get()
             .publishFileSystem(pub, "/", root)
-            .publishFileSystem(pub, "/jsk", jsroot);
+            .publishFileSystem(pub, "/js4k", jsroot);
 
         // publish as long poll @ localhost:8080/api
         pub.publish();
-        // and as websocket @ localhost:8080/ws
+
+        // publish actor also as websocket @ localhost:8080/ws
         pub.toWS().urlPath("/ws").publish();
 
     }
