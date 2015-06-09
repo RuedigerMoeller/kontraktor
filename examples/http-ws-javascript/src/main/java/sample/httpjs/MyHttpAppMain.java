@@ -27,24 +27,23 @@ public class MyHttpAppMain {
             System.exit(-1);
         }
 
+        // link index.html and js4k.js dir to avoid copying stuff around the project
+        File jsroot = new File(root.getCanonicalPath() + "/../../../modules/kontraktor-http/src/main/javascript/js4k").getCanonicalFile();
+
         // create server actor
         MyHttpApp myHttpApp = AsActor(MyHttpApp.class);
 
-        HttpPublisher pub = new HttpPublisher( myHttpApp, "localhost", "/api", 8080 )
-            .serType(SerializerType.JsonNoRef)
-            .setSessionTimeout(30_000);
-
-        // link index.html and js4k.js dir to avoid copying stuff around the project
-        File jsroot = new File(root.getCanonicalPath() + "/../../../modules/kontraktor-http/src/main/javascript/").getCanonicalFile();
-        Http4K.get()
-            .publishFileSystem(pub, "/", root)
-            .publishFileSystem(pub, "/jsk", jsroot);
-
-        // publish as long poll @ localhost:8080/api
-        pub.publish();
-        // and as websocket @ localhost:8080/ws
-        pub.toWS().urlPath("/ws").publish();
-
+        Http4K.Build("localhost", 8080)
+            .fileRoot("/", root)
+            .fileRoot("/jsk", jsroot)
+            .httpAPI("/api", myHttpApp)
+                .serType(SerializerType.JsonNoRef)
+                .setSessionTimeout(30_000)
+                .build()
+            .websocket("/ws", myHttpApp)
+                .serType(SerializerType.JsonNoRef)
+                .build()
+            .build();
     }
 
 }

@@ -9,6 +9,7 @@ import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.http.builder.CFGFourK;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
@@ -21,6 +22,8 @@ import java.util.concurrent.TimeUnit;
  * Builder helper to publish an Actor via Http
  */
 public class HttpPublisher implements ActorPublisher, Cloneable {
+
+    CFGFourK cfg; // for builder
 
     String hostName;
     String urlPath;
@@ -36,6 +39,18 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
         this.urlPath = urlPath;
         this.port = port;
         this.facade = actor;
+    }
+
+    public HttpPublisher(CFGFourK cfgFourK, Actor facade, String hostName, String urlPath, int port) {
+        this(facade,hostName,urlPath,port);
+        this.cfg = cfgFourK;
+    }
+
+    /**
+     * usable in context of Http4k builder
+     */
+    public CFGFourK build() {
+        return cfg;
     }
 
     /**

@@ -7,11 +7,14 @@ import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.http.builder.CFGFourK;
 
 /**
  * Created by ruedi on 04/06/15.
  */
 public class WebSocketPublisher implements ActorPublisher, Cloneable {
+
+    CFGFourK cfg; // used in cfgbuilder
 
     String hostName;
     String urlPath;
@@ -26,6 +29,15 @@ public class WebSocketPublisher implements ActorPublisher, Cloneable {
         this.urlPath = path;
         this.port = port;
         this.facade = facade;
+    }
+
+    public WebSocketPublisher(CFGFourK cfgFourK, Actor facade, String hostName, String urlPath, int port) {
+        this(facade,hostName,urlPath,port);
+        this.cfg = cfgFourK;
+    }
+
+    public CFGFourK build() {
+        return cfg;
     }
 
     @Override

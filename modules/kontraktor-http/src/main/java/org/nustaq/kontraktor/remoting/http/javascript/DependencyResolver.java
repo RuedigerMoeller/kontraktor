@@ -8,6 +8,10 @@ import java.util.function.Function;
 
 /**
  * Created by ruedi on 06.04.2015.
+ *
+ * Algorithm: starting from the root component (searched via resource path), resolve all dependencies
+ * resulting in a list of (ordered according to dependencies) directories.
+ * The resulting list is then searched in order when doing lookup/merge
  */
 public class DependencyResolver {
 
@@ -156,7 +160,7 @@ public class DependencyResolver {
         alreadyCheckedDependencies.add(comp);
         for (int i = 0; i < resourcePath.length; i++) {
             File file = resourcePath[i];
-            File newOne = new File(file,comp);
+            File newOne = new File(file,comp).getCanonicalFile();
             if ( li.contains(newOne) )
                 continue;
             if ( newOne.exists() && newOne.isDirectory() ) {

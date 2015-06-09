@@ -3,6 +3,7 @@ package sample.httpjs;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.http.HttpPublisher;
+import org.nustaq.kontraktor.remoting.http.javascript.DynamicResourceManager;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 
 import java.io.File;
@@ -31,22 +32,26 @@ public class KOHttpAppMain {
         // create server actor
         KOHttpApp app = AsActor(KOHttpApp.class);
 
-        HttpPublisher pub = new HttpPublisher(app, "localhost", "/api", 8080 )
-            .serType(SerializerType.JsonNoRef)
-            .setSessionTimeout(30_000);
+        // link index.html and js4k.js dir to avoid doubling stuff in the project
+        String js4k = "../../modules/kontraktor-http/src/main/javascript";
+        File jsroot = new File( root.getCanonicalPath() + "/../" + js4k + "/js4k/").getCanonicalFile();
 
-        // link index.html and js4k.js dir to avoid copying stuff around the project
-        File jsroot = new File(root.getCanonicalPath() + "/../../../modules/kontraktor-http/src/main/javascript/").getCanonicalFile();
-        Http4K.get()
-            .publishFileSystem(pub, "/", root)
-            .publishFileSystem(pub, "/js4k", jsroot);
-
-        // publish as long poll @ localhost:8080/api
-        pub.publish();
-
-        // publish actor also as websocket @ localhost:8080/ws
-        pub.toWS().urlPath("/ws").publish();
-
+        Http4K.Build("localhost",8080)
+            .fileRoot( "/", root)
+            .fileRoot( "js4k", jsroot)
+            .httpAPI(  "/api", app)
+                .serType(SerializerType.JsonNoRef)
+                .setSessionTimeout(30_000)
+                .build()
+            .websocket("ws", app )
+                .serType(SerializerType.JsonNoRef)
+                .build()
+            .resourcePath( "/dyn" )
+                .rootComponent("app")
+                .resourcePath( "./web", js4k, "./web/lib" )
+                .devMode(true)
+                .build()
+            .build();
     }
 
 }
