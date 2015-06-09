@@ -4,6 +4,7 @@ import org.nustaq.kson.Kson;
 
 import java.io.*;
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -16,27 +17,18 @@ import java.util.function.Function;
 public class DependencyResolver {
 
     public static boolean DEBUG = true;
-    File resourcePath[];
-    File lookupDirs[];
-    String baseDir = ".";
-    String rootComponent; // e.g. app (~subapplication)
+    protected String mergedPrefix;
+    protected String lookupPrefix;
+    protected File resourcePath[];
+    protected File lookupDirs[];
+    protected String baseDir = ".";
+    protected String rootComponent; // e.g. app (~subapplication)
 
-    public DependencyResolver() {
-    }
-
-    public DependencyResolver( String root, String[] resourcePath ) {
+    public DependencyResolver(String lookupPrefix, String mergedPrefix, String rootComponent, String[] resourcePath) {
+        this.lookupPrefix = lookupPrefix;
+        this.mergedPrefix = mergedPrefix;
         setResourcePath(resourcePath);
-        setRootComponent(root);
-    }
-
-    public DependencyResolver( String baseDir, String root, String[] resourcePath ) {
-        setBaseDir(baseDir);
-        setResourcePath(resourcePath);
-        setRootComponent(root);
-    }
-
-    public DependencyResolver(String appDir) {
-        setBaseDir(appDir);
+        setRootComponent(rootComponent);
     }
 
     public String getBaseDir() {
@@ -87,7 +79,7 @@ public class DependencyResolver {
      * @param filter
      * @return
      */
-    public List<String> findFilesInDirs( Function<String,Boolean> filter ) {
+    public List<String> findFilesInDirs( BiFunction<String,String,Boolean> filter ) {
         HashSet<String> done = new HashSet<>();
         ArrayList<String> result = new ArrayList<>();
         for (int i = 0; i < lookupDirs.length; i++) {
@@ -95,7 +87,7 @@ public class DependencyResolver {
             String[] list = lookupDir.list();
             for (int j = 0; j < list.length; j++) {
                 String file = list[j];
-                if ( !done.contains(file) && filter.apply(file) ) {
+                if ( !done.contains(file) && filter.apply(lookupDir.getName(),file) ) {
                     result.add(lookupDir.getName()+"/"+file);
                 }
                 done.add(file);
@@ -199,9 +191,9 @@ public class DependencyResolver {
             if ( f.endsWith(".js") ) {
                 if (DEBUG)
                     System.out.println("   " + f + " size:" + f.length());
-                ps.println("document.write(\"<script src='lookup/"+f+"'></script>\")");
+                ps.println("document.write(\"<script src='" + lookupPrefix + f+"'></script>\")");
                 if (DEBUG)
-                    System.out.println("document.write(\"<script src='lookup/" + f + "'></script>\")");
+                    System.out.println("document.write(\"<script src='" + lookupPrefix + f + "'></script>\")");
             }
         }
         ps.flush();
@@ -306,19 +298,4 @@ public class DependencyResolver {
         return bout.toByteArray();
     }
 
-    public static void main(String a[]) {
-        DependencyResolver dep = new DependencyResolver("/home/ruedi/projects/reax2/src/main/webroot");
-        dep.setResourcePath(
-            "4k",
-            "tmp",
-            "../../weblib",
-            "../../weblib/nustaq",
-            "../../weblib/knockout"
-        );
-        dep.setRootComponent("app");
-        System.out.println(Arrays.toString(dep.lookupDirs));
-
-        dep.findFilesInDirs( fnme -> fnme.endsWith(".js") ).forEach( res -> { System.out.println(res+" => "+dep.locateResource(res).getAbsolutePath()); } );
-        dep.findFilesInDirs( fnme -> fnme.endsWith(".tpl.html") ).forEach( res -> System.out.println(res+" => "+dep.locateResource(res).getAbsolutePath()) );
-    }
 }

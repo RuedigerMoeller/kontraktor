@@ -1,1 +1,1 @@
-{ depends: [ js4k punches ] }
+{ depends: [ js4k punches skeleton ] }

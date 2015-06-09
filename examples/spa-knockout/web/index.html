@@ -1,15 +1,72 @@
 <!DOCTYPE html>
-<html>
-<head lang="en">
-    <meta charset="UTF-8">
-    <title>JS Test</title>
+<html lang="en">
+<head>
+
+  <!-- Basic Page Needs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta charset="utf-8">
+  <title>Your page title here :)</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!-- Mobile Specific Metas
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- FONT
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+
+  <!-- CSS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="stylesheet" href="dyn/lookup/normalize.css">
+  <link rel="stylesheet" href="dyn/lookup/skeleton.css">
+
+  <!-- Favicon
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="icon" type="image/png" href="images/favicon.png">
+
 </head>
 <body>
-<p>
 
-<h1>Kontraktor Bootstrap / Knockout Sample</h1>
+<br>
+<div class="container">
+  <div class="row">
+    <div class="six columns">
+      <label for="name">Your email</label>
+      <input class="u-full-width" type="text" placeholder="username" id="name">
+    </div>
+    <div class="six columns">
+      <label for="pwd">Password</label>
+      <input class="u-full-width" type="password" placeholder="password" id="pwd">
+    </div>
+  </div>
+  <div class="row">
+    <div class="one column"></div>
+    <div class="ten columns">
+      Welcome to Kontraktor's 4k sample Single Page Application (SPA).
+      <br>
+    </div>
+    <div class="one column"></div>
+  </div>
+  <div class="row">
+    <div class="nine columns u-full-width">
+    &nbsp;
+    </div>
+    <div class="one columns">
+      <button class="button-primary">Submit</button>
+    </div>
+    <div class="one column u-full-width">
+    &nbsp;
+    </div>
+  </div>
 
-<script src="jsk/js4k.js"></script>
+</div>
+
+<!-- End Document
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+
+<script src="dyn/js"></script>
 
 <script>
 var server = null;
@@ -29,6 +86,7 @@ var errCB = function( err ) { console.error(err); };
           console.log(err);
         else {
           // login done
+          console.log("login done");
         }
     })
 });
