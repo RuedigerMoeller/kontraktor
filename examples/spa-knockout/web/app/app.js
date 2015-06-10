@@ -1,51 +1,93 @@
-
 function ViewModel() {
 
-    var self = this;
-    var errCB = function( err ) { console.error(err); };
+  var self = this;
 
-    self.server = null;
-    self.debug ="POK";
-    self.user = ko.observable("");
-    self.pwd = ko.observable("");
-    self.text= ko.observable("Welcome to Kontraktor/4k 's sample Single Page Application (SPA).");
-    self.loggedin = ko.observable(false);
+  self.server = null;
+  self.debug = "POK";
+  self.user = ko.observable("");
+  self.pwd = ko.observable("");
+  self.text = ko.observable("Welcome to Kontraktor/4k 's sample Single Page Application (SPA).");
+  self.loggedin = ko.observable(false);
+  self.currentView = ko.observable("main");
 
+  self.message = ko.observable("");
+  self.messages = ko.observableArray([]);
 
-    self.login = function() {
+  self.sendMsg = function () {
+    var m = self.message();
+    if (m.length == 0)
+      return;
+    if (m.length > 1024) {
+      m = m.substr(0, 1024) + " [ ... cut, too long ...]";
+    }
+    self.session.tell("sendMessage", m);
+    self.message("");
+  };
 
-        if ( self.user().trim().length == 0 ) {
-            self.text( "<font color='red'>Please enter at least a user name</font>" );
-            return;
-        }
+  self.onMsgEnter = function (keyEvent) {
+    keyEvent.keyCode === 13 && self.sendMsg();
+    return true;
+  };
 
-        //    jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets
-        var location = window.location+"/api";
-        location = location.replace("//api","/api");
-        jsk.connect( location,"HTLP",errCB) // use this for long poll
-            .then( function( app, error ) {
-                if ( ! app ) {
-                    self.text("<font color='red'>connection failure</font>");
-                    console.error(error);
-                }
-                server = app;
+  self.login = function () {
 
-                server.ask("login", self.user(), self.pwd() )
-                    .then( function(mySession,err) {
-                        if ( err ) {
-                            self.text("<font color='red'>login failure</font>");
-                            console.log(err);
-                        }
-                        else {
-                            self.loggedin(true);
-                            // login done
-                            console.log("login done");
-                        }
-                    })
-            });
+    if (self.user().trim().length == 0) {
+      self.text("<font color='red'>Please choose a nick !</font>");
+      return;
+    }
+
+    var errCB = function (err) {
+      self.text(err);
     };
+
+    var location = window.location.protocol + "//" + window.location.host + "/api";
+    location = location.replace("//api", "/api");
+    //    jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets
+    jsk.connect(location, "HTLP", errCB) // use this for long poll
+      .then(function (app, error) {
+        if (!app) {
+          self.text("<font color='red'>connection failure</font>");
+          console.error(error);
+        }
+        self.server = app;
+
+        self.server.ask("login", self.user(), self.pwd())
+          .then(function (mySession, err) {
+            if (err) {
+              self.text("<font color='red'>login failure</font>");
+              console.log(err);
+            }
+            else {
+              self.session = mySession;
+              self.loggedin(true);
+              window.location.hash = "main"; // show main template
+              // login done, subscribe with delay to give time for window location to switch views
+              setTimeout(function () {
+                self.session.tell("subscribeChat", function (res, err) {
+                  self.messages.splice(0, 0, res);
+                });
+              }, 1000);
+              console.log("login done");
+            }
+          });
+
+      });
+  };
 }
 
 var model = new ViewModel();
 ko.punches.enableAll();
 ko.applyBindings(model);
+
+$(window).on('hashchange', function () {
+  console.log("change site:" + window.location.hash.substring(1));
+  model.currentView(window.location.hash.substring(1)); // bind url hash to template name
+});
+
+// called after a view got displayed
+function initView() {
+  if (window.location.hash == '#about') {
+    $('.tlt').textillate({loop: true, initialDelay: 0, minDisplayTime: 1000});
+  }
+}
+

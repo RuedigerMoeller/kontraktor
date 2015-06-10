@@ -1,0 +1,27 @@
+<template id="main">
+  <div class="container">
+    <div class="row">
+      <div class="eleven columns">
+        <p>Login successful for user <b>{{user}}</b></p>
+      </div>
+      <div class="one column">
+         <a class="mylink u-pull-right" href="#about">About</a>
+      </div>
+    </div>
+    <div class="row">
+      <div class="twelve columns">
+      <hr>
+      </div>
+    </div>
+    <div class="row">
+      <div class="twelve columns u-full-width">
+        <input type="text" style="width: 80%;" data-bind="value: message" onkeyup="model.onMsgEnter(event);">
+        <button class="right-arrow-button" data-bind="click: sendMsg">Send</button>
+      </div>
+    </div>
+    <div data-bind="foreach: messages">
+      <div class="row"><b>{{$data.msgFrom}}:</b></div>
+      <div class="row"><i>{{$data.msg}}</i></div>
+    </div>
+  </div>
+</template>

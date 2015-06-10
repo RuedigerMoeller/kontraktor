@@ -21,27 +21,41 @@
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <link rel="stylesheet" href="dyn/lookup/normalize.css">
   <link rel="stylesheet" href="dyn/lookup/skeleton.css">
+  <link rel="stylesheet" href="dyn/lookup/animate.css">
 
   <!-- Favicon
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <link rel="icon" type="image/png" href="images/favicon.png">
 
+<style>
+  .mylink {
+    font-style: normal;
+    font-weight: bold;
+    border: 1px solid;
+    padding: 6px;
+    text-decoration: none;
+  }
+</style>
+
 </head>
 <body>
 
-<p databind="text: debug"></p>
+<!-- import all templates from resourcepath -->
+<script src="dyn/merged/.auto.html"></script>
 
 <br>
 {{#ifnot loggedin}}
 <div class="container">
   <div class="row">
-    <div class="six columns">
-      <label for="name">Your Name</label>
-      <input class="u-full-width" type="text" placeholder="username" id="name" data-bind="value: user">
+    <div class="twelve columns">
+      <label for="name">Choose a nick ..</label>
+      <input type="text" placeholder="nickname" id="name" data-bind="value: user">
+      <button class="button-primary" data-bind="click: login">Connect</button>
     </div>
-    <div class="six columns">
-      <label for="pwd">Password (is dummy)</label>
-      <input class="u-full-width" type="password" placeholder="password" id="pwd" data-bind="value: pwd">
+  </div>
+  <div class="row">
+    <div class="twelve columns">
+    <hr>
     </div>
   </div>
   <div class="row">
@@ -50,35 +64,12 @@
       {{{ text }}} <br>
       <br>
     </div>
-    <div class="one column"></div>
-  </div>
-  <div class="row">
-    <div class="nine columns u-full-width">
-    &nbsp;
-    </div>
-    <div class="one columns">
-      <button class="button-primary" data-bind="click: login">Connect</button>
-    </div>
-    <div class="one column u-full-width">
-    &nbsp;
-    </div>
   </div>
 </div>
 {{/ifnot}}
 
 {{#if loggedin}}
-<div class="container">
-  <div class="row">
-    <div class="twelve columns">
-      <p>Login successful, your user <b>{{user}}</b></p>
-    </div>
-  </div>
-  <div class="row">
-    <div class="twelve columns u-full-width">
-      &nbsp;
-    </div>
-  </div>
-</div>
+<div data-bind="template: { name: currentView(), afterRender: initView }"></div>
 {{/if}}
 <!-- End Document
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->

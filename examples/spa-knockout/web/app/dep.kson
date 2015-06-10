@@ -1,1 +1,1 @@
-{ depends: [ js4k punches skeleton ] }
+{ depends: [ js4k punches skeleton charts textilate ] }

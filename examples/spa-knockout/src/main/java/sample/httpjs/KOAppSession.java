@@ -1,6 +1,7 @@
 package sample.httpjs;
 
 import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
 
 import java.util.List;
@@ -14,9 +15,19 @@ import java.util.List;
 public class KOAppSession extends Actor<KOAppSession> implements RemotedActor {
 
     KOHttpApp app;
+    String user;
 
-    public void init(KOHttpApp app, List<String> todo) {
+    public void init(KOHttpApp app, List<String> todo, String user) {
         this.app = app;
+        this.user = user;
+    }
+
+    public void sendMessage( String text ) {
+        app.broadCastChatMsg(user,text); // note this is async actor msg, therefore threadsafe
+    }
+
+    public void subscribeChat( Callback<KOPushEvent> ev ) {
+        app.subscribeChat(self(),ev);
     }
 
     @Override
