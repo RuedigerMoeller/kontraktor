@@ -29,22 +29,25 @@
 </head>
 <body>
 
+<p databind="text: debug"></p>
+
 <br>
+{{#ifnot loggedin}}
 <div class="container">
   <div class="row">
     <div class="six columns">
-      <label for="name">Your email</label>
-      <input class="u-full-width" type="text" placeholder="username" id="name">
+      <label for="name">Your Name</label>
+      <input class="u-full-width" type="text" placeholder="username" id="name" data-bind="value: user">
     </div>
     <div class="six columns">
-      <label for="pwd">Password</label>
-      <input class="u-full-width" type="password" placeholder="password" id="pwd">
+      <label for="pwd">Password (is dummy)</label>
+      <input class="u-full-width" type="password" placeholder="password" id="pwd" data-bind="value: pwd">
     </div>
   </div>
   <div class="row">
     <div class="one column"></div>
     <div class="ten columns">
-      Welcome to Kontraktor's 4k sample Single Page Application (SPA).
+      {{{ text }}} <br>
       <br>
     </div>
     <div class="one column"></div>
@@ -54,42 +57,34 @@
     &nbsp;
     </div>
     <div class="one columns">
-      <button class="button-primary">Submit</button>
+      <button class="button-primary" data-bind="click: login">Connect</button>
     </div>
     <div class="one column u-full-width">
     &nbsp;
     </div>
   </div>
-
 </div>
+{{/ifnot}}
 
+{{#if loggedin}}
+<div class="container">
+  <div class="row">
+    <div class="twelve columns">
+      <p>Login successful, your user <b>{{user}}</b></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="twelve columns u-full-width">
+      &nbsp;
+    </div>
+  </div>
+</div>
+{{/if}}
 <!-- End Document
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
 
 <script src="dyn/js"></script>
 
-<script>
-var server = null;
-var errCB = function( err ) { console.error(err); };
-//    jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets
-  jsk.connect("http://localhost:8080/api","HTLP",errCB) // use this for long poll
-  .then( function( app, error ) {
-    if ( ! app ) {
-      console.log("connection failure");
-      console.error(error);
-    }
-    server = app;
 
-    server.ask("login", "clientuser", "clientpwd")
-      .then( function(mySession,err) {
-        if ( err )
-          console.log(err);
-        else {
-          // login done
-          console.log("login done");
-        }
-    })
-});
-</script>
 </body>
 </html>
