@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * adapts kontraktors js + html snippets dependency management to undertow
@@ -27,6 +28,11 @@ public class DynamicResourceManager extends FileResourceManager {
     String prefix = "";
     String lookupPrefix;
     String mergedPrefix;
+    /**
+     * in case not run in devmode, store lookup results in memory,
+     * so file crawling is done once after server restart.
+     */
+    ConcurrentHashMap<String,Resource> lookupCache = new ConcurrentHashMap<>();
 
     public DynamicResourceManager(boolean devMode, String prefix, String rootComponent, String ... resourcePath) {
         super(new File("."), 100);
@@ -59,6 +65,12 @@ public class DynamicResourceManager extends FileResourceManager {
         if (p.startsWith("/")) {
             p = p.substring(1);
         }
+        String orgP = p;
+        if ( ! isDevMode() ) {
+            if (lookupCache.get(orgP) != null) {
+                return lookupCache.get(orgP);
+            }
+        }
         if ( p.startsWith(lookupPrefix) ) {
             p = p.substring(lookupPrefix.length());
             if ( p.startsWith("+") ) {
@@ -73,11 +85,11 @@ public class DynamicResourceManager extends FileResourceManager {
                     return false;
                 });
                 byte bytes[] = dependencyResolver.mergeBinary(filesInDirs); // trouble with textmerging
-                return new MyResource(p0, p, bytes);
+                return mightCache(orgP,new MyResource(p0, p, bytes,"text/html")); //fixme mime
             } else {
                 File file = dependencyResolver.locateResource(p);
                 if ( file != null ) {
-                    return new FileResource(file, this, p0);
+                    return mightCache(orgP, new FileResource(file, this, p0));
                 } else {
                     return null;
                 }
@@ -92,7 +104,7 @@ public class DynamicResourceManager extends FileResourceManager {
             } else {
                 bytes = dependencyResolver.mergeTextSnippets(filesInDirs,"","");
             }
-            return new MyResource(p0, finalP, bytes);
+            return mightCache(orgP, new MyResource(p0, finalP, bytes,"text/html"));//fixme mime
         } else if ( p.equals("js") || p.startsWith("+") ) { // expect simple ending like '.js' or +name+name+name
             List<String> filesInDirs;
             final String finalP = p;
@@ -115,17 +127,25 @@ public class DynamicResourceManager extends FileResourceManager {
                 bytes = dependencyResolver.createScriptTags(filesInDirs);
             else
                 bytes = dependencyResolver.mergeScripts(filesInDirs);
-            return new MyResource(p0, finalP, bytes);
+            return mightCache( orgP, new MyResource(p0, finalP, bytes, "text/javascript") );
         }
         return super.getResource(p0);
     }
 
-    private static class MyResource implements Resource {
-        private final String p0;
-        private final String finalP;
-        private final byte[] bytes;
+    private Resource mightCache(String key, Resource fileResource) {
+        if ( ! isDevMode() ) {
+            lookupCache.put(key,fileResource);
+        }
+        return fileResource;
+    }
 
-        public MyResource(String p0, String finalP, byte[] bytes) {
+    protected static class MyResource implements Resource {
+        protected String p0;
+        protected String finalP;
+        protected byte[] bytes;
+        protected String resType;
+
+        public MyResource(String p0, String finalP, byte[] bytes, String resType ) {
             this.p0 = p0;
             this.finalP = finalP;
             this.bytes = bytes;
@@ -168,12 +188,12 @@ public class DynamicResourceManager extends FileResourceManager {
 
         @Override
         public String getContentType(MimeMappings mimeMappings) {
-            return "text/html"; // fixme
+            return resType;
         }
 
         @Override
         public void serve(Sender sender, HttpServerExchange exchange, IoCallback completionCallback) {
-            exchange.startBlocking(); // rarely called (once per login) also served from in mem in production mode
+            exchange.startBlocking(); // rarely called (once per login) also served from mem in production mode
             try {
                 exchange.getOutputStream().write(bytes);
             } catch (IOException e) {

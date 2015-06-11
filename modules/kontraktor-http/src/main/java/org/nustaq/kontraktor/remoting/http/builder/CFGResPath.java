@@ -12,6 +12,7 @@ public class CFGResPath {
     String resourcePath[];
     String rootComponent = "app";
     boolean devMode = true;
+    Boolean compress;
 
     public CFGResPath(CFGFourK cfg4k, String urlPath) {
         this.cfg4k = cfg4k;
@@ -33,6 +34,11 @@ public class CFGResPath {
         return this;
     }
 
+    public CFGResPath compress(boolean doGZip) {
+        compress = doGZip;
+        return this;
+    }
+
     public CFGFourK build() {
         return cfg4k;
     }
@@ -51,5 +57,11 @@ public class CFGResPath {
 
     public String[] getResourcePath() {
         return resourcePath;
+    }
+
+    public boolean isCompress() {
+        if (compress == null)
+            return ! devMode;
+        return compress;
     }
 }

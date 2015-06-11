@@ -1,7 +1,9 @@
 package org.nustaq.kontraktor.remoting.http;
 
 import io.undertow.Undertow;
+import io.undertow.server.HttpHandler;
 import io.undertow.server.handlers.PathHandler;
+import io.undertow.server.handlers.encoding.EncodingHandler;
 import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.server.handlers.resource.ResourceHandler;
 import org.nustaq.kontraktor.IPromise;
@@ -106,9 +108,15 @@ public class Http4K {
         return this;
     }
 
-    public Http4K publishResourcePath( String hostName, String urlPath, int port, DynamicResourceManager man ) {
+    public Http4K publishResourcePath( String hostName, String urlPath, int port, DynamicResourceManager man, boolean compress ) {
         Pair<PathHandler, Undertow> server = getServer(port, hostName);
-        server.car().addPrefixPath( urlPath, new ResourceHandler(man));
+        ResourceHandler handler = new ResourceHandler(man);
+        if ( compress ) {
+            HttpHandler httpHandler = new EncodingHandler.Builder().build(new HashMap<>()).wrap(handler);
+            server.car().addPrefixPath( urlPath, httpHandler);
+        } else {
+            server.car().addPrefixPath( urlPath, handler);
+        }
         return this;
     }
 

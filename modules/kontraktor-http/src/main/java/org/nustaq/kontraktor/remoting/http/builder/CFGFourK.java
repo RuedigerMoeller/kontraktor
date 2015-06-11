@@ -88,7 +88,7 @@ public class CFGFourK {
             } else if (item instanceof CFGResPath) {
                 CFGResPath dr = (CFGResPath) item;
                 DynamicResourceManager drm = new DynamicResourceManager(dr.isDevMode(), dr.getUrlPath(), dr.getRootComponent(), dr.getResourcePath());
-                http4K.publishResourcePath(getHostName(), dr.getUrlPath(), getPort(), drm);
+                http4K.publishResourcePath(getHostName(), dr.getUrlPath(), getPort(), drm, dr.isCompress() );
             } else {
                 System.out.println("unexpected item " + item);
             }
