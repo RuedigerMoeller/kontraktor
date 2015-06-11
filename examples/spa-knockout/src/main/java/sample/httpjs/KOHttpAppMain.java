@@ -32,13 +32,8 @@ public class KOHttpAppMain {
         // create server actor
         KOHttpApp app = AsActor(KOHttpApp.class);
 
-        // link index.html and js4k.js dir to avoid doubling stuff in the project
-        String js4k = "../../modules/kontraktor-http/src/main/javascript";
-        File jsroot = new File( root.getCanonicalPath() + "/../" + js4k + "/js4k/").getCanonicalFile();
-
-        Http4K.Build("localhost",8080)
+        Http4K.Build("localhost", 8080)
             .fileRoot( "/", root)
-            .fileRoot( "js4k", jsroot)
             .httpAPI(  "/api", app)
                 .serType(SerializerType.JsonNoRef)
                 .setSessionTimeout(30_000)
@@ -48,7 +43,10 @@ public class KOHttpAppMain {
                 .build()
             .resourcePath( "/dyn" )
                 .rootComponent("app")
-                .resourcePath( "./web", js4k, "./web/lib" )
+                .resourcePath(
+                    "./web",
+                    "../../modules/kontraktor-http/src/main/javascript",
+                    "./web/lib")
                 .devMode(true)
                 .build()
             .build();

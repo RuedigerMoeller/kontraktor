@@ -2,6 +2,7 @@ package sample.httpjs;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
 
 import java.util.List;
@@ -17,9 +18,10 @@ public class KOAppSession extends Actor<KOAppSession> implements RemotedActor {
     KOHttpApp app;
     String user;
 
-    public void init(KOHttpApp app, List<String> todo, String user) {
+    public IPromise init(KOHttpApp app, List<String> todo, String user) {
         this.app = app;
         this.user = user;
+        return resolve();
     }
 
     public void sendMessage( String text ) {
@@ -27,7 +29,7 @@ public class KOAppSession extends Actor<KOAppSession> implements RemotedActor {
     }
 
     public void subscribeChat( Callback<KOPushEvent> ev ) {
-        app.subscribeChat(self(),ev);
+        app.subscribeChat(self(), ev);
     }
 
     @Override

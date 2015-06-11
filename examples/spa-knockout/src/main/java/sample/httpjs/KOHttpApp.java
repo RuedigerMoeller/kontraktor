@@ -16,7 +16,7 @@ import java.util.List;
  *
  * This class provides the stateless server API exposed to JS. By calling login,
  * the client can authenticate and instantiate a dedicated SessionActor instance
- * which then expose per-client api and server side state. (see ../../web/index.html)
+ * which then exposes a per-client api and server side state by creating a session actor for each client.
  *
  */
 public class KOHttpApp extends Actor<KOHttpApp> {
@@ -28,7 +28,7 @@ public class KOHttpApp extends Actor<KOHttpApp> {
     };
 
     HashMap<KOAppSession,Callback> chatSubscription = new HashMap<>();
-    List<KOPushEvent> lastEvents = new ArrayList<>();
+    List<KOPushEvent> history = new ArrayList<>();
 
     public IPromise<KOAppSession> login( String user, String pwd ) {
         Promise result = new Promise<>();
@@ -49,26 +49,34 @@ public class KOHttpApp extends Actor<KOHttpApp> {
     @Local
     public void subscribeChat( KOAppSession session, Callback<KOPushEvent> cb ) {
         chatSubscription.put(session,cb);
-        lastEvents.forEach( pushevent -> cb.stream(pushevent) );
+        history.forEach(pushevent -> cb.stream(pushevent));
+        cb.stream( new KOPushEvent().numSessions(clientThreads[0].getNumActors()) );
+        broadCastSessions();
     }
 
     @Local
     public void broadCastChatMsg( String from, String msg ) {
         KOPushEvent ev = new KOPushEvent().msg(msg).msgFrom(from);
-        lastEvents.add(0,ev);
-        while ( lastEvents.size() > 10 )
-            lastEvents.remove(10);
+        history.add(0, ev);
+        while ( history.size() > 10 )
+            history.remove(10);
+        chatSubscription.values().forEach( callback -> callback.stream(ev) );
+    }
+
+    void broadCastSessions() {
+        KOPushEvent ev = new KOPushEvent().numSessions(chatSubscription.size());
         chatSubscription.values().forEach( callback -> callback.stream(ev) );
     }
 
     public IPromise<Integer> getNumSessions() {
-        return resolve(clientThreads[0].getNumActors());
+        return resolve(chatSubscription.size());
     }
 
     @Local
     public void clientClosed(KOAppSession session) {
         System.out.println("client closed "+session+" chatSubscriptions:"+chatSubscription.size());
         chatSubscription.remove(session);
+        broadCastSessions();
     }
 
 }

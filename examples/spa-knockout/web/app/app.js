@@ -1,3 +1,19 @@
+function hilightSessions() {
+  var tim = document.getElementById("numSessions");
+  if ( tim ) {
+    var bright = 1.0;
+    // fadeout bgcolor with each event
+    var fun = function () {
+      tim.style.backgroundColor = "rgba(255,200,100," + bright + ")";
+      bright -= .03;
+      if (bright >= 0.0) {
+        setTimeout(fun,50);
+      }
+    };
+    fun.apply();
+  }
+}
+
 function ViewModel() {
 
   var self = this;
@@ -12,6 +28,8 @@ function ViewModel() {
 
   self.message = ko.observable("");
   self.messages = ko.observableArray([]);
+
+  self.numSessions = ko.observable("");
 
   self.sendMsg = function () {
     var m = self.message();
@@ -64,7 +82,12 @@ function ViewModel() {
               // login done, subscribe with delay to give time for window location to switch views
               setTimeout(function () {
                 self.session.tell("subscribeChat", function (res, err) {
-                  self.messages.splice(0, 0, res);
+                  if ( res.msgFrom )
+                    self.messages.splice(0, 0, res);
+                  else {
+                    self.numSessions(" "+res.numSessions+" ");
+                    hilightSessions();
+                  }
                 });
               }, 1000);
               console.log("login done");
