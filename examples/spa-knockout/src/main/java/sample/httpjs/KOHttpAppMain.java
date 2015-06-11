@@ -45,9 +45,10 @@ public class KOHttpAppMain {
                 .rootComponent("app")
                 .resourcePath(
                     "./web",
+                    "./web/components",
                     "../../modules/kontraktor-http/src/main/javascript",
                     "./web/lib")
-                .devMode(false)
+                .devMode(true)
                 .build()
             .build();
     }

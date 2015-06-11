@@ -31,6 +31,8 @@ function ViewModel() {
 
   self.numSessions = ko.observable("");
 
+  self.chartTrigger = ko.observable({ dataArray: [0], label: "start" });
+
   self.sendMsg = function () {
     var m = self.message();
     if (m.length == 0)
@@ -82,11 +84,19 @@ function ViewModel() {
               // login done, subscribe with delay to give time for window location to switch views
               setTimeout(function () {
                 self.session.tell("subscribeChat", function (res, err) {
-                  if ( res.msgFrom )
+                  if ( res.msgFrom ) {
                     self.messages.splice(0, 0, res);
+                  }
                   else {
                     self.numSessions(" "+res.numSessions+" ");
                     hilightSessions();
+                    var now = new Date();
+                    self.chartTrigger(
+                      {
+                        dataArray: [res.numSessions],
+                        label: now.getHours()+":"+now.getMinutes()+":"+now.getSeconds()
+                      }
+                    );
                   }
                 });
               }, 1000);
