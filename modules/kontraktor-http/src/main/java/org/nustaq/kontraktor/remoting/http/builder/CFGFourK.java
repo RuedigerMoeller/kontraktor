@@ -76,7 +76,7 @@ public class CFGFourK {
 
     public void build() {
         Http4K http4K = Http4K.get();
-        http4K.getServer(getPort(), getHostName());//fixme https
+        http4K.getServer(getPort(), getHostName(), context );//fixme https
         getItems().forEach(item -> {
             if (item instanceof HttpPublisher) {
                 http4K.publish((HttpPublisher) item);

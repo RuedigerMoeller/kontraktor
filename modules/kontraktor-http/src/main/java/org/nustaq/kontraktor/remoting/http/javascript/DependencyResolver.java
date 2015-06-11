@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.remoting.http.javascript;
 
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
 
 import java.io.*;
@@ -16,7 +17,6 @@ import java.util.function.Function;
  */
 public class DependencyResolver {
 
-    public static boolean DEBUG = true;
     protected String mergedPrefix;
     protected String lookupPrefix;
     protected File resourcePath[];
@@ -189,11 +189,9 @@ public class DependencyResolver {
         for (int i = 0; i < jsFileNames.size(); i++) {
             String f = jsFileNames.get(i);
             if ( f.endsWith(".js") ) {
-                if (DEBUG)
-                    System.out.println("   " + f + " size:" + f.length());
+                Log.Info( this,"   " + f + " size:" + f.length());
                 ps.println("document.write(\"<script src='" + lookupPrefix + f+"'></script>\")");
-                if (DEBUG)
-                    System.out.println("document.write(\"<script src='" + lookupPrefix + f + "'></script>\")");
+                Log.Info(this, "document.write(\"<script src='" + lookupPrefix + f + "'></script>\")");
             }
         }
         ps.flush();
@@ -219,8 +217,7 @@ public class DependencyResolver {
             File f = locateResource(jsFileName);
             String absolutePath = f.getAbsolutePath();
             if ( f.getName().endsWith(".js") ) {
-                if (DEBUG)
-                    System.out.println("   "+f.getName()+" size:"+f.length());
+                Log.Info(this, "   " + f.getName() + " size:" + f.length());
                 byte[] bytes = new byte[(int) f.length()];
                 try (FileInputStream fileInputStream = new FileInputStream(f)) {
                     fileInputStream.read(bytes);
@@ -248,8 +245,7 @@ public class DependencyResolver {
             File f = locateResource(jsFileName);
             String absolutePath = f.getAbsolutePath();
             if ( f != null ) {
-                if (DEBUG)
-                    System.out.println("   "+f.getName()+" size:"+f.length());
+                Log.Info(this,"   " + f.getName() + " size:" + f.length());
                 byte[] bytes = new byte[(int) f.length()];
                 try (FileInputStream fileInputStream = new FileInputStream(f)) {
                     fileInputStream.read(bytes);

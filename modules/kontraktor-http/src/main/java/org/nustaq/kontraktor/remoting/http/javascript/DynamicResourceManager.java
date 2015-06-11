@@ -40,6 +40,10 @@ public class DynamicResourceManager extends FileResourceManager {
         setPrefix(prefix);
         dependencyResolver = new DependencyResolver(prefix+"/"+lookupPrefix,prefix+"/"+mergedPrefix,rootComponent,resourcePath);
         setBase(dependencyResolver.locateComponent(rootComponent).get(0));
+        if ( devMode )
+            Log.Warn(this, "Dependency resolving is running in *DEVELOPMENT MODE*. Turn off development mode to cache aggregated resources");
+        else
+            Log.Info(this, "Dependency resolving is running in *PRODUCTION MODE*. Turn on development mode for script-refresh-on-reload and per file javascript debugging");
     }
 
     public void setPrefix(String prefix) {
@@ -53,10 +57,6 @@ public class DynamicResourceManager extends FileResourceManager {
 
     public boolean isDevMode() {
         return devMode;
-    }
-
-    public void setDevMode(boolean devMode) {
-        this.devMode = devMode;
     }
 
     @Override

@@ -37,6 +37,7 @@ public class Http4K {
     public static Http4K get() {
         synchronized (Http4K.class) {
             if ( instance == null ) {
+                System.setProperty("org.jboss.logging.provider","slf4j");
                 instance = new Http4K();
             }
             return instance;
@@ -63,13 +64,17 @@ public class Http4K {
      * @return
      */
     public synchronized Pair<PathHandler, Undertow> getServer(int port, String hostName) {
+        return getServer(port,hostName,null);
+    }
+
+    public synchronized Pair<PathHandler, Undertow> getServer(int port, String hostName, SSLContext context) {
         Pair<PathHandler, Undertow> pair = serverMap.get(port);
         if (pair == null) {
             PathHandler pathHandler = new PathHandler();
             Undertow.Builder builder = Undertow.builder()
                                            .setIoThreads(2)
                                            .setWorkerThreads(2);
-            Undertow server = customize(builder,pathHandler,port,hostName).build();
+            Undertow server = customize(builder,pathHandler,port,hostName,context).build();
             server.start();
             pair = new Pair<>(pathHandler,server);
             serverMap.put(port,pair);
@@ -85,11 +90,16 @@ public class Http4K {
         return new CFGFourK(hostName,port,null);
     }
 
-    protected Undertow.Builder customize(Undertow.Builder builder, PathHandler rootPathHandler, int port, String hostName) {
-        return builder
-                .addHttpListener(port, hostName)
-//                .addHttpsListener(8443,hostName,null)
-                .setHandler(rootPathHandler);
+    protected Undertow.Builder customize(Undertow.Builder builder, PathHandler rootPathHandler, int port, String hostName, SSLContext context) {
+        if ( context == null ) {
+            return builder
+                       .addHttpListener(port, hostName)
+                       .setHandler(rootPathHandler);
+        } else {
+            return builder
+                       .addHttpsListener(port,hostName,context)
+                       .setHandler(rootPathHandler);
+        }
     }
 
     /**
