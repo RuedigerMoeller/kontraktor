@@ -40,11 +40,11 @@ public class RemoteActorConnection {
     private static final boolean SENDDEBUG = false;
     public static boolean DumpProtocol = false;
 
-    protected static CloseableHttpAsyncClient asyncHttpClient;
+    protected CloseableHttpAsyncClient asyncHttpClient;
     protected volatile boolean isConnected;
 
-    public static CloseableHttpAsyncClient getClient() {
-        synchronized (RemoteActorConnection.class) {
+    public CloseableHttpAsyncClient getClient() {
+        synchronized (this) {
             if (asyncHttpClient == null ) {
                 asyncHttpClient = HttpAsyncClients.custom()
                     .setDefaultIOReactorConfig(
