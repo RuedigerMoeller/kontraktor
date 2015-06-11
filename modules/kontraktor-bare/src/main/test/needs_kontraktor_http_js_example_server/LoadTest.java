@@ -50,7 +50,7 @@ public class LoadTest {
 
     public static void main(String[] args) throws InterruptedException {
         final ArrayList<LoadTest> tests = new ArrayList<>();
-        for ( int n = 0; n < 30; n++ ) {
+        for ( int n = 0; n < 200; n++ ) {
             new Thread() {
                 public void run() {
                     LoadTest loadTest = new LoadTest();
