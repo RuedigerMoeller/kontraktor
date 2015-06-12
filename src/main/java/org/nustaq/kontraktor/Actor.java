@@ -95,10 +95,10 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     public Queue __cbQueue; // queue of callbacks/future results
     public Thread __currentDispatcher; // thread of this actor
     public Scheduler __scheduler;
-    public volatile boolean __stopped = false;
+    public volatile boolean __stopped;
     public Actor __self; // the proxy object
     public int __remoteId; // id in case this actor is published via network
-    public boolean __throwExAtBlock = false; // if true, trying to send a message to full queue will throw an exception instead of blocking
+    public boolean __throwExAtBlock; // if true, trying to send a message to full queue will throw an exception instead of blocking
     public volatile ConcurrentLinkedQueue<RemoteConnection> __connections; // a list of connections required to be notified on close (publisher/server side))
     public RemoteConnection __clientConnection; // remoteconnection this in case of remote ref
     // register callbacks notified on stop
@@ -461,9 +461,17 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     // FIXME: would be much better to do lookup at method invoke time INSIDE actor thread instead of doing it on callside (contended)
-    ThreadLocal<HashMap<String, Method>> methodCache = ThreadLocal.withInitial(() -> new HashMap<>());
+    ThreadLocal<HashMap> methodCache;
     @CallerSideMethod public Method __getCachedMethod(String methodName, Actor actor) {
-        Method method = methodCache.get().get(methodName);
+        if ( methodCache == null ) {
+            methodCache = new ThreadLocal<HashMap>() {
+                @Override
+                protected HashMap initialValue() {
+                    return new HashMap();
+                }
+            };
+        }
+        Method method = (Method) methodCache.get().get(methodName);
         if ( method == null ) {
             Method[] methods = actor.getClass().getMethods();
             for (int i = 0; i < methods.length; i++) {

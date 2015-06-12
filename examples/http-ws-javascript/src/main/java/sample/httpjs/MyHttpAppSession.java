@@ -23,6 +23,7 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
     Pojo aPojo;
 
     public void init(MyHttpApp app, List<String> todo) {
+        Thread.currentThread().setName("Session Dispatcher");
         this.app = app;
         aPojo = new Pojo("pojo");
         aPojo.addPojo(new Pojo("otherPojo"));

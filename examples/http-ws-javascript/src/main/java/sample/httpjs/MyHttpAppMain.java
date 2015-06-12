@@ -32,6 +32,7 @@ public class MyHttpAppMain {
 
         // create server actor
         MyHttpApp myHttpApp = AsActor(MyHttpApp.class);
+        myHttpApp.init();
 
         Http4K.Build("localhost", 8080)
             .fileRoot("/", root)

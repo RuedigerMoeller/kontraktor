@@ -51,7 +51,7 @@ public class RemoteRefPolling implements Runnable {
     public void run() {
         Actor.current(); // fail fast
         int count = 1;
-        int maxit = 10;
+        int maxit = 1;
         while ( maxit > 0 && count > 0) {
             count = 0;
             for (int i = 0; i < sendJobs.size(); i++) {

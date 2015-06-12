@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import javassist.*;
 import javassist.bytecode.AccessFlag;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.Externalizable;
 import java.io.File;
@@ -53,7 +54,13 @@ public class ActorProxyFactory {
             Constructor[] constructors = proxyClass.getConstructors();
             T instance = null;
             try {
-                instance = (T) proxyClass.newInstance();
+                if ( FSTUtil.unFlaggedUnsafe != null ) {
+                    // avoid running instance-initialiezr on actor proxy. Currently only
+                    // unsafe allows to do that, though its completely safe to do so
+                    instance = (T) FSTUtil.unFlaggedUnsafe.allocateInstance(proxyClass);
+                }
+                else
+                    instance = (T) proxyClass.newInstance();
             } catch (Exception e) {
                 for (int i = 0; i < constructors.length; i++) {
                     Constructor constructor = constructors[i];

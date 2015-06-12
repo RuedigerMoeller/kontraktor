@@ -37,21 +37,26 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class RemoteActorConnection {
 
-    private static final boolean SENDDEBUG = false;
+    public static int MAX_CONN_PER_ROUTE = 1000;
+    public static int MAX_CONN_TOTAL = 1000;
     public static boolean DumpProtocol = false;
 
-    protected CloseableHttpAsyncClient asyncHttpClient;
+    protected static CloseableHttpAsyncClient asyncHttpClient;
     protected volatile boolean isConnected;
+    private static final boolean SENDDEBUG = false;
 
     public CloseableHttpAsyncClient getClient() {
         synchronized (this) {
             if (asyncHttpClient == null ) {
                 asyncHttpClient = HttpAsyncClients.custom()
+                    .setMaxConnPerRoute(MAX_CONN_PER_ROUTE)
+                    .setMaxConnTotal(MAX_CONN_TOTAL)
                     .setDefaultIOReactorConfig(
-                        IOReactorConfig.custom()
-                            .setIoThreadCount(1)
-                            .setSoKeepAlive(true)
-                            .build()
+                            IOReactorConfig.custom()
+                                    .setIoThreadCount(1)
+                                    .setSoKeepAlive(true)
+                                    .setSoReuseAddress(true)
+                                    .build()
                     ).build();
                 asyncHttpClient.start();
             }
@@ -230,7 +235,7 @@ public class RemoteActorConnection {
                     @Override
                     public void completed(HttpResponse result) {
                         if (result.getStatusLine().getStatusCode() != 200) {
-                            log("unexpected return status "+result.getStatusLine().getReasonPhrase());
+                            log("unexpected return status " + result.getStatusLine().getReasonPhrase());
                             delayed(lp.get(), 5000);
                             return;
                         }
@@ -243,7 +248,7 @@ public class RemoteActorConnection {
                                 myExec.execute(new Runnable() {
                                     @Override
                                     public void run() {
-                                    processResponse(b);
+                                        processResponse(b);
                                     }
                                 });
                                 myExec.execute(lp.get());
@@ -276,7 +281,7 @@ public class RemoteActorConnection {
         delayed(lp.get(), 1000);
     }
 
-    protected Timer timer = new Timer();
+    protected static Timer timer = new Timer();
 
     /**
      * util to semd delayed jobs to processing/callback thread
@@ -469,6 +474,10 @@ public class RemoteActorConnection {
             }
         }
         return o.length-1;
+    }
+
+    public void close() {
+        disconnect("closed");
     }
 
     protected void disconnect(String s) {

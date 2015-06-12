@@ -20,12 +20,17 @@ public class MyHttpApp extends Actor<MyHttpApp> {
 
     public static final int CLIENT_QSIZE = 1000;
 
-    Scheduler clientThreads[] = {
-        new SimpleScheduler(CLIENT_QSIZE) // only one session processor thread should be sufficient for most apps.
-    };
+    Scheduler clientThreads[];
 
     public IPromise<String> getServerTime() {
         return new Promise<>(new Date().toString());
+    }
+
+    public void init() {
+        clientThreads = new Scheduler[]{
+            new SimpleScheduler(CLIENT_QSIZE) // only one session processor thread should be sufficient for most apps.
+        };
+        Thread.currentThread().setName("MyHttpApp Dispatcher");
     }
 
     public IPromise<MyHttpAppSession> login( String user, String pwd ) {

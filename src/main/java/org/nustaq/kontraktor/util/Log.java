@@ -67,8 +67,13 @@ public class Log extends Actor<Log> {
 
     public LogWrapper defaultLogger = new LogWrapper() {
         DateFormat formatter = new SimpleDateFormat("HH:mm:ss:SSS");
+        boolean initialized = false;
         @Override
         public void msg(Thread t, int sev, Object source, Throwable ex, String msg) {
+            if ( ! initialized ) {
+                initialized = true;
+                Thread.currentThread().setName("kontraktor async logger");
+            }
             if ( severity <= sev ) {
                 if ( source == null )
                     source = "null";
