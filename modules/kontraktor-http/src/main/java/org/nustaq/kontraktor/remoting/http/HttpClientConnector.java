@@ -32,6 +32,8 @@ import java.util.function.Function;
  */
 public class HttpClientConnector implements ActorClientConnector {
 
+    public static int MAX_CONN_TOTAL = 1000;
+    public static int MAX_CONN_PER_ROUTE = 1000;
     public static boolean DumpProtocol = false;
 
     protected static CloseableHttpAsyncClient asyncHttpClient;
@@ -39,11 +41,14 @@ public class HttpClientConnector implements ActorClientConnector {
         synchronized (HttpClientConnector.class) {
             if (asyncHttpClient == null ) {
                 asyncHttpClient = HttpAsyncClients.custom()
+                    .setMaxConnPerRoute(MAX_CONN_PER_ROUTE)
+                    .setMaxConnTotal(MAX_CONN_TOTAL)
                     .setDefaultIOReactorConfig(
-                        IOReactorConfig.custom()
-                            .setIoThreadCount(1)
-                            .setSoKeepAlive(true)
-                            .build()
+                            IOReactorConfig.custom()
+                                    .setIoThreadCount(1)
+                                    .setSoKeepAlive(true)
+                                    .setSoReuseAddress(true)
+                                    .build()
                     ).build();
                 asyncHttpClient.start();
             }
@@ -223,8 +228,9 @@ public class HttpClientConnector implements ActorClientConnector {
         public MyHttpWS(String url) {
             this.url = url;
             if ( ! cfg.shortPollMode ) {
-                lpHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).build() ).build();
-                lpHttpClient.start();
+//                lpHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).build() ).build();
+//                lpHttpClient.start();
+                lpHttpClient = getClient();
             }
         }
 
@@ -419,6 +425,9 @@ public class HttpClientConnector implements ActorClientConnector {
     }
 
     public static class HttpClientActor extends Actor<HttpClientActor> {
+        public void init() {
+            Thread.currentThread().setName("HttpClient RefPolling");
+        }
     }
 
     /**
@@ -439,8 +448,10 @@ public class HttpClientConnector implements ActorClientConnector {
     static HttpClientActor singletonRefPoll = Actors.AsActor(HttpClientActor.class);
     public static HttpClientActor getRefPollActor() {
         synchronized (HttpClientConnector.class) {
-            if (singletonRefPoll == null )
+            if (singletonRefPoll == null ) {
                 singletonRefPoll = Actors.AsActor(HttpClientActor.class);
+                singletonRefPoll.init();
+            }
             return singletonRefPoll;
         }
     }

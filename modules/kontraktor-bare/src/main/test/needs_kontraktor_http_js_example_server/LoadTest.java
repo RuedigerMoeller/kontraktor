@@ -35,34 +35,41 @@ public class LoadTest {
            false
         );
 
-        final RemoteActor facade = act.connect("http://localhost:8080/api", true).await(20_000);
-
-        System.out.println("CLIENTS:"+connections.incrementAndGet());
-
-        session = (RemoteActor) facade.ask("login", "user", "password").await(20_000);
-        session.tell("subscribe", new Callback() {
+        act.connect("http://localhost:8080/api", true).then(new Callback<RemoteActor>() {
             @Override
-            public void receive(Object result, Object error) {
-                count++;
-                lastBcast.set(System.currentTimeMillis());
+            public void receive(RemoteActor facade, Object error) {
+                System.out.println("CLIENTS:"+connections.incrementAndGet());
+
+                facade.ask("login", "user", "password").then(new Callback() {
+                    @Override
+                    public void receive(Object res, Object error) {
+                        session = (RemoteActor) res;
+                        session.tell("subscribe", new Callback() {
+                            @Override
+                            public void receive(Object result, Object error) {
+                                count++;
+                                lastBcast.set(System.currentTimeMillis());
+                            }
+                        });
+                    }
+                });
             }
         });
+
     }
 
     public static void main(String[] args) throws InterruptedException {
         final ArrayList<LoadTest> tests = new ArrayList<>();
-        for ( int n = 0; n < 50; n++ ) {
-            new Thread() {
-                public void run() {
-                    LoadTest loadTest = new LoadTest();
-                    synchronized (tests) {
-                        tests.add(loadTest);
-                    }
-                    loadTest.run();
+        for ( int i = 0; i < 10; i++ ) {
+            for ( int n = 0; n < 40; n++ ) {
+                LoadTest loadTest = new LoadTest();
+                synchronized (tests) {
+                    tests.add(loadTest);
                 }
-            }.start();
+                loadTest.run();
+            }
+            Thread.sleep(6000);
         }
-        Thread.sleep(6000);
         while( true ) {
             synchronized (tests) {
                 for (int i = 0; i < tests.size(); i++) {

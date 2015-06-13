@@ -15,6 +15,7 @@ import org.nustaq.serialization.coders.Unknown;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -37,6 +38,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class RemoteActorConnection {
 
+    public static final int LONG_POLL_MAX_TIME = 15_000;
     public static int MAX_CONN_PER_ROUTE = 1000;
     public static int MAX_CONN_TOTAL = 1000;
     public static boolean DumpProtocol = false;
@@ -52,11 +54,11 @@ public class RemoteActorConnection {
                     .setMaxConnPerRoute(MAX_CONN_PER_ROUTE)
                     .setMaxConnTotal(MAX_CONN_TOTAL)
                     .setDefaultIOReactorConfig(
-                            IOReactorConfig.custom()
-                                    .setIoThreadCount(1)
-                                    .setSoKeepAlive(true)
-                                    .setSoReuseAddress(true)
-                                    .build()
+                        IOReactorConfig.custom()
+                                .setIoThreadCount(1)
+                                .setSoKeepAlive(true)
+                                .setSoReuseAddress(true)
+                                .build()
                     ).build();
                 asyncHttpClient.start();
             }
@@ -80,7 +82,7 @@ public class RemoteActorConnection {
     };
 
     protected FSTConfiguration conf;
-    protected ExecutorService myExec = Executors.newSingleThreadExecutor();
+    protected static ExecutorService myExec = Executors.newSingleThreadExecutor();
     protected String sessionId;
     protected String sessionUrl;
     protected int lastSeenSeq;
@@ -230,13 +232,27 @@ public class RemoteActorConnection {
             public void run() {
                 if ( ! isConnected )
                     return;
+
+                final AtomicInteger timedout = new AtomicInteger(0); // 1 = reply, 2 = timeout
+                delayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        if ( timedout.compareAndSet(0,2) ) {
+                            // long poll timeout, retry
+                            myExec.execute(lp.get());
+                        }
+                    }
+                }, LONG_POLL_MAX_TIME + 1000 ); // give 1 second trip latency
                 HttpPost request = createRequest(sessionUrl, conf.asByteArray(new Object[] { lastSeenSeq } ));
                 getClient().execute(request, new FutureCallback<HttpResponse>() {
                     @Override
                     public void completed(HttpResponse result) {
+                        if (!timedout.compareAndSet(0, 1)) {
+                            return;
+                        }
                         if (result.getStatusLine().getStatusCode() != 200) {
                             log("unexpected return status " + result.getStatusLine().getReasonPhrase());
-                            delayed(lp.get(), 5000);
+                            delayed(lp.get(), 2000);
                             return;
                         }
                         String cl = result.getFirstHeader("Content-Length").getValue();
@@ -264,6 +280,9 @@ public class RemoteActorConnection {
 
                     @Override
                     public void failed(Exception ex) {
+                        if (!timedout.compareAndSet(0, 1)) {
+                            return;
+                        }
                         log(ex);
                         // delay next longpoll to avoid exception spam
                         delayed(lp.get(), 2000);
@@ -271,6 +290,9 @@ public class RemoteActorConnection {
 
                     @Override
                     public void cancelled() {
+                        if (!timedout.compareAndSet(0, 1)) {
+                            return;
+                        }
                         log("request canceled");
                         // delay next longpoll to avoid exception spam
                         delayed(lp.get(), 2000);

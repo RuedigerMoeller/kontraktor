@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * polls queues of remote actor proxies and serializes messages to their associated object sockets.
@@ -28,7 +29,9 @@ public class RemoteRefPolling implements Runnable {
 
     ArrayList<ScheduleEntry> sendJobs = new ArrayList<>();
 
+    AtomicInteger instanceCount = new AtomicInteger(0);
     public RemoteRefPolling() {
+        instanceCount.incrementAndGet();
     }
 
     /**
@@ -42,42 +45,80 @@ public class RemoteRefPolling implements Runnable {
     public IPromise scheduleSendLoop(RemoteRegistry reg) {
         Promise promise = new Promise();
         sendJobs.add(new ScheduleEntry(reg, promise));
-        if ( sendJobs.size() == 1 ) {
-            Actor.current().execute(this);
+        synchronized (this) {
+            if ( ! loopStarted ) {
+                loopStarted = true;
+                Actor.current().execute(this);
+            }
         }
         return promise;
     }
 
+    boolean loopStarted = false;
+    boolean underway = false;
+    static volatile long lastReport = System.currentTimeMillis();
+    static AtomicInteger scansPersec = new AtomicInteger(0);
     public void run() {
-        Actor.current(); // fail fast
-        int count = 1;
-        int maxit = 1;
-        while ( maxit > 0 && count > 0) {
-            count = 0;
-            for (int i = 0; i < sendJobs.size(); i++) {
-                ScheduleEntry entry = sendJobs.get(i);
-                if ( entry.reg.isTerminated() ) {
-                    terminateEntry(i, entry, "terminated", null );
-                    i--;
-                    continue;
-                }
-                try {
-                    if (entry.reg.pollAndSend2Remote(entry.reg.getWriteObjectSocket().get())) {
-                        count++;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    terminateEntry(i, entry, null, e);
-                    i--;
-                }
+        if ( underway )
+            return;
+        underway = true;
+        try {
+            boolean pressured = Actor.current().isMailboxPressured() || Actor.current().isCallbackQPressured();
+            long nanos = System.nanoTime();
+            if ( pressured ) {
+                System.out.println("PRESSURE");
             }
-            maxit--;
-        }
-        if ( sendJobs.size() > 0 ) {
-            if (count == 0)
-                Actor.current().delayed(1, this);
-            else
-                Actor.current().execute(this);
+            int count = 1;
+            int maxit = 1;
+            //while ( maxit > 0 && count > 0)
+            {
+                count = 0;
+                scansPersec.incrementAndGet();
+                for (int i = 0; i < sendJobs.size(); i++) {
+                    ScheduleEntry entry = sendJobs.get(i);
+                    if ( entry.reg.isTerminated() ) {
+                        terminateEntry(i, entry, "terminated", null );
+                        i--;
+                        continue;
+                    }
+                    try {
+                        if (entry.reg.pollAndSend2Remote(entry.reg.getWriteObjectSocket().get())) {
+                            count++;
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        terminateEntry(i, entry, null, e);
+                        i--;
+                    }
+                }
+                maxit--;
+            }
+
+            long dur = System.nanoTime() - nanos;
+            dur /= 1000;
+
+            if ( System.currentTimeMillis() - lastReport > 1000 ) {
+                System.out.println("scan duration "+dur+" micros "+scansPersec.get()+" scans/sec, instances:"+instanceCount.get());
+                lastReport = System.currentTimeMillis();
+                scansPersec.set(0);
+            }
+
+            for (int i = 0; i < toCompleteAfterRun.size(); i++) {
+                IPromise iPromise = toCompleteAfterRun.get(i);
+                iPromise.complete();
+            }
+            toCompleteAfterRun.clear();
+
+            if ( sendJobs.size() > 0 ) {
+                if ( count > 0 )
+                    Actor.current().delayed(1, this);
+                else
+                    Actor.current().delayed(3, this);
+            } else {
+                Actor.current().delayed(10, this );
+            }
+        } finally {
+            underway = false;
         }
     }
 
@@ -85,6 +126,11 @@ public class RemoteRefPolling implements Runnable {
         entry.reg.stopRemoteRefs();
         sendJobs.remove(i);
         entry.promise.complete(res,e);
+    }
+
+    ArrayList<IPromise> toCompleteAfterRun = new ArrayList<>();
+    public void completeAfterQPoll(Promise res) {
+        toCompleteAfterRun.add(res);
     }
 
     public static class ScheduleEntry {
