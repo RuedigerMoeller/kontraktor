@@ -67,7 +67,9 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
     public void pushEventLoop() {
         if ( ! isStopped() ) {
             if ( subscription != null ) {
-                subscription.stream(new Date().toString()+", "+getScheduler().getNumActors()+" Session Actors");
+                app.getNumSessions().then( sessions -> {
+                    subscription.stream(new Date().toString()+", "+sessions+" Session Actors");
+                });
             }
             delayed( 2000, () -> pushEventLoop() );
         }

@@ -53,7 +53,7 @@ import java.util.function.Function;
  */
 public class UndertowHttpServerConnector implements ActorServerConnector, HttpHandler {
 
-    public static int REQUEST_TIMEOUT = 1000; // max wait time for a returned promise to fulfil
+    public static int REQUEST_RESULTING_FUTURE_TIMEOUT = 3000; // max wait time for a returned promise to fulfil
     public static long SESSION_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(30); // 30 minutes
 
     Actor facade;
@@ -223,7 +223,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         // executed in facade thread
         httpObjectSocket.updateTimeStamp(); // keep alive
 
-        Object received = httpObjectSocket.getConf().asObject(postData);
+        Object received[] = (Object[]) httpObjectSocket.getConf().asObject(postData);
 
         boolean isEmptyLP = received instanceof Object[] && ((Object[]) received).length == 1 && ((Object[]) received)[0] instanceof Number;
 
@@ -246,7 +246,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             }
         }
 
-        // check iif can be served from history
+        // check if can be served from history
         if (lastClientSeq > 0 ) { // if lp response message has been sent, take it from history
             byte[] msg = (byte[]) httpObjectSocket.takeStoredLPMessage(lastClientSeq + 1);
             if (msg!=null) {
@@ -324,7 +324,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         sinkchannel.resumeWrites();
     }
 
-    protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object received, StreamSinkChannel sinkchannel) {
+    protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object[] received, StreamSinkChannel sinkchannel) {
         ArrayList<IPromise> futures = new ArrayList<>();
         httpObjectSocket.getSink().receiveObject(received, futures);
 
@@ -338,6 +338,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             } else {
                 httpObjectSocket.storeLPMessage(nextQueuedMessage.cdr(), response);
 
+                long tim = System.nanoTime();
                 ByteBuffer responseBuf = ByteBuffer.wrap(response);
                 while (responseBuf.remaining()>0) {
                     try {
@@ -346,14 +347,19 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                         e.printStackTrace();
                     }
                 }
+//                System.out.println("syncwrite time micros:"+(System.nanoTime()-tim)/1000);
                 exchange.endExchange();
             }
         };
         if ( futures == null || futures.size() == 0 ) {
             reply.run();
         } else {
-            Actors.all((List) futures).timeoutIn(REQUEST_TIMEOUT).then( () -> {
-                actorServer.waitScanRefComplete().then(() -> reply.run());
+            long now = System.currentTimeMillis();
+            System.out.println("wait start "+futures.size()+" futures "+System.currentTimeMillis());
+            Actors.all((List) futures).timeoutIn(REQUEST_RESULTING_FUTURE_TIMEOUT).then( () -> {
+                System.out.println("  duration wait dur:"+(System.currentTimeMillis()-now)+" "+Actor.inside());
+                Actors.yield();
+                reply.run();
             });
             sinkchannel.resumeWrites();
         }

@@ -43,7 +43,9 @@ var errCB = function( err ) { console.error(err); };
             li += "</ul>";
             document.getElementById("todo").innerHTML=li;
           });
+          console.log("send getTime");
           server.ask("getServerTime").then( function( res,err ) {
+            console.log("received getTime");
             document.getElementById("time").innerHTML=res;
           });
           mySession.tell( "streamToDo", "p", function( res, err ) {

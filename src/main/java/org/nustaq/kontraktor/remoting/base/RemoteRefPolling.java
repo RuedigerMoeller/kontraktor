@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -22,7 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * in short: regular messages to disconected remote actors queue up in mailbox, callbacks in object socket buffer
  *
- * This is a rewrite designed to run inside the facade actor's thread instead of scheduling a separate thread.
+ * For typical client/server alike use cases, there are never remote references as most client api's do
+ * not support handing out client remoterefs to servers (javascript, kontraktor bare)
  *
  */
 public class RemoteRefPolling implements Runnable {
@@ -59,6 +61,8 @@ public class RemoteRefPolling implements Runnable {
     static volatile long lastReport = System.currentTimeMillis();
     static AtomicInteger scansPersec = new AtomicInteger(0);
     Thread pollThread;
+
+    int remoteRefCounter = 0; // counts active remote refs, if none backoff remoteref polling massively
     public void run() {
         pollThread = Thread.currentThread();
         if ( underway )
@@ -70,24 +74,32 @@ public class RemoteRefPolling implements Runnable {
             if ( pressured ) {
                 System.out.println("PRESSURE");
             }
+
             int count = onePoll();
 
-            long dur = System.nanoTime() - nanos;
-            dur /= 1000;
-
-            if ( System.currentTimeMillis() - lastReport > 1000 ) {
-                System.out.println("scan duration "+dur+" micros "+scansPersec.get()+" scans/sec, instances:"+instanceCount.get());
-                lastReport = System.currentTimeMillis();
-                scansPersec.set(0);
-            }
+//            long dur = System.nanoTime() - nanos;
+//            dur /= 1000;
+//
+//            if ( System.currentTimeMillis() - lastReport > 1000 ) {
+//                System.out.println("scan duration "+dur+" micros "+scansPersec.get()+" scans/sec, instances:"+instanceCount.get());
+//                lastReport = System.currentTimeMillis();
+//                scansPersec.set(0);
+//            }
 
             if ( sendJobs.size() > 0 ) {
                 if ( count > 0 )
                     Actor.current().delayed(1, this);
-                else
-                    Actor.current().delayed(3, this);
+                else {
+                    if ( remoteRefCounter == 0 ) // no remote actors registered
+                    {
+                        Actor.current().delayed(500, this); // backoff massively
+                    } else {
+                        Actor.current().delayed(10, this); // backoff a bit (remoteactors present, no messages)
+                    }
+                }
             } else {
-                Actor.current().delayed(10, this );
+                // no schedule entries (== no clients)
+                Actor.current().delayed(500, this );
             }
         } finally {
             underway = false;
@@ -97,12 +109,16 @@ public class RemoteRefPolling implements Runnable {
     protected int onePoll() {
         int count = 1;
         int maxit = 1;
+        remoteRefCounter = 0;
         //while ( maxit > 0 && count > 0)
         {
             count = 0;
             scansPersec.incrementAndGet();
             for (int i = 0; i < sendJobs.size(); i++) {
                 ScheduleEntry entry = sendJobs.get(i);
+                if ( entry.reg.getRemoteActorSize() > 0 ) {
+                    remoteRefCounter++;
+                }
                 if ( entry.reg.isTerminated() ) {
                     terminateEntry(i, entry, "terminated", null );
                     i--;
@@ -121,11 +137,6 @@ public class RemoteRefPolling implements Runnable {
             maxit--;
         }
 
-        for (int i = 0; i < toCompleteAfterRun.size(); i++) {
-            IPromise iPromise = toCompleteAfterRun.get(i);
-            iPromise.complete();
-        }
-        toCompleteAfterRun.clear();
         return count;
     }
 
@@ -133,14 +144,6 @@ public class RemoteRefPolling implements Runnable {
         entry.reg.stopRemoteRefs();
         sendJobs.remove(i);
         entry.promise.complete(res,e);
-    }
-
-    ArrayList<IPromise> toCompleteAfterRun = new ArrayList<>();
-    public void completeAfterQPoll(Promise res) {
-        if ( pollThread != Thread.currentThread() )
-            throw new RuntimeException("Wrong Thread");
-        toCompleteAfterRun.add(res);
-//        onePoll();
     }
 
     public static class ScheduleEntry {

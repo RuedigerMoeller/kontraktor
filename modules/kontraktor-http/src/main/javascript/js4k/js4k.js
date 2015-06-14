@@ -321,6 +321,7 @@ window.jsk = window.jsk || (function () {
       console.log("old data received:"+sequence+" last:"+lastSeenSequence);
       return lastSeenSequence;
     }
+    console.log("resplen:"+respLen);
     for (var i = 0; i < respLen; i++) {
       var resp = decodedResponse.seq[i + 1];
       if (!resp.obj.method && resp.obj.receiverKey) { // => callback

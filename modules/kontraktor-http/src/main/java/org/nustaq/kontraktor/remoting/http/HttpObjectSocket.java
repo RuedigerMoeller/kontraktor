@@ -13,6 +13,7 @@ import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Created by ruedi on 12.05.2015.
@@ -56,19 +57,17 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
     @Override
     public void sendBinary(byte[] message) {
-        synchronized (queue) {
-            queue.addInt(sendSequence.get());
-            queue.addInt(message.length);
-            queue.add( new HeapBytez(message) );
-            triggerLongPoll();
-        }
+        checkThread();
+        queue.addInt(sendSequence.get());
+        queue.addInt(message.length);
+        queue.add( new HeapBytez(message) );
+        triggerLongPoll();
     }
 
     @Override
     public void writeObject(Object toWrite) throws Exception {
-        synchronized (queue) {
-            super.writeObject(toWrite);
-        }
+        checkThread();
+        super.writeObject(toWrite);
     }
 
     @Override
@@ -87,25 +86,24 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     }
 
     public Pair<byte[],Integer> getNextQueuedMessage() {
-        synchronized (queue) {
+        checkThread();
 //            if ( queue.available() < 8 )
-            {
-                try {
-                    flush();
-                } catch (Exception e) {
-                    FSTUtil.rethrow(e);
-                }
+        {
+            try {
+                flush();
+            } catch (Exception e) {
+                FSTUtil.rethrow(e);
             }
-            if ( queue.available() > 8 ) {
-                int seq = queue.readInt();
-                int len = queue.readInt();
-                if ( len>0 && queue.available() >= len )
-                    return new Pair(queue.readByteArray(len),seq);
-                else
-                    return new Pair(new byte[0],0);
-            } else {
+        }
+        if ( queue.available() > 8 ) {
+            int seq = queue.readInt();
+            int len = queue.readInt();
+            if ( len>0 && queue.available() >= len )
+                return new Pair(queue.readByteArray(len),seq);
+            else
                 return new Pair(new byte[0],0);
-            }
+        } else {
+            return new Pair(new byte[0],0);
         }
     }
 
@@ -168,6 +166,18 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
     public void storeLPMessage(int inSequence, Object msg) {
         store.putMessage("sen", inSequence, msg);
+    }
+
+    @Override
+    public void flush() throws Exception {
+        if (objects.size() == 0) {
+            return;
+        }
+//        System.out.println("FLUSHING "+objects.size());
+        objects.add(sendSequence.incrementAndGet()); // sequence
+        Object[] objArr = objects.toArray();
+        objects.clear();
+        sendBinary(conf.asByteArray(objArr));
     }
 
 }

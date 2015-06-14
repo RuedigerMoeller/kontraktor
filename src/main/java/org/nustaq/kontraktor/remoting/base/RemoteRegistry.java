@@ -55,8 +55,9 @@ public abstract class RemoteRegistry implements RemoteConnection {
     };
     protected Consumer<Actor> disconnectHandler;
     protected boolean isObsolete;
+    private Actor facadeActor;
 
-	public RemoteRegistry(Coding code) {
+    public RemoteRegistry(Coding code) {
 		if ( code == null )
 			code = new Coding(SerializerType.FSTSer);
 	    switch (code.getCoding()) {
@@ -310,8 +311,11 @@ public abstract class RemoteRegistry implements RemoteConnection {
                         createdFutures.add(p);
                     }
                     final Promise finalP = p;
+                    Thread debug = Thread.currentThread();
                     ((IPromise) future).then( (r,e) -> {
                         try {
+                            Thread debug1 = Thread.currentThread();
+                            Thread debug2 = debug;
                             receiveCBResult(objSocket, read.getFutureKey(), r, e);
                             if ( finalP != null )
                                 finalP.complete();
@@ -365,6 +369,21 @@ public abstract class RemoteRegistry implements RemoteConnection {
     }
 
     public void receiveCBResult(ObjectSocket chan, int id, Object result, Object error) throws Exception {
+        if (facadeActor!=null) {
+            Thread debug = facadeActor.getCurrentDispatcher();
+            if ( Thread.currentThread() != facadeActor.getCurrentDispatcher() ) {
+                facadeActor.execute( () -> {
+                    try {
+                        if ( Thread.currentThread() != debug )
+                            System.out.println("??");
+                        receiveCBResult(chan,id,result, error);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+                return;
+            }
+        }
         if ( Callback.FINSILENT.equals(error) ) {
             return;
         }
@@ -468,4 +487,16 @@ public abstract class RemoteRegistry implements RemoteConnection {
         this.isObsolete = isObsolete;
     }
 
+
+    public int getRemoteActorSize() {
+        return remoteActorSet.size();
+    }
+
+    public void setFacadeActor(Actor facadeActor) {
+        this.facadeActor = facadeActor;
+    }
+
+    public Actor getFacadeActor() {
+        return facadeActor;
+    }
 }

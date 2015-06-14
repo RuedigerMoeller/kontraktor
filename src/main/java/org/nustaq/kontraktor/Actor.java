@@ -206,7 +206,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * just enqueue given runable to this actors mailbox and execute on the actor's thread
      * @param toRun
      */
-    public void submit(@InThread Runnable toRun) {
+    public void submit(Runnable toRun) {
         toRun.run();
     }
 
@@ -494,6 +494,11 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     @CallerSideMethod @Local @Override
     public void execute(Runnable command) {
         self().submit(command);
+    }
+
+    @CallerSideMethod @Local
+    public DispatcherThread getCurrentDispatcher() {
+        return (DispatcherThread) __currentDispatcher;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////

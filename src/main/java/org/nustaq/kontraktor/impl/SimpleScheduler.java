@@ -10,6 +10,7 @@ import java.lang.reflect.Proxy;
 import java.util.Queue;
 import java.util.TimerTask;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by ruedi on 02/04/15.

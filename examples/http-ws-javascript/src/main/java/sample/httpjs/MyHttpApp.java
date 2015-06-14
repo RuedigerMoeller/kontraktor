@@ -21,6 +21,7 @@ public class MyHttpApp extends Actor<MyHttpApp> {
     public static final int CLIENT_QSIZE = 1000;
 
     Scheduler clientThreads[];
+    int sessionCount = 0;
 
     public IPromise<String> getServerTime() {
         return new Promise<>(new Date().toString());
@@ -28,7 +29,7 @@ public class MyHttpApp extends Actor<MyHttpApp> {
 
     public void init() {
         clientThreads = new Scheduler[]{
-            new SimpleScheduler(CLIENT_QSIZE) // only one session processor thread should be sufficient for most apps.
+            new SimpleScheduler(CLIENT_QSIZE), // only one session processor thread should be sufficient for most apps.
         };
         Thread.currentThread().setName("MyHttpApp Dispatcher");
     }
@@ -45,12 +46,13 @@ public class MyHttpApp extends Actor<MyHttpApp> {
             sess.setThrowExWhenBlocked(true);
             sess.init( self(), Arrays.asList("procrastinize", "drink coffee", "code", "play the piano", "ignore *") );
             result.resolve(sess);
+            sessionCount++;
         }
         return result;
     }
 
     public IPromise<Integer> getNumSessions() {
-        return resolve(clientThreads[0].getNumActors());
+        return resolve(sessionCount);
     }
 
     public void voidMethodForBenchmark() {}
@@ -61,6 +63,7 @@ public class MyHttpApp extends Actor<MyHttpApp> {
 
     @Local
     public void clientClosed(MyHttpAppSession session) {
+        sessionCount--;
         System.out.println("client closed "+session);
     }
 

@@ -198,20 +198,25 @@ public class DispatcherThread extends Thread implements Monitorable {
     }
 
     // poll all actors in queue arr round robin
-    int count = 0;
+    int currentPolledActor = 0;
     protected CallEntry pollQueues(Actor[] actors) {
-        if ( count >= actors.length ) {
-            // check for changed queueList each run FIXME: too often !
-            count = 0;
-            if ( actors.length == 0 ) {
-                return null;
-            }
+        if ( actors.length == 0 ) {
+            return null;
         }
-        Actor actor2poll = actors[count];
-        CallEntry res = (CallEntry) actor2poll.__cbQueue.poll();
-        if ( res == null )
-            res = (CallEntry) actor2poll.__mailbox.poll();
-        count++;
+        CallEntry res = null;
+        int alen  = actors.length;
+        int count = 0;
+        while( res == null && count < alen ) {
+            if ( currentPolledActor >= actors.length ) {
+                currentPolledActor = 0;
+            }
+            Actor actor2poll = actors[currentPolledActor];
+            res = (CallEntry) actor2poll.__cbQueue.poll();
+            if ( res == null )
+                res = (CallEntry) actor2poll.__mailbox.poll();
+            currentPolledActor++;
+            count++;
+        }
         return res;
     }
 

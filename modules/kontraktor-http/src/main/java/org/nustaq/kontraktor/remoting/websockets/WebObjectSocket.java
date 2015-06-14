@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -16,13 +17,17 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public abstract class WebObjectSocket implements ObjectSocket {
 
-    protected ArrayList objects = new ArrayList();
+    protected List objects;
     protected FSTConfiguration conf;
     protected Throwable lastError;
     protected AtomicInteger sendSequence = new AtomicInteger(0); // defensive
 
     public AtomicInteger getSendSequence() {
         return sendSequence;
+    }
+
+    public WebObjectSocket() {
+        objects = new ArrayList();
     }
 
     @Override

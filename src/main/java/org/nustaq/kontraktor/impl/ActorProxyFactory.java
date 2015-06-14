@@ -50,6 +50,9 @@ public class ActorProxyFactory {
 
     public <T> T instantiateProxy(Actor target) {
         try {
+            if ( ! Modifier.isPublic(target.getClass().getModifiers()) ) {
+                throw new RuntimeException("Actor class must be public:" + target.getClass().getName() );
+            }
             Class proxyClass = createProxyClass(target.getClass(), target.getClass().getClassLoader() );
             Constructor[] constructors = proxyClass.getConstructors();
             T instance = null;

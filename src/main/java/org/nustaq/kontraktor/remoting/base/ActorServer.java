@@ -2,7 +2,6 @@ package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 
@@ -22,7 +21,7 @@ public class ActorServer {
         @Override
         protected RemoteRefPolling initialValue() {
             if ( pollerCount.get() > 0 ) {
-                System.out.println("FATAL: more than one poller started. used poller from wrong thread");
+                System.out.println("more than one poller started. used poller from wrong thread ?");
                 Thread.dumpStack();
             }
             pollerCount.incrementAndGet();
@@ -63,6 +62,7 @@ public class ActorServer {
             writesocket.setConf(reg.getConf());
             Actor.current(); // ensure running in actor thread
             poller.get().scheduleSendLoop(reg);
+            reg.setFacadeActor(facade);
             reg.publishActor(facade);
             return new ObjectSink() {
 
@@ -92,9 +92,4 @@ public class ActorServer {
         return facade;
     }
 
-    public IPromise waitScanRefComplete() {
-        Promise res = new Promise();
-        poller.get().completeAfterQPoll(res);
-        return res;
-    }
 }
