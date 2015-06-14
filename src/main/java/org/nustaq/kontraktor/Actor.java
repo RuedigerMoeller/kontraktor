@@ -36,6 +36,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Queue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
@@ -461,23 +462,18 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     // FIXME: would be much better to do lookup at method invoke time INSIDE actor thread instead of doing it on callside (contended)
-    ThreadLocal<HashMap> methodCache;
+    ConcurrentHashMap methodCache;
     @CallerSideMethod public Method __getCachedMethod(String methodName, Actor actor) {
         if ( methodCache == null ) {
-            methodCache = new ThreadLocal<HashMap>() {
-                @Override
-                protected HashMap initialValue() {
-                    return new HashMap();
-                }
-            };
+            methodCache = new ConcurrentHashMap(7);
         }
-        Method method = (Method) methodCache.get().get(methodName);
+        Method method = (Method) methodCache.get(methodName);
         if ( method == null ) {
             Method[] methods = actor.getClass().getMethods();
             for (int i = 0; i < methods.length; i++) {
                 Method m = methods[i];
                 if ( m.getName().equals(methodName) ) {
-                    methodCache.get().put(methodName, m);
+                    methodCache.put(methodName, m);
                     method = m;
                     break;
                 }
