@@ -92,12 +92,9 @@ public class ActorServer {
         return facade;
     }
 
-    public IPromise afterScanQueue() {
+    public IPromise waitScanRefComplete() {
         Promise res = new Promise();
-        // force poller to scan open queues
-        Actor.current().execute( () -> {
-            poller.get().completeAfterQPoll(res);
-        });
+        poller.get().completeAfterQPoll(res);
         return res;
     }
 }

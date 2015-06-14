@@ -353,7 +353,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             reply.run();
         } else {
             Actors.all((List) futures).timeoutIn(REQUEST_TIMEOUT).then( () -> {
-                actorServer.afterScanQueue().then(() -> reply.run());
+                actorServer.waitScanRefComplete().then(() -> reply.run());
             });
             sinkchannel.resumeWrites();
         }

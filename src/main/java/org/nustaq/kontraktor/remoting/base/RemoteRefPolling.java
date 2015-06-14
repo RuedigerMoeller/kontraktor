@@ -58,7 +58,9 @@ public class RemoteRefPolling implements Runnable {
     boolean underway = false;
     static volatile long lastReport = System.currentTimeMillis();
     static AtomicInteger scansPersec = new AtomicInteger(0);
+    Thread pollThread;
     public void run() {
+        pollThread = Thread.currentThread();
         if ( underway )
             return;
         underway = true;
@@ -68,31 +70,7 @@ public class RemoteRefPolling implements Runnable {
             if ( pressured ) {
                 System.out.println("PRESSURE");
             }
-            int count = 1;
-            int maxit = 1;
-            //while ( maxit > 0 && count > 0)
-            {
-                count = 0;
-                scansPersec.incrementAndGet();
-                for (int i = 0; i < sendJobs.size(); i++) {
-                    ScheduleEntry entry = sendJobs.get(i);
-                    if ( entry.reg.isTerminated() ) {
-                        terminateEntry(i, entry, "terminated", null );
-                        i--;
-                        continue;
-                    }
-                    try {
-                        if (entry.reg.pollAndSend2Remote(entry.reg.getWriteObjectSocket().get())) {
-                            count++;
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        terminateEntry(i, entry, null, e);
-                        i--;
-                    }
-                }
-                maxit--;
-            }
+            int count = onePoll();
 
             long dur = System.nanoTime() - nanos;
             dur /= 1000;
@@ -102,12 +80,6 @@ public class RemoteRefPolling implements Runnable {
                 lastReport = System.currentTimeMillis();
                 scansPersec.set(0);
             }
-
-            for (int i = 0; i < toCompleteAfterRun.size(); i++) {
-                IPromise iPromise = toCompleteAfterRun.get(i);
-                iPromise.complete();
-            }
-            toCompleteAfterRun.clear();
 
             if ( sendJobs.size() > 0 ) {
                 if ( count > 0 )
@@ -122,6 +94,41 @@ public class RemoteRefPolling implements Runnable {
         }
     }
 
+    protected int onePoll() {
+        int count = 1;
+        int maxit = 1;
+        //while ( maxit > 0 && count > 0)
+        {
+            count = 0;
+            scansPersec.incrementAndGet();
+            for (int i = 0; i < sendJobs.size(); i++) {
+                ScheduleEntry entry = sendJobs.get(i);
+                if ( entry.reg.isTerminated() ) {
+                    terminateEntry(i, entry, "terminated", null );
+                    i--;
+                    continue;
+                }
+                try {
+                    if (entry.reg.pollAndSend2Remote(entry.reg.getWriteObjectSocket().get())) {
+                        count++;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    terminateEntry(i, entry, null, e);
+                    i--;
+                }
+            }
+            maxit--;
+        }
+
+        for (int i = 0; i < toCompleteAfterRun.size(); i++) {
+            IPromise iPromise = toCompleteAfterRun.get(i);
+            iPromise.complete();
+        }
+        toCompleteAfterRun.clear();
+        return count;
+    }
+
     protected void terminateEntry(int i, ScheduleEntry entry, Object res, Exception e) {
         entry.reg.stopRemoteRefs();
         sendJobs.remove(i);
@@ -130,7 +137,10 @@ public class RemoteRefPolling implements Runnable {
 
     ArrayList<IPromise> toCompleteAfterRun = new ArrayList<>();
     public void completeAfterQPoll(Promise res) {
+        if ( pollThread != Thread.currentThread() )
+            throw new RuntimeException("Wrong Thread");
         toCompleteAfterRun.add(res);
+//        onePoll();
     }
 
     public static class ScheduleEntry {
