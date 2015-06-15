@@ -16,6 +16,7 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.*;
+import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -87,6 +88,7 @@ public class HttpClientConnector implements ActorClientConnector {
         req.addHeader(NO_CACHE);
         req.setEntity(new ByteArrayEntity(message));
         Executor actor = Actor.current();
+
         getClient().execute(req, new FutureCallback<HttpResponse>() {
             @Override
             public void completed(HttpResponse result) {
@@ -292,15 +294,22 @@ public class HttpClientConnector implements ActorClientConnector {
                 }
             }
 
-            lpHttpClient.execute(req, new FutureCallback<HttpResponse>() {
+            final AtomicInteger timedout = new AtomicInteger(0); // 1 = reply, 2 = timeout
+            FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
                 @Override
                 public void completed(HttpResponse result) {
-                    Runnable processLPRespponse = getProcessLPRunnable(p,result);
+                    if (!timedout.compareAndSet(0, 1)) {
+                        return;
+                    }
+                    Runnable processLPRespponse = getProcessLPRunnable(p, result);
                     getReceiveActor().execute(processLPRespponse);
                 }
 
                 @Override
                 public void failed(Exception ex) {
+                    if (!timedout.compareAndSet(0, 1)) {
+                        return;
+                    }
                     // FIXME: resend
                     ex.printStackTrace();
                     p.reject(ex);
@@ -308,10 +317,25 @@ public class HttpClientConnector implements ActorClientConnector {
 
                 @Override
                 public void cancelled() {
+                    if (!timedout.compareAndSet(0, 1)) {
+                        return;
+                    }
                     System.out.println("cancel");
                     p.reject("Canceled");
                 }
-            });
+            };
+            Actor.delayedCalls.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    if (timedout.compareAndSet(0, 2)) {
+                        // long poll timeout, retry
+                        getReceiveActor().execute(() -> {
+                            lpHttpClient.execute(req, callback);
+                        });
+                    }
+                }
+            }, HttpObjectSocket.LP_TIMEOUT + 1000); // give 1 second trip latency
+            lpHttpClient.execute(req, callback);
             return p;
         }
 
@@ -407,6 +431,7 @@ public class HttpClientConnector implements ActorClientConnector {
         public IPromise longPoll() {
             int seq = sendSequence.incrementAndGet();
             Object[] objArr = {seq};
+
             return longPollSend(conf.asByteArray(objArr));
         }
 
