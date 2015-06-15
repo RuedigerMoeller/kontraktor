@@ -259,9 +259,10 @@ public class RemotingTest {
     public void testBlocking() throws Exception {
         checkSequenceErrors = true;
         RemotingTestService service = Actors.AsActor(RemotingTestService.class, Q_SIZE);
-        ActorServer publisher = TCPServerConnector.Publish(service, 8081, null).await();
+        Coding coding = new Coding(SerializerType.FSTSer);
+        ActorServer publisher = TCPServerConnector.Publish(service, 8081, coding).await();
         CountDownLatch latch = new CountDownLatch(1);
-        runnitTCP(latch, null);
+        runnitTCP(latch, coding);
         latch.await();
         Thread.sleep(2000); // wait for outstanding callbacks
         publisher.close();

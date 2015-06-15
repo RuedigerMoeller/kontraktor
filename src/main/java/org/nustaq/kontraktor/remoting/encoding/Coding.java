@@ -49,8 +49,11 @@ public class Coding {
             case UnsafeBinary:
                 conf = FSTConfiguration.createFastBinaryConfiguration();
                 break;
-            default:
+            case FSTSer:
                 conf = FSTConfiguration.createDefaultConfiguration();
+                break;
+            default:
+                throw new RuntimeException("unknown ser configuration type");
         }
         return conf;
     }

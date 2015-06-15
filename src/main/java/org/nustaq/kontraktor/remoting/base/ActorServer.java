@@ -46,12 +46,14 @@ public class ActorServer {
             coding = new Coding(SerializerType.FSTSer);
         this.coding = coding;
         conf = coding.createConf();
+        conf.setName("MAINCONFIG");
     }
 
     public void start() throws Exception {
         connector.connect(facade, writesocket -> {
             AtomicReference<ObjectSocket> socketRef = new AtomicReference<>(writesocket);
             RemoteRegistry reg = new RemoteRegistry( conf.deriveConfiguration(), coding) {
+//            RemoteRegistry reg = new RemoteRegistry(coding) {
                 @Override
                 public Actor getFacadeProxy() {
                     return facade;
