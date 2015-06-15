@@ -329,9 +329,7 @@ public class HttpClientConnector implements ActorClientConnector {
                 public void run() {
                     if (timedout.compareAndSet(0, 2)) {
                         // long poll timeout, retry
-                        getReceiveActor().execute(() -> {
-                            lpHttpClient.execute(req, callback);
-                        });
+                        lpHttpClient.execute(req, callback);
                     }
                 }
             }, HttpObjectSocket.LP_TIMEOUT + 1000); // give 1 second trip latency
