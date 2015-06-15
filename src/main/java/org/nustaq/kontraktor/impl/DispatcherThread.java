@@ -325,7 +325,6 @@ public class DispatcherThread extends Thread implements Monitorable {
     private Object invoke(CallEntry poll) throws IllegalAccessException, InvocationTargetException {
         final Object target = poll.getTarget();
         RemoteRegistry remoteRefRegistry = poll.getRemoteRefRegistry();
-        Actor.registry.set(remoteRefRegistry);
         return poll.getMethod().invoke(target, poll.getArgs());
     }
 

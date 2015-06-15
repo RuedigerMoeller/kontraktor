@@ -74,7 +74,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * contains sender of a message if one actor messages to another actor
      */
     public static ThreadLocal<Actor> sender = new ThreadLocal<>();
-    public static ThreadLocal<RemoteRegistry> registry = new ThreadLocal<>();
 
     /**
      * @return current actor thread or throw an exception if not running inside an actor thread.

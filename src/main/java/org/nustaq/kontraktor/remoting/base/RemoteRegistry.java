@@ -57,28 +57,15 @@ public abstract class RemoteRegistry implements RemoteConnection {
     protected boolean isObsolete;
     private Actor facadeActor;
 
+    public RemoteRegistry(FSTConfiguration conf, Coding coding) {
+        this.conf = conf;
+        configureSerialization(coding);
+    }
+
     public RemoteRegistry(Coding code) {
 		if ( code == null )
 			code = new Coding(SerializerType.FSTSer);
-	    switch (code.getCoding()) {
-		    case MinBin:
-			    conf = FSTConfiguration.createMinBinConfiguration();
-			    break;
-            case Json:
-			    conf = FSTConfiguration.createJsonConfiguration();
-			    break;
-            case JsonNoRef:
-			    conf = FSTConfiguration.createJsonConfiguration(false,false);
-			    break;
-            case JsonNoRefPretty:
-			    conf = FSTConfiguration.createJsonConfiguration(true,false);
-			    break;
-            case UnsafeBinary:
-			    conf = FSTConfiguration.createFastBinaryConfiguration();
-			    break;
-		    default:
-			    conf = FSTConfiguration.createDefaultConfiguration();
-	    }
+	    conf = code.createConf();
 	    configureSerialization(code);
 	}
 

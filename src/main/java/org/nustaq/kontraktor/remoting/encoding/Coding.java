@@ -30,4 +30,29 @@ public class Coding {
     public Consumer<FSTConfiguration> getConfigurator() {
         return configurator;
     }
+
+    public FSTConfiguration createConf() {
+        FSTConfiguration conf;
+        switch (coding) {
+            case MinBin:
+                conf = FSTConfiguration.createMinBinConfiguration();
+                break;
+            case Json:
+                conf = FSTConfiguration.createJsonConfiguration();
+                break;
+            case JsonNoRef:
+                conf = FSTConfiguration.createJsonConfiguration(false, false);
+                break;
+            case JsonNoRefPretty:
+                conf = FSTConfiguration.createJsonConfiguration(true, false);
+                break;
+            case UnsafeBinary:
+                conf = FSTConfiguration.createFastBinaryConfiguration();
+                break;
+            default:
+                conf = FSTConfiguration.createDefaultConfiguration();
+        }
+        return conf;
+    }
+
 }

@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.serialization.FSTConfiguration;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,6 +33,7 @@ public class ActorServer {
     // fixme: should pushed outside of this class. Currently only fst en/decoding can be used.
     // fixme: RemoteRegistry currently is responsible for configuration. bad.
     protected Coding coding;
+    protected FSTConfiguration conf; // parent conf
 
     public ActorServerConnector getConnector() {
         return connector;
@@ -43,12 +45,13 @@ public class ActorServer {
         if ( coding == null )
             coding = new Coding(SerializerType.FSTSer);
         this.coding = coding;
+        conf = coding.createConf();
     }
 
     public void start() throws Exception {
         connector.connect(facade, writesocket -> {
             AtomicReference<ObjectSocket> socketRef = new AtomicReference<>(writesocket);
-            RemoteRegistry reg = new RemoteRegistry(coding) {
+            RemoteRegistry reg = new RemoteRegistry( conf.deriveConfiguration(), coding) {
                 @Override
                 public Actor getFacadeProxy() {
                     return facade;
