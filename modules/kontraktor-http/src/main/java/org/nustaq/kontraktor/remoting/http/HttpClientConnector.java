@@ -185,7 +185,7 @@ public class HttpClientConnector implements ActorClientConnector {
             }
         };
         if ( ! cfg.shortPollMode ) {
-            getReceiveActor().__currentDispatcher.setName("Http LP dispatcher");
+            getReceiveActor().getCurrentDispatcher().setName("Http LP dispatcher");
             getReceiveActor().execute(pollRunnable);
         } else {
             getRefPollActor().execute(pollRunnable);
@@ -295,46 +295,51 @@ public class HttpClientConnector implements ActorClientConnector {
             }
 
             final AtomicInteger timedout = new AtomicInteger(0); // 1 = reply, 2 = timeout
-            FutureCallback<HttpResponse> callback = new FutureCallback<HttpResponse>() {
-                @Override
-                public void completed(HttpResponse result) {
-                    if (!timedout.compareAndSet(0, 1)) {
-                        return;
-                    }
-                    Runnable processLPRespponse = getProcessLPRunnable(p, result);
-                    getReceiveActor().execute(processLPRespponse);
-                }
-
-                @Override
-                public void failed(Exception ex) {
-                    if (!timedout.compareAndSet(0, 1)) {
-                        return;
-                    }
-                    // FIXME: resend
-                    ex.printStackTrace();
-                    p.reject(ex);
-                }
-
-                @Override
-                public void cancelled() {
-                    if (!timedout.compareAndSet(0, 1)) {
-                        return;
-                    }
-                    System.out.println("cancel");
-                    p.reject("Canceled");
-                }
-            };
+            FutureCallback<HttpResponse> callback = getHttpLPFutureCallback(p, timedout);
             Actor.delayedCalls.schedule(new TimerTask() {
                 @Override
                 public void run() {
                     if (timedout.compareAndSet(0, 2)) {
                         // long poll timeout, retry
-                        lpHttpClient.execute(req, callback);
+                        final AtomicInteger timedout = new AtomicInteger(0); // 1 = reply, 2 = timeout
+                        lpHttpClient.execute(req, getHttpLPFutureCallback(p,timedout));
                     }
                 }
             }, HttpObjectSocket.LP_TIMEOUT + 1000); // give 1 second trip latency
             lpHttpClient.execute(req, callback);
             return p;
+        }
+
+        private FutureCallback<HttpResponse> getHttpLPFutureCallback(final Promise p, final AtomicInteger timedout) {
+            return new FutureCallback<HttpResponse>() {
+                        @Override
+                        public void completed(HttpResponse result) {
+                            if (!timedout.compareAndSet(0, 1)) {
+                                return;
+                            }
+                            Runnable processLPRespponse = getProcessLPRunnable(p, result);
+                            getReceiveActor().execute(processLPRespponse);
+                        }
+
+                        @Override
+                        public void failed(Exception ex) {
+                            if (!timedout.compareAndSet(0, 1)) {
+                                return;
+                            }
+                            // FIXME: resend
+                            ex.printStackTrace();
+                            p.reject(ex);
+                        }
+
+                        @Override
+                        public void cancelled() {
+                            if (!timedout.compareAndSet(0, 1)) {
+                                return;
+                            }
+                            System.out.println("cancel");
+                            p.reject("Canceled");
+                        }
+                    };
         }
 
         protected Runnable getProcessLPRunnable(Promise p, HttpResponse result) {

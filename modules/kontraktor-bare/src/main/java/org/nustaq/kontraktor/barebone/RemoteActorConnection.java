@@ -87,7 +87,9 @@ public class RemoteActorConnection {
     protected String sessionUrl;
     protected int lastSeenSeq;
     protected ConnectionListener connectionListener;
+    protected volatile long timeout = LONG_POLL_MAX_TIME*2; // signal close if no longpoll has been received for this time
 
+    protected long lastPing;
     /**
      * callback id => promise or callback
      */
@@ -156,6 +158,14 @@ public class RemoteActorConnection {
         conf.registerSerializer(Callback.class, new CallbackRefSerializer(this), true);
     }
 
+    public long getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(long timeout) {
+        this.timeout = timeout;
+    }
+
     public Promise<RemoteActor> connect(final String url, final boolean longPoll) {
         final Promise res = new Promise();
 
@@ -171,6 +181,7 @@ public class RemoteActorConnection {
         getClient().execute(req, new FutureCallback<HttpResponse>() {
             @Override
             public void completed(HttpResponse result) {
+                lastPing = System.currentTimeMillis();
                 if (result.getStatusLine().getStatusCode() != 200) {
                     res.receive(null,"connection failed with status:"+result.getStatusLine().getStatusCode());
                     return;
@@ -237,6 +248,7 @@ public class RemoteActorConnection {
                 delayed(new Runnable() {
                     @Override
                     public void run() {
+                        checkTimeout();
                         if ( timedout.compareAndSet(0,2) ) {
                             // long poll timeout, retry
                             myExec.execute(lp.get());
@@ -255,6 +267,7 @@ public class RemoteActorConnection {
                             delayed(lp.get(), 2000);
                             return;
                         }
+                        lastPing = System.currentTimeMillis();
                         String cl = result.getFirstHeader("Content-Length").getValue();
                         int len = Integer.parseInt(cl);
                         if (len > 0) {
@@ -301,6 +314,11 @@ public class RemoteActorConnection {
             }
         });
         delayed(lp.get(), 1000);
+    }
+
+    protected void checkTimeout() {
+        if ( System.currentTimeMillis() - lastPing > timeout )
+            disconnect("timed out");
     }
 
     protected static Timer timer = new Timer();
@@ -418,10 +436,10 @@ public class RemoteActorConnection {
             public void completed(HttpResponse result) {
                 if (result.getStatusLine().getStatusCode() != 200) {
                     String error = "Unexpected status:" + result.getStatusLine().getStatusCode();
-                    disconnect(error);
                     p.reject(error);
                     return;
                 }
+                lastPing = System.currentTimeMillis();
                 String cl = result.getFirstHeader("Content-Length").getValue();
                 int len = Integer.parseInt(cl);
                 if (len > 0) {

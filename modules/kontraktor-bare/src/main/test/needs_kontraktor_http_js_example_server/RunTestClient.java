@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.barebone.RemoteActorConnection;
 import org.nustaq.serialization.coders.Unknown;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,6 +20,8 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class RunTestClient {
 
+    private static final boolean DO_BENCH = false;
+
     public static void main(String[] args) throws InterruptedException {
 
         final Executor myWorkers = Executors.newCachedThreadPool();
@@ -26,7 +29,7 @@ public class RunTestClient {
            new ConnectionListener() {
                @Override
                public void connectionClosed(String s) {
-                   System.out.println("connection closed");
+                   System.out.println("connection closed:"+s);
                }
            },
            false
@@ -73,14 +76,14 @@ public class RunTestClient {
         session.tell("subscribe", new Callback() {
             @Override
             public void receive(Object result, Object error) {
-                System.out.println("event received:" + result);
+                System.out.println("event received:" + new Date());
             }
         });
 
         myWorkers.execute(new Runnable() {
             @Override
             public void run() {
-                while (System.currentTimeMillis() == 0 || true) {
+                while (System.currentTimeMillis() == 0 || DO_BENCH) {
                     long tim = System.currentTimeMillis();
                     final AtomicInteger count = new AtomicInteger();
                     final boolean res[] = new boolean[100_000];
