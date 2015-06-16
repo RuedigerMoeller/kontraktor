@@ -1,8 +1,13 @@
-package sample.httpjs;
+package sample.test;
 
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.HttpClientConnector;
 import org.nustaq.kontraktor.remoting.http.HttpConnectable;
+import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
+import sample.httpjs.MyHttpApp;
+import sample.httpjs.MyHttpAppSession;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
@@ -20,8 +25,17 @@ public class KLoadTest {
     MyHttpApp myApp;
 
     public void run() {
-        new HttpConnectable(MyHttpApp.class, "http://localhost:8080/api")
-            .serType(SerializerType.JsonNoRef)
+        boolean http = false;
+        ConnectableActor connectable;
+        if ( !http ) {
+            connectable = new WebSocketConnectable(MyHttpApp.class, "ws://localhost:8080/ws")
+                                 .serType(SerializerType.JsonNoRef);
+        } else {
+            connectable = new HttpConnectable(MyHttpApp.class, "http://localhost:8080/api")
+                                 .serType(SerializerType.JsonNoRef);
+        }
+
+        connectable
             .connect((connector, error) -> {
                 System.out.println("connection lost " + connector);
             }).then( (res,err) -> {

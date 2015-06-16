@@ -3,7 +3,9 @@ package org.nustaq.kontraktor.remoting.websockets;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.util.FSTUtil;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,6 +23,7 @@ public abstract class WebObjectSocket implements ObjectSocket {
     protected FSTConfiguration conf;
     protected Throwable lastError;
     protected AtomicInteger sendSequence = new AtomicInteger(0); // defensive
+    protected volatile boolean isClosed;
 
     public AtomicInteger getSendSequence() {
         return sendSequence;
@@ -49,6 +52,13 @@ public abstract class WebObjectSocket implements ObjectSocket {
         if (objects.size() == 0) {
             return;
         }
+        if ( isClosed() ) {
+            if ( lastError != null ) {
+                FSTUtil.<RuntimeException>rethrow(lastError);
+            } else {
+                throw new IOException("WebSocket is closed");
+            }
+        }
         objects.add(sendSequence.incrementAndGet()); // sequence
         Object[] objArr = objects.toArray();
         objects.clear();
@@ -73,6 +83,10 @@ public abstract class WebObjectSocket implements ObjectSocket {
     @Override
     public FSTConfiguration getConf() {
         return conf;
+    }
+
+    public boolean isClosed() {
+        return isClosed;
     }
 
 }

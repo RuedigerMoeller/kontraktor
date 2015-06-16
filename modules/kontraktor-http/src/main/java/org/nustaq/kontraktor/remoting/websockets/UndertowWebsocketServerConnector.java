@@ -11,6 +11,7 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.util.Pair;
+import org.nustaq.serialization.util.FSTUtil;
 import org.xnio.Buffers;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -39,40 +40,46 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
         PathHandler server = getServer(port).getFirst();
         server.addExactPath(
             path,
-            Handlers.websocket( (exchange, channel) -> { // connection callback
-                Runnable runnable = () -> {
-                    UTWebObjectSocket objectSocket = new UTWebObjectSocket(exchange, channel);
-                    ObjectSink sink = factory.apply(objectSocket);
+            Handlers.websocket((exchange, channel) -> { // connection callback
+               Runnable runnable = () -> {
+                   UTWebObjectSocket objectSocket = new UTWebObjectSocket(exchange, channel);
+                   ObjectSink sink = factory.apply(objectSocket);
+                   objectSocket.setSink(sink);
 
-                    channel.getReceiveSetter().set(new AbstractReceiveListener() {
-                        @Override
-                        protected void onCloseMessage(CloseMessage cm, WebSocketChannel channel) {
-                            try {
-                                channel.close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                            sink.sinkClosed();
-                        }
+                   channel.getReceiveSetter().set(new AbstractReceiveListener() {
+                       @Override
+                       protected void onCloseMessage(CloseMessage cm, WebSocketChannel channel) {
+                           try {
+                               channel.close();
+                           } catch (IOException e) {
+                               e.printStackTrace();
+                           }
+                           sink.sinkClosed();
+                       }
 
-                        @Override
-                        protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
-                            String data = message.getData();
-                            byte[] bytez = data.getBytes("UTF-8");
-                            sink.receiveObject(objectSocket.getConf().asObject(bytez), null);
-                        }
+                       @Override
+                       protected void onError(WebSocketChannel channel, Throwable error) {
+                           sink.sinkClosed();
+                       }
 
-                        @Override
-                        protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
-                            ByteBuffer[] data = message.getData().getResource();
-                            byte[] bytez = Buffers.take(data, 0, data.length);
-                            sink.receiveObject(objectSocket.getConf().asObject(bytez), null);
-                        }
-                    });
-                };
-//                runnable.run();
-                facade.execute(runnable);
-                channel.resumeReceives();
+                       @Override
+                       protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
+                           String data = message.getData();
+                           byte[] bytez = data.getBytes("UTF-8");
+                           sink.receiveObject(objectSocket.getConf().asObject(bytez), null);
+                       }
+
+                       @Override
+                       protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
+                           ByteBuffer[] data = message.getData().getResource();
+                           byte[] bytez = Buffers.take(data, 0, data.length);
+                           sink.receiveObject(objectSocket.getConf().asObject(bytez), null);
+                       }
+                   });
+               };
+            //                runnable.run();
+               facade.execute(runnable);
+               channel.resumeReceives();
             })
         );
     }
@@ -92,6 +99,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
 
         WebSocketChannel channel;
         WebSocketHttpExchange ex;
+        private ObjectSink sink;
 
         public UTWebObjectSocket(WebSocketHttpExchange ex, WebSocketChannel channel) {
             this.ex = ex;
@@ -108,8 +116,13 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
 
                 @Override
                 public void onError(WebSocketChannel channel, Object context, Throwable throwable) {
-                    throwable.printStackTrace();
                     setLastError(throwable);
+                    try {
+                        isClosed = true;
+                        UTWebObjectSocket.this.close();
+                    } catch (IOException e) {
+                        FSTUtil.<RuntimeException>rethrow(e);
+                    }
                 }
             });
         }
@@ -117,6 +130,16 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
         @Override
         public void close() throws IOException {
             channel.close();
+            if ( sink != null )
+                sink.sinkClosed();
+        }
+
+        public void setSink(ObjectSink sink) {
+            this.sink = sink;
+        }
+
+        public ObjectSink getSink() {
+            return sink;
         }
     }
 }

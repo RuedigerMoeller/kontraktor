@@ -128,7 +128,7 @@ public class RemoteRefPolling implements Runnable {
                     if (entry.reg.pollAndSend2Remote(entry.reg.getWriteObjectSocket().get())) {
                         count++;
                     }
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     e.printStackTrace();
                     terminateEntry(i, entry, null, e);
                     i--;
@@ -140,7 +140,7 @@ public class RemoteRefPolling implements Runnable {
         return count;
     }
 
-    protected void terminateEntry(int i, ScheduleEntry entry, Object res, Exception e) {
+    protected void terminateEntry(int i, ScheduleEntry entry, Object res, Throwable e) {
         entry.reg.stopRemoteRefs();
         sendJobs.remove(i);
         entry.promise.complete(res,e);
