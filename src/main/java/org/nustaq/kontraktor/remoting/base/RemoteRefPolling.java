@@ -75,31 +75,25 @@ public class RemoteRefPolling implements Runnable {
                 System.out.println("PRESSURE");
             }
 
-            int count = onePoll();
-
-//            long dur = System.nanoTime() - nanos;
-//            dur /= 1000;
-//
-//            if ( System.currentTimeMillis() - lastReport > 1000 ) {
-//                System.out.println("scan duration "+dur+" micros "+scansPersec.get()+" scans/sec, instances:"+instanceCount.get());
-//                lastReport = System.currentTimeMillis();
-//                scansPersec.set(0);
-//            }
-
-            if ( sendJobs.size() > 0 ) {
-                if ( count > 0 )
-                    Actor.current().delayed(1, this);
-                else {
-                    if ( remoteRefCounter == 0 ) // no remote actors registered
-                    {
-                        Actor.current().delayed(500, this); // backoff massively
-                    } else {
-                        Actor.current().delayed(10, this); // backoff a bit (remoteactors present, no messages)
+            int count = 1;
+            while( count > 0 ) {
+                count = onePoll();
+                if ( sendJobs.size() > 0 ) {
+                    if ( count > 0 ) {
+//                        Actor.current().yield();
                     }
+                    else {
+                        if ( remoteRefCounter == 0 ) // no remote actors registered
+                        {
+                            Actor.current().delayed(500, this); // backoff massively
+                        } else {
+                            Actor.current().delayed(10, this); // backoff a bit (remoteactors present, no messages)
+                        }
+                    }
+                } else {
+                    // no schedule entries (== no clients)
+                    Actor.current().delayed(500, this );
                 }
-            } else {
-                // no schedule entries (== no clients)
-                Actor.current().delayed(500, this );
             }
         } finally {
             underway = false;

@@ -104,6 +104,8 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     // register callbacks notified on stop
     ConcurrentLinkedQueue<Callback<SELF>> __stopHandlers;
     public int __mailboxCapacity;
+    public void __submit(Runnable toRun) { toRun.run(); }
+
     // <- internal
 
     /**
@@ -202,13 +204,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         __scheduler.delayedCall(millis, inThread(self(), toRun));
     }
 
-    /**
-     * just enqueue given runable to this actors mailbox and execute on the actor's thread
-     * @param toRun
-     */
-    public void submit(Runnable toRun) {
-        toRun.run();
-    }
 
     /**
      * @return true if mailbox fill size is ~half capacity
@@ -482,13 +477,13 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
-     * put given runnable on this actors mailbox
+     * just enqueue given runable to this actors mailbox and execute on the actor's thread
      *
      * @param command
      */
     @CallerSideMethod @Local @Override
     public void execute(Runnable command) {
-        self().submit(command);
+        self().__submit(command);
     }
 
     @CallerSideMethod @Local

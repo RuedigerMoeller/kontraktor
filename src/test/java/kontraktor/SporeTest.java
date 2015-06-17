@@ -72,9 +72,8 @@ public class SporeTest {
                 })
                 .onFinish(() -> System.out.println("DONE"))
             );
-            Thread t = Thread.currentThread();
-            data.submit( () -> {
-                if ( t == Thread.currentThread() ) {
+            data.execute( () -> {
+                if ( data.getCurrentDispatcher() == Thread.currentThread() ) {
                     res.incrementAndGet();
                 }
             });

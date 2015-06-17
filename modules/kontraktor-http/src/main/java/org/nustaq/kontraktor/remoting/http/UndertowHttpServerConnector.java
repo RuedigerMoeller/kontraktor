@@ -355,9 +355,9 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             reply.run();
         } else {
             long now = System.currentTimeMillis();
-            System.out.println("wait start "+futures.size()+" futures "+System.currentTimeMillis());
+//            System.out.println("wait start "+futures.size()+" futures "+System.currentTimeMillis());
             Actors.all((List) futures).timeoutIn(REQUEST_RESULTING_FUTURE_TIMEOUT).then( () -> {
-                System.out.println("  duration wait dur:"+(System.currentTimeMillis()-now)+" "+Actor.inside());
+//                System.out.println("  duration wait dur:"+(System.currentTimeMillis()-now)+" "+Actor.inside());
                 reply.run();
             });
             sinkchannel.resumeWrites();

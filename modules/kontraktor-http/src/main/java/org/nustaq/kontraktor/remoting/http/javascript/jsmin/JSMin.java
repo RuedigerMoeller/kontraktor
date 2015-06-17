@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.jsmin;
+package org.nustaq.kontraktor.remoting.http.javascript.jsmin;
 // original package ch.simschla.minify.js;
 
 import java.io.IOException;

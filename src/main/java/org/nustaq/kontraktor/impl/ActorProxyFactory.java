@@ -211,7 +211,7 @@ public class ActorProxyFactory {
                  originalMethod.getName().equals("__unpublish") ||
                  originalMethod.getName().equals("__republished") ||
                  originalMethod.getName().equals("ping") ||
-                 originalMethod.getName().equals("submit") ||
+                 originalMethod.getName().equals("__submit") ||
                  originalMethod.getName().equals("exec") ||
                  originalMethod.getName().equals("asyncstop") ||
                  originalMethod.getName().equals("receive") ||

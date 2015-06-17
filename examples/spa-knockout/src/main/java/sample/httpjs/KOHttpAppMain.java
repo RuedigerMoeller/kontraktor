@@ -48,7 +48,7 @@ public class KOHttpAppMain {
                     "./web/components",
                     "../../modules/kontraktor-http/src/main/javascript",
                     "./web/lib")
-                .devMode(true)
+                .devMode(false)
                 .build()
             .build();
     }

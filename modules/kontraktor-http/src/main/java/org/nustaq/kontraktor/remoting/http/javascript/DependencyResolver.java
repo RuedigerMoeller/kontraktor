@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.remoting.http.javascript;
 
+import org.nustaq.kontraktor.remoting.http.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
 
@@ -204,7 +205,7 @@ public class DependencyResolver {
      *
      * use in production mode (debugging will be hard)
      *
-     * for dev use createScriptTags() instead
+     * for dev createScriptTags() is used instead
      *
      * @param fileNames list script (.js) filenames
      * @return
@@ -227,6 +228,9 @@ public class DependencyResolver {
                 }
             }
         }
+        ByteArrayInputStream bin = new ByteArrayInputStream(bout.toByteArray());
+        bout.reset();
+        JSMin.builder().inputStream(bin).outputStream(bout).build().minify();
         byte[] bytes = bout.toByteArray();
         return bytes;
     }
