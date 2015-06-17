@@ -14,6 +14,7 @@ import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.util.FSTUtil;
 import org.xnio.Buffers;
 import java.io.IOException;
+import java.lang.ref.*;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
@@ -99,7 +100,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
 
         WebSocketChannel channel;
         WebSocketHttpExchange ex;
-        private ObjectSink sink;
+        private WeakReference<ObjectSink> sink;
 
         public UTWebObjectSocket(WebSocketHttpExchange ex, WebSocketChannel channel) {
             this.ex = ex;
@@ -130,16 +131,17 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
         @Override
         public void close() throws IOException {
             channel.close();
-            if ( sink != null )
-                sink.sinkClosed();
+            ObjectSink objectSink = sink.get();
+            if (objectSink != null )
+                objectSink.sinkClosed();
         }
 
         public void setSink(ObjectSink sink) {
-            this.sink = sink;
+            this.sink = new WeakReference<ObjectSink>(sink);
         }
 
         public ObjectSink getSink() {
-            return sink;
+            return sink.get();
         }
     }
 }
