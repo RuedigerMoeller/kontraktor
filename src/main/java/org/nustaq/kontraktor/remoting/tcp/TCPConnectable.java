@@ -33,7 +33,7 @@ public class TCPConnectable implements ConnectableActor {
      * @param port - port
      * @param actorClz - actor clazz to connect to
      */
-    public TCPConnectable(String host, int port, Class actorClz ) {
+    public TCPConnectable(Class actorClz, String host, int port) {
         this.host = host;
         this.port = port;
         this.actorClz = actorClz;

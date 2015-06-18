@@ -3,7 +3,9 @@ package service.server;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.tcp.NIOServerConnector;
+import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import service.common.MyServiceInterface;
 
 import java.util.ArrayList;
@@ -54,7 +56,13 @@ public class MyServiceServerImpl extends MyServiceInterface<MyServiceServerImpl>
 
     public static void main( String a[] ) {
         MyServiceInterface myService = Actors.AsActor(MyServiceServerImpl.class, 128_000);// give large queue to service
-        NIOServerConnector.Publish(myService, 6789, null).await();
+
+        new TCPNIOPublisher()
+            .facade(myService)
+            .port(6789)
+            .serType(SerializerType.FSTSer)
+            .publish().await();
+
         System.out.println("server started on "+6789);
     }
 

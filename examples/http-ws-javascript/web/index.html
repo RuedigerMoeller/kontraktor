@@ -20,7 +20,8 @@
 <script>
 var server = null;
 var errCB = function( err ) { console.error(err); };
-    jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets
+
+jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets
 //  jsk.connect("http://localhost:8080/api","HTLP",errCB) // use this for long poll
   .then( function( app, error ) {
     if ( ! app ) {

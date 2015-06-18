@@ -20,13 +20,13 @@ import java.util.function.Function;
 public class TCPClientConnector implements ActorClientConnector {
 
     public static class RemotingHelper extends Actor<RemotingHelper> {}
-    static AtomicReference<RemotingHelper> singleton =  new AtomicReference<>();
+    protected static AtomicReference<RemotingHelper> singleton =  new AtomicReference<>();
 
     /**
      * in case clients are connected from non actor world, provide a global actor(thread) for remote client processing
      * (=polling queues, encoding)
      */
-    static RemotingHelper get() {
+    protected static RemotingHelper get() {
         synchronized (singleton) {
             if ( singleton.get() == null ) {
                 singleton.set(Actors.AsActor(RemotingHelper.class));
@@ -35,10 +35,10 @@ public class TCPClientConnector implements ActorClientConnector {
         }
     }
 
-    int port;
-    String host;
-    MyTCPSocket socket;
-    Callback<ActorClientConnector> disconnectCallback;
+    protected int port;
+    protected String host;
+    protected MyTCPSocket socket;
+    protected Callback<ActorClientConnector> disconnectCallback;
 
     public TCPClientConnector(int port, String host, Callback<ActorClientConnector> disconnectCallback) {
         this.port = port;

@@ -12,7 +12,7 @@ import org.nustaq.kontraktor.remoting.http.builder.CFGFourK;
 /**
  * Created by ruedi on 04/06/15.
  */
-public class WebSocketPublisher implements ActorPublisher, Cloneable {
+public class WebSocketPublisher implements ActorPublisher {
 
     CFGFourK cfg; // used in cfgbuilder
 
@@ -89,10 +89,5 @@ public class WebSocketPublisher implements ActorPublisher, Cloneable {
         return this;
     }
 
-    @Override
-    protected WebSocketPublisher clone() throws CloneNotSupportedException {
-        WebSocketPublisher clone = (WebSocketPublisher) super.clone();
-        return clone;
-    }
 
 }
