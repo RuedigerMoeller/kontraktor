@@ -130,6 +130,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
 
         @Override
         public void close() throws IOException {
+            channel.getReceiveSetter().set(null);
             channel.close();
             ObjectSink objectSink = sink.get();
             if (objectSink != null )

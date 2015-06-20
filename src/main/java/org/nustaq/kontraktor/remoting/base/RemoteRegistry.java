@@ -335,6 +335,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
      * cleanup after connection close
      */
     public void cleanUp() {
+        conf.clearCaches();
         stopRemoteRefs();
         publishedActorMappingReverse.keySet().forEach((act) -> {
             if (act instanceof Actor)

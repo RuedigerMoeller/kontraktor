@@ -18,6 +18,7 @@ import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
 import org.nustaq.kontraktor.remoting.websockets._JSR356ServerConnector;
 import org.nustaq.kontraktor.util.RateMeasure;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -31,8 +32,11 @@ import java.util.concurrent.locks.LockSupport;
 public class RemotingTest {
 
     public static final int Q_SIZE = 256_000;
+    private static final boolean FAT_ARGS = true;
+    private static final boolean ONLY_PROM = false;
     static AtomicInteger errors = new AtomicInteger();
     static boolean checkSequenceErrors = true;
+    static boolean spore = false;
 
     public static class RemotingTestService extends Actor<RemotingTestService> {
 
@@ -71,6 +75,14 @@ public class RemotingTest {
             return new Promise<>(someVal);
         }
 
+        public void benchMarkFatVoid(Object someVal) {
+            measure.count();
+        }
+
+        public IPromise<Object> benchMarkFatPromise(Object someVal) {
+            measure.count();
+            return new Promise<>(someVal);
+        }
     }
 
     // fixme: add connect-from-actor tests
@@ -304,31 +316,88 @@ public class RemotingTest {
         client.close();
     }
 
+    public static class Pojo implements Serializable{
+        String name;
+        String preName;
+        int age;
+        String sex;
+        double field;
+
+        String name1;
+        String preName1;
+        int age1;
+        String sex1;
+        double field1;
+
+        String name2;
+        String preName2;
+        int age2;
+        String sex2;
+        double field2;
+
+        String name3;
+        String preName3;
+        int age3;
+        String sex3;
+        double field3;
+
+        public Pojo(String name, String preName, int age, String sex, double field, String name1, String preName1, int age1, String sex1, double field1, String name2, String preName2, int age2, String sex2, double field2, String name3, String preName3, int age3, String sex3, double field3) {
+            this.name = name;
+            this.preName = preName;
+            this.age = age;
+            this.sex = sex;
+            this.field = field;
+            this.name1 = name1;
+            this.preName1 = preName1;
+            this.age1 = age1;
+            this.sex1 = sex1;
+            this.field1 = field1;
+            this.name2 = name2;
+            this.preName2 = preName2;
+            this.age2 = age2;
+            this.sex2 = sex2;
+            this.field2 = field2;
+            this.name3 = name3;
+            this.preName3 = preName3;
+            this.age3 = age3;
+            this.sex3 = sex3;
+            this.field3 = field3;
+        }
+    }
+
     protected void runWithClient(RemotingTestService client, CountDownLatch l) throws InterruptedException {
         Assert.assertTrue("Hello Hello".equals(client.promise("Hello").await(999999)));
 
         AtomicInteger replyCount = new AtomicInteger(0);
-        ArrayList<Integer> sporeResult = new ArrayList<>();
-        Promise sporeP = new Promise();
-        client.spore(new Spore<Integer, Integer>() {
-            @Override
-            public void remote(Integer input) {
-                stream(input);
-            }
-        }.forEach((res, e) -> {
-            System.out.println("spore res " + res);
-            sporeResult.add(res);
-        }).onFinish(() -> {
-            System.out.println("Finish");
-            sporeP.complete();
-        }));
-        sporeP.await(30_000);
-        Assert.assertTrue(sporeResult.size() == 4);
+        if ( spore ) {
+            ArrayList<Integer> sporeResult = new ArrayList<>();
+            Promise sporeP = new Promise();
+            client.spore(new Spore<Integer, Integer>() {
+                @Override
+                public void remote(Integer input) {
+                    stream(input);
+                }
+            }.forEach((res, e) -> {
+                System.out.println("spore res " + res);
+                sporeResult.add(res);
+            }).onFinish(() -> {
+                System.out.println("Finish");
+                sporeP.complete();
+            }));
+            sporeP.await(30_000);
+            Assert.assertTrue(sporeResult.size() == 4);
+        }
 
         System.out.println("one way performance");
         int numMsg = 15_000_000;
-        for ( int i = 0; i < numMsg; i++ ) {
-            client.benchMarkVoid(i);
+        for ( int i = 0; !ONLY_PROM && i < numMsg; i++ ) {
+            if ( FAT_ARGS ) {
+                Pojo map = createPojo(i);
+//                System.out.println(FSTConfiguration.getDefaultConfiguration().asByteArray(map).length);
+                client.benchMarkFatVoid(map);
+            } else {
+                client.benchMarkVoid(i);
+            }
         }
         System.out.println("two way performance");
         errors.set(0);
@@ -339,19 +408,25 @@ public class RemotingTest {
             while ( i - replyCount.get() > 200_000 ) { // FIXME: remoteref registry should do this, but how to handle unanswered requests ?
                 LockSupport.parkNanos(1);
             }
-            client.benchMarkPromise(i).then(s -> {
-                replyCount.incrementAndGet();
-                if (seq[s])
-                    errors.incrementAndGet();
-                seq[s] = true;
-            });
+            if ( FAT_ARGS ) {
+                client.benchMarkFatPromise(createPojo(i)).then(s -> {
+                    replyCount.incrementAndGet();
+                });
+            } else {
+                client.benchMarkPromise(i).then(s -> {
+                    replyCount.incrementAndGet();
+                    if (seq[s])
+                        errors.incrementAndGet();
+                    seq[s] = true;
+                });
+            }
         }
         Thread.sleep(2000);
         if (replyCount.get() != numMsg) {
             System.out.println("extend wait ..");
             Thread.sleep(HttpObjectSocket.LP_TIMEOUT*2);
         }
-        for (int i = 0; i < seq.length; i++) {
+        for (int i = 0; ! FAT_ARGS && i < seq.length; i++) {
             boolean b = seq[i];
             if ( !b ) {
                 System.out.println("missing:"+i);
@@ -363,5 +438,7 @@ public class RemotingTest {
         junit.framework.Assert.assertTrue(errors.get() == 0);
         l.countDown();
     }
+
+    private Pojo createPojo(int i) {return new Pojo("Some Name","Some Prename", i, "M", i*1.2,"NameNumber2","Prename1",i*2,"W",1.323,"BLASDASD","oaisjd",43534+i,"?",234.33,"sldfjlsdfk","lsdkfjsdf",13+i,"MW",1234.123+i);}
 
 }
