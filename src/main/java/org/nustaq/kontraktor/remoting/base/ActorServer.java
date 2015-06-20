@@ -30,8 +30,6 @@ public class ActorServer {
         }
     };
 
-    // fixme: should pushed outside of this class. Currently only fst en/decoding can be used.
-    // fixme: RemoteRegistry currently is responsible for configuration. bad.
     protected Coding coding;
     protected FSTConfiguration conf; // parent conf
 
@@ -47,6 +45,10 @@ public class ActorServer {
         this.coding = coding;
         conf = coding.createConf();
         conf.setName("MAINCONFIG");
+        RemoteRegistry.registerDefaultClassMappings(conf);
+        if ( coding.getCrossPlatformShortClazzNames() != null ) {
+            conf.registerCrossPlatformClassMappingUseSimpleName(coding.getCrossPlatformShortClazzNames());
+        }
     }
 
     public void start() throws Exception {

@@ -69,11 +69,10 @@ public class RemoteRefPolling implements Runnable {
             return;
         underway = true;
         try {
-            boolean pressured = Actor.current().isMailboxPressured() || Actor.current().isCallbackQPressured();
-            long nanos = System.nanoTime();
-            if ( pressured ) {
-                System.out.println("PRESSURE");
-            }
+//            boolean pressured = Actor.current().isMailboxPressured() || Actor.current().isCallbackQPressured();
+//            if ( pressured ) {
+//                System.out.println("PRESSURE");
+//            }
 
             int count = 1;
             while( count > 0 ) {
@@ -87,7 +86,7 @@ public class RemoteRefPolling implements Runnable {
                         {
                             Actor.current().delayed(500, this); // backoff massively
                         } else {
-                            Actor.current().delayed(10, this); // backoff a bit (remoteactors present, no messages)
+                            Actor.current().delayed(1, this); // backoff a bit (remoteactors present, no messages)
                         }
                     }
                 } else {

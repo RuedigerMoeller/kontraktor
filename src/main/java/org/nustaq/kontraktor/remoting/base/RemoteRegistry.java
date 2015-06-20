@@ -32,9 +32,16 @@ import java.util.function.Consumer;
  *
  */
 public abstract class RemoteRegistry implements RemoteConnection {
-    public static final Object OUT_OF_ORDER_SEQ = "OOOS";
 
+    public static final Object OUT_OF_ORDER_SEQ = "OOOS";
     public static int MAX_BATCH_CALLS = 500;
+    public static void registerDefaultClassMappings(FSTConfiguration conf) {
+        conf.registerCrossPlatformClassMapping(new String[][]{
+            {"call", RemoteCallEntry.class.getName()},
+            {"cbw", CallbackWrapper.class.getName()}
+        });
+    }
+
     protected FSTConfiguration conf;
     protected RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
     // holds published actors, futures and callbacks of this process
@@ -66,7 +73,8 @@ public abstract class RemoteRegistry implements RemoteConnection {
 		if ( code == null )
 			code = new Coding(SerializerType.FSTSer);
 	    conf = code.createConf();
-	    configureSerialization(code);
+        registerDefaultClassMappings(conf);
+        configureSerialization(code);
 	}
 
     public BiFunction<Actor, String, Boolean> getRemoteCallInterceptor() {
@@ -82,14 +90,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
 		conf.registerSerializer(CallbackWrapper.class, new CallbackRefSerializer(this), true);
 		conf.registerSerializer(Spore.class, new SporeRefSerializer(), true);
 		conf.registerClass(RemoteCallEntry.class);
-        conf.registerCrossPlatformClassMapping(new String[][]{
-                {"call", RemoteCallEntry.class.getName()},
-                {"cbw", CallbackWrapper.class.getName()}
-        });
 		conf.registerSerializer(Timeout.class, new TimeoutSerializer(), false);
-        if (code.getConfigurator()!=null) {
-            code.getConfigurator().accept(conf);
-        }
 	}
 
     public Actor getPublishedActor(int id) {

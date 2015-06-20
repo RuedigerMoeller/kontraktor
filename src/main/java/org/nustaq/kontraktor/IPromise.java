@@ -105,7 +105,11 @@ public interface IPromise<T> extends Callback<T> {
      * @param timeoutHandler
      * @return
      */
-    public IPromise<T> onTimeout(Consumer timeoutHandler);
+    IPromise<T> onTimeout(Consumer timeoutHandler);
+
+    default IPromise<T> onTimeout(Runnable timeoutHandler) {
+        return onTimeout( to -> timeoutHandler.run() );
+    }
 
     /**
      * Warning: this is different to JDK's BLOCKING future

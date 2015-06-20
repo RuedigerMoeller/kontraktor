@@ -18,7 +18,7 @@ public class SporeRefSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws Exception {
-        return super.instantiate(objectClass, in, serializationInfo, referencee, streamPositioin);
+        return null;
     }
 
     @Override

@@ -25,7 +25,7 @@ public class KLoadTest {
     MyHttpApp myApp;
 
     public void run() {
-        boolean http = false;
+        boolean http = true;
         ConnectableActor connectable;
         if ( !http ) {
             connectable = new WebSocketConnectable(MyHttpApp.class, "ws://localhost:8080/ws")

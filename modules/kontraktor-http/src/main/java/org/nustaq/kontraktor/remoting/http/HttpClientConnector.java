@@ -312,34 +312,34 @@ public class HttpClientConnector implements ActorClientConnector {
 
         private FutureCallback<HttpResponse> getHttpLPFutureCallback(final Promise p, final AtomicInteger timedout) {
             return new FutureCallback<HttpResponse>() {
-                        @Override
-                        public void completed(HttpResponse result) {
-                            if (!timedout.compareAndSet(0, 1)) {
-                                return;
-                            }
-                            Runnable processLPRespponse = getProcessLPRunnable(p, result);
-                            getReceiveActor().execute(processLPRespponse);
-                        }
+                @Override
+                public void completed(HttpResponse result) {
+                    if (!timedout.compareAndSet(0, 1)) {
+                        return;
+                    }
+                    Runnable processLPRespponse = getProcessLPRunnable(p, result);
+                    getReceiveActor().execute(processLPRespponse);
+                }
 
-                        @Override
-                        public void failed(Exception ex) {
-                            if (!timedout.compareAndSet(0, 1)) {
-                                return;
-                            }
-                            // FIXME: resend
-                            ex.printStackTrace();
-                            p.reject(ex);
-                        }
+                @Override
+                public void failed(Exception ex) {
+                    if (!timedout.compareAndSet(0, 1)) {
+                        return;
+                    }
+                    // FIXME: resend
+                    ex.printStackTrace();
+                    p.reject(ex);
+                }
 
-                        @Override
-                        public void cancelled() {
-                            if (!timedout.compareAndSet(0, 1)) {
-                                return;
-                            }
-                            System.out.println("cancel");
-                            p.reject("Canceled");
-                        }
-                    };
+                @Override
+                public void cancelled() {
+                    if (!timedout.compareAndSet(0, 1)) {
+                        return;
+                    }
+                    System.out.println("cancel");
+                    p.reject("Canceled");
+                }
+            };
         }
 
         protected Runnable getProcessLPRunnable(Promise p, HttpResponse result) {

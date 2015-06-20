@@ -173,7 +173,6 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         if (objects.size() == 0) {
             return;
         }
-//        System.out.println("FLUSHING "+objects.size());
         objects.add(sendSequence.incrementAndGet()); // sequence
         Object[] objArr = objects.toArray();
         objects.clear();

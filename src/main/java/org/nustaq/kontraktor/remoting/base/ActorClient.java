@@ -59,6 +59,8 @@ public class ActorClient<T extends Actor> {
                         return socketRef;
                     }
                 };
+                if ( coding.getCrossPlatformShortClazzNames() != null )
+                   reg.getConf().registerCrossPlatformClassMappingUseSimpleName(coding.getCrossPlatformShortClazzNames());
                 writesocket.setConf(reg.getConf());
 
                 Actor.current(); // ensure running in actor thread

@@ -12,23 +12,23 @@ import java.util.function.Consumer;
  */
 public class Coding {
     SerializerType coding;
-    Consumer<FSTConfiguration> configurator;
+    Class crossPlatformShortClazzNames[];
 
     public Coding(SerializerType coding) {
         this.coding = coding;
     }
 
-    public Coding(SerializerType coding, Consumer<FSTConfiguration> configurator) {
+    public Coding(SerializerType coding, Class[] crossPlatformShortClazzNames) {
         this.coding = coding;
-        this.configurator = configurator;
+        this.crossPlatformShortClazzNames = crossPlatformShortClazzNames;
+    }
+
+    public Class[] getCrossPlatformShortClazzNames() {
+        return crossPlatformShortClazzNames;
     }
 
     public SerializerType getCoding() {
         return coding;
-    }
-
-    public Consumer<FSTConfiguration> getConfigurator() {
-        return configurator;
     }
 
     public FSTConfiguration createConf() {

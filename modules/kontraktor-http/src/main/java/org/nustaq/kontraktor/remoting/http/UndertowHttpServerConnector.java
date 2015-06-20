@@ -172,7 +172,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                 @Override
                 protected int getObjectMaxBatchSize() {
                     // huge batch size to make up for stupid sync http 1.1 protocol enforcing latency inclusion
-                    return HttpObjectSocket.HTTP_BATCH_SIZE*4;
+                    return HttpObjectSocket.HTTP_BATCH_SIZE;
                 }
             };
             sessions.put( sock.getSessionId(), sock );
@@ -354,12 +354,9 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         if ( futures == null || futures.size() == 0 ) {
             reply.run();
         } else {
-            long now = System.currentTimeMillis();
-//            System.out.println("wait start "+futures.size()+" futures "+System.currentTimeMillis());
             Actors.all((List) futures).timeoutIn(REQUEST_RESULTING_FUTURE_TIMEOUT).then( () -> {
-//                System.out.println("  duration wait dur:"+(System.currentTimeMillis()-now)+" "+Actor.inside());
                 reply.run();
-            });
+            }).onTimeout( () -> reply.run() );
             sinkchannel.resumeWrites();
         }
     }

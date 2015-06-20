@@ -56,12 +56,12 @@ public class RemotingTest {
         }
 
         RateMeasure measure = new RateMeasure("calls",1000);
-        public void benchMarkVoid(int someVal, String someString) {
+        public void benchMarkVoid(int someVal) {
             measure.count();
         }
 
         int prev = -1;
-        public IPromise<Integer> benchMarkPromise(int someVal, String someString) {
+        public IPromise<Integer> benchMarkPromise(int someVal) {
             measure.count();
             if ( checkSequenceErrors && someVal != prev+1 ) {
                 errors.incrementAndGet();
@@ -328,7 +328,7 @@ public class RemotingTest {
         System.out.println("one way performance");
         int numMsg = 15_000_000;
         for ( int i = 0; i < numMsg; i++ ) {
-            client.benchMarkVoid(13, null);
+            client.benchMarkVoid(i);
         }
         System.out.println("two way performance");
         errors.set(0);
@@ -339,7 +339,7 @@ public class RemotingTest {
             while ( i - replyCount.get() > 200_000 ) { // FIXME: remoteref registry should do this, but how to handle unanswered requests ?
                 LockSupport.parkNanos(1);
             }
-            client.benchMarkPromise(i, null).then(s -> {
+            client.benchMarkPromise(i).then(s -> {
                 replyCount.incrementAndGet();
                 if (seq[s])
                     errors.incrementAndGet();
