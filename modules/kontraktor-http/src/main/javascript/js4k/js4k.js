@@ -30,7 +30,7 @@ window.jsk = window.jsk || (function () {
    * Does not work for java Map's
    *
    * @param type - 'list' for ArrayList, 'set' for HashSet, class name for subclassed
-   * @param list
+   * @param list - list of properly structured (for java) objects
    */
   jsk.prototype.buildJColl = function( type, list ) {
     list.splice( 0, 0, list.length ); // insert number of elements at 0
@@ -41,7 +41,7 @@ window.jsk = window.jsk || (function () {
    * builds a java hashmap from array like '[ key, val, key, val ]'
    *
    * @param type - "map" or class name if subclassed map is used
-   * @param list
+   * @param list - of key, val, key1, val1
    */
   jsk.prototype.buildJMap = function( type, list ) {
     list.splice( 0, 0, list.length/2 ); // insert number of elements at 0

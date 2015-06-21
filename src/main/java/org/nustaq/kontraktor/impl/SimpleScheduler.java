@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.impl;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.util.Log;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -18,6 +19,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SimpleScheduler implements Scheduler {
 
     public static final boolean DEBUG_SCHEDULING = true;
+    /**
+     * time ms until a warning is printed once a sender is blocked by a
+     * full actor queue
+     */
+    public static long BLOCKED_MS_TIL_WARN = 5000;
     public static int DEFQSIZE = 32768; // will be alligned to 2^x
 
     protected BackOffStrategy backOffStrategy = new BackOffStrategy();
@@ -51,6 +57,8 @@ public class SimpleScheduler implements Scheduler {
     @Override
     public void put2QueuePolling(Queue q, boolean isCBQ, Object o, Object receiver) {
         int count = 0;
+        long sleepStart = 0;
+        boolean warningPrinted = false;
         while ( ! q.offer(o) ) {
             pollDelay(count++);
             if ( backOffStrategy.isYielding(count) ) {
@@ -68,6 +76,28 @@ public class SimpleScheduler implements Scheduler {
                 }
                 if ( sendingActor != null && sendingActor.__throwExAtBlock )
                     throw ActorBlockedException.Instance;
+                if ( backOffStrategy.isSleeping(count) ) {
+                    if ( sleepStart == 0 ) {
+                        sleepStart = System.currentTimeMillis();
+                    } else if (System.currentTimeMillis()-sleepStart > BLOCKED_MS_TIL_WARN) {
+                        String receiverString;
+                        if (receiver instanceof Actor) {
+                            if (q == ((Actor) receiver).__cbQueue) {
+                                receiverString = receiver.getClass().getSimpleName() + " callbackQ";
+                            } else if (q == ((Actor) receiver).__mailbox) {
+                                receiverString = receiver.getClass().getSimpleName() + " mailbox";
+                            } else {
+                                receiverString = receiver.getClass().getSimpleName() + " unknown queue";
+                            }
+                        } else {
+                            receiverString = "" + receiver;
+                        }
+                        String sender = "";
+                        if (sendingActor != null)
+                            sender = ", sender:" + sendingActor.getActor().getClass().getSimpleName();
+                        Log.Lg.warn(this, "Warning: Thread " + Thread.currentThread().getName() + " blocked trying to put message on " + receiverString + sender + " msg:" + o);
+                    }
+                }
             }
         }
     }

@@ -17,6 +17,7 @@ import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
 import org.nustaq.kontraktor.remoting.websockets._JSR356ServerConnector;
 import org.nustaq.kontraktor.util.RateMeasure;
+import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -392,7 +393,7 @@ public class RemotingTest {
         int numMsg = 15_000_000;
         for ( int i = 0; !ONLY_PROM && i < numMsg; i++ ) {
             if ( FAT_ARGS ) {
-                Pojo map = createPojo(i);
+                Object map = createPojo(i);
 //                System.out.println(FSTConfiguration.getDefaultConfiguration().asByteArray(map).length);
                 client.benchMarkFatVoid(map);
             } else {
@@ -439,6 +440,21 @@ public class RemotingTest {
         l.countDown();
     }
 
-    private Pojo createPojo(int i) {return new Pojo("Some Name","Some Prename", i, "M", i*1.2,"NameNumber2","Prename1",i*2,"W",1.323,"BLASDASD","oaisjd",43534+i,"?",234.33,"sldfjlsdfk","lsdkfjsdf",13+i,"MW",1234.123+i);}
+    private Object createPojo(int i) {
+        return new Object[] {
+            newPojo(i/1),
+            newPojo(i/2),
+            newPojo(i/3),
+            newPojo(i/4),
+            newPojo(i/5),
+            newPojo(i/6),
+            newPojo(i/7),
+            newPojo(i/8),
+            newPojo(i/9),
+            newPojo(i/10),
+        };
+    }
+
+    private Pojo newPojo(int i) {return new Pojo("Some Name","Some Prename", i, "M", i*1.2,"NameNumber2","Prename1",i*2,"W",1.323,"BLASDASD","oaisjd",43534+i,"?",234.33,"sldfjlsdfk","lsdkfjsdf",13+i,"MW",1234.123+i);}
 
 }
