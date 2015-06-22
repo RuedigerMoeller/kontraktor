@@ -5,9 +5,7 @@ high performance, lightweight and boilerplate free distributed eventloop'ish Act
 
 http://ruedigermoeller.github.io/kontraktor/
 
-**3.0**
-
-is a major upstep to previous versions.
+**3.0** is a major upstep to previous versions.
 
 **3.0 documentation**
 
