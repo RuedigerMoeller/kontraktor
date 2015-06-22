@@ -50,10 +50,17 @@ public class ActorProxyFactory {
 
     public <T> T instantiateProxy(Actor target) {
         try {
-            if ( ! Modifier.isPublic(target.getClass().getModifiers()) ) {
-                throw new RuntimeException("Actor class must be public:" + target.getClass().getName() );
+            Class<? extends Actor> targetClass = target.getClass();
+            if ( ! Modifier.isPublic(targetClass.getModifiers()) ) {
+                throw new RuntimeException("Actor class must be public:" + targetClass.getName() );
             }
-            Class proxyClass = createProxyClass(target.getClass(), target.getClass().getClassLoader() );
+            if ( targetClass.isAnonymousClass() ) {
+                throw new RuntimeException("Anonymous classes can't be Actors:" + targetClass.getName() );
+            }
+            if ( targetClass.isMemberClass() && !Modifier.isStatic(targetClass.getModifiers()) ) {
+                throw new RuntimeException("Only STATIC inner classes can be Actors:" + targetClass.getName() );
+            }
+            Class proxyClass = createProxyClass(targetClass, targetClass.getClassLoader() );
             Constructor[] constructors = proxyClass.getConstructors();
             T instance = null;
             try {

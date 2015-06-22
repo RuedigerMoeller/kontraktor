@@ -496,7 +496,7 @@ public class BasicTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        assertTrue(success.get()!=1); // if no response (proxy etc) also return true
+        assertTrue(success.get()!=0);
         actor.stop();
     }
 

@@ -11,8 +11,15 @@ import java.util.stream.*;
  */
 public class AsyncPostgres extends Actor<AsyncPostgres> {
 
+    class Test extends Actor {
 
+    }
+
+    void run() {
+        Actors.AsActor(Test.class);
+    }
     public static void main(String[] args) {
+        new AsyncPostgres().run();
         Db db = new ConnectionPoolBuilder()
                 .hostname("localhost")
                 .port(5432)

@@ -7,7 +7,6 @@ import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -235,7 +234,7 @@ public class Promise<T> implements IPromise<T> {
         while( !lock.compareAndSet(false,true) ) {}
         try {
             if (resultReceiver != null)
-                throw new RuntimeException("Double register of future listener");
+                throw new RuntimeException("Double register of promise listener");
             resultReceiver = resultCB;
             if (hadResult) {
                 hasFired = true;
