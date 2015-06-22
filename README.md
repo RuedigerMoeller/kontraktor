@@ -13,32 +13,7 @@ check [wiki](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-3).
 
 **Maven**
 
-Kontraktor Core (Actors + TCP Remoting), requires Java 8, LGPL Licensed
-```xml
-<dependency>
-    <groupId>de.ruedigermoeller</groupId>
-    <artifactId>kontraktor</artifactId>
-    <version>3.00</version>
-</dependency>
-```
-
-Kontraktor Http (WebSockets, Http LongPoll, Single Page App + JavaScript interop support), requires Java 8, LGPL Licensed
-```xml
-<dependency>
-    <groupId>de.ruedigermoeller</groupId>
-    <artifactId>kontraktor-http</artifactId>
-    <version>3.00</version>
-</dependency>
-```
-
-Kontraktor-Bare (Minimalistic standalone Http-LongPoll client [legacy apps, Android] ), requires **>=Java 7**, Apache 2.0 Licensed
-```xml
-<dependency>
-    <groupId>de.ruedigermoeller</groupId>
-    <artifactId>kontraktor-bare</artifactId>
-    <version>3.00</version>
-</dependency>
-```
+see http://ruedigermoeller.github.io/kontraktor/#maven
 
 ### what changed compared to 2.0 ?
 
