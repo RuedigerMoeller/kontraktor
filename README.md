@@ -3,13 +3,9 @@ kontraktor 3
 
 high performance, lightweight and boilerplate free distributed eventloop'ish Actor implementation designed for Java 8.
 
-http://ruedigermoeller.github.io/kontraktor/
+WebSite: http://ruedigermoeller.github.io/kontraktor/
 
-**3.0** is a major upstep to previous versions.
-
-**3.0 documentation**
-
-check [wiki](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-3).
+[**3.0 documentation**](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-3).
 
 **Maven**
 
