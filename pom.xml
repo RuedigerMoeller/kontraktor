@@ -12,14 +12,14 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>3.0</version>
+    <version>3.00</version>
 
     <description>a light weight, efficient actor lib</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
 
     <licenses>
         <license>
-            <name>LGPL 2.1</name>
+            <name>LGPL 3</name>
             <url>http://www.gnu.org/licenses/lgpl.html</url>
             <distribution>repo</distribution>
         </license>
