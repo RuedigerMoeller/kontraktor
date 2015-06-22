@@ -3,7 +3,7 @@ kontraktor 3
 
 high performance, lightweight and boilerplate free distributed eventloop'ish Actor implementation designed for Java 8.
 
-http://ruedigermoeller.github.io/fast-serialization/
+http://ruedigermoeller.github.io/kontraktor/
 
 **3.0**
 
