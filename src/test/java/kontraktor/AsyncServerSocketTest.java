@@ -190,12 +190,17 @@ public class AsyncServerSocketTest {
                 }
             });
         }
-        Thread.sleep(1000);
-        executorService.shutdown();
-        executorService.awaitTermination(10, TimeUnit.DAYS);
-        Thread.sleep(5000);
         Integer count = ta.getReceiveCount().await();
         System.out.println("COUNT " + count);
+        int timer = 0;
+        while( count != MSG_COUNT && timer < 60 ) {
+            timer++;
+            System.out.println("waiting .. "+count);
+            Thread.sleep(1000);
+            count = ta.getReceiveCount().await();
+        }
+        executorService.shutdown();
+        executorService.awaitTermination(10, TimeUnit.DAYS);
         Assert.assertTrue(count == MSG_COUNT);
         ta.stop();
 
