@@ -37,7 +37,7 @@ Kontraktor-Bare (Minimalistic standalone Http-LongPoll client [legacy apps, Andr
 ```xml
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
-    <artifactId>kontraktor-http</artifactId>
+    <artifactId>kontraktor-bare</artifactId>
     <version>3.00</version>
 </dependency>
 ```
