@@ -83,7 +83,7 @@ public class TCPServerConnector implements ActorServerConnector {
                 });
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.Info(this, e.getMessage() );
             if ( ! p.isSettled() )
                 p.reject(e);
         } finally {

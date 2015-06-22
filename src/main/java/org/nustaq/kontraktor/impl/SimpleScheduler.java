@@ -79,8 +79,9 @@ public class SimpleScheduler implements Scheduler {
                 if ( backOffStrategy.isSleeping(count) ) {
                     if ( sleepStart == 0 ) {
                         sleepStart = System.currentTimeMillis();
-                    } else if (System.currentTimeMillis()-sleepStart > BLOCKED_MS_TIL_WARN) {
+                    } else if ( ! warningPrinted && System.currentTimeMillis()-sleepStart > BLOCKED_MS_TIL_WARN) {
                         String receiverString;
+                        warningPrinted = true;
                         if (receiver instanceof Actor) {
                             if (q == ((Actor) receiver).__cbQueue) {
                                 receiverString = receiver.getClass().getSimpleName() + " callbackQ";
@@ -95,7 +96,7 @@ public class SimpleScheduler implements Scheduler {
                         String sender = "";
                         if (sendingActor != null)
                             sender = ", sender:" + sendingActor.getActor().getClass().getSimpleName();
-                        Log.Lg.warn(this, "Warning: Thread " + Thread.currentThread().getName() + " blocked trying to put message on " + receiverString + sender + " msg:" + o);
+                        Log.Lg.warn(this, "Warning: Thread " + Thread.currentThread().getName() + " blocked more than "+BLOCKED_MS_TIL_WARN+"ms trying to put message on " + receiverString + sender + " msg:" + o);
                     }
                 }
             }

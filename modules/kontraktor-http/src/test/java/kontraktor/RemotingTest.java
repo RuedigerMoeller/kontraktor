@@ -38,6 +38,8 @@ public class RemotingTest {
     static AtomicInteger errors = new AtomicInteger();
     static boolean checkSequenceErrors = true;
     static boolean spore = false;
+//    static int NUM_MSG = 15_000_000;
+    static int NUM_MSG = 1_000_000;
 
     public static class RemotingTestService extends Actor<RemotingTestService> {
 
@@ -390,8 +392,7 @@ public class RemotingTest {
         }
 
         System.out.println("one way performance");
-        int numMsg = 15_000_000;
-        for ( int i = 0; !ONLY_PROM && i < numMsg; i++ ) {
+        for ( int i = 0; !ONLY_PROM && i < NUM_MSG; i++ ) {
             if ( FAT_ARGS ) {
                 Object map = createPojo(i);
 //                System.out.println(FSTConfiguration.getDefaultConfiguration().asByteArray(map).length);
@@ -402,8 +403,8 @@ public class RemotingTest {
         }
         System.out.println("two way performance");
         errors.set(0);
-        boolean seq[] = new boolean[numMsg];
-        for ( int i = 0; i < numMsg; i++ ) {
+        boolean seq[] = new boolean[NUM_MSG];
+        for ( int i = 0; i < NUM_MSG; i++ ) {
             if ( i%1_000_000==0 )
                 System.out.println("sent "+i+" "+replyCount.get());
             while ( i - replyCount.get() > 200_000 ) { // FIXME: remoteref registry should do this, but how to handle unanswered requests ?
@@ -423,7 +424,7 @@ public class RemotingTest {
             }
         }
         Thread.sleep(2000);
-        if (replyCount.get() != numMsg) {
+        if (replyCount.get() != NUM_MSG) {
             System.out.println("extend wait ..");
             Thread.sleep(HttpObjectSocket.LP_TIMEOUT*2);
         }
@@ -435,7 +436,7 @@ public class RemotingTest {
             }
         }
         System.out.println("done "+Thread.currentThread()+" "+replyCount);
-        junit.framework.Assert.assertTrue(replyCount.get() == numMsg);
+        junit.framework.Assert.assertTrue(replyCount.get() == NUM_MSG);
         junit.framework.Assert.assertTrue(errors.get() == 0);
         l.countDown();
     }
