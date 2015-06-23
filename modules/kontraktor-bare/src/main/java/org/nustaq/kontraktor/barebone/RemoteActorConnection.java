@@ -70,10 +70,10 @@ public class RemoteActorConnection {
                     .setMaxConnTotal(MAX_CONN_TOTAL)
                     .setDefaultIOReactorConfig(
                         IOReactorConfig.custom()
-                                .setIoThreadCount(1)
-                                .setSoKeepAlive(true)
-                                .setSoReuseAddress(true)
-                                .build()
+                            .setIoThreadCount(1)
+                            .setSoKeepAlive(true)
+                            .setSoReuseAddress(true)
+                            .build()
                     ).build();
                 asyncHttpClient.start();
             }

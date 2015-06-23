@@ -38,21 +38,21 @@ public class LoadTest {
         act.connect("http://localhost:8080/api", true).then(new Callback<RemoteActor>() {
             @Override
             public void receive(RemoteActor facade, Object error) {
-                System.out.println("CLIENTS:"+connections.incrementAndGet());
+            System.out.println("CLIENTS:"+connections.incrementAndGet());
 
-                facade.ask("login", "user", "password").then(new Callback() {
+            facade.ask("login", "user", "password").then(new Callback() {
+                @Override
+                public void receive(Object res, Object error) {
+                session = (RemoteActor) res;
+                session.tell("subscribe", new Callback() {
                     @Override
-                    public void receive(Object res, Object error) {
-                        session = (RemoteActor) res;
-                        session.tell("subscribe", new Callback() {
-                            @Override
-                            public void receive(Object result, Object error) {
-                                count++;
-                                lastBcast.set(System.currentTimeMillis());
-                            }
-                        });
+                    public void receive(Object result, Object error) {
+                    count++;
+                    lastBcast.set(System.currentTimeMillis());
                     }
                 });
+                }
+            });
             }
         });
 
