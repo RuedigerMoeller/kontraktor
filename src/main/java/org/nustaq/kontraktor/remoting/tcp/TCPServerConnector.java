@@ -29,8 +29,7 @@ import org.nustaq.net.TCPObjectSocket;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.net.*;
 import java.util.function.Function;
 
 /**
@@ -90,8 +89,13 @@ public class TCPServerConnector implements ActorServerConnector {
                                 Object o = objectSocket.readObject();
                                 sink.receiveObject(o, null);
                             } catch (Exception e) {
-                                if (e instanceof EOFException == false)
+                                if (e instanceof EOFException == false && e instanceof SocketException == false)
                                     Log.Warn(this, e);
+                                try {
+                                    clientSocket.close();
+                                } catch (IOException e1) {
+                                    Log.Warn(this, e1);
+                                }
                             }
                         }
                         sink.sinkClosed();
