@@ -325,7 +325,6 @@ public class Promise<T> implements IPromise<T> {
             resultReceiver = resultCB;
             if (hadResult) {
                 hasFired = true;
-                lock.set(false);
                 resultCB.complete(result, error);
             }
         } finally {
@@ -346,10 +345,8 @@ public class Promise<T> implements IPromise<T> {
             if (hadResult) {
                 if ( prevErr instanceof Timeout ) {
                     this.error = prevErr;
-                    lock.set(false);
                     return;
                 }
-                lock.set(false);
                 throw new RuntimeException("Double result received on future " + prevErr );
             }
             hadResult = true;
@@ -359,13 +356,11 @@ public class Promise<T> implements IPromise<T> {
                     throw new RuntimeException("Double fire on callback");
                 }
                 hasFired = true;
-                lock.set(false);
                 resultReceiver.complete(result, error);
                 resultReceiver = null;
                 while (!lock.compareAndSet(false, true)) {
                 }
                 if (nextFuture != null) {
-                    lock.set(false);
                     nextFuture.complete(result, error);
                 }
                 return;
