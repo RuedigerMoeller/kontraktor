@@ -7,7 +7,7 @@ Kontraktor enables you to abstract away the network layer used. So any server/se
 
 JavaScript interop + webserver specialized ond SPA's included.
 
-Kontraktor is high performance, you can send up to 2 million one may point 2 point async remote calls per second over tcp.
+Kontraktor is high performance, you can do up to 2 million point2point async remote calls per second over tcp.
 
 WebSite: http://ruedigermoeller.github.io/kontraktor/
 
