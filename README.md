@@ -3,6 +3,10 @@ kontraktor 3
 
 high performance, lightweight and boilerplate free distributed eventloop'ish Actor implementation designed for Java 8.
 
+Kontraktor enables you to abstract away the network layer used. So any server/service built with kontraktor instantanously can be made available via TCP (blocking or NIO), WebSosckets or Http Long Poll. Either with binary serialization or JSon encoding.
+
+Kontraktor is high performance, you can send up to 2 million one may point 2 point async remote calls per second over tcp.
+
 WebSite: http://ruedigermoeller.github.io/kontraktor/
 
 [**3.0 documentation**](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-3).
