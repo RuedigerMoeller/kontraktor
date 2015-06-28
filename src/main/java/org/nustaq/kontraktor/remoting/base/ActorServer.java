@@ -25,6 +25,7 @@ import org.nustaq.serialization.FSTConfiguration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 09/05/15.
@@ -48,6 +49,7 @@ public class ActorServer {
 
     protected Coding coding;
     protected FSTConfiguration conf; // parent conf
+    protected RemoteRegistry reg;
 
     public ActorServerConnector getConnector() {
         return connector;
@@ -68,9 +70,13 @@ public class ActorServer {
     }
 
     public void start() throws Exception {
+        start(null);
+    }
+
+    public void start(Consumer<Actor> disconnectHandler) throws Exception {
         connector.connect(facade, writesocket -> {
             AtomicReference<ObjectSocket> socketRef = new AtomicReference<>(writesocket);
-            RemoteRegistry reg = new RemoteRegistry( conf.deriveConfiguration(), coding) {
+            reg = new RemoteRegistry( conf.deriveConfiguration(), coding) {
 //            RemoteRegistry reg = new RemoteRegistry(coding) {
                 @Override
                 public Actor getFacadeProxy() {
@@ -82,6 +88,7 @@ public class ActorServer {
                     return socketRef;
                 }
             };
+            reg.setDisconnectHandler(disconnectHandler);
             writesocket.setConf(reg.getConf());
             Actor.current(); // ensure running in actor thread
             poller.get().scheduleSendLoop(reg);

@@ -20,6 +20,8 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 
+import java.util.function.Consumer;
+
 /**
  * Created by ruedi on 18/06/15.
  */
@@ -34,7 +36,7 @@ public class TCPPublisher extends TCPNIOPublisher {
     }
 
     @Override
-    public IPromise<ActorServer> publish() {
-        return TCPServerConnector.Publish(facade,port,coding);
+    public IPromise<ActorServer> publish(Consumer<Actor> disconnectCallback) {
+        return TCPServerConnector.Publish(facade,port,coding,disconnectCallback);
     }
 }

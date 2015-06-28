@@ -27,6 +27,7 @@ import org.nustaq.kontraktor.remoting.encoding.Coding;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -38,13 +39,17 @@ import java.util.function.Function;
  */
 public class NIOServerConnector extends AsyncServerSocket implements ActorServerConnector {
 
-    public static Promise<ActorServer> Publish(Actor facade, int port, Coding coding) {
+    public static IPromise<ActorServer> Publish(Actor facade, int port, Coding coding) {
+        return Publish(facade,port,coding,null);
+    }
+
+    public static Promise<ActorServer> Publish(Actor facade, int port, Coding coding, Consumer<Actor> disconnectHandler) {
         Promise finished = new Promise();
         try {
             ActorServer publisher = new ActorServer(new NIOServerConnector(port), facade, coding);
             facade.execute(() -> {
                 try {
-                    publisher.start();
+                    publisher.start(disconnectHandler);
                     finished.resolve(publisher);
                 } catch (Exception e) {
                     finished.reject(e);

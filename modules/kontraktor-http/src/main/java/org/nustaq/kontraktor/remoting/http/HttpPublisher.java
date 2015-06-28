@@ -31,6 +31,7 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 04/06/15.
@@ -83,7 +84,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
     }
 
     @Override
-    public IPromise<ActorServer> publish() {
+    public IPromise<ActorServer> publish(Consumer<Actor> disconnectCallback) {
         ActorServer actorServer;
         try {
             facade.setThrowExWhenBlocked(true);
@@ -92,7 +93,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
             con.setSessionTimeout(sessionTimeout);
             actorServer = new ActorServer( con, facade, coding == null ? new Coding(SerializerType.FSTSer) : coding );
             con.setActorServer(actorServer);
-            actorServer.start();
+            actorServer.start(disconnectCallback);
             serverPair.getFirst().addPrefixPath(urlPath, con);
         } catch (Exception e) {
             Log.Warn(null, e);

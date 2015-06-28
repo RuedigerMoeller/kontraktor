@@ -16,13 +16,19 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.remoting.base;
 
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
+
+import java.util.function.Consumer;
 
 /**
  * Configuration object to publish an actor to network. Serverside aequivalent to ConnectableActor
  */
 public interface ActorPublisher {
 
-    IPromise<ActorServer>  publish();
+    default IPromise<ActorServer>  publish() {
+        return publish(null);
+    }
+    IPromise<ActorServer>  publish(Consumer<Actor> disconnectCallback);
 
 }

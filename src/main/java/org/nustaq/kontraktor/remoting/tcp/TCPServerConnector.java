@@ -30,6 +30,7 @@ import org.nustaq.net.TCPObjectSocket;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -41,12 +42,16 @@ import java.util.function.Function;
 public class TCPServerConnector implements ActorServerConnector {
 
     public static Promise<ActorServer> Publish(Actor facade, int port, Coding coding) {
+        return Publish(facade,port,coding,null);
+    }
+
+    public static Promise<ActorServer> Publish(Actor facade, int port, Coding coding, Consumer<Actor> disconnectCB) {
         Promise finished = new Promise();
         try {
             ActorServer publisher = new ActorServer(new TCPServerConnector(port), facade, coding);
             facade.execute(() -> {
                 try {
-                    publisher.start();
+                    publisher.start(disconnectCB);
                     finished.resolve(publisher);
                 } catch (Exception e) {
                     finished.reject(e);

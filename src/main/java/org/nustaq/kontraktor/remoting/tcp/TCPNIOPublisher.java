@@ -23,6 +23,8 @@ import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 
+import java.util.function.Consumer;
+
 /**
  * Created by ruedi on 18/06/15.
  */
@@ -41,8 +43,8 @@ public class TCPNIOPublisher implements ActorPublisher {
     }
 
     @Override
-    public IPromise<ActorServer> publish() {
-        return NIOServerConnector.Publish(facade,port,coding);
+    public IPromise<ActorServer> publish(Consumer<Actor> disconnectHandler) {
+        return NIOServerConnector.Publish(facade,port,coding,disconnectHandler);
     }
 
     public TCPNIOPublisher serType( SerializerType type ) {

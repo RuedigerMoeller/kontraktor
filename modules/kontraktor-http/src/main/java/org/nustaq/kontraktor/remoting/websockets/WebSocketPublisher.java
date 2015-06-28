@@ -25,6 +25,8 @@ import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.builder.CFGFourK;
 
+import java.util.function.Consumer;
+
 /**
  * Created by ruedi on 04/06/15.
  */
@@ -57,13 +59,13 @@ public class WebSocketPublisher implements ActorPublisher {
     }
 
     @Override
-    public IPromise<ActorServer> publish() {
+    public IPromise<ActorServer> publish(Consumer<Actor> disconnectCallback) {
         Promise finished = new Promise();
         try {
             ActorServer publisher = new ActorServer(new UndertowWebsocketServerConnector(urlPath,port,hostName), facade, coding);
             facade.execute(() -> {
                 try {
-                    publisher.start();
+                    publisher.start(disconnectCallback);
                     finished.resolve(publisher);
                 } catch (Exception e) {
                     finished.reject(e);
