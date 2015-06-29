@@ -1,6 +1,8 @@
 package org.nustaq.kontraktor.reactivestreams;
 
 import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.InThread;
 import org.nustaq.kontraktor.annotations.Local;
@@ -16,6 +18,10 @@ import java.util.function.Function;
 
 /**
  * Created by ruedi on 28/06/15.
+ *
+ * Inplements reactive streams async (queued) publisher. Don't use this class directly,
+ * use the ReaktiveStreams singleton instead.
+ *
  */
 public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> implements Processor<IN, OUT> {
 
@@ -32,14 +38,25 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         System.out.println(Thread.currentThread().getName()+" "+s);
     }
 
-    @Override
-    public void subscribe(@InThread Subscriber<? super OUT> subscriber) {
+    // with remoting a copy of subscriber is sent. call onSubscribe on that
+    // will do nothing ;)
+    // transforming it to callerside will execute this at client side,
+    // the resulting promise of _subscribe will be correctly remoted, routed and cleaned up
+    @Override @CallerSideMethod
+    public void subscribe(Subscriber<? super OUT> subscriber) {
+        _subscribe(subscriber).then(subs -> {
+            subscriber.onSubscribe(subs);
+        });
+    }
+
+    // actually private.
+    public IPromise<KSubscription> _subscribe(@InThread Subscriber<? super OUT> subscriber) {
         if ( subscribers == null )
             subscribers = new HashMap<>();
         int id = subsIdCount++;
         KSubscription subs = new KSubscription(self(), id);
         subscribers.put( id, new SubscriberEntry(id, subs, subscriber) );
-        subscriber.onSubscribe(subs);
+        return new Promise<>(subs);
     }
 
     public void _cancel(int id) {
@@ -50,6 +67,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         SubscriberEntry se = getSE(id);
         if ( se != null ) // ignore unknown subscribers
             se.addCredits(l);
+        emitRequestNext();
     }
 
     protected SubscriberEntry getSE(Integer i) {
@@ -83,6 +101,8 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
     @Override
     public void onNext(IN in) {
+        if ( subscribers == null )
+            return;
         openRequested--;
         try {
             OUT apply = processor.apply(in);
