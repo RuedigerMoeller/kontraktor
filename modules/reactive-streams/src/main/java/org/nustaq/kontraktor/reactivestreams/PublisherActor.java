@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.reactivestreams;
 
 import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
@@ -41,16 +42,24 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     // with remoting a copy of subscriber is sent. call onSubscribe on that
     // will do nothing ;)
     // transforming it to callerside will execute this at client side,
-    // the resulting promise of _subscribe will be correctly remoted, routed and cleaned up
+    // and do all remote communication via standard elements like promise and callback
     @Override @CallerSideMethod
     public void subscribe(Subscriber<? super OUT> subscriber) {
-        _subscribe(subscriber).then(subs -> {
+        _subscribe( (res,err) -> {
+            if ( isError(err) ) {
+                subscriber.onError((Throwable) err);
+            } else if ( isFinal( err ) ) {
+                subscriber.onComplete();
+            } else {
+                subscriber.onNext((OUT)res);
+            }
+        }).then(subs -> {
             subscriber.onSubscribe(subs);
         });
     }
 
     // actually private.
-    public IPromise<KSubscription> _subscribe(@InThread Subscriber<? super OUT> subscriber) {
+    public IPromise<KSubscription> _subscribe( Callback subscriber ) {
         if ( subscribers == null )
             subscribers = new HashMap<>();
         int id = subsIdCount++;
@@ -89,7 +98,6 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     @Override
     public void onSubscribe(Subscription subscription) {
         mySubs = subscription;
-        emitRequestNext();
     }
 
     protected void emitRequestNext() {
@@ -120,7 +128,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         }
         subscribers.forEach( (id,entry) -> {
             if ( entry.credits > 0 ) {
-                entry.getSubscriber().onError(err);
+                entry.onError(err);
             }
         });
     }
@@ -133,16 +141,16 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         subscribers.forEach( (id,entry) -> {
             entry.sendPending();
             if ( entry.credits > 0 ) {
-                entry.getSubscriber().onNext(msg);
+                entry.onNext(msg);
                 entry.decCredits();
             } else {
                 entry.addPending(msg);
                 blocked[0] = true;
             }
         });
-        if ( ! blocked[0] ) {
-            emitRequestNext();
-        }
+//        if ( ! blocked[0] ) {
+//            emitRequestNext();
+//        }
     }
 
     @Override
@@ -155,7 +163,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         mySubs.cancel();
         subscribers.forEach( (id,entry) -> {
             if ( entry.credits > 0 ) {
-                entry.getSubscriber().onComplete();
+                entry.onComplete();
             }
         });
     }
@@ -190,10 +198,10 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         protected int subsId;
         protected long credits;
         protected KSubscription subscription;
-        protected Subscriber subscriber;
+        protected Callback subscriber;
         protected LinkedList pending;
 
-        public SubscriberEntry(int subsId, KSubscription subscription, Subscriber subscriber) {
+        public SubscriberEntry(int subsId, KSubscription subscription, Callback subscriber) {
             this.subsId = subsId;
             this.subscription = subscription;
             this.subscriber = subscriber;
@@ -220,20 +228,28 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             return subscription;
         }
 
-        public Subscriber getSubscriber() {
-            return subscriber;
-        }
-
         public void sendPending() {
             int max = (int) Math.min(credits,pending.size());
             for (int i = 0; i < max; i++) {
                 Object msg = pending.removeLast();
-                subscriber.onNext(msg);
+                subscriber.stream(msg);
             }
         }
 
         public void addPending(Object msg) {
             pending.addFirst(msg);
+        }
+
+        public void onError(Throwable err) {
+            subscriber.reject(err);
+        }
+
+        public void onNext(Object msg) {
+            subscriber.stream(msg);
+        }
+
+        public void onComplete() {
+            subscriber.finish();
         }
     }
 

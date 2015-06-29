@@ -28,7 +28,6 @@ public class ReaktiveStreams extends Actors {
         return instance;
     }
 
-
     /////////////////// static helpers /////////////////////////////////////////
 
     public static <T> Subscriber<T> subscriber(Callback<T> cb) {
@@ -95,12 +94,12 @@ public class ReaktiveStreams extends Actors {
     }
 
     protected static class MySubscriber<T> implements Subscriber<T>, Serializable {
-        private final int batchSize;
-        private final Callback<T> cb;
-        long credits;
-        Subscription subs;
+        protected long batchSize;
+        protected Callback<T> cb;
+        protected long credits;
+        protected Subscription subs;
 
-        public MySubscriber(int batchSize, Callback<T> cb) {
+        public MySubscriber(long batchSize, Callback<T> cb) {
             this.batchSize = batchSize;
             this.cb = cb;
             credits = 0;

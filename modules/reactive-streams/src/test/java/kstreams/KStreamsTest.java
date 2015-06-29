@@ -20,6 +20,62 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class KStreamsTest {
 
+    @Test
+    public void simpleTest() {
+
+        AtomicLong counter = new AtomicLong(0);
+        AtomicLong received = new AtomicLong(0);
+
+        EventSink<String> stringStream = new EventSink<>();
+
+        Processor<String,String> fin = stringStream.map(in -> in + in, 1000);
+
+        get().newPublisherServer(fin, new TCPNIOPublisher().port(7777), null).await();
+
+        fin.subscribe(
+             subscriber(1000, (str, err) -> {
+                     if (isFinal(err)) {
+                         System.out.println("complete");
+                     } else if (isError(err)) {
+                         System.out.println("ERROR");
+                     } else {
+                         received.incrementAndGet();
+                         LockSupport.parkNanos(1000 * 1000); // simulate slow receiver
+                     }
+                 }
+             ));
+
+//        AtomicLong received1 = new AtomicLong(0);
+//        fin.subscribe(
+//            subscriber(500, (str, err) -> {
+//                if (isFinal(err)) {
+//                    System.out.println("complete");
+//                } else if (isError(err)) {
+//                    System.out.println("ERROR");
+//                } else {
+//                    received1.incrementAndGet();
+//                    LockSupport.parkNanos(1000 * 2000); // simulate slow receiver
+//                }
+//            }
+//        ));
+
+        long l = System.currentTimeMillis();
+        long prev = 0;
+        while( true ) {
+            if ( stringStream.offer(""+counter.get()) ) {
+                counter.incrementAndGet();
+            }
+            if ( System.currentTimeMillis()-l > 1000 ) {
+                long rate = received.get() - prev;
+                prev = received.get();
+                System.out.println("sent:"+counter.get()+" received:"+received.get()+" diff:"+(counter.get()-received.get()));
+                System.out.println("      "+rate);
+                l = System.currentTimeMillis();
+            }
+        }
+
+
+    }
 
     @Test
     public void testServer() throws InterruptedException {
