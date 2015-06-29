@@ -28,6 +28,10 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         this.processor = processor;
     }
 
+    public void hallo( String s ) {
+        System.out.println(Thread.currentThread().getName()+" "+s);
+    }
+
     @Override
     public void subscribe(@InThread Subscriber<? super OUT> subscriber) {
         if ( subscribers == null )
