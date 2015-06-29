@@ -63,9 +63,8 @@ import java.util.function.Function;
  * When used no-poll, streaming results to a callback is not supported. Only 'tell' (void methods) and 'ask' (IPromise-returning)
  * messages can be used.
  *
- * TODO: close session in case of unrecoverable loss
  * TODO: support temporary/discardable websocket connections as a LP optimization.
- * TODO: investigate optional use of http 2.0
+ * TODO: investigate http 2.0
  */
 public class UndertowHttpServerConnector implements ActorServerConnector, HttpHandler {
 

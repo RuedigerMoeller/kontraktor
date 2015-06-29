@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * Created by ruedi on 13/04/15.
  *
- * writes/reads must be single threaded per queue
+ * writes/reads on-heap. must be single threaded per queue
  *
  */
 public class HeapMessageStore implements MessageStore {

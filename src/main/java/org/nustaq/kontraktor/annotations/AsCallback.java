@@ -35,8 +35,8 @@ import java.lang.annotation.Target;
  * actor methods. For a callback method, the scheduler is allowed to execute the method synchronous
  * if the sender and receiver happen to be scheduled on the same thread. (callback invocation order is undefined).
  *
- * Additionally callback messages have higher priority compared to result actor messages. A dispatcher thread
- * will always first check the callback queue before looking for messages on the actors mailbox.
+ * Additionally callback messages have higher priority compared to actor messages. A dispatcher thread
+ * will first check the callback queue before looking for messages on the actors mailbox.
  *
  * Besides performance improvements, this also enables some scheduling tweaks to automatically prevent deadlocks.
  */

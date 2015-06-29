@@ -38,9 +38,23 @@ import java.lang.annotation.Target;
  *     @CallerSideMethod public void message( String stuff ) {
  *         message( System.currentTimeMillis(), stuff );
  *     }
+ *
+ *     @CallerSideMethod public int getId() {
+ *         // get "real" actor impl
+ *         return getActor().id; // concurrent access !! final, volatile and locks might be required
+ *     }
+ *
  * }
  *
- * Note those method cannot access local state of the actor, they just might invoke methods.
+ * Note those method cannot access local state of the actor, they just might invoke methods as they
+ * are called on the proxy object (Actor Ref).
+ *
+ * If one urgently needs to access local actor state synchronous, its possible to obtain the real actor instance by calling getActor().
+ * Note that multithreading primitives might required then, as internal actor state is accessed concurrently
+ * this way.
+ *
+ * WARNING: @CallersideMethod's cannot be invoked from remote (via network)
+ *
  */
 public @interface CallerSideMethod {
 }

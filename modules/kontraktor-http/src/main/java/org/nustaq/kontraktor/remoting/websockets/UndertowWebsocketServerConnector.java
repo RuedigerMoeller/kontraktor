@@ -128,7 +128,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
             WebSockets.sendBinary(ByteBuffer.wrap(message), channel, new WebSocketCallback() {
                 @Override
                 public void complete(WebSocketChannel channel, Object context) {
-                    // FIXME: manage partial write ?
+
                 }
 
                 @Override

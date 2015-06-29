@@ -24,8 +24,9 @@ import java.lang.annotation.*;
 /**
  * Created by moelrue on 07.05.2014.
  *
- * parameters tagged as callback get wrapped by 'Actors.Callback' automatically. Calls on these object are
- * executed in the callers thread (enqueued to the calling Actors queue)
+ * interface typed parameters tagged as InThread get wrapped by a re-enqueuing wrapper automatically. Calls on these object are
+ * executed in the callers thread then (enqueued to the calling Actors queue).
+ * (Automatically applied for built in Callback + Promise class)
  *
  */
 public @interface InThread {

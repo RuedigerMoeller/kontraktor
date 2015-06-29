@@ -30,5 +30,6 @@ public interface ActorPublisher {
         return publish(null);
     }
     IPromise<ActorServer>  publish(Consumer<Actor> disconnectCallback);
+    ActorPublisher facade( Actor facade );
 
 }

@@ -29,6 +29,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by ruedi on 10/05/15.
+ *
+ * Base class of client role connections to remote actors (published)
+ *
  */
 public class ActorClient<T extends Actor> {
 
