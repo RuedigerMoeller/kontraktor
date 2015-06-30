@@ -22,18 +22,19 @@ import java.util.function.Function;
  * use the ReaktiveStreams singleton instead.
  *
  */
-public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> implements Processor<IN, OUT> {
+public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> implements Processor<IN, OUT>, KPublisher<OUT> {
 
     Map<Integer, SubscriberEntry> subscribers;
     int subsIdCount = 1;
 
     Function<IN,OUT> processor;
+    ArrayList<Runnable> doOnSubscribe = new ArrayList<>();
 
     public void setProcessor( Function<IN,OUT> processor ) {
         this.processor = processor;
     }
 
-    // with remoting a copy of subscriber is sent. call onSubscribe on that
+    // with remoting a copy of subscriber is sent. calls "onSubscribe" on that
     // will do nothing ;)
     // transforming it to callerside will execute this at client side,
     // and do all remote communication via standard elements like promise and callback
@@ -52,7 +53,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         });
     }
 
-    // actually private.
+    // private.
     public IPromise<KSubscription> _subscribe( Callback subscriber ) {
         if ( subscribers == null )
             subscribers = new HashMap<>();
@@ -62,20 +63,25 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         return new Promise<>(subs);
     }
 
-    // actually private. remoted cancel
+    // private. remoted cancel
     public void _cancel(int id) {
-        subscribers.remove(id);
+        if ( doOnSubscribe != null ) {
+            doOnSubscribe.add(() -> _cancel(id));
+        } else
+            subscribers.remove(id);
     }
 
-    // actually private. remoted request next
+    // private. remoted request next
     public void _rq(long l, int id) {
-        SubscriberEntry se = getSE(id);
-        if ( se != null ) {// ignore unknown subscribers
-//            System.out.println("processor _rq   "+l);
-//            System.out.println("        credits "+se.credits);
-            se.addCredits(l);
+        if ( doOnSubscribe != null ) {
+            doOnSubscribe.add( () -> _rq(l, id) );
+        } else {
+            SubscriberEntry se = getSE(id);
+            if ( se != null ) {// ignore unknown subscribers
+                se.addCredits(l);
+            }
+            emitRequestNext();
         }
-        emitRequestNext();
     }
 
     protected SubscriberEntry getSE(Integer i) {
@@ -97,6 +103,9 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     @Override
     public void onSubscribe(Subscription subscription) {
         mySubs = subscription;
+        ArrayList<Runnable> tmp = this.doOnSubscribe;
+        this.doOnSubscribe = null;
+        tmp.forEach(runnable -> runnable.run());
     }
 
     protected void emitRequestNext() {
@@ -113,7 +122,8 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         openRequested--;
         try {
             OUT apply = processor.apply(in);
-            forwardMessage(apply);
+            if ( apply != null )
+                forwardMessage(apply);
         } catch (Throwable err) {
             err.printStackTrace();
             forwardError(err);
