@@ -18,6 +18,7 @@ package org.nustaq.kontraktor.asyncio;
 
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.serialization.util.*;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -111,6 +112,7 @@ public abstract class AsyncSocketConnection {
             }
         } catch (Exception e) {
             res.reject(e);
+            FSTUtil.rethrow(e);
         }
         return res;
     }

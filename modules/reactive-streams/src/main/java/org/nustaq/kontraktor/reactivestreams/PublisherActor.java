@@ -4,9 +4,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.annotations.CallerSideMethod;
-import org.nustaq.kontraktor.annotations.InThread;
-import org.nustaq.kontraktor.annotations.Local;
+import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Subscriber;
@@ -14,7 +12,7 @@ import org.reactivestreams.Subscription;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.function.Consumer;
+import java.util.Map.*;
 import java.util.function.Function;
 
 /**
@@ -33,10 +31,6 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
     public void setProcessor( Function<IN,OUT> processor ) {
         this.processor = processor;
-    }
-
-    public void hallo( String s ) {
-        System.out.println(Thread.currentThread().getName()+" "+s);
     }
 
     // with remoting a copy of subscriber is sent. call onSubscribe on that
@@ -68,14 +62,19 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         return new Promise<>(subs);
     }
 
+    // actually private. remoted cancel
     public void _cancel(int id) {
         subscribers.remove(id);
     }
 
+    // actually private. remoted request next
     public void _rq(long l, int id) {
         SubscriberEntry se = getSE(id);
-        if ( se != null ) // ignore unknown subscribers
+        if ( se != null ) {// ignore unknown subscribers
+//            System.out.println("processor _rq   "+l);
+//            System.out.println("        credits "+se.credits);
             se.addCredits(l);
+        }
         emitRequestNext();
     }
 
@@ -92,7 +91,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
     public void setBatchSize(int batchSize ) {
         this.batchSize = batchSize;
-        this.requestNextTrigger = batchSize/2;
+        this.requestNextTrigger = batchSize/ReaktiveStreams.REQU_NEXT_DIVISOR;
     }
 
     @Override
@@ -137,20 +136,36 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         if (subscribers == null) {
             return;
         }
-        boolean blocked[] = {false};
-        subscribers.forEach( (id,entry) -> {
-            entry.sendPending();
-            if ( entry.credits > 0 ) {
-                entry.onNext(msg);
-                entry.decCredits();
-            } else {
-                entry.addPending(msg);
-                blocked[0] = true;
+        boolean blocked = false;
+        List toRemove = null;
+        for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
+            Entry<Integer, SubscriberEntry> next = iterator.next();
+            SubscriberEntry entry = next.getValue();
+            try {
+                entry.sendPending();
+                if (entry.credits > 0) {
+                    entry.onNext(msg);
+                    entry.decCredits();
+                } else {
+                    entry.addPending(msg);
+                    blocked = true;
+                }
+            } catch (Throwable th) {
+                if ( toRemove == null ) {
+                    toRemove = new ArrayList();
+                }
+                toRemove.add(entry);
             }
-        });
-//        if ( ! blocked[0] ) {
-//            emitRequestNext();
-//        }
+        }
+        if ( toRemove != null ) {
+            toRemove.forEach( e -> _cancel(((SubscriberEntry)e).getSubsId()) );
+            if ( subscribers.size() == 0 ) {
+                openRequested = 0;
+            }
+        }
+        if ( ! blocked && subscribers.size() > 0 ) {
+            emitRequestNext();
+        }
     }
 
     @Override
@@ -161,8 +176,8 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     @Override
     public void onComplete() {
         mySubs.cancel();
-        subscribers.forEach( (id,entry) -> {
-            if ( entry.credits > 0 ) {
+        subscribers.forEach((id, entry) -> {
+            if (entry.credits > 0) {
                 entry.onComplete();
             }
         });

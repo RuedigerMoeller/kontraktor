@@ -48,7 +48,7 @@ public class EventSink<T> implements Publisher<T> {
         return toutProcessor;
     }
 
-    public EventSink publishAt( ActorPublisher publisher, Consumer<Actor> disconCB ) {
+    public EventSink publish( ActorPublisher publisher, Consumer<Actor> disconCB ) {
         ReaktiveStreams.get().newPublisherServer(this, publisher, disconCB).await();
         return this;
     }

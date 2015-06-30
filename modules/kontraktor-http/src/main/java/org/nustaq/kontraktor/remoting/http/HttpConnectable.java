@@ -19,6 +19,7 @@ package org.nustaq.kontraktor.remoting.http;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.remoting.base.ActorClient;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
@@ -49,6 +50,7 @@ public class HttpConnectable implements ConnectableActor {
 
     protected boolean shortPollMode = false;   // if true, do short polling instead
     protected long shortPollIntervalMS = 5000;
+    protected int inboundQueueSize = SimpleScheduler.DEFQSIZE;
 
     public HttpConnectable() {
     }
@@ -111,7 +113,7 @@ public class HttpConnectable implements ConnectableActor {
         Promise p = new Promise();
         con.getRefPollActor().execute(() -> {
             Thread.currentThread().setName("Http Ref Polling");
-            actorClient.connect().then(p);
+            actorClient.connect(inboundQueueSize).then(p);
         });
         return p;
     }
@@ -148,5 +150,10 @@ public class HttpConnectable implements ConnectableActor {
 
     public long getShortPollIntervalMS() {
         return shortPollIntervalMS;
+    }
+
+    public HttpConnectable inboundQueueSize(final int inboundQSize) {
+        this.inboundQueueSize = inboundQSize;
+        return this;
     }
 }

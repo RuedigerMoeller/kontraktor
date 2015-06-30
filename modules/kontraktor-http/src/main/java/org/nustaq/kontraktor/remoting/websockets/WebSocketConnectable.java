@@ -39,6 +39,7 @@ public class WebSocketConnectable implements ConnectableActor {
     Class clz;
     String url;
     Coding coding = new Coding(SerializerType.FSTSer);
+    int inboundQueueSize;
 
     public WebSocketConnectable() {}
 
@@ -60,7 +61,7 @@ public class WebSocketConnectable implements ConnectableActor {
             try {
                 client = new JSR356ClientConnector(url);
                 ActorClient connector = new ActorClient(client,clz,coding);
-                connector.connect().then(result);
+                connector.connect(inboundQueueSize).then(result);
             } catch (URISyntaxException e) {
                 e.printStackTrace();
                 result.reject(e);
@@ -102,4 +103,10 @@ public class WebSocketConnectable implements ConnectableActor {
     public Coding getCoding() {
         return coding;
     }
+
+    public WebSocketConnectable inboundQueueSize(final int inboundQSize) {
+        this.inboundQueueSize = inboundQSize;
+        return this;
+    }
+
 }

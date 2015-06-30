@@ -64,7 +64,7 @@ public class ActorClient<T extends Actor> {
         Promise<T> result = new Promise<>();
         try {
             client.connect( writesocket -> {
-                Actor facadeProxy = Actors.AsActor(facadeClass, new RemoteScheduler());
+                Actor facadeProxy = Actors.AsActor(facadeClass, new RemoteScheduler(qsiz));
                 facadeProxy.__remoteId = 1;
 
                 AtomicReference<ObjectSocket> socketRef = new AtomicReference<>(writesocket);

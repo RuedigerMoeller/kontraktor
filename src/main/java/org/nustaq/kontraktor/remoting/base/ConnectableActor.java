@@ -37,5 +37,5 @@ public interface ConnectableActor extends Serializable {
 
     <T> IPromise<T> connect( Callback<ActorClientConnector> disconnectCallback );
     ConnectableActor actorClass( Class actorClz );
-
+    ConnectableActor inboundQueueSize(final int inboundQueueSize);
 }

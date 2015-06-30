@@ -24,6 +24,7 @@ import org.nustaq.serialization.FSTBasicObjectSerializer;
 import org.nustaq.serialization.FSTClazzInfo;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
+import org.nustaq.serialization.util.*;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -58,6 +59,7 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
                 reg.receiveCBResult(chan.get(),id,result,error);
             } catch (Exception e) {
                 Log.Warn(this, e, "");
+                FSTUtil.rethrow(e);
             }
         };
         in.registerObject(cb, streamPositioin, serializationInfo, referencee);

@@ -20,6 +20,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.remoting.base.ActorClient;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
@@ -39,6 +40,7 @@ public class TCPConnectable implements ConnectableActor {
     int port;
     Class actorClz;
     Coding coding = new Coding(SerializerType.FSTSer);
+    int inboundQueueSize = SimpleScheduler.DEFQSIZE;
 
     public TCPConnectable() {
     }
@@ -61,7 +63,7 @@ public class TCPConnectable implements ConnectableActor {
         Runnable connect = () -> {
             TCPClientConnector client = new TCPClientConnector(port,host,disconnectCallback);
             ActorClient connector = new ActorClient(client,actorClz,coding);
-            connector.connect().then(result);
+            connector.connect(inboundQueueSize).then(result);
         };
         if ( ! Actor.inside() ) {
             TCPClientConnector.get().execute(() -> Thread.currentThread().setName("singleton remote client actor polling"));
@@ -107,6 +109,16 @@ public class TCPConnectable implements ConnectableActor {
 
     public TCPConnectable serType(SerializerType sertype) {
         this.coding = new Coding(sertype);
+        return this;
+    }
+
+    /**
+     * default is 32k (SimpleScheduler.DEFQSIZE)
+     * @param inboundQueueSize
+     * @return
+     */
+    public TCPConnectable inboundQueueSize(final int inboundQueueSize) {
+        this.inboundQueueSize = inboundQueueSize;
         return this;
     }
 

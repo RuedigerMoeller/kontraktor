@@ -56,6 +56,11 @@ public class LocalConnectable implements ConnectableActor {
         return this;
     }
 
+    @Override
+    public ConnectableActor inboundQueueSize(int inboundQueueSize) {
+        return this;
+    }
+
     public Actor getActor() {
         return actor;
     }

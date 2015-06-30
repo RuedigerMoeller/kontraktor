@@ -19,8 +19,10 @@ import java.util.function.Function;
  */
 public class ReaktiveStreams extends Actors {
 
-    public static int DEFAULT_BATCH_SIZE = 50_000;
+    protected static final int MAX_BATCH_SIZE = 5000;
+    public static int DEFAULT_BATCH_SIZE = 3_000;
     public static int DEFAULTQSIZE = 128_000;
+    public static int REQU_NEXT_DIVISOR = 1;
 
     protected static ReaktiveStreams instance = new ReaktiveStreams();
 
@@ -30,13 +32,23 @@ public class ReaktiveStreams extends Actors {
 
     /////////////////// static helpers /////////////////////////////////////////
 
+    /**
+     * consuming endpoint. requests data from publisher immediately after
+     * receiving onSubscribe callback
+     * @param <T>
+     */
     public static <T> Subscriber<T> subscriber(Callback<T> cb) {
-        return subscriber(50_000,cb);
+        return subscriber(DEFAULT_BATCH_SIZE,cb);
     }
 
+    /**
+     * consuming endpoint. requests data from publisher immediately after
+     * receiving onSubscribe callback
+     * @param <T>
+     */
     public static <T> Subscriber<T> subscriber(int batchSize, Callback<T> cb) {
-        if ( batchSize > 50_000 ) {
-            throw new RuntimeException("batch size exceeds maximum of 50_000");
+        if ( batchSize > MAX_BATCH_SIZE ) {
+            throw new RuntimeException("batch size exceeds maximum of "+MAX_BATCH_SIZE);
         }
         return new MySubscriber<>(batchSize, cb);
     }
@@ -62,7 +74,9 @@ public class ReaktiveStreams extends Actors {
      */
     public <OUT> IPromise newPublisherServer(Publisher<OUT> source, ActorPublisher networkPublisher, Consumer<Actor> disconCB) {
         if (source instanceof PublisherActor == false) {
-            source = newProcessor(source, a -> a);
+            Processor<OUT, OUT> proc = newProcessor(source, a -> a);
+            source.subscribe(proc);
+            source = proc;
         }
         return networkPublisher.facade((Actor) source).publish(disconCB);
     }
@@ -75,7 +89,7 @@ public class ReaktiveStreams extends Actors {
      * @return
      */
     public <T> IPromise<Publisher<T>> connectRemotePublisher(Class<T> eventType, ConnectableActor connectable, Callback<ActorClientConnector> disconHandler) {
-        return connectable.actorClass(PublisherActor.class).connect(disconHandler);
+        return connectable.actorClass(PublisherActor.class).inboundQueueSize(DEFAULTQSIZE).connect(disconHandler);
     }
 
     public <IN, OUT> Processor<IN, OUT> newProcessor(Publisher<IN> source, Function<IN, OUT> processingFunction) {
@@ -88,11 +102,19 @@ public class ReaktiveStreams extends Actors {
 
     public <IN, OUT> Processor<IN, OUT> newProcessor(Publisher<IN> source, Function<IN, OUT> processingFunction, Scheduler sched, int batchSize) {
         PublisherActor pub = Actors.AsActor(PublisherActor.class, sched);
+        if ( batchSize > ReaktiveStreams.MAX_BATCH_SIZE ) {
+            throw new RuntimeException("batch size exceeds max of "+ReaktiveStreams.MAX_BATCH_SIZE);
+        }
         pub.setBatchSize(batchSize);
         pub.setProcessor(processingFunction);
         return pub;
     }
 
+    /**
+     * consuming endpoint. requests data from publisher immediately after
+     * receiving onSubscribe callback
+     * @param <T>
+     */
     protected static class MySubscriber<T> implements Subscriber<T>, Serializable {
         protected long batchSize;
         protected Callback<T> cb;
@@ -109,13 +131,16 @@ public class ReaktiveStreams extends Actors {
         public void onSubscribe(Subscription s) {
             subs = s;
             s.request(batchSize);
+            credits += batchSize;
         }
 
         @Override
         public void onNext(T t) {
             credits--;
-            if ( credits < batchSize /2 )
+            if ( credits < batchSize/ReaktiveStreams.REQU_NEXT_DIVISOR ) {
                 subs.request(batchSize);
+                credits += batchSize;
+            }
             cb.stream(t);
         }
 

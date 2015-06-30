@@ -56,7 +56,7 @@ public class ActorsImpl {
             Actor realActor = clz.newInstance();
             realActor.__mailbox =  createQueue(qs);
             realActor.__mailboxCapacity = qs;
-            realActor.__mbCapacity = realActor.__mailboxCapacity;
+            realActor.__mbCapacity = realActor.__mailboxCapacity; // wtf
             realActor.__cbQueue =  createQueue(qs);
 
             Actor selfproxy = getFactory().instantiateProxy(realActor);

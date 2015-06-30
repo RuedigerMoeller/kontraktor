@@ -18,6 +18,7 @@ package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.serialization.util.*;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
@@ -48,7 +49,14 @@ import java.util.function.Supplier;
  */
 
 /**
- * ..
+ * If a promise or callback is wrapped by this, it will be treated correctly when remoted.
+ * If callback/promises are part of an actor's async method signatures, kontraktor will autimatically
+ * wrap primitives such that remote calls work correctly.
+ * However if a promise or callback is embedded inside some Pojo, and this pojo is sent over the network,
+ * Promises and Callbacks do not work (performance issues, deep scan with many instanceof's required).
+ *
+ * However if a callback/promise is wrapped by this class, remoting works out as expected.
+ *
  */
 public class CallbackWrapper<T> implements IPromise<T>, Serializable {
 
@@ -80,7 +88,7 @@ public class CallbackWrapper<T> implements IPromise<T>, Serializable {
             try {
                 receiveRes.invoke(realCallback, result, error);
             } catch (Exception e) {
-                Log.Warn( this, e, "" );
+                FSTUtil.rethrow(e);
             }
         } else {
             CallEntry ce = new CallEntry( realCallback, receiveRes, new Object[]{result,error}, Actor.sender.get(), targetActor, true);
