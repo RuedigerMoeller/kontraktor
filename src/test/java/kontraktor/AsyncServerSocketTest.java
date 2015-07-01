@@ -36,6 +36,11 @@ public class AsyncServerSocketTest {
             try {
                 sock.connect( 8080, (key,con) -> new AsyncSocketConnection(key, con) {
                     @Override
+                    public void closed(Exception ioe) {
+                        isClosed = true;
+                    }
+
+                    @Override
                     public void dataReceived(ByteBuffer buf) {
                         System.out.println(new String(buf.array(),0,0,buf.limit()));
                         System.out.println("len:"+buf.limit());
@@ -50,6 +55,11 @@ public class AsyncServerSocketTest {
             AsyncServerSocket sock = new AsyncServerSocket();
             try {
                 sock.connect( 8080, (key,con) -> new QueuingAsyncSocketConnection(key, con) {
+                    @Override
+                    public void closed(Exception ioe) {
+                        isClosed = true;
+                    }
+
                     @Override
                     public void dataReceived(BinaryQueue q) {
                         System.out.println("size "+q.available());
@@ -68,6 +78,11 @@ public class AsyncServerSocketTest {
             FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
             try {
                 sock.connect( 8080, (key,con) -> new QueuingAsyncSocketConnection(key, con) {
+
+                    @Override
+                    public void closed(Exception ioe) {
+                        isClosed = true;
+                    }
 
                     @Override
                     public void dataReceived(BinaryQueue q) {
@@ -102,6 +117,11 @@ public class AsyncServerSocketTest {
             FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
             try {
                 sock.connect( port, (key,con) -> new QueuingAsyncSocketConnection(key, con) {
+
+                    @Override
+                    public void closed(Exception ioe) {
+                        isClosed = true;
+                    }
 
                     @Override
                     public void dataReceived(BinaryQueue q) {

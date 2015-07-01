@@ -161,6 +161,11 @@ public class _AsyncClientSocket implements Runnable {
             sock.connect("localhost",8080, (key,channel) ->
                 new QueuingAsyncSocketConnection( key, channel ) {
                     @Override
+                    public void closed(Exception ioe) {
+                        isClosed = true;
+                    }
+
+                    @Override
                     protected void dataReceived(BinaryQueue queue) {
                         System.out.println("received:"+queue.remaining());
                     }

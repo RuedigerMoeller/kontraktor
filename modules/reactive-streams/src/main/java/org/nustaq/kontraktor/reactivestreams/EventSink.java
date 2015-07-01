@@ -31,7 +31,6 @@ public class EventSink<T> implements KPublisher<T> {
         subs.onError(th);
     }
 
-
     @Override
     public void subscribe(Subscriber<? super T> subscriber) {
         if ( subs != null ) {

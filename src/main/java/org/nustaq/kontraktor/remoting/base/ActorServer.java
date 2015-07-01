@@ -77,7 +77,6 @@ public class ActorServer {
         connector.connect(facade, writesocket -> {
             AtomicReference<ObjectSocket> socketRef = new AtomicReference<>(writesocket);
             reg = new RemoteRegistry( conf.deriveConfiguration(), coding) {
-//            RemoteRegistry reg = new RemoteRegistry(coding) {
                 @Override
                 public Actor getFacadeProxy() {
                     return facade;

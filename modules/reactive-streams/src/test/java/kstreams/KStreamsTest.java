@@ -69,7 +69,7 @@ public class KStreamsTest {
         EventSink<String> stringStream = new EventSink<>();
 
         stringStream.publish(new TCPNIOPublisher().port(7777), actor -> {
-            System.out.println("disconnect of "+actor);
+            System.out.println("disconnect of " + actor);
         });
 
         int prev = 0;
@@ -118,6 +118,28 @@ public class KStreamsTest {
             .map(string -> string.length())
             .map(number -> number > 10 ? number : number )
             .subscribe(
+                          (str, err) -> {
+                              if (isFinal(err)) {
+                                  System.out.println("complete");
+                              } else if (isError(err)) {
+                                  System.out.println("ERROR");
+                              } else {
+                                  received.incrementAndGet();
+                                  ms.count();
+                              }
+                          });
+        Thread.sleep(1000000);
+    }
+
+    @Test // slowdown
+    public void testClient2() throws InterruptedException {
+        AtomicLong received = new AtomicLong(0);
+        KPublisher<String> remote = get().connectRemotePublisher(String.class, new TCPConnectable().host("localhost").port(7777), null).await();
+        RateMeasure ms = new RateMeasure("event rate");
+        remote
+            .map(string -> string.length())
+            .map(number -> number > 10 ? number : number )
+            .subscribe(
                 (str, err) -> {
                     if (isFinal(err)) {
                         System.out.println("complete");
@@ -126,10 +148,14 @@ public class KStreamsTest {
                     } else {
                         received.incrementAndGet();
                         ms.count();
+                        try {
+                            Thread.sleep(1);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 });
         Thread.sleep(1000000);
     }
-
 
 }

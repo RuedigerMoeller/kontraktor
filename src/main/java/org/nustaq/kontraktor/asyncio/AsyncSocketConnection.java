@@ -18,6 +18,7 @@ package org.nustaq.kontraktor.asyncio;
 
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.util.*;
 
 import java.io.EOFException;
@@ -39,17 +40,18 @@ public abstract class AsyncSocketConnection {
 
     protected Promise writePromise;
     protected ByteBuffer writingBuffer;
-    boolean isClosed;
+    protected boolean isClosed;
 
     public AsyncSocketConnection(SelectionKey key, SocketChannel chan) {
         this.key = key;
         this.chan = chan;
     }
 
-    public void closed(Exception ioe) {
-        System.out.println("connection closed " + ioe);
-        isClosed = true;
-    }
+    public abstract void closed(Exception ioe);
+//    {
+//        Log.Lg.info(this,"connection closed " + ioe);
+//        isClosed = true;
+//    }
 
     public void close() throws IOException {
         chan.close();

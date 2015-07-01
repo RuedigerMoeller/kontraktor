@@ -5,7 +5,10 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.*;
+import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
+import org.nustaq.kontraktor.remoting.base.RemotedActor;
+import org.nustaq.kontraktor.util.Log;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -22,8 +25,9 @@ import java.util.function.Function;
  * use the ReaktiveStreams singleton instead.
  *
  */
-public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> implements Processor<IN, OUT>, KPublisher<OUT> {
+public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> implements Processor<IN, OUT>, KPublisher<OUT>, RemotedActor {
 
+    public static int MAX_PENDING_MSG_BUFFERED = 500_000;
     Map<Integer, SubscriberEntry> subscribers;
     int subsIdCount = 1;
 
@@ -110,6 +114,12 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
     protected void emitRequestNext() {
         if ( openRequested < requestNextTrigger ) {
+            for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
+                Entry<Integer, SubscriberEntry> next = iterator.next();
+                if ( next.getValue().credits < openRequested ) {
+                    return;
+                }
+            }
             mySubs.request(batchSize);
             openRequested += batchSize;
         }
@@ -159,6 +169,12 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
                     entry.decCredits();
                 } else {
                     entry.addPending(msg);
+                    if ( entry.pending.size() > MAX_PENDING_MSG_BUFFERED ) {
+                        if ( toRemove == null ) {
+                            toRemove = new ArrayList();
+                        }
+                        toRemove.add(entry);
+                    }
                     blocked = true;
                 }
             } catch (Throwable th) {
@@ -169,7 +185,16 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             }
         }
         if ( toRemove != null ) {
-            toRemove.forEach( e -> _cancel(((SubscriberEntry)e).getSubsId()) );
+            toRemove.forEach( e -> {
+                int subsId = ((SubscriberEntry) e).getSubsId();
+                try {
+                    _cancel(subsId);
+                } catch (Throwable th) {
+                    // ignore
+                }
+                subscribers.remove(subsId);
+                Log.Info(this, "a stream client disconnected id:"+subsId+" remaining:"+subscribers.size());
+            } );
             if ( subscribers.size() == 0 ) {
                 openRequested = 0;
             }
@@ -192,6 +217,19 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
                 entry.onComplete();
             }
         });
+    }
+
+    @Override // some client disconnected
+    public void hasBeenUnpublished() {
+        for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
+            Entry<Integer, SubscriberEntry> entry = iterator.next();
+            Callback subscriber = entry.getValue().subscriber;
+            if ( subscriber instanceof CallbackWrapper &&
+                 ((CallbackWrapper) subscriber).isTerminated() ) {
+                iterator.remove();
+                Log.Info(this, "a stream client disconnected id:"+entry.getKey()+" remaining:"+subscribers.size());
+            }
+        }
     }
 
     protected static class KSubscription implements Subscription, Serializable {
@@ -225,13 +263,13 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         protected long credits;
         protected KSubscription subscription;
         protected Callback subscriber;
-        protected LinkedList pending;
+        protected ArrayDeque pending;
 
         public SubscriberEntry(int subsId, KSubscription subscription, Callback subscriber) {
             this.subsId = subsId;
             this.subscription = subscription;
             this.subscriber = subscriber;
-            this.pending = new LinkedList<>();
+            this.pending = new ArrayDeque<>();
         }
 
         public void addCredits(long l) {

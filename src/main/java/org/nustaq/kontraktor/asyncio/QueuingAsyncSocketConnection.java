@@ -117,7 +117,7 @@ public abstract class QueuingAsyncSocketConnection extends AsyncSocketConnection
 
     protected abstract void dataReceived(BinaryQueue queue);
 
-    public void closed(Exception ioe) {
-    }
+//    public void closed(Exception ioe) {
+//    }
 
 }

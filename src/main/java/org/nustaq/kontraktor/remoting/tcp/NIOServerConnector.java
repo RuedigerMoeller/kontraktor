@@ -101,6 +101,12 @@ public class NIOServerConnector extends AsyncServerSocket implements ActorServer
 
         @Override public void receivedObject(Object o) { sink.receiveObject(o, null); }
 
+        @Override
+        public void closed(Exception ioe) {
+            isClosed = true;
+            sink.sinkClosed();
+        }
+
         public void close() throws IOException {
             chan.close();
             sink.sinkClosed();

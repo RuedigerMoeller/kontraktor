@@ -400,7 +400,20 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return __connections != null && __connections.peek() != null;
     }
 
+    /**
+     * just enqueue given runable to this actors mailbox and execute on the actor's thread
+     *
+     * @param command
+     */
+    @CallerSideMethod @Local @Override
+    public void execute(Runnable command) {
+        self().__submit(command);
+    }
 
+    @CallerSideMethod @Local
+    public DispatcherThread getCurrentDispatcher() {
+        return (DispatcherThread) __currentDispatcher;
+    }
 
     ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
@@ -490,21 +503,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             }
         }
         return method;
-    }
-
-    /**
-     * just enqueue given runable to this actors mailbox and execute on the actor's thread
-     *
-     * @param command
-     */
-    @CallerSideMethod @Local @Override
-    public void execute(Runnable command) {
-        self().__submit(command);
-    }
-
-    @CallerSideMethod @Local
-    public DispatcherThread getCurrentDispatcher() {
-        return (DispatcherThread) __currentDispatcher;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////

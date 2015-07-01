@@ -18,7 +18,9 @@ public interface KPublisher<T> extends Publisher<T> {
 
     /**
      * consuming endpoint. requests data from publisher immediately after
-     * receiving onSubscribe callback. Maps from reactive streams Subscriber to Kontraktor Callback
+     * receiving onSubscribe callback. Maps from reactive streams Subscriber to Kontraktor Callback.
+     *
+     * Call inherited subscribe(Publisher) to subscribe a 'standard' reactivestreams subscriber
      *
      * all events are routed to the callback
      * e.g.
@@ -43,6 +45,8 @@ public interface KPublisher<T> extends Publisher<T> {
     /**
      * consuming endpoint. requests data from publisher immediately after
      * receiving onSubscribe callback. Maps from reactive streams Subscriber to Kontraktor Callback
+     *
+     * Call inherited subscribe(Publisher) to subscribe a 'standard' reactivestreams subscriber
      *
      * all events are routed to the callback
      * e.g.

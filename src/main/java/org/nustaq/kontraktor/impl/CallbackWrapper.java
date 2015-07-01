@@ -17,6 +17,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.remoting.base.RemotedCallback;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.util.*;
 
@@ -222,5 +223,19 @@ public class CallbackWrapper<T> implements IPromise<T>, Serializable {
             throw new RuntimeException( "currently supported for futures only" );
         else
             return ((IPromise)realCallback).isSettled();
+    }
+
+    public boolean isRemote() {
+        return realCallback instanceof RemotedCallback;
+    }
+
+    /**
+     * @return if the corresponding remote connection is closed if any
+     */
+    public boolean isTerminated() {
+        if ( isRemote() ) {
+            return ((RemotedCallback) realCallback).isTerminated();
+        }
+        return false;
     }
 }

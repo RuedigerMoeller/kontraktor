@@ -19,6 +19,7 @@ package org.nustaq.kontraktor.remoting.encoding;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
+import org.nustaq.kontraktor.remoting.base.RemotedCallback;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTBasicObjectSerializer;
 import org.nustaq.serialization.FSTClazzInfo;
@@ -49,19 +50,37 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
         return super.alwaysCopy();
     }
 
-    @Override
-    public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws Exception {
-        // fixme: detect local actors returned from foreign
-        int id = in.readInt();
-        AtomicReference<ObjectSocket> chan = reg.getWriteObjectSocket();
-        Callback cb = (Object result, Object error) -> {
+    public class MyRemotedCallback implements Callback, RemotedCallback {
+        AtomicReference<ObjectSocket> chan;
+        int id;
+
+        public MyRemotedCallback(AtomicReference<ObjectSocket> chan, int id) {
+            this.chan = chan;
+            this.id = id;
+        }
+
+        @Override
+        public void complete(Object result, Object error) {
             try {
                 reg.receiveCBResult(chan.get(),id,result,error);
             } catch (Exception e) {
                 Log.Warn(this, e, "");
                 FSTUtil.rethrow(e);
             }
-        };
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return reg.isTerminated();
+        }
+    }
+
+    @Override
+    public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws Exception {
+        // fixme: detect local actors returned from foreign
+        int id = in.readInt();
+        AtomicReference<ObjectSocket> chan = reg.getWriteObjectSocket();
+        MyRemotedCallback cb = new MyRemotedCallback(chan, id);
         in.registerObject(cb, streamPositioin, serializationInfo, referencee);
         return cb;
     }
