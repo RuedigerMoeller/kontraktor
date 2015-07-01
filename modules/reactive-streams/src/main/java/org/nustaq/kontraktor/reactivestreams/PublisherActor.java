@@ -140,6 +140,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
                 entry.onError(err);
             }
         });
+        // fixme: cancel
     }
 
     protected void forwardMessage(Object msg) {
