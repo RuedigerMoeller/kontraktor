@@ -72,7 +72,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     }
 
     // private. remoted request next
-    public void _rq(long l, int id) {
+    @AsCallback public void _rq(long l, int id) {
         if ( doOnSubscribe != null ) {
             doOnSubscribe.add( () -> _rq(l, id) );
         } else {

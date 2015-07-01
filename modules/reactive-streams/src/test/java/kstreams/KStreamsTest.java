@@ -30,8 +30,8 @@ public class KStreamsTest {
         EventSink<String> stringSink = new EventSink<>();
 
         stringSink
-            .asyncMap(in -> in + " " + in)
-            .asyncMap(in -> in.length() )
+//            .map(in -> in + " " + in)
+            .map(in -> in.length())
             .subscribe( (str, err) -> {
                 if (isFinal(err)) {
                   System.out.println("complete");
@@ -115,8 +115,8 @@ public class KStreamsTest {
         KPublisher<String> remote = get().connectRemotePublisher(String.class, new TCPConnectable().host("localhost").port(7777), null).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
-            .map(string -> string.length() )
-            .asyncMap(number -> number > 10 ? number : number )
+            .map(string -> string.length())
+            .map(number -> number > 10 ? number : number )
             .subscribe(
                 (str, err) -> {
                     if (isFinal(err)) {

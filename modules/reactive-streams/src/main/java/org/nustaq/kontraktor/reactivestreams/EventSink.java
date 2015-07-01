@@ -15,7 +15,7 @@ public class EventSink<T> implements KPublisher<T> {
     public boolean offer(T event) {
         if ( event == null )
             throw new RuntimeException("event cannot be null");
-        if ( credits.get() > 0 ) {
+        if ( credits.get() > 0 && subs != null ) {
             subs.onNext(event);
             credits.decrementAndGet();
             return true;

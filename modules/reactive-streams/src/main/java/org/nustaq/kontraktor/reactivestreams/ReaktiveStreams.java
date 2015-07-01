@@ -16,6 +16,17 @@ import java.util.function.Function;
 
 /**
  * Created by ruedi on 28/06/15.
+ *
+ * Factory class for reactive streams <=> Kontraktor interop.
+ *
+ * Note you rarely need use this directly. To publish / start a stream, see EventSink (offer() like feed in point),
+ * this also allows to publish it on network.
+ *
+ * For connecting a remote stream, see ReaktiveStreams.connectXXX methods. Note that KPublisher extends the original
+ * Publisher interface.
+ *
+ * for interop use asKPublisher()
+ *
  */
 public class ReaktiveStreams extends Actors {
 
@@ -32,9 +43,45 @@ public class ReaktiveStreams extends Actors {
 
     ////////// singleton instance methods ////////////////////////////////////////////////
 
+
+    /**
+     * interop, obtain a KPublisher from a rxstreams publisher.
+     *
+     * KPublisher is an extension of Publisher and adds some sugar like map, netowrk publish
+     *
+     * @param p
+     * @param <T>
+     * @return
+     */
+    public <T> KPublisher<T> asKPublisher(Publisher<T> p) {
+        if ( p instanceof KPublisher )
+            return (KPublisher<T>) p;
+        return new KPublisher<T>() {
+            @Override
+            public void subscribe(Subscriber<? super T> s) {
+                p.subscribe(s);
+            }
+        };
+    }
+
     /**
      * consuming endpoint. requests data from publisher immediately after
-     * receiving onSubscribe callback
+     * receiving onSubscribe callback. Maps from reactive streams Subscriber to Kontraktor Callback
+     *
+     * all events are routed to the callback
+     * e.g.
+     * <pre>
+     *      subscriber( (event, err) -> {
+     +          if (Actors.isFinal(err)) {
+     +              System.out.println("complete");
+     +          } else if (Actors.isError(err)) {
+     +              System.out.println("ERROR");
+     +          } else {
+     +              // process event
+     +          }
+     +      }
+     * </pre>
+     *
      * @param <T>
      */
     public <T> Subscriber<T> subscriber(Callback<T> cb) {
@@ -87,7 +134,7 @@ public class ReaktiveStreams extends Actors {
      */
     public <OUT> IPromise newPublisherServer(Publisher<OUT> source, ActorPublisher networkPublisher, Consumer<Actor> disconCB) {
         if (source instanceof PublisherActor == false || source instanceof ActorProxy == false ) {
-            Processor<OUT, OUT> proc = newAsyncProcessor(source, a -> a); // we need a queue before going to network
+            Processor<OUT, OUT> proc = newAsyncProcessor(a -> a); // we need a queue before going to network
             source.subscribe(proc);
             source = proc;
         }
@@ -105,15 +152,15 @@ public class ReaktiveStreams extends Actors {
         return connectable.actorClass(PublisherActor.class).inboundQueueSize(DEFAULTQSIZE).connect(disconHandler);
     }
 
-    public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Publisher<IN> source, Function<IN, OUT> processingFunction) {
-        return newAsyncProcessor(source, processingFunction, new SimpleScheduler(DEFAULTQSIZE), DEFAULT_BATCH_SIZE);
+    public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Function<IN, OUT> processingFunction) {
+        return newAsyncProcessor(processingFunction, new SimpleScheduler(DEFAULTQSIZE), DEFAULT_BATCH_SIZE);
     }
 
-    public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Publisher<IN> source, Function<IN, OUT> processingFunction, int batchSize) {
-        return newAsyncProcessor(source, processingFunction, new SimpleScheduler(DEFAULTQSIZE), batchSize);
+    public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Function<IN, OUT> processingFunction, int batchSize) {
+        return newAsyncProcessor(processingFunction, new SimpleScheduler(DEFAULTQSIZE), batchSize);
     }
 
-    public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Publisher<IN> source, Function<IN, OUT> processingFunction, Scheduler sched, int batchSize) {
+    public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Function<IN, OUT> processingFunction, Scheduler sched, int batchSize) {
         PublisherActor pub = Actors.AsActor(PublisherActor.class, sched);
         if ( batchSize > ReaktiveStreams.MAX_BATCH_SIZE ) {
             throw new RuntimeException("batch size exceeds max of "+ReaktiveStreams.MAX_BATCH_SIZE);
@@ -123,12 +170,9 @@ public class ReaktiveStreams extends Actors {
         return pub;
     }
 
-    public <IN,OUT> Processor<IN,OUT> newSyncProcessor(Publisher<IN> source, Function<IN, OUT> processingFunction) {
-        PublisherActor pub = new PublisherActor(); // use actor as normal class here (=sync)
-        pub.__self = pub;
-        pub.setBatchSize(DEFAULT_BATCH_SIZE);
-        pub.setProcessor(processingFunction);
-        return pub;
+    public <IN,OUT> Processor<IN,OUT> newSyncProcessor(Function<IN, OUT> processingFunction) {
+        SyncProcessor<IN, OUT> inoutSyncProcessor = new SyncProcessor<>(DEFAULT_BATCH_SIZE, processingFunction);
+        return inoutSyncProcessor;
     }
 
     /**
@@ -189,29 +233,94 @@ public class ReaktiveStreams extends Actors {
 
     protected static class SyncProcessor<IN, OUT> implements Processor<IN, OUT>, KPublisher<OUT> {
 
-        @Override
-        public void subscribe(Subscriber<? super OUT> s) {
+        protected Subscription inSubs;
+        protected Subscription outSubs;
+        protected Subscriber<OUT> subscriber;
+        protected long credits = 0;
+        protected long openElements = 0;
+        protected boolean done = false;
+        protected long batchSize;
+        protected Function<IN,OUT> proc;
 
+        public SyncProcessor(long batchSize, Function<IN, OUT> proc) {
+            this.batchSize = batchSize;
+            this.proc = proc;
         }
 
         @Override
-        public void onSubscribe(Subscription s) {
-
+        public void onSubscribe(final Subscription s) {
+            credits = 0;
+            if (s == null)
+                throw null;
+            if (inSubs != null) {
+                inSubs.cancel();
+            } else {
+                inSubs = s;
+                checkRequest();
+            }
         }
 
         @Override
-        public void onNext(IN in) {
+        public void onNext(final IN element) {
+            if ( done )
+                return;
+            if (element == null)
+                throw null;
+            try {
+                openElements--;
+                subscriber.onNext(process(element));
+                credits--;
+                checkRequest();
+            } catch (final Throwable t) {
+                onError(t);
+            }
+        }
 
+        protected OUT process(final IN element) {
+            return proc.apply(element);
         }
 
         @Override
-        public void onError(Throwable t) {
-
+        public void onError(final Throwable t) {
+            done = true;
+            if ( subscriber != null )
+                subscriber.onError(t);
+            else
+                t.printStackTrace();
+            if ( inSubs != null )
+                inSubs.cancel();
         }
 
         @Override
         public void onComplete() {
+            done = true;
+            subscriber.onComplete();
+        }
 
+        @Override
+        public void subscribe(Subscriber<? super OUT> s) {
+            if ( subscriber != null ) {
+                throw new RuntimeException("can only subscribe once");
+            }
+            subscriber = (Subscriber<OUT>) s;
+            s.onSubscribe( outSubs = new Subscription() {
+                @Override
+                public void request(long n) {
+                    credits += n;
+                    checkRequest();
+                }
+                @Override
+                public void cancel() {
+                    credits = 0;
+                }
+            });
+        }
+
+        protected void checkRequest() {
+            if ( openElements < credits && inSubs != null ) {
+                openElements += batchSize;
+                inSubs.request(batchSize);
+            }
         }
     }
 }

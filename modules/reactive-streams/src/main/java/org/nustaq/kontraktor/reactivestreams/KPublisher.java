@@ -64,13 +64,13 @@ public interface KPublisher<T> extends Publisher<T> {
     }
 
     @CallerSideMethod default <OUT> KPublisher<OUT> asyncMap(Function<T,OUT> processor) {
-        Processor<T, OUT> toutProcessor = ReaktiveStreams.get().newAsyncProcessor(this, processor);
+        Processor<T, OUT> toutProcessor = ReaktiveStreams.get().newAsyncProcessor(processor);
         subscribe(toutProcessor);
         return (KPublisher<OUT>) toutProcessor;
     }
 
     @CallerSideMethod default <OUT> KPublisher<OUT> asyncMap( Function<T,OUT> processor, int batchSize ) {
-        Processor<T, OUT> toutProcessor = ReaktiveStreams.get().newAsyncProcessor(this, processor, batchSize);
+        Processor<T, OUT> toutProcessor = ReaktiveStreams.get().newAsyncProcessor(processor, batchSize);
         subscribe(toutProcessor);
         return (KPublisher<OUT>) toutProcessor;
     }
@@ -80,13 +80,11 @@ public interface KPublisher<T> extends Publisher<T> {
     }
 
     @CallerSideMethod default <OUT> KPublisher<OUT> map(Function<T,OUT> processor) {
-        return null;
-//        return (KPublisher<OUT>) new ReaktiveStreams.SyncPublisher(ReaktiveStreams.DEFAULT_BATCH_SIZE, null, false ) {
-//            @Override
-//            protected void nextAction(Object o) {
-//
-//            }
-//        };
+        if ( this instanceof PublisherActor && ((PublisherActor)this).isRemote() )
+            return asyncMap(processor); // need a queue when connecting remote stream
+        Processor<T,OUT> outkPublisher = ReaktiveStreams.get().newSyncProcessor(processor);
+        subscribe(outkPublisher);
+        return (KPublisher<OUT>) outkPublisher;
     }
 
 }
