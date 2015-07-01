@@ -98,9 +98,11 @@ public abstract class QueuingAsyncSocketConnection extends AsyncSocketConnection
                 qWriteTmp.limit((int) poll);
                 IPromise queueDataAvailablePromise = directWrite(qWriteTmp);
                 queueDataAvailablePromise.then((res, err) -> {
-                    if (err != null) {
+                    if (err instanceof Throwable ) {
                         Log.Lg.error(this, (Throwable) err, "write failure");
                     } else {
+                        if ( err != null )
+                            Log.Lg.error(this, null, "write failure:"+err);
                         tryFlush();
                     }
                 });
