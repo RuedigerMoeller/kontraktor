@@ -268,7 +268,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
             for (int i = 0; i < max; i++) {
                 Object resp = arr[i];
                 if (resp instanceof RemoteCallEntry == false) {
-                    if ( resp != null && ! "SP".equals(resp) )
+                    if ( resp != null && ! "SP".equals(resp) ) // FIXME: hack for short polling
                         Log.Lg.error(this, null, "unexpected response:" + resp); // fixme
                     hadResp = true;
                 } else if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) resp, createdFutures))
@@ -439,7 +439,9 @@ public abstract class RemoteRegistry implements RemoteConnection {
             sumQueued = 0;
             for (Iterator<Actor> iterator = remoteActors.iterator(); iterator.hasNext(); ) {
                 Actor remoteActor = iterator.next();
-                CallEntry ce = (CallEntry) remoteActor.__mailbox.poll();
+                CallEntry ce = (CallEntry) remoteActor.__cbQueue.poll();
+                if ( ce == null )
+                    ce = (CallEntry) remoteActor.__mailbox.poll();
                 if ( ce != null) {
                     if ( ce.getMethod().getName().equals("close") ) {
                         closeRef(ce,chan);
