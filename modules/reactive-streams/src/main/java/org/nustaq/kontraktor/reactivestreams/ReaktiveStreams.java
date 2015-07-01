@@ -115,16 +115,27 @@ public class ReaktiveStreams extends Actors {
         return new MySubscriber<>(batchSize, cb);
     }
 
-    public <T> KPublisher<T> connect( Class eventType, ConnectableActor connectable ) {
+    public <T> KPublisher<T> connect( Class<T> eventType, ConnectableActor connectable ) {
         return (KPublisher<T>) get().connectRemotePublisher(eventType, connectable, null ).await();
     }
 
-    public <T> KPublisher<T> connect( Class eventType, ConnectableActor connectable, Callback<ActorClientConnector> disconCB ) {
+    public <T> KPublisher<T> connect( Class<T> eventType, ConnectableActor connectable, Callback<ActorClientConnector> disconCB ) {
         return (KPublisher<T>) get().connectRemotePublisher(eventType, connectable, disconCB).await();
     }
 
     /**
-     * exposes a publisher on the network via kontraktor's generic remoting
+     * @param eventType
+     * @param connectable
+     * @param disconHandler - can be null
+     * @param <T>
+     * @return
+     */
+    public <T> IPromise<KPublisher<T>> connectRemotePublisher(Class<T> eventType, ConnectableActor connectable, Callback<ActorClientConnector> disconHandler) {
+        return connectable.actorClass(PublisherActor.class).inboundQueueSize(DEFAULTQSIZE).connect(disconHandler);
+    }
+
+    /**
+     * exposes a publisher on the network via kontraktor's generic remoting. Usually not called directly (see EventSink+KPublisher)
      *
      * @param source
      * @param networkPublisher - the appropriate network publisher (TCP,TCPNIO,WS,HTTP)
@@ -142,24 +153,41 @@ public class ReaktiveStreams extends Actors {
     }
 
     /**
-     * @param eventType
-     * @param connectable
-     * @param disconHandler - can be null
-     * @param <T>
+     * create async processor. Usually not called directly (see EventSink+KPublisher)
+     *
+     * @param processingFunction
+     * @param <IN>
+     * @param <OUT>
      * @return
      */
-    public <T> IPromise<KPublisher<T>> connectRemotePublisher(Class<T> eventType, ConnectableActor connectable, Callback<ActorClientConnector> disconHandler) {
-        return connectable.actorClass(PublisherActor.class).inboundQueueSize(DEFAULTQSIZE).connect(disconHandler);
-    }
-
     public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Function<IN, OUT> processingFunction) {
         return newAsyncProcessor(processingFunction, new SimpleScheduler(DEFAULTQSIZE), DEFAULT_BATCH_SIZE);
     }
 
+    /**
+     *
+     * create async processor. Usually not called directly (see EventSink+KPublisher)
+     *
+     * @param processingFunction
+     * @param batchSize
+     * @param <IN>
+     * @param <OUT>
+     * @return
+     */
     public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Function<IN, OUT> processingFunction, int batchSize) {
         return newAsyncProcessor(processingFunction, new SimpleScheduler(DEFAULTQSIZE), batchSize);
     }
 
+    /**
+     * create async processor. Usually not called directly (see EventSink+KPublisher)
+     *
+     * @param processingFunction
+     * @param sched
+     * @param batchSize
+     * @param <IN>
+     * @param <OUT>
+     * @return
+     */
     public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Function<IN, OUT> processingFunction, Scheduler sched, int batchSize) {
         PublisherActor pub = Actors.AsActor(PublisherActor.class, sched);
         if ( batchSize > ReaktiveStreams.MAX_BATCH_SIZE ) {
@@ -170,6 +198,15 @@ public class ReaktiveStreams extends Actors {
         return pub;
     }
 
+    /**
+     *
+     * create async processor. Usually not called directly (see EventSink+KPublisher)
+     *
+     * @param processingFunction
+     * @param <IN>
+     * @param <OUT>
+     * @return
+     */
     public <IN,OUT> Processor<IN,OUT> newSyncProcessor(Function<IN, OUT> processingFunction) {
         SyncProcessor<IN, OUT> inoutSyncProcessor = new SyncProcessor<>(DEFAULT_BATCH_SIZE, processingFunction);
         return inoutSyncProcessor;

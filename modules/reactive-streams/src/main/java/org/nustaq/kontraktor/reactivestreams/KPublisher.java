@@ -102,7 +102,9 @@ public interface KPublisher<T> extends Publisher<T> {
     }
 
     /**
-     * insert an async processor (with dedicated thread)
+     * insert a synchronous processor (runs in provider thread).
+     * if 'this' is a remote reference to a remote stream, a queued async processor will be
+     * created (need queue + processing thread then)
      *
      * @param processor
      * @param <OUT>
