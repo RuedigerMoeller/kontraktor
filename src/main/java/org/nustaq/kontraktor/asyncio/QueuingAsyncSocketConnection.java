@@ -22,6 +22,7 @@ import org.nustaq.offheap.BinaryQueue;
 import org.nustaq.offheap.bytez.niobuffers.ByteBufferBasicBytez;
 import org.nustaq.offheap.bytez.onheap.HeapBytez;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -98,11 +99,15 @@ public abstract class QueuingAsyncSocketConnection extends AsyncSocketConnection
                 qWriteTmp.limit((int) poll);
                 IPromise queueDataAvailablePromise = directWrite(qWriteTmp);
                 queueDataAvailablePromise.then((res, err) -> {
-                    if (err instanceof Throwable ) {
-                        Log.Lg.error(this, (Throwable) err, "write failure");
-                    } else {
-                        if ( err != null )
+                    if ( err != null ) {
+                        if (err instanceof Throwable ) {
+                            Log.Lg.error(this, (Throwable) err, "write failure");
+                            closed((Throwable) err);
+                        } else {
                             Log.Lg.error(this, null, "write failure:"+err);
+                            closed( new IOException(""+err));
+                        }
+                    } else {
                         tryFlush();
                     }
                 });

@@ -1,6 +1,5 @@
 package kontraktor;
 
-import jdk.nashorn.internal.ir.annotations.Ignore;
 import junit.framework.Assert;
 import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
@@ -36,7 +35,7 @@ public class AsyncServerSocketTest {
             try {
                 sock.connect( 8080, (key,con) -> new AsyncSocketConnection(key, con) {
                     @Override
-                    public void closed(Exception ioe) {
+                    public void closed(Throwable ioe) {
                         isClosed = true;
                     }
 
@@ -56,7 +55,7 @@ public class AsyncServerSocketTest {
             try {
                 sock.connect( 8080, (key,con) -> new QueuingAsyncSocketConnection(key, con) {
                     @Override
-                    public void closed(Exception ioe) {
+                    public void closed(Throwable ioe) {
                         isClosed = true;
                     }
 
@@ -80,7 +79,7 @@ public class AsyncServerSocketTest {
                 sock.connect( 8080, (key,con) -> new QueuingAsyncSocketConnection(key, con) {
 
                     @Override
-                    public void closed(Exception ioe) {
+                    public void closed(Throwable ioe) {
                         isClosed = true;
                     }
 
@@ -119,7 +118,7 @@ public class AsyncServerSocketTest {
                 sock.connect( port, (key,con) -> new QueuingAsyncSocketConnection(key, con) {
 
                     @Override
-                    public void closed(Exception ioe) {
+                    public void closed(Throwable ioe) {
                         isClosed = true;
                     }
 

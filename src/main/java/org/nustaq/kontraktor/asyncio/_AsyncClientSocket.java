@@ -161,7 +161,7 @@ public class _AsyncClientSocket implements Runnable {
             sock.connect("localhost",8080, (key,channel) ->
                 new QueuingAsyncSocketConnection( key, channel ) {
                     @Override
-                    public void closed(Exception ioe) {
+                    public void closed(Throwable ioe) {
                         isClosed = true;
                     }
 

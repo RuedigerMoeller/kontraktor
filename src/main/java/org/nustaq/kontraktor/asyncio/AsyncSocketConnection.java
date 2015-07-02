@@ -47,7 +47,7 @@ public abstract class AsyncSocketConnection {
         this.chan = chan;
     }
 
-    public abstract void closed(Exception ioe);
+    public abstract void closed(Throwable ioe);
 //    {
 //        Log.Lg.info(this,"connection closed " + ioe);
 //        isClosed = true;
@@ -105,7 +105,7 @@ public abstract class AsyncSocketConnection {
             written = chan.write(buf);
             if (written<0) {
                 // TODO:closed
-                writeFinished("disconnected");
+                writeFinished(new IOException("connection closed"));
             }
             if ( buf.remaining() > 0 ) {
 //                key.interestOps(SelectionKey.OP_WRITE);
@@ -128,6 +128,7 @@ public abstract class AsyncSocketConnection {
     }
 
 
+    // error = null => ok
     void writeFinished(Object error) {
         checkThread();
         writingBuffer = null;
