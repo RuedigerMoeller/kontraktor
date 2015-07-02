@@ -33,13 +33,13 @@ import java.util.concurrent.locks.LockSupport;
 public class RemotingTest {
 
     public static final int Q_SIZE = 256_000;
-    private static final boolean FAT_ARGS = true;
+    private static final boolean FAT_ARGS = false;
     private static final boolean ONLY_PROM = false;
     static AtomicInteger errors = new AtomicInteger();
     static boolean checkSequenceErrors = true;
-    static boolean spore = false;
+    static boolean spore = true;
 //    static int NUM_MSG = 15_000_000;
-    static int NUM_MSG = 1_000_000;
+    static int NUM_MSG = 30_000_000;
 
     public static class RemotingTestService extends Actor<RemotingTestService> {
 

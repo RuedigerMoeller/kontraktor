@@ -20,6 +20,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.remoting.base.ActorClient;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
@@ -39,7 +40,7 @@ public class WebSocketConnectable implements ConnectableActor {
     Class clz;
     String url;
     Coding coding = new Coding(SerializerType.FSTSer);
-    int inboundQueueSize;
+    int inboundQueueSize = SimpleScheduler.DEFQSIZE;
 
     public WebSocketConnectable() {}
 
