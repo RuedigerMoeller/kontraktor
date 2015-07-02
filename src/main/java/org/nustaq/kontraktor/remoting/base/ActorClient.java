@@ -23,6 +23,7 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -93,7 +94,7 @@ public class ActorClient<T extends Actor> {
                         try {
                             reg.receiveObject(socketRef.get(),sink,received, createdFutures);
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            FSTUtil.rethrow(e);
                         }
                     }
                     @Override

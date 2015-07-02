@@ -4,14 +4,10 @@ import org.junit.Test;
 
 import static org.nustaq.kontraktor.reactivestreams.ReaktiveStreams.*;
 
-import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.reactivestreams.EventSink;
 import org.nustaq.kontraktor.reactivestreams.KPublisher;
-import org.nustaq.kontraktor.reactivestreams.PublisherActor;
 import org.nustaq.kontraktor.remoting.tcp.*;
 import org.nustaq.kontraktor.util.*;
-import org.reactivestreams.Processor;
-import org.reactivestreams.Publisher;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
@@ -33,7 +29,7 @@ public class KStreamsTest {
 //            .map(in -> in + " " + in)
             .map(in -> in.length())
             .subscribe( (str, err) -> {
-                if (isFinal(err)) {
+                if (isErrorOrComplete(err)) {
                   System.out.println("complete");
                 } else if (isError(err)) {
                   System.out.println("ERROR");
@@ -68,7 +64,7 @@ public class KStreamsTest {
 
         EventSink<String> stringStream = new EventSink<>();
 
-        stringStream.publish(new TCPNIOPublisher().port(7777), actor -> {
+        stringStream.publish(new TCPPublisher().port(7777), actor -> {
             System.out.println("disconnect of " + actor);
         });
 
@@ -97,16 +93,18 @@ public class KStreamsTest {
         remote
             .subscribe(
                 (str, err) -> {
-                    if (isFinal(err)) {
-                        System.out.println("complete");
+                    if (isErrorOrComplete(err)) {
+                        System.out.println("complete e:"+err+" r:"+str);
                     } else if (isError(err)) {
-                        System.out.println("ERROR");
+                        System.out.println("ERROR "+err);
                     } else {
                         received.incrementAndGet();
                         ms.count();
                     }
                 });
-        Thread.sleep(1000000);
+        while( true ) {
+            Thread.sleep(100);
+        }
     }
 
     @Test
@@ -118,17 +116,19 @@ public class KStreamsTest {
             .map(string -> string.length())
             .map(number -> number > 10 ? number : number )
             .subscribe(
-                          (str, err) -> {
-                              if (isFinal(err)) {
-                                  System.out.println("complete");
-                              } else if (isError(err)) {
-                                  System.out.println("ERROR");
-                              } else {
-                                  received.incrementAndGet();
-                                  ms.count();
-                              }
-                          });
-        Thread.sleep(1000000);
+                (str, err) -> {
+                    if (isErrorOrComplete(err)) {
+                        System.out.println("complete");
+                    } else if (isError(err)) {
+                        System.out.println("ERROR");
+                    } else {
+                        received.incrementAndGet();
+                        ms.count();
+                    }
+                });
+        while( true ) {
+            Thread.sleep(100);
+        }
     }
 
     @Test // slowdown
@@ -141,7 +141,7 @@ public class KStreamsTest {
             .map(number -> number > 10 ? number : number )
             .subscribe(
                 (str, err) -> {
-                    if (isFinal(err)) {
+                    if (isErrorOrComplete(err)) {
                         System.out.println("complete");
                     } else if (isError(err)) {
                         System.out.println("ERROR");
@@ -155,7 +155,11 @@ public class KStreamsTest {
                         }
                     }
                 });
-        Thread.sleep(1000000);
+
+        while( true ) {
+            Thread.sleep(100);
+        }
+
     }
 
 }

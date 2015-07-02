@@ -30,8 +30,8 @@ import java.util.function.Function;
  */
 public class ReaktiveStreams extends Actors {
 
-    protected static final int MAX_BATCH_SIZE = 5000;
-    public static int DEFAULT_BATCH_SIZE = 3_000;
+    protected static final int MAX_BATCH_SIZE = 50_000;
+    public static int DEFAULT_BATCH_SIZE = 50_000;
     public static int DEFAULTQSIZE = 128_000;
     public static int REQU_NEXT_DIVISOR = 1;
 
@@ -72,7 +72,7 @@ public class ReaktiveStreams extends Actors {
      * e.g.
      * <pre>
      *      subscriber( (event, err) -> {
-     +          if (Actors.isFinal(err)) {
+     +          if (Actors.isErrorOrComplete(err)) {
      +              System.out.println("complete");
      +          } else if (Actors.isError(err)) {
      +              System.out.println("ERROR");
@@ -96,7 +96,7 @@ public class ReaktiveStreams extends Actors {
      * e.g.
      * <pre>
      *      subscriber( (event, err) -> {
-     +          if (Actors.isFinal(err)) {
+     +          if (Actors.isErrorOrComplete(err)) {
      +              System.out.println("complete");
      +          } else if (Actors.isError(err)) {
      +              System.out.println("ERROR");
@@ -194,7 +194,8 @@ public class ReaktiveStreams extends Actors {
             throw new RuntimeException("batch size exceeds max of "+ReaktiveStreams.MAX_BATCH_SIZE);
         }
         pub.setBatchSize(batchSize);
-        pub.setProcessor(processingFunction);
+        pub.setThrowExWhenBlocked(true);
+        pub.init(processingFunction);
         return pub;
     }
 
@@ -241,6 +242,7 @@ public class ReaktiveStreams extends Actors {
             if ( autoRequestOnSubs )
                 s.request(batchSize);
             credits += batchSize;
+            System.out.println("credits:" + credits );
         }
 
         @Override
@@ -249,6 +251,8 @@ public class ReaktiveStreams extends Actors {
             if ( credits < batchSize/ReaktiveStreams.REQU_NEXT_DIVISOR ) {
                 subs.request(batchSize);
                 credits += batchSize;
+                if ( PublisherActor.CRED_DEBUG)
+                    System.out.println("credits:" + credits );
             }
             nextAction(t);
         }

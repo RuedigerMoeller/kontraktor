@@ -29,25 +29,27 @@ import java.io.IOException;
  */
 public interface ObjectSocket {
 
-    public void writeObject(Object toWrite) throws Exception;
+    void writeObject(Object toWrite) throws Exception;
 
-    public void flush() throws Exception;
+    void flush() throws Exception;
 
-    public void setLastError(Throwable ex);
+    void setLastError(Throwable ex);
 
-    public Throwable getLastError();
+    Throwable getLastError();
 
     /**
      * set by outer machinery
      * @param conf
      */
-    public void setConf( FSTConfiguration conf );
+    void setConf( FSTConfiguration conf );
 
-    public FSTConfiguration getConf();
+    FSTConfiguration getConf();
 
     void close() throws IOException;
 
     default boolean canWrite() {
         return true;
     }
+
+    boolean isClosed();
 }

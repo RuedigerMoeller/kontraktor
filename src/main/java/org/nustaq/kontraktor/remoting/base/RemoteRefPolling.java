@@ -134,7 +134,7 @@ public class RemoteRefPolling implements Runnable {
                     continue;
                 }
                 try {
-                    if (entry.reg.pollAndSend2Remote(entry.reg.getWriteObjectSocket().get())) {
+                    if (entry.reg.pollAndSend2Remote(entry.reg.getWriteObjectSocket())) {
                         count++;
                     }
                 } catch (Throwable e) {

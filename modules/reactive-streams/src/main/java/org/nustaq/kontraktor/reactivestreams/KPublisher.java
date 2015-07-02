@@ -26,7 +26,7 @@ public interface KPublisher<T> extends Publisher<T> {
      * e.g.
      * <pre>
      *      subscriber( (event, err) -> {
-     +          if (Actors.isFinal(err)) {
+     +          if (Actors.isErrorOrComplete(err)) {
      +              System.out.println("complete");
      +          } else if (Actors.isError(err)) {
      +              System.out.println("ERROR");
@@ -52,7 +52,7 @@ public interface KPublisher<T> extends Publisher<T> {
      * e.g.
      * <pre>
      *      subscriber( (event, err) -> {
-     +          if (Actors.isFinal(err)) {
+     +          if (Actors.isErrorOrComplete(err)) {
      +              System.out.println("complete");
      +          } else if (Actors.isError(err)) {
      +              System.out.println("ERROR");

@@ -26,8 +26,11 @@ public class BasicTest {
 
     public static class Bench extends Actor<Bench> {
         protected int count;
-        public void benchCall( String a, String b, String c) {
+        public void benchCall( String a ) {
             count++;
+        }
+        public IPromise benchCallFut( String a ) {
+            return new Promise<>(a);
         }
     }
 
@@ -35,33 +38,54 @@ public class BasicTest {
         long tim = System.currentTimeMillis();
         int numCalls = 1000 * 1000 * 10;
         for ( int i = 0; i < numCalls; i++ ) {
-            actorA.benchCall("A", "B", "C");
+            actorA.benchCall("A");
         }
         final long l = (numCalls / (System.currentTimeMillis() - tim)) * 1000;
         System.out.println("tim "+ l +" calls per sec");
+        return l;
+    }
+
+    private long benchFut(Bench actorA) {
+        long tim = System.currentTimeMillis();
+        int numCalls = 1000 * 1000 * 10;
+        CountDownLatch latch = new CountDownLatch(numCalls);
+        for ( int i = 0; i < numCalls; i++ ) {
+            actorA.benchCallFut("A").then( () -> latch.countDown() );
+        }
         try {
-            Thread.sleep(3 * 1000);
+            latch.await();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        final long l = (numCalls / (System.currentTimeMillis() - tim)) * 1000;
+        System.out.println("tim "+ l +" promise calls per sec");
         return l;
     }
 
     @Test
     public void callBench() {
         Bench b = AsActor(Bench.class);
+
         bench(b);
         bench(b);
         bench(b);
-        long callsPerSec = bench(b);
+        bench(b);
+        bench(b);
+
+        benchFut(b);
+        benchFut(b);
+        benchFut(b);
+        benchFut(b);
+        benchFut(b);
+
         b.stop();
 //        assertTrue(callsPerSec > 1 * 1000 * 1000);
     }
 
     public static class BenchSub extends Bench {
         @Override
-        public void benchCall(String a, String b, String c) {
-            super.benchCall(a, b, c);
+        public void benchCall(String a) {
+            super.benchCall(a);
         }
           
         public void getResult( Callback<Integer> cb ) {
@@ -73,7 +97,7 @@ public class BasicTest {
     public void testInheritance() {
         final BenchSub bs = AsActor(BenchSub.class);
         for (int i : new int[10] ) {
-            bs.benchCall("u", "o", null);
+            bs.benchCall("u");
         }
         final CountDownLatch latch = new CountDownLatch(1);
         bs.getResult( new Callback<Integer>() {

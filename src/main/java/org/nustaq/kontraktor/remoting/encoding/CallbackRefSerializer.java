@@ -71,7 +71,14 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
 
         @Override
         public boolean isTerminated() {
-            return reg.isTerminated();
+            boolean terminated = reg.isTerminated();
+            if ( terminated )
+                return true;
+            boolean closed = chan.get().isClosed();
+            if ( closed ) {
+                Log.Error(this, "registry alive, but socket closed");
+            }
+            return closed;
         }
     }
 

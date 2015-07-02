@@ -6,7 +6,6 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
-import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
 import org.nustaq.kontraktor.util.Log;
 import org.reactivestreams.Processor;
@@ -22,19 +21,24 @@ import java.util.function.Function;
  * Created by ruedi on 28/06/15.
  *
  * Inplements reactive streams async (queued) publisher. Don't use this class directly,
- * use the ReaktiveStreams singleton instead.
+ * use the EventSink/ReaktiveStreams instead.
  *
  */
 public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> implements Processor<IN, OUT>, KPublisher<OUT>, RemotedActor {
 
-    public static int MAX_PENDING_MSG_BUFFERED = 500_000;
-    Map<Integer, SubscriberEntry> subscribers;
-    int subsIdCount = 1;
+    public static int MAX_PENDING_MSG_BUFFERED = 2_000_000;
 
-    Function<IN,OUT> processor;
-    ArrayList<Runnable> doOnSubscribe = new ArrayList<>();
+    public static final boolean CRED_DEBUG = false;
 
-    public void setProcessor( Function<IN,OUT> processor ) {
+    protected Map<Integer, SubscriberEntry> subscribers;
+    protected int subsIdCount = 1;
+
+    protected Function<IN,OUT> processor;
+    protected ArrayList<Runnable> doOnSubscribe = new ArrayList<>();
+    protected ArrayDeque pending;
+
+    public void init(Function<IN, OUT> processor) {
+        this.pending = new ArrayDeque<>();
         this.processor = processor;
     }
 
@@ -47,7 +51,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         _subscribe( (res,err) -> {
             if ( isError(err) ) {
                 subscriber.onError((Throwable) err);
-            } else if ( isFinal( err ) ) {
+            } else if ( isErrorOrComplete(err) ) {
                 subscriber.onComplete();
             } else {
                 subscriber.onNext((OUT)res);
@@ -83,6 +87,8 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             SubscriberEntry se = getSE(id);
             if ( se != null ) {// ignore unknown subscribers
                 se.addCredits(l);
+            } else {
+                Log.Warn(this, "ignored credits " + l + " on id " + id);
             }
             emitRequestNext();
         }
@@ -157,32 +163,58 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         if (subscribers == null) {
             return;
         }
-        boolean blocked = false;
-        List toRemove = null;
+
+        long minCredits = Long.MAX_VALUE;
+        SubscriberEntry minEntry = null;
         for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
             Entry<Integer, SubscriberEntry> next = iterator.next();
             SubscriberEntry entry = next.getValue();
-            try {
-                entry.sendPending();
-                if (entry.credits > 0) {
-                    entry.onNext(msg);
-                    entry.decCredits();
-                } else {
-                    entry.addPending(msg);
-                    if ( entry.pending.size() > MAX_PENDING_MSG_BUFFERED ) {
+            if ( minEntry == null )
+                minEntry = entry;
+            if ( minCredits > entry.getCredits() ) {
+                minCredits = entry.getCredits();
+                minEntry = entry;
+            }
+        }
+
+        if ( minCredits <= 0 ) {
+            pending.addFirst(msg);
+            return;
+        }
+
+        List toRemove = null;
+        if ( pending.size() > 0 ) {
+            pending.addFirst(msg);
+            while ( pending.size() > 0 && minCredits > 0 ) {
+                Object toSend = pending.removeLast();
+                for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
+                    Entry<Integer, SubscriberEntry> next = iterator.next();
+                    SubscriberEntry entry = next.getValue();
+                    try {
+                        entry.onNext(toSend);
+                    } catch (Throwable th) {
                         if ( toRemove == null ) {
                             toRemove = new ArrayList();
                         }
                         toRemove.add(entry);
                     }
-                    blocked = true;
                 }
-            } catch (Throwable th) {
-                if ( toRemove == null ) {
-                    toRemove = new ArrayList();
-                }
-                toRemove.add(entry);
+                minCredits--;
             }
+        } else {
+            for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
+                Entry<Integer, SubscriberEntry> next = iterator.next();
+                SubscriberEntry entry = next.getValue();
+                try {
+                    entry.onNext(msg);
+                } catch (Throwable th) {
+                    if ( toRemove == null ) {
+                        toRemove = new ArrayList();
+                    }
+                    toRemove.add(entry);
+                }
+            }
+            minCredits--;
         }
         if ( toRemove != null ) {
             toRemove.forEach( e -> {
@@ -193,14 +225,17 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
                     // ignore
                 }
                 subscribers.remove(subsId);
-                Log.Info(this, "a stream client disconnected id:"+subsId+" remaining:"+subscribers.size());
+                subscriberDisconnected(subsId);
             } );
-            if ( subscribers.size() == 0 ) {
-                openRequested = 0;
-            }
         }
-        if ( ! blocked && subscribers.size() > 0 ) {
+        if ( subscribers.size() > 0 ) {
             emitRequestNext();
+        } else {
+            if ( openRequested > 0 || pending.size() > 0 ) {
+                Log.Info(this, "no subscribers, deleting "+pending.size()+" messages");
+                pending.clear();
+            }
+            openRequested = 0;
         }
     }
 
@@ -227,9 +262,14 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             if ( subscriber instanceof CallbackWrapper &&
                  ((CallbackWrapper) subscriber).isTerminated() ) {
                 iterator.remove();
-                Log.Info(this, "a stream client disconnected id:"+entry.getKey()+" remaining:"+subscribers.size());
+                subscriberDisconnected(entry.getKey());
             }
         }
+    }
+
+    public void subscriberDisconnected(int id) {
+        Log.Info(this, "a stream client disconnected id:" + id + " remaining:" + subscribers.size());
+        emitRequestNext();
     }
 
     protected static class KSubscription implements Subscription, Serializable {
@@ -263,21 +303,17 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         protected long credits;
         protected KSubscription subscription;
         protected Callback subscriber;
-        protected ArrayDeque pending;
 
         public SubscriberEntry(int subsId, KSubscription subscription, Callback subscriber) {
             this.subsId = subsId;
             this.subscription = subscription;
             this.subscriber = subscriber;
-            this.pending = new ArrayDeque<>();
         }
 
         public void addCredits(long l) {
             credits += l;
-        }
-
-        public void decCredits() {
-            credits--;
+            if ( CRED_DEBUG )
+                System.out.println("id "+subsId+" got credits, has:"+credits);
         }
 
         public int getSubsId() {
@@ -292,24 +328,13 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             return subscription;
         }
 
-        public void sendPending() {
-            int max = (int) Math.min(credits,pending.size());
-            for (int i = 0; i < max; i++) {
-                Object msg = pending.removeLast();
-                subscriber.stream(msg);
-            }
-        }
-
-        public void addPending(Object msg) {
-            pending.addFirst(msg);
-        }
-
         public void onError(Throwable err) {
             subscriber.reject(err);
         }
 
         public void onNext(Object msg) {
             subscriber.stream(msg);
+            credits--;
         }
 
         public void onComplete() {

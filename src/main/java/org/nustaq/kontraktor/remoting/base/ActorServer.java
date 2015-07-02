@@ -20,6 +20,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.util.List;
@@ -49,7 +50,6 @@ public class ActorServer {
 
     protected Coding coding;
     protected FSTConfiguration conf; // parent conf
-    protected RemoteRegistry reg;
 
     public ActorServerConnector getConnector() {
         return connector;
@@ -76,7 +76,7 @@ public class ActorServer {
     public void start(Consumer<Actor> disconnectHandler) throws Exception {
         connector.connect(facade, writesocket -> {
             AtomicReference<ObjectSocket> socketRef = new AtomicReference<>(writesocket);
-            reg = new RemoteRegistry( conf.deriveConfiguration(), coding) {
+            RemoteRegistry reg = new RemoteRegistry( conf.deriveConfiguration(), coding) {
                 @Override
                 public Actor getFacadeProxy() {
                     return facade;
@@ -93,6 +93,7 @@ public class ActorServer {
             poller.get().scheduleSendLoop(reg);
             reg.setFacadeActor(facade);
             reg.publishActor(facade);
+            Log.Info(this, "connected a client with registry "+System.identityHashCode(reg));
             return new ObjectSink() {
 
                 @Override

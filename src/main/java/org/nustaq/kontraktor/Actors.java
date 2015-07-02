@@ -75,10 +75,6 @@ public class Actors {
 
     // constants from Callback class for convenience
     /**
-     * use value to signal no more messages. THE RECEIVER CALLBACK WILL NOT SEE THIS MESSAGE.
-     */
-    public static final String FINSILENT = Callback.FINSILENT;
-    /**
      * use value as error to indicate more messages are to come (else remoting will close channel).
      */
     public static final String CONT = Callback.CONT;
@@ -89,21 +85,16 @@ public class Actors {
     public static final String FIN = Callback.FIN;
 
     /**
-     * return if given error Object signals end of callback stream
+     * return if given error Object signals an error or a 'complete' signal
      * @param error
      * @return
      */
-    public static boolean isFinal(Object error) {
-        return FIN.equals(error) || FINSILENT.equals(error) || ! CONT.equals(error);
+    public static boolean isErrorOrComplete(Object error) {
+        return FIN.equals(error) || ! CONT.equals(error);
     }
 
-    /**
-     * helper to check for "special" error objects.
-     * @param o
-     * @return
-     */
-    public static boolean isSilentFinal(Object o) {
-        return FINSILENT.equals(o);
+    public static boolean isComplete(Object error) {
+        return FIN.equals(error);
     }
 
     /**
@@ -125,7 +116,7 @@ public class Actors {
      * @return
      */
     public static boolean isError(Object o) {
-        return o != null && ! FIN.equals(o) && ! FINSILENT.equals(o) && ! CONT.equals(o);
+        return o != null && ! FIN.equals(o) && ! CONT.equals(o);
     }
 
     /**

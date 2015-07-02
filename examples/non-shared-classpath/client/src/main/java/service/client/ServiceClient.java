@@ -1,7 +1,7 @@
 package service.client;
 
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.remoting.tcp.TCPClientConnector;
+
 import static service.common.MyProtocol.*;
 
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
@@ -31,7 +31,7 @@ public class ServiceClient {
         service.addPerson( new Person("Gerstenbroich-Huckerbühl","Mareike",17,Sex.MALE) );
 
         service.listPersons(null,null,13, (p,err) -> {
-            if ( ! Actor.isFinal(err) )
+            if ( ! Actor.isErrorOrComplete(err) )
                 System.out.println("found: "+p);
             else {
                 System.out.println("query finished");

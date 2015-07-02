@@ -294,7 +294,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         if (read.getQueue() == read.MAILBOX) {
             Actor targetActor = getPublishedActor(read.getReceiverKey());
             if (targetActor==null) {
-                Log.Lg.error(this, null, "no actor found for key " + read);
+                Log.Lg.error(this, null, "registry:"+System.identityHashCode(this)+" no actor found for key " + read);
                 return true;
             }
             if (targetActor.isStopped() || targetActor.getScheduler() == null ) {
@@ -370,7 +370,12 @@ public abstract class RemoteRegistry implements RemoteConnection {
     }
 
     protected void writeObject(ObjectSocket chan, RemoteCallEntry rce) throws Exception {
-        chan.writeObject(rce);
+        try {
+            chan.writeObject(rce);
+        } catch (Exception e) {
+            setTerminated(true);
+            cleanUp();
+        }
     }
 
     public void receiveCBResult(ObjectSocket chan, int id, Object result, Object error) throws Exception {
@@ -426,9 +431,10 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
     /**
      * poll remote actor proxies and send. return true if there was at least one message
-     * @param chan
+     * @param chanHolder
      */
-    public boolean pollAndSend2Remote(ObjectSocket chan) throws Exception {
+    public boolean pollAndSend2Remote(AtomicReference<ObjectSocket> chanHolder) throws Exception {
+        ObjectSocket chan = chanHolder.get();
         if ( chan == null || ! chan.canWrite() )
             return false;
         boolean hadAnyMsg = false;
@@ -439,9 +445,12 @@ public abstract class RemoteRegistry implements RemoteConnection {
             sumQueued = 0;
             for (Iterator<Actor> iterator = remoteActors.iterator(); iterator.hasNext(); ) {
                 Actor remoteActor = iterator.next();
+                boolean cb = false; // true; FIXME
                 CallEntry ce = (CallEntry) remoteActor.__cbQueue.poll();
-                if ( ce == null )
+                if ( ce == null ) {
+                    cb = false;
                     ce = (CallEntry) remoteActor.__mailbox.poll();
+                }
                 if ( ce != null) {
                     if ( ce.getMethod().getName().equals("close") ) {
                         closeRef(ce,chan);
@@ -455,7 +464,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                         }
                         try {
                             RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs());
-                            rce.setQueue(rce.MAILBOX);
+                            rce.setQueue(cb ? rce.CBQ : rce.MAILBOX);
                             writeObject(chan, rce);
                             sumQueued++;
                             hadAnyMsg = true;

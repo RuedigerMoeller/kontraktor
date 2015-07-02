@@ -145,6 +145,6 @@ public abstract class AsyncSocketConnection {
     public abstract void dataReceived(ByteBuffer buf);
 
     public boolean isClosed() {
-        return !chan.isOpen() && ! isClosed;
+        return !chan.isOpen() || isClosed;
     }
 }
