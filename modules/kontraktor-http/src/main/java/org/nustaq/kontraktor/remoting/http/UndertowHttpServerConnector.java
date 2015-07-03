@@ -98,7 +98,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                 toRemove.add(entry.getKey());
             }
         });
-        toRemove.forEach( sessionId -> closeSession(sessionId) );
+        toRemove.forEach(sessionId -> closeSession(sessionId));
         if ( ! isClosed ) {
             facade.delayed( HttpObjectSocket.LP_TIMEOUT/4, () -> houseKeeping() );
         }
@@ -235,6 +235,17 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
     }
 
     public void handleClientRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String lastSeenSequence) {
+
+        // dispatch incoming messages to actor(s)
+        StreamSinkChannel sinkchannel = exchange.getResponseChannel();
+        if ( sinkchannel == null ) {
+            Log.Error(this,"could not aquire response channel. rejecting request.");
+            exchange.endExchange();
+            return;
+//            Actor.current().delayed(10, () -> {handleClientRequest(exchange,httpObjectSocket,postData,lastSeenSequence);});
+//            return;
+        }
+
         // executed in facade thread
         httpObjectSocket.updateTimeStamp(); // keep alive
 
@@ -242,9 +253,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
         boolean isEmptyLP = received instanceof Object[] && ((Object[]) received).length == 1 && ((Object[]) received)[0] instanceof Number;
 
-        // dispatch incoming messages to actor(s)
 
-        StreamSinkChannel sinkchannel = exchange.getResponseChannel();
         if ( ! isEmptyLP ) {
             handleRegularRequest(exchange, httpObjectSocket, received, sinkchannel);
             return;

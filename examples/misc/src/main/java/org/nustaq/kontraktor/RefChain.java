@@ -1,6 +1,5 @@
 package org.nustaq.kontraktor;
 
-import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPPublisher;
 
@@ -10,7 +9,7 @@ import org.nustaq.kontraktor.remoting.tcp.TCPPublisher;
 public class RefChain {
 
     public static class A extends Actor<A> {
-        public IPromise showChain( ConnectableActor b ) {
+        public IPromise showChain( org.nustaq.kontraktor.remoting.base.ConnectableActor b ) {
             B bref = (B) b.connect(null).await();
             C cref = bref.getC().await();
             String pok = cref.hello("POK").await();
@@ -21,7 +20,7 @@ public class RefChain {
 
     public static class B extends Actor<A> {
         C c;
-        public void init(ConnectableActor connectable) {
+        public void init(org.nustaq.kontraktor.remoting.base.ConnectableActor connectable) {
             connectable.connect( null ).then( c -> this.c = (C) c);
         }
         public IPromise<C> getC() {
@@ -46,8 +45,8 @@ public class RefChain {
         new TCPPublisher(b, 4002).publish();
         new TCPPublisher(c, 4003).publish();
 
-        ConnectableActor cConnect = new TCPConnectable(C.class,"localhost",4003);
-        ConnectableActor bConnect = new TCPConnectable(B.class,"localhost",4002);
+        org.nustaq.kontraktor.remoting.base.ConnectableActor cConnect = new TCPConnectable(C.class,"localhost",4003);
+        org.nustaq.kontraktor.remoting.base.ConnectableActor bConnect = new TCPConnectable(B.class,"localhost",4002);
 
         b.init(cConnect);
         Thread.sleep(500); // don't program like this, init should return promise ..

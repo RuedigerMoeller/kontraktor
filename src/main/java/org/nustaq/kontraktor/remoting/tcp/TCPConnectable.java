@@ -26,7 +26,6 @@ import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.tcp.TCPClientConnector;
 
 /**
  * Created by ruedi on 19/05/15.

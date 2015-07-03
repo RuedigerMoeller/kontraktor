@@ -49,8 +49,8 @@ import java.util.function.Function;
  */
 public class HttpClientConnector implements ActorClientConnector {
 
-    public static int MAX_CONN_TOTAL = 1000;
-    public static int MAX_CONN_PER_ROUTE = 1000;
+    public static int MAX_CONN_TOTAL = 2;
+    public static int MAX_CONN_PER_ROUTE = 2;
     public static boolean DumpProtocol = false;
 
     protected static CloseableHttpAsyncClient asyncHttpClient;

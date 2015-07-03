@@ -17,7 +17,6 @@ import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
 import org.nustaq.kontraktor.remoting.websockets._JSR356ServerConnector;
 import org.nustaq.kontraktor.util.RateMeasure;
-import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.Serializable;
 import java.util.ArrayList;

@@ -103,6 +103,13 @@
         </dependency>
 
         <dependency>
+            <groupId>de.ruedigermoeller</groupId>
+            <artifactId>kontraktor-http</artifactId>
+            <version>3.02</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.reactivestreams</groupId>
             <artifactId>reactive-streams</artifactId>
             <version>1.0.0</version>

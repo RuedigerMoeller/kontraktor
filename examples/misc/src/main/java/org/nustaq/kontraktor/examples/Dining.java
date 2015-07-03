@@ -6,7 +6,6 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPServerConnector;
-import org.nustaq.kontraktor.remoting.tcp.TCPClientConnector;
 import org.nustaq.kontraktor.util.Hoarde;
 
 import java.util.ArrayList;

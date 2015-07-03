@@ -43,7 +43,6 @@ public class ReaktiveStreams extends Actors {
 
     ////////// singleton instance methods ////////////////////////////////////////////////
 
-
     /**
      * interop, obtain a KPublisher from a rxstreams publisher.
      *
@@ -144,6 +143,9 @@ public class ReaktiveStreams extends Actors {
      * @return
      */
     public <OUT> IPromise newPublisherServer(Publisher<OUT> source, ActorPublisher networkPublisher, Consumer<Actor> disconCB) {
+        if ( networkPublisher.getClass().getSimpleName().equals("HttpPublisher") ) {
+            throw new RuntimeException("Http long poll cannot be supported. Use WebSockets instead.");
+        }
         if (source instanceof PublisherActor == false || source instanceof ActorProxy == false ) {
             Processor<OUT, OUT> proc = newAsyncProcessor(a -> a); // we need a queue before going to network
             source.subscribe(proc);
@@ -238,15 +240,20 @@ public class ReaktiveStreams extends Actors {
 
         @Override
         public void onSubscribe(Subscription s) {
+            if (subs != null)
+                subs.cancel();
             subs = s;
             if ( autoRequestOnSubs )
                 s.request(batchSize);
             credits += batchSize;
-            System.out.println("credits:" + credits );
+            if ( PublisherActor.CRED_DEBUG )
+                System.out.println("credits:" + credits );
         }
 
         @Override
         public void onNext(T t) {
+            if ( t == null )
+                throw null;
             credits--;
             if ( credits < batchSize/ReaktiveStreams.REQU_NEXT_DIVISOR ) {
                 subs.request(batchSize);
@@ -263,6 +270,8 @@ public class ReaktiveStreams extends Actors {
 
         @Override
         public void onError(Throwable t) {
+            if ( t == null )
+                throw null;
             cb.reject(t);
         }
 
@@ -277,8 +286,6 @@ public class ReaktiveStreams extends Actors {
         protected Subscription inSubs;
         protected Subscription outSubs;
         protected Subscriber<OUT> subscriber;
-        protected long credits = 0;
-        protected long openElements = 0;
         protected boolean done = false;
         protected long batchSize;
         protected Function<IN,OUT> proc;
@@ -290,15 +297,12 @@ public class ReaktiveStreams extends Actors {
 
         @Override
         public void onSubscribe(final Subscription s) {
-            credits = 0;
             if (s == null)
                 throw null;
             if (inSubs != null) {
                 inSubs.cancel();
-            } else {
-                inSubs = s;
-                checkRequest();
             }
+            inSubs = s;
         }
 
         @Override
@@ -308,10 +312,7 @@ public class ReaktiveStreams extends Actors {
             if (element == null)
                 throw null;
             try {
-                openElements--;
                 subscriber.onNext(process(element));
-                credits--;
-                checkRequest();
             } catch (final Throwable t) {
                 onError(t);
             }
@@ -323,7 +324,6 @@ public class ReaktiveStreams extends Actors {
 
         @Override
         public void onError(final Throwable t) {
-            done = true;
             if ( subscriber != null )
                 subscriber.onError(t);
             else
@@ -347,21 +347,19 @@ public class ReaktiveStreams extends Actors {
             s.onSubscribe( outSubs = new Subscription() {
                 @Override
                 public void request(long n) {
-                    credits += n;
-                    checkRequest();
+                    if ( n <= 0 ) {
+                        subscriber.onError(new IllegalArgumentException("rule 3.9: request > 0 elements"));
+                        return;
+                    }
+                    inSubs.request(n);
                 }
                 @Override
                 public void cancel() {
-                    credits = 0;
+                    inSubs.cancel();
+                    subscriber = null;
                 }
             });
         }
 
-        protected void checkRequest() {
-            if ( openElements < credits && inSubs != null ) {
-                openElements += batchSize;
-                inSubs.request(batchSize);
-            }
-        }
     }
 }

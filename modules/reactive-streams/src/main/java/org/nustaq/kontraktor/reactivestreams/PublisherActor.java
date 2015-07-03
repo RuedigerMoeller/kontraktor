@@ -48,6 +48,11 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     // and do all remote communication via standard elements like promise and callback
     @Override @CallerSideMethod
     public void subscribe(Subscriber<? super OUT> subscriber) {
+        if ( subscriber == null )
+        {
+            subscriber.onError( new IllegalArgumentException("cannot subscibe null") );
+            return;
+        }
         _subscribe( (res,err) -> {
             if ( isError(err) ) {
                 subscriber.onError((Throwable) err);
@@ -57,6 +62,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
                 subscriber.onNext((OUT)res);
             }
         }).then(subs -> {
+            Log.Info(this, "stream subscribe acknowledged");
             subscriber.onSubscribe(subs);
         });
     }
@@ -80,7 +86,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     }
 
     // private. remoted request next
-    @AsCallback public void _rq(long l, int id) {
+    public void _rq(long l, int id) {
         if ( doOnSubscribe != null ) {
             doOnSubscribe.add( () -> _rq(l, id) );
         } else {
@@ -152,9 +158,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             return;
         }
         subscribers.forEach( (id,entry) -> {
-            if ( entry.credits > 0 ) {
-                entry.onError(err);
-            }
+            entry.onError(err);
         });
         // fixme: cancel
     }
@@ -164,18 +168,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             return;
         }
 
-        long minCredits = Long.MAX_VALUE;
-        SubscriberEntry minEntry = null;
-        for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
-            Entry<Integer, SubscriberEntry> next = iterator.next();
-            SubscriberEntry entry = next.getValue();
-            if ( minEntry == null )
-                minEntry = entry;
-            if ( minCredits > entry.getCredits() ) {
-                minCredits = entry.getCredits();
-                minEntry = entry;
-            }
-        }
+        long minCredits = calcMinCredits();
 
         if ( minCredits <= 0 ) {
             pending.addFirst(msg);
@@ -185,22 +178,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         List toRemove = null;
         if ( pending.size() > 0 ) {
             pending.addFirst(msg);
-            while ( pending.size() > 0 && minCredits > 0 ) {
-                Object toSend = pending.removeLast();
-                for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
-                    Entry<Integer, SubscriberEntry> next = iterator.next();
-                    SubscriberEntry entry = next.getValue();
-                    try {
-                        entry.onNext(toSend);
-                    } catch (Throwable th) {
-                        if ( toRemove == null ) {
-                            toRemove = new ArrayList();
-                        }
-                        toRemove.add(entry);
-                    }
-                }
-                minCredits--;
-            }
+            toRemove = forwardPending(minCredits, toRemove);
         } else {
             for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
                 Entry<Integer, SubscriberEntry> next = iterator.next();
@@ -217,16 +195,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             minCredits--;
         }
         if ( toRemove != null ) {
-            toRemove.forEach( e -> {
-                int subsId = ((SubscriberEntry) e).getSubsId();
-                try {
-                    _cancel(subsId);
-                } catch (Throwable th) {
-                    // ignore
-                }
-                subscribers.remove(subsId);
-                subscriberDisconnected(subsId);
-            } );
+            removeSubscribers(toRemove);
         }
         if ( subscribers.size() > 0 ) {
             emitRequestNext();
@@ -239,6 +208,55 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         }
     }
 
+    protected long calcMinCredits() {
+        long minCredits = Long.MAX_VALUE;
+//        SubscriberEntry minEntry = null;
+        for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
+            Entry<Integer, SubscriberEntry> next = iterator.next();
+            SubscriberEntry entry = next.getValue();
+//            if ( minEntry == null )
+//                minEntry = entry;
+            if ( minCredits > entry.getCredits() ) {
+                minCredits = entry.getCredits();
+//                minEntry = entry;
+            }
+        }
+        return minCredits;
+    }
+
+    protected void removeSubscribers(List toRemove) {
+        toRemove.forEach( e -> {
+            int subsId = ((SubscriberEntry) e).getSubsId();
+            try {
+                _cancel(subsId);
+            } catch (Throwable th) {
+                // ignore
+            }
+            subscribers.remove(subsId);
+            subscriberDisconnected(subsId);
+        } );
+    }
+
+    protected List forwardPending(long minCredits, List toRemove) {
+        while ( pending.size() > 0 && minCredits > 0 ) {
+            Object toSend = pending.removeLast();
+            for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
+                Entry<Integer, SubscriberEntry> next = iterator.next();
+                SubscriberEntry entry = next.getValue();
+                try {
+                    entry.onNext(toSend);
+                } catch (Throwable th) {
+                    if ( toRemove == null ) {
+                        toRemove = new ArrayList();
+                    }
+                    toRemove.add(entry);
+                }
+            }
+            minCredits--;
+        }
+        return toRemove;
+    }
+
     @Override
     public void onError(Throwable throwable) {
         forwardError(throwable);
@@ -246,12 +264,17 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
     @Override
     public void onComplete() {
-        mySubs.cancel();
-        subscribers.forEach((id, entry) -> {
-            if (entry.credits > 0) {
+        if ( pending.size() > 0 ) {
+            List l = forwardPending(calcMinCredits(),null);
+            if ( l != null && l.size() > 0 )
+                removeSubscribers(l);
+            self().onComplete();
+        } else {
+            mySubs.cancel();
+            subscribers.forEach((id, entry) -> {
                 entry.onComplete();
-            }
-        });
+            });
+        }
     }
 
     @Override // some client disconnected
@@ -288,6 +311,10 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
         @Override
         public void request(long l) {
+            if ( l <= 0 ) {
+                publisher.onError(new IllegalArgumentException("spec rule 3.9: request > 0 elements"));
+                return;
+            }
             publisher._rq(l, id);
         }
 

@@ -1,8 +1,6 @@
 package org.nustaq.kontraktor.examples;
 
-import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.http.HttpClientConnector;
 import org.nustaq.kontraktor.remoting.http.HttpConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
@@ -17,7 +15,7 @@ public class HelloClient {
 
     public static void main( String args[] ) {
 
-        ConnectableActor connectables[] = {
+        org.nustaq.kontraktor.remoting.base.ConnectableActor connectables[] = {
             new WebSocketConnectable(HelloActor.class,"http://localhost:8080/hello")
                 .serType(SerializerType.FSTSer),
             new HttpConnectable( HelloActor.class, "http://localhost:8080/hellohttp" )
