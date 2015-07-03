@@ -1,5 +1,6 @@
 package tck;
 
+import org.nustaq.kontraktor.reactivestreams.EventSink;
 import org.nustaq.kontraktor.reactivestreams.ReaktiveStreams;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -19,7 +20,10 @@ public class TCKSubscriberBlackBox extends SubscriberBlackboxVerification<Long> 
 
     @Override
     public Subscriber<Long> createSubscriber() {
-        return ReaktiveStreams.get().subscriber( (res,err) ->  {
+        // need to use ridiculous small batchsize here, don not use such small batch sizes
+        // in an applciation 10k to 50k should be capable to overcome request(N) latency
+        // and avoid the sender runnning dry
+        return ReaktiveStreams.get().subscriber( 4, (res,err) ->  {
         });
     }
 
@@ -30,6 +34,19 @@ public class TCKSubscriberBlackBox extends SubscriberBlackboxVerification<Long> 
 
     @Override
     public Publisher<Long> createHelperPublisher(long elements) {
-        return null;
+        EventSink<Long> sink = new EventSink<>();
+        new Thread(() -> {
+            for ( long i = 0; i < elements; i++ ) {
+                while( ! sink.offer(i) ) {
+                    try {
+                        Thread.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            sink.complete();
+        }, "feeder").start();
+        return sink;
     }
 }

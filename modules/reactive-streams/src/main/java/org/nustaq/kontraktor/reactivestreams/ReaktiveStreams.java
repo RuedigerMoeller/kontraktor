@@ -30,9 +30,14 @@ import java.util.function.Function;
  */
 public class ReaktiveStreams extends Actors {
 
-    protected static final int MAX_BATCH_SIZE = 50_000;
+    // as for remoting the request(N) ack signals have network latency
+    // request(N) is executed with large sizes to not let the sending side "dry"/stall.
+    // event sizes below reduce throughput by 10..30% percent on a localhost.
+    // in case of high latency connections (wifi, WAN) sizes below probably need to be raised
+    public static final int MAX_BATCH_SIZE = 50_000;
     public static int DEFAULT_BATCH_SIZE = 50_000;
-    public static int DEFAULTQSIZE = 128_000;
+    public static int DEFAULTQSIZE = 128_000; // needs to be > 2*MAX_BATCH_SIZE !!
+
     public static int REQU_NEXT_DIVISOR = 1;
 
     protected static ReaktiveStreams instance = new ReaktiveStreams();
@@ -46,7 +51,7 @@ public class ReaktiveStreams extends Actors {
     /**
      * interop, obtain a KPublisher from a rxstreams publisher.
      *
-     * KPublisher is an extension of Publisher and adds some sugar like map, netowrk publish
+     * KPublisher is an extension of Publisher and adds some sugar like map, network publish etc.
      *
      * @param p
      * @param <T>
@@ -240,8 +245,11 @@ public class ReaktiveStreams extends Actors {
 
         @Override
         public void onSubscribe(Subscription s) {
-            if (subs != null)
-                subs.cancel();
+            if (subs != null) {
+                s.cancel();
+                return;
+            }
+
             subs = s;
             if ( autoRequestOnSubs )
                 s.request(batchSize);

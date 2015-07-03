@@ -67,7 +67,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         });
     }
 
-    // private.
+    // private / as validation needs to be done synchronously, its on callerside. This is the async part of impl
     public IPromise<KSubscription> _subscribe( Callback subscriber ) {
         if ( subscribers == null )
             subscribers = new HashMap<>();
@@ -116,8 +116,16 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         this.requestNextTrigger = batchSize/ReaktiveStreams.REQU_NEXT_DIVISOR;
     }
 
-    @Override
+    @Override @CallerSideMethod
     public void onSubscribe(Subscription subscription) {
+        if ( subscription == null ) {
+            throw null;
+        }
+        self()._onSubscribe(subscription);
+    }
+
+    // see onError() comment
+    public void _onSubscribe(Subscription subscription) {
         mySubs = subscription;
         ArrayList<Runnable> tmp = this.doOnSubscribe;
         this.doOnSubscribe = null;
@@ -137,8 +145,15 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         }
     }
 
-    @Override
-    public void onNext(IN in) {
+    // same as with onError
+    @Override @CallerSideMethod public void onNext(IN in) {
+        if ( in  == null )
+            throw null;
+        self()._onNext(in);
+    }
+
+    // see onError() comment
+    public void _onNext(IN in) {
         if ( subscribers == null )
             return;
         openRequested--;
@@ -257,8 +272,16 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         return toRemove;
     }
 
+    // callerside as spec expects error synchronously (wrong/inconsistent imo)
     @Override
-    public void onError(Throwable throwable) {
+    @CallerSideMethod public void onError(Throwable throwable) {
+        if ( throwable == null )
+            throw null;
+        self()._onError(throwable);
+    }
+
+    // see comment onError()
+    public void _onError(Throwable throwable) {
         forwardError(throwable);
     }
 
@@ -270,7 +293,6 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
                 removeSubscribers(l);
             self().onComplete();
         } else {
-            mySubs.cancel();
             subscribers.forEach((id, entry) -> {
                 entry.onComplete();
             });
