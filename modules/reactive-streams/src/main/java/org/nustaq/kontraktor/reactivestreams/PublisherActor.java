@@ -175,7 +175,6 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         subscribers.forEach( (id,entry) -> {
             entry.onError(err);
         });
-        // fixme: cancel
     }
 
     protected void forwardMessage(Object msg) {

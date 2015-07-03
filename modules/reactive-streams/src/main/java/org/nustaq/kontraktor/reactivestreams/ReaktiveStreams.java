@@ -75,16 +75,16 @@ public class ReaktiveStreams extends Actors {
      * all events are routed to the callback
      * e.g.
      * <pre>
-     *      subscriber( (event, err) -> {
-     +          if (Actors.isErrorOrComplete(err)) {
-     +              System.out.println("complete");
-     +          } else if (Actors.isError(err)) {
-     +              System.out.println("ERROR");
-     +          } else {
-     +              // process event
-     +          }
-     +      }
-     * </pre>
+            subscriber( (event, err) -> {
+                if (Actors.isComplete(err)) {
+                    System.out.println("complete");
+                } else if (Actors.isError(err)) {
+                    System.out.println("ERROR");
+                } else {
+                    // process event
+                }
+            }
+       </pre>
      *
      * @param <T>
      */
@@ -99,16 +99,16 @@ public class ReaktiveStreams extends Actors {
      * all events are routed to the callback
      * e.g.
      * <pre>
-     *      subscriber( (event, err) -> {
-     +          if (Actors.isErrorOrComplete(err)) {
-     +              System.out.println("complete");
-     +          } else if (Actors.isError(err)) {
-     +              System.out.println("ERROR");
-     +          } else {
-     +              // process event
-     +          }
-     +      }
-     * </pre>
+            subscriber( (event, err) -> {
+                if (Actors.isComplete(err)) {
+                    System.out.println("complete");
+                } else if (Actors.isError(err)) {
+                    System.out.println("ERROR");
+                } else {
+                    // process event
+                }
+            }
+       </pre>
      *
      * @param <T>
      */
