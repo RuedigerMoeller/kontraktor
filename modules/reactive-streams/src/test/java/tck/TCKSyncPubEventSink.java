@@ -18,6 +18,10 @@ public class TCKSyncPubEventSink extends PublisherVerification {
 
     @Override
     public Publisher<Long> createPublisher(long elements) {
+        return createRangePublisher(elements);
+    }
+
+    public static Publisher<Long> createRangePublisher(long elements) {
         EventSink<Long> sink = new EventSink<>();
         new Thread(() -> {
             for ( long i = 0; i < elements; i++ ) {

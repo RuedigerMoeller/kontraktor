@@ -34,19 +34,6 @@ public class TCKSubscriberBlackBox extends SubscriberBlackboxVerification<Long> 
 
     @Override
     public Publisher<Long> createHelperPublisher(long elements) {
-        EventSink<Long> sink = new EventSink<>();
-        new Thread(() -> {
-            for ( long i = 0; i < elements; i++ ) {
-                while( ! sink.offer(i) ) {
-                    try {
-                        Thread.sleep(1);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-            sink.complete();
-        }, "feeder").start();
-        return sink;
+        return TCKSyncPubEventSink.createRangePublisher(elements);
     }
 }
