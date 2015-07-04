@@ -1,8 +1,7 @@
-package kstreams;
+package remotetreams;
 
 import org.junit.Test;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
-import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.tcp.TCPPublisher;
 
 /**

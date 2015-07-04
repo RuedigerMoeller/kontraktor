@@ -1,11 +1,13 @@
-package kstreams;
+package remotetreams;
 
 import org.junit.Test;
 
 import static org.nustaq.kontraktor.reactivestreams.ReaktiveStreams.*;
 
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.reactivestreams.EventSink;
 import org.nustaq.kontraktor.reactivestreams.KPublisher;
+import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.tcp.*;
@@ -97,7 +99,10 @@ public class TCPNIOKStreamsTest {
     @Test
     public void testClient() throws InterruptedException {
         AtomicLong received = new AtomicLong(0);
-        KPublisher<String> remote = get().connectRemotePublisher(String.class, getRemoteConnector(), null).await();
+        Callback<ActorClientConnector> discon = (acc,err) -> {
+            System.out.println("Client disconnected");
+        };
+        KPublisher<String> remote = get().connectRemotePublisher(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
             .subscribe(
@@ -120,7 +125,37 @@ public class TCPNIOKStreamsTest {
     @Test
     public void testClient1() throws InterruptedException {
         AtomicLong received = new AtomicLong(0);
-        KPublisher<String> remote = get().connectRemotePublisher(String.class, getRemoteConnector(), null).await();
+        Callback<ActorClientConnector> discon = (acc,err) -> {
+            System.out.println("Client disconnected");
+        };
+        KPublisher<String> remote = get().connectRemotePublisher(String.class, getRemoteConnector(), discon).await();
+        RateMeasure ms = new RateMeasure("event rate");
+        remote
+            .map(string -> string.length())
+            .map(number -> number > 10 ? number : number )
+            .subscribe(
+                  (str, err) -> {
+                      if (isErrorOrComplete(err)) {
+                          System.out.println("complete");
+                      } else if (isError(err)) {
+                          System.out.println("ERROR");
+                      } else {
+                          received.incrementAndGet();
+                          ms.count();
+                      }
+                  });
+        while( true ) {
+            Thread.sleep(100);
+        }
+    }
+
+    @Test // slowdown
+    public void testClient2() throws InterruptedException {
+        AtomicLong received = new AtomicLong(0);
+        Callback<ActorClientConnector> discon = (acc,err) -> {
+            System.out.println("Client disconnected");
+        };
+        KPublisher<String> remote = get().connectRemotePublisher(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
             .map(string -> string.length())
@@ -134,37 +169,43 @@ public class TCPNIOKStreamsTest {
                     } else {
                         received.incrementAndGet();
                         ms.count();
+                        try {
+                            Thread.sleep(1);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
                 });
+
         while( true ) {
             Thread.sleep(100);
         }
+
     }
 
-    @Test // slowdown
-    public void testClient2() throws InterruptedException {
+
+    @Test // cleanup of async processors
+    public void testClient3() throws InterruptedException {
         AtomicLong received = new AtomicLong(0);
-        KPublisher<String> remote = get().connectRemotePublisher(String.class, getRemoteConnector(), null).await();
+        Callback<ActorClientConnector> discon = (acc,err) -> {
+            System.out.println("Client disconnected");
+        };
+        KPublisher<String> remote = get().connectRemotePublisher(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
-            .map(string -> string.length())
-            .map(number -> number > 10 ? number : number )
+            .asyncMap(string -> string.length())
+            .asyncMap(number -> number > 10 ? number : number)
             .subscribe(
-                          (str, err) -> {
-                              if (isErrorOrComplete(err)) {
-                                  System.out.println("complete");
-                              } else if (isError(err)) {
-                                  System.out.println("ERROR");
-                              } else {
-                                  received.incrementAndGet();
-                                  ms.count();
-                                  try {
-                                      Thread.sleep(1);
-                                  } catch (InterruptedException e) {
-                                      e.printStackTrace();
-                                  }
-                              }
-                          });
+                (str, err) -> {
+                    if (isErrorOrComplete(err)) {
+                        System.out.println("complete");
+                    } else if (isError(err)) {
+                        System.out.println("ERROR");
+                    } else {
+                        received.incrementAndGet();
+                        ms.count();
+                    }
+                });
 
         while( true ) {
             Thread.sleep(100);

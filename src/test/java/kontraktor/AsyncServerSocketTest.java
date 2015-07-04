@@ -279,8 +279,12 @@ public class AsyncServerSocketTest {
         Thread.sleep(3000);
         executorService.shutdown();
         executorService.awaitTermination(10, TimeUnit.DAYS);
-        Thread.sleep(3000);
-        System.out.println("COUNT " + COUNT.get());
+        int to = 0;
+        while ( to < 7 && COUNT.get() < MSG_COUNT ) {
+            Thread.sleep(1000);
+            System.out.println("COUNT " + COUNT.get());
+            to++;
+        }
         Assert.assertTrue(COUNT.get() == MSG_COUNT);
 
     }

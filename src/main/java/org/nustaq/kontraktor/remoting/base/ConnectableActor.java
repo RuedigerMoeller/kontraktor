@@ -16,9 +16,11 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.remoting.base;
 
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import java.io.Serializable;
+import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 18/05/15.
@@ -35,7 +37,23 @@ import java.io.Serializable;
  */
 public interface ConnectableActor extends Serializable {
 
-    <T> IPromise<T> connect( Callback<ActorClientConnector> disconnectCallback );
+    /**
+     *
+     * @param disconnectCallback - a callback called on disconnect, passing the ActorClientConnector instance
+     * @param actorDisconnecCB - a consumer called on disconnect passing the remoteactor ref. Rarely needed. added to avoid braking things
+     * @param <T>
+     * @return
+     */
+    <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB);
+
+    default <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback) {
+        return this.connect(disconnectCallback,null);
+    }
+
+    default <T> IPromise<T> connect() {
+        return this.connect(null,null);
+    }
+
     ConnectableActor actorClass( Class actorClz );
     ConnectableActor inboundQueueSize(final int inboundQueueSize);
 }

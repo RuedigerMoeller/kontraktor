@@ -34,7 +34,7 @@ public class FSTJsonJSTest {
         JSActor client = (JSActor)
             new HttpConnectable(JSActor.class, "http://localhost:8080/jsactor")
                 .serType(SerializerType.JsonNoRefPretty)
-                .connect(null)
+                .connect()
                 .await();
 
         System.out.println(client.say("blabla").await());

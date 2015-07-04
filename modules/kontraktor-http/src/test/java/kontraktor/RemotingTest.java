@@ -98,7 +98,7 @@ public class RemotingTest {
         ActorServer publisher = _JSR356ServerConnector.Publish(service, "ws://localhost:8081/ws", null).await();
         RemotingTestService client = (RemotingTestService)
             new WebSocketConnectable(RemotingTestService.class, "ws://localhost:8081/ws")
-                .connect(null)
+                .connect()
                 .await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
@@ -131,7 +131,7 @@ public class RemotingTest {
         RemotingTestService client = (RemotingTestService)
             new HttpConnectable(RemotingTestService.class, "http://localhost:8082/lp")
                 .coding(coding)
-                .connect(null)
+                .connect()
                 .await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
@@ -150,7 +150,7 @@ public class RemotingTest {
                 .await();
         RemotingTestService client = (RemotingTestService)
             new HttpConnectable(RemotingTestService.class, "http://localhost:8082/lp")
-                .connect(null)
+                .connect()
                 .await(9999999);
         ExecutorService exec = Executors.newCachedThreadPool();
         CountDownLatch latch = new CountDownLatch(10);
@@ -188,7 +188,7 @@ public class RemotingTest {
         RemotingTestService client = (RemotingTestService)
             new WebSocketConnectable(RemotingTestService.class, "ws://localhost:8081/ws")
                 .coding(coding)
-                .connect(null)
+                .connect()
                 .await(9999999);
         CountDownLatch latch = new CountDownLatch(1);
         runWithClient( client, latch );
@@ -204,7 +204,7 @@ public class RemotingTest {
         ActorServer publisher = new WebSocketPublisher(service, "localhost", "/ws", 8081).publish().await();
         RemotingTestService client = (RemotingTestService)
             new WebSocketConnectable(RemotingTestService.class, "ws://localhost:8081/ws")
-                .connect(null)
+                .connect()
                 .await(9999999);
 
         ExecutorService exec = Executors.newCachedThreadPool();
@@ -311,7 +311,7 @@ public class RemotingTest {
                 .host("localhost")
                 .port(8081)
                 .coding(coding)
-                .connect(null)
+                .connect()
                 .await();
         runWithClient(client,l);
         Thread.sleep(2000); // wait for outstanding callbacks

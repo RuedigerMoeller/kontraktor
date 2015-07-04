@@ -24,7 +24,9 @@ import java.util.function.Function;
  * use the EventSink/ReaktiveStreams instead.
  *
  */
-public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> implements Processor<IN, OUT>, KPublisher<OUT>, RemotedActor {
+public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> implements Processor<IN, OUT>, KPublisher<OUT>, RemotedActor, KontraktorChain {
+
+    public static final String SOURCE_STOPPED = "SOURCE_STOPPED";
 
     public static int MAX_PENDING_MSG_BUFFERED = 2_000_000;
 
@@ -40,23 +42,40 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     public void init(Function<IN, OUT> processor) {
         this.pending = new ArrayDeque<>();
         this.processor = processor;
+        Thread.currentThread().setName(Thread.currentThread()+", rx async stream processor");
     }
 
-    // with remoting a copy of subscriber is sent. calls "onSubscribe" on that
-    // will do nothing ;)
-    // transforming it to callerside will execute this at client side,
-    // and do all remote communication via standard elements like promise and callback
+    // with remoting a copy of subscriber is sent. calling "onSubscribe" on that
+    // will do nothing and happen at remote side ;)
+    // execute callerside
+    // and break down remote communication to standard primitives like promise and callback
+    ArrayList<Subscriber> callerSideSubscribers; // advanced chemistry: held+used in the remote proxy to clean up pipeline on disconnect
     @Override @CallerSideMethod
     public void subscribe(Subscriber<? super OUT> subscriber) {
+        if ( isRemote() ) {
+            synchronized (this) { // subscribe/unsubscribe won't be contended
+                if ( callerSideSubscribers == null ) {
+                    callerSideSubscribers = new ArrayList();
+                }
+                callerSideSubscribers.add(subscriber);
+            }
+        }
         if ( subscriber == null )
         {
             subscriber.onError( new IllegalArgumentException("cannot subscibe null") );
             return;
         }
         _subscribe( (res,err) -> {
+            if ( err == PublisherActor.SOURCE_STOPPED ) {
+                if ( subscriber instanceof KontraktorChain ) {
+                    ((KontraktorChain) subscriber).sourceStopped();
+                }
+//                err = new RuntimeException(PublisherActor.SOURCE_STOPPED);
+                return; // just to end actor threads
+            }
             if ( isError(err) ) {
                 subscriber.onError((Throwable) err);
-            } else if ( isErrorOrComplete(err) ) {
+            } else if ( isComplete(err) ) {
                 subscriber.onComplete();
             } else {
                 subscriber.onNext((OUT)res);
@@ -295,6 +314,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             subscribers.forEach((id, entry) -> {
                 entry.onComplete();
             });
+            sourceStopped();
         }
     }
 
@@ -311,9 +331,22 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         }
     }
 
+    @Override
+    public void stop() {
+        sourceStopped();
+    }
+
     public void subscriberDisconnected(int id) {
         Log.Info(this, "a stream client disconnected id:" + id + " remaining:" + subscribers.size());
         emitRequestNext();
+    }
+
+    @Override
+    public void sourceStopped() {
+        subscribers.forEach( (i,entry) -> {
+            entry.sourceStopped();
+        });
+        self().asyncstop();
     }
 
     protected static class KSubscription implements Subscription, Serializable {
@@ -341,7 +374,16 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
         @Override
         public void cancel() {
+            removeRegistration();
             publisher._cancel(id);
+        }
+
+        protected void removeRegistration() {
+            if ( publisher.callerSideSubscribers != null ) {
+                synchronized (publisher.callerSideSubscribers) {
+                    publisher.callerSideSubscribers.remove(this);
+                }
+            }
         }
 
     }
@@ -387,6 +429,10 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
         public void onComplete() {
             subscriber.finish();
+        }
+
+        public void sourceStopped() {
+            subscriber.complete( null, SOURCE_STOPPED );
         }
     }
 

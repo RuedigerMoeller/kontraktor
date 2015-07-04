@@ -10,7 +10,7 @@ public class RefChain {
 
     public static class A extends Actor<A> {
         public IPromise showChain( org.nustaq.kontraktor.remoting.base.ConnectableActor b ) {
-            B bref = (B) b.connect(null).await();
+            B bref = (B) b.connect().await();
             C cref = bref.getC().await();
             String pok = cref.hello("POK").await();
             System.out.println("received "+pok);
@@ -21,7 +21,7 @@ public class RefChain {
     public static class B extends Actor<A> {
         C c;
         public void init(org.nustaq.kontraktor.remoting.base.ConnectableActor connectable) {
-            connectable.connect( null ).then( c -> this.c = (C) c);
+            connectable.connect().then( c -> this.c = (C) c);
         }
         public IPromise<C> getC() {
             return new Promise<>(c);

@@ -1,5 +1,6 @@
 package kontraktor;
 
+import org.junit.Ignore;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.annotations.*;
@@ -7,6 +8,7 @@ import org.nustaq.kontraktor.Promise;
 import org.junit.Test;
 import org.nustaq.kontraktor.impl.ActorBlockedException;
 import org.nustaq.kontraktor.impl.DispatcherThread;
+import org.nustaq.kontraktor.util.Log;
 
 import java.net.URL;
 import java.util.*;
@@ -50,7 +52,7 @@ public class BasicTest {
         int numCalls = 1000 * 1000 * 10;
         CountDownLatch latch = new CountDownLatch(numCalls);
         for ( int i = 0; i < numCalls; i++ ) {
-            actorA.benchCallFut("A").then( () -> latch.countDown() );
+            actorA.benchCallFut("A").then(() -> latch.countDown());
         }
         try {
             latch.await();
@@ -60,6 +62,18 @@ public class BasicTest {
         final long l = (numCalls / (System.currentTimeMillis() - tim)) * 1000;
         System.out.println("tim "+ l +" promise calls per sec");
         return l;
+    }
+
+    @Test @Ignore // does not work as other tests muddle up num threads
+    public void testStop() throws InterruptedException {
+        Log.Info(this,"pok");
+        Thread.sleep(1000);
+        int count = DispatcherThread.activeDispatchers.get();
+        Bench b = AsActor(Bench.class);
+        bench(b);
+        b.stop();
+        Thread.sleep(1000);
+        assertTrue(DispatcherThread.activeDispatchers.get() == count);
     }
 
     @Test

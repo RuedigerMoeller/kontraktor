@@ -27,6 +27,8 @@ import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 
+import java.util.function.Consumer;
+
 /**
  * Created by ruedi on 19/05/15.
  *
@@ -57,12 +59,12 @@ public class TCPConnectable implements ConnectableActor {
     }
 
     @Override
-    public <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback) {
+    public <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB) {
         Promise result = new Promise();
         Runnable connect = () -> {
             TCPClientConnector client = new TCPClientConnector(port,host,disconnectCallback);
             ActorClient connector = new ActorClient(client,actorClz,coding);
-            connector.connect(inboundQueueSize).then(result);
+            connector.connect(inboundQueueSize, actorDisconnecCB).then(result);
         };
         if ( ! Actor.inside() ) {
             TCPClientConnector.get().execute(() -> Thread.currentThread().setName("singleton remote client actor polling"));

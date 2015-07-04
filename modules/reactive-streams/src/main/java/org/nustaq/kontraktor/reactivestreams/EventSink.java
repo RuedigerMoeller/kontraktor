@@ -39,6 +39,9 @@ public class EventSink<T> implements KPublisher<T> {
         if ( subs != null ) {
             throw new RuntimeException("only one subscription supported");
         }
+        if ( subscriber == null ) {
+            throw null;
+        }
         subs = subscriber;
         if ( subs instanceof Actor) {
             actorSubs = (Actor)subs;
@@ -57,5 +60,11 @@ public class EventSink<T> implements KPublisher<T> {
                 subs = null;
             }
         });
+    }
+
+    @Override
+    public void sourceStopped() {
+        if ( subs instanceof KontraktorChain )
+            ((KontraktorChain) subs).sourceStopped();
     }
 }

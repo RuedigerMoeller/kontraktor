@@ -50,13 +50,13 @@ public class SimpleScheduler implements Scheduler {
     }
 
     public SimpleScheduler() {
-        myThread = new DispatcherThread(this,false);
+        myThread = new DispatcherThread(this,true);
         myThread.start();
     }
 
     public SimpleScheduler(int qsize) {
         this.qsize = qsize;
-        myThread = new DispatcherThread(this,false);
+        myThread = new DispatcherThread(this,true);
         myThread.start();
     }
 

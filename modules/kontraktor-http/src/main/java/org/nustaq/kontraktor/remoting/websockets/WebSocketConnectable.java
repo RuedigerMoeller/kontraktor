@@ -28,6 +28,7 @@ import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 
 import java.net.URISyntaxException;
+import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 19/05/15.
@@ -55,14 +56,14 @@ public class WebSocketConnectable implements ConnectableActor {
     }
 
     @Override
-    public <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback) {
+    public <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB) {
         Promise result = new Promise();
         Runnable connect = () -> {
             JSR356ClientConnector client = null;
             try {
                 client = new JSR356ClientConnector(url);
                 ActorClient connector = new ActorClient(client,clz,coding);
-                connector.connect(inboundQueueSize).then(result);
+                connector.connect(inboundQueueSize, null).then(result);
             } catch (URISyntaxException e) {
                 e.printStackTrace();
                 result.reject(e);

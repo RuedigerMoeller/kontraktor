@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
+import org.nustaq.kontraktor.util.Log;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
@@ -61,6 +62,12 @@ public class ReaktiveStreams extends Actors {
         if ( p instanceof KPublisher )
             return (KPublisher<T>) p;
         return new KPublisher<T>() {
+            @Override
+            public void sourceStopped() {
+                if ( p instanceof KontraktorChain )
+                    ((KontraktorChain) p).sourceStopped();
+            }
+
             @Override
             public void subscribe(Subscriber<? super T> s) {
                 p.subscribe(s);
@@ -135,7 +142,22 @@ public class ReaktiveStreams extends Actors {
      * @return
      */
     public <T> IPromise<KPublisher<T>> connectRemotePublisher(Class<T> eventType, ConnectableActor connectable, Callback<ActorClientConnector> disconHandler) {
-        return connectable.actorClass(PublisherActor.class).inboundQueueSize(DEFAULTQSIZE).connect(disconHandler);
+        Callback<ActorClientConnector> discon = (acc,err) -> {
+            Log.Info(this, "Client disconnected");
+            acc.closeClient();
+            if ( disconHandler != null ) {
+                disconHandler.complete(acc,err);
+            }
+        };
+        return connectable.actorClass(PublisherActor.class).inboundQueueSize(DEFAULTQSIZE).connect(discon, remoteref -> {
+            if ( ((PublisherActor)remoteref).callerSideSubscribers != null ) {
+                ((PublisherActor)remoteref).callerSideSubscribers.forEach( subs -> {
+                    if ( subs instanceof KontraktorChain )
+                        ((KontraktorChain) subs).sourceStopped();
+                });
+                ((PublisherActor)remoteref).callerSideSubscribers = null;
+            }
+        });
     }
 
     /**
@@ -297,6 +319,7 @@ public class ReaktiveStreams extends Actors {
         protected boolean done = false;
         protected long batchSize;
         protected Function<IN,OUT> proc;
+        protected long initialRequest = 0;
 
         public SyncProcessor(long batchSize, Function<IN, OUT> proc) {
             this.batchSize = batchSize;
@@ -308,9 +331,12 @@ public class ReaktiveStreams extends Actors {
             if (s == null)
                 throw null;
             if (inSubs != null) {
-                inSubs.cancel();
+                s.cancel();
+                return;
             }
             inSubs = s;
+            if ( initialRequest > 0 )
+                s.request(initialRequest);
         }
 
         @Override
@@ -352,22 +378,39 @@ public class ReaktiveStreams extends Actors {
                 throw new RuntimeException("can only subscribe once");
             }
             subscriber = (Subscriber<OUT>) s;
-            s.onSubscribe( outSubs = new Subscription() {
-                @Override
-                public void request(long n) {
-                    if ( n <= 0 ) {
-                        subscriber.onError(new IllegalArgumentException("rule 3.9: request > 0 elements"));
-                        return;
-                    }
-                    inSubs.request(n);
-                }
-                @Override
-                public void cancel() {
-                    inSubs.cancel();
-                    subscriber = null;
-                }
-            });
+            s.onSubscribe( outSubs = new MySubs());
         }
 
+        @Override
+        public void sourceStopped() {
+            if ( subscriber instanceof KontraktorChain )
+                ((KontraktorChain) subscriber).sourceStopped();
+        }
+
+        protected class MySubs implements Subscription, KontraktorChain {
+            @Override
+            public void request(long n) {
+                if ( n <= 0 ) {
+                    subscriber.onError(new IllegalArgumentException("rule 3.9: request > 0 elements"));
+                    return;
+                }
+                if ( inSubs != null )
+                    inSubs.request(n);
+                else
+                    initialRequest = n;
+            }
+
+            @Override
+            public void cancel() {
+                inSubs.cancel();
+                subscriber = null;
+            }
+
+            @Override
+            public void sourceStopped() {
+                if ( subscriber instanceof KontraktorChain )
+                    ((KontraktorChain) subscriber).sourceStopped();
+            }
+        }
     }
 }

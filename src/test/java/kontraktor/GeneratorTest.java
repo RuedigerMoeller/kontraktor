@@ -26,7 +26,7 @@ public class GeneratorTest {
 
         public IPromise run() {
             PromiseLatch finished = new PromiseLatch(5*5+1); // +1 == fin signal
-            generate(500, (intarr, err) -> {
+            generate(100, (intarr, err) -> {
                 if ( ! isErrorOrComplete(err) ) {
                     System.out.println("-> [" + intarr[0] + "," + intarr[1] + "]");
                 }
@@ -41,7 +41,7 @@ public class GeneratorTest {
     public void test() {
         Generator generator = Actors.AsActor(Generator.class);
         try {
-            generator.run().await(15*1000l);
+            generator.run().await(1000*1000l);
         } catch (Exception e) {
             e.printStackTrace();
             Assert.assertTrue(false);
@@ -57,7 +57,7 @@ public class GeneratorTest {
 
         BiConsumer<Long,Boolean> outside = (timout, expectTO) -> {
             PromiseLatch finished = new PromiseLatch(5*5+1); // +1 == fin signal
-            generator.generate(500, (intarr, err) -> {
+            generator.generate(100, (intarr, err) -> {
                 if ( ! Actor.isErrorOrComplete(err) ) {
                     System.out.println("-> [" + intarr[0] + "," + intarr[1] + "]");
                 }
@@ -74,8 +74,8 @@ public class GeneratorTest {
             }
         };
 
-        outside.accept(15*1000l,false);
-        outside.accept(1*1000l,true);
+        outside.accept(1000l,true);
+        outside.accept(100*1000l,false);
     }
 
 }

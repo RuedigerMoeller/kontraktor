@@ -14,7 +14,7 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 30/06/15.
  */
-public interface KPublisher<T> extends Publisher<T> {
+public interface KPublisher<T> extends Publisher<T>, KontraktorChain {
 
     /**
      * consuming endpoint. requests data from publisher immediately after

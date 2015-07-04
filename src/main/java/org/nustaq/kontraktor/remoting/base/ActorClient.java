@@ -27,6 +27,7 @@ import org.nustaq.serialization.util.FSTUtil;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 10/05/15.
@@ -57,10 +58,14 @@ public class ActorClient<T extends Actor> {
     }
 
     public IPromise<T> connect() {
-        return connect(RemoteScheduler.DEFQSIZE);
+        return connect(RemoteScheduler.DEFQSIZE, null);
     }
 
-    public IPromise<T> connect(int qsiz)
+    public IPromise<T> connect(int qsiz) {
+        return connect(qsiz, null);
+    }
+
+    public IPromise<T> connect(int qsiz, Consumer<Actor> discon)
     {
         Promise<T> result = new Promise<>();
         try {
@@ -79,6 +84,7 @@ public class ActorClient<T extends Actor> {
                         return socketRef;
                     }
                 };
+                reg.setDisconnectHandler(discon);
                 if ( coding.getCrossPlatformShortClazzNames() != null )
                    reg.getConf().registerCrossPlatformClassMappingUseSimpleName(coding.getCrossPlatformShortClazzNames());
                 writesocket.setConf(reg.getConf());

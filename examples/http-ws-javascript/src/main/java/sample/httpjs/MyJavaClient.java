@@ -22,14 +22,14 @@ public class MyJavaClient {
             remoteApp = (MyHttpApp)
                 new HttpConnectable(MyHttpApp.class, "http://localhost:8080/api")
                     .serType(SerializerType.JsonNoRefPretty)
-                    .connect(null)
+                    .connect()
                     .await();
         } else {
             JSR356ClientConnector.DumpProtocol = true; // dev only
             remoteApp = (MyHttpApp)
                 new WebSocketConnectable(MyHttpApp.class, "ws://localhost:8080/ws")
                     .serType(SerializerType.JsonNoRefPretty)
-                    .connect(null)
+                    .connect()
                     .await();
         }
 

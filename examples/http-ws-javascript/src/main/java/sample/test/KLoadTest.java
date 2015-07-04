@@ -1,6 +1,5 @@
 package sample.test;
 
-import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.HttpClientConnector;

@@ -75,15 +75,16 @@ public class DispatcherThread extends Thread implements Monitorable {
     public static int QUEUE_PERCENTAGE_TRIGGERING_REBALANCE = 50;      // if queue is X % full, consider rebalance
     public static int MILLIS_AFTER_CREATION_BEFORE_REBALANCING = 2; // give caches a chance to get things going before rebalancing
 
+    public static AtomicInteger activeDispatchers = new AtomicInteger(0);
+
     private Scheduler scheduler;
 
     private Actor actors[] = new Actor[0]; // always refs
     ConcurrentLinkedQueue<Actor> toAdd = new ConcurrentLinkedQueue<>();
 
     protected boolean shutDown = false;
-    static AtomicInteger dtcount = new AtomicInteger(0);
 
-
+    static AtomicInteger dtcount = new AtomicInteger(0); // thread naming
 
     public ArrayList __stack = new ArrayList();
     volatile boolean isIsolated = false;
@@ -142,54 +143,56 @@ public class DispatcherThread extends Thread implements Monitorable {
         int emptyCount = 0;
         long scheduleTickTime = System.nanoTime();
         boolean isShutDown = false;
-        while( ! isShutDown ) {
-            try {
-                if ( pollQs() ) {
-                    emptyCount = 0;
-                    if ( System.nanoTime() - scheduleTickTime > SCHEDULE_TICK_NANOS) {
-                        if ( emptySinceLastCheck == 0 ) // no idle during last interval
-                        {
-                            checkForSplit();
+        activeDispatchers.incrementAndGet();
+        try {
+            while( ! isShutDown ) {
+                try {
+                    if ( pollQs() ) {
+                        emptyCount = 0;
+                        if ( System.nanoTime() - scheduleTickTime > SCHEDULE_TICK_NANOS) {
+                            if ( emptySinceLastCheck == 0 ) // no idle during last interval
+                            {
+                                checkForSplit();
+                            }
+                            emptySinceLastCheck = 0;
+                            scheduleTickTime = System.nanoTime();
+                            schedulePendingAdds();
                         }
-                        emptySinceLastCheck = 0;
-                        scheduleTickTime = System.nanoTime();
-                        schedulePendingAdds();
                     }
-                }
-                else {
-                    emptyCount++;
-                    emptySinceLastCheck++;
-                    scheduler.pollDelay(emptyCount);
-                    if (shutDown) // access volatile only when idle
-                        isShutDown = true;
-                    if ( scheduler.getBackoffStrategy().isSleeping(emptyCount) ) {
-                        scheduleTickTime = 0;
-                        schedulePendingAdds();
-                        if ( System.currentTimeMillis()-created > 1000 ) {
-                            if ( autoShutDown && actors.length == 0 && toAdd.peek() == null) {
-                                shutDown();
-                            } else {
-                                scheduler.tryStopThread(this);
+                    else {
+                        emptyCount++;
+                        emptySinceLastCheck++;
+                        scheduler.pollDelay(emptyCount);
+                        if (shutDown) // access volatile only when idle
+                            isShutDown = true;
+                        if ( scheduler.getBackoffStrategy().isSleeping(emptyCount) ) {
+                            scheduleTickTime = 0;
+                            schedulePendingAdds();
+                            if ( System.currentTimeMillis()-created > 5000 ) {
+                                if ( autoShutDown && actors.length == 0 && toAdd.peek() == null) {
+                                    shutDown();
+                                } else {
+                                    scheduler.tryStopThread(this);
+                                }
                             }
                         }
                     }
+                } catch (Throwable th) {
+                    Log.Warn(this, th, "from main poll loop");
                 }
-            } catch (Throwable th) {
-                Log.Warn(this, th, "from main poll loop");
             }
-        }
-        scheduler.threadStopped(this);
-        for ( int i = 0; i < 100; i++ ) { // FIXME: umh .. works in practice
-            LockSupport.parkNanos(1000*1000*5);
-            while ( actors.length > 0 || toAdd.peek() != null ) {
+            scheduler.threadStopped(this);
+            LockSupport.parkNanos(1000*1000*1000);
+            if ( actors.length > 0 || toAdd.peek() != null ) {
                 if ( SimpleScheduler.DEBUG_SCHEDULING)
-                    Log.Lg.warn(this, "Severe: zombie dispatcher thread detected");
+                    Log.Lg.warn(this, "zombie dispatcher thread detected. This can be a debugging artifact.");
                 scheduler.tryStopThread(this);
-                i = 0;
             }
+            if ( SimpleScheduler.DEBUG_SCHEDULING)
+                Log.Info(this,"dispatcher thread terminated "+getName());
+        } finally {
+            activeDispatchers.decrementAndGet();
         }
-        if ( SimpleScheduler.DEBUG_SCHEDULING)
-            Log.Info(this,"dispatcher thread terminated "+getName());
     }
 
     /**

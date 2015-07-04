@@ -16,6 +16,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.remoting.http;
 
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
@@ -25,6 +26,8 @@ import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
+
+import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 19/05/15.
@@ -106,14 +109,14 @@ public class HttpConnectable implements ConnectableActor {
     }
 
     @Override
-    public <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback) {
+    public <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB) {
         HttpClientConnector con = new HttpClientConnector(this);
         con.disconnectCallback = disconnectCallback;
         ActorClient actorClient = new ActorClient(con, clz, coding);
         Promise p = new Promise();
         con.getRefPollActor().execute(() -> {
             Thread.currentThread().setName("Http Ref Polling");
-            actorClient.connect(inboundQueueSize).then(p);
+            actorClient.connect(inboundQueueSize, null).then(p);
         });
         return p;
     }

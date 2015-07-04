@@ -99,7 +99,7 @@ public class Dining {
 
     static void runClient() throws Exception {
         new TCPConnectable(Table.class,"localhost",6789)
-            .connect(null)
+            .connect()
             .then((table, error) -> {
                 if (table != null) { // connection failure
                     runPhilosophers((Table) table);

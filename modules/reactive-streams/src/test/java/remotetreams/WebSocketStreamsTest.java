@@ -1,10 +1,10 @@
-package kstreams;
+package remotetreams;
 
 import org.junit.Test;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
-import org.nustaq.kontraktor.remoting.http.HttpConnectable;
-import org.nustaq.kontraktor.remoting.http.HttpPublisher;
+import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
+import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 
 /**
  * Created by ruedi on 03/07/15.
@@ -12,10 +12,8 @@ import org.nustaq.kontraktor.remoting.http.HttpPublisher;
  * note: this cannot be run like a normal unit test. The server has to be started, then client tests could be run.
  * I use it to test from within the ide only currently
  *
- * Long Poll is not supported for reactive streams currently (systematical/technical issues)
- *
  */
-public class HttpLongPollTest extends TCPNIOKStreamsTest {
+public class WebSocketStreamsTest extends TCPNIOKStreamsTest {
 
     @Override @Test
     public void testServer() throws InterruptedException {
@@ -24,12 +22,12 @@ public class HttpLongPollTest extends TCPNIOKStreamsTest {
 
     @Override
     public ActorPublisher getRemotePublisher() {
-        return new HttpPublisher().hostName("localhost").port(8082).urlPath("/lp");
+        return new WebSocketPublisher().hostName("localhost").port(8081).urlPath("/ws");
     }
 
     @Override
     public ConnectableActor getRemoteConnector() {
-        return new HttpConnectable().url("http://localhost:8082/lp");
+        return new WebSocketConnectable().url("ws://localhost:8081/ws");
     }
 
     @Override @Test
