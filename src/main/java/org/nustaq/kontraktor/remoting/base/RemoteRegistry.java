@@ -394,9 +394,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 return;
             }
         }
-        if ( Callback.FINSILENT.equals(error) ) {
-            return;
-        }
         RemoteCallEntry rce = new RemoteCallEntry(0, id, null, new Object[] {result,error});
         rce.setQueue(rce.CBQ);
         writeObject(chan, rce);

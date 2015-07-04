@@ -49,19 +49,9 @@ import java.io.Serializable;
 public interface Callback<T> extends Serializable  // do not use interface, slows down instanceof significantly
 {
     /**
-     * use value to signal no more messages will be sent. THE RECEIVER CALLBACK WILL NOT SEE THIS MESSAGE.
-     */
-    public final String FINSILENT = "EOT";
-    /**
      * use value as error to indicate more messages are to come (else remoting will close channel).
      */
     public final String CONT = "CNT";
-
-    /**
-     * use this value to signal no more messages. The receiver callback will receive the message.
-     * Note that any value except CONT will also close the callback channel. So this is informal.
-     */
-    public final String FIN = "FIN";
 
     /**
      * set result or error. error might also contain flow indicators to signal end/continue of
@@ -122,7 +112,7 @@ public interface Callback<T> extends Serializable  // do not use interface, slow
      *
      */
     default void finish() {
-        complete(null, FIN);
+        complete(null, null);
     }
 
 }

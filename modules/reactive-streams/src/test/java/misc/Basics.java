@@ -50,7 +50,6 @@ public class Basics {
     @Test
     public void testStopThreadsWithIter() throws InterruptedException {
 
-
         AtomicInteger sum = new AtomicInteger(0);
 
         RateMeasure ms = new RateMeasure("rate");

@@ -37,7 +37,7 @@ public abstract class Spore<I,O> implements Serializable {
         Callback mycb = new Callback() {
             @Override
             public void complete(Object result, Object error) {
-                if ( FIN.equals(error) ) {
+                if ( Actors.isComplete(error) ) {
                     finSignal.complete();
                 } else {
                     if (localCallback != null) {
@@ -87,7 +87,7 @@ public abstract class Spore<I,O> implements Serializable {
         // signal finish of execution, so remoting can clean up callback id mappings
         // override if always single result or finish can be emitted by the remote method
         // note one can send FINSILENT to avoid the final message to be visible to receiver callback/spore
-        cb.complete(null, Callback.FIN);
+        cb.complete(null, null);
         finished = true;
     }
 

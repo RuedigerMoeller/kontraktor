@@ -78,11 +78,6 @@ public class Actors {
      * use value as error to indicate more messages are to come (else remoting will close channel).
      */
     public static final String CONT = Callback.CONT;
-    /**
-     * use this value to signal no more messages. The receiver callback will complete the message.
-     * Note that any value except CONT will also close the callback channel. So this is informal.
-     */
-    public static final String FIN = Callback.FIN;
 
     /**
      * return if given error Object signals an error or a 'complete' signal
@@ -90,15 +85,16 @@ public class Actors {
      * @return
      */
     public static boolean isErrorOrComplete(Object error) {
-        return FIN.equals(error) || ! CONT.equals(error);
+        return ! CONT.equals(error);
     }
 
     public static boolean isComplete(Object error) {
-        return FIN.equals(error);
+        return error == null;
     }
 
     /**
-     * helper to check for "special" error objects.
+     * helper to check for "special" error object "CONT". cont signals further callback results might be
+     * sent (important for remoting as channels need to get cleaned up)
      * @param o
      * @return
      */
@@ -116,7 +112,7 @@ public class Actors {
      * @return
      */
     public static boolean isError(Object o) {
-        return o != null && ! FIN.equals(o) && ! CONT.equals(o);
+        return o != null && ! CONT.equals(o);
     }
 
     /**
