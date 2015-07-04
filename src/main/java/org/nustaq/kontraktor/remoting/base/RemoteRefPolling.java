@@ -57,7 +57,7 @@ public class RemoteRefPolling implements Runnable {
      *
      * @param reg
      *
-     * @return future completed upon termination of scheduling
+     * @return future completed upon termination of scheduling (disconnect)
      *
      */
     public IPromise scheduleSendLoop(RemoteRegistry reg) {

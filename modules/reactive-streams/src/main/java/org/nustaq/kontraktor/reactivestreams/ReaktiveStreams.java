@@ -11,9 +11,15 @@ import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
+import java.io.IOException;
 import java.io.Serializable;
+import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
 /**
  * Created by ruedi on 28/06/15.
@@ -62,12 +68,6 @@ public class ReaktiveStreams extends Actors {
         if ( p instanceof KPublisher )
             return (KPublisher<T>) p;
         return new KPublisher<T>() {
-            @Override
-            public void sourceStopped() {
-                if ( p instanceof KontraktorChain )
-                    ((KontraktorChain) p).sourceStopped();
-            }
-
             @Override
             public void subscribe(Subscriber<? super T> s) {
                 p.subscribe(s);
@@ -127,11 +127,42 @@ public class ReaktiveStreams extends Actors {
     }
 
     public <T> KPublisher<T> connect( Class<T> eventType, ConnectableActor connectable ) {
-        return (KPublisher<T>) get().connectRemotePublisher(eventType, connectable, null ).await();
+        return (KPublisher<T>) connect(eventType, connectable, null).await();
     }
 
-    public <T> KPublisher<T> connect( Class<T> eventType, ConnectableActor connectable, Callback<ActorClientConnector> disconCB ) {
-        return (KPublisher<T>) get().connectRemotePublisher(eventType, connectable, disconCB).await();
+    public <T> KPublisher<T> produce( Stream<T> stream ) {
+        return produce(stream.iterator(),DEFAULT_BATCH_SIZE);
+    }
+
+    public KPublisher<Integer> produce( IntStream stream ) {
+        return produce(stream.mapToObj( i->i ).iterator(),DEFAULT_BATCH_SIZE);
+    }
+
+    public KPublisher<Long> produce( LongStream stream ) {
+        return produce(stream.mapToObj( i->i ).iterator(),DEFAULT_BATCH_SIZE);
+    }
+
+    public KPublisher<Double> produce( DoubleStream stream ) {
+        return produce(stream.mapToObj( i->i ).iterator(),DEFAULT_BATCH_SIZE);
+    }
+
+    public <T> KPublisher<T> produce( Stream<T> stream, int batchSize ) {
+        return produce(stream.iterator(),batchSize);
+    }
+
+    public <T> KPublisher<T> produce( Iterator<T> iter ) {
+        return produce(iter,DEFAULT_BATCH_SIZE);
+    }
+
+    public <T> KPublisher<T> produce( Iterator<T> iter, int batchSize ) {
+        PublisherActor pub = Actors.AsActor(PublisherActor.class, DEFAULTQSIZE);
+        if ( batchSize > ReaktiveStreams.MAX_BATCH_SIZE ) {
+            throw new RuntimeException("batch size exceeds max of "+ReaktiveStreams.MAX_BATCH_SIZE);
+        }
+        pub.setBatchSize(batchSize);
+        pub.setThrowExWhenBlocked(true);
+        pub.initFromIterator(iter);
+        return pub;
     }
 
     /**
@@ -141,7 +172,7 @@ public class ReaktiveStreams extends Actors {
      * @param <T>
      * @return
      */
-    public <T> IPromise<KPublisher<T>> connectRemotePublisher(Class<T> eventType, ConnectableActor connectable, Callback<ActorClientConnector> disconHandler) {
+    public <T> IPromise<KPublisher<T>> connect(Class<T> eventType, ConnectableActor connectable, Callback<ActorClientConnector> disconHandler) {
         Callback<ActorClientConnector> discon = (acc,err) -> {
             Log.Info(this, "Client disconnected");
             acc.closeClient();
@@ -152,8 +183,7 @@ public class ReaktiveStreams extends Actors {
         return connectable.actorClass(PublisherActor.class).inboundQueueSize(DEFAULTQSIZE).connect(discon, remoteref -> {
             if ( ((PublisherActor)remoteref).callerSideSubscribers != null ) {
                 ((PublisherActor)remoteref).callerSideSubscribers.forEach( subs -> {
-                    if ( subs instanceof KontraktorChain )
-                        ((KontraktorChain) subs).sourceStopped();
+                    ((Subscriber)subs).onError(new IOException("connection lost"));
                 });
                 ((PublisherActor)remoteref).callerSideSubscribers = null;
             }
@@ -169,7 +199,7 @@ public class ReaktiveStreams extends Actors {
      * @param <OUT>
      * @return
      */
-    public <OUT> IPromise newPublisherServer(Publisher<OUT> source, ActorPublisher networkPublisher, Consumer<Actor> disconCB) {
+    public <OUT> IPromise serve(Publisher<OUT> source, ActorPublisher networkPublisher, Consumer<Actor> disconCB) {
         if ( networkPublisher.getClass().getSimpleName().equals("HttpPublisher") ) {
             throw new RuntimeException("Http long poll cannot be supported. Use WebSockets instead.");
         }
@@ -230,7 +260,7 @@ public class ReaktiveStreams extends Actors {
 
     /**
      *
-     * create async processor. Usually not called directly (see EventSink+KPublisher)
+     * create sync processor. Usually not called directly (see EventSink+KPublisher)
      *
      * @param processingFunction
      * @param <IN>
@@ -381,13 +411,7 @@ public class ReaktiveStreams extends Actors {
             s.onSubscribe( outSubs = new MySubs());
         }
 
-        @Override
-        public void sourceStopped() {
-            if ( subscriber instanceof KontraktorChain )
-                ((KontraktorChain) subscriber).sourceStopped();
-        }
-
-        protected class MySubs implements Subscription, KontraktorChain {
+        protected class MySubs implements Subscription {
             @Override
             public void request(long n) {
                 if ( n <= 0 ) {
@@ -406,11 +430,6 @@ public class ReaktiveStreams extends Actors {
                 subscriber = null;
             }
 
-            @Override
-            public void sourceStopped() {
-                if ( subscriber instanceof KontraktorChain )
-                    ((KontraktorChain) subscriber).sourceStopped();
-            }
         }
     }
 }

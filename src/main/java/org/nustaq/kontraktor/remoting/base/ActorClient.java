@@ -90,25 +90,30 @@ public class ActorClient<T extends Actor> {
                 writesocket.setConf(reg.getConf());
 
                 Actor.current(); // ensure running in actor thread
-                reg.registerRemoteRefDirect(facadeProxy);
-                poller.get().scheduleSendLoop(reg);
-                result.resolve((T) facadeProxy);
 
-                return new ObjectSink() {
+                ObjectSink objectSink = new ObjectSink() {
                     @Override
                     public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures) {
                         try {
-                            reg.receiveObject(socketRef.get(),sink,received, createdFutures);
+                            reg.receiveObject(socketRef.get(), sink, received, createdFutures);
                         } catch (Exception e) {
                             FSTUtil.rethrow(e);
                         }
                     }
+
                     @Override
                     public void sinkClosed() {
                         reg.setTerminated(true);
                         reg.cleanUp();
                     }
                 };
+                reg.registerRemoteRefDirect(facadeProxy);
+                poller.get().scheduleSendLoop(reg).then( () -> {
+                    objectSink.sinkClosed();
+
+                });
+                result.resolve((T) facadeProxy);
+                return objectSink;
             });
         } catch (Exception e) {
             if ( ! result.isSettled() )

@@ -3,16 +3,11 @@ package misc;
 import junit.framework.Assert;
 import org.junit.Test;
 import org.nustaq.kontraktor.impl.DispatcherThread;
-import org.nustaq.kontraktor.impl.SimpleScheduler;
-import org.nustaq.kontraktor.reactivestreams.EventGenerator;
 import org.nustaq.kontraktor.reactivestreams.EventSink;
+import org.nustaq.kontraktor.reactivestreams.ReaktiveStreams;
 import org.nustaq.kontraktor.util.RateMeasure;
-import org.xnio.streams.Streams;
-
-import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * Created by ruedi on 04/07/15.
@@ -59,7 +54,7 @@ public class Basics {
         AtomicInteger sum = new AtomicInteger(0);
 
         RateMeasure ms = new RateMeasure("rate");
-        EventGenerator.of(IntStream.range(0,20_000_000).mapToObj(i -> i))
+        ReaktiveStreams.get().produce(IntStream.range(0, 20_000_000))
             .map(i -> i * i)
             .map(i -> "" + i)
             .map( s -> s.substring(0, s.length() / 2))

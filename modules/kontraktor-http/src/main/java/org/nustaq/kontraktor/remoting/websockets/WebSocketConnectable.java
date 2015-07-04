@@ -63,7 +63,7 @@ public class WebSocketConnectable implements ConnectableActor {
             try {
                 client = new JSR356ClientConnector(url);
                 ActorClient connector = new ActorClient(client,clz,coding);
-                connector.connect(inboundQueueSize, null).then(result);
+                connector.connect(inboundQueueSize, actorDisconnecCB).then(result);
             } catch (URISyntaxException e) {
                 e.printStackTrace();
                 result.reject(e);

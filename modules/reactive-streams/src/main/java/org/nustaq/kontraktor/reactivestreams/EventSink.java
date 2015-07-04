@@ -62,9 +62,4 @@ public class EventSink<T> implements KPublisher<T> {
         });
     }
 
-    @Override
-    public void sourceStopped() {
-        if ( subs instanceof KontraktorChain )
-            ((KontraktorChain) subs).sourceStopped();
-    }
 }

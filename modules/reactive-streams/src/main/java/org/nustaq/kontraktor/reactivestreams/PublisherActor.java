@@ -6,9 +6,11 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
+import org.nustaq.kontraktor.impl.InternalActorStoppedException;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
 import org.nustaq.kontraktor.util.Log;
 import org.reactivestreams.Processor;
+import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
@@ -24,11 +26,7 @@ import java.util.function.Function;
  * use the EventSink/ReaktiveStreams instead.
  *
  */
-public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> implements Processor<IN, OUT>, KPublisher<OUT>, RemotedActor, KontraktorChain {
-
-    public static final String SOURCE_STOPPED = "SOURCE_STOPPED";
-
-    public static int MAX_PENDING_MSG_BUFFERED = 2_000_000;
+public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> implements Processor<IN, OUT>, KPublisher<OUT>, RemotedActor {
 
     public static final boolean CRED_DEBUG = false;
 
@@ -42,7 +40,36 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     public void init(Function<IN, OUT> processor) {
         this.pending = new ArrayDeque<>();
         this.processor = processor;
-        Thread.currentThread().setName(Thread.currentThread()+", rx async stream processor");
+        Thread.currentThread().setName(Thread.currentThread()+" (rx async stream processor)");
+    }
+
+    /**
+     * if iterator is set, this acts as an event producer
+     * @param iterator
+     */
+    public void initFromIterator(Iterator<IN> iterator) {
+        this.pending = new ArrayDeque<>();
+        producer = new Subscription() {
+            @Override
+            public void request(long n) {
+                try {
+                    while ( iterator.hasNext() && n-- > 0 ) {
+                        onNext(iterator.next());
+                    }
+                    if ( ! iterator.hasNext() )
+                        onComplete();
+                } catch (Throwable t) {
+                    onError(t);
+                }
+            }
+
+            @Override
+            public void cancel() {
+            }
+        };
+        processor = in -> (OUT)in;
+        onSubscribe(producer);
+        Thread.currentThread().setName(Thread.currentThread()+" (rx async stream processor)");
     }
 
     // with remoting a copy of subscriber is sent. calling "onSubscribe" on that
@@ -65,22 +92,15 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             subscriber.onError( new IllegalArgumentException("cannot subscibe null") );
             return;
         }
-        _subscribe( (res,err) -> {
-            if ( err == PublisherActor.SOURCE_STOPPED ) {
-                if ( subscriber instanceof KontraktorChain ) {
-                    ((KontraktorChain) subscriber).sourceStopped();
-                }
-//                err = new RuntimeException(PublisherActor.SOURCE_STOPPED);
-                return; // just to end actor threads
-            }
-            if ( isError(err) ) {
+        _subscribe( (res, err) -> {
+            if (isError(err)) {
                 subscriber.onError((Throwable) err);
-            } else if ( isComplete(err) ) {
+            } else if (isComplete(err)) {
                 subscriber.onComplete();
             } else {
-                subscriber.onNext((OUT)res);
+                subscriber.onNext((OUT) res);
             }
-        }).then(subs -> {
+        }).then( subs -> {
             Log.Info(this, "stream subscribe acknowledged");
             subscriber.onSubscribe(subs);
         });
@@ -105,7 +125,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     }
 
     // private. remoted request next
-    public void _rq(long l, int id) {
+    @AsCallback public void _rq(long l, int id) {
         if ( doOnSubscribe != null ) {
             doOnSubscribe.add( () -> _rq(l, id) );
         } else {
@@ -125,7 +145,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
     ///////////////////// subscriber interface ////////////////////
 
-    protected Subscription mySubs;
+    protected Subscription producer;
     protected long batchSize;
     protected long requestNextTrigger;
     protected long openRequested;
@@ -145,7 +165,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
     // see onError() comment
     public void _onSubscribe(Subscription subscription) {
-        mySubs = subscription;
+        producer = subscription;
         ArrayList<Runnable> tmp = this.doOnSubscribe;
         this.doOnSubscribe = null;
         tmp.forEach(runnable -> runnable.run());
@@ -159,7 +179,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
                     return;
                 }
             }
-            mySubs.request(batchSize);
+            producer.request(batchSize);
             openRequested += batchSize;
         }
     }
@@ -301,6 +321,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     // see comment onError()
     public void _onError(Throwable throwable) {
         forwardError(throwable);
+        super.stop();
     }
 
     @Override
@@ -314,7 +335,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             subscribers.forEach((id, entry) -> {
                 entry.onComplete();
             });
-            sourceStopped();
+            stop();
         }
     }
 
@@ -333,20 +354,13 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
     @Override
     public void stop() {
-        sourceStopped();
+        _onError(new InternalActorStoppedException());
+        super.stop();
     }
 
     public void subscriberDisconnected(int id) {
         Log.Info(this, "a stream client disconnected id:" + id + " remaining:" + subscribers.size());
         emitRequestNext();
-    }
-
-    @Override
-    public void sourceStopped() {
-        subscribers.forEach( (i,entry) -> {
-            entry.sourceStopped();
-        });
-        self().asyncstop();
     }
 
     protected static class KSubscription implements Subscription, Serializable {
@@ -431,9 +445,6 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             subscriber.finish();
         }
 
-        public void sourceStopped() {
-            subscriber.complete( null, SOURCE_STOPPED );
-        }
     }
 
 }

@@ -102,7 +102,7 @@ public class TCPNIOKStreamsTest {
         Callback<ActorClientConnector> discon = (acc,err) -> {
             System.out.println("Client disconnected");
         };
-        KPublisher<String> remote = get().connectRemotePublisher(String.class, getRemoteConnector(), discon).await();
+        KPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
             .subscribe(
@@ -128,7 +128,7 @@ public class TCPNIOKStreamsTest {
         Callback<ActorClientConnector> discon = (acc,err) -> {
             System.out.println("Client disconnected");
         };
-        KPublisher<String> remote = get().connectRemotePublisher(String.class, getRemoteConnector(), discon).await();
+        KPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
             .map(string -> string.length())
@@ -155,7 +155,7 @@ public class TCPNIOKStreamsTest {
         Callback<ActorClientConnector> discon = (acc,err) -> {
             System.out.println("Client disconnected");
         };
-        KPublisher<String> remote = get().connectRemotePublisher(String.class, getRemoteConnector(), discon).await();
+        KPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
             .map(string -> string.length())
@@ -190,17 +190,17 @@ public class TCPNIOKStreamsTest {
         Callback<ActorClientConnector> discon = (acc,err) -> {
             System.out.println("Client disconnected");
         };
-        KPublisher<String> remote = get().connectRemotePublisher(String.class, getRemoteConnector(), discon).await();
+        KPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
             .asyncMap(string -> string.length())
             .asyncMap(number -> number > 10 ? number : number)
             .subscribe(
                 (str, err) -> {
-                    if (isErrorOrComplete(err)) {
+                    if (isComplete(err)) {
                         System.out.println("complete");
                     } else if (isError(err)) {
-                        System.out.println("ERROR");
+                        System.out.println("ERROR "+err);
                     } else {
                         received.incrementAndGet();
                         ms.count();

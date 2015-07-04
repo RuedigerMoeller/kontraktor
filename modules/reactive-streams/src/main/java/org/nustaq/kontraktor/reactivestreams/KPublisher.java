@@ -14,7 +14,7 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 30/06/15.
  */
-public interface KPublisher<T> extends Publisher<T>, KontraktorChain {
+public interface KPublisher<T> extends Publisher<T> {
 
     /**
      * consuming endpoint. requests data from publisher immediately after
@@ -102,7 +102,7 @@ public interface KPublisher<T> extends Publisher<T>, KontraktorChain {
      * @return
      */
     @CallerSideMethod default ActorServer publish( ActorPublisher publisher, Consumer<Actor> disconCallback ) {
-        return (ActorServer) ReaktiveStreams.get().newPublisherServer(this, publisher, disconCallback).await();
+        return (ActorServer) ReaktiveStreams.get().serve(this, publisher, disconCallback).await();
     }
 
     /**

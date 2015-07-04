@@ -44,4 +44,9 @@ public class WebSocketStreamsTest extends TCPNIOKStreamsTest {
     public void testClient2() throws InterruptedException {
         super.testClient2();
     }
+
+    @Override @Test
+    public void testClient3() throws InterruptedException {
+        super.testClient3();
+    }
 }
