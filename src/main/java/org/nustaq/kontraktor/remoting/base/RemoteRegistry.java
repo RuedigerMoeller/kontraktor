@@ -400,6 +400,11 @@ public abstract class RemoteRegistry implements RemoteConnection {
     }
 
     public void close() {
+        try {
+            getWriteObjectSocket().get().flush();
+        } catch (Exception e) {
+            Log.Warn(this,e);
+        }
         cleanUp();
     }
 

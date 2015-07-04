@@ -103,16 +103,16 @@ public class Actors {
     }
 
     public static boolean isResult(Object error) {
-        return error==null||isCont(error);
+        return isCont(error);
     }
 
     /**
      * helper to check for "special" error objects.
-     * @param o
+     * @param err
      * @return
      */
-    public static boolean isError(Object o) {
-        return o != null && ! CONT.equals(o);
+    public static boolean isError(Object err) {
+        return err != null && ! CONT.equals(err);
     }
 
     /**

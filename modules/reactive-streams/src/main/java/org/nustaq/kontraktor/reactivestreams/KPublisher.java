@@ -95,7 +95,7 @@ public interface KPublisher<T> extends Publisher<T> {
     }
 
     /**
-     * insert an async processor (with dedicated thread)
+     * publish current stream onto a network connector
      *
      * @param publisher
      * @param disconCallback
@@ -103,6 +103,16 @@ public interface KPublisher<T> extends Publisher<T> {
      */
     @CallerSideMethod default ActorServer serve(ActorPublisher publisher, Consumer<Actor> disconCallback) {
         return (ActorServer) ReaktiveStreams.get().serve(this, publisher, disconCallback).await();
+    }
+
+    /**
+     * publish current stream onto a network connector
+     *
+     * @param publisher
+     * @return
+     */
+    @CallerSideMethod default ActorServer serve(ActorPublisher publisher) {
+        return this.serve(publisher,null);
     }
 
     /**

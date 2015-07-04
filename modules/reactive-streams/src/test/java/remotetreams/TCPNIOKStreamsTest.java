@@ -1,5 +1,6 @@
 package remotetreams;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.nustaq.kontraktor.reactivestreams.ReaktiveStreams.*;
@@ -25,7 +26,7 @@ import java.util.concurrent.locks.LockSupport;
  */
 public class TCPNIOKStreamsTest {
 
-    @Test
+    @Test @Ignore
     public void simpleTest() {
 
         AtomicLong counter = new AtomicLong(0);
@@ -65,7 +66,7 @@ public class TCPNIOKStreamsTest {
 
     }
 
-    @Test
+    @Test @Ignore
     public void testServer() throws InterruptedException {
 
         AtomicLong counter = new AtomicLong(0);
@@ -96,7 +97,7 @@ public class TCPNIOKStreamsTest {
     public ActorPublisher getRemotePublisher() {return new TCPPublisher().port(7777);}
     public ConnectableActor getRemoteConnector() {return new TCPConnectable().host("localhost").port(7777);}
 
-    @Test
+    @Test @Ignore
     public void testClient() throws InterruptedException {
         AtomicLong received = new AtomicLong(0);
         Callback<ActorClientConnector> discon = (acc,err) -> {
@@ -122,7 +123,7 @@ public class TCPNIOKStreamsTest {
     }
 
 
-    @Test
+    @Test @Ignore
     public void testClient1() throws InterruptedException {
         AtomicLong received = new AtomicLong(0);
         Callback<ActorClientConnector> discon = (acc,err) -> {
@@ -149,7 +150,7 @@ public class TCPNIOKStreamsTest {
         }
     }
 
-    @Test // slowdown
+    @Test @Ignore // slowdown
     public void testClient2() throws InterruptedException {
         AtomicLong received = new AtomicLong(0);
         Callback<ActorClientConnector> discon = (acc,err) -> {
@@ -184,7 +185,7 @@ public class TCPNIOKStreamsTest {
     }
 
 
-    @Test // cleanup of async processors
+    @Test @Ignore// cleanup of async processors
     public void testClient3() throws InterruptedException {
         AtomicLong received = new AtomicLong(0);
         Callback<ActorClientConnector> discon = (acc,err) -> {

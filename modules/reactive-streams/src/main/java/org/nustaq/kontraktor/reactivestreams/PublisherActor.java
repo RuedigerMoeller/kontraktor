@@ -1,9 +1,6 @@
 package org.nustaq.kontraktor.reactivestreams;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.impl.InternalActorStoppedException;
@@ -17,6 +14,7 @@ import org.reactivestreams.Subscription;
 import java.io.Serializable;
 import java.util.*;
 import java.util.Map.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 /**
@@ -36,6 +34,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     protected Function<IN,OUT> processor;
     protected ArrayList<Runnable> doOnSubscribe = new ArrayList<>();
     protected ArrayDeque pending;
+    protected boolean isIteratorBased = false;
 
     public void init(Function<IN, OUT> processor) {
         this.pending = new ArrayDeque<>();
@@ -49,17 +48,23 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
      */
     public void initFromIterator(Iterator<IN> iterator) {
         this.pending = new ArrayDeque<>();
+        isIteratorBased = true;
         producer = new Subscription() {
+            boolean complete = false;
             @Override
             public void request(long n) {
+                if ( complete )
+                    return;
                 try {
                     while ( iterator.hasNext() && n-- > 0 ) {
-                        onNext(iterator.next());
+                        self().onNext(iterator.next());
                     }
-                    if ( ! iterator.hasNext() )
-                        onComplete();
+                    if ( ! iterator.hasNext() ) {
+                        complete = true;
+                        self().onComplete();
+                    }
                 } catch (Throwable t) {
-                    onError(t);
+                    self().onError(t);
                 }
             }
 
@@ -92,7 +97,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             subscriber.onError( new IllegalArgumentException("cannot subscibe null") );
             return;
         }
-        _subscribe( (res, err) -> {
+        _subscribe((res, err) -> {
             if (isError(err)) {
                 subscriber.onError((Throwable) err);
             } else if (isComplete(err)) {
@@ -100,7 +105,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             } else {
                 subscriber.onNext((OUT) res);
             }
-        }).then( subs -> {
+        }).then(subs -> {
             Log.Info(this, "stream subscribe acknowledged");
             subscriber.onSubscribe(subs);
         });
@@ -173,14 +178,26 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
     protected void emitRequestNext() {
         if ( openRequested < requestNextTrigger ) {
+            long minCredits = Long.MAX_VALUE;
             for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
                 Entry<Integer, SubscriberEntry> next = iterator.next();
-                if ( next.getValue().credits < openRequested ) {
+                long credits = next.getValue().credits;
+                if ( minCredits > credits )
+                    minCredits = credits;
+                if ( credits < openRequested ) {
                     return;
                 }
             }
-            producer.request(batchSize);
-            openRequested += batchSize;
+            if ( isIteratorBased ) {
+                if ( minCredits > 0) {
+                    long min = Math.min(minCredits, batchSize);
+                    producer.request(min);
+                    openRequested += min;
+                }
+            } else {
+                producer.request(batchSize);
+                openRequested += batchSize;
+            }
         }
     }
 
@@ -188,7 +205,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     @Override @CallerSideMethod public void onNext(IN in) {
         if ( in  == null )
             throw null;
-        self()._onNext(in);
+        _onNext(in);
     }
 
     // see onError() comment
@@ -198,8 +215,9 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         openRequested--;
         try {
             OUT apply = processor.apply(in);
-            if ( apply != null )
+            if ( apply != null ) {
                 forwardMessage(apply);
+            }
         } catch (Throwable err) {
             err.printStackTrace();
             forwardError(err);
@@ -211,7 +229,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
             err.printStackTrace();
             return;
         }
-        subscribers.forEach( (id,entry) -> {
+        subscribers.forEach((id, entry) -> {
             entry.onError(err);
         });
     }
@@ -315,23 +333,27 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     @CallerSideMethod public void onError(Throwable throwable) {
         if ( throwable == null )
             throw null;
-        self()._onError(throwable);
+        _onError(throwable);
     }
 
     // see comment onError()
     public void _onError(Throwable throwable) {
         forwardError(throwable);
-        super.stop();
+        stop();
     }
 
     @Override
     public void onComplete() {
         if ( pending.size() > 0 ) {
-            List l = forwardPending(calcMinCredits(),null);
-            if ( l != null && l.size() > 0 )
-                removeSubscribers(l);
-            self().onComplete();
+//            System.out.println("pending loops ..");
+            if ( pending.size() > 0 ) {
+                List l = forwardPending(calcMinCredits(),null);
+                if ( l != null && l.size() > 0 )
+                    removeSubscribers(l);
+            }
+            delayed(1, () -> self().onComplete() );
         } else {
+//            System.out.println("stopping "+__mailbox.size()+" "+__cbQueue.size() );
             subscribers.forEach((id, entry) -> {
                 entry.onComplete();
             });
@@ -354,7 +376,10 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
 
     @Override
     public void stop() {
-        _onError(new InternalActorStoppedException());
+        if ( isPublished() ) {
+            RemoteConnection peek = __connections.peek();
+            peek.close();
+        }
         super.stop();
     }
 

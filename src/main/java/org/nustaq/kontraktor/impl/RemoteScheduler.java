@@ -38,6 +38,10 @@ public class RemoteScheduler extends SimpleScheduler {
             public synchronized void start() {
                 // fake thread, just don't start
             }
+
+            public String toString() {
+                return "REMOTEREF "+super.toString();
+            }
         };
     }
 

@@ -158,7 +158,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         if ( isRemote() ) {
             throw new RuntimeException("Cannot stop remote ref");
         }
-        self().asyncstop();
+        self().ping().then(() -> self().asyncstop() ); // ensure all queues are cleaned
     }
 
     /**
@@ -396,6 +396,9 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
 
+    /**
+     * @return true wether this actor is published to network
+     */
     @CallerSideMethod public boolean isPublished() {
         return __connections != null && __connections.peek() != null;
     }
@@ -442,6 +445,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     @CallerSideMethod public void __stop() {
+        Log.Info(this,"stopping actor "+getClass().getSimpleName());
         Actor self = __self;
         if ( self == null || getActor() == null || (self.isStopped() && getActor().isStopped()) )
             return;

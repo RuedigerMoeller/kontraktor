@@ -330,7 +330,11 @@ public class ReaktiveStreams extends Actors {
         }
 
         protected void nextAction(T t) {
-            cb.stream(t);
+            try {
+                cb.stream(t);
+            } catch (CancelException c) {
+                subs.cancel();
+            }
         }
 
         @Override
@@ -397,8 +401,6 @@ public class ReaktiveStreams extends Actors {
                 subscriber.onError(t);
             else
                 t.printStackTrace();
-            if ( inSubs != null )
-                inSubs.cancel();
         }
 
         @Override

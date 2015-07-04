@@ -1,5 +1,6 @@
 package remotetreams;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.tcp.TCPPublisher;
@@ -13,7 +14,7 @@ import org.nustaq.kontraktor.remoting.tcp.TCPPublisher;
 */
 public class BlockingTCPStreamsTest extends TCPNIOKStreamsTest {
 
-    @Override @Test
+    @Override @Test @Ignore
     public void testServer() throws InterruptedException {
         super.testServer();
     }
@@ -23,22 +24,22 @@ public class BlockingTCPStreamsTest extends TCPNIOKStreamsTest {
         return new TCPPublisher().port(7777);
     }
 
-    @Override @Test
+    @Override @Test @Ignore
     public void testClient() throws InterruptedException {
         super.testClient();
     }
 
-    @Override @Test
+    @Override @Test @Ignore
     public void testClient1() throws InterruptedException {
         super.testClient1();
     }
 
-    @Override @Test
+    @Override @Test @Ignore
     public void testClient2() throws InterruptedException {
         super.testClient2();
     }
 
-    @Override @Test
+    @Override @Test @Ignore
     public void testClient3() throws InterruptedException {
         super.testClient3();
     }
