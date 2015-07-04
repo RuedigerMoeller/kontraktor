@@ -13,6 +13,7 @@ import org.reactivestreams.Subscription;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -56,9 +57,9 @@ public class ReaktiveStreams extends Actors {
     ////////// singleton instance methods ////////////////////////////////////////////////
 
     /**
-     * interop, obtain a KPublisher from a rxstreams publisher.
+     * interop, obtain a KPublisher from an arbitrary rxstreams publisher.
      *
-     * KPublisher is an extension of Publisher and adds some sugar like map, network publish etc.
+     * KPublisher inherits rxtreams.Publisher and adds some sugar like map, network publish etc. via default methods
      *
      * @param p
      * @param <T>
@@ -132,6 +133,10 @@ public class ReaktiveStreams extends Actors {
 
     public <T> KPublisher<T> produce( Stream<T> stream ) {
         return produce(stream.iterator(),DEFAULT_BATCH_SIZE);
+    }
+
+    public <T> KPublisher<T> produce( Collection<T> collection ) {
+        return produce(collection.iterator(),DEFAULT_BATCH_SIZE);
     }
 
     public KPublisher<Integer> produce( IntStream stream ) {

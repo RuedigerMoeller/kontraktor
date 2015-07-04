@@ -26,7 +26,7 @@ public interface KPublisher<T> extends Publisher<T> {
      * e.g.
      * <pre>
      *      subscriber( (event, err) -> {
-     +          if (Actors.isErrorOrComplete(err)) {
+     +          if (Actors.isComplete(err)) {
      +              System.out.println("complete");
      +          } else if (Actors.isError(err)) {
      +              System.out.println("ERROR");
@@ -52,7 +52,7 @@ public interface KPublisher<T> extends Publisher<T> {
      * e.g.
      * <pre>
      *      subscriber( (event, err) -> {
-     +          if (Actors.isErrorOrComplete(err)) {
+     +          if (Actors.isComplete(err)) {
      +              System.out.println("complete");
      +          } else if (Actors.isError(err)) {
      +              System.out.println("ERROR");
@@ -101,7 +101,7 @@ public interface KPublisher<T> extends Publisher<T> {
      * @param disconCallback
      * @return
      */
-    @CallerSideMethod default ActorServer publish( ActorPublisher publisher, Consumer<Actor> disconCallback ) {
+    @CallerSideMethod default ActorServer serve(ActorPublisher publisher, Consumer<Actor> disconCallback) {
         return (ActorServer) ReaktiveStreams.get().serve(this, publisher, disconCallback).await();
     }
 

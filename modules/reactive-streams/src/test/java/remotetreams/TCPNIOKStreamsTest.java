@@ -72,7 +72,7 @@ public class TCPNIOKStreamsTest {
 
         EventSink<String> stringStream = new EventSink<>();
 
-        stringStream.publish(getRemotePublisher(), actor -> {
+        stringStream.serve(getRemotePublisher(), actor -> {
             System.out.println("disconnect of " + actor);
         });
 

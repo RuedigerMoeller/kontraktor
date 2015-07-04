@@ -22,8 +22,8 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 28/06/15.
  *
- * Inplements reactive streams async (queued) publisher. Don't use this class directly,
- * use the EventSink/ReaktiveStreams instead.
+ * Implements reactive streams async (queued,multi subscriber) publisher. Don't use this class directly,
+ * use the EventSink/ReaktiveStreams.get() instead.
  *
  */
 public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> implements Processor<IN, OUT>, KPublisher<OUT>, RemotedActor {
@@ -44,7 +44,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     }
 
     /**
-     * if iterator is set, this acts as an event producer
+     * acts as an pull based event producer then
      * @param iterator
      */
     public void initFromIterator(Iterator<IN> iterator) {
@@ -75,7 +75,7 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     // with remoting a copy of subscriber is sent. calling "onSubscribe" on that
     // will do nothing and happen at remote side ;)
     // execute callerside
-    // and break down remote communication to standard primitives like promise and callback
+    // and break down remote communication to standard (auto remoted) primitives like promise and callback
     ArrayList<Subscriber> callerSideSubscribers; // advanced chemistry: held+used in the remote proxy to clean up pipeline on disconnect
     @Override @CallerSideMethod
     public void subscribe(Subscriber<? super OUT> subscriber) {
