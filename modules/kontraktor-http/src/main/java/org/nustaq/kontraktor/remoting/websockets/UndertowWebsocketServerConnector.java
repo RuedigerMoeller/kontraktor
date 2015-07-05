@@ -72,6 +72,12 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
                                e.printStackTrace();
                            }
                            sink.sinkClosed();
+                           try {
+                               objectSocket.close();
+                           } catch (IOException e) {
+                               e.printStackTrace();
+                           }
+                           channel.getReceiveSetter().set(null);
                        }
 
                        @Override
@@ -114,9 +120,9 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
 
     static class UTWebObjectSocket extends WebObjectSocket {
 
-        WebSocketChannel channel;
-        WebSocketHttpExchange ex;
-        private WeakReference<ObjectSink> sink;
+        protected WebSocketChannel channel;
+        protected WebSocketHttpExchange ex;
+        protected WeakReference<ObjectSink> sink;
 
         public UTWebObjectSocket(WebSocketHttpExchange ex, WebSocketChannel channel) {
             this.ex = ex;
@@ -151,6 +157,9 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
             ObjectSink objectSink = sink.get();
             if (objectSink != null )
                 objectSink.sinkClosed();
+            conf = null;
+            channel = null;
+            ex = null;
         }
 
         public void setSink(ObjectSink sink) {

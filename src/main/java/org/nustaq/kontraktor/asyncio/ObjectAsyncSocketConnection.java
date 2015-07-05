@@ -16,8 +16,10 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.asyncio;
 
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.offheap.BinaryQueue;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.util.FSTUtil;
@@ -74,6 +76,8 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
     public abstract void receivedObject(Object o);
 
     public void writeObject(Object o) {
+        if ( myActor != null )
+            myActor = Actor.current();
         checkThread();
         objects.add(o);
         if (objects.size()>100) {
@@ -87,6 +91,18 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
 
     @Override
     public void flush() throws IOException, Exception {
+        if ( theExecutingThread != Thread.currentThread() ) {
+            if ( myActor == null )
+                return;
+            myActor.execute( () -> {
+                try {
+                    flush();
+                } catch (Exception e) {
+                    Log.Warn(this,e);
+                }
+            });
+            return;
+        }
         checkThread();
         if ( objects.size() == 0 ) {
             return;

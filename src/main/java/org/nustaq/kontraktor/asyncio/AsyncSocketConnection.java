@@ -16,9 +16,9 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.asyncio;
 
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.util.*;
 
 import java.io.EOFException;
@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.Executor;
 
 /**
  * Baseclass for handling async io. Its strongly recommended to use QueuingAsyncSocketConnection as this
@@ -41,6 +42,7 @@ public abstract class AsyncSocketConnection {
     protected Promise writePromise;
     protected ByteBuffer writingBuffer;
     protected boolean isClosed;
+    protected Executor myActor;
 
     public AsyncSocketConnection(SelectionKey key, SocketChannel chan) {
         this.key = key;
@@ -74,9 +76,9 @@ public abstract class AsyncSocketConnection {
     }
 
     protected void checkThread() {
-        if ( debug == null )
-            debug = Thread.currentThread();
-        else if ( debug != Thread.currentThread() ) {
+        if ( theExecutingThread == null )
+            theExecutingThread = Thread.currentThread();
+        else if ( theExecutingThread != Thread.currentThread() ) {
             System.err.println("unexpected multithreading");
             Thread.dumpStack();
         }
@@ -93,9 +95,11 @@ public abstract class AsyncSocketConnection {
      * @param buf
      * @return
      */
-    Thread debug;
+    protected Thread theExecutingThread; // originall for debugging, but now used to reschedule ..
     protected IPromise directWrite(ByteBuffer buf) {
         checkThread();
+        if ( myActor == null )
+            myActor = Actor.current();
         if ( writePromise != null )
             throw new RuntimeException("concurrent write con:"+chan.isConnected()+" open:"+chan.isOpen());
         writePromise = new Promise();
