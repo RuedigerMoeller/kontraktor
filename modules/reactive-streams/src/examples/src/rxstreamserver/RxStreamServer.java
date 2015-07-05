@@ -16,7 +16,7 @@ import java.util.stream.IntStream;
  *
  * By default using "RxSubscriber.serve()", one stream is published on the network on a single address (e.g. localhost:7777).
  * Once the stream is complete,
- * the associated network connection will terminate. Due to network related latenciy, it takes a while until the address
+ * the associated network connection will terminate. Due to network related latency, it takes a while until the address
  * can be reused. Therefore this style of exposing streams is mostly suited for "infinite streams". "onComplete" then
  * actually signals connection close.
  *
