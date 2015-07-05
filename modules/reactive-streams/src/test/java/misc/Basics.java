@@ -7,10 +7,12 @@ import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.reactivestreams.EventSink;
 import org.nustaq.kontraktor.reactivestreams.ReaktiveStreams;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
+import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.remoting.tcp.TCPPublisher;
+import org.nustaq.kontraktor.remoting.tcp.TCPServerConnector;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.util.Log;
@@ -167,6 +169,9 @@ public class Basics {
         TCPConnectable connectable = new TCPConnectable().host("localhost").port(7855);
 
         concloseTest(publisher, connectable);
+        Thread.sleep(TCPServerConnector.DELAY_MS_TILL_CLOSE+100);
+        Assert.assertTrue(TCPServerConnector.numberOfThreads.get() == 0);
+        System.out.println("debug");
     }
 
     @Test
@@ -185,12 +190,15 @@ public class Basics {
         TCPConnectable connectable = new TCPConnectable().host("localhost").port(7854);
 
         concloseTest(publisher, connectable);
+        Thread.sleep(5000);
+        System.out.println("break");
     }
 
     public void concloseTest(ActorPublisher publisher, ConnectableActor connectable) throws InterruptedException {
-        ReaktiveStreams.get()
-            .produce(IntStream.range(0, NETWORK_MSG))
-            .serve(publisher);
+        ActorServer server =
+            ReaktiveStreams.get()
+                .produce(IntStream.range(0, NETWORK_MSG))
+                .serve(publisher);
 
         AtomicInteger cnt = new AtomicInteger(0);
         ReaktiveStreams.get()
@@ -199,7 +207,7 @@ public class Basics {
                 if (Actors.isResult(e)) {
                     cnt.incrementAndGet();
                 } else {
-                    System.out.println("not result " + r + " " + e);
+                    System.out.println("not result r,e = " + r + "," + e);
                 }
             });
 

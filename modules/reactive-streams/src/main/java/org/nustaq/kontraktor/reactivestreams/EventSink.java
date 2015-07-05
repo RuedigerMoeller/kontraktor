@@ -8,7 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Created by ruedi on 28/06/15.
  */
-public class EventSink<T> implements KPublisher<T> {
+public class EventSink<T> implements RxPublisher<T> {
 
     protected AtomicLong credits = new AtomicLong(0);
     protected Actor actorSubs;

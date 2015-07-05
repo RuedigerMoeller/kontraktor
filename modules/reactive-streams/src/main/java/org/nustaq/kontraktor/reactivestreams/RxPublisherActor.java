@@ -12,6 +12,7 @@ import org.reactivestreams.Subscription;
 import java.io.Serializable;
 import java.util.*;
 import java.util.Map.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Function;
 
 /**
@@ -21,7 +22,7 @@ import java.util.function.Function;
  * use the EventSink/ReaktiveStreams.get() instead.
  *
  */
-public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> implements Processor<IN, OUT>, KPublisher<OUT>, RemotedActor {
+public class RxPublisherActor<IN, OUT> extends Actor<RxPublisherActor<IN, OUT>> implements Processor<IN, OUT>, RxPublisher<OUT>, RemotedActor {
 
     public static final boolean CRED_DEBUG = false;
 
@@ -32,6 +33,8 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     protected ArrayList<Runnable> doOnSubscribe = new ArrayList<>();
     protected ArrayDeque pending;
     protected boolean isIteratorBased = false;
+    private boolean closeOnComplete = false;
+    private Object actorServer;
 
     public void init(Function<IN, OUT> processor) {
         this.pending = new ArrayDeque<>();
@@ -374,11 +377,12 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     @Override
     public void stop() {
         if ( isPublished() ) {
-            RemoteConnection peek = __connections.peek();
-            if ( peek != null )
-                peek.close();
-            else {
-                Log.Warn(this, "unexpected: published actor has no connections");
+            ConcurrentLinkedQueue<RemoteConnection> connections = getConnections();
+            close();
+            if ( closeOnComplete ) {
+                for (Iterator<RemoteConnection> iterator = connections.iterator(); iterator.hasNext(); ) {
+                    iterator.next().closeNetwork();
+                }
             }
         }
         super.stop();
@@ -389,12 +393,17 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
         emitRequestNext();
     }
 
+    public void setCloseOnComplete(boolean closeOnComplete) {
+        this.closeOnComplete = closeOnComplete;
+    }
+
+
     protected static class KSubscription implements Subscription, Serializable {
 
-        protected PublisherActor publisher; // actorref
+        protected RxPublisherActor publisher; // actorref
         protected int id;
 
-        public KSubscription(PublisherActor publisher, int id) {
+        public KSubscription(RxPublisherActor publisher, int id) {
             this.publisher = publisher;
             this.id = id;
         }

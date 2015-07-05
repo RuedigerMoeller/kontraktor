@@ -7,7 +7,7 @@ import static org.nustaq.kontraktor.reactivestreams.ReaktiveStreams.*;
 
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.reactivestreams.EventSink;
-import org.nustaq.kontraktor.reactivestreams.KPublisher;
+import org.nustaq.kontraktor.reactivestreams.RxPublisher;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
@@ -103,7 +103,7 @@ public class TCPNIOKStreamsTest {
         Callback<ActorClientConnector> discon = (acc,err) -> {
             System.out.println("Client disconnected");
         };
-        KPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
+        RxPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
             .subscribe(
@@ -129,7 +129,7 @@ public class TCPNIOKStreamsTest {
         Callback<ActorClientConnector> discon = (acc,err) -> {
             System.out.println("Client disconnected");
         };
-        KPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
+        RxPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
             .map(string -> string.length())
@@ -156,7 +156,7 @@ public class TCPNIOKStreamsTest {
         Callback<ActorClientConnector> discon = (acc,err) -> {
             System.out.println("Client disconnected");
         };
-        KPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
+        RxPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
             .map(string -> string.length())
@@ -191,7 +191,7 @@ public class TCPNIOKStreamsTest {
         Callback<ActorClientConnector> discon = (acc,err) -> {
             System.out.println("Client disconnected");
         };
-        KPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
+        RxPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
             .asyncMap(string -> string.length())

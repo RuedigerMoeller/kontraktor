@@ -14,7 +14,7 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 30/06/15.
  */
-public interface KPublisher<T> extends Publisher<T> {
+public interface RxPublisher<T> extends Publisher<T> {
 
     /**
      * consuming endpoint. requests data from publisher immediately after
@@ -74,10 +74,10 @@ public interface KPublisher<T> extends Publisher<T> {
      * @param <OUT>
      * @return
      */
-    @CallerSideMethod default <OUT> KPublisher<OUT> asyncMap(Function<T,OUT> processor) {
+    @CallerSideMethod default <OUT> RxPublisher<OUT> asyncMap(Function<T,OUT> processor) {
         Processor<T, OUT> toutProcessor = ReaktiveStreams.get().newAsyncProcessor(processor);
         subscribe(toutProcessor);
-        return (KPublisher<OUT>) toutProcessor;
+        return (RxPublisher<OUT>) toutProcessor;
     }
 
     /**
@@ -88,31 +88,37 @@ public interface KPublisher<T> extends Publisher<T> {
      * @param <OUT>
      * @return
      */
-    @CallerSideMethod default <OUT> KPublisher<OUT> asyncMap( Function<T,OUT> processor, int batchSize ) {
+    @CallerSideMethod default <OUT> RxPublisher<OUT> asyncMap( Function<T,OUT> processor, int batchSize ) {
         Processor<T, OUT> toutProcessor = ReaktiveStreams.get().newAsyncProcessor(processor, batchSize);
         subscribe(toutProcessor);
-        return (KPublisher<OUT>) toutProcessor;
+        return (RxPublisher<OUT>) toutProcessor;
     }
 
     /**
-     * publish current stream onto a network connector
+     * publish current stream onto a network connector, once the stream is complete or in error,
+     * the network connection will close.
      *
      * @param publisher
      * @param disconCallback
      * @return
      */
     @CallerSideMethod default ActorServer serve(ActorPublisher publisher, Consumer<Actor> disconCallback) {
-        return (ActorServer) ReaktiveStreams.get().serve(this, publisher, disconCallback).await();
+        return (ActorServer) ReaktiveStreams.get().serve(this, publisher, true, disconCallback).await();
+    }
+
+    @CallerSideMethod default ActorServer serve(ActorPublisher publisher, boolean closeOnDiscon, Consumer<Actor> disconCallback) {
+        return (ActorServer) ReaktiveStreams.get().serve(this, publisher, closeOnDiscon, disconCallback).await();
     }
 
     /**
      * publish current stream onto a network connector
-     *
+     * Once the stream is complete or in error,
+     * the network connection will close.
      * @param publisher
      * @return
      */
     @CallerSideMethod default ActorServer serve(ActorPublisher publisher) {
-        return this.serve(publisher,null);
+        return this.serve(publisher,true,null);
     }
 
     /**
@@ -124,12 +130,12 @@ public interface KPublisher<T> extends Publisher<T> {
      * @param <OUT>
      * @return
      */
-    @CallerSideMethod default <OUT> KPublisher<OUT> map(Function<T,OUT> processor) {
-        if ( this instanceof PublisherActor && ((PublisherActor)this).isRemote() )
+    @CallerSideMethod default <OUT> RxPublisher<OUT> map(Function<T,OUT> processor) {
+        if ( this instanceof RxPublisherActor && ((RxPublisherActor)this).isRemote() )
             return asyncMap(processor); // need a queue when connecting remote stream
         Processor<T,OUT> outkPublisher = ReaktiveStreams.get().newSyncProcessor(processor);
         subscribe(outkPublisher);
-        return (KPublisher<OUT>) outkPublisher;
+        return (RxPublisher<OUT>) outkPublisher;
     }
 
 }
