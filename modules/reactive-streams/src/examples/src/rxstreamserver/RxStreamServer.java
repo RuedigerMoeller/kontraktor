@@ -30,7 +30,7 @@ public class RxStreamServer extends Actor<RxStreamServer> {
     public void init() {
         timeSink = new EventSink<Long>();
         // EventSink is *not* remoteable,
-        // need create an remoteable async publisher (is actor, so remoteable)
+        // need to create an remoteable async publisher (is actor, so remoteable)
         timeStream = timeSink.asyncMap( l -> l );
         tick();
     }

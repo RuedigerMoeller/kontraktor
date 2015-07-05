@@ -96,7 +96,8 @@ public interface RxPublisher<T> extends Publisher<T> {
 
     /**
      * publish current stream onto a network connector, once the stream is complete or in error,
-     * the network connection will close.
+     * the network connection will close. Makes sense mostly for infinite streams (see RxStreamServer
+     * for a more sophisticated remoting example)
      *
      * @param publisher
      * @param disconCallback
@@ -113,7 +114,9 @@ public interface RxPublisher<T> extends Publisher<T> {
     /**
      * publish current stream onto a network connector
      * Once the stream is complete or in error,
-     * the network connection will close.
+     * the network connection will close. (see RxStreamServer
+     * for a more sophisticated remoting example)
+     *
      * @param publisher
      * @return
      */

@@ -21,6 +21,8 @@ public class RxClient {
                     System.out.println("no stream available:"+errMsg);
                     return;
                 }
+                // could also subscribe with arbitrary RxStreams subscriber.
+                // as RxPublisher extends reactivestreams.Publisher
                 rxPub.subscribe( (res,err) -> {
                     if ( Actors.isError(err) ) {
                         System.out.println("error:"+err);
@@ -38,6 +40,8 @@ public class RxClient {
                     System.out.println("no stream available:"+errMsg);
                     return;
                 }
+                // could also subscribe with arbitrary RxStreams subscriber.
+                // as RxPublisher extends reactivestreams.Publisher
                 rxPub.subscribe((time, err) -> {
                     if (Actors.isError(err)) {
                         System.out.println("error:" + err);
