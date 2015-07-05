@@ -16,10 +16,12 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.util;
 
+import java.io.Serializable;
+
 /**
  * Created by ruedi on 03/05/15.
  */
-public class Pair<CAR, CDR> {
+public class Pair<CAR, CDR> implements Serializable {
 
     CAR car;
     CDR cdr;

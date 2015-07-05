@@ -8,7 +8,9 @@ import org.nustaq.kontraktor.reactivestreams.EventSink;
 import org.nustaq.kontraktor.reactivestreams.ReaktiveStreams;
 import org.nustaq.kontraktor.reactivestreams.RxPublisher;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
+import org.nustaq.kontraktor.util.Pair;
 
+import java.util.HashMap;
 import java.util.stream.IntStream;
 
 /**
@@ -29,13 +31,16 @@ import java.util.stream.IntStream;
 public class RxStreamServer extends Actor<RxStreamServer> {
 
     EventSink<Long> timeSink;
-    RxPublisher<Long> timeStream;
+
+    // the pair boolean denotes if the stream is infinite
+    HashMap<String,Pair<RxPublisher,Boolean>> streams;
 
     public void init() {
+        streams = new HashMap<>();
         timeSink = new EventSink<Long>();
         // EventSink is *not* remoteable,
         // need to create an remoteable async publisher (is actor, so remoteable)
-        timeStream = timeSink.asyncMap( l -> l );
+        streams.put("TIME",new Pair(timeSink.asyncMap( l -> l),true));
         tick();
     }
 
@@ -73,10 +78,20 @@ public class RxStreamServer extends Actor<RxStreamServer> {
      * @return
      */
     public IPromise<RxPublisher> listen( String streamId ) {
-        if ( "TIME".equals(streamId) ) {
-            return resolve(timeStream);
+        Pair<RxPublisher, Boolean> pair = streams.get(streamId);
+        if ( pair != null ) {
+            if ( !pair.cdr() ) // if it is not infinite
+            {
+                // consume it
+                streams.remove(streamId);
+            }
+            return resolve(pair.car()); // the stream
         }
         return reject("unknown stream");
+    }
+
+    public void putStream( String id, RxPublisher pub, boolean infinite ) {
+        streams.put(id, new Pair(pub,infinite));
     }
 
     public static void main(String[] args) {

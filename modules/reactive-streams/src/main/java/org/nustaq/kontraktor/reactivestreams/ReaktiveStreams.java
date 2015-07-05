@@ -80,7 +80,7 @@ public class ReaktiveStreams extends Actors {
      * @param <T>
      * @return
      */
-    public <T> RxPublisher<T> asKPublisher(Publisher<T> p) {
+    public <T> RxPublisher<T> asRxPublisher(Publisher<T> p) {
         if ( p instanceof RxPublisher)
             return (RxPublisher<T>) p;
         return new RxPublisher<T>() {
