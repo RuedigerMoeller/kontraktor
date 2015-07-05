@@ -288,6 +288,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         return false;
     }
 
+    // dispatch incoming remotecalls
     protected boolean processRemoteCallEntry(ObjectSocket objSocket, RemoteCallEntry response, List<IPromise> createdFutures ) throws Exception {
         RemoteCallEntry read = response;
         boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
@@ -526,5 +527,15 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
     public ActorServer getServer() {
         return server;
+    }
+
+    @Override
+    public IPromise closeNetwork() {
+        if ( server != null )
+            return server.close();
+        else {
+            Log.Warn(null, "failed closing underlying network connection as server is null");
+            return new Promise<>(null,"server is null");
+        }
     }
 }

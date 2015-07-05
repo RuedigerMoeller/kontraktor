@@ -77,7 +77,8 @@ public abstract class AsyncSocketConnection {
         if ( debug == null )
             debug = Thread.currentThread();
         else if ( debug != Thread.currentThread() ) {
-            throw new RuntimeException("unexpected multithreading");
+            System.err.println("unexpected multithreading");
+            Thread.dumpStack();
         }
     }
 

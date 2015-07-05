@@ -60,6 +60,18 @@ public class SimpleScheduler implements Scheduler {
         myThread.start();
     }
 
+    /**
+     *
+     * @param qsize
+     * @param keepAlive - keep thread idle even if no actor is scheduled. Required for assisted scheduling e.g.
+     * in servers
+     */
+    public SimpleScheduler(int qsize, boolean keepAlive ) {
+        this.qsize = qsize;
+        myThread = new DispatcherThread(this,!keepAlive);
+        myThread.start();
+    }
+
     @Override
     public int getDefaultQSize() {
         return qsize;
@@ -168,6 +180,11 @@ public class SimpleScheduler implements Scheduler {
         );
         e.setRemoteRefRegistry(reg);
         return put2QueuePolling(e);
+    }
+
+    @Override
+    public void terminateIfIdle() {
+        myThread.setAutoShutDown(true);
     }
 
     @Override

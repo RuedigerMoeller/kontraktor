@@ -88,7 +88,7 @@ public class DispatcherThread extends Thread implements Monitorable {
 
     public ArrayList __stack = new ArrayList();
     volatile boolean isIsolated = false;
-    private boolean autoShutDown = true;
+    protected volatile boolean autoShutDown = true;
 
     public DispatcherThread(Scheduler scheduler) {
         this.scheduler = scheduler;
@@ -119,6 +119,14 @@ public class DispatcherThread extends Thread implements Monitorable {
     public void addActor(Actor act) {
         act.getActorRef().__currentDispatcher = act.getActor().__currentDispatcher = this;
         toAdd.offer(act.getActorRef());
+    }
+
+    public boolean isAutoShutDown() {
+        return autoShutDown;
+    }
+
+    public void setAutoShutDown(boolean autoShutDown) {
+        this.autoShutDown = autoShutDown;
     }
 
     // removes immediate must be called from this thread

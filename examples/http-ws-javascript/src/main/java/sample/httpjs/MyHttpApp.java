@@ -29,7 +29,7 @@ public class MyHttpApp extends Actor<MyHttpApp> {
 
     public void init() {
         clientThreads = new Scheduler[]{
-            new SimpleScheduler(CLIENT_QSIZE), // only one session processor thread should be sufficient for most apps.
+            new SimpleScheduler(CLIENT_QSIZE,true), // only one session processor thread should be sufficient for most apps.
         };
         Thread.currentThread().setName("MyHttpApp Dispatcher");
     }

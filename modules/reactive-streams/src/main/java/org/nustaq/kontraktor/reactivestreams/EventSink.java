@@ -7,6 +7,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Created by ruedi on 28/06/15.
+ *
+ * "Inverts" stream logic from "pull" to "push" (offer-style).
+ * Note this class is not remoteable. RxPublisher.serve automatically creates
+ * an async identity processor before publishing.
+ *
+ * For advanced use cases (see example RxStreamServer) this needs to be done explicitely
+ *
  */
 public class EventSink<T> implements RxPublisher<T> {
 

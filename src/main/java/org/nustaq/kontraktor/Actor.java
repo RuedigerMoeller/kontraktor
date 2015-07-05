@@ -316,6 +316,8 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
 
     /**
      * closes associated remote connection(s) if present. NOP otherwise.
+     * Close refers to "unmapping" the actor, underlying network connections will not be
+     * closed (else server down on single client disconnect)
      */
     @Local
     public void close() {
@@ -418,7 +420,11 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return (DispatcherThread) __currentDispatcher;
     }
 
-    ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
+    protected ConcurrentLinkedQueue<RemoteConnection> getConnections() {
+        return __connections;
+    }
+
+////////////////////////////// internals ///////////////////////////////////////////////////////////////////
 
     @CallerSideMethod public void __addStopHandler( Callback<SELF> cb ) {
         if ( __stopHandlers == null ) {

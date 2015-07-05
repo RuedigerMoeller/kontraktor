@@ -24,7 +24,7 @@ public class KOHttpApp extends Actor<KOHttpApp> {
     public static final int CLIENT_QSIZE = 1000;
 
     Scheduler clientThreads[] = {
-        new SimpleScheduler(CLIENT_QSIZE) // only one session processor thread should be sufficient for most apps.
+        new SimpleScheduler(CLIENT_QSIZE,true) // only one session processor thread should be sufficient for most apps.
     };
 
     HashMap<KOAppSession,Callback> chatSubscription = new HashMap<>();

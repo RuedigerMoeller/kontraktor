@@ -11,6 +11,8 @@ import java.util.Date;
 public class RxClient {
 
     public static void main(String[] args) {
+        // FIXME: cancel test. No error on connection close delivered.
+
         RxStreamServer remoteRef = (RxStreamServer) new TCPConnectable(RxStreamServer.class, "localhost", 7890).connect().await();
 
         remoteRef.createStream("NUMBERS",0,100)
@@ -47,6 +49,5 @@ public class RxClient {
                 });
             });
 
-        // FIXME: cancel test. No error on connection close delivered
     }
 }

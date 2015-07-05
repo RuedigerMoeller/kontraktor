@@ -18,6 +18,7 @@ package org.nustaq.kontraktor.asyncio;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.remoting.tcp.TCPServerConnector;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOException;
@@ -149,6 +150,23 @@ public class AsyncServerSocket {
             } else {
                 actor.delayed( 1, () -> receiveLoop() );
             }
+        } else {
+            // close open connections
+            try {
+                selector.selectNow();
+                Actors.SubmitDelayed(TCPServerConnector.DELAY_MS_TILL_CLOSE, () -> {
+                    selector.selectedKeys().forEach(key -> {
+                        try {
+                            key.channel().close();
+                        } catch (IOException e) {
+                            Log.Warn(this, e);
+                        }
+                    });
+                });
+            } catch (IOException e) {
+                Log.Warn(this,e);
+            }
+
         }
     }
 

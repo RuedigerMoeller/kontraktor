@@ -78,4 +78,13 @@ public class TCPNIOPublisher implements ActorPublisher {
     public Coding getCoding() {
         return coding;
     }
+
+    @Override
+    public String toString() {
+        return "TCPNIOPublisher{" +
+                   "facade=" + facade.getClass().getSimpleName() +
+                   ", port=" + port +
+                   ", coding=" + coding +
+                   '}';
+    }
 }

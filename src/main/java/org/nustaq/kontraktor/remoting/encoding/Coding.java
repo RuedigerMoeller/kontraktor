@@ -18,6 +18,7 @@ package org.nustaq.kontraktor.remoting.encoding;
 
 import org.nustaq.serialization.FSTConfiguration;
 
+import java.util.Arrays;
 import java.util.function.Consumer;
 
 /**
@@ -74,4 +75,10 @@ public class Coding {
         return conf;
     }
 
+    @Override
+    public String toString() {
+        return "Coding{" +
+                   "coding=" + coding +
+                   '}';
+    }
 }

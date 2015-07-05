@@ -17,6 +17,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
@@ -30,6 +31,8 @@ import org.nustaq.net.TCPObjectSocket;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -40,6 +43,10 @@ import java.util.function.Function;
  *
  */
 public class TCPServerConnector implements ActorServerConnector {
+
+    public static int DELAY_MS_TILL_CLOSE = 2000;
+
+    public static AtomicInteger numberOfThreads = new AtomicInteger(0);
 
     public static Promise<ActorServer> Publish(Actor facade, int port, Coding coding) {
         return Publish(facade,port,coding,null);
@@ -66,6 +73,7 @@ public class TCPServerConnector implements ActorServerConnector {
 
     int port;
     protected ServerSocket acceptSocket;
+    protected ConcurrentLinkedQueue<Socket> clientSockets = new ConcurrentLinkedQueue<>();
 
     public TCPServerConnector(int port) {
         super();
@@ -81,29 +89,37 @@ public class TCPServerConnector implements ActorServerConnector {
 
     protected Promise acceptLoop(Actor facade, int port,Function<ObjectSocket, ObjectSink> factory,Promise p) {
         try {
+            numberOfThreads.incrementAndGet();
             acceptSocket = new ServerSocket(port);
             p.resolve();
             while (!acceptSocket.isClosed()) {
                 Socket clientSocket = acceptSocket.accept();
+                clientSockets.add(clientSocket);
                 MyTCPSocket objectSocket = new MyTCPSocket(clientSocket);
                 facade.execute(() -> {
                     ObjectSink sink = factory.apply(objectSocket);
                     new Thread(() -> {
-                        while (!clientSocket.isClosed()) {
-                            try {
-                                Object o = objectSocket.readObject();
-                                sink.receiveObject(o, null);
-                            } catch (Exception e) {
-                                if (e instanceof EOFException == false && e instanceof SocketException == false)
-                                    Log.Warn(this, e);
+                        try {
+                            numberOfThreads.incrementAndGet();
+                            while (!clientSocket.isClosed()) {
                                 try {
-                                    clientSocket.close();
-                                } catch (IOException e1) {
-                                    Log.Warn(this, e1);
+                                    Object o = objectSocket.readObject();
+                                    sink.receiveObject(o, null);
+                                } catch (Exception e) {
+                                    if (e instanceof EOFException == false && e instanceof SocketException == false)
+                                        Log.Warn(this, e);
+                                    try {
+                                        clientSocket.close();
+                                    } catch (IOException e1) {
+                                        Log.Warn(this, e1);
+                                    }
                                 }
                             }
+                            sink.sinkClosed();
+                        } finally {
+                            clientSockets.remove(clientSocket);
+                            numberOfThreads.decrementAndGet();
                         }
-                        sink.sinkClosed();
                     }, "tcp receiver").start();
                 });
             }
@@ -119,6 +135,7 @@ public class TCPServerConnector implements ActorServerConnector {
             } catch (IOException e) {
                 Log.Warn(this,e);
             }
+            numberOfThreads.decrementAndGet();
         }
         return p;
     }
@@ -126,6 +143,17 @@ public class TCPServerConnector implements ActorServerConnector {
     @Override
     public IPromise closeServer() {
         try {
+            clientSockets.forEach( socket -> {
+                // need to give time for flush. No way to determine wether buffers are out =>
+                // risk of premature close + message loss
+                Actors.SubmitDelayed(DELAY_MS_TILL_CLOSE, () -> {
+                    try {
+                        socket.close();
+                    } catch (IOException e) {
+                        Log.Warn(this, e);
+                    }
+                });
+            });
             acceptSocket.close();
         } catch (IOException e) {
             return new Promise<>(null,e);

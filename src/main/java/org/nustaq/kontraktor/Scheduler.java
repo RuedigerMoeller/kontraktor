@@ -44,6 +44,8 @@ public interface Scheduler extends Monitorable{
 
     void threadStopped(DispatcherThread th);
 
+    void terminateIfIdle();
+
     InvocationHandler getInvoker(Actor dispatcher, Object toWrap);
 
     /**
@@ -79,4 +81,6 @@ public interface Scheduler extends Monitorable{
      * is not precise as not thread safe'd.
      */
     int getNumActors();
+
+
 }

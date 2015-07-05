@@ -14,7 +14,7 @@ import static org.nustaq.kontraktor.Actors.AsActor;
 /**
  * Created by ruedi on 04/06/15.
  *
- * Just serup and start server
+ * Just setup and start server
  *
  */
 public class KOHttpAppMain {

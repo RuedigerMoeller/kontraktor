@@ -24,14 +24,20 @@ public interface RemoteConnection {
     /**
      * closes the underlying connection (Warning: may side effect to other actors published on this connection)
      */
-    public void close();
-    public void setClassLoader( ClassLoader l );
-    public int getRemoteId( Actor act );
+    void close();
+    void setClassLoader( ClassLoader l );
+    int getRemoteId( Actor act );
 
     /**
      * unpublishes this actor by removing mappings and stuff. Does not actively close the underlying connection
      * @param self
      *
      */
-    public void unpublishActor(Actor self);
+    void unpublishActor(Actor self);
+
+
+    /**
+     * closes underlying network connection also. Can be dangerous as other clients might share it
+     */
+    IPromise closeNetwork();
 }
