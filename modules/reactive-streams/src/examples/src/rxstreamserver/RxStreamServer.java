@@ -14,12 +14,16 @@ import java.util.stream.IntStream;
 /**
  * Created by ruedi on 05/07/15.
  *
- * By default using "server" one stream is published on the network on a single address (e.g. localhost:7777). Once the stream is complete,
- * the associated network connection will terminate. Due to network realted latencies, it takes a while until the address
- * can be reused. Therefore this style of exposing streams is mostly suited for "infinit streams". "onComplete" then
- * basically signals connection close.
+ * By default using "RxSubscriber.serve()", one stream is published on the network on a single address (e.g. localhost:7777).
+ * Once the stream is complete,
+ * the associated network connection will terminate. Due to network related latenciy, it takes a while until the address
+ * can be reused. Therefore this style of exposing streams is mostly suited for "infinite streams". "onComplete" then
+ * actually signals connection close.
  *
- * In order to multiplex several streams using a single network connector RxStreamServer can be used.
+ * To allow for multiplexing several streams using a single network connector RxStreamServer can be used.
+ *
+ * Note this is an example on how generic Kontraktor Remoting is leveraged as distribution reactive streams are
+ * created by simply distributing the "local" implementation.
  *
  */
 public class RxStreamServer extends Actor<RxStreamServer> {
