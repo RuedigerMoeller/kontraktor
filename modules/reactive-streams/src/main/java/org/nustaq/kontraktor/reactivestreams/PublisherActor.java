@@ -3,18 +3,15 @@ package org.nustaq.kontraktor.reactivestreams;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
-import org.nustaq.kontraktor.impl.InternalActorStoppedException;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
 import org.nustaq.kontraktor.util.Log;
 import org.reactivestreams.Processor;
-import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import java.io.Serializable;
 import java.util.*;
 import java.util.Map.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 /**
@@ -378,7 +375,11 @@ public class PublisherActor<IN, OUT> extends Actor<PublisherActor<IN, OUT>> impl
     public void stop() {
         if ( isPublished() ) {
             RemoteConnection peek = __connections.peek();
-            peek.close();
+            if ( peek != null )
+                peek.close();
+            else {
+                Log.Warn(this, "unexpected: published actor has no connections");
+            }
         }
         super.stop();
     }

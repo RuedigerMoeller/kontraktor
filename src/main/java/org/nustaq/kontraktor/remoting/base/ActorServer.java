@@ -93,6 +93,7 @@ public class ActorServer {
             poller.get().scheduleSendLoop(reg);
             reg.setFacadeActor(facade);
             reg.publishActor(facade);
+            reg.setServer(this);
             Log.Info(this, "connected a client with registry "+System.identityHashCode(reg));
             return new ObjectSink() {
 

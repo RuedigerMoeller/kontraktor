@@ -51,6 +51,8 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
     public static final Object OUT_OF_ORDER_SEQ = "OOOS";
     public static int MAX_BATCH_CALLS = 500;
+    private ActorServer server;
+
     public static void registerDefaultClassMappings(FSTConfiguration conf) {
         conf.registerCrossPlatformClassMapping(new String[][]{
             {"call", RemoteCallEntry.class.getName()},
@@ -348,7 +350,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
     }
 
     /**
-     * cleanup after connection close
+     * cleanup after (virtual) connection close
      */
     public void cleanUp() {
         conf.clearCaches();
@@ -516,5 +518,13 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
     public Actor getFacadeActor() {
         return facadeActor;
+    }
+
+    public void setServer(ActorServer server) {
+        this.server = server;
+    }
+
+    public ActorServer getServer() {
+        return server;
     }
 }
