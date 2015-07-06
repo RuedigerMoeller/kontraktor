@@ -24,8 +24,8 @@ import java.util.stream.IntStream;
  *
  * To allow for multiplexing several streams using a single network connector RxStreamServer can be used.
  *
- * Note this is an example on how generic Kontraktor Remoting is leveraged as distribution reactive streams are
- * created by simply distributing the "local" implementation.
+ * Note this is an example on how generic Kontraktor Remoting is leveraged by 
+ * simply distributing the "local" implementation.
  *
  */
 public class RxStreamServer extends Actor<RxStreamServer> {
