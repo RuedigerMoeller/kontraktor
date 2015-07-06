@@ -17,6 +17,9 @@ package org.nustaq.kontraktor.reactivestreams;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
+import org.nustaq.kontraktor.reactivestreams.impl.RxSubscriber;
+import org.nustaq.kontraktor.reactivestreams.impl.RxPublisherActor;
+import org.nustaq.kontraktor.reactivestreams.impl.SyncProcessor;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
@@ -24,18 +27,15 @@ import org.nustaq.kontraktor.util.Log;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscriber;
-import org.reactivestreams.Subscription;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.DoubleStream;
-import java.util.stream.IntStream;
-import java.util.stream.LongStream;
-import java.util.stream.Stream;
+import java.util.stream.*;
 
 /**
  * Created by ruedi on 28/06/15.
@@ -45,10 +45,10 @@ import java.util.stream.Stream;
  * Note you rarely need use this directly. To publish / start a stream, see EventSink (offer() like feed in point),
  * this also allows to publish it on network.
  *
- * For connecting a remote stream, see ReaktiveStreams.connectXXX methods. Note that KPublisher extends the original
+ * For connecting a remote stream, see ReaktiveStreams.connectXXX methods. Note that RxPublisher extends the original
  * Publisher interface.
  *
- * for interop use asKPublisher()
+ * for interop use asRxPublisher()
  *
  */
 public class ReaktiveStreams extends Actors {
@@ -72,9 +72,9 @@ public class ReaktiveStreams extends Actors {
     ////////// singleton instance methods ////////////////////////////////////////////////
 
     /**
-     * interop, obtain a KPublisher from an arbitrary rxstreams publisher.
+     * interop, obtain a RxPublisher from an arbitrary rxstreams publisher.
      *
-     * KPublisher inherits rxtreams.Publisher and adds some sugar like map, network publish etc. via default methods
+     * RxPublisher inherits rxtreams.Publisher and adds some sugar like map, network publish etc. via default methods
      *
      * @param p
      * @param <T>
@@ -139,7 +139,7 @@ public class ReaktiveStreams extends Actors {
         if ( batchSize > MAX_BATCH_SIZE ) {
             throw new RuntimeException("batch size exceeds maximum of "+MAX_BATCH_SIZE);
         }
-        return new MySubscriber<>(batchSize, cb);
+        return new RxSubscriber<>(batchSize, cb);
     }
 
     public <T> RxPublisher<T> connect( Class<T> eventType, ConnectableActor connectable ) {
@@ -185,6 +185,27 @@ public class ReaktiveStreams extends Actors {
         return pub;
     }
 
+    public <T> Stream<T> stream( Publisher<T> pub ) {
+        return stream(pub, DEFAULT_BATCH_SIZE);
+    }
+
+    public <T> Stream<T> stream( Publisher pub, int batchSize ) {
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator(pub, batchSize), Spliterator.IMMUTABLE | Spliterator.NONNULL),false);
+    }
+
+    public <T> Iterator<T> iterator( Publisher<T> pub ) {
+        return iterator(pub,DEFAULT_BATCH_SIZE);
+    }
+
+    public <T> Iterator<T> iterator( Publisher<T> pub, int batchSize ) {
+        if ( batchSize > ReaktiveStreams.MAX_BATCH_SIZE ) {
+            throw new RuntimeException("batch size exceeds max of "+ReaktiveStreams.MAX_BATCH_SIZE);
+        }
+        RxSubscriber<T> subs = new RxSubscriber<T>(batchSize);
+        pub.subscribe(subs);
+        return subs;
+    }
+
     /**
      * @param eventType
      * @param connectable
@@ -201,26 +222,26 @@ public class ReaktiveStreams extends Actors {
             }
         };
         return connectable.actorClass(RxPublisherActor.class).inboundQueueSize(DEFAULTQSIZE).connect(discon, remoteref -> {
-            if ( ((RxPublisherActor)remoteref).callerSideSubscribers != null ) {
-                ((RxPublisherActor)remoteref).callerSideSubscribers.forEach( subs -> {
+            if ( ((RxPublisherActor)remoteref)._callerSideSubscribers != null ) {
+                ((RxPublisherActor)remoteref)._callerSideSubscribers.forEach( subs -> {
                     ((Subscriber)subs).onError(new IOException("connection lost"));
                 });
-                ((RxPublisherActor)remoteref).callerSideSubscribers = null;
+                ((RxPublisherActor)remoteref)._callerSideSubscribers = null;
             }
         });
     }
 
     /**
-     * exposes a publisher on the network via kontraktor's generic remoting. Usually not called directly (see EventSink+KPublisher)
+     * exposes a publisher on the network via kontraktor's generic remoting. Usually not called directly (see EventSink+RxPublisher)
      *
      * @param source
-     * @param networkPublisher - the appropriate network publisher (TCP,TCPNIO,WS)
+     * @param networRxPublisher - the appropriate network publisher (TCP,TCPNIO,WS)
      * @param disconCB         - called once a client disconnects/stops. can be null
      * @param <OUT>
      * @return
      */
-    public <OUT> IPromise serve(Publisher<OUT> source, ActorPublisher networkPublisher, boolean closeConnectionOnCompleteOrError, Consumer<Actor> disconCB) {
-        if ( networkPublisher.getClass().getSimpleName().equals("HttpPublisher") ) {
+    public <OUT> IPromise serve(Publisher<OUT> source, ActorPublisher networRxPublisher, boolean closeConnectionOnCompleteOrError, Consumer<Actor> disconCB) {
+        if ( networRxPublisher.getClass().getSimpleName().equals("HttpPublisher") ) {
             throw new RuntimeException("Http long poll cannot be supported. Use WebSockets instead.");
         }
         if (source instanceof RxPublisherActor == false || source instanceof ActorProxy == false ) {
@@ -229,11 +250,11 @@ public class ReaktiveStreams extends Actors {
             source = proc;
         }
         ((RxPublisherActor)source).setCloseOnComplete(closeConnectionOnCompleteOrError);
-        return networkPublisher.facade((Actor) source).publish(disconCB);
+        return networRxPublisher.facade((Actor) source).publish(disconCB);
     }
 
     /**
-     * create async processor. Usually not called directly (see EventSink+KPublisher)
+     * create async processor. Usually not called directly (see EventSink+RxPublisher)
      *
      * @param processingFunction
      * @param <IN>
@@ -246,7 +267,7 @@ public class ReaktiveStreams extends Actors {
 
     /**
      *
-     * create async processor. Usually not called directly (see EventSink+KPublisher)
+     * create async processor. Usually not called directly (see EventSink+RxPublisher)
      *
      * @param processingFunction
      * @param batchSize
@@ -259,7 +280,7 @@ public class ReaktiveStreams extends Actors {
     }
 
     /**
-     * create async processor. Usually not called directly (see EventSink+KPublisher)
+     * create async processor. Usually not called directly (see EventSink+RxPublisher)
      *
      * @param processingFunction
      * @param sched
@@ -281,7 +302,7 @@ public class ReaktiveStreams extends Actors {
 
     /**
      *
-     * create sync processor. Usually not called directly (see EventSink+KPublisher)
+     * create sync processor. Usually not called directly (see EventSink+RxPublisher)
      *
      * @param processingFunction
      * @param <IN>
@@ -293,166 +314,4 @@ public class ReaktiveStreams extends Actors {
         return inoutSyncProcessor;
     }
 
-    /**
-     * consuming endpoint. requests data from publisher immediately after
-     * receiving onSubscribe callback
-     * @param <T>
-     */
-    protected static class MySubscriber<T> implements Subscriber<T>, Serializable {
-        protected long batchSize;
-        protected Callback<T> cb;
-        protected long credits;
-        protected Subscription subs;
-        protected boolean autoRequestOnSubs;
-
-        public MySubscriber(long batchSize, Callback<T> cb ) {
-            this(batchSize,cb,true);
-        }
-
-        public MySubscriber(long batchSize, Callback<T> cb, boolean autoRequestOnSubs ) {
-            this.batchSize = batchSize;
-            this.cb = cb;
-            this.autoRequestOnSubs = autoRequestOnSubs;
-            credits = 0;
-        }
-
-        @Override
-        public void onSubscribe(Subscription s) {
-            if (subs != null) {
-                s.cancel();
-                return;
-            }
-
-            subs = s;
-            if ( autoRequestOnSubs )
-                s.request(batchSize);
-            credits += batchSize;
-            if ( RxPublisherActor.CRED_DEBUG )
-                System.out.println("credits:" + credits );
-        }
-
-        @Override
-        public void onNext(T t) {
-            if ( t == null )
-                throw null;
-            credits--;
-            if ( credits < batchSize/ReaktiveStreams.REQU_NEXT_DIVISOR ) {
-                subs.request(batchSize);
-                credits += batchSize;
-                if ( RxPublisherActor.CRED_DEBUG)
-                    System.out.println("credits:" + credits );
-            }
-            nextAction(t);
-        }
-
-        protected void nextAction(T t) {
-            try {
-                cb.stream(t);
-            } catch (CancelException c) {
-                subs.cancel();
-            }
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            if ( t == null )
-                throw null;
-            cb.reject(t);
-        }
-
-        @Override
-        public void onComplete() {
-            cb.finish();
-        }
-    }
-
-    protected static class SyncProcessor<IN, OUT> implements Processor<IN, OUT>, RxPublisher<OUT> {
-
-        protected Subscription inSubs;
-        protected Subscription outSubs;
-        protected Subscriber<OUT> subscriber;
-        protected boolean done = false;
-        protected long batchSize;
-        protected Function<IN,OUT> proc;
-        protected long initialRequest = 0;
-
-        public SyncProcessor(long batchSize, Function<IN, OUT> proc) {
-            this.batchSize = batchSize;
-            this.proc = proc;
-        }
-
-        @Override
-        public void onSubscribe(final Subscription s) {
-            if (s == null)
-                throw null;
-            if (inSubs != null) {
-                s.cancel();
-                return;
-            }
-            inSubs = s;
-            if ( initialRequest > 0 )
-                s.request(initialRequest);
-        }
-
-        @Override
-        public void onNext(final IN element) {
-            if ( done )
-                return;
-            if (element == null)
-                throw null;
-            try {
-                subscriber.onNext(process(element));
-            } catch (final Throwable t) {
-                onError(t);
-            }
-        }
-
-        protected OUT process(final IN element) {
-            return proc.apply(element);
-        }
-
-        @Override
-        public void onError(final Throwable t) {
-            if ( subscriber != null )
-                subscriber.onError(t);
-            else
-                t.printStackTrace();
-        }
-
-        @Override
-        public void onComplete() {
-            done = true;
-            subscriber.onComplete();
-        }
-
-        @Override
-        public void subscribe(Subscriber<? super OUT> s) {
-            if ( subscriber != null ) {
-                throw new RuntimeException("can only subscribe once");
-            }
-            subscriber = (Subscriber<OUT>) s;
-            s.onSubscribe( outSubs = new MySubs());
-        }
-
-        protected class MySubs implements Subscription {
-            @Override
-            public void request(long n) {
-                if ( n <= 0 ) {
-                    subscriber.onError(new IllegalArgumentException("rule 3.9: request > 0 elements"));
-                    return;
-                }
-                if ( inSubs != null )
-                    inSubs.request(n);
-                else
-                    initialRequest = n;
-            }
-
-            @Override
-            public void cancel() {
-                inSubs.cancel();
-                subscriber = null;
-            }
-
-        }
-    }
 }

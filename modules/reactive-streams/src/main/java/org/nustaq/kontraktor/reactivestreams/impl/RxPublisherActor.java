@@ -13,11 +13,13 @@ Lesser General Public License for more details.
 
 See https://www.gnu.org/licenses/lgpl.txt
 */
-package org.nustaq.kontraktor.reactivestreams;
+package org.nustaq.kontraktor.reactivestreams.impl;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
+import org.nustaq.kontraktor.reactivestreams.ReaktiveStreams;
+import org.nustaq.kontraktor.reactivestreams.RxPublisher;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
 import org.nustaq.kontraktor.util.Log;
 import org.reactivestreams.Processor;
@@ -96,15 +98,15 @@ public class RxPublisherActor<IN, OUT> extends Actor<RxPublisherActor<IN, OUT>> 
     // will do nothing and happen at remote side ;)
     // execute callerside
     // and break down remote communication to standard (auto remoted) primitives like promise and callback
-    ArrayList<Subscriber> callerSideSubscribers; // advanced chemistry: held+used in the remote proxy to clean up pipeline on disconnect
+    public ArrayList<Subscriber> _callerSideSubscribers; // advanced chemistry: held+used in the remote proxy to clean up pipeline on disconnect
     @Override @CallerSideMethod
     public void subscribe(Subscriber<? super OUT> subscriber) {
         if ( isRemote() ) {
             synchronized (this) { // subscribe/unsubscribe won't be contended
-                if ( callerSideSubscribers == null ) {
-                    callerSideSubscribers = new ArrayList();
+                if ( _callerSideSubscribers == null ) {
+                    _callerSideSubscribers = new ArrayList();
                 }
-                callerSideSubscribers.add(subscriber);
+                _callerSideSubscribers.add(subscriber);
             }
         }
         if ( subscriber == null )
@@ -172,7 +174,7 @@ public class RxPublisherActor<IN, OUT> extends Actor<RxPublisherActor<IN, OUT>> 
 
     public void setBatchSize(int batchSize ) {
         this.batchSize = batchSize;
-        this.requestNextTrigger = batchSize/ReaktiveStreams.REQU_NEXT_DIVISOR;
+        this.requestNextTrigger = batchSize/ ReaktiveStreams.REQU_NEXT_DIVISOR;
     }
 
     @Override @CallerSideMethod
@@ -443,9 +445,9 @@ public class RxPublisherActor<IN, OUT> extends Actor<RxPublisherActor<IN, OUT>> 
         }
 
         protected void removeRegistration() {
-            if ( publisher.callerSideSubscribers != null ) {
-                synchronized (publisher.callerSideSubscribers) {
-                    publisher.callerSideSubscribers.remove(this);
+            if ( publisher._callerSideSubscribers != null ) {
+                synchronized (publisher._callerSideSubscribers) {
+                    publisher._callerSideSubscribers.remove(this);
                 }
             }
         }

@@ -18,13 +18,17 @@ package org.nustaq.kontraktor.reactivestreams;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.reactivestreams.impl.RxPublisherActor;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscriber;
 
+import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * Created by ruedi on 30/06/15.
@@ -80,6 +84,22 @@ public interface RxPublisher<T> extends Publisher<T> {
      */
     @CallerSideMethod default void subscribe( int batchSize, Callback<T> cb ) {
         subscribe(ReaktiveStreams.get().subscriber(batchSize, cb));
+    }
+
+    @CallerSideMethod default Stream<T> stream(int batchSize) {
+        return ReaktiveStreams.get().stream(this,batchSize);
+    }
+
+    @CallerSideMethod default Stream<T> stream() {
+        return ReaktiveStreams.get().stream(this);
+    }
+
+    @CallerSideMethod default Iterator<T> iterator(int batchSize) {
+        return ReaktiveStreams.get().iterator(this,batchSize);
+    }
+
+    @CallerSideMethod default Iterator<T> iterator() {
+        return ReaktiveStreams.get().iterator(this);
     }
 
     /**

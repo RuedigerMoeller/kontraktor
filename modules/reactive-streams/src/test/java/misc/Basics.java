@@ -163,6 +163,30 @@ public class Basics {
     }
 
     @Test
+    public void testStopThreadsWithIterAndStreamConsumer() throws InterruptedException {
+        resetThreadCount();
+
+        System.out.println("start ..");
+        long count = ReaktiveStreams.get().produce(IntStream.range(0, MASMSG_NUM))
+                         .map(i -> i * i)
+                         .asyncMap(i -> "" + i)
+                         .map(s -> s.substring(0, s.length() / 2))
+                         .asyncMap(s -> s.length())
+                         .stream().count();
+
+        System.out.println("element count: "+count);
+
+        System.out.println("count:" + DispatcherThread.activeDispatchers.get());
+
+        Thread.sleep(1000);
+
+        System.out.println("count:" + DispatcherThread.activeDispatchers.get());
+        Thread.sleep(5000);
+        Assert.assertTrue(count == MASMSG_NUM);
+        Assert.assertTrue(DispatcherThread.activeDispatchers.get() == 0);
+    }
+
+    @Test
     public void testConnectionCloseOnCompleteTCP() throws InterruptedException {
 
         TCPPublisher publisher = new TCPPublisher().port(7855);

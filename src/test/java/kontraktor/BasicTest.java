@@ -363,6 +363,11 @@ public class BasicTest {
             return new Promise<>(s+"_String");
         }
 
+        public void testCB( Callback s ) {
+            s.stream("X");
+            s.finish();
+        }
+
         @Override
         public void tell(String messageId, Object ... args) {
             succCounter.incrementAndGet();
@@ -373,6 +378,24 @@ public class BasicTest {
             return new Promise<>(messageId);
         }
 
+    }
+
+    @Test
+    public void testCB() throws InterruptedException {
+        FutureTest futureTest = AsActor(FutureTest.class);
+        AtomicInteger count = new AtomicInteger(0);
+        futureTest.testCB( (r,e) -> {
+            if ( Actors.isResult(e) ) {
+                count.incrementAndGet();
+            } else if ( Actors.isComplete(e) ) {
+                count.incrementAndGet();
+                count.incrementAndGet();
+            } else {
+                count.incrementAndGet();count.incrementAndGet();count.incrementAndGet();count.incrementAndGet();
+            }
+        });
+        Thread.sleep(1000);
+        assertTrue(count.get() == 3);
     }
 
     @Test
