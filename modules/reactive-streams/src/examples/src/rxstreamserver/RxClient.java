@@ -29,7 +29,7 @@ public class RxClient {
                     System.out.println("received from provided:" + res);
                 }
             });
-            // could have used then( (stream,err) -> .. ) instead catchError (see next subs)
+            // then( (stream,err) -> .. ) is same as then( result -> .. ).catchError( error -> .. )
         }).catchError(e -> { System.out.println("no stream provided"); });
 
         remoteRef.createStream("NUMBERS", 0, 100)
@@ -71,7 +71,7 @@ public class RxClient {
             });
 
         // as streams have a pull model, we need to block the thread for streams API usage
-        // else we would block the thread delivering callbacks
+        // else we would block the thread delivering callbacks (networking thread)
         Executor dontBlockThreads = Executors.newSingleThreadExecutor(); // FIXME: add isolator here automatically ?
         remoteRef.listen("TIME").then(rxPub -> {
             // same using Java 8 streams, Blocks if no items present !! so need executor
