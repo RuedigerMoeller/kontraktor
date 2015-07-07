@@ -1,4 +1,4 @@
-# (Remotable) Reactive Streams Implementation
+# (Remotable) Reactive Streams
 
 * leverages Kontraktor's high performance generic remoting to provide Remotable Reactive Streams
 * does not require to move to Kontraktor, can be used as a pure remoting bridge
