@@ -28,3 +28,5 @@ public static void remotingRxToRx() {
 does ~1.3 million events per second over tcp nio. 1.45 million over WebSocket.
 
 see src/test/examples for more example code
+
+maven coming soon.
