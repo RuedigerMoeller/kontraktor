@@ -18,12 +18,11 @@ package org.nustaq.kontraktor.reactivestreams;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
-import org.nustaq.kontraktor.reactivestreams.impl.RxPublisherActor;
+import org.nustaq.kontraktor.reactivestreams.impl.KxPublisherActor;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
-import org.reactivestreams.Subscriber;
 
 import java.util.Iterator;
 import java.util.function.Consumer;
@@ -33,7 +32,7 @@ import java.util.stream.Stream;
 /**
  * Created by ruedi on 30/06/15.
  */
-public interface RxPublisher<T> extends Publisher<T> {
+public interface KxPublisher<T> extends Publisher<T> {
 
     /**
      * consuming endpoint. requests data from publisher immediately after
@@ -58,7 +57,7 @@ public interface RxPublisher<T> extends Publisher<T> {
      * @param
      */
     @CallerSideMethod default void subscribe( Callback<T> cb ) {
-        subscribe(ReaktiveStreams.get().subscriber(cb));
+        subscribe(KxReactiveStreams.get().subscriber(cb));
     }
 
     /**
@@ -83,23 +82,43 @@ public interface RxPublisher<T> extends Publisher<T> {
      *
      */
     @CallerSideMethod default void subscribe( int batchSize, Callback<T> cb ) {
-        subscribe(ReaktiveStreams.get().subscriber(batchSize, cb));
+        subscribe(KxReactiveStreams.get().subscriber(batchSize, cb));
     }
 
-    @CallerSideMethod default Stream<T> stream(int batchSize) {
-        return ReaktiveStreams.get().stream(this,batchSize);
+    @CallerSideMethod default void stream(int batchSize, Consumer<Stream<T>> streamingCode ) {
+        new Thread("Stream Consumer") {
+            @Override
+            public void run() {
+               streamingCode.accept(KxReactiveStreams.get().stream(KxPublisher.this,batchSize));
+            }
+        }.start();
     }
 
-    @CallerSideMethod default Stream<T> stream() {
-        return ReaktiveStreams.get().stream(this);
+    @CallerSideMethod default void stream( Consumer<Stream<T>> streamingCode ) {
+        new Thread("Stream Consumer") {
+            @Override
+            public void run() {
+               streamingCode.accept(KxReactiveStreams.get().stream(KxPublisher.this));
+            }
+        }.start();
     }
 
-    @CallerSideMethod default Iterator<T> iterator(int batchSize) {
-        return ReaktiveStreams.get().iterator(this,batchSize);
+    @CallerSideMethod default void iterator(int batchSize, Consumer<Iterator<T>> iteratingCode ) {
+        new Thread("Iterator Consumer") {
+            @Override
+            public void run() {
+               iteratingCode.accept(KxReactiveStreams.get().iterator(KxPublisher.this,batchSize));
+            }
+        }.start();
     }
 
-    @CallerSideMethod default Iterator<T> iterator() {
-        return ReaktiveStreams.get().iterator(this);
+    @CallerSideMethod default void iterator( Consumer<Iterator<T>> iteratingCode ) {
+        new Thread("Iterator Consumer") {
+            @Override
+            public void run() {
+               iteratingCode.accept(KxReactiveStreams.get().iterator(KxPublisher.this));
+            }
+        }.start();
     }
 
     /**
@@ -109,10 +128,10 @@ public interface RxPublisher<T> extends Publisher<T> {
      * @param <OUT>
      * @return
      */
-    @CallerSideMethod default <OUT> RxPublisher<OUT> asyncMap(Function<T,OUT> processor) {
-        Processor<T, OUT> toutProcessor = ReaktiveStreams.get().newAsyncProcessor(processor);
+    @CallerSideMethod default <OUT> KxPublisher<OUT> asyncMap(Function<T,OUT> processor) {
+        Processor<T, OUT> toutProcessor = KxReactiveStreams.get().newAsyncProcessor(processor);
         subscribe(toutProcessor);
-        return (RxPublisher<OUT>) toutProcessor;
+        return (KxPublisher<OUT>) toutProcessor;
     }
 
     /**
@@ -123,10 +142,10 @@ public interface RxPublisher<T> extends Publisher<T> {
      * @param <OUT>
      * @return
      */
-    @CallerSideMethod default <OUT> RxPublisher<OUT> asyncMap( Function<T,OUT> processor, int batchSize ) {
-        Processor<T, OUT> toutProcessor = ReaktiveStreams.get().newAsyncProcessor(processor, batchSize);
+    @CallerSideMethod default <OUT> KxPublisher<OUT> asyncMap( Function<T,OUT> processor, int batchSize ) {
+        Processor<T, OUT> toutProcessor = KxReactiveStreams.get().newAsyncProcessor(processor, batchSize);
         subscribe(toutProcessor);
-        return (RxPublisher<OUT>) toutProcessor;
+        return (KxPublisher<OUT>) toutProcessor;
     }
 
     /**
@@ -139,11 +158,11 @@ public interface RxPublisher<T> extends Publisher<T> {
      * @return
      */
     @CallerSideMethod default ActorServer serve(ActorPublisher publisher, Consumer<Actor> disconCallback) {
-        return (ActorServer) ReaktiveStreams.get().serve(this, publisher, true, disconCallback).await();
+        return (ActorServer) KxReactiveStreams.get().serve(this, publisher, true, disconCallback).await();
     }
 
     @CallerSideMethod default ActorServer serve(ActorPublisher publisher, boolean closeOnDiscon, Consumer<Actor> disconCallback) {
-        return (ActorServer) ReaktiveStreams.get().serve(this, publisher, closeOnDiscon, disconCallback).await();
+        return (ActorServer) KxReactiveStreams.get().serve(this, publisher, closeOnDiscon, disconCallback).await();
     }
 
     /**
@@ -168,12 +187,12 @@ public interface RxPublisher<T> extends Publisher<T> {
      * @param <OUT>
      * @return
      */
-    @CallerSideMethod default <OUT> RxPublisher<OUT> map(Function<T,OUT> processor) {
-        if ( this instanceof RxPublisherActor && ((RxPublisherActor)this).isRemote() )
+    @CallerSideMethod default <OUT> KxPublisher<OUT> map(Function<T,OUT> processor) {
+        if ( this instanceof KxPublisherActor && ((KxPublisherActor)this).isRemote() )
             return asyncMap(processor); // need a queue when connecting remote stream
-        Processor<T,OUT> outkPublisher = ReaktiveStreams.get().newSyncProcessor(processor);
+        Processor<T,OUT> outkPublisher = KxReactiveStreams.get().newSyncProcessor(processor);
         subscribe(outkPublisher);
-        return (RxPublisher<OUT>) outkPublisher;
+        return (KxPublisher<OUT>) outkPublisher;
     }
 
 }

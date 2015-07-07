@@ -18,8 +18,8 @@ package org.nustaq.kontraktor.reactivestreams.impl;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
-import org.nustaq.kontraktor.reactivestreams.ReaktiveStreams;
-import org.nustaq.kontraktor.reactivestreams.RxPublisher;
+import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
+import org.nustaq.kontraktor.reactivestreams.KxPublisher;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
 import org.nustaq.kontraktor.util.Log;
 import org.reactivestreams.Processor;
@@ -39,7 +39,7 @@ import java.util.function.Function;
  * use the EventSink/ReaktiveStreams.get() instead.
  *
  */
-public class RxPublisherActor<IN, OUT> extends Actor<RxPublisherActor<IN, OUT>> implements Processor<IN, OUT>, RxPublisher<OUT>, RemotedActor {
+public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> implements Processor<IN, OUT>, KxPublisher<OUT>, RemotedActor {
 
     public static final boolean CRED_DEBUG = false;
 
@@ -174,7 +174,7 @@ public class RxPublisherActor<IN, OUT> extends Actor<RxPublisherActor<IN, OUT>> 
 
     public void setBatchSize(int batchSize ) {
         this.batchSize = batchSize;
-        this.requestNextTrigger = batchSize/ ReaktiveStreams.REQU_NEXT_DIVISOR;
+        this.requestNextTrigger = batchSize/ KxReactiveStreams.REQU_NEXT_DIVISOR;
     }
 
     @Override @CallerSideMethod
@@ -417,10 +417,10 @@ public class RxPublisherActor<IN, OUT> extends Actor<RxPublisherActor<IN, OUT>> 
 
     protected static class KSubscription implements Subscription, Serializable {
 
-        protected RxPublisherActor publisher; // actorref
+        protected KxPublisherActor publisher; // actorref
         protected int id;
 
-        public KSubscription(RxPublisherActor publisher, int id) {
+        public KSubscription(KxPublisherActor publisher, int id) {
             this.publisher = publisher;
             this.id = id;
         }

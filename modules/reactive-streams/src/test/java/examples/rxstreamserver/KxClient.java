@@ -1,22 +1,20 @@
-package rxstreamserver;
+package examples.rxstreamserver;
 
 import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.reactivestreams.RxPublisher;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 
 import java.util.Date;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 /**
  * Created by ruedi on 05/07/15.
  */
-public class RxClient {
+public class KxClient {
 
     public static void main(String[] args) {
         // FIXME: cancel test. No error on connection close delivered.
+        // FIXME: test from within actor
 
-        RxStreamServer remoteRef = (RxStreamServer) new TCPConnectable(RxStreamServer.class, "localhost", 7890).connect().await();
+        KxStreamServer remoteRef = (KxStreamServer) new TCPConnectable(KxStreamServer.class, "localhost", 7890).connect().await();
 
         // check for stream provided by RxStreamProviding client
         remoteRef.listen("SomeNumbers").then(stream -> {
@@ -65,18 +63,14 @@ public class RxClient {
                     } else if (Actors.isComplete(err)) {
                         System.out.println("complete. connection closed ?"); // should not happen as infinite stream
                     } else {
-                        System.out.println("received:" + new Date((Long) time));
+                        System.out.println("stream received:" + new Date((Long) time));
                     }
                 });
             });
 
-        // as streams have a pull model, we need to block the thread for streams API usage
-        // else we would block the thread delivering callbacks (networking thread)
-        Executor dontBlockThreads = Executors.newSingleThreadExecutor(); // FIXME: add isolator here automatically ?
-        remoteRef.listen("TIME").then(rxPub -> {
-            // same using Java 8 streams, Blocks if no items present !! so need executor
-            dontBlockThreads.execute( ()-> rxPub.stream().forEach(event -> System.out.println(event) ));
+        remoteRef.<Long>listen("TIME").then( rxPub -> {
+            // the indirection of stream( Consumer ) is required as stream() is blocking
+            rxPub.stream( stream -> stream.forEach( event -> System.out.println(event) ) );
         });
-
     }
 }

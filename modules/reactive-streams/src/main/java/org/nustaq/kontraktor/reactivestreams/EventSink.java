@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * For advanced use cases (see example RxStreamServer) this needs to be done explicitely
  *
  */
-public class EventSink<T> implements RxPublisher<T> {
+public class EventSink<T> implements KxPublisher<T> {
 
     protected AtomicLong credits = new AtomicLong(0);
     protected Actor actorSubs;

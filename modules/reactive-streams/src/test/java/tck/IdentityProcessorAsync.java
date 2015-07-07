@@ -1,6 +1,6 @@
 package tck;
 
-import org.nustaq.kontraktor.reactivestreams.ReaktiveStreams;
+import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.tck.IdentityProcessorVerification;
@@ -35,7 +35,7 @@ public class IdentityProcessorAsync extends IdentityProcessorVerification<Long> 
 
     @Override
     public Processor<Long, Long> createIdentityProcessor(int bufferSize) {
-        return ReaktiveStreams.get().newAsyncProcessor(i -> i, bufferSize);
+        return KxReactiveStreams.get().newAsyncProcessor(i -> i, bufferSize);
     }
 
     @Override

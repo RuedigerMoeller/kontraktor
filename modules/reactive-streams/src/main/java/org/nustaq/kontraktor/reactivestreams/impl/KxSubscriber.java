@@ -5,13 +5,12 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.reactivestreams.CancelException;
-import org.nustaq.kontraktor.reactivestreams.ReaktiveStreams;
+import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
 import org.nustaq.serialization.util.FSTUtil;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 
 import java.io.Serializable;
-import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -20,7 +19,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * receiving onSubscribe callback
  * @param <T>
  */
-public class RxSubscriber<T> implements Subscriber<T>, Serializable, Iterator<T> {
+public class KxSubscriber<T> implements Subscriber<T>, Serializable, Iterator<T> {
     public static final String COMPLETE = "COMPLETE";
     public static BackOffStrategy strat = new BackOffStrategy(100,2,5); // backoff when acting as iterator/stream
 
@@ -36,11 +35,11 @@ public class RxSubscriber<T> implements Subscriber<T>, Serializable, Iterator<T>
     protected ConcurrentLinkedQueue<T> buffer;
 
     /**
-     * iterator mode subscriber
+     * iterator mode constructor, spawns a thread
      *
      * @param batchSize
      */
-    public RxSubscriber(long batchSize) {
+    public KxSubscriber(long batchSize) {
         this.batchSize = batchSize;
         this.autoRequestOnSubs = true;
         credits = 0;
@@ -59,11 +58,11 @@ public class RxSubscriber<T> implements Subscriber<T>, Serializable, Iterator<T>
         };
     }
 
-    public RxSubscriber(long batchSize, Callback<T> cb) {
+    public KxSubscriber(long batchSize, Callback<T> cb) {
         this(batchSize,cb,true);
     }
 
-    public RxSubscriber(long batchSize, Callback<T> cb, boolean autoRequestOnSubs) {
+    public KxSubscriber(long batchSize, Callback<T> cb, boolean autoRequestOnSubs) {
         this.batchSize = batchSize;
         this.cb = cb;
         this.autoRequestOnSubs = autoRequestOnSubs;
@@ -81,7 +80,7 @@ public class RxSubscriber<T> implements Subscriber<T>, Serializable, Iterator<T>
         if ( autoRequestOnSubs )
             s.request(batchSize);
         credits += batchSize;
-        if ( RxPublisherActor.CRED_DEBUG )
+        if ( KxPublisherActor.CRED_DEBUG )
             System.out.println("credits:" + credits );
     }
 
@@ -90,10 +89,10 @@ public class RxSubscriber<T> implements Subscriber<T>, Serializable, Iterator<T>
         if ( t == null )
             throw null;
         credits--;
-        if ( credits < batchSize/ ReaktiveStreams.REQU_NEXT_DIVISOR ) {
+        if ( credits < batchSize/ KxReactiveStreams.REQU_NEXT_DIVISOR ) {
             subs.request(batchSize);
             credits += batchSize;
-            if ( RxPublisherActor.CRED_DEBUG)
+            if ( KxPublisherActor.CRED_DEBUG)
                 System.out.println("credits:" + credits );
         }
         nextAction(t);

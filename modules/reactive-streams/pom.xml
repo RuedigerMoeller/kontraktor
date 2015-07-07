@@ -123,6 +123,13 @@
 
         <dependency>
             <scope>test</scope>
+            <groupId>io.reactivex</groupId>
+            <artifactId>rxjava-reactive-streams</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <scope>test</scope>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>

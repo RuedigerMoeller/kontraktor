@@ -5,7 +5,7 @@ import org.junit.Test;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.reactivestreams.EventSink;
-import org.nustaq.kontraktor.reactivestreams.ReaktiveStreams;
+import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
@@ -18,6 +18,7 @@ import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.RateMeasure;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 
 /**
@@ -135,7 +136,7 @@ public class Basics {
         AtomicInteger elems = new AtomicInteger(0);
 
         RateMeasure ms = new RateMeasure("rate");
-        ReaktiveStreams.get().produce(IntStream.range(0, MASMSG_NUM))
+        KxReactiveStreams.get().produce(IntStream.range(0, MASMSG_NUM))
             .map(i -> i * i)
             .asyncMap(i -> "" + i)
             .map( s -> s.substring(0, s.length() / 2))
@@ -167,22 +168,27 @@ public class Basics {
         resetThreadCount();
 
         System.out.println("start ..");
-        long count = ReaktiveStreams.get().produce(IntStream.range(0, MASMSG_NUM))
-                         .map(i -> i * i)
-                         .asyncMap(i -> "" + i)
-                         .map(s -> s.substring(0, s.length() / 2))
-                         .asyncMap(s -> s.length())
-                         .stream().count();
+        AtomicLong cnt = new AtomicLong(0);
+        KxReactiveStreams.get()
+            .produce(IntStream.range(0, MASMSG_NUM))
+            .map(i -> i * i)
+            .asyncMap(i -> "" + i)
+            .map(s -> s.substring(0, s.length() / 2))
+            .asyncMap(s -> s.length())
+            .stream( stream -> {
+                long count = stream.count();
+                System.out.println("element count: " + count);
+                cnt.set(count);
+            });
 
-        System.out.println("element count: "+count);
-
+        while( cnt.get() == 0 ) {
+            Thread.sleep(100);
+        }
         System.out.println("count:" + DispatcherThread.activeDispatchers.get());
-
         Thread.sleep(1000);
-
         System.out.println("count:" + DispatcherThread.activeDispatchers.get());
-        Thread.sleep(5000);
-        Assert.assertTrue(count == MASMSG_NUM);
+
+        Assert.assertTrue(cnt.get() == MASMSG_NUM);
         Assert.assertTrue(DispatcherThread.activeDispatchers.get() == 0);
     }
 
@@ -220,12 +226,12 @@ public class Basics {
 
     public void concloseTest(ActorPublisher publisher, ConnectableActor connectable) throws InterruptedException {
         ActorServer server =
-            ReaktiveStreams.get()
+            KxReactiveStreams.get()
                 .produce(IntStream.range(0, NETWORK_MSG))
                 .serve(publisher);
 
         AtomicInteger cnt = new AtomicInteger(0);
-        ReaktiveStreams.get()
+        KxReactiveStreams.get()
             .connect(Integer.class, connectable)
             .subscribe((r, e) -> {
                 if (Actors.isResult(e)) {
@@ -257,7 +263,7 @@ public class Basics {
             .serve(new TCPPublisher().port(7850));
 
         AtomicInteger cnt = new AtomicInteger(0);
-        ReaktiveStreams.get()
+        KxReactiveStreams.get()
             .connect(Integer.class, new TCPConnectable().host("localhost").port(7850))
             .subscribe((r, e) -> {
                 if (Actors.isResult(e)) {

@@ -1,11 +1,9 @@
 package tck;
 
-import org.nustaq.kontraktor.reactivestreams.EventSink;
-import org.nustaq.kontraktor.reactivestreams.ReaktiveStreams;
+import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
 import org.reactivestreams.Publisher;
 import org.testng.annotations.Test;
 
-import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 /**
@@ -16,7 +14,7 @@ public class TCKIterAsyncPublisher extends TCKSyncPubEventSink {
 
     @Override
     public Publisher<Long> createPublisher(long elements) {
-        return ReaktiveStreams.get().produce(LongStream.range(0, elements));
+        return KxReactiveStreams.get().produce(LongStream.range(0, elements));
     }
 }
 

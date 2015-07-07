@@ -1,12 +1,12 @@
-package rxstreamserver;
+package examples.rxstreamserver;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.reactivestreams.EventSink;
-import org.nustaq.kontraktor.reactivestreams.ReaktiveStreams;
-import org.nustaq.kontraktor.reactivestreams.RxPublisher;
+import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
+import org.nustaq.kontraktor.reactivestreams.KxPublisher;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Pair;
 
@@ -19,21 +19,21 @@ import java.util.stream.IntStream;
  * With "RxSubscriber.serve()", one stream is published on the network on a single address (e.g. localhost:7777).
  * Once the stream is complete,
  * the associated network connection will terminate. Due to network related latency, it takes a while until the address
- * can be reused. Therefore this style of exposing streams is mostly suited for "infinite streams". "onComplete" then
+ * can be reused.
+ * Therefore this style of exposing streams is mostly suited for "infinite streams". "onComplete" then
  * actually signals connection close.
  *
- * To allow for multiplexing several streams using a single network connector RxStreamServer can be used.
- *
- * Note this is an example on how generic Kontraktor Remoting is leveraged by 
+ * To allow for multiplexing several streams using a single network connector, kontraktor remoting can be used.
+ * Note this is an example on how generic Kontraktor Remoting is leveraged by
  * simply distributing the "local" implementation.
  *
  */
-public class RxStreamServer extends Actor<RxStreamServer> {
+public class KxStreamServer extends Actor<KxStreamServer> {
 
     EventSink<Long> timeSink;
 
     // the pair boolean denotes if the stream is infinite
-    HashMap<String,Pair<RxPublisher,Boolean>> streams;
+    HashMap<String,Pair<KxPublisher,Boolean>> streams;
 
     public void init() {
         streams = new HashMap<>();
@@ -60,12 +60,12 @@ public class RxStreamServer extends Actor<RxStreamServer> {
      * @param streamId
      * @return
      */
-    public IPromise<RxPublisher> createStream( String streamId, int start, int end ) {
+    public <T> IPromise<KxPublisher<T>> createStream( String streamId, int start, int end ) {
         if ( "NUMBERS".equals(streamId) ) {
-            return new Promise<>(ReaktiveStreams.get().produce(IntStream.range(start,end)));
+            return new Promise<>((KxPublisher<T>) KxReactiveStreams.get().produce(IntStream.range(start,end)));
         }
         if ( "STRINGS".equals(streamId) ) {
-            return new Promise<>(ReaktiveStreams.get().produce(IntStream.range(start,end)).map( i -> ""+i ));
+            return new Promise<>((KxPublisher<T>) KxReactiveStreams.get().produce(IntStream.range(start,end)).map( i -> ""+i ));
         }
         return reject("unknown stream");
     }
@@ -77,8 +77,8 @@ public class RxStreamServer extends Actor<RxStreamServer> {
      * @param <T>
      * @return
      */
-    public IPromise<RxPublisher> listen( String streamId ) {
-        Pair<RxPublisher, Boolean> pair = streams.get(streamId);
+    public <T> IPromise<KxPublisher<T>> listen( String streamId ) {
+        Pair<KxPublisher, Boolean> pair = streams.get(streamId);
         if ( pair != null ) {
             if ( !pair.cdr() ) // if it is not infinite
             {
@@ -90,13 +90,21 @@ public class RxStreamServer extends Actor<RxStreamServer> {
         return reject("unknown stream");
     }
 
-    public void putStream( String id, RxPublisher pub, boolean infinite ) {
+    /**
+     * if infinite is true, it can be consumed by an arbitrary amount of clients, if false it can be consumed by
+     * exactly one client
+     *
+     * @param id
+     * @param pub
+     * @param infinite
+     */
+    public void putStream( String id, KxPublisher pub, boolean infinite ) {
         streams.put(id, new Pair(pub,infinite));
     }
 
     public static void main(String[] args) {
 
-        RxStreamServer server = Actors.AsActor(RxStreamServer.class,256000); // give fat queue
+        KxStreamServer server = Actors.AsActor(KxStreamServer.class,256000); // give fat queue
         server.init();
         TCPNIOPublisher publisher = new TCPNIOPublisher(server, 7890);
         publisher.publish(actor -> System.out.println("actor " + actor + " disconnected")).await();

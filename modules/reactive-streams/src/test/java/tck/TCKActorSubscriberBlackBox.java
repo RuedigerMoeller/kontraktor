@@ -1,6 +1,6 @@
 package tck;
 
-import org.nustaq.kontraktor.reactivestreams.ReaktiveStreams;
+import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Subscriber;
 import org.testng.annotations.Test;
@@ -14,7 +14,7 @@ public class TCKActorSubscriberBlackBox extends TCKSubscriberBlackBox {
 
     @Override
     public Subscriber<Long> createSubscriber() {
-        Processor<Long, Long> longLongProcessor = ReaktiveStreams.get().<Long, Long>newAsyncProcessor(l -> l,4);
+        Processor<Long, Long> longLongProcessor = KxReactiveStreams.get().<Long, Long>newAsyncProcessor(l -> l,4);
         longLongProcessor.subscribe(super.createSubscriber());
         return longLongProcessor;
     }

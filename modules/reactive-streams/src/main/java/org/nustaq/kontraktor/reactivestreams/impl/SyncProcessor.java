@@ -1,6 +1,6 @@
 package org.nustaq.kontraktor.reactivestreams.impl;
 
-import org.nustaq.kontraktor.reactivestreams.RxPublisher;
+import org.nustaq.kontraktor.reactivestreams.KxPublisher;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -10,7 +10,7 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 06/07/15.
  */
-public class SyncProcessor<IN, OUT> implements Processor<IN, OUT>, RxPublisher<OUT> {
+public class SyncProcessor<IN, OUT> implements Processor<IN, OUT>, KxPublisher<OUT> {
 
     protected Subscription inSubs;
     protected Subscription outSubs;

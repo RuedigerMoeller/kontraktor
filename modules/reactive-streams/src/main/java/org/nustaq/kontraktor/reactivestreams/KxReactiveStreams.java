@@ -17,8 +17,8 @@ package org.nustaq.kontraktor.reactivestreams;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
-import org.nustaq.kontraktor.reactivestreams.impl.RxSubscriber;
-import org.nustaq.kontraktor.reactivestreams.impl.RxPublisherActor;
+import org.nustaq.kontraktor.reactivestreams.impl.KxSubscriber;
+import org.nustaq.kontraktor.reactivestreams.impl.KxPublisherActor;
 import org.nustaq.kontraktor.reactivestreams.impl.SyncProcessor;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
@@ -51,7 +51,7 @@ import java.util.stream.*;
  * for interop use asRxPublisher()
  *
  */
-public class ReaktiveStreams extends Actors {
+public class KxReactiveStreams extends Actors {
 
     // as for remoting the request(N) ack signals have network latency
     // request(N) is executed with large sizes to not let the sending side "dry"/stall.
@@ -63,9 +63,9 @@ public class ReaktiveStreams extends Actors {
 
     public static int REQU_NEXT_DIVISOR = 1;
 
-    protected static ReaktiveStreams instance = new ReaktiveStreams();
+    protected static KxReactiveStreams instance = new KxReactiveStreams();
 
-    public static ReaktiveStreams get() {
+    public static KxReactiveStreams get() {
         return instance;
     }
 
@@ -80,10 +80,10 @@ public class ReaktiveStreams extends Actors {
      * @param <T>
      * @return
      */
-    public <T> RxPublisher<T> asRxPublisher(Publisher<T> p) {
-        if ( p instanceof RxPublisher)
-            return (RxPublisher<T>) p;
-        return new RxPublisher<T>() {
+    public <T> KxPublisher<T> asRxPublisher(Publisher<T> p) {
+        if ( p instanceof KxPublisher)
+            return (KxPublisher<T>) p;
+        return new KxPublisher<T>() {
             @Override
             public void subscribe(Subscriber<? super T> s) {
                 p.subscribe(s);
@@ -139,45 +139,45 @@ public class ReaktiveStreams extends Actors {
         if ( batchSize > MAX_BATCH_SIZE ) {
             throw new RuntimeException("batch size exceeds maximum of "+MAX_BATCH_SIZE);
         }
-        return new RxSubscriber<>(batchSize, cb);
+        return new KxSubscriber<>(batchSize, cb);
     }
 
-    public <T> RxPublisher<T> connect( Class<T> eventType, ConnectableActor connectable ) {
-        return (RxPublisher<T>) connect(eventType, connectable, null).await();
+    public <T> KxPublisher<T> connect( Class<T> eventType, ConnectableActor connectable ) {
+        return (KxPublisher<T>) connect(eventType, connectable, null).await();
     }
 
-    public <T> RxPublisher<T> produce( Stream<T> stream ) {
-        return produce(stream.iterator(),DEFAULT_BATCH_SIZE);
+    public <T> KxPublisher<T> produce( Stream<T> stream ) {
+        return produce(DEFAULT_BATCH_SIZE,stream.iterator());
     }
 
-    public <T> RxPublisher<T> produce( Collection<T> collection ) {
-        return produce(collection.iterator(),DEFAULT_BATCH_SIZE);
+    public <T> KxPublisher<T> produce( Collection<T> collection ) {
+        return produce(DEFAULT_BATCH_SIZE, collection.iterator());
     }
 
-    public RxPublisher<Integer> produce( IntStream stream ) {
-        return produce(stream.mapToObj( i->i ).iterator(),DEFAULT_BATCH_SIZE);
+    public KxPublisher<Integer> produce( IntStream stream ) {
+        return produce( DEFAULT_BATCH_SIZE, stream.mapToObj( i->i ).iterator() );
     }
 
-    public RxPublisher<Long> produce( LongStream stream ) {
-        return produce(stream.mapToObj( i->i ).iterator(),DEFAULT_BATCH_SIZE);
+    public KxPublisher<Long> produce( LongStream stream ) {
+        return produce( DEFAULT_BATCH_SIZE, stream.mapToObj( i->i ).iterator());
     }
 
-    public RxPublisher<Double> produce( DoubleStream stream ) {
-        return produce(stream.mapToObj( i->i ).iterator(),DEFAULT_BATCH_SIZE);
+    public KxPublisher<Double> produce( DoubleStream stream ) {
+        return produce(DEFAULT_BATCH_SIZE,stream.mapToObj( i->i ).iterator());
     }
 
-    public <T> RxPublisher<T> produce( Stream<T> stream, int batchSize ) {
-        return produce(stream.iterator(),batchSize);
+    public <T> KxPublisher<T> produce( int batchSize, Stream<T> stream ) {
+        return produce(batchSize,stream.iterator());
     }
 
-    public <T> RxPublisher<T> produce( Iterator<T> iter ) {
-        return produce(iter,DEFAULT_BATCH_SIZE);
+    public <T> KxPublisher<T> produce( Iterator<T> iter ) {
+        return produce(DEFAULT_BATCH_SIZE,iter);
     }
 
-    public <T> RxPublisher<T> produce( Iterator<T> iter, int batchSize ) {
-        RxPublisherActor pub = Actors.AsActor(RxPublisherActor.class, DEFAULTQSIZE);
-        if ( batchSize > ReaktiveStreams.MAX_BATCH_SIZE ) {
-            throw new RuntimeException("batch size exceeds max of "+ReaktiveStreams.MAX_BATCH_SIZE);
+    public <T> KxPublisher<T> produce( int batchSize, Iterator<T> iter ) {
+        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, DEFAULTQSIZE);
+        if ( batchSize > KxReactiveStreams.MAX_BATCH_SIZE ) {
+            throw new RuntimeException("batch size exceeds max of "+ KxReactiveStreams.MAX_BATCH_SIZE);
         }
         pub.setBatchSize(batchSize);
         pub.setThrowExWhenBlocked(true);
@@ -185,24 +185,41 @@ public class ReaktiveStreams extends Actors {
         return pub;
     }
 
+    /**
+     * warning: blocks the calling thread. Need to execute in a separate thread if called
+     * from within a callback
+     */
     public <T> Stream<T> stream( Publisher<T> pub ) {
         return stream(pub, DEFAULT_BATCH_SIZE);
     }
 
+    /**
+     * warning: blocks the calling thread. Need to execute in a separate thread if called
+     * from within a callback
+     */
     public <T> Stream<T> stream( Publisher pub, int batchSize ) {
-        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator(pub, batchSize), Spliterator.IMMUTABLE | Spliterator.NONNULL),false);
+        return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator(pub, batchSize), Spliterator.IMMUTABLE | Spliterator.NONNULL), false);
     }
 
+    /**
+     * warning: blocks the calling thread. Need to execute in a separate thread if called
+     * from within a callback
+     */
     public <T> Iterator<T> iterator( Publisher<T> pub ) {
-        return iterator(pub,DEFAULT_BATCH_SIZE);
+        return iterator(pub, DEFAULT_BATCH_SIZE);
     }
 
+    /**
+     * warning: blocks the calling thread. Need to execute in a separate thread if called
+     * from within a callback
+     */
     public <T> Iterator<T> iterator( Publisher<T> pub, int batchSize ) {
-        if ( batchSize > ReaktiveStreams.MAX_BATCH_SIZE ) {
-            throw new RuntimeException("batch size exceeds max of "+ReaktiveStreams.MAX_BATCH_SIZE);
+        if ( batchSize > KxReactiveStreams.MAX_BATCH_SIZE ) {
+            throw new RuntimeException("batch size exceeds max of "+ KxReactiveStreams.MAX_BATCH_SIZE);
         }
-        RxSubscriber<T> subs = new RxSubscriber<T>(batchSize);
+        KxSubscriber<T> subs = new KxSubscriber<T>(batchSize);
         pub.subscribe(subs);
+
         return subs;
     }
 
@@ -213,7 +230,7 @@ public class ReaktiveStreams extends Actors {
      * @param <T>
      * @return
      */
-    public <T> IPromise<RxPublisher<T>> connect(Class<T> eventType, ConnectableActor connectable, Callback<ActorClientConnector> disconHandler) {
+    public <T> IPromise<KxPublisher<T>> connect(Class<T> eventType, ConnectableActor connectable, Callback<ActorClientConnector> disconHandler) {
         Callback<ActorClientConnector> discon = (acc,err) -> {
             Log.Info(this, "Client disconnected");
             acc.closeClient();
@@ -221,12 +238,12 @@ public class ReaktiveStreams extends Actors {
                 disconHandler.complete(acc,err);
             }
         };
-        return connectable.actorClass(RxPublisherActor.class).inboundQueueSize(DEFAULTQSIZE).connect(discon, remoteref -> {
-            if ( ((RxPublisherActor)remoteref)._callerSideSubscribers != null ) {
-                ((RxPublisherActor)remoteref)._callerSideSubscribers.forEach( subs -> {
+        return connectable.actorClass(KxPublisherActor.class).inboundQueueSize(DEFAULTQSIZE).connect(discon, remoteref -> {
+            if ( ((KxPublisherActor)remoteref)._callerSideSubscribers != null ) {
+                ((KxPublisherActor)remoteref)._callerSideSubscribers.forEach( subs -> {
                     ((Subscriber)subs).onError(new IOException("connection lost"));
                 });
-                ((RxPublisherActor)remoteref)._callerSideSubscribers = null;
+                ((KxPublisherActor)remoteref)._callerSideSubscribers = null;
             }
         });
     }
@@ -244,12 +261,12 @@ public class ReaktiveStreams extends Actors {
         if ( networRxPublisher.getClass().getSimpleName().equals("HttpPublisher") ) {
             throw new RuntimeException("Http long poll cannot be supported. Use WebSockets instead.");
         }
-        if (source instanceof RxPublisherActor == false || source instanceof ActorProxy == false ) {
+        if (source instanceof KxPublisherActor == false || source instanceof ActorProxy == false ) {
             Processor<OUT, OUT> proc = newAsyncProcessor(a -> a); // we need a queue before going to network
             source.subscribe(proc);
             source = proc;
         }
-        ((RxPublisherActor)source).setCloseOnComplete(closeConnectionOnCompleteOrError);
+        ((KxPublisherActor)source).setCloseOnComplete(closeConnectionOnCompleteOrError);
         return networRxPublisher.facade((Actor) source).publish(disconCB);
     }
 
@@ -290,9 +307,9 @@ public class ReaktiveStreams extends Actors {
      * @return
      */
     public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Function<IN, OUT> processingFunction, Scheduler sched, int batchSize) {
-        RxPublisherActor pub = Actors.AsActor(RxPublisherActor.class, sched);
-        if ( batchSize > ReaktiveStreams.MAX_BATCH_SIZE ) {
-            throw new RuntimeException("batch size exceeds max of "+ReaktiveStreams.MAX_BATCH_SIZE);
+        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, sched);
+        if ( batchSize > KxReactiveStreams.MAX_BATCH_SIZE ) {
+            throw new RuntimeException("batch size exceeds max of "+ KxReactiveStreams.MAX_BATCH_SIZE);
         }
         pub.setBatchSize(batchSize);
         pub.setThrowExWhenBlocked(true);
