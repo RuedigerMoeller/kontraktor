@@ -11,15 +11,18 @@ public static void remotingRxToRx() {
     Observable<Integer> range = Observable.range(0, 50_000_000);
     Publisher<Integer> pub = RxReactiveStreams.toPublisher(range);
 
+    // let kontraktor do the remoting work
     KxReactiveStreams.get().asRxPublisher(pub)
         .serve(new TCPNIOPublisher().port(3456));
 
     RateMeasure rm = new RateMeasure("events");
 
+    // client connecting
     KxPublisher<Integer> remoteStream =
         KxReactiveStreams.get()
             .connect(Integer.class, new TCPConnectable().host("localhost").port(3456));
-
+    
+    // back to RxJava (or Java 8 streams ..)
     RxReactiveStreams.toObservable(remoteStream)
         .forEach( i -> rm.count() );
 }
