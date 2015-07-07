@@ -5,6 +5,8 @@ import org.nustaq.kontraktor.reactivestreams.KxPublisher;
 import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
+import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
+import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.util.RateMeasure;
 import org.reactivestreams.Publisher;
 import rx.Observable;
@@ -77,11 +79,28 @@ public class RxJava {
                 .connect(Integer.class, new TCPConnectable().host("localhost").port(3456));
 
         RxReactiveStreams.toObservable(remoteStream)
+            .forEach(i -> rm.count());
+    }
+
+    public static void remotingRxToRxWebSocket() {
+        Observable<Integer> range = Observable.range(0, 50_000_000);
+        Publisher<Integer> pub = RxReactiveStreams.toPublisher(range);
+
+        KxReactiveStreams.get().asRxPublisher(pub)
+            .serve(new WebSocketPublisher().hostName("localhost").port(7777).urlPath("/ws/rx"));
+
+        RateMeasure rm = new RateMeasure("events");
+
+        KxPublisher<Integer> remoteStream =
+            KxReactiveStreams.get()
+                .connect(Integer.class, new WebSocketConnectable().url("ws://localhost:7777/ws/rx"));
+
+        RxReactiveStreams.toObservable(remoteStream)
             .forEach( i -> rm.count() );
     }
 
     public static void main(String[] args) {
-        remotingRxToRx();
+        remotingRxToRxWebSocket();
     }
 
 

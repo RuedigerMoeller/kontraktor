@@ -197,7 +197,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                 scheduler.tryStopThread(this);
             }
             if ( SimpleScheduler.DEBUG_SCHEDULING)
-                Log.Info(this,"dispatcher thread terminated "+getName());
+                Log.Debug(this,"dispatcher thread terminated "+getName());
         } finally {
             activeDispatchers.decrementAndGet();
         }
