@@ -15,6 +15,8 @@ See https://www.gnu.org/licenses/lgpl.txt
 */
 package org.nustaq.kontraktor.reactivestreams;
 
+import org.reactivestreams.Subscription;
+
 /**
  * Created by ruedi on 04/07/15.
  *
@@ -23,7 +25,17 @@ package org.nustaq.kontraktor.reactivestreams;
  */
 public class CancelException extends RuntimeException {
 
-    public static final CancelException Instance = new CancelException();
+    public static final CancelException Instance = new CancelException(null);
+
+    Subscription subs;
+
+    public CancelException(Subscription subs) {
+        this.subs = subs;
+    }
+
+    public Subscription getSubs() {
+        return subs;
+    }
 
     @Override
     public synchronized Throwable fillInStackTrace() {

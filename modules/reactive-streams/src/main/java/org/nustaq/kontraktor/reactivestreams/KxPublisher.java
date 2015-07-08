@@ -19,10 +19,13 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.reactivestreams.impl.KxPublisherActor;
+import org.nustaq.kontraktor.reactivestreams.impl.KxSubscriber;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.serialization.util.FSTUtil;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
+import org.reactivestreams.Subscription;
 
 import java.util.Iterator;
 import java.util.function.Consumer;
@@ -85,20 +88,23 @@ public interface KxPublisher<T> extends Publisher<T> {
         subscribe(KxReactiveStreams.get().subscriber(batchSize, cb));
     }
 
-    @CallerSideMethod default void stream(int batchSize, Consumer<Stream<T>> streamingCode ) {
-        new Thread("Stream Consumer") {
-            @Override
-            public void run() {
-               streamingCode.accept(KxReactiveStreams.get().stream(KxPublisher.this,batchSize));
-            }
-        }.start();
+    @CallerSideMethod default void stream(Consumer<Stream<T>> streamingCode ) {
+        stream( KxReactiveStreams.DEFAULT_BATCH_SIZE,streamingCode);
     }
 
-    @CallerSideMethod default void stream( Consumer<Stream<T>> streamingCode ) {
+    @CallerSideMethod default void stream( int batchSize, Consumer<Stream<T>> streamingCode ) {
         new Thread("Stream Consumer") {
             @Override
             public void run() {
-               streamingCode.accept(KxReactiveStreams.get().stream(KxPublisher.this));
+                try {
+                    Stream<T> stream = KxReactiveStreams.get().stream(KxPublisher.this);
+                    streamingCode.accept(stream);
+                } catch (Throwable ce) {
+                    Subscription subscription = KxSubscriber.subsToCancel.get();
+                    if ( subscription != null )
+                        subscription.cancel();
+                    throw ce;
+                }
             }
         }.start();
     }
@@ -107,18 +113,19 @@ public interface KxPublisher<T> extends Publisher<T> {
         new Thread("Iterator Consumer") {
             @Override
             public void run() {
-               iteratingCode.accept(KxReactiveStreams.get().iterator(KxPublisher.this,batchSize));
+                try {
+                    iteratingCode.accept(KxReactiveStreams.get().iterator(KxPublisher.this,batchSize));
+                } catch (Throwable ce) {
+                    Subscription subscription = KxSubscriber.subsToCancel.get();
+                    subscription.cancel();
+                    throw ce;
+                }
             }
         }.start();
     }
 
     @CallerSideMethod default void iterator( Consumer<Iterator<T>> iteratingCode ) {
-        new Thread("Iterator Consumer") {
-            @Override
-            public void run() {
-               iteratingCode.accept(KxReactiveStreams.get().iterator(KxPublisher.this));
-            }
-        }.start();
+        iterator(KxReactiveStreams.DEFAULT_BATCH_SIZE,iteratingCode);
     }
 
     /**

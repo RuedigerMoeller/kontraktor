@@ -27,6 +27,9 @@ import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 18/06/15.
+ *
+ * Publishes actors on TCP (NIO based)
+ *
  */
 public class TCPNIOPublisher implements ActorPublisher {
 

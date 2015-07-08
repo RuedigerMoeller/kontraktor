@@ -39,6 +39,13 @@ public class Log extends Actor<Log> {
     public static final int ERROR = 3;
 
     public static Log Lg = Actors.AsActor(Log.class,100000);
+
+    /**
+     * @param level = Log.DEBUG | Log.INFO | Log.WARN | Log.ERROR
+     */
+    public static void setLevel( int level ) {
+        Lg.setSeverity(level);
+    }
     public static void Info( Object source, String msg ) {
         Lg.info(source,msg);
     }
@@ -60,19 +67,15 @@ public class Log extends Actor<Log> {
     public static void Warn( Object source, String msg ) {
         Lg.warnLong(source,null,msg);
     }
-
     public static void Warn( Object source, Throwable ex ) {
         Lg.warnLong(source,ex,null);
     }
-
     public static void Error(Object source, String s) {
         Error(source,null,s);
     }
-
     public static void Error(Object source, Throwable th) {
         Error(source,th,null);
     }
-
     public static void Error(Object source, Throwable th, String s) {
         Lg.error(source,th,s);
     }
@@ -147,7 +150,7 @@ public class Log extends Actor<Log> {
     }
 
     @CallerSideMethod public void debug( Object source, String msg ) {
-        self().msg(Thread.currentThread(), INFO, source, null, msg);
+        self().msg(Thread.currentThread(), DEBUG, source, null, msg);
     }
 
     @CallerSideMethod public void info( Object source, String msg ) {

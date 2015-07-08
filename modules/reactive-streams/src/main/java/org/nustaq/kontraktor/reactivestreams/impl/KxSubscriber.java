@@ -24,15 +24,12 @@ public class KxSubscriber<T> implements Subscriber<T>, Serializable, Iterator<T>
     public static BackOffStrategy strat = new BackOffStrategy(100,2,5); // backoff when acting as iterator/stream
 
 
-    static Integer zero = Integer.valueOf(0);
-
     protected long batchSize;
     protected Callback<T> cb;
     protected long credits;
     protected Subscription subs;
     protected boolean autoRequestOnSubs;
-    protected volatile Object complete = 0; // 0 - in operation, "COMPLETE" = complete, else = error
-    protected ConcurrentLinkedQueue<T> buffer;
+    protected ConcurrentLinkedQueue buffer;
 
     /**
      * iterator mode constructor, spawns a thread
@@ -43,7 +40,6 @@ public class KxSubscriber<T> implements Subscriber<T>, Serializable, Iterator<T>
         this.batchSize = batchSize;
         this.autoRequestOnSubs = true;
         credits = 0;
-        complete = zero;
         this.cb = (res,err) -> {
             if ( buffer == null ) {
                 buffer = new ConcurrentLinkedQueue();
@@ -51,9 +47,9 @@ public class KxSubscriber<T> implements Subscriber<T>, Serializable, Iterator<T>
             if ( Actors.isResult(err) ) {
                 buffer.add(res);
             } else if ( Actors.isError(err) ) {
-                complete = err;
+                buffer.add(err);
             } else if ( Actors.isComplete(err) ) {
-                complete = COMPLETE;
+                buffer.add(COMPLETE);
             }
         };
     }
@@ -120,11 +116,13 @@ public class KxSubscriber<T> implements Subscriber<T>, Serializable, Iterator<T>
 
     /////////////////////////////////////// iterator
 
-    T next;
+    Object next;
+    public static ThreadLocal<Subscription> subsToCancel = new ThreadLocal<>();
     @Override
     public boolean hasNext() {
+        subsToCancel.set(subs);
         int count = 0;
-        while ( (buffer == null || buffer.peek() == null) && complete == zero ) {
+        while ( (buffer == null || buffer.peek() == null) ) {
             if (Actor.inside()) {
                 count++;
                 if ( count < 1 )
@@ -139,18 +137,20 @@ public class KxSubscriber<T> implements Subscriber<T>, Serializable, Iterator<T>
                 strat.yield(count++);
             }
         }
-        next = buffer.poll();
-        return complete != COMPLETE;
+        Object poll = buffer.poll();
+        next = poll;
+        return next != COMPLETE && next instanceof Throwable == false;
     }
 
     @Override
     public T next() {
-        if ( complete != zero && complete != COMPLETE ) {
-            if ( complete instanceof Throwable )
-                FSTUtil.<RuntimeException>rethrow((Throwable) complete);
+        if ( next == COMPLETE ) {
+            throw new RuntimeException("no further elements in iterator");
         }
-        if ( complete == COMPLETE )
-            throw new RuntimeException("unexpected iterator state");
-        return next;
+        if ( next instanceof Throwable ) {
+            subs.cancel();
+            FSTUtil.<RuntimeException>rethrow((Throwable) next);
+        }
+        return (T)next;
     }
 }

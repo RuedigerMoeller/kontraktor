@@ -35,10 +35,13 @@ public class EventSink<T> implements KxPublisher<T> {
     protected AtomicLong credits = new AtomicLong(0);
     protected Actor actorSubs;
     protected volatile Subscriber subs;
+    protected volatile boolean canceled = false;
 
     public boolean offer(T event) {
         if ( event == null )
             throw new RuntimeException("event cannot be null");
+        if ( canceled )
+            throw CancelException.Instance;
         if ( ( (actorSubs != null && ! actorSubs.isMailboxPressured()) || actorSubs == null ) &&
              credits.get() > 0 && subs != null ) {
             subs.onNext(event);
@@ -80,6 +83,7 @@ public class EventSink<T> implements KxPublisher<T> {
             @Override
             public void cancel() {
                 subs = null;
+                canceled = true;
             }
         });
     }
