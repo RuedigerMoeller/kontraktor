@@ -3,9 +3,9 @@
 * enables interop of kontraktor with reactive streams
 * leverages Kontraktor's high performance generic remoting to provide Remotable Reactive Streams
 * can be used as a pure remoting bridge, does not require to move existing codebase to Kontraktor
-* optionally maps reactive streams to java 8 streams
+* optionally maps reactive streams to java 8 streams (=> remotable Java 8 streams)
 
-Example of publishing and consuming a RxJava Stream using Kontraktor as a remote bridge.
+Example of publishing and consuming a RxJava Stream using Kontraktor as a remote bridge over WebSockets.
 
 ```java
 public static void remotingRxToRxWebSocket() {
@@ -28,6 +28,7 @@ public static void remotingRxToRxWebSocket() {
 does ~1.3 million events per second over tcp nio. 1.45 million over WebSocket.
 
 example of streaming Java 8 Streams over tcp:
+
 ```java
 public <T> void remoteJava8Streams( Function<MyEvent,T> doStuff ) throws InterruptedException {
     KxReactiveStreams.get()
