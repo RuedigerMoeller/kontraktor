@@ -128,7 +128,7 @@ public class KontraktorStreams {
         initServer();
         Client client = Actors.AsActor(Client.class);
         client.init();
-//        client.goFast().await(60_000);
         client.goFastWithStreamsInActor().await(60_000);
+        client.goFast().await(60_000);
     }
 }
