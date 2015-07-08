@@ -5,7 +5,7 @@
 * can be used as a pure remoting bridge for e.g. RxJava, does not require to move existing codebase to Kontraktor
 * optionally maps reactive streams to java 8 streams
 
-Example of publishing and consuming a RxJava Stream using Kontraktor as a remote brige.
+Example of publishing and consuming a RxJava Stream using Kontraktor as a remote bridge.
 
 ```java
 public static void remotingRxToRx() {
