@@ -2,7 +2,7 @@
 
 * enables interop of kontraktor with reactive streams
 * leverages Kontraktor's high performance generic remoting to provide Remotable Reactive Streams
-* can be used as a pure remoting bridge for e.g. RxJava, does not require to move existing codebase to Kontraktor
+* can be used as a pure remoting bridge, does not require to move existing codebase to Kontraktor
 * optionally maps reactive streams to java 8 streams
 
 Example of publishing and consuming a RxJava Stream using Kontraktor as a remote bridge.
