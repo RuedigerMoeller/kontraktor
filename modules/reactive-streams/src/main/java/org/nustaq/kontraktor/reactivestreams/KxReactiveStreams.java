@@ -80,7 +80,7 @@ public class KxReactiveStreams extends Actors {
      * @param <T>
      * @return
      */
-    public <T> KxPublisher<T> asRxPublisher(Publisher<T> p) {
+    public <T> KxPublisher<T> asKxPublisher(Publisher<T> p) {
         if ( p instanceof KxPublisher)
             return (KxPublisher<T>) p;
         return new KxPublisher<T>() {

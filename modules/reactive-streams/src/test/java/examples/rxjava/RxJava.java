@@ -22,7 +22,7 @@ public class RxJava {
         Publisher<Integer> pub = RxReactiveStreams.toPublisher(range);
 
         RateMeasure rm = new RateMeasure("events");
-        KxReactiveStreams.get().asRxPublisher(pub)
+        KxReactiveStreams.get().asKxPublisher(pub)
             .subscribe((r, e) -> {
                 rm.count();
             });
@@ -32,7 +32,7 @@ public class RxJava {
         Observable<Integer> range = Observable.range(0, 50_000_000);
         Publisher<Integer> pub = RxReactiveStreams.toPublisher(range);
 
-        KxReactiveStreams.get().asRxPublisher(pub)
+        KxReactiveStreams.get().asKxPublisher(pub)
             .serve(new TCPNIOPublisher().port(3456));
 
         RateMeasure rm = new RateMeasure("events");
@@ -47,7 +47,7 @@ public class RxJava {
         Observable<Integer> range = Observable.range(0, 50_000_000);
         Publisher<Integer> pub = RxReactiveStreams.toPublisher(range);
 
-        KxReactiveStreams.get().asRxPublisher(pub)
+        KxReactiveStreams.get().asKxPublisher(pub)
             .serve(new TCPNIOPublisher().port(3456));
 
         RateMeasure rm = new RateMeasure("events");
@@ -69,7 +69,7 @@ public class RxJava {
         Observable<Integer> range = Observable.range(0, 50_000_000);
         Publisher<Integer> pub = RxReactiveStreams.toPublisher(range);
 
-        KxReactiveStreams.get().asRxPublisher(pub)
+        KxReactiveStreams.get().asKxPublisher(pub)
             .serve(new TCPNIOPublisher().port(3456));
 
         RateMeasure rm = new RateMeasure("events");
@@ -86,7 +86,7 @@ public class RxJava {
         Observable<Integer> range = Observable.range(0, 50_000_000);
         Publisher<Integer> pub = RxReactiveStreams.toPublisher(range);
 
-        KxReactiveStreams.get().asRxPublisher(pub)
+        KxReactiveStreams.get().asKxPublisher(pub)
             .serve(new WebSocketPublisher().hostName("localhost").port(7777).urlPath("/ws/rx"));
 
         RateMeasure rm = new RateMeasure("events");
