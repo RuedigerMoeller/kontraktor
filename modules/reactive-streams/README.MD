@@ -13,7 +13,7 @@ public static void remotingRxToRx() {
     Publisher<Integer> pub = RxReactiveStreams.toPublisher(range);
 
     // let kontraktor do the remoting work
-    KxReactiveStreams.get().asRxPublisher(pub)
+    KxReactiveStreams.get().asKxPublisher(pub)
         .serve(new TCPNIOPublisher().port(3456));
 
     RateMeasure rm = new RateMeasure("events");
