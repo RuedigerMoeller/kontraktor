@@ -93,35 +93,57 @@ public interface KxPublisher<T> extends Publisher<T> {
     }
 
     @CallerSideMethod default void stream( int batchSize, Consumer<Stream<T>> streamingCode ) {
-        new Thread("Stream Consumer") {
-            @Override
-            public void run() {
-                try {
-                    Stream<T> stream = KxReactiveStreams.get().stream(KxPublisher.this);
-                    streamingCode.accept(stream);
-                } catch (Throwable ce) {
-                    Subscription subscription = KxSubscriber.subsToCancel.get();
-                    if ( subscription != null )
-                        subscription.cancel();
-                    throw ce;
-                }
+        if ( Actor.inside() ) {
+            try {
+                Stream<T> stream = KxReactiveStreams.get().stream(KxPublisher.this,batchSize);
+                streamingCode.accept(stream);
+            } catch (Throwable ce) {
+                Subscription subscription = KxSubscriber.subsToCancel.get();
+                if ( subscription != null )
+                    subscription.cancel();
+                throw ce;
             }
-        }.start();
+        } else {
+            new Thread("Stream Consumer") {
+                @Override
+                public void run() {
+                    try {
+                        Stream<T> stream = KxReactiveStreams.get().stream(KxPublisher.this,batchSize);
+                        streamingCode.accept(stream);
+                    } catch (Throwable ce) {
+                        Subscription subscription = KxSubscriber.subsToCancel.get();
+                        if ( subscription != null )
+                            subscription.cancel();
+                        throw ce;
+                    }
+                }
+            }.start();
+        }
     }
 
     @CallerSideMethod default void iterator(int batchSize, Consumer<Iterator<T>> iteratingCode ) {
-        new Thread("Iterator Consumer") {
-            @Override
-            public void run() {
-                try {
-                    iteratingCode.accept(KxReactiveStreams.get().iterator(KxPublisher.this,batchSize));
-                } catch (Throwable ce) {
-                    Subscription subscription = KxSubscriber.subsToCancel.get();
-                    subscription.cancel();
-                    throw ce;
-                }
+        if ( Actor.inside() ) {
+            try {
+                iteratingCode.accept(KxReactiveStreams.get().iterator(KxPublisher.this,batchSize));
+            } catch (Throwable ce) {
+                Subscription subscription = KxSubscriber.subsToCancel.get();
+                subscription.cancel();
+                throw ce;
             }
-        }.start();
+        } else {
+            new Thread("Iterator Consumer") {
+                @Override
+                public void run() {
+                    try {
+                        iteratingCode.accept(KxReactiveStreams.get().iterator(KxPublisher.this,batchSize));
+                    } catch (Throwable ce) {
+                        Subscription subscription = KxSubscriber.subsToCancel.get();
+                        subscription.cancel();
+                        throw ce;
+                    }
+                }
+            }.start();
+        }
     }
 
     @CallerSideMethod default void iterator( Consumer<Iterator<T>> iteratingCode ) {

@@ -394,9 +394,9 @@ public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> 
     @Override
     public void stop() {
         if ( isPublished() ) {
-            ConcurrentLinkedQueue<RemoteConnection> connections = getConnections();
-            close();
             if ( closeOnComplete ) {
+                ConcurrentLinkedQueue<RemoteConnection> connections = getConnections();
+                close();
                 for (Iterator<RemoteConnection> iterator = connections.iterator(); iterator.hasNext(); ) {
                     iterator.next().closeNetwork();
                 }

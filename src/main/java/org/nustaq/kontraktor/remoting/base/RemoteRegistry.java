@@ -159,6 +159,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
     public void unpublishActor(Actor act) {
         Integer integer = publishedActorMappingReverse.get(act.getActorRef());
         if ( integer != null ) {
+            Log.Debug(this, ""+act.getClass().getSimpleName()+" unpublished");
             publishedActorMapping.remove(integer);
             publishedActorMappingReverse.remove(act.getActorRef());
             act.__removeRemoteConnection(this);
@@ -302,7 +303,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
             }
             if (targetActor.isStopped() || targetActor.getScheduler() == null ) {
                 Log.Lg.error(this, null, "actor found for key " + read + " is stopped and/or has no scheduler set");
-                receiveCBResult(objSocket, read.getFutureKey(), null, new RuntimeException("Actor has been stopped"));
+                receiveCBResult(objSocket, read.getFutureKey(), null, InternalActorStoppedException.Instance);
                 return true;
             }
             if (remoteCallInterceptor != null && !remoteCallInterceptor.apply(targetActor,read.getMethod())) {
@@ -341,11 +342,18 @@ public abstract class RemoteRegistry implements RemoteConnection {
             }
         } else if (read.getQueue() == read.CBQ) {
             Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
-            if ( publishedCallback == null )
-                throw new RuntimeException("Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent");
-            publishedCallback.complete(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
-            if (!isContinue)
-                removePublishedObject(read.getReceiverKey());
+            if ( publishedCallback == null ) {
+                if ( read.getArgs() != null && read.getArgs().length == 2 && read.getArgs()[1] instanceof InternalActorStoppedException ) {
+                    // FIXME: this might happen frequently as messages are in flight.
+                    // FIXME: need a better way to handle this. Frequently it is not an error.
+                    Log.Warn(this,"call to stopped remote actor");
+                } else
+                    Log.Warn(this,"Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent");
+            } else {
+                publishedCallback.complete(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
+                if (!isContinue)
+                    removePublishedObject(read.getReceiverKey());
+            }
         }
         return createdFutures != null && createdFutures.size() > 0;
     }
@@ -376,6 +384,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         try {
             chan.writeObject(rce);
         } catch (Exception e) {
+            Log.Debug(this,"a connection closed '"+e.getMessage()+"', terminating registry");
             setTerminated(true);
             cleanUp();
         }
