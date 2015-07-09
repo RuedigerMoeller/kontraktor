@@ -11,6 +11,7 @@ import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.RateMeasure;
 
 import java.util.Date;
@@ -30,6 +31,7 @@ public class KontraktorStreams {
         int count = 0;
 
         public void init() {
+            Thread.currentThread().setName("Server Actor");
             counter = new EventSink();
             date = new EventSink();
 
@@ -81,6 +83,11 @@ public class KontraktorStreams {
         Server serv;
         public void init() {
             serv = (Server) new TCPConnectable(Server.class,"localhost", 9876).connect().await();
+            Thread.currentThread().setName("Client Actor");
+        }
+
+        public void test() {
+            System.out.println("TEST");
         }
 
         public IPromise goFast() {
@@ -128,7 +135,12 @@ public class KontraktorStreams {
         initServer();
         Client client = Actors.AsActor(Client.class);
         client.init();
+        Log.setLevel(Log.DEBUG);
+        client.test();
         client.goFastWithStreamsInActor().await(60_000);
+        client.test();
+        System.out.println("pok " + client.isStopped());
+        System.out.println("pok s"+ server.isStopped());
         client.goFast().await(60_000);
     }
 }
