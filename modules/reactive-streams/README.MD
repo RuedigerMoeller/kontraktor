@@ -39,7 +39,7 @@ kontraktor reactive streams contains just a handful of classes.
 
 **`EventSink`** - a starting point of a reactive streams chain providing 'offer' semantics (translates push model to the pull model of reactive streams).
 
-**`KxPublisher`** is a subinterface of the reactive-streams `Publisher` interface. It just adds convenience methods using Java 8's default methods, it does not add a single 'real' interface method to the original interface. One can translate a given `Publisher` implementation (e.g. from RxJava) to a `KxPublisher` calling `KxReactiveStreams.get().asKxPublisher( publisher )`.
+**`KxPublisher`** is a subinterface of the reactive-streams `Publisher` interface. It just adds convenience methods using Java 8's default methods, it does not add a single 'real' interface method to the original `Publisher` interface. One can translate a given `Publisher` implementation (e.g. from RxJava) to a `KxPublisher` calling `KxReactiveStreams.get().asKxPublisher( publisher )`.
 
 **`CancelException`** can be thrown when using Java 8 streams to process a reactive stream. It then translates to a `Subscribtion.cancel` internally. Same applies when consuming a reactive stream using a Kontraktor `Callback`.
 
