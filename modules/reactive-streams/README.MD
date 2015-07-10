@@ -118,7 +118,6 @@ KxReactiveStreams.get().asKxPublisher(pub)
     .async() // caveat: required as RxPublisher is syncronous
     .stream( stream -> {
         stream.forEach(i -> {
-            rm.count();
             count.incrementAndGet();
             // throw CancelException.Instance to cancel subscription
         });
