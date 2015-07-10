@@ -81,6 +81,15 @@ for ( int i = 0; i < MASMSG_NUM; i++ ) {
 
 >**`map()`+`EventSink`** support a single subscriber only.
 
+If a processor maps to 'null' this is treated as event suppression. 
+
+```java
+    KxReactiveStreams.get()
+        .produce(IntStream.range(0, MASMSG_NUM))
+        .map( i -> { return i%1 == 0 ? null : i; } )
+        .subscribe([some reactive-streams subscriber]);
+```
+
 ###Consuming reactive streams
 
 **Intrinsic Kontraktor**
