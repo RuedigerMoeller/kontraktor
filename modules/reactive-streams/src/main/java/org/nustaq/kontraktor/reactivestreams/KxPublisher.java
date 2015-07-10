@@ -89,7 +89,7 @@ public interface KxPublisher<T> extends Publisher<T> {
     }
 
     @CallerSideMethod default void stream(Consumer<Stream<T>> streamingCode ) {
-        stream( KxReactiveStreams.DEFAULT_BATCH_SIZE,streamingCode);
+        stream(KxReactiveStreams.DEFAULT_BATCH_SIZE, streamingCode);
     }
 
     @CallerSideMethod default void stream( int batchSize, Consumer<Stream<T>> streamingCode ) {
@@ -161,6 +161,17 @@ public interface KxPublisher<T> extends Publisher<T> {
         Processor<T, OUT> toutProcessor = KxReactiveStreams.get().newAsyncProcessor(processor);
         subscribe(toutProcessor);
         return (KxPublisher<OUT>) toutProcessor;
+    }
+
+    /**
+     * insert an identity processor (with dedicated thread). Required e.g. if connecting
+     * streams/iterators to a synchronous publisher
+     *
+     * @param <OUT>
+     * @return
+     */
+    @CallerSideMethod default <OUT> KxPublisher<OUT> async() {
+        return (KxPublisher<OUT>)asyncMap(x->x);
     }
 
     /**

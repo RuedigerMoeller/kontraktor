@@ -47,7 +47,7 @@ public class Log extends Actor<Log> {
         Lg.setSeverity(level);
     }
     public static void Info( Object source, String msg ) {
-        Lg.info(source,msg);
+        Lg.info(source, msg);
     }
     public static void Info( Object source, Throwable ex ) {
         Lg.infoLong(source, ex, null);
@@ -57,6 +57,9 @@ public class Log extends Actor<Log> {
     }
     public static void Debug( Object source, String msg ) {
         Lg.debug(source,msg);
+    }
+    public static void Debug( Object source, Throwable th ) {
+        Lg.debug(source,th);
     }
     public static void Info( Object source, Throwable t, String msg ) {
         Lg.infoLong(source,t,msg);
@@ -106,6 +109,7 @@ public class Log extends Actor<Log> {
                 String svString = "I ";
                 switch (sev) {
                     case WARN: svString = "W "; break;
+                    case DEBUG: svString = "D "; break;
                     case ERROR: svString = "E "; break;
                 }
                 System.out.println(svString+formatter.format(new Date())+" : "+ tname +" : "+source+" : "+msg);
@@ -151,6 +155,10 @@ public class Log extends Actor<Log> {
 
     @CallerSideMethod public void debug( Object source, String msg ) {
         self().msg(Thread.currentThread(), DEBUG, source, null, msg);
+    }
+
+    @CallerSideMethod public void debug( Object source, Throwable msg ) {
+        self().msg(Thread.currentThread(), DEBUG, source, msg, null);
     }
 
     @CallerSideMethod public void info( Object source, String msg ) {

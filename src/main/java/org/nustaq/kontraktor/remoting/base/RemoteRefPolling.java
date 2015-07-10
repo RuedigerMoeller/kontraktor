@@ -19,6 +19,7 @@ package org.nustaq.kontraktor.remoting.base;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.util.Log;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -138,7 +139,7 @@ public class RemoteRefPolling implements Runnable {
                         count++;
                     }
                 } catch (Throwable e) {
-                    e.printStackTrace();
+                    Log.Debug(this,e);
                     terminateEntry(i, entry, null, e);
                     i--;
                 }
