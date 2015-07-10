@@ -130,3 +130,13 @@ Assert.assertTrue(finished.await(50000).intValue() == NUM_MSG/4);
 As java 8 streams/iterators use a pure `pull-model`, implicit thread creation and blocking is applied where necessary.
 
 **Note:** it's currently not possible to react to errors sent by a reactive-stream when using a java 8 stream for iteration. The stream will just stop. When using `Iterator` to consume a reactive stream, next will throw the original reactive-streams `onError` exception in case.
+
+###Remoting reactive streams
+
+Kontraktor reactive stream internally executes the full reactive streams backpressure protocol incl. `require(N)`, `onNext()` also when remoted as its basically a local implementation remoted by generic kontraktor remoting.
+
+There are two variants on how to expose streams on a network transport:
+* Simple: publish a single stream on a network transport (tcp, websocket, binary or json). If the stream completes or has an error or is canceled, the underlying connection will close automatically. Downside is that only one stream can be exposed on a transport endpoint this way.
+* Advanced: Create a kontraktor remoted actor/service which then exposes reactive streams using generic kontraktor remoting. This enables more advanced business logic such as entitlement or client specific stream differences.
+
+
