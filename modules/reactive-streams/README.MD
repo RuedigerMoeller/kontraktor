@@ -29,10 +29,18 @@ public static void remotingRxToRxWebSocket() {
 ```
 does ~1.3 million events per second over tcp nio. 1.45 million over WebSocket.
 
-see src/test/examples for more example code
+see https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-streams/src/test/java/examples for more example code.
 
 maven coming soon.
 
 ##Overview
 
-Use cases for Kontraktor-reactive streams
+kontraktor reactive streams come with a handful of classes.
+
+`EventSink` a starting point of a reactive streams chain providing 'offer' semantics (translates a push model to the pull model of rective streams).
+
+`KxPublisher` is a subinterface of the reactive-streams `Publisher` interface. It just adds convenience methods using Java 8's default methods, it does not add a single 'real' interface method to the original interface. One can translate a given `Publisher` implementation (e.g. from RxJava) to a `KxPublisher` calling `KxReactiveStreams.get().asKxPublisher( publisher )`.
+
+`CancelException` can be thrown when using Java 8 streams to process a reactive stream. It then translates to a `Subscribtion.cancel` internally. Same applies when consuming a reactive stream using a Kontraktor `Callback`.
+
+`KxReactiveStreams` a singleton (`KxReactiveStreams.get()`) providing a set of conversion and creation methods. With exception of `connect()` which can be used to connect to a remoted reactive stream, one mostly uses `EventSink` and utility API of `KxPublisher`.
