@@ -1,11 +1,11 @@
 # Reactive Streams.remoted
 
-Implementation of the reactive streams 1.0 spec (http://www.reactive-streams.org/).
+Remotable Implementation of the reactive streams 1.0 spec (http://www.reactive-streams.org/) based on Kontraktor dsitrbuted actors.
 
-* remoting/network bridge for other reactive-streams implementations
+* remoting/network bridge for other reactive-streams implementations (no need to move code base to kontraktor)
 * translate java 8 streams to reactive-streams
 * interoperation of kontraktor actors with other reactive libraries/frameworks
-* build customizable message queues / stream oriented middleware components combining kontraktor remoting and reactive streams
+* build highperformance, customizable message queue / stream oriented middleware components combining the power of kontraktor remoting and reactive streams
 
 Example of publishing and consuming a RxJava Stream using Kontraktor as a remote bridge over WebSockets.
 
