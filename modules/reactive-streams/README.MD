@@ -77,7 +77,7 @@ for ( int i = 0; i < MASMSG_NUM; i++ ) {
         .subscribe([some reactive-streams subscriber]);
 ```
 
->**`asyncMap()** returns a 1:N publisher allowing for an arbitrary number of subscribers. Backpressure will be processed such that the slowest consumer determines throughput for all [more advanced policies to be added in future releases]
+>**`asyncMap(),async()`** create a 1:N publisher allowing for an arbitrary number of subscribers. Backpressure will be processed such that the slowest consumer determines throughput for all [more advanced policies to be added in future releases]
 
 >**`map()`+`EventSink`** support a single subscriber only.
 
