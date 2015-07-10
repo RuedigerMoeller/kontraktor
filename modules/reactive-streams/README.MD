@@ -81,11 +81,13 @@ for ( int i = 0; i < MASMSG_NUM; i++ ) {
 
 **Intrinsic Kontraktor**
 
-Note: As always with Kontraktor, if code runs inside an actor, nonblocking primitives are used internally. If code is executed from plain old java threads, the executing thread gets blocked if necessary.
-
 In addition inside a Kontraktor actor execution context, callbacks/streams/iterator's run inside the same thread, so its unnecessary to care for shared data (see https://github.com/RuedigerMoeller/kontraktor/blob/trunk/modules/reactive-streams/src/test/java/examples/KontraktorStreams.java for more examples).
 
 `reactive-streams.Subscriber` is mapped to kontraktor's `callback()`. One has to check the 'error' object in order to determine wether the event is an error (=onError), complete (=onComplete) or a regular event (=onNext). Reason to map this is the capability of Kontraktor to transparently remote `Callback` instances. 
+
+In general its favourable to use Java 8 streaming for efficient in-process event processing as the java 8 stream pipeline is rich, sophisticated and well performing. It does not make sense to double this functionality in Kontraktor. 
+
+**Note:** As always with Kontraktor, if code runs inside an actor, nonblocking primitives are used internally. If code is executed from plain old java threads, the executing thread gets blocked if necessary.
 
 ```java
 KxReactiveStreams.get().asKxPublisher([reactive-streams publisher])
@@ -105,7 +107,9 @@ KxReactiveStreams.get().asKxPublisher([reactive-streams publisher])
 
 Example on how to consume a RxJava reactive-stream (see https://github.com/ReactiveX/RxJava) with Java 8
 stream API (also possible to make an `Iterator` from a reactive-stream).
+
 ```java
+// a RxJava reactive-streams publisher
 Publisher<Integer> pub = RxReactiveStreams.toPublisher(Observable.range(0, NUM_MSG/4));
 
 AtomicInteger count = new AtomicInteger(0);
@@ -123,3 +127,7 @@ KxReactiveStreams.get().asKxPublisher(pub)
 
 Assert.assertTrue(finished.await(50000).intValue() == NUM_MSG/4);
 ```
+
+As java 8 streams/iterators use a pure `pull-model`, implicit thread creation and blocking is applied where necessary.
+
+**Note:** it's currently not possible to react to errors sent by a reactive-stream when using a java 8 stream for iteration. The stream will just stop. When using `Iterator` to consume a reactive stream, next will throw the original reactive-streams `onError` exception in case.
