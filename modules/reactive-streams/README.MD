@@ -45,7 +45,7 @@ kontraktor reactive streams contains just a handful of classes.
 
 **`KxReactiveStreams`** - a singleton (`KxReactiveStreams.get()`) providing a set of conversion and creation methods. With exception of `connect()` which can be used to connect to a remoted reactive stream, one mostly uses `EventSink` and utility API of `KxPublisher`.
 
-###Publishing Streams
+###Publishing reactive streams
 
 **EventSink**
 
@@ -77,7 +77,7 @@ for ( int i = 0; i < MASMSG_NUM; i++ ) {
         .subscribe([some reactive-streams subscriber]);
 ```
 
-###Consuming reactive Streams
+###Consuming reactive streams
 
 **Intrinsic Kontraktor**
 
