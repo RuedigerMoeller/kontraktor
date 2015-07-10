@@ -1,6 +1,6 @@
 # Reactive Streams.remoted
 
-Remotable Implementation of the reactive streams 1.0 spec (http://www.reactive-streams.org/) based on Kontraktor dsitrbuted actors.
+Remotable Implementation of the reactive streams 1.0 spec (http://www.reactive-streams.org/) based on Kontraktor (distributed) actors.
 
 * remoting/network bridge for other reactive-streams implementations (no need to move code base to kontraktor)
 * translate java 8 streams to reactive-streams
@@ -78,3 +78,48 @@ for ( int i = 0; i < MASMSG_NUM; i++ ) {
 ```
 
 ###Consuming reactive Streams
+
+**Intrinsic Kontraktor**
+
+Note: As always with Kontraktor, if code runs inside an actor, nonblocking primitives are used internally. If code is executed from plain old java threads, the executing thread gets blocked if necessary.
+
+In addition inside a Kontraktor actor execution context, callbacks/streams/iterator's run inside the same thread, so its unnecessary to care for shared data (see https://github.com/RuedigerMoeller/kontraktor/blob/trunk/modules/reactive-streams/src/test/java/examples/KontraktorStreams.java for more examples).
+
+`reactive-streams.Subscriber` is mapped to kontraktor's `callback()`. One has to check the 'error' object in order to determine wether the event is an error (=onError), complete (=onComplete) or a regular event (=onNext). Reason to map this is the capability of Kontraktor to transparently remote `Callback` instances. 
+
+```java
+KxReactiveStreams.get().asKxPublisher([reactive-streams publisher])
+    .subscribe((event, error) -> {
+        if (Actors.isResult(error)) {
+            [processing]
+        } else if ( Actors.isError(error) ) )
+            [error handling]
+        } else { // if ( Actors.isComplete(error)
+            [done]
+            // throw CancelException.Instance to cancel subscription
+        }
+    });
+```
+
+**Instrinsic Java 8**
+
+Example on how to consume a RxJava reactive-stream (see https://github.com/ReactiveX/RxJava) with Java 8
+stream API (also possible to make an `Iterator` from a reactive-stream).
+```java
+Publisher<Integer> pub = RxReactiveStreams.toPublisher(Observable.range(0, NUM_MSG/4));
+
+AtomicInteger count = new AtomicInteger(0);
+Promise<Integer> finished = new Promise<>();
+KxReactiveStreams.get().asKxPublisher(pub)
+    .async() // caveat: required as RxPublisher is syncronous
+    .stream( stream -> {
+        stream.forEach(i -> {
+            rm.count();
+            count.incrementAndGet();
+            // throw CancelException.Instance to cancel subscription
+        });
+        finished.resolve(count.get());
+    });
+
+Assert.assertTrue(finished.await(50000).intValue() == NUM_MSG/4);
+```
