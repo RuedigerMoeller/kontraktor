@@ -44,3 +44,37 @@ kontraktor reactive streams contains just a handful of classes.
 **`CancelException`** can be thrown when using Java 8 streams to process a reactive stream. It then translates to a `Subscribtion.cancel` internally. Same applies when consuming a reactive stream using a Kontraktor `Callback`.
 
 **`KxReactiveStreams`** - a singleton (`KxReactiveStreams.get()`) providing a set of conversion and creation methods. With exception of `connect()` which can be used to connect to a remoted reactive stream, one mostly uses `EventSink` and utility API of `KxPublisher`.
+
+###Publishing Streams
+
+**EventSink**
+
+'offer' style starting point. Supports a single subscriber. Implements `KxPublisher` so supports various `subscribe` methods, `map` (synchronous), `asyncMap` (uses separate thread) and `serve(network connector)`
+
+```java
+EventSink<Integer> eventSink = new EventSink<Integer>();
+
+eventSink
+    .map(i -> i * i)
+    .asyncMap(i -> "" + i)
+    .subscribe( [some reactive-streams subscriber] );
+    
+// feeding data:
+for ( int i = 0; i < MASMSG_NUM; i++ ) {
+    while( ! eventSink.offer(i) ) {
+        Thread.yield();
+    }
+}
+```
+
+**Intrinsic Java 8**
+
+`produce()` is available for collections, iterators and java 8 streams.
+
+```java
+    KxReactiveStreams.get()
+        .produce(IntStream.range(0, MASMSG_NUM))
+        .subscribe([some reactive-streams subscriber]);
+```
+
+###Consuming reactive Streams
