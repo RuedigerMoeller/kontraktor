@@ -6,3 +6,6 @@ as an embedded webserver (Red Hats Undertow) + a javascript client lib.
 See main kontraktor documentation.
 
 Separated to avoid unnecessary dependencies if only using TCP based remoting.
+
+Maven:
+http://ruedigermoeller.github.io/kontraktor/#maven
