@@ -35,7 +35,7 @@ maven coming soon.
 
 ##Overview
 
-kontraktor reactive streams come with a handful of classes.
+kontraktor reactive streams contains just a handful of classes.
 
 `EventSink` a starting point of a reactive streams chain providing 'offer' semantics (translates a push model to the pull model of rective streams).
 
