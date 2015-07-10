@@ -77,6 +77,10 @@ for ( int i = 0; i < MASMSG_NUM; i++ ) {
         .subscribe([some reactive-streams subscriber]);
 ```
 
+>**`asyncMap()` returns a 1:N publisher allowing for an arbitrary number of subscribers. Backpressure will be processed such that the slowest consumer determines throughput for all [more advanced policies to be added in future releases]**
+
+>**`map()`+`EventSink` support a single subscriber only.
+
 ###Consuming reactive streams
 
 **Intrinsic Kontraktor**
@@ -137,6 +141,6 @@ Kontraktor reactive stream internally executes the full reactive streams backpre
 
 There are two variants on how to expose streams on a network transport:
 * Simple: publish a single stream on a network transport (tcp, websocket, binary or json). If the stream completes/has error / is canceled, the underlying connection will close automatically. Downside is that only one stream can be exposed on a transport endpoint this way.
-* Advanced: Create a kontraktor remoted actor/service which then exposes reactive streams using generic kontraktor remoting. This enables more advanced business logic such as entitlement or client specific stream differences.
+* Advanced: Create a kontraktor remoted actor/service which then exposes reactive streams using generic kontraktor remoting. This enables more advanced logic such as entitlement or client specific stream differences. In addition its possible to multiplex an arbitrary amount of reactive streams to N clients from a single network address.
 
 
