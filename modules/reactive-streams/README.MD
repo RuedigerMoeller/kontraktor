@@ -49,14 +49,14 @@ kontraktor reactive streams contains just a handful of classes.
 
 **EventSink**
 
-'offer' style starting point. Supports a single subscriber. Implements `KxPublisher` so supports various `subscribe` methods, `map` (synchronous), `asyncMap` (uses separate thread) and `serve(network connector)`
+'offer' style starting point. Supports a single subscriber. Implements `KxPublisher` so supports various `subscribe` methods, `syncMap` (synchronous), `map` (uses separate thread) and `serve(network connector)`
 
 ```java
 EventSink<Integer> eventSink = new EventSink<Integer>();
 
 eventSink
-    .map(i -> i * i)
-    .asyncMap(i -> "" + i)
+    .syncMap(i -> i * i)
+    .map(i -> "" + i)
     .subscribe( [some reactive-streams subscriber] );
     
 // feeding data:
@@ -77,16 +77,16 @@ for ( int i = 0; i < MASMSG_NUM; i++ ) {
         .subscribe([some reactive-streams subscriber]);
 ```
 
->**`asyncMap(),async()`** create a 1:N publisher allowing for an arbitrary number of subscribers. Backpressure will be processed such that the slowest consumer determines throughput for all [more advanced policies to be added in future releases]
+>**`map(),async()`** create a 1:N publisher allowing for an arbitrary number of subscribers. Backpressure will be processed such that the slowest consumer determines throughput for all [more advanced policies to be added in future releases]
 
->**`map()`+`EventSink`** support a single subscriber only.
+>**`syncMap()`+`EventSink`** support a single subscriber only.
 
 If a processor maps to 'null' this is treated as event suppression. 
 
 ```java
     KxReactiveStreams.get()
         .produce(IntStream.range(0, MASMSG_NUM))
-        .map( i -> { return i%1 == 0 ? null : i; } )
+        .syncMap( i -> { return i%1 == 0 ? null : i; } )
         .subscribe([some reactive-streams subscriber]);
 ```
 
