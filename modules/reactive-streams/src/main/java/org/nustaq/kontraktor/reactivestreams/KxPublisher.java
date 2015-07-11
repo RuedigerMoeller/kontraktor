@@ -151,7 +151,7 @@ public interface KxPublisher<T> extends Publisher<T> {
     }
 
     /**
-     * insert an async processor (with dedicated thread)
+     * insert an async processor (with dedicated thread, multiple subscribers)
      *
      * @param processor
      * @param <OUT>
@@ -165,7 +165,7 @@ public interface KxPublisher<T> extends Publisher<T> {
 
     /**
      * insert an identity processor (with dedicated thread). Required e.g. if connecting
-     * streams/iterators to a synchronous publisher
+     * streams/iterators to a synchronous publisher.
      *
      * @param <OUT>
      * @return
@@ -174,8 +174,22 @@ public interface KxPublisher<T> extends Publisher<T> {
         return (KxPublisher<OUT>)asyncMap(x->x);
     }
 
+    @CallerSideMethod default <OUT> KxPublisher<OUT> lossy() {
+        return (KxPublisher<OUT>)lossyMap(x -> x);
+    }
+
+    @CallerSideMethod default <OUT> KxPublisher<OUT> lossyMap(Function<T,OUT> processor) {
+        return lossyMap(processor, KxReactiveStreams.DEFAULT_BATCH_SIZE);
+    }
+
+    @CallerSideMethod default <OUT> KxPublisher<OUT> lossyMap(Function<T,OUT> processor, int batchSize) {
+        Processor<T, OUT> toutProcessor = KxReactiveStreams.get().newLossyProcessor(processor, batchSize);
+        subscribe(toutProcessor);
+        return (KxPublisher<OUT>) toutProcessor;
+    }
+
     /**
-     * insert an async processor (with dedicated thread)
+     * insert an async processor (with dedicated thread, multiple subscribers)
      *
      * @param processor
      * @param batchSize

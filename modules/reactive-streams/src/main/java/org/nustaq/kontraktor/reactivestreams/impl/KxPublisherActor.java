@@ -52,6 +52,7 @@ public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> 
     protected boolean isIteratorBased = false;
     private boolean closeOnComplete = false;
     private Object actorServer;
+    private boolean lossy = false;
 
     public void init(Function<IN, OUT> processor) {
         this.pending = new ArrayDeque<>();
@@ -256,57 +257,76 @@ public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> 
             return;
         }
 
-        long minCredits = calcMinCredits();
-
-        if ( minCredits <= 0 ) {
-            pending.addFirst(msg);
-            return;
-        }
-
-        List toRemove = null;
-        if ( pending.size() > 0 ) {
-            pending.addFirst(msg);
-            toRemove = forwardPending(minCredits, toRemove);
-        } else {
+        if ( lossy ) {
+            List toRemove = null;
             for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
                 Entry<Integer, SubscriberEntry> next = iterator.next();
                 SubscriberEntry entry = next.getValue();
-                try {
-                    entry.onNext(msg);
-                } catch (Throwable th) {
-                    if ( toRemove == null ) {
-                        toRemove = new ArrayList();
+                if (entry.getCredits() > 0) {
+                    try {
+                        entry.onNext(msg);
+                    } catch (Throwable th) {
+                        if ( toRemove == null ) {
+                            toRemove = new ArrayList();
+                        }
+                        toRemove.add(entry);
                     }
-                    toRemove.add(entry);
                 }
             }
-            minCredits--;
-        }
-        if ( toRemove != null ) {
-            removeSubscribers(toRemove);
-        }
-        if ( subscribers.size() > 0 ) {
-            emitRequestNext();
-        } else {
-            if ( openRequested > 0 || pending.size() > 0 ) {
-                Log.Info(this, "no subscribers, deleting "+pending.size()+" messages");
-                pending.clear();
+            if ( toRemove != null ) {
+                removeSubscribers(toRemove);
             }
-            openRequested = 0;
+            if ( subscribers.size() > 0 ) {
+                emitRequestNext();
+            }
+        } else {
+            long minCredits = calcMinCredits();
+
+            if ( minCredits <= 0 ) {
+                pending.addFirst(msg);
+                return;
+            }
+            List toRemove = null;
+            if ( pending.size() > 0 ) {
+                pending.addFirst(msg);
+                toRemove = forwardPending(minCredits, toRemove);
+            } else {
+                for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
+                    Entry<Integer, SubscriberEntry> next = iterator.next();
+                    SubscriberEntry entry = next.getValue();
+                    try {
+                        entry.onNext(msg);
+                    } catch (Throwable th) {
+                        if ( toRemove == null ) {
+                            toRemove = new ArrayList();
+                        }
+                        toRemove.add(entry);
+                    }
+                }
+                minCredits--;
+            }
+            if ( toRemove != null ) {
+                removeSubscribers(toRemove);
+            }
+            if ( subscribers.size() > 0 ) {
+                emitRequestNext();
+            } else {
+                if ( openRequested > 0 || pending.size() > 0 ) {
+                    Log.Info(this, "no subscribers, deleting "+pending.size()+" messages");
+                    pending.clear();
+                }
+                openRequested = 0;
+            }
         }
     }
 
     protected long calcMinCredits() {
         long minCredits = Long.MAX_VALUE;
-//        SubscriberEntry minEntry = null;
         for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
             Entry<Integer, SubscriberEntry> next = iterator.next();
             SubscriberEntry entry = next.getValue();
-//            if ( minEntry == null )
-//                minEntry = entry;
             if ( minCredits > entry.getCredits() ) {
                 minCredits = entry.getCredits();
-//                minEntry = entry;
             }
         }
         return minCredits;
@@ -414,6 +434,10 @@ public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> 
         this.closeOnComplete = closeOnComplete;
     }
 
+
+    public void setLossy(boolean lossy) {
+        this.lossy = lossy;
+    }
 
     protected static class KSubscription implements Subscription, Serializable {
 

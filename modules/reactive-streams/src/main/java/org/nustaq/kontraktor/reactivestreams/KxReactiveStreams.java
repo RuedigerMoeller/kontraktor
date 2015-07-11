@@ -284,7 +284,9 @@ public class KxReactiveStreams extends Actors {
 
     /**
      *
-     * create async processor. Usually not called directly (see EventSink+RxPublisher)
+     * create async processor. Usually not called directly (see EventSink+RxPublisher).
+     * the resulting processor is Publisher allowing for multiple subscribers, having a
+     * slowest-subscriber-dominates policy.
      *
      * @param processingFunction
      * @param batchSize
@@ -329,6 +331,18 @@ public class KxReactiveStreams extends Actors {
     public <IN,OUT> Processor<IN,OUT> newSyncProcessor(Function<IN, OUT> processingFunction) {
         SyncProcessor<IN, OUT> inoutSyncProcessor = new SyncProcessor<>(DEFAULT_BATCH_SIZE, processingFunction);
         return inoutSyncProcessor;
+    }
+
+    public <T, OUT> Processor<T, OUT> newLossyProcessor(Function<T, OUT> processingFunction, int batchSize) {
+        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, new SimpleScheduler(DEFAULTQSIZE));
+        if ( batchSize > KxReactiveStreams.MAX_BATCH_SIZE ) {
+            throw new RuntimeException("batch size exceeds max of "+ KxReactiveStreams.MAX_BATCH_SIZE);
+        }
+        pub.setBatchSize(batchSize);
+        pub.setThrowExWhenBlocked(true);
+        pub.setLossy(true);
+        pub.init(processingFunction);
+        return pub;
     }
 
 }

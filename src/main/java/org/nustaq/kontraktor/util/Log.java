@@ -59,7 +59,7 @@ public class Log extends Actor<Log> {
         Lg.debug(source,msg);
     }
     public static void Debug( Object source, Throwable th ) {
-        Lg.debug(source,th);
+        Lg.debugLong(source, th, null);
     }
     public static void Info( Object source, Throwable t, String msg ) {
         Lg.infoLong(source,t,msg);
@@ -157,8 +157,8 @@ public class Log extends Actor<Log> {
         self().msg(Thread.currentThread(), DEBUG, source, null, msg);
     }
 
-    @CallerSideMethod public void debug( Object source, Throwable msg ) {
-        self().msg(Thread.currentThread(), DEBUG, source, msg, null);
+    @CallerSideMethod public void debugLong( Object source, Throwable th, String msg ) {
+        self().msg(Thread.currentThread(), DEBUG, source, th, msg);
     }
 
     @CallerSideMethod public void info( Object source, String msg ) {
