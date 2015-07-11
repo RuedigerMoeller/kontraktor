@@ -23,11 +23,11 @@ public class SimpleClient {
             });
 
         KxReactiveStreams.get()
-            .connect( Long.class, new WebSocketConnectable().url("ws://localhost:8080/ws/ms") )
+            .connect( Long.class, new WebSocketConnectable().url("ws://localhost:8080/ws/minutes") )
             .async()
             .subscribe( (time,err) -> {
                 if ( Actors.isResult(err) ) {
-                    System.out.println("ms:"+time);
+                    System.out.println("MINUTE:"+time);
                 } else {
                     System.out.println("stream 'ms' has closed");
                 }

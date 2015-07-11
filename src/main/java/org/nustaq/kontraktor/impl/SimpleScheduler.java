@@ -191,6 +191,11 @@ public class SimpleScheduler implements Scheduler {
     public void threadStopped(DispatcherThread th) {
     }
 
+    public void setKeepAlive(boolean b) {
+        if ( myThread != null )
+            myThread.setAutoShutDown(b);
+    }
+
     class CallbackInvokeHandler implements InvocationHandler {
 
         final Object target;

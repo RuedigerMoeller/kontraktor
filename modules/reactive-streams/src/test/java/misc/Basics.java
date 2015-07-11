@@ -41,10 +41,10 @@ public class Basics {
 
         RateMeasure ms = new RateMeasure("rate");
         eventSink
-            .map(i -> i * i)
-            .asyncMap(i -> "" + i)
-            .map( s -> s.substring(0, s.length() / 2))
-            .asyncMap(s -> s.length())
+            .syncMap(i -> i * i)
+            .map(i -> "" + i)
+            .syncMap(s -> s.substring(0, s.length() / 2))
+            .map(s -> s.length())
             .subscribe((len, err) -> {
                 ms.count();
                 if (len != null) { // complete signal
@@ -91,10 +91,10 @@ public class Basics {
 
         RateMeasure ms = new RateMeasure("rate");
         eventSink
-            .map(i -> i * i)
-            .asyncMap(i -> "" + i)
-            .map( s -> s.substring(0, s.length() / 2))
-            .asyncMap(s -> s.length())
+            .syncMap(i -> i * i)
+            .map(i -> "" + i)
+            .syncMap(s -> s.substring(0, s.length() / 2))
+            .map(s -> s.length())
             .subscribe((len, err) -> {
                 ms.count();
                 if (len != null) { // complete signal
@@ -137,10 +137,10 @@ public class Basics {
 
         RateMeasure ms = new RateMeasure("rate");
         KxReactiveStreams.get().produce(IntStream.range(0, MASMSG_NUM))
-            .map(i -> i * i)
-            .asyncMap(i -> "" + i)
-            .map( s -> s.substring(0, s.length() / 2))
-            .asyncMap(s -> s.length())
+            .syncMap(i -> i * i)
+            .map(i -> "" + i)
+            .syncMap(s -> s.substring(0, s.length() / 2))
+            .map(s -> s.length())
             .subscribe((len, err) -> {
                 ms.count();
                 if (len != null) { // complete signal
@@ -171,10 +171,10 @@ public class Basics {
         AtomicLong cnt = new AtomicLong(0);
         KxReactiveStreams.get()
             .produce(IntStream.range(0, MASMSG_NUM))
-            .map(i -> i * i)
-            .asyncMap(i -> "" + i)
-            .map(s -> s.substring(0, s.length() / 2))
-            .asyncMap(s -> s.length())
+            .syncMap(i -> i * i)
+            .map(i -> "" + i)
+            .syncMap(s -> s.substring(0, s.length() / 2))
+            .map(s -> s.length())
             .stream( stream -> {
                 long count = stream.count();
                 System.out.println("element count: " + count);

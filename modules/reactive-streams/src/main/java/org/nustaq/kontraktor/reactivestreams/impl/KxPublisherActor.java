@@ -29,7 +29,7 @@ import org.reactivestreams.Subscription;
 import java.io.Serializable;
 import java.util.*;
 import java.util.Map.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.*;
 import java.util.function.Function;
 
 /**
@@ -67,23 +67,31 @@ public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> 
     public void initFromIterator(Iterator<IN> iterator) {
         this.pending = new ArrayDeque<>();
         isIteratorBased = true;
+        // in case iterator is blocking, need a dedicated thread ..
+        Executor iteratorThread = new ThreadPoolExecutor(0, 1,
+                                    10L, TimeUnit.MILLISECONDS,
+                                    new LinkedBlockingQueue<Runnable>());
         producer = new Subscription() {
             boolean complete = false;
             @Override
-            public void request(long n) {
-                if ( complete )
-                    return;
-                try {
-                    while ( iterator.hasNext() && n-- > 0 ) {
-                        self().onNext(iterator.next());
+            public void request(long outern) {
+                iteratorThread.execute(() -> {
+                    if (complete) {
+                        return;
                     }
-                    if ( ! iterator.hasNext() ) {
-                        complete = true;
-                        self().onComplete();
+                    long n = outern;
+                    try {
+                        while (iterator.hasNext() && n-- > 0) {
+                            self().onNext(iterator.next());
+                        }
+                        if (!iterator.hasNext()) {
+                            complete = true;
+                            self().onComplete();
+                        }
+                    } catch (Throwable t) {
+                        self().onError(t);
                     }
-                } catch (Throwable t) {
-                    self().onError(t);
-                }
+                });
             }
 
             @Override
@@ -235,6 +243,8 @@ public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> 
             OUT apply = processor.apply(in);
             if ( apply != null ) {
                 forwardMessage(apply);
+            } else {
+                emitRequestNext();
             }
         } catch (Throwable err) {
             err.printStackTrace();

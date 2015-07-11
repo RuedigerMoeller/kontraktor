@@ -75,7 +75,6 @@ public class RemoteRefPolling implements Runnable {
 
     boolean loopStarted = false;
     boolean underway = false;
-    static volatile long lastReport = System.currentTimeMillis();
     static AtomicInteger scansPersec = new AtomicInteger(0);
     Thread pollThread;
 
@@ -86,11 +85,6 @@ public class RemoteRefPolling implements Runnable {
             return;
         underway = true;
         try {
-//            boolean pressured = Actor.current().isMailboxPressured() || Actor.current().isCallbackQPressured();
-//            if ( pressured ) {
-//                System.out.println("PRESSURE");
-//            }
-
             int count = 1;
             while( count > 0 ) {
                 count = onePoll();
@@ -101,14 +95,14 @@ public class RemoteRefPolling implements Runnable {
                     else {
                         if ( remoteRefCounter == 0 ) // no remote actors registered
                         {
-                            Actor.current().delayed(500, this); // backoff massively
+                            Actor.current().delayed(100, this); // backoff massively
                         } else {
                             Actor.current().delayed(1, this); // backoff a bit (remoteactors present, no messages)
                         }
                     }
                 } else {
                     // no schedule entries (== no clients)
-                    Actor.current().delayed(500, this );
+                    Actor.current().delayed(100, this );
                 }
             }
         } finally {

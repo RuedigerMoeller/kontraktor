@@ -40,7 +40,7 @@ public class KxStreamServer extends Actor<KxStreamServer> {
         timeSink = new EventSink<Long>();
         // EventSink is *not* remoteable,
         // need to create an remoteable async publisher (is actor, so remoteable)
-        streams.put("TIME",new Pair(timeSink.asyncMap( l -> l),true));
+        streams.put("TIME",new Pair(timeSink.map(l -> l),true));
         tick();
     }
 
@@ -65,7 +65,7 @@ public class KxStreamServer extends Actor<KxStreamServer> {
             return new Promise<>((KxPublisher<T>) KxReactiveStreams.get().produce(IntStream.range(start,end)));
         }
         if ( "STRINGS".equals(streamId) ) {
-            return new Promise<>((KxPublisher<T>) KxReactiveStreams.get().produce(IntStream.range(start,end)).map( i -> ""+i ));
+            return new Promise<>((KxPublisher<T>) KxReactiveStreams.get().produce(IntStream.range(start,end)).syncMap(i -> "" + i));
         }
         return reject("unknown stream");
     }

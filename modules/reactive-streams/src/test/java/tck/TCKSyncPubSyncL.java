@@ -12,6 +12,6 @@ public class TCKSyncPubSyncL extends TCKSyncPubEventSink {
 
     @Override
     public Publisher<Long> createPublisher(long elements) {
-        return ((EventSink)super.createPublisher(elements)).map( l -> l );
+        return ((EventSink)super.createPublisher(elements)).syncMap(l -> l);
     }
 }

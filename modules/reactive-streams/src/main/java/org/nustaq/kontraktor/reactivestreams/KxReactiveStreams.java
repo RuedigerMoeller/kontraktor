@@ -63,13 +63,41 @@ public class KxReactiveStreams extends Actors {
 
     public static int REQU_NEXT_DIVISOR = 1;
 
-    protected static KxReactiveStreams instance = new KxReactiveStreams();
+    protected static KxReactiveStreams instance = new KxReactiveStreams(true);
 
     public static KxReactiveStreams get() {
         return instance;
     }
 
     ////////// singleton instance methods ////////////////////////////////////////////////
+
+    /**
+     * each KxReactiveStreams instance has a dedicated thread which is used for all its processors.
+     * Its recommended to use the singleton for normal use cases. Only start using multiple KxReactiveStreams
+     * instances if you need to scale out for throughput.
+     *
+     * Note that frequently increase of cache misses can lead to an effective degrade of throughput, so you
+     * need to choose wisely which part of your processing pipeling shares a thread.
+     *
+     * Because of Kontraktor's explicit scheduling model, load balancing cannot be done automatically currently.
+     *
+     */
+    public KxReactiveStreams() {
+        this( false );
+    }
+
+    public KxReactiveStreams(boolean keepSchedulerAlive) {
+        scheduler = new SimpleScheduler(DEFAULTQSIZE, keepSchedulerAlive);
+    }
+
+    /**
+     * tell the execution thread to stop as soon no actors are scheduled on it.
+     */
+    public void terminateScheduler() {
+        scheduler.setKeepAlive(false);
+    }
+
+    SimpleScheduler scheduler;
 
     /**
      * interop, obtain a RxPublisher from an arbitrary rxstreams publisher.
@@ -175,7 +203,7 @@ public class KxReactiveStreams extends Actors {
     }
 
     public <T> KxPublisher<T> produce( int batchSize, Iterator<T> iter ) {
-        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, DEFAULTQSIZE);
+        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, scheduler);
         if ( batchSize > KxReactiveStreams.MAX_BATCH_SIZE ) {
             throw new RuntimeException("batch size exceeds max of "+ KxReactiveStreams.MAX_BATCH_SIZE);
         }
@@ -279,13 +307,13 @@ public class KxReactiveStreams extends Actors {
      * @return
      */
     public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Function<IN, OUT> processingFunction) {
-        return newAsyncProcessor(processingFunction, new SimpleScheduler(DEFAULTQSIZE), DEFAULT_BATCH_SIZE);
+        return newAsyncProcessor(processingFunction, scheduler, DEFAULT_BATCH_SIZE);
     }
 
     /**
      *
      * create async processor. Usually not called directly (see EventSink+RxPublisher).
-     * the resulting processor is Publisher allowing for multiple subscribers, having a
+     * The resulting processor is Publisher allowing for multiple subscribers, having a
      * slowest-subscriber-dominates policy.
      *
      * @param processingFunction
@@ -295,11 +323,13 @@ public class KxReactiveStreams extends Actors {
      * @return
      */
     public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Function<IN, OUT> processingFunction, int batchSize) {
-        return newAsyncProcessor(processingFunction, new SimpleScheduler(DEFAULTQSIZE), batchSize);
+        return newAsyncProcessor(processingFunction, scheduler, batchSize);
     }
 
     /**
      * create async processor. Usually not called directly (see EventSink+RxPublisher)
+     * The resulting processor is Publisher allowing for multiple subscribers, having a
+     * slowest-subscriber-dominates policy.
      *
      * @param processingFunction
      * @param sched
@@ -322,6 +352,10 @@ public class KxReactiveStreams extends Actors {
     /**
      *
      * create sync processor. Usually not called directly (see EventSink+RxPublisher)
+     * does not support dropping elements by returning null from processor, does not support
+     * multiple subscribers.
+     *
+     * Prefer map() unless you are aware of the implications.
      *
      * @param processingFunction
      * @param <IN>
@@ -334,7 +368,7 @@ public class KxReactiveStreams extends Actors {
     }
 
     public <T, OUT> Processor<T, OUT> newLossyProcessor(Function<T, OUT> processingFunction, int batchSize) {
-        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, new SimpleScheduler(DEFAULTQSIZE));
+        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, scheduler);
         if ( batchSize > KxReactiveStreams.MAX_BATCH_SIZE ) {
             throw new RuntimeException("batch size exceeds max of "+ KxReactiveStreams.MAX_BATCH_SIZE);
         }

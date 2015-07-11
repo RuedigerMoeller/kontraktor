@@ -12,7 +12,6 @@ import org.nustaq.kontraktor.reactivestreams.KxPublisher;
 import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
-import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.RateMeasure;
 
@@ -39,8 +38,8 @@ public class KontraktorStreams {
             counter = new EventSink();
             date = new EventSink();
 
-            counterPub = counter.asyncMap( x -> x );
-            datePub = date.asyncMap( x -> x );
+            counterPub = counter.map(x -> x);
+            datePub = date.map(x -> x);
 
             doTime();
             doCounter();
@@ -71,9 +70,9 @@ public class KontraktorStreams {
         }
 
         public IPromise<KxPublisher<String>> getCounterAsString() {
-            // .map is not remotable
-            // (actually eventSink.map( i -> string ).asyncMap(x->x) should be used here for efficiency)
-            return new Promise<>(counterPub.asyncMap( i -> "string:"+i));
+            // .syncMap is not remotable
+            // (actually eventSink.syncMap( i -> string ).map(x->x) should be used here for efficiency)
+            return new Promise<>(counterPub.map(i -> "string:" + i));
         }
 
         public IPromise<KxPublisher<Integer>> countFast( int max ) {

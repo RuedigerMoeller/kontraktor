@@ -35,8 +35,8 @@ public class TCPNIOKStreamsTest {
         EventSink<String> stringSink = new EventSink<>();
 
         stringSink
-//            .map(in -> in + " " + in)
-            .map(in -> in.length())
+//            .syncMap(in -> in + " " + in)
+            .syncMap(in -> in.length())
             .subscribe( (str, err) -> {
                 if (isErrorOrComplete(err)) {
                   System.out.println("complete");
@@ -132,8 +132,8 @@ public class TCPNIOKStreamsTest {
         KxPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
-            .map(string -> string.length())
-            .map(number -> number > 10 ? number : number )
+            .syncMap(string -> string.length())
+            .syncMap(number -> number > 10 ? number : number)
             .subscribe(
                   (str, err) -> {
                       if (isErrorOrComplete(err)) {
@@ -159,8 +159,8 @@ public class TCPNIOKStreamsTest {
         KxPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
-            .map(string -> string.length())
-            .map(number -> number > 10 ? number : number )
+            .syncMap(string -> string.length())
+            .syncMap(number -> number > 10 ? number : number)
             .subscribe(
                 (str, err) -> {
                     if (isErrorOrComplete(err)) {
@@ -194,8 +194,8 @@ public class TCPNIOKStreamsTest {
         KxPublisher<String> remote = get().connect(String.class, getRemoteConnector(), discon).await();
         RateMeasure ms = new RateMeasure("event rate");
         remote
-            .asyncMap(string -> string.length())
-            .asyncMap(number -> number > 10 ? number : number)
+            .map(string -> string.length())
+            .map(number -> number > 10 ? number : number)
             .subscribe(
                 (str, err) -> {
                     if (isComplete(err)) {

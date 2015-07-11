@@ -2,8 +2,6 @@ package tck;
 
 import org.nustaq.kontraktor.reactivestreams.EventSink;
 import org.reactivestreams.Publisher;
-import org.reactivestreams.tck.PublisherVerification;
-import org.reactivestreams.tck.TestEnvironment;
 import org.testng.annotations.Test;
 
 /**
@@ -18,7 +16,7 @@ public class TCKAsyncPubActor extends TCKAsyncPubTestEventSink {
 
     @Override
     public Publisher<Long> createPublisher(long elements) {
-        return ((EventSink<Long>)super.createPublisher(elements)).asyncMap( l -> l );
+        return ((EventSink<Long>)super.createPublisher(elements)).map(l -> l);
     }
 
 }

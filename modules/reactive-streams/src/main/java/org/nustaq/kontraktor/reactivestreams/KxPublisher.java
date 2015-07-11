@@ -22,7 +22,6 @@ import org.nustaq.kontraktor.reactivestreams.impl.KxPublisherActor;
 import org.nustaq.kontraktor.reactivestreams.impl.KxSubscriber;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
-import org.nustaq.serialization.util.FSTUtil;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
@@ -157,7 +156,7 @@ public interface KxPublisher<T> extends Publisher<T> {
      * @param <OUT>
      * @return
      */
-    @CallerSideMethod default <OUT> KxPublisher<OUT> asyncMap(Function<T,OUT> processor) {
+    @CallerSideMethod default <OUT> KxPublisher<OUT> map(Function<T, OUT> processor) {
         Processor<T, OUT> toutProcessor = KxReactiveStreams.get().newAsyncProcessor(processor);
         subscribe(toutProcessor);
         return (KxPublisher<OUT>) toutProcessor;
@@ -171,7 +170,7 @@ public interface KxPublisher<T> extends Publisher<T> {
      * @return
      */
     @CallerSideMethod default <OUT> KxPublisher<OUT> async() {
-        return (KxPublisher<OUT>)asyncMap(x->x);
+        return (KxPublisher<OUT>) map(x -> x);
     }
 
     @CallerSideMethod default <OUT> KxPublisher<OUT> lossy() {
@@ -196,7 +195,7 @@ public interface KxPublisher<T> extends Publisher<T> {
      * @param <OUT>
      * @return
      */
-    @CallerSideMethod default <OUT> KxPublisher<OUT> asyncMap( Function<T,OUT> processor, int batchSize ) {
+    @CallerSideMethod default <OUT> KxPublisher<OUT> map(Function<T, OUT> processor, int batchSize) {
         Processor<T, OUT> toutProcessor = KxReactiveStreams.get().newAsyncProcessor(processor, batchSize);
         subscribe(toutProcessor);
         return (KxPublisher<OUT>) toutProcessor;
@@ -241,12 +240,19 @@ public interface KxPublisher<T> extends Publisher<T> {
      * @param <OUT>
      * @return
      */
-    @CallerSideMethod default <OUT> KxPublisher<OUT> map(Function<T,OUT> processor) {
+    @CallerSideMethod default <OUT> KxPublisher<OUT> syncMap(Function<T, OUT> processor) {
         if ( this instanceof KxPublisherActor && ((KxPublisherActor)this).isRemote() )
-            return asyncMap(processor); // need a queue when connecting remote stream
+            return map(processor); // need a queue when connecting remote stream
         Processor<T,OUT> outkPublisher = KxReactiveStreams.get().newSyncProcessor(processor);
         subscribe(outkPublisher);
         return (KxPublisher<OUT>) outkPublisher;
+    }
+
+    @CallerSideMethod default Actor asActor() {
+        if ( this instanceof Actor ) {
+            return (Actor) this;
+        }
+        return (Actor) async();
     }
 
 }

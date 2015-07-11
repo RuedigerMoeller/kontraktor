@@ -1,18 +1,42 @@
 package examples.http4k;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.reactivestreams.EventSink;
 import org.nustaq.kontraktor.reactivestreams.KxPublisher;
 import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 
 import java.util.Iterator;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 11/07/15.
  */
 public class SimpleServerWithWS {
 
+    static class Divider implements Function<Long,Long> {
+
+        int divisor;
+        int count = 0;
+
+        public Divider(int divisor) {
+            this.divisor = divisor;
+        }
+
+        @Override
+        public Long apply(Long aLong) {
+            if ( divisor == 60000 )
+            {
+                if ( count >= 60_000 ) {
+                    System.out.println("MINUTE !");
+                }
+            }
+            count++;
+            if ( count < divisor ) {
+                return null;
+            }
+            count = 0;
+            return aLong/divisor;
+        }
+    }
 
     public static void main(String[] args) throws InterruptedException {
 
@@ -25,7 +49,7 @@ public class SimpleServerWithWS {
             @Override
             public Long next() {
                 try {
-                    Thread.sleep(100);
+                    Thread.sleep(1);
                 } catch (InterruptedException e) {
                     //e.printStackTrace();
                 }
@@ -33,17 +57,17 @@ public class SimpleServerWithWS {
             }
         });
 
+        // avoid unconnected streams to block streaming (slowest dominates, if no client => no consumer => everybody blocked)
         KxPublisher<Long> publisher = timer.lossy();
-        timer.async().subscribe( (r,e) -> System.out.println(r) );
 
-//        Http4K.Build("localhost", 8080)
-//            .websocket("/ws/ms", (Actor) publisher)
-//                .build()
-//            .websocket("/ws/seconds", (Actor) publisher.asyncMap(i -> i / 1000))
-//                .build()
-//            .websocket("/ws/minutes", (Actor) publisher.asyncMap(i -> i / 1000 / 60))
-//                .build()
-//            .build();
+        Http4K.Build("localhost", 8080)
+            .websocket("/ws/ms", publisher.asActor())
+                .build()
+            .websocket("/ws/seconds", publisher.map(new Divider(1000)).asActor())
+                .build()
+            .websocket("/ws/minutes", publisher.map(new Divider(1000 * 60)).asActor())
+                .build()
+            .build();
 
     }
 
