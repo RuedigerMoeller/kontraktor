@@ -220,7 +220,7 @@ Note that its easy to provide custom logic such as entitlement, access control t
 
 ### stream processing pipelines
 
-There are various excellent options to implement single process stream processing such as RxJava, Reactor (Disruptor), Java 8 streams and Akka Streams. Some of them excel with explicit (programmer defined) scale out, some at single thread performance, some excel at automatic scale out.
+There are various excellent options to implement single process streaming pipelines such as RxJava, Reactor (Disruptor), Java 8 streams and Akka Streams. Some of them excel with explicit (programmer defined) scale out, some at single thread performance, some excel at automatic scale out.
 
 Kontraktor reactive streams focusses on remoting/connectivity, so it can be advantageous to use a different library for local inmemory stream pipeline processing.
 
