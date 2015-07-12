@@ -31,7 +31,7 @@ does ~1.3 million events per second over tcp nio. 1.45 million over WebSocket.
 
 see https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-streams/src/test/java/examples for more example code.
 
-maven coming soon.
+**Mavem**: http://ruedigermoeller.github.io/kontraktor/#maven
 
 ##Overview
 
