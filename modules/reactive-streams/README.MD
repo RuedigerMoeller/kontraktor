@@ -228,9 +228,9 @@ As a thread is bound to a `KxReactiveStreams` instance, by using the singleton `
 
 In order to build multi threaded pipelines, one needs to use several instances of KxReactiveStreams to build up a pipeline. Each `KxReactiveStreams` equals a processing thread this way.
 
-Balancing processing onto multiple threads is then static + programmer defined. This can have advantages and disadvantages and roots back to some fundamental design decisions of Kontraktor.
+Balancing processing onto multiple threads is then static + programmer defined. This can be advantageous or disadvantageous depending on use case.
 
-Be warned, there is a tendency of *premature scale out*. As using multiple threads usually involves more cache misses break even may come late depending on the nature of your stream pipeline processing and data being processed.
+Be warned, *premature scale out* is common. As using multiple threads often involves more cache misses, break even for parallelism may come late depending on the nature of your pipeline and data being processed.
 
 
 
