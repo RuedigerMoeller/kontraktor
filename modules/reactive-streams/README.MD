@@ -7,6 +7,8 @@ Remotable Implementation of the reactive streams 1.0 spec (http://www.reactive-s
 * interoperation of kontraktor actors with other reactive libraries/frameworks
 * build highperformance, customizable message queue / stream oriented middleware components combining the power of kontraktor remoting and reactive streams
 
+**Note**: see [src/test](https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-streams/src/test/java) for plenty of examples (remoting, RxJava interop, Akka Streams interop).
+
 Example of publishing and consuming a RxJava Stream using Kontraktor as a remote bridge over WebSockets.
 
 ```java
@@ -31,7 +33,8 @@ does ~1.3 million events per second over tcp nio. 1.45 million over WebSocket.
 
 see https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-streams/src/test/java/examples for more example code.
 
-maven coming soon.
+###Maven 
+http://ruedigermoeller.github.io/kontraktor/#maven
 
 ##Overview
 
@@ -43,7 +46,7 @@ kontraktor reactive streams contains just a handful of classes.
 
 **`CancelException`** can be thrown when using Java 8 streams to process a reactive stream. It then translates to a `Subscribtion.cancel` internally. Same applies when consuming a reactive stream using a Kontraktor `Callback`.
 
-**`KxReactiveStreams`** - a singleton (`KxReactiveStreams.get()`) providing a set of conversion and creation methods. With exception of `connect()` which can be used to connect to a remoted reactive stream, one mostly uses `EventSink` and utility API of `KxPublisher`.
+**`KxReactiveStreams`** - usually a singleton (`KxReactiveStreams.get()`) providing a set of conversion and creation methods. With exception of `connect()` which can be used to connect to a remoted reactive stream, one mostly uses `EventSink` and utility API of `KxPublisher`. In order to built multithreaded pipelines, more than one instance is needed.
 
 ###Publishing reactive streams
 
@@ -218,17 +221,17 @@ https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-stream
 
 Note that its easy to provide custom logic such as entitlement, access control this way.
 
-### stream processing pipelines
+### Stream processing pipelines
 
 There are various excellent options to implement single process streaming pipelines such as RxJava, Reactor (Disruptor), Java 8 streams and Akka Streams. Some of them excel with explicit (programmer defined) scale out, some at single thread performance, some excel at automatic scale out.
 
-Kontraktor reactive streams focusses on remoting/connectivity, so it can be advantageous to use a different library for local inmemory stream pipeline processing.
+Kontraktor reactive streams focusses on remoting/connectivity, so it can be advantageous to use a different library (or simply make use Kontraktor's Java 8 Streams bridge) for local inmemory stream pipeline processing.
 
 As a thread is bound to a `KxReactiveStreams` instance, by using the singleton `KxReactiveStreams.get()` one thread executes all stream related processing (excl. some helpers to isolate transition to iterator()/JDK 8 streams based API.
 
 In order to build multi threaded pipelines, one needs to use several instances of KxReactiveStreams to build up a pipeline. Each `KxReactiveStreams` equals a processing thread this way.
 
-Balancing processing onto multiple threads is this way is static and programmer defined. This can be advantageous or disadvantageous depending on use case.
+Balancing processing onto multiple threads this way is static and programmer defined. This can be advantageous or disadvantageous depending on use case.
 
 Be warned, *premature scale out* is common. As using multiple threads often involves more cache misses, break even for parallelism may come late depending on the nature of your pipeline and data being processed.
 
