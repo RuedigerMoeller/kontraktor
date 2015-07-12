@@ -218,8 +218,19 @@ https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-stream
 
 Note that its easy to provide custom logic such as entitlement, access control this way.
 
-### Building Single process stream processing pipelines
+### stream processing pipelines
 
+There are various excellent options to implement single process stream processing such as RxJava, Disruptor, Java 8 streams and Akka Streams. Some of them excel with explicit (programmer defined) scale out, some at single thread performance, some excel at automatic scale out.
+
+Kontraktor reactive streams focusses on remoting mostly so it can be advantageous to use a different library for local inmemory stream pipelining.
+
+As a thread is bound to a `KxReactiveStreams` instance, by using the singleton `KxReactiveStreams.get()` one thread executes all stream related processing (excl. some helpers to isolate transtion to iterator()/JDK 8 streams based API.
+
+In order to build multi threaded pipelines, one needs to use several instances of KxReactiveStreams to build up a pipeline. Each `KxReactiveStreams` equals a processing thread this way.
+
+Balancing processing onto multiple threads is then static + programmer defined. This can have advantages and disadvantages and roots back to some fundamental design decisions of Kontraktor.
+
+Be warned, there is a tendency of *premature scale out*. As using multiple threads usually involves more cache misses break even may come late depending on the nature of your stream pipeline processing and data being processed.
 
 
 
