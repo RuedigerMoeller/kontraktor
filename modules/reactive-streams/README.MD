@@ -7,7 +7,7 @@ Remotable Implementation of the reactive streams 1.0 spec (http://www.reactive-s
 * interoperation of kontraktor actors with other reactive libraries/frameworks
 * build highperformance, customizable message queue / stream oriented middleware components combining the power of kontraktor remoting and reactive streams
 
-**Note**: see src/test for plenty of examples (remoting, RxJava interop, Akka Streams interop).
+**Note**: see [src/test](https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-streams/src/test/java) for plenty of examples (remoting, RxJava interop, Akka Streams interop).
 
 Example of publishing and consuming a RxJava Stream using Kontraktor as a remote bridge over WebSockets.
 
