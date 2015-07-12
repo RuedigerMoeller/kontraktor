@@ -6,7 +6,7 @@ rm *-jar-with*
 rm -r */
 jar -cf bundle.jar *
 cd ..
-mvn package -Dmaven.test.skip=true # rebuild fat jars
+mvn package install -Dmaven.test.skip=true # rebuild fat jars
 
 cd modules/kontraktor-bare
 
@@ -24,6 +24,9 @@ cd target
 rm *-jar-with*
 rm -r */
 jar -cf bundle.jar *
+cd ..
+mvn install -Dmaven.test.skip=true # install
+
 
 cd ../reactive-streams
 

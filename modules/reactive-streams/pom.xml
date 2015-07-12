@@ -103,6 +103,16 @@
         </dependency>
 
         <dependency>
+            <groupId>org.reactivestreams</groupId>
+            <artifactId>reactive-streams</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+
+        <!-- TEST -->
+
+
+        <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor-http</artifactId>
             <version>3.04</version>
@@ -110,15 +120,10 @@
         </dependency>
 
         <dependency>
-            <groupId>org.reactivestreams</groupId>
-            <artifactId>reactive-streams</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
+            <scope>test</scope>
             <groupId>org.reactivestreams</groupId>
             <artifactId>reactive-streams-tck</artifactId>
             <version>1.0.0</version>
-            <scope>test</scope>
         </dependency>
 
         <dependency>
