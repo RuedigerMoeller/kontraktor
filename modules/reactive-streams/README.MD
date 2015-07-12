@@ -204,3 +204,4 @@ Http4K.Build("localhost", 8080)
         .build()
     .build();
 ```
+ (see https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-streams/src/test/java/examples/http4k for full source)
