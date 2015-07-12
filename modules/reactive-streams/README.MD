@@ -3,7 +3,7 @@
 Remotable Implementation of the reactive streams 1.0 spec (http://www.reactive-streams.org/) based on Kontraktor (distributed) actors.
 
 * remoting/network bridge for other reactive-streams implementations (no need to move code base to kontraktor)
-* translate java 8 streams to reactive-streams
+* translate java 8 streams to reactive-streams and vice versa
 * interoperation of kontraktor actors with other reactive libraries/frameworks
 * build highperformance, customizable message queue / stream oriented middleware components combining the power of kontraktor remoting and reactive streams
 
@@ -205,3 +205,20 @@ Http4K.Build("localhost", 8080)
     .build();
 ```
  (see https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-streams/src/test/java/examples/http4k for full source)
+
+**Advanced Remoting with Kontraktor+Reactive streams**
+
+When combining distributed Kontraktor actors with reactive streams, sophisticated custom logic and stream multiplexing is possible.
+
+As any reactive-streams publisher can be translated into a `KxPublisher` (a remotable entity), one can pass stream endpoints transparently over the network allowing for custom-logic middleware components within a few lines of code.
+
+An example of a stream server, which allows clients to provide and/or consume data streams can be found here:
+
+https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-streams/src/test/java/examples/rxstreamserver
+
+Note that its easy to provide custom logic such as entitlement, access control this way.
+
+## Building Single process stream processing pipelines
+
+
+
