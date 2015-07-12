@@ -224,7 +224,7 @@ There are various excellent options to implement single process stream processin
 
 Kontraktor reactive streams focusses on remoting mostly so it can be advantageous to use a different library for local inmemory stream pipelining.
 
-As a thread is bound to a `KxReactiveStreams` instance, by using the singleton `KxReactiveStreams.get()` one thread executes all stream related processing (excl. some helpers to isolate transtion to iterator()/JDK 8 streams based API.
+As a thread is bound to a `KxReactiveStreams` instance, by using the singleton `KxReactiveStreams.get()` one thread executes all stream related processing (excl. some helpers to isolate transition to iterator()/JDK 8 streams based API.
 
 In order to build multi threaded pipelines, one needs to use several instances of KxReactiveStreams to build up a pipeline. Each `KxReactiveStreams` equals a processing thread this way.
 
