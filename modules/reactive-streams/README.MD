@@ -222,7 +222,7 @@ Note that its easy to provide custom logic such as entitlement, access control t
 
 There are various excellent options to implement single process stream processing such as RxJava, Disruptor, Java 8 streams and Akka Streams. Some of them excel with explicit (programmer defined) scale out, some at single thread performance, some excel at automatic scale out.
 
-Kontraktor reactive streams focusses on remoting mostly so it can be advantageous to use a different library for local inmemory stream pipelining.
+Kontraktor reactive streams focusses on remoting/connectivity, so it can be advantageous to use a different library for local inmemory stream pipeline processing.
 
 As a thread is bound to a `KxReactiveStreams` instance, by using the singleton `KxReactiveStreams.get()` one thread executes all stream related processing (excl. some helpers to isolate transition to iterator()/JDK 8 streams based API.
 
