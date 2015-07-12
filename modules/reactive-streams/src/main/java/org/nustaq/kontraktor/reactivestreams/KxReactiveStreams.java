@@ -16,6 +16,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.reactivestreams;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.reactivestreams.impl.KxSubscriber;
 import org.nustaq.kontraktor.reactivestreams.impl.KxPublisherActor;
@@ -55,11 +56,11 @@ public class KxReactiveStreams extends Actors {
 
     // as for remoting the request(N) ack signals have network latency
     // request(N) is executed with large sizes to not let the sending side "dry"/stall.
-    // event sizes below reduce throughput by 10..30% percent on a localhost.
     // in case of high latency connections (wifi, WAN) sizes below probably need to be raised
     public static final int MAX_BATCH_SIZE = 50_000;
-    public static int DEFAULT_BATCH_SIZE = 50_000;
-    public static int DEFAULTQSIZE = 128_000; // needs to be > 2*MAX_BATCH_SIZE !!
+    public static final int DEFQSIZE = 128_000;
+    public static final int DEFBATCHSIZE = 50_000;
+
 
     public static int REQU_NEXT_DIVISOR = 1;
 
@@ -69,7 +70,9 @@ public class KxReactiveStreams extends Actors {
         return instance;
     }
 
-    ////////// singleton instance methods ////////////////////////////////////////////////
+    ////////// instance methods ////////////////////////////////////////////////
+
+    protected int batchSize = 50_000;
 
     /**
      * each KxReactiveStreams instance has a dedicated thread which is used for all its processors.
@@ -87,7 +90,18 @@ public class KxReactiveStreams extends Actors {
     }
 
     public KxReactiveStreams(boolean keepSchedulerAlive) {
-        scheduler = new SimpleScheduler(DEFAULTQSIZE, keepSchedulerAlive);
+        this(DEFBATCHSIZE, DEFQSIZE, keepSchedulerAlive);
+    }
+
+    public KxReactiveStreams(int batchSize, int queueSize, boolean keepSchedulerAlive) {
+        if ( batchSize*2 > queueSize )
+            throw new RuntimeException("queuesize must be >= 2 * batchSize");
+        scheduler = new SimpleScheduler(queueSize, keepSchedulerAlive);
+        this.batchSize = batchSize;
+    }
+
+    public int getBatchSize() {
+        return batchSize;
     }
 
     /**
@@ -116,6 +130,11 @@ public class KxReactiveStreams extends Actors {
             public void subscribe(Subscriber<? super T> s) {
                 p.subscribe(s);
             }
+
+            @Override @CallerSideMethod
+            public KxReactiveStreams getKxStreamsInstance() {
+                return KxReactiveStreams.this;
+            }
         };
     }
 
@@ -140,7 +159,7 @@ public class KxReactiveStreams extends Actors {
      * @param <T>
      */
     public <T> Subscriber<T> subscriber(Callback<T> cb) {
-        return subscriber(DEFAULT_BATCH_SIZE,cb);
+        return subscriber(batchSize,cb);
     }
 
     /**
@@ -175,23 +194,23 @@ public class KxReactiveStreams extends Actors {
     }
 
     public <T> KxPublisher<T> produce( Stream<T> stream ) {
-        return produce(DEFAULT_BATCH_SIZE,stream.iterator());
+        return produce(batchSize,stream.iterator());
     }
 
     public <T> KxPublisher<T> produce( Collection<T> collection ) {
-        return produce(DEFAULT_BATCH_SIZE, collection.iterator());
+        return produce(batchSize, collection.iterator());
     }
 
     public KxPublisher<Integer> produce( IntStream stream ) {
-        return produce( DEFAULT_BATCH_SIZE, stream.mapToObj( i->i ).iterator() );
+        return produce(batchSize, stream.mapToObj( i->i ).iterator() );
     }
 
     public KxPublisher<Long> produce( LongStream stream ) {
-        return produce( DEFAULT_BATCH_SIZE, stream.mapToObj( i->i ).iterator());
+        return produce(batchSize, stream.mapToObj( i->i ).iterator());
     }
 
     public KxPublisher<Double> produce( DoubleStream stream ) {
-        return produce(DEFAULT_BATCH_SIZE,stream.mapToObj( i->i ).iterator());
+        return produce(batchSize,stream.mapToObj( i->i ).iterator());
     }
 
     public <T> KxPublisher<T> produce( int batchSize, Stream<T> stream ) {
@@ -199,14 +218,20 @@ public class KxReactiveStreams extends Actors {
     }
 
     public <T> KxPublisher<T> produce( Iterator<T> iter ) {
-        return produce(DEFAULT_BATCH_SIZE,iter);
+        return produce(batchSize,iter);
     }
 
     public <T> KxPublisher<T> produce( int batchSize, Iterator<T> iter ) {
-        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, scheduler);
         if ( batchSize > KxReactiveStreams.MAX_BATCH_SIZE ) {
             throw new RuntimeException("batch size exceeds max of "+ KxReactiveStreams.MAX_BATCH_SIZE);
         }
+        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, scheduler);
+
+        // actually init should provide a promise as return value to ensure streams instance is initialized.
+        // do sync shortcut instead here
+        pub._streams = this;
+        ((KxPublisherActor) pub.getActor())._streams = this;
+
         pub.setBatchSize(batchSize);
         pub.setThrowExWhenBlocked(true);
         pub.initFromIterator(iter);
@@ -218,7 +243,7 @@ public class KxReactiveStreams extends Actors {
      * from within a callback
      */
     public <T> Stream<T> stream( Publisher<T> pub ) {
-        return stream(pub, DEFAULT_BATCH_SIZE);
+        return stream(pub, batchSize);
     }
 
     /**
@@ -234,7 +259,7 @@ public class KxReactiveStreams extends Actors {
      * from within a callback
      */
     public <T> Iterator<T> iterator( Publisher<T> pub ) {
-        return iterator(pub, DEFAULT_BATCH_SIZE);
+        return iterator(pub, batchSize);
     }
 
     /**
@@ -266,14 +291,24 @@ public class KxReactiveStreams extends Actors {
                 disconHandler.complete(acc,err);
             }
         };
-        return connectable.actorClass(KxPublisherActor.class).inboundQueueSize(DEFAULTQSIZE).connect(discon, remoteref -> {
-            if ( ((KxPublisherActor)remoteref)._callerSideSubscribers != null ) {
-                ((KxPublisherActor)remoteref)._callerSideSubscribers.forEach( subs -> {
-                    ((Subscriber)subs).onError(new IOException("connection lost"));
+        IPromise<KxPublisher<T>> connect = connectable.actorClass(KxPublisherActor.class).inboundQueueSize(scheduler.getDefaultQSize()).connect(discon, remoteref -> {
+            if (((KxPublisherActor) remoteref)._callerSideSubscribers != null) {
+                ((KxPublisherActor) remoteref)._callerSideSubscribers.forEach(subs -> {
+                    ((Subscriber) subs).onError(new IOException("connection lost"));
                 });
-                ((KxPublisherActor)remoteref)._callerSideSubscribers = null;
+                ((KxPublisherActor) remoteref)._callerSideSubscribers = null;
             }
         });
+        Promise<KxPublisher<T>> res = new Promise<>();
+        connect.then( (publisher,err) -> {
+            if ( publisher != null ) {
+                ((KxPublisherActor) publisher)._streams = this;
+                res.resolve(publisher);
+            } else {
+                res.reject(err);
+            }
+        });
+        return res;
     }
 
     /**
@@ -307,7 +342,7 @@ public class KxReactiveStreams extends Actors {
      * @return
      */
     public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Function<IN, OUT> processingFunction) {
-        return newAsyncProcessor(processingFunction, scheduler, DEFAULT_BATCH_SIZE);
+        return newAsyncProcessor(processingFunction, scheduler, batchSize);
     }
 
     /**
@@ -339,10 +374,14 @@ public class KxReactiveStreams extends Actors {
      * @return
      */
     public <IN, OUT> Processor<IN, OUT> newAsyncProcessor(Function<IN, OUT> processingFunction, Scheduler sched, int batchSize) {
-        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, sched);
         if ( batchSize > KxReactiveStreams.MAX_BATCH_SIZE ) {
             throw new RuntimeException("batch size exceeds max of "+ KxReactiveStreams.MAX_BATCH_SIZE);
         }
+        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, sched);
+        // actually init should provide a promise as return value to ensure streams instance is initialized.
+        // do sync shortcut instead here
+        pub._streams = this;
+        ((KxPublisherActor) pub.getActor())._streams = this;
         pub.setBatchSize(batchSize);
         pub.setThrowExWhenBlocked(true);
         pub.init(processingFunction);
@@ -363,15 +402,19 @@ public class KxReactiveStreams extends Actors {
      * @return
      */
     public <IN,OUT> Processor<IN,OUT> newSyncProcessor(Function<IN, OUT> processingFunction) {
-        SyncProcessor<IN, OUT> inoutSyncProcessor = new SyncProcessor<>(DEFAULT_BATCH_SIZE, processingFunction);
+        SyncProcessor<IN, OUT> inoutSyncProcessor = new SyncProcessor<>(batchSize, processingFunction,this);
         return inoutSyncProcessor;
     }
 
     public <T, OUT> Processor<T, OUT> newLossyProcessor(Function<T, OUT> processingFunction, int batchSize) {
-        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, scheduler);
         if ( batchSize > KxReactiveStreams.MAX_BATCH_SIZE ) {
             throw new RuntimeException("batch size exceeds max of "+ KxReactiveStreams.MAX_BATCH_SIZE);
         }
+        KxPublisherActor pub = Actors.AsActor(KxPublisherActor.class, scheduler);
+        // actually init should provide a promise as return value to ensure streams instance is initialized.
+        // do sync shortcut instead here
+        pub._streams = this;
+        ((KxPublisherActor) pub.getActor())._streams = this;
         pub.setBatchSize(batchSize);
         pub.setThrowExWhenBlocked(true);
         pub.setLossy(true);

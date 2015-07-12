@@ -1,6 +1,8 @@
 package org.nustaq.kontraktor.reactivestreams.impl;
 
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.reactivestreams.KxPublisher;
+import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
 import org.reactivestreams.Processor;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -19,8 +21,10 @@ public class SyncProcessor<IN, OUT> implements Processor<IN, OUT>, KxPublisher<O
     protected long batchSize;
     protected Function<IN, OUT> proc;
     protected long initialRequest = 0;
+    protected KxReactiveStreams streams;
 
-    public SyncProcessor(long batchSize, Function<IN, OUT> proc) {
+    public SyncProcessor(long batchSize, Function<IN, OUT> proc, KxReactiveStreams streams) {
+        this.streams = streams;
         this.batchSize = batchSize;
         this.proc = proc;
     }
@@ -76,6 +80,11 @@ public class SyncProcessor<IN, OUT> implements Processor<IN, OUT>, KxPublisher<O
         }
         subscriber = (Subscriber<OUT>) s;
         s.onSubscribe(outSubs = new MySubs());
+    }
+
+    @Override @CallerSideMethod
+    public KxReactiveStreams getKxStreamsInstance() {
+        return streams;
     }
 
     protected class MySubs implements Subscription {

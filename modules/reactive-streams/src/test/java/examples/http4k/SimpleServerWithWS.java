@@ -57,7 +57,9 @@ public class SimpleServerWithWS {
             }
         });
 
-        // avoid unconnected streams to block streaming (slowest dominates, if no client => no consumer => everybody blocked)
+        // timer is not 1:N capable
+        // in addition streams with no clients would block
+        // (slowest dominates, if no client => no consumer => everybody blocked)
         KxPublisher<Long> publisher = timer.lossy();
 
         Http4K.Build("localhost", 8080)

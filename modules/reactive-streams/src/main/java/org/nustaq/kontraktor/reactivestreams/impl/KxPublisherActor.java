@@ -50,14 +50,15 @@ public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> 
     protected ArrayList<Runnable> doOnSubscribe = new ArrayList<>();
     protected ArrayDeque pending;
     protected boolean isIteratorBased = false;
-    private boolean closeOnComplete = false;
-    private Object actorServer;
-    private boolean lossy = false;
+    protected boolean closeOnComplete = false;
+    protected Object actorServer;
+    protected boolean lossy = false;
+    public KxReactiveStreams _streams; // required public for remoting
 
     public void init(Function<IN, OUT> processor) {
+//        this._streams = streams; MUST be set sync !!
         this.pending = new ArrayDeque<>();
         this.processor = processor;
-        Thread.currentThread().setName(Thread.currentThread()+" (rx async stream processor)");
     }
 
     /**
@@ -67,6 +68,7 @@ public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> 
     public void initFromIterator(Iterator<IN> iterator) {
         this.pending = new ArrayDeque<>();
         isIteratorBased = true;
+        //this._streams = kxReactiveStreams; needs sync init !!
         // in case iterator is blocking, need a dedicated thread ..
         Executor iteratorThread = new ThreadPoolExecutor(0, 1,
                                     10L, TimeUnit.MILLISECONDS,
@@ -447,6 +449,21 @@ public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> 
 
     public void setLossy(boolean lossy) {
         this.lossy = lossy;
+    }
+
+    @Override @CallerSideMethod
+    public KxReactiveStreams getKxStreamsInstance() {
+        if ( _streams == null ) {
+            KxReactiveStreams streams = getActor()._streams;
+            if ( streams == null ) {
+                System.out.println("POK");
+            }
+            return streams;
+        }
+        if ( _streams == null ) {
+            System.out.println("POK");
+        }
+        return _streams;
     }
 
     protected static class KSubscription implements Subscription, Serializable {

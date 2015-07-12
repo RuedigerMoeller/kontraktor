@@ -30,8 +30,9 @@ public class Java8Streams {
 
         AtomicInteger validCount = new AtomicInteger(-1);
 
-        KxReactiveStreams.get()
-            .produce(IntStream.range(0, 5_000_000).mapToObj(i -> new MyEvent(i,Math.random(),"Hello"+i)))
+        KxReactiveStreams kxReactiveStreams = KxReactiveStreams.get();
+        kxReactiveStreams
+            .produce(IntStream.range(0, 5_000_000).mapToObj(i -> new MyEvent(i, Math.random(), "Hello" + i)))
             .serve( new TCPPublisher().port(port) );
 
         CountDownLatch latch = new CountDownLatch(1);

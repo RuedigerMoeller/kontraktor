@@ -16,6 +16,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.reactivestreams;
 
 import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import java.util.concurrent.atomic.AtomicLong;
@@ -36,6 +37,15 @@ public class EventSink<T> implements KxPublisher<T> {
     protected Actor actorSubs;
     protected volatile Subscriber subs;
     protected volatile boolean canceled = false;
+    protected KxReactiveStreams streams;
+
+    public EventSink() {
+        this(KxReactiveStreams.get());
+    }
+
+    public EventSink(KxReactiveStreams streams) {
+        this.streams = streams;
+    }
 
     public boolean offer(T event) {
         if ( event == null )
@@ -88,4 +98,10 @@ public class EventSink<T> implements KxPublisher<T> {
         });
     }
 
+    @Override @CallerSideMethod
+    public KxReactiveStreams getKxStreamsInstance() {
+        if ( streams == null )
+            System.out.println("POK");
+        return streams;
+    }
 }

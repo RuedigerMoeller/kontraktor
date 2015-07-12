@@ -12,7 +12,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-reactive-streams</artifactId>
-    <version>3.03</version>
+    <version>3.04</version>
 
     <description>http connectivity for kontraktor</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -99,13 +99,13 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor</artifactId>
-            <version>3.03</version>
+            <version>3.04</version>
         </dependency>
 
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor-http</artifactId>
-            <version>3.03</version>
+            <version>3.04</version>
             <scope>test</scope>
         </dependency>
 
@@ -126,6 +126,13 @@
             <groupId>io.reactivex</groupId>
             <artifactId>rxjava-reactive-streams</artifactId>
             <version>1.0.1</version>
+        </dependency>
+
+        <dependency>
+            <scope>test</scope>
+            <groupId>com.typesafe.akka</groupId>
+            <artifactId>akka-stream-experimental_2.11</artifactId>
+            <version>1.0-RC4</version>
         </dependency>
 
         <dependency>

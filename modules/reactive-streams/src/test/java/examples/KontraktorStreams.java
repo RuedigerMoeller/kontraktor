@@ -143,7 +143,7 @@ public class KontraktorStreams {
     Server server;
     public void initServer() {
         if ( server == null ) {
-            server = Actors.AsActor(Server.class,KxReactiveStreams.DEFAULTQSIZE); // need fat queue !!!
+            server = Actors.AsActor(Server.class,KxReactiveStreams.DEFQSIZE); // need fat queue !!!
             server.init();
             new TCPNIOPublisher(server,9876).publish( actor -> {
                 System.out.println("disconnected !");

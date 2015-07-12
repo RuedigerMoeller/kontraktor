@@ -91,6 +91,7 @@ public class KxStreamServer extends Actor<KxStreamServer> {
     }
 
     /**
+     * A client might put a stream such that it can be consumed by other clients (makes this kind of a light weight message queue).
      * if infinite is true, it can be consumed by an arbitrary amount of clients, if false it can be consumed by
      * exactly one client
      *

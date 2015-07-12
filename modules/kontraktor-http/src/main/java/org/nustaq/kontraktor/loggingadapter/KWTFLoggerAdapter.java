@@ -99,32 +99,40 @@ public class KWTFLoggerAdapter implements Logger {
 
     @Override
     public boolean isDebugEnabled() {
-        return Log.Lg.getSeverity() < Log.INFO;
+        if ( ForwardDebug )
+            return Log.Lg.getSeverity() < Log.INFO;
+        return false;
     }
 
+    public static boolean ForwardDebug = false;
     @Override
     public void debug(String s) {
-        Log.Debug(name, s);
+        if ( ForwardDebug )
+            Log.Debug(name, s);
     }
 
     @Override
     public void debug(String s, Object o) {
-        Log.Debug(name, s+" "+o);
+        if ( ForwardDebug )
+            Log.Debug(name, s+" "+o);
     }
 
     @Override
     public void debug(String s, Object o, Object o1) {
-        Log.Debug(name, s+" "+o+" "+o1);
+        if ( ForwardDebug )
+            Log.Debug(name, s+" "+o+" "+o1);
     }
 
     @Override
     public void debug(String s, Object... objects) {
-        Log.Debug(name, s+" "+Arrays.toString(objects));
+        if ( ForwardDebug )
+            Log.Debug(name, s+" "+Arrays.toString(objects));
     }
 
     @Override
     public void debug(String s, Throwable throwable) {
-        Log.Info(name,throwable,s);
+        if ( ForwardDebug )
+            Log.Info(name,throwable,s);
     }
 
     @Override

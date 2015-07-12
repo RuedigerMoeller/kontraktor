@@ -59,8 +59,10 @@ public interface KxPublisher<T> extends Publisher<T> {
      * @param
      */
     @CallerSideMethod default void subscribe( Callback<T> cb ) {
-        subscribe(KxReactiveStreams.get().subscriber(cb));
+        subscribe(getKxStreamsInstance().subscriber(cb));
     }
+
+    @CallerSideMethod KxReactiveStreams getKxStreamsInstance();
 
     /**
      * consuming endpoint. requests data from publisher immediately after
@@ -84,17 +86,17 @@ public interface KxPublisher<T> extends Publisher<T> {
      *
      */
     @CallerSideMethod default void subscribe( int batchSize, Callback<T> cb ) {
-        subscribe(KxReactiveStreams.get().subscriber(batchSize, cb));
+        subscribe(getKxStreamsInstance().subscriber(batchSize, cb));
     }
 
     @CallerSideMethod default void stream(Consumer<Stream<T>> streamingCode ) {
-        stream(KxReactiveStreams.DEFAULT_BATCH_SIZE, streamingCode);
+        stream( getKxStreamsInstance().getBatchSize(), streamingCode);
     }
 
     @CallerSideMethod default void stream( int batchSize, Consumer<Stream<T>> streamingCode ) {
         if ( Actor.inside() ) {
             try {
-                Stream<T> stream = KxReactiveStreams.get().stream(KxPublisher.this,batchSize);
+                Stream<T> stream = getKxStreamsInstance().stream(KxPublisher.this, batchSize);
                 streamingCode.accept(stream);
             } catch (Throwable ce) {
                 Subscription subscription = KxSubscriber.subsToCancel.get();
@@ -107,7 +109,7 @@ public interface KxPublisher<T> extends Publisher<T> {
                 @Override
                 public void run() {
                     try {
-                        Stream<T> stream = KxReactiveStreams.get().stream(KxPublisher.this,batchSize);
+                        Stream<T> stream = getKxStreamsInstance().stream(KxPublisher.this, batchSize);
                         streamingCode.accept(stream);
                     } catch (Throwable ce) {
                         Subscription subscription = KxSubscriber.subsToCancel.get();
@@ -123,7 +125,7 @@ public interface KxPublisher<T> extends Publisher<T> {
     @CallerSideMethod default void iterator(int batchSize, Consumer<Iterator<T>> iteratingCode ) {
         if ( Actor.inside() ) {
             try {
-                iteratingCode.accept(KxReactiveStreams.get().iterator(KxPublisher.this,batchSize));
+                iteratingCode.accept(getKxStreamsInstance().iterator(KxPublisher.this, batchSize));
             } catch (Throwable ce) {
                 Subscription subscription = KxSubscriber.subsToCancel.get();
                 subscription.cancel();
@@ -134,7 +136,7 @@ public interface KxPublisher<T> extends Publisher<T> {
                 @Override
                 public void run() {
                     try {
-                        iteratingCode.accept(KxReactiveStreams.get().iterator(KxPublisher.this,batchSize));
+                        iteratingCode.accept(getKxStreamsInstance().iterator(KxPublisher.this, batchSize));
                     } catch (Throwable ce) {
                         Subscription subscription = KxSubscriber.subsToCancel.get();
                         subscription.cancel();
@@ -146,24 +148,24 @@ public interface KxPublisher<T> extends Publisher<T> {
     }
 
     @CallerSideMethod default void iterator( Consumer<Iterator<T>> iteratingCode ) {
-        iterator(KxReactiveStreams.DEFAULT_BATCH_SIZE,iteratingCode);
+        iterator(getKxStreamsInstance().getBatchSize(),iteratingCode);
     }
 
     /**
-     * insert an async processor (with dedicated thread, multiple subscribers)
+     * insert an async processor (with dedicated queue, multiple subscribers)
      *
      * @param processor
      * @param <OUT>
      * @return
      */
     @CallerSideMethod default <OUT> KxPublisher<OUT> map(Function<T, OUT> processor) {
-        Processor<T, OUT> toutProcessor = KxReactiveStreams.get().newAsyncProcessor(processor);
+        Processor<T, OUT> toutProcessor = getKxStreamsInstance().newAsyncProcessor(processor);
         subscribe(toutProcessor);
         return (KxPublisher<OUT>) toutProcessor;
     }
 
     /**
-     * insert an identity processor (with dedicated thread). Required e.g. if connecting
+     * insert an identity processor (with dedicated queue). Required e.g. if connecting
      * streams/iterators to a synchronous publisher.
      *
      * @param <OUT>
@@ -178,17 +180,17 @@ public interface KxPublisher<T> extends Publisher<T> {
     }
 
     @CallerSideMethod default <OUT> KxPublisher<OUT> lossyMap(Function<T,OUT> processor) {
-        return lossyMap(processor, KxReactiveStreams.DEFAULT_BATCH_SIZE);
+        return lossyMap(processor, getKxStreamsInstance().getBatchSize());
     }
 
     @CallerSideMethod default <OUT> KxPublisher<OUT> lossyMap(Function<T,OUT> processor, int batchSize) {
-        Processor<T, OUT> toutProcessor = KxReactiveStreams.get().newLossyProcessor(processor, batchSize);
+        Processor<T, OUT> toutProcessor = getKxStreamsInstance().newLossyProcessor(processor, batchSize);
         subscribe(toutProcessor);
         return (KxPublisher<OUT>) toutProcessor;
     }
 
     /**
-     * insert an async processor (with dedicated thread, multiple subscribers)
+     * insert an async processor (with dedicated queue, multiple subscribers)
      *
      * @param processor
      * @param batchSize
@@ -196,7 +198,7 @@ public interface KxPublisher<T> extends Publisher<T> {
      * @return
      */
     @CallerSideMethod default <OUT> KxPublisher<OUT> map(Function<T, OUT> processor, int batchSize) {
-        Processor<T, OUT> toutProcessor = KxReactiveStreams.get().newAsyncProcessor(processor, batchSize);
+        Processor<T, OUT> toutProcessor = getKxStreamsInstance().newAsyncProcessor(processor, batchSize);
         subscribe(toutProcessor);
         return (KxPublisher<OUT>) toutProcessor;
     }
@@ -211,11 +213,11 @@ public interface KxPublisher<T> extends Publisher<T> {
      * @return
      */
     @CallerSideMethod default ActorServer serve(ActorPublisher publisher, Consumer<Actor> disconCallback) {
-        return (ActorServer) KxReactiveStreams.get().serve(this, publisher, true, disconCallback).await();
+        return (ActorServer) getKxStreamsInstance().serve(this, publisher, true, disconCallback).await();
     }
 
     @CallerSideMethod default ActorServer serve(ActorPublisher publisher, boolean closeOnDiscon, Consumer<Actor> disconCallback) {
-        return (ActorServer) KxReactiveStreams.get().serve(this, publisher, closeOnDiscon, disconCallback).await();
+        return (ActorServer) getKxStreamsInstance().serve(this, publisher, closeOnDiscon, disconCallback).await();
     }
 
     /**
@@ -243,7 +245,7 @@ public interface KxPublisher<T> extends Publisher<T> {
     @CallerSideMethod default <OUT> KxPublisher<OUT> syncMap(Function<T, OUT> processor) {
         if ( this instanceof KxPublisherActor && ((KxPublisherActor)this).isRemote() )
             return map(processor); // need a queue when connecting remote stream
-        Processor<T,OUT> outkPublisher = KxReactiveStreams.get().newSyncProcessor(processor);
+        Processor<T,OUT> outkPublisher = getKxStreamsInstance().newSyncProcessor(processor);
         subscribe(outkPublisher);
         return (KxPublisher<OUT>) outkPublisher;
     }
