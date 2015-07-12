@@ -24,3 +24,11 @@ cd target
 rm *-jar-with*
 rm -r */
 jar -cf bundle.jar *
+
+cd ../reactive-streams
+
+mvn clean package -Dmaven.test.skip=true gpg:sign
+cd target
+rm *-jar-with*
+rm -r */
+jar -cf bundle.jar *
