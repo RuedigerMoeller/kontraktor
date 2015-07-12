@@ -232,6 +232,6 @@ Balancing processing onto multiple threads is this way is static and programmer 
 
 Be warned, *premature scale out* is common. As using multiple threads often involves more cache misses, break even for parallelism may come late depending on the nature of your pipeline and data being processed.
 
-
+>**Default Queue and Batch sizings** in Kontraktor are adjusted to network-grade latency, reduce them if building complex in-memory stream processing using Kontraktor.
 
 
