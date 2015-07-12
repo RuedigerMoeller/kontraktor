@@ -152,4 +152,55 @@ There are two variants on how to expose streams on a network transport:
 * Simple: publish a single stream on a network transport (tcp, websocket, binary or json). If the stream completes/has error / is canceled, the underlying connection will close automatically. Downside is that only one stream can be exposed on a transport endpoint this way.
 * Advanced: Create a kontraktor remoted actor/service which then exposes reactive streams using generic kontraktor remoting. This enables more advanced logic such as entitlement or client specific stream differences. In addition its possible to multiplex an arbitrary amount of reactive streams to N clients from a single network address.
 
+**Simple**
 
+Serve a stream (in addition to `WebSocketPublisher` there is also `TCPPublisher` and `TCPNIOPublisher`):
+```java
+KxReactiveStreams.get().asKxPublisher([some reactive-streams-publisher])
+    .serve(new WebSocketPublisher().hostName("localhost").port(7777).urlPath("/ws/rx"));
+```
+Connect it:
+```java
+KxPublisher<Integer> remoteStream =
+    KxReactiveStreams.get()
+       .connect([EventType].class, new WebSocketConnectable().url("ws://localhost:7777/ws/rx"))
+```
+
+if the stream completes, the connection will be closed, so its mostly applicable to infinite streams (else one client consuming the stream will close it for all).
+
+**advanced use of 'Simple'**
+
+Publish multiple streams over different websocket url's:
+
+```java
+KxPublisher<Long> timer = KxReactiveStreams.get().produce(new Iterator<Long>() {
+    @Override
+    public boolean hasNext() {
+        return true;
+    }
+
+    @Override
+    public Long next() {
+        try {
+            Thread.sleep(1);
+        } catch (InterruptedException e) {
+            //e.printStackTrace();
+        }
+        return System.currentTimeMillis();
+    }
+});
+
+// timer is not 1:N capable
+// in addition streams with no clients would block
+// (slowest dominates, if no client => no consumer => everybody blocked)
+KxPublisher<Long> publisher = timer.lossy();
+
+Http4K.Build("localhost", 8080)
+    .websocket("/ws/ms", publisher.asActor())
+        .build()
+    .websocket("/ws/seconds", publisher.map(new Divider(1000)).asActor())
+        .build()
+    .websocket("/ws/minutes", publisher.map(new Divider(1000 * 60)).asActor())
+        .build()
+    .build();
+```
