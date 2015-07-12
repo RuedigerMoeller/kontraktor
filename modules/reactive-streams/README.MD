@@ -3,7 +3,7 @@
 Remotable Implementation of the reactive streams 1.0 spec (http://www.reactive-streams.org/) based on Kontraktor (distributed) actors.
 
 * remoting/network bridge for other reactive-streams implementations (no need to move code base to kontraktor)
-* translate java 8 streams to reactive-streams
+* translate java 8 streams to reactive-streams and vice versa
 * interoperation of kontraktor actors with other reactive libraries/frameworks
 * build highperformance, customizable message queue / stream oriented middleware components combining the power of kontraktor remoting and reactive streams
 
@@ -81,12 +81,12 @@ for ( int i = 0; i < MASMSG_NUM; i++ ) {
 
 >**`syncMap()`+`EventSink`** support a single subscriber only.
 
-If a processor maps to 'null' this is treated as event suppression. 
+If a processor maps to 'null' this is treated as event suppression (does **not** hold true for `syncMap` as requires a dedicated queue). 
 
 ```java
     KxReactiveStreams.get()
         .produce(IntStream.range(0, MASMSG_NUM))
-        .syncMap( i -> { return i%1 == 0 ? null : i; } )
+        .map( i -> { return i%1 == 0 ? null : i; } )
         .subscribe([some reactive-streams subscriber]);
 ```
 
@@ -151,5 +151,87 @@ Kontraktor reactive stream internally executes the full reactive streams backpre
 There are two variants on how to expose streams on a network transport:
 * Simple: publish a single stream on a network transport (tcp, websocket, binary or json). If the stream completes/has error / is canceled, the underlying connection will close automatically. Downside is that only one stream can be exposed on a transport endpoint this way.
 * Advanced: Create a kontraktor remoted actor/service which then exposes reactive streams using generic kontraktor remoting. This enables more advanced logic such as entitlement or client specific stream differences. In addition its possible to multiplex an arbitrary amount of reactive streams to N clients from a single network address.
+
+**Simple**
+
+Serve a stream (in addition to `WebSocketPublisher` there is also `TCPPublisher` and `TCPNIOPublisher`):
+```java
+KxReactiveStreams.get().asKxPublisher([some reactive-streams-publisher])
+    .serve(new WebSocketPublisher().hostName("localhost").port(7777).urlPath("/ws/rx"));
+```
+Connect it:
+```java
+KxPublisher<Integer> remoteStream =
+    KxReactiveStreams.get()
+       .connect([EventType].class, new WebSocketConnectable().url("ws://localhost:7777/ws/rx"))
+```
+
+if the stream completes, the connection will be closed, so its mostly applicable to infinite streams (else one client consuming the stream will close it for all).
+
+**advanced use of 'Simple'**
+
+Publish multiple streams over different websocket url's:
+
+```java
+KxPublisher<Long> timer = KxReactiveStreams.get().produce(new Iterator<Long>() {
+    @Override
+    public boolean hasNext() {
+        return true;
+    }
+
+    @Override
+    public Long next() {
+        try {
+            Thread.sleep(1);
+        } catch (InterruptedException e) {
+            //e.printStackTrace();
+        }
+        return System.currentTimeMillis();
+    }
+});
+
+// timer is not 1:N capable
+// in addition streams with no clients would block
+// (slowest dominates, if no client => no consumer => everybody blocked)
+KxPublisher<Long> publisher = timer.lossy();
+
+Http4K.Build("localhost", 8080)
+    .websocket("/ws/ms", publisher.asActor())
+        .build()
+    .websocket("/ws/seconds", publisher.map(new Divider(1000)).asActor())
+        .build()
+    .websocket("/ws/minutes", publisher.map(new Divider(1000 * 60)).asActor())
+        .build()
+    .build();
+```
+ (see https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-streams/src/test/java/examples/http4k for full source)
+
+**Advanced Remoting with Kontraktor+Reactive streams**
+
+When combining distributed Kontraktor actors with reactive streams, sophisticated custom logic and stream multiplexing is possible.
+
+As any reactive-streams publisher can be translated into a `KxPublisher` (a remotable entity), one can pass stream endpoints transparently over the network allowing for custom-logic middleware components within a few lines of code.
+
+An example of a stream server, which allows clients to provide and/or consume data streams can be found here:
+
+https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-streams/src/test/java/examples/rxstreamserver
+
+Note that its easy to provide custom logic such as entitlement, access control this way.
+
+### stream processing pipelines
+
+There are various excellent options to implement single process streaming pipelines such as RxJava, Reactor (Disruptor), Java 8 streams and Akka Streams. Some of them excel with explicit (programmer defined) scale out, some at single thread performance, some excel at automatic scale out.
+
+Kontraktor reactive streams focusses on remoting/connectivity, so it can be advantageous to use a different library for local inmemory stream pipeline processing.
+
+As a thread is bound to a `KxReactiveStreams` instance, by using the singleton `KxReactiveStreams.get()` one thread executes all stream related processing (excl. some helpers to isolate transition to iterator()/JDK 8 streams based API.
+
+In order to build multi threaded pipelines, one needs to use several instances of KxReactiveStreams to build up a pipeline. Each `KxReactiveStreams` equals a processing thread this way.
+
+Balancing processing onto multiple threads is this way is static and programmer defined. This can be advantageous or disadvantageous depending on use case.
+
+Be warned, *premature scale out* is common. As using multiple threads often involves more cache misses, break even for parallelism may come late depending on the nature of your pipeline and data being processed.
+
+>**Default Queue and Batch sizings** in Kontraktor are adjusted to network-grade latency, reduce them when building complex in-memory stream processing graphs using Kontraktor.
 
 
