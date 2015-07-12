@@ -81,12 +81,12 @@ for ( int i = 0; i < MASMSG_NUM; i++ ) {
 
 >**`syncMap()`+`EventSink`** support a single subscriber only.
 
-If a processor maps to 'null' this is treated as event suppression. 
+If a processor maps to 'null' this is treated as event suppression (does **not** hold true for `syncMap` as requires a dedicated queue). 
 
 ```java
     KxReactiveStreams.get()
         .produce(IntStream.range(0, MASMSG_NUM))
-        .syncMap( i -> { return i%1 == 0 ? null : i; } )
+        .map( i -> { return i%1 == 0 ? null : i; } )
         .subscribe([some reactive-streams subscriber]);
 ```
 
