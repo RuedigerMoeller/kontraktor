@@ -232,7 +232,6 @@ public class DependencyResolver {
         for (int i = 0; i < fileNames.size(); i++) {
             String jsFileName = fileNames.get(i);
             File f = locateResource(jsFileName);
-            String absolutePath = f.getAbsolutePath();
             if ( f.getName().endsWith(".js") ) {
                 Log.Info(this, "   " + f.getName() + " size:" + f.length());
                 byte[] bytes = new byte[(int) f.length()];
@@ -252,7 +251,7 @@ public class DependencyResolver {
     }
 
     /**
-     * lookup (ordered directory computed by resourcepath) and merge scripts into a single byte[].
+     * lookup (ordered directory computed by resourcepath) and merge into a single byte[].
      *
      * @param fileNames list of filenames to merge
      * @return

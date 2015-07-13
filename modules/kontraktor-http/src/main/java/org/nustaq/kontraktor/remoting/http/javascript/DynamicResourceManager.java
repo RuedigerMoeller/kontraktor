@@ -112,10 +112,15 @@ public class DynamicResourceManager extends FileResourceManager {
             }
         } else if ( p.startsWith(mergedPrefix) ) { // expect simple ending like '.js'
             p = p.substring(mergedPrefix.length());
+            boolean binMerge = false;
+            if ( p.startsWith("bin_") ) {
+                binMerge = true;
+                p = p.substring(4);
+            }
             final String finalP = p;
             List<String> filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) -> finam.endsWith(finalP));
             byte[] bytes;
-            if ( finalP.endsWith(".css") ) {
+            if ( finalP.endsWith(".css") || binMerge ) {
                 bytes = dependencyResolver.mergeBinary(filesInDirs); // trouble with textmerging
             } else {
                 bytes = dependencyResolver.mergeTextSnippets(filesInDirs,"","");
@@ -165,6 +170,7 @@ public class DynamicResourceManager extends FileResourceManager {
             this.p0 = p0;
             this.finalP = finalP;
             this.bytes = bytes;
+            this.resType = resType;
         }
 
         @Override
