@@ -41,7 +41,7 @@ public class PolymerAppMain {
                     "./web",
                     "./web/lib",
                     "../../modules/kontraktor-http/src/main/javascript",
-                    "./web/lib")
+                    "./web/lib/polymer-root")
                 .devMode(true)
                 .build()
             .build();

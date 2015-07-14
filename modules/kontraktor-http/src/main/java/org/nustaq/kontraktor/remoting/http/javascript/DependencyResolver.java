@@ -23,7 +23,6 @@ import org.nustaq.kson.Kson;
 import java.io.*;
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Created by ruedi on 06.04.2015.
@@ -34,16 +33,15 @@ import java.util.function.Function;
  */
 public class DependencyResolver {
 
-    protected String mergedPrefix;
     protected String lookupPrefix;
     protected File resourcePath[];
     protected File lookupDirs[];
+    protected HashMap<String,String[]> allowedJS = new HashMap<>(); // component name => list of allowed js files (no entry => all js of that component dir)
     protected String baseDir = ".";
     protected String rootComponent; // e.g. app (~subapplication)
 
-    public DependencyResolver(String lookupPrefix, String mergedPrefix, String rootComponent, String[] resourcePath) {
+    public DependencyResolver(String lookupPrefix, String rootComponent, String[] resourcePath) {
         this.lookupPrefix = lookupPrefix;
-        this.mergedPrefix = mergedPrefix;
         setResourcePath(resourcePath);
         setRootComponent(rootComponent);
     }
@@ -76,7 +74,7 @@ public class DependencyResolver {
         this.rootComponent = name;
         List<File> dependentDirs = null;
         try {
-            dependentDirs = getDependentDirs(name, new ArrayList<>(), new HashSet<>());
+            dependentDirs = getDependentDirs(name, new ArrayList<>(), new HashSet<>(), allowedJS);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -162,7 +160,7 @@ public class DependencyResolver {
      * @param alreadyCheckedDependencies - already visited components
      * @return an ordered list of directories which can be searched later on when doing single file lookup
      */
-    protected List<File> getDependentDirs(String comp, List<File> li, HashSet<String> alreadyCheckedDependencies) throws IOException {
+    protected List<File> getDependentDirs(String comp, List<File> li, HashSet<String> alreadyCheckedDependencies, HashMap<String,String[]> allowedJS) throws IOException {
         if (alreadyCheckedDependencies.contains(comp)) {
             return li;
         }
@@ -176,9 +174,13 @@ public class DependencyResolver {
                 File dep = new File(newOne, "dep.kson");
                 if ( dep.exists() ) {
                     try {
-                        String deps[] = ((ModuleProperties) new Kson().map(ModuleProperties.class).readObject(dep, ModuleProperties.class)).depends;
+                        ModuleProperties moduleProperties = loadDependencies(dep);
+                        if ( moduleProperties.allowedJS != null ) {
+                            allowedJS.put(newOne.getName(),moduleProperties.allowedJS);
+                        }
+                        String deps[] = moduleProperties.depends;
                         for (int j = 0; j < deps.length; j++) {
-                            getDependentDirs(deps[j],li,alreadyCheckedDependencies);
+                            getDependentDirs(deps[j],li,alreadyCheckedDependencies,allowedJS);
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -189,6 +191,10 @@ public class DependencyResolver {
             }
         }
         return li;
+    }
+
+    protected ModuleProperties loadDependencies(File dep) throws Exception {
+        return (ModuleProperties) new Kson().map(ModuleProperties.class).readObject(dep, ModuleProperties.class);
     }
 
     /**

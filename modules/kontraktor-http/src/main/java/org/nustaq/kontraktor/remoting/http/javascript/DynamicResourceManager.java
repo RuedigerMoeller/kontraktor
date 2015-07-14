@@ -43,7 +43,8 @@ public class DynamicResourceManager extends FileResourceManager {
     DependencyResolver dependencyResolver;
     String prefix = "";
     String lookupPrefix;
-    String mergedPrefix;
+    String mergedBinPrefix;
+    String mergedAsScriptPrefix;
     /**
      * in case not run in devmode, store lookup results in memory,
      * so file crawling is done once after server restart.
@@ -54,7 +55,7 @@ public class DynamicResourceManager extends FileResourceManager {
         super(new File("."), 100);
         this.devMode = devMode;
         setPrefix(prefix);
-        dependencyResolver = new DependencyResolver(prefix+"/"+lookupPrefix,prefix+"/"+mergedPrefix,rootComponent,resourcePath);
+        dependencyResolver = new DependencyResolver(prefix+"/"+lookupPrefix,rootComponent,resourcePath);
         setBase(dependencyResolver.locateComponent(rootComponent).get(0));
         if ( devMode )
             Log.Warn(this, "Dependency resolving is running in *DEVELOPMENT MODE*. Turn off development mode to cache aggregated resources");
@@ -68,7 +69,8 @@ public class DynamicResourceManager extends FileResourceManager {
         }
         this.prefix = prefix;
         lookupPrefix = "lookup/";
-        mergedPrefix = "merged/";
+        mergedBinPrefix = "merged/";
+        mergedAsScriptPrefix = "merge-as-script/";
     }
 
     public boolean isDevMode() {
@@ -110,22 +112,24 @@ public class DynamicResourceManager extends FileResourceManager {
                     return null;
                 }
             }
-        } else if ( p.startsWith(mergedPrefix) ) { // expect simple ending like '.js'
-            p = p.substring(mergedPrefix.length());
-            boolean binMerge = false;
-            if ( p.startsWith("bin_") ) {
-                binMerge = true;
-                p = p.substring(4);
-            }
+        } else if ( p.startsWith(mergedBinPrefix) ) { // expect simple ending like '.js'
+            p = p.substring(mergedBinPrefix.length());
             final String finalP = p;
             List<String> filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) -> finam.endsWith(finalP));
             byte[] bytes;
-            if ( finalP.endsWith(".css") || binMerge ) {
+            bytes = dependencyResolver.mergeBinary(filesInDirs); //
+            return mightCache(orgP, new MyResource(p0, finalP, bytes, "text/html"));//fixme mime
+        } else if ( p.startsWith(mergedAsScriptPrefix) ) { // expect simple ending like '.js'
+            p = p.substring(mergedBinPrefix.length());
+            final String finalP = p;
+            List<String> filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) -> finam.endsWith(finalP));
+            byte[] bytes;
+            if ( finalP.endsWith(".css") ) {
                 bytes = dependencyResolver.mergeBinary(filesInDirs); // trouble with textmerging
             } else {
                 bytes = dependencyResolver.mergeTextSnippets(filesInDirs,"","");
             }
-            return mightCache(orgP, new MyResource(p0, finalP, bytes,"text/html"));//fixme mime
+            return mightCache(orgP, new MyResource(p0, finalP, bytes, "text/html"));//fixme mime
         } else if ( p.equals("js") || p.startsWith("+") ) { // expect simple ending like '.js' or +name+name+name
             List<String> filesInDirs;
             final String finalP = p;
@@ -141,14 +145,30 @@ public class DynamicResourceManager extends FileResourceManager {
                     return false;
                 });
             } else {
-                filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) -> finam.endsWith(".js"));
+                filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) -> {
+                    if ( finam.endsWith(".js") ) {
+                        String[] allowed = dependencyResolver.allowedJS.get(comp);
+                        if ( allowed != null ) {
+                            for (int i = 0; i < allowed.length; i++) {
+                                String jsname = allowed[i];
+                                if ( finam.equalsIgnoreCase(jsname) ) {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+                        return true;
+                    } else
+                        return false;
+                });
+                // second run to check wether script might be removed because of  allowedJS: []
             }
             byte[] bytes = null;
             if ( devMode )
                 bytes = dependencyResolver.createScriptTags(filesInDirs);
             else
                 bytes = dependencyResolver.mergeScripts(filesInDirs);
-            return mightCache( orgP, new MyResource(p0, finalP, bytes, "text/javascript") );
+            return mightCache(orgP, new MyResource(p0, finalP, bytes, "text/javascript"));
         }
         return super.getResource(p0);
     }

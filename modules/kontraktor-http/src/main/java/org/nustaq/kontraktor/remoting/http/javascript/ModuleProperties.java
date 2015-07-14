@@ -18,6 +18,7 @@ package org.nustaq.kontraktor.remoting.http.javascript;
 
 public class ModuleProperties {
 
-    public String[] depends;
+    public String[] depends; // name of components this depends on
+    public String[] allowedJS; // a list of filenames to add on dyn/js merging import. if omitted all .js files of a folder will be imported.
 
 }

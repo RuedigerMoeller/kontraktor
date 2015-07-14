@@ -1,0 +1,4 @@
+{
+    depends: []
+    allowedJS: [ webcomponents.js ]
+}

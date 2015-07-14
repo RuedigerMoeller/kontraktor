@@ -13,15 +13,40 @@
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- load all scripts -->
+  <script src="lib/polymer-root/webcomponentsjs/webcomponents.js"></script>
+  <link rel="import" href="lib/polymer-root/polymer/polymer.html">
+  <link rel="import" href="lib/polymer-root/paper-slider/paper-slider.html">
+  <link rel="import" href="lib/polymer-root/marked-element/marked-element.html">
+
+  <!-- load all scripts vis http4k dependency management -->
   <script src="dyn/js"></script>
-  <!-- load my polymer components -->
-  <!--<script src="dyn/merged/.dom.html"></script>-->
-  <link rel="import" href="dyn/merged/bin_dom.html">
+
+  <!-- load my polymer components vis http4k dependency management -->
+  <link rel="import" href="dyn/merged/.dom.html">
 
 </head>
 
 <body>
+
+<marked-element>
+<script type="text/markdown">
+#This is
+
+some markdown
+
+* first
+* second
+
+Seems to **work** *well*
+
+</script>
+</marked-element>
+
+<br><br>
+
+<paper-slider min="10" max="200" value="110" pin="true" style="width: 500px;"></paper-slider>
+
+<br><br>
 
 <my-comp></my-comp>
 <br><br>
