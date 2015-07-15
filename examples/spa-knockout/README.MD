@@ -1,0 +1,1 @@
+Simple Knockout.js SPA application example

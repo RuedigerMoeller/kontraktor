@@ -1,2 +1,0 @@
-{ depends: [ js4k ] }
-#{ depends: [ js4k polymer ] }
