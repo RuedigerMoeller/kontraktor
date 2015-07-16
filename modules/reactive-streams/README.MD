@@ -97,7 +97,7 @@ If a processor maps to 'null' this is treated as event suppression (does **not**
 
 **Intrinsic Kontraktor**
 
-In addition inside a Kontraktor actor execution context, callbacks/streams/iterator's run inside the same thread, so its unnecessary to care for shared data (see https://github.com/RuedigerMoeller/kontraktor/blob/trunk/modules/reactive-streams/src/test/java/examples/KontraktorStreams.java for more examples).
+Inside a Kontraktor actor execution context, callbacks/streams/iterator's run inside the same thread, so its unnecessary to care for shared data (see https://github.com/RuedigerMoeller/kontraktor/blob/trunk/modules/reactive-streams/src/test/java/examples/KontraktorStreams.java for more examples).
 
 `reactive-streams.Subscriber` is mapped to kontraktor's `callback()`. One has to check the 'error' object in order to determine wether the event is an error (=onError), complete (=onComplete) or a regular event (=onNext). Reason to map this is the capability of Kontraktor to transparently remote `Callback` instances. 
 
