@@ -11,6 +11,8 @@ Kontraktor is high performance, you can do up to 2 million point2point async rem
 
 WebSite: http://ruedigermoeller.github.io/kontraktor/
 
+KOntraktor remoted Reactive Streams: https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/reactive-streams
+
 [**3.0 documentation**](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-3).
 
 **Maven**
