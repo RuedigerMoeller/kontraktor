@@ -20,22 +20,101 @@ import java.util.List;
  */
 public class HtmlImportShim {
 
+    public interface ResourceLocator {
+        File locateResource( String urlPath );
+    }
+
     boolean inlineCss = true;
     boolean inlineScripts = true;
     boolean stripComments = true;
     boolean minify = true;
 
-    public Element shimImports(File baseDir, File htmlFile, String baseUrl, HashSet<String> visited, List<List<Node>> bodyContent ) throws IOException {
+    String baseUrl;
+    ResourceLocator locator;
+
+    public HtmlImportShim( File baseDir, String baseUrl) {
+        this.baseUrl = baseUrl;
+        this.locator = new ResourceLocator() {
+            @Override
+            public File locateResource(String urlPath) {
+                return new File(normalizeUrl(baseDir+"/"+urlPath));
+            }
+        };
+    }
+
+    public HtmlImportShim(String baseUrl) {
+        this.baseUrl = baseUrl;
+    }
+
+    public String normalizeUrl( String url ) {
+        return DependencyResolver.stripDoubleSeps(url);
+    }
+
+    public File locateResource( String urlPath ) {
+        File file = locator.locateResource(normalizeUrl(baseUrl + "/" + urlPath));
+        if ( file == null || ! file.exists() ) {
+            System.out.println("failed to resolve '"+urlPath+"'");
+        }
+        return file;
+    }
+
+    public String getName( String url ) {
+        return url.substring(url.lastIndexOf("/") + 1);
+    }
+
+    public String getParentUrl( String url ) {
+        int idx = url.lastIndexOf("/");
+        if ( idx >= 0 )
+            return url.substring(0, idx);
+        return "";
+    }
+
+    public String getCompName( String url ) {
+        String name = getName(url);
+        int idx = name.lastIndexOf(".");
+        if ( idx >= 0 ) {
+            name = name.substring(0,idx);
+        }
+        return name;
+    }
+
+    public void setLocator(DependencyResolver locator) {
+        this.locator = locator;
+    }
+
+    protected String resolveLinkToUrl(String containingFileUrl, String href) {
+        if ( href.contains("marked.js") ) {
+            System.out.println("POK");
+        }
+        String parent = getParentUrl(containingFileUrl);
+        return parent+"/"+href;
+    }
+
+    public Element shimImports(String htmlFile) throws IOException {
+        return shimImports(htmlFile,new HashSet<>(), null);
+    }
+
+    protected String computeAssetPath(String containingFileUrl, String href) {
+        String parent = getParentUrl(containingFileUrl);
+        return parent+"/"+href;
+    }
+
+    public Element shimImports(String fileUrl, HashSet<String> visited, List<List<Node>> bodyContent ) throws IOException {
         boolean isTop = false;
         if ( bodyContent == null ) {
             isTop = true;
             bodyContent = new ArrayList<>();
         }
-        if ( visited.contains(htmlFile.getCanonicalPath()) )
+        if ( visited.contains( unify(fileUrl) ) )
             return null;//new Element(Tag.valueOf("span"),"").html("<!-- "+htmlFile.getName()+"-->");
-        visited.add(htmlFile.getCanonicalPath());
-        String compName = htmlFile.getName().substring(0, htmlFile.getName().length() - ".html".length());
-        Document doc = Jsoup.parse(htmlFile, "UTF-8", baseUrl);
+        visited.add( unify(fileUrl) );
+        String compName = getCompName(fileUrl);
+        File fi = locateResource(fileUrl);
+        if ( fi == null ) {
+            System.out.println("cannot locate "+fileUrl);
+            return null;
+        }
+        Document doc = Jsoup.parse(fi, "UTF-8", baseUrl);
         if ( stripComments ) {
             stripComments(doc);
         }
@@ -46,7 +125,7 @@ public class HtmlImportShim {
             Element link = links.get(i);
             //if (link.parent().tagName().equals("head") || true)
             {
-                shimLink(baseDir,htmlFile, baseUrl, visited, bodyContent, changes, link);
+                shimLink( fileUrl, visited, bodyContent, changes, link);
             }
         }
         // apply changes after analysis to avoid errors by concurrent iteration
@@ -61,13 +140,13 @@ public class HtmlImportShim {
                     String href = script.attr("src");
                     if ( href != null && href.length() > 0 ) {
                         if ( !href.startsWith("http") ) {
-                            File impFi = new File(htmlFile.getParent() + "/" + href);
-                            if ( impFi.exists() ) {
-                                String canonicalPath = impFi.getCanonicalPath();
-                                if ( visited.contains(canonicalPath) ) {
+                            String url = resolveLinkToUrl(fileUrl,href);
+                            File impFi = locateResource(url);
+                            if ( impFi != null && impFi.exists() ) {
+                                if ( visited.contains(unify(url)) ) {
                                     changes.add(() -> script.remove());
                                 } else {
-                                    visited.add(canonicalPath);
+                                    visited.add(unify(url));
                                     Element style = new Element(Tag.valueOf("script"), "" );
                                     byte[] bytes = Files.readAllBytes(impFi.toPath());
                                     style.appendChild(new DataNode(new String(bytes, "UTF-8"), ""));
@@ -116,7 +195,11 @@ public class HtmlImportShim {
         return doc;
     }
 
-    public void shimLink(File baseDir, File htmlFile, String baseUrl, HashSet<String> visited, List<List<Node>> bodyContent, List<Runnable> changes, Element link) throws IOException {
+    private String unify(String fileUrl) {
+        return getName(fileUrl);
+    }
+
+    public void shimLink(String containingFileUrl, HashSet<String> visited, List<List<Node>> bodyContent, List<Runnable> changes, Element link) throws IOException {
         String rel = link.attr("rel");
         String type = link.attr("type");
         if ( "import".equals(rel) ) {
@@ -134,14 +217,10 @@ public class HtmlImportShim {
                 String href = link.attr("href");
                 if ( !href.startsWith("http") ) {
                     try {
-                        File impFi = new File(htmlFile.getParent() + "/" + href);
-                        Element imp = shimImports(baseDir, impFi, baseUrl, visited, bodyContent);
+                        String impUrl = resolveLinkToUrl(containingFileUrl, href);
+                        Element imp = shimImports(impUrl, visited, bodyContent);
                         if (imp instanceof Document) {
-
-                            String curFilePath = impFi.getParentFile().getCanonicalPath();
-                            String basePath = baseDir.getCanonicalPath();
-                            int baseLen = basePath.length();
-                            String assetPath = curFilePath.substring(baseLen+1).replace("\\","/");
+                            String assetPath = computeAssetPath(containingFileUrl,href); //FIXME: needs to be computed to initial dir, will work for level 1 only
                             imp.getElementsByTag("dom-module").forEach( module -> {
                                 module.attr("assetpath", baseUrl+assetPath );
                             });
@@ -175,13 +254,13 @@ public class HtmlImportShim {
             } else if ( inlineCss && ("stylesheet".equals(type) || "css".equals(type)) ) {
                 String href = link.attr("href");
                 if ( href != null && ! href.startsWith("http") ) {
-                    File impFi = new File(htmlFile.getParent() + "/" + href);
-                    if ( impFi.exists() ) {
-                        String canonicalPath = impFi.getCanonicalPath();
-                        if ( visited.contains(canonicalPath) ) {
+                    String resUrl = resolveLinkToUrl(containingFileUrl,href);
+                    File impFi = locateResource(resUrl);
+                    if ( impFi != null && impFi.exists() ) {
+                        if ( visited.contains(unify(resUrl)) ) {
                             link.remove();
                         } else {
-                            visited.add(canonicalPath);
+                            visited.add(unify(resUrl));
                             Element style = new Element(Tag.valueOf("style"), "" );
                             byte[] bytes = Files.readAllBytes(impFi.toPath());
                             style.appendChild( new DataNode(new String(bytes,"UTF-8"),"") );
@@ -205,7 +284,7 @@ public class HtmlImportShim {
             }
         });
 
-        comments.forEach( node -> node.remove() );
+        comments.forEach(node -> node.remove());
     }
 
     public byte[] minify( byte bytes[] ) {
@@ -215,12 +294,38 @@ public class HtmlImportShim {
         return bout.toByteArray();
     }
 
+    public String getBaseUrl() {
+        return baseUrl;
+    }
+
+    public HtmlImportShim stripComments(final boolean stripComments) {
+        this.stripComments = stripComments;
+        return this;
+    }
+
+    public HtmlImportShim minify(final boolean minify) {
+        this.minify = minify;
+        return this;
+    }
+
+    public HtmlImportShim inlineScripts(final boolean inlineScripts) {
+        this.inlineScripts = inlineScripts;
+        return this;
+    }
+
+    public HtmlImportShim inlineCss(final boolean inlineCss) {
+        this.inlineCss = inlineCss;
+        return this;
+    }
+
+
     public static void main(String[] args) throws IOException {
 
         File file = new File("/home/ruedi/projects/polystrene/bower_components/paper-slider/paper-slider.html");
         File baseDir = new File("/home/ruedi/projects/polystrene/bower_components/");
-        HtmlImportShim shim = new HtmlImportShim();
-        Element element = shim.shimImports(baseDir,file, "dyn/lookup/", new HashSet<>(), null);
+        HtmlImportShim shim = new HtmlImportShim(baseDir, "");
+        Element element = shim.shimImports("paper-slider/paper-slider.html", new HashSet<>(), null);
         System.out.println(element);
     }
+
 }

@@ -31,7 +31,7 @@ import java.util.function.BiFunction;
  * resulting in a list of (ordered according to dependencies) directories.
  * The resulting list is then searched in order when doing lookup/merge
  */
-public class DependencyResolver {
+public class DependencyResolver implements HtmlImportShim.ResourceLocator{
 
     protected String lookupPrefix;
     protected File resourcePath[];
@@ -41,10 +41,17 @@ public class DependencyResolver {
     protected String rootComponent; // e.g. app (~subapplication)
 
     public DependencyResolver(String lookupPrefix, String rootComponent, String[] resourcePath) {
-        this.lookupPrefix = lookupPrefix;
+        this.lookupPrefix = stripDoubleSeps(lookupPrefix);
         setResourcePath(resourcePath);
         setRootComponent(rootComponent);
     }
+
+    public static String stripDoubleSeps(String url) {
+        while( url.indexOf("//") > 0 )
+            url = url.replace("//","/");
+        return url;
+    }
+
 
     public String getBaseDir() {
         return baseDir;
@@ -57,6 +64,10 @@ public class DependencyResolver {
     }
 
     protected DependencyResolver setResourcePath( String ... path ) {
+        if ( path == null ) {
+            resourcePath = new File[0];
+            return this;
+        }
         resourcePath = new File[path.length];
         for (int i = 0; i < path.length; i++) {
             String dir = baseDir+"/"+path[i];

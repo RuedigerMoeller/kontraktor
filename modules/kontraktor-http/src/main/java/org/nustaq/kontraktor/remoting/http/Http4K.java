@@ -39,7 +39,7 @@ import java.util.Map;
 /**
  * Created by ruedi on 25/05/15.
  *
- * singleton to manage http server instances. Currently tied to Undertow however implicitely shields kontraktor
+ * singleton to manage http server instances. Currently tied to Undertow however implicitely shields kontraktor-http
  * from getting too dependent on Undertow (which is an excellent piece of software, so no plans to migrate anytime soon)
  *
  */

@@ -19,6 +19,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.http.HttpPublisher;
 import org.nustaq.kontraktor.remoting.http.javascript.DynamicResourceManager;
+import org.nustaq.kontraktor.remoting.http.javascript.HtmlImportShim;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 
 import javax.net.ssl.SSLContext;
@@ -103,6 +104,15 @@ public class CFGFourK {
             } else if (item instanceof CFGResPath) {
                 CFGResPath dr = (CFGResPath) item;
                 DynamicResourceManager drm = new DynamicResourceManager(dr.isDevMode(), dr.getUrlPath(), dr.getRootComponent(), dr.getResourcePath());
+                if ( dr.getImports() != null ) {
+                    CFGResPath.HtmlImportShimSettings imp = dr.getImports();
+                    HtmlImportShim shim = new HtmlImportShim(dr.getUrlPath());
+                    shim.minify(imp.minify);
+                    shim.inlineScripts(imp.inlineScripts);
+                    shim.inlineCss(imp.inlineCss);
+                    shim.stripComments(imp.stripComments);
+                    drm.setImportShim(shim);
+                }
                 http4K.publishResourcePath(getHostName(), dr.getUrlPath(), getPort(), drm, dr.isCompress() );
             } else {
                 System.out.println("unexpected item " + item);

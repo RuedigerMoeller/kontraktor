@@ -24,6 +24,7 @@ import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.server.handlers.resource.Resource;
 import io.undertow.util.ETag;
 import io.undertow.util.MimeMappings;
+import org.jsoup.nodes.Element;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.File;
@@ -41,6 +42,7 @@ public class DynamicResourceManager extends FileResourceManager {
 
     boolean devMode = false;
     DependencyResolver dependencyResolver;
+    HtmlImportShim importShim; // null means no imports supported
     String prefix = "";
     String lookupPrefix;
     String mergedBinPrefix;
@@ -56,11 +58,21 @@ public class DynamicResourceManager extends FileResourceManager {
         this.devMode = devMode;
         setPrefix(prefix);
         dependencyResolver = new DependencyResolver(prefix+"/"+lookupPrefix,rootComponent,resourcePath);
-        setBase(dependencyResolver.locateComponent(rootComponent).get(0));
+        List<File> files = dependencyResolver.locateComponent(rootComponent);
+        if ( files == null || files.size() == 0 ) {
+            // base is set from import shim
+        } else {
+            setBase(files.get(0));
+        }
         if ( devMode )
             Log.Warn(this, "Dependency resolving is running in *DEVELOPMENT MODE*. Turn off development mode to cache aggregated resources");
         else
             Log.Info(this, "Dependency resolving is running in *PRODUCTION MODE*. Turn on development mode for script-refresh-on-reload and per file javascript debugging");
+    }
+
+    public void setImportShim( HtmlImportShim shim ) {
+        shim.setLocator(dependencyResolver);
+        this.importShim = shim;
     }
 
     public void setPrefix(String prefix) {
@@ -78,21 +90,22 @@ public class DynamicResourceManager extends FileResourceManager {
     }
 
     @Override
-    public Resource getResource(String p0) {
-        String p = p0;
-        if (p.startsWith("/")) {
-            p = p.substring(1);
+    public Resource getResource(String initialPath) {
+        final String normalizedPath;
+        if (initialPath.startsWith("/")) {
+            normalizedPath = initialPath.substring(1);
+        } else {
+            normalizedPath = initialPath;
         }
-        String orgP = p;
         if ( ! isDevMode() ) {
-            if (lookupCache.get(orgP) != null) {
-                return lookupCache.get(orgP);
+            if (lookupCache.get(normalizedPath) != null) {
+                return lookupCache.get(normalizedPath);
             }
         }
-        if ( p.startsWith(lookupPrefix) ) {
-            p = p.substring(lookupPrefix.length());
-            if ( p.startsWith("+") ) {
-                String[] split = p.substring(1).split("\\+");
+        if ( normalizedPath.startsWith(lookupPrefix) ) {
+            String path = normalizedPath.substring(lookupPrefix.length());
+            if ( path.startsWith("+") ) {
+                String[] split = path.substring(1).split("\\+");
                 List<String> filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) ->  {
                     for (int i = 0; i < split.length; i++) {
                         String s = split[i];
@@ -103,25 +116,25 @@ public class DynamicResourceManager extends FileResourceManager {
                     return false;
                 });
                 byte bytes[] = dependencyResolver.mergeBinary(filesInDirs); // trouble with textmerging
-                return mightCache(orgP,new MyResource(p0, p, bytes,"text/html")); //fixme mime
+                return mightCache(normalizedPath,new MyResource(initialPath, path, bytes,"text/html")); //fixme mime
             } else {
-                File file = dependencyResolver.locateResource(p);
+                File file = dependencyResolver.locateResource(normalizedPath);
                 if ( file != null ) {
-                    return mightCache(orgP, new FileResource(file, this, p0));
+                    return mightCache(normalizedPath, new FileResource(file, this, initialPath));
                 } else {
                     return null;
                 }
             }
-        } else if ( p.startsWith(mergedBinPrefix) ) { // expect simple ending like '.js'
-            p = p.substring(mergedBinPrefix.length());
-            final String finalP = p;
+        } else if ( normalizedPath.startsWith(mergedBinPrefix) ) { // expect simple ending like '.js'
+            String path = normalizedPath.substring(mergedBinPrefix.length());
+            final String finalP = path;
             List<String> filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) -> finam.endsWith(finalP));
             byte[] bytes;
             bytes = dependencyResolver.mergeBinary(filesInDirs); //
-            return mightCache(orgP, new MyResource(p0, finalP, bytes, "text/html"));//fixme mime
-        } else if ( p.startsWith(mergedAsScriptPrefix) ) { // expect simple ending like '.js'
-            p = p.substring(mergedBinPrefix.length());
-            final String finalP = p;
+            return mightCache(normalizedPath, new MyResource(initialPath, finalP, bytes, "text/html"));//fixme mime
+        } else if ( normalizedPath.startsWith(mergedAsScriptPrefix) ) { // expect simple ending like '.js'
+            String path = normalizedPath.substring(mergedBinPrefix.length());
+            final String finalP = path;
             List<String> filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) -> finam.endsWith(finalP));
             byte[] bytes;
             if ( finalP.endsWith(".css") ) {
@@ -129,12 +142,12 @@ public class DynamicResourceManager extends FileResourceManager {
             } else {
                 bytes = dependencyResolver.mergeTextSnippets(filesInDirs,"","");
             }
-            return mightCache(orgP, new MyResource(p0, finalP, bytes, "text/html"));//fixme mime
-        } else if ( p.equals("js") || p.startsWith("+") ) { // expect simple ending like '.js' or +name+name+name
+            return mightCache(normalizedPath, new MyResource(initialPath, finalP, bytes, "text/html"));//fixme mime
+        } else if ( normalizedPath.equals("js") || normalizedPath.startsWith("+") ) { // expect simple ending like '.js' or +name+name+name
             List<String> filesInDirs;
-            final String finalP = p;
-            if ( p.startsWith("+") ) {
-                String[] split = p.substring(1).split("\\+");
+            final String finalP = normalizedPath;
+            if ( normalizedPath.startsWith("+") ) {
+                String[] split = normalizedPath.substring(1).split("\\+");
                 filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) ->  {
                     for (int i = 0; i < split.length; i++) {
                         String s = split[i];
@@ -168,9 +181,19 @@ public class DynamicResourceManager extends FileResourceManager {
                 bytes = dependencyResolver.createScriptTags(filesInDirs);
             else
                 bytes = dependencyResolver.mergeScripts(filesInDirs);
-            return mightCache(orgP, new MyResource(p0, finalP, bytes, "text/javascript"));
+            return mightCache(normalizedPath, new MyResource(initialPath, finalP, bytes, "text/javascript"));
+        } else if ( importShim != null ) {
+            if ( initialPath.endsWith(".html") ) {
+                try {
+                    Element element = importShim.shimImports(normalizedPath);
+                    byte bytes[] = element.toString().getBytes("UTF-8");
+                    return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/html"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
-        return super.getResource(p0);
+        return super.getResource(initialPath);
     }
 
     private Resource mightCache(String key, Resource fileResource) {

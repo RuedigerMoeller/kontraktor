@@ -17,6 +17,8 @@ package org.nustaq.kontraktor.remoting.http.builder;
 
 import org.nustaq.kontraktor.remoting.http.javascript.DynamicResourceManager;
 
+import java.io.File;
+
 /**
  * Created by ruedi on 09.06.2015.
  */
@@ -29,6 +31,62 @@ public class CFGResPath {
     boolean devMode = true;
     Boolean compress;
 
+    HtmlImportShimSettings imports;
+
+    // html import settings
+    public static class HtmlImportShimSettings {
+        boolean inlineCss = true;
+        boolean inlineScripts = true;
+        boolean stripComments = true;
+        boolean minify = true;
+        CFGResPath parent;
+
+        public HtmlImportShimSettings(CFGResPath parent) {
+            this.parent = parent;
+        }
+
+        public HtmlImportShimSettings inlineCss(final boolean inlineCss) {
+            this.inlineCss = inlineCss;
+            return this;
+        }
+
+        public HtmlImportShimSettings inlineScripts(final boolean inlineScripts) {
+            this.inlineScripts = inlineScripts;
+            return this;
+        }
+
+        public HtmlImportShimSettings stripComments(final boolean stripComments) {
+            this.stripComments = stripComments;
+            return this;
+        }
+
+        public HtmlImportShimSettings minify(final boolean minify) {
+            this.minify = minify;
+            return this;
+        }
+
+        public boolean isInlineCss() {
+            return inlineCss;
+        }
+
+        public boolean isInlineScripts() {
+            return inlineScripts;
+        }
+
+        public boolean isStripComments() {
+            return stripComments;
+        }
+
+        public boolean isMinify() {
+            return minify;
+        }
+
+        public CFGResPath build() {
+            return parent;
+        }
+    }
+
+
     public CFGResPath(CFGFourK cfg4k, String urlPath) {
         this.cfg4k = cfg4k;
         this.urlPath = urlPath;
@@ -37,6 +95,17 @@ public class CFGResPath {
     public CFGResPath resourcePath(String ... resourcePath) {
         this.resourcePath = resourcePath;
         return this;
+    }
+
+    /**
+     * calling this implicitely enables server side HtmlImport Polyfill
+     * @return
+     */
+    public HtmlImportShimSettings imports() {
+        if ( imports == null ) {
+            imports = new HtmlImportShimSettings(this);
+        }
+        return imports;
     }
 
     public CFGResPath rootComponent(String rootComponent) {
@@ -79,4 +148,9 @@ public class CFGResPath {
             return ! devMode;
         return compress;
     }
+
+    public HtmlImportShimSettings getImports() {
+        return imports;
+    }
+
 }
