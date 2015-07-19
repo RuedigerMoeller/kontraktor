@@ -97,6 +97,9 @@ public class DynamicResourceManager extends FileResourceManager {
         if ( initialPath.endsWith(".html") && importShim != null ) {
             try {
                 Element element = importShim.shimImports(normalizedPath);
+                if ( element == null ) {
+                    return super.getResource(initialPath);
+                }
                 byte bytes[] = element.toString().getBytes("UTF-8");
                 return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/html"));
             } catch (IOException e) {
