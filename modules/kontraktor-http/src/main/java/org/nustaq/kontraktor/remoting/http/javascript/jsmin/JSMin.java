@@ -16,9 +16,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.http.javascript.jsmin;
 // original package ch.simschla.minify.js;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.charset.Charset;
 
 /**
@@ -43,6 +41,13 @@ public class JSMin {
         this.inputStream = builder.inputStream();
         this.outputStream = builder.outputStream();
         this.customHeader = builder.customHeader();
+    }
+
+    public static byte[] minify( byte bytes[] ) {
+        ByteArrayInputStream bin = new ByteArrayInputStream(bytes);
+        ByteArrayOutputStream bout = new ByteArrayOutputStream(bytes.length);
+        builder().inputStream(bin).outputStream(bout).build().minify();
+        return bout.toByteArray();
     }
 
     public void minify() {

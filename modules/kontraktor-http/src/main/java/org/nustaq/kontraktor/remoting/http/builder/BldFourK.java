@@ -30,7 +30,7 @@ import java.util.List;
 /**
  * Created by ruedi on 09.06.2015.
  */
-public class CFGFourK {
+public class BldFourK {
 
     String hostName;
     int port;
@@ -38,26 +38,26 @@ public class CFGFourK {
 
     List items = new ArrayList<>();
 
-    public CFGFourK(String hostName, int port, SSLContext context) {
+    public BldFourK(String hostName, int port, SSLContext context) {
         this.hostName = hostName;
         this.port = port;
         this.context = context;
     }
 
-    public CFGFourK fileRoot(String urlPath, String dir) {
-        CFGDirRoot rt = new CFGDirRoot(urlPath,dir);
+    public BldFourK fileRoot(String urlPath, String dir) {
+        BldDirRoot rt = new BldDirRoot(urlPath,dir);
         items.add(rt);
         return this;
     }
 
-    public CFGFourK fileRoot(String urlPath, File dir) {
-        CFGDirRoot rt = new CFGDirRoot(urlPath,dir.getAbsolutePath());
+    public BldFourK fileRoot(String urlPath, File dir) {
+        BldDirRoot rt = new BldDirRoot(urlPath,dir.getAbsolutePath());
         items.add(rt);
         return this;
     }
 
-    public CFGResPath resourcePath(String urlPath) {
-        CFGResPath rt = new CFGResPath(this,urlPath);
+    public BldResPath resourcePath(String urlPath) {
+        BldResPath rt = new BldResPath(this,urlPath);
         items.add(rt);
         return rt;
     }
@@ -90,7 +90,7 @@ public class CFGFourK {
         return items;
     }
 
-    public void build() {
+    public BldFourK build() {
         Http4K http4K = Http4K.get();
         http4K.getServer(getPort(), getHostName(), context );//fixme https
         getItems().forEach(item -> {
@@ -98,25 +98,26 @@ public class CFGFourK {
                 http4K.publish((HttpPublisher) item);
             } else if (item instanceof WebSocketPublisher) {
                 http4K.publish((WebSocketPublisher) item);
-            } else if (item instanceof CFGDirRoot) {
-                CFGDirRoot dr = (CFGDirRoot) item;
+            } else if (item instanceof BldDirRoot) {
+                BldDirRoot dr = (BldDirRoot) item;
                 http4K.publishFileSystem(getHostName(), dr.getUrlPath(), getPort(), new File(dr.getDir()));
-            } else if (item instanceof CFGResPath) {
-                CFGResPath dr = (CFGResPath) item;
-                DynamicResourceManager drm = new DynamicResourceManager(dr.isDevMode(), dr.getUrlPath(), dr.getRootComponent(), dr.getResourcePath());
-                if ( dr.getImports() != null ) {
-                    CFGResPath.HtmlImportShimSettings imp = dr.getImports();
-                    HtmlImportShim shim = new HtmlImportShim(dr.getUrlPath());
-                    shim.minify(imp.minify);
-                    shim.inlineScripts(imp.inlineScripts);
-                    shim.inlineCss(imp.inlineCss);
-                    shim.stripComments(imp.stripComments);
-                    drm.setImportShim(shim);
-                }
+            } else if (item instanceof BldResPath) {
+                BldResPath dr = (BldResPath) item;
+                DynamicResourceManager drm = new DynamicResourceManager(dr.isCacheAggregates(), dr.getUrlPath(), dr.isMinify(), dr.getResourcePath());
+                HtmlImportShim shim = new HtmlImportShim(dr.getUrlPath());
+                shim
+                    .minify(dr.isMinify())
+                    .inlineScripts(dr.isInlineScripts())
+                    .inlineCss(dr.isInlineCss())
+                    .inlineHtml(dr.isInlineHtml())
+                    .stripComments(dr.isStripComments());
+                drm.setImportShim(shim);
                 http4K.publishResourcePath(getHostName(), dr.getUrlPath(), getPort(), drm, dr.isCompress() );
             } else {
                 System.out.println("unexpected item " + item);
             }
         });
+        return this;
     }
+
 }

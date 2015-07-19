@@ -23,7 +23,7 @@ import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.http.builder.CFGFourK;
+import org.nustaq.kontraktor.remoting.http.builder.BldFourK;
 
 import java.util.function.Consumer;
 
@@ -32,7 +32,7 @@ import java.util.function.Consumer;
  */
 public class WebSocketPublisher implements ActorPublisher {
 
-    CFGFourK cfg; // used in cfgbuilder
+    BldFourK cfg; // used in cfgbuilder
 
     String hostName;
     String urlPath;
@@ -49,12 +49,12 @@ public class WebSocketPublisher implements ActorPublisher {
         this.facade = facade;
     }
 
-    public WebSocketPublisher(CFGFourK cfgFourK, Actor facade, String hostName, String urlPath, int port) {
+    public WebSocketPublisher(BldFourK cfgFourK, Actor facade, String hostName, String urlPath, int port) {
         this(facade,hostName,urlPath,port);
         this.cfg = cfgFourK;
     }
 
-    public CFGFourK build() {
+    public BldFourK build() {
         return cfg;
     }
 

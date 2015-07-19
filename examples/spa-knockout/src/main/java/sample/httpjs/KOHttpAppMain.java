@@ -2,9 +2,6 @@ package sample.httpjs;
 
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.Http4K;
-import org.nustaq.kontraktor.remoting.http.HttpPublisher;
-import org.nustaq.kontraktor.remoting.http.javascript.DynamicResourceManager;
-import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,22 +30,21 @@ public class KOHttpAppMain {
         KOHttpApp app = AsActor(KOHttpApp.class);
 
         Http4K.Build("localhost", 8080)
-            .fileRoot( "/", root)
-            .httpAPI(  "/api", app)
+            .fileRoot("/", root)
+            .httpAPI("/api", app)
                 .serType(SerializerType.JsonNoRef)
                 .setSessionTimeout(30_000)
                 .build()
-            .websocket("ws", app )
+            .websocket("ws", app)
                 .serType(SerializerType.JsonNoRef)
                 .build()
-            .resourcePath( "/dyn" )
-                .rootComponent("app")
-                .resourcePath(
-                    "./web",
-                    "./web/components",
-                    "../../modules/kontraktor-http/src/main/javascript",
-                    "./web/lib")
-                .devMode(true)
+            .resourcePath("/dyn")
+                .elements(
+                     "./web",
+                     "./web/components",
+                     "../../modules/kontraktor-http/src/main/javascript",
+                     "./web/lib")
+                .cacheAggregates(true)
                 .build()
             .build();
     }

@@ -25,11 +25,13 @@ import io.undertow.server.handlers.resource.Resource;
 import io.undertow.util.ETag;
 import io.undertow.util.MimeMappings;
 import org.jsoup.nodes.Element;
+import org.nustaq.kontraktor.remoting.http.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,26 +46,19 @@ public class DynamicResourceManager extends FileResourceManager {
     DependencyResolver dependencyResolver;
     HtmlImportShim importShim; // null means no imports supported
     String prefix = "";
-    String lookupPrefix;
-    String mergedBinPrefix;
-    String mergedAsScriptPrefix;
     /**
-     * in case not run in devmode, store lookup results in memory,
+     * in case not run with cacheAggregates, store lookup results in memory,
      * so file crawling is done once after server restart.
      */
     ConcurrentHashMap<String,Resource> lookupCache = new ConcurrentHashMap<>();
+    boolean minify;
 
-    public DynamicResourceManager(boolean devMode, String prefix, String rootComponent, String ... resourcePath) {
+    public DynamicResourceManager(boolean devMode, String prefix, boolean minify, String ... resourcePath) {
         super(new File("."), 100);
         this.devMode = devMode;
+        this.minify = minify;
         setPrefix(prefix);
-        dependencyResolver = new DependencyResolver(prefix+"/"+lookupPrefix,rootComponent,resourcePath);
-        List<File> files = dependencyResolver.locateComponent(rootComponent);
-        if ( files == null || files.size() == 0 ) {
-            // base is set from import shim
-        } else {
-            setBase(files.get(0));
-        }
+        dependencyResolver = new DependencyResolver(resourcePath);
         if ( devMode )
             Log.Warn(this, "Dependency resolving is running in *DEVELOPMENT MODE*. Turn off development mode to cache aggregated resources");
         else
@@ -80,9 +75,6 @@ public class DynamicResourceManager extends FileResourceManager {
             prefix = prefix.substring(1);
         }
         this.prefix = prefix;
-        lookupPrefix = "lookup/";
-        mergedBinPrefix = "merged/";
-        mergedAsScriptPrefix = "merge-as-script/";
     }
 
     public boolean isDevMode() {
@@ -102,95 +94,27 @@ public class DynamicResourceManager extends FileResourceManager {
                 return lookupCache.get(normalizedPath);
             }
         }
-        if ( normalizedPath.startsWith(lookupPrefix) ) {
-            String path = normalizedPath.substring(lookupPrefix.length());
-            if ( path.startsWith("+") ) {
-                String[] split = path.substring(1).split("\\+");
-                List<String> filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) ->  {
-                    for (int i = 0; i < split.length; i++) {
-                        String s = split[i];
-                        if ( finam.equals(s) ) {
-                            return true;
-                        }
+        if ( initialPath.endsWith(".html") && importShim != null ) {
+            try {
+                Element element = importShim.shimImports(normalizedPath);
+                byte bytes[] = element.toString().getBytes("UTF-8");
+                return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/html"));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            File file = dependencyResolver.locateResource(normalizedPath);
+            if ( file != null ) {
+                if ( file.getName().endsWith(".js") && minify ) {
+                    try {
+                        byte[] bytes = Files.readAllBytes(file.toPath());
+                        bytes = JSMin.minify(bytes);
+                        return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/javascript"));
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                    return false;
-                });
-                byte bytes[] = dependencyResolver.mergeBinary(filesInDirs); // trouble with textmerging
-                return mightCache(normalizedPath,new MyResource(initialPath, path, bytes,"text/html")); //fixme mime
-            } else {
-                File file = dependencyResolver.locateResource(normalizedPath);
-                if ( file != null ) {
-                    return mightCache(normalizedPath, new FileResource(file, this, initialPath));
-                } else {
-                    return null;
                 }
-            }
-        } else if ( normalizedPath.startsWith(mergedBinPrefix) ) { // expect simple ending like '.js'
-            String path = normalizedPath.substring(mergedBinPrefix.length());
-            final String finalP = path;
-            List<String> filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) -> finam.endsWith(finalP));
-            byte[] bytes;
-            bytes = dependencyResolver.mergeBinary(filesInDirs); //
-            return mightCache(normalizedPath, new MyResource(initialPath, finalP, bytes, "text/html"));//fixme mime
-        } else if ( normalizedPath.startsWith(mergedAsScriptPrefix) ) { // expect simple ending like '.js'
-            String path = normalizedPath.substring(mergedBinPrefix.length());
-            final String finalP = path;
-            List<String> filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) -> finam.endsWith(finalP));
-            byte[] bytes;
-            if ( finalP.endsWith(".css") ) {
-                bytes = dependencyResolver.mergeBinary(filesInDirs); // trouble with textmerging
-            } else {
-                bytes = dependencyResolver.mergeTextSnippets(filesInDirs,"","");
-            }
-            return mightCache(normalizedPath, new MyResource(initialPath, finalP, bytes, "text/html"));//fixme mime
-        } else if ( normalizedPath.equals("js") || normalizedPath.startsWith("+") ) { // expect simple ending like '.js' or +name+name+name
-            List<String> filesInDirs;
-            final String finalP = normalizedPath;
-            if ( normalizedPath.startsWith("+") ) {
-                String[] split = normalizedPath.substring(1).split("\\+");
-                filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) ->  {
-                    for (int i = 0; i < split.length; i++) {
-                        String s = split[i];
-                        if ( finam.equals(s) || (comp.equals(s)&&finam.endsWith(".js")) ) {
-                            return true;
-                        }
-                    }
-                    return false;
-                });
-            } else {
-                filesInDirs = dependencyResolver.findFilesInDirs( (comp,finam) -> {
-                    if ( finam.endsWith(".js") ) {
-                        String[] allowed = dependencyResolver.allowedJS.get(comp);
-                        if ( allowed != null ) {
-                            for (int i = 0; i < allowed.length; i++) {
-                                String jsname = allowed[i];
-                                if ( finam.equalsIgnoreCase(jsname) ) {
-                                    return true;
-                                }
-                            }
-                            return false;
-                        }
-                        return true;
-                    } else
-                        return false;
-                });
-                // second run to check wether script might be removed because of  allowedJS: []
-            }
-            byte[] bytes = null;
-            if ( devMode )
-                bytes = dependencyResolver.createScriptTags(filesInDirs);
-            else
-                bytes = dependencyResolver.mergeScripts(filesInDirs);
-            return mightCache(normalizedPath, new MyResource(initialPath, finalP, bytes, "text/javascript"));
-        } else if ( importShim != null ) {
-            if ( initialPath.endsWith(".html") ) {
-                try {
-                    Element element = importShim.shimImports(normalizedPath);
-                    byte bytes[] = element.toString().getBytes("UTF-8");
-                    return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/html"));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                return mightCache(normalizedPath, new FileResource(file, this, initialPath));
             }
         }
         return super.getResource(initialPath);

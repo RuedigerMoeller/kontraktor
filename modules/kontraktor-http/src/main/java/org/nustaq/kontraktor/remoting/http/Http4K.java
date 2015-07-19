@@ -24,9 +24,7 @@ import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.server.handlers.resource.ResourceHandler;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
-import org.nustaq.kontraktor.remoting.http.builder.CFGDirRoot;
-import org.nustaq.kontraktor.remoting.http.builder.CFGFourK;
-import org.nustaq.kontraktor.remoting.http.builder.CFGResPath;
+import org.nustaq.kontraktor.remoting.http.builder.BldFourK;
 import org.nustaq.kontraktor.remoting.http.javascript.DynamicResourceManager;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.util.Pair;
@@ -60,11 +58,11 @@ public class Http4K {
         }
     }
 
-    public static CFGFourK Build( String hostName, int port, SSLContext ctx ) {
+    public static BldFourK Build( String hostName, int port, SSLContext ctx ) {
         return get().builder(hostName,port,ctx);
     }
 
-    public static CFGFourK Build( String hostName, int port) {
+    public static BldFourK Build( String hostName, int port) {
         return get().builder(hostName,port,null);
     }
 
@@ -98,12 +96,12 @@ public class Http4K {
         return pair;
     }
 
-    public CFGFourK builder(String hostName, int port, SSLContext ctx) {
-        return new CFGFourK(hostName,port,ctx);
+    public BldFourK builder(String hostName, int port, SSLContext ctx) {
+        return new BldFourK(hostName,port,ctx);
     }
 
-    public CFGFourK builder(String hostName, int port) {
-        return new CFGFourK(hostName,port,null);
+    public BldFourK builder(String hostName, int port) {
+        return new BldFourK(hostName,port,null);
     }
 
     protected Undertow.Builder customize(Undertow.Builder builder, PathHandler rootPathHandler, int port, String hostName, SSLContext context) {
