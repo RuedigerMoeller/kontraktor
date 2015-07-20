@@ -92,6 +92,23 @@ public class BldResPath {
         return this;
     }
 
+    /**
+     * turn on/off all inlining + file caching for easy development.
+     * Note for full dev mode a html import enabled browser is required (e.g. chrome)
+     *
+     * note this overwrites previous settings made to this
+     */
+    public BldResPath allDev(boolean dev) {
+        inlineCss(!dev);
+        inlineHtml(!dev);
+        inlineScripts(!dev);
+        stripComments(!dev);
+        minify(!dev);
+        cacheAggregates(!dev);
+        compress(!dev);
+        return this;
+    }
+
     public BldResPath compress(boolean doGZip) {
         compress = doGZip;
         return this;
