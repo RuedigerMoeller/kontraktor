@@ -147,73 +147,74 @@ public class HtmlImportShim {
                 }
             }
         }
-        if ("import".equals(rel) ) {
-            if ( inlineHtml && type.indexOf("html") >= 0 ) {
-                String href = link.attr("href");
-                String noinline = link.attr("no-inline");
-                if ( noinline != "" ) {
-                    // do nothing
-                } else if ( !href.startsWith("http") ) {
-                    try {
-                        KUrl impUrl = containingFileUrl.getParentURL().concat(href);
-                        Element imp = shimImports(impUrl, visited, bodyContent);
-                        if (imp instanceof Document) {
-                            KUrl assetPath = computeAssetPath(containingFileUrl,href); //FIXME: needs to be computed to initial dir, will work for level 1 only
-                            imp.getElementsByTag("dom-module").forEach( module -> {
-                                module.attr("assetpath", baseUrl.concat(assetPath).toUrlString() );
-                            });
+        if ( link.attr("href").indexOf("skeleton") >= 0 ) {
+            int debug = 1;
+        }
+        if ( inlineHtml && type.indexOf("html") >= 0 && "import".equals(rel)) {
+            String href = link.attr("href");
+            String noinline = link.attr("no-inline");
+            if ( noinline != "" ) {
+                // do nothing
+            } else if ( !href.startsWith("http") ) {
+                try {
+                    KUrl impUrl = containingFileUrl.getParentURL().concat(href);
+                    Element imp = shimImports(impUrl, visited, bodyContent);
+                    if (imp instanceof Document) {
+                        KUrl assetPath = computeAssetPath(containingFileUrl,href); //FIXME: needs to be computed to initial dir, will work for level 1 only
+                        imp.getElementsByTag("dom-module").forEach( module -> {
+                            module.attr("assetpath", baseUrl.concat(assetPath).toUrlString() );
+                        });
 
-                            imp.getElementsByTag("head").forEach(node -> {
-                                List<Node> children = new ArrayList<>(node.children());
-                                // children.add(0, new Comment(" == "+impFi.getName()+" == ",""));
-                                changes.add(() -> {
-                                    Integer integer = link.siblingIndex();
-                                    if ( containingFileUrl.toUrlString().equals("index.html")) {
-                                        int debug = 1;
-                                    }
-                                    link.parent().insertChildren(integer, children);
-                                });
+                        imp.getElementsByTag("head").forEach(node -> {
+                            List<Node> children = new ArrayList<>(node.children());
+                            // children.add(0, new Comment(" == "+impFi.getName()+" == ",""));
+                            changes.add(() -> {
+                                Integer integer = link.siblingIndex();
+                                if ( containingFileUrl.toUrlString().equals("index.html")) {
+                                    int debug = 1;
+                                }
+                                link.parent().insertChildren(integer, children);
                             });
-                            final List<List<Node>> finalBodyContent = bodyContent;
-                            imp.getElementsByTag("body").forEach(node -> {
-                                finalBodyContent.add(new ArrayList<>(node.children()));
-                            });
-                            changes.add( () -> link.remove() );
-                            inlineScripts(impUrl, visited, changes, imp);
-                        } else {
-                            if ( imp == null ) {
-                                changes.add(() -> link.remove() );
-                            }
-                            else {
-                                final Element finalImp = imp;
-                                changes.add(() -> link.replaceWith(finalImp) );
-                            }
+                        });
+                        final List<List<Node>> finalBodyContent = bodyContent;
+                        imp.getElementsByTag("body").forEach(node -> {
+                            finalBodyContent.add(new ArrayList<>(node.children()));
+                        });
+                        changes.add( () -> link.remove() );
+                        inlineScripts(impUrl, visited, changes, imp);
+                    } else {
+                        if ( imp == null ) {
+                            changes.add(() -> link.remove() );
                         }
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                        else {
+                            final Element finalImp = imp;
+                            changes.add(() -> link.replaceWith(finalImp) );
+                        }
                     }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } else if ( inlineCss && ("stylesheet".equals(type) || "css".equals(type)) ) {
-                String href = link.attr("href");
-                String noinline = link.attr("no-inline");
-                if ( noinline != "" ) {
-                } else if ( href != null && ! href.startsWith("http") ) {
-                    KUrl resUrl = containingFileUrl.getParentURL().concat(href);
-                    File impFi = locateResource(resUrl);
-                    if ( impFi != null && impFi.exists() ) {
-                        if ( visited.contains(resUrl) ) {
-                            link.remove();
-                        } else {
-                            visited.add(resUrl);
-                            Element style = new Element(Tag.valueOf("style"), "" );
-                            byte[] bytes = Files.readAllBytes(impFi.toPath());
-                            style.appendChild( new DataNode(new String(bytes,"UTF-8"),"") );
-                            link.replaceWith(style);
-                        }
+            }
+        } else if ( inlineCss && ("stylesheet".equals(type) || "css".equals(type) || rel.equals("stylesheet")) ) {
+            String href = link.attr("href");
+            String noinline = link.attr("no-inline");
+            if ( noinline != "" ) {
+            } else if ( href != null && ! href.startsWith("http") ) {
+                KUrl resUrl = containingFileUrl.getParentURL().concat(href);
+                File impFi = locateResource(resUrl);
+                if ( impFi != null && impFi.exists() ) {
+                    if ( visited.contains(resUrl) ) {
+                        link.remove();
+                    } else {
+                        visited.add(resUrl);
+                        Element style = new Element(Tag.valueOf("style"), "" );
+                        byte[] bytes = Files.readAllBytes(impFi.toPath());
+                        style.appendChild( new DataNode(new String(bytes,"UTF-8"),"") );
+                        link.replaceWith(style);
                     }
                 }
             }
-        } // import link
+        }
     }
 
     public void inlineScripts(KUrl containingFileUrl, HashSet<KUrl> visited, List<Runnable> changes, Element doc) throws IOException {
