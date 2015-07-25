@@ -166,4 +166,11 @@ public class KUrl {
     }
 
 
+    public boolean isRelative() {
+        return protocol == null;
+    }
+
+    public KUrl prepend(String name) {
+        return new KUrl(name).concat(this);
+    }
 }

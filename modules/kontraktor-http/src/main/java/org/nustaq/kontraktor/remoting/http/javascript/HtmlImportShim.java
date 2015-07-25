@@ -106,6 +106,22 @@ public class HtmlImportShim {
         changes.forEach(change -> change.run());
         changes.clear();
 
+        if ( inlineScripts || inlineCss || inlineHtml ) {
+            // adjust links to resources
+            // fixme: misc links to component local resources ?
+            // fixme: needs to respect individual inline flags separately
+            Elements resourcLinks = doc.getElementsByAttribute("src");
+            for (int i = 0; i < resourcLinks.size(); i++) {
+                Element element = resourcLinks.get(i);
+                if ( element.tagName().equals("img") || element.tagName().equals("embed") || element.tagName().equals("iframe") ) {
+                    KUrl linkUrl = new KUrl(element.attr("src") );
+                    if ( linkUrl.isRelative() ) {
+                        linkUrl = linkUrl.prepend( containingFileUrl.getParentURL().getName() );
+                        element.attr("src", linkUrl.toUrlString());
+                    }
+                }
+            }
+        }
         if ( isTop ) {
             Element body = doc.getElementsByTag("body").first();
             Element div = new Element(Tag.valueOf("div"),"");

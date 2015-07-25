@@ -270,6 +270,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                 // sender has correct value
                 Actor targetActor = callEntry.getTargetActor();
                 Actor.sender.set(targetActor);
+                Actor.connection.set(callEntry.getRemoteRefRegistry());
                 if (targetActor.__stopped) {
                     targetActor.__addDeadLetter(targetActor,callEntry.getMethod().getName());
                     return true;

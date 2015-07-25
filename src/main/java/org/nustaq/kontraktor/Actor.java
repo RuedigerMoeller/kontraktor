@@ -92,7 +92,12 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     public static ThreadLocal<Actor> sender = new ThreadLocal<>();
 
     /**
-     * @return current actor thread or throw an exception if not running inside an actor thread.
+     * contains remote connection if current message came from remote
+     */
+    public static ThreadLocal<RemoteConnection> connection = new ThreadLocal<>();
+
+    /**
+     * @return current actor or throw an exception if not running inside an actor thread.
      */
     public static Actor current() {
         Actor actor = sender.get();
@@ -220,7 +225,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         __scheduler.delayedCall(millis, inThread(self(), toRun));
     }
 
-
     /**
      * @return true if mailbox fill size is ~half capacity
      */
@@ -316,8 +320,8 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
 
     /**
      * closes associated remote connection(s) if present. NOP otherwise.
-     * Close refers to "unmapping" the actor, underlying network connections will not be
-     * closed (else server down on single client disconnect)
+     * Close refers to "unmapping" the serving actor, underlying network connections will be
+     * closed. All clients get disconnected
      */
     @Local
     public void close() {
@@ -326,6 +330,17 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             getActorRef().__connections = null;
             getActor().__connections = null;
             prevCon.forEach((con) -> con.close());
+        }
+    }
+
+    /**
+     * closes the connection to the remote client which has sent currently executing message.
+     * If current message was not sent by a client, NOP.
+     */
+    protected void closeCurrentClient() {
+        RemoteConnection remoteConnection = connection.get();
+        if ( remoteConnection != null ) {
+            delayed(1000, () -> remoteConnection.close() );
         }
     }
 
