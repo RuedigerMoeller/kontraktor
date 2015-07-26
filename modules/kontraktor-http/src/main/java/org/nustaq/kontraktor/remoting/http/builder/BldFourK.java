@@ -107,9 +107,7 @@ public class BldFourK {
                 HtmlImportShim shim = new HtmlImportShim(dr.getUrlPath());
                 shim
                     .minify(dr.isMinify())
-                    .inlineScripts(dr.isInlineScripts())
-                    .inlineCss(dr.isInlineCss())
-                    .inlineHtml(dr.isInlineHtml())
+                    .inline(dr.isInline())
                     .stripComments(dr.isStripComments());
                 drm.setImportShim(shim);
                 http4K.publishResourcePath(getHostName(), dr.getUrlPath(), getPort(), drm, dr.isCompress() );

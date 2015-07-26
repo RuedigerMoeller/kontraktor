@@ -5,6 +5,7 @@ import org.jsoup.nodes.*;
 import org.jsoup.parser.Tag;
 import org.jsoup.select.Elements;
 import org.nustaq.kontraktor.remoting.http.javascript.jsmin.JSMin;
+import org.nustaq.kontraktor.util.Log;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,10 +23,8 @@ public class HtmlImportShim {
         File locateResource( String urlPath );
     }
 
-    boolean inlineCss = true;
-    boolean inlineScripts = true;
+    boolean inline = true;
     boolean stripComments = true;
-    boolean inlineHtml;
     boolean minify = true;
 
     KUrl baseUrl;
@@ -41,11 +40,10 @@ public class HtmlImportShim {
         };
     }
 
-    public HtmlImportShim inlineHtml(boolean inlineHtml) {
-        this.inlineHtml = inlineHtml;
+    public HtmlImportShim inline(boolean inline) {
+        this.inline = inline;
         return this;
     }
-
 
     public HtmlImportShim(String baseUrl) {
         this.baseUrl = new KUrl(baseUrl);
@@ -54,7 +52,7 @@ public class HtmlImportShim {
     public File locateResource( KUrl urlPath ) {
         File file = locator.locateResource( baseUrl.concat(urlPath).toUrlString() );
         if ( file == null || ! file.exists() ) {
-            System.out.println("failed to resolve '"+urlPath+"'");
+            Log.Warn(this, "failed to resolve '" + urlPath + "'");
         }
         return file;
     }
@@ -106,7 +104,7 @@ public class HtmlImportShim {
         changes.forEach(change -> change.run());
         changes.clear();
 
-        if ( inlineScripts || inlineCss || inlineHtml ) {
+        if ( inline ) {
             // adjust links to resources
             // fixme: misc links to component local resources ?
             // fixme: needs to respect individual inline flags separately
@@ -122,13 +120,24 @@ public class HtmlImportShim {
                 }
             }
         }
+
+//        if ( inline ) {
+//            // actually scripts should be empty, re-remove them
+//            scripts = doc.getElementsByTag("script");
+//            for (int i = 0; i < scripts.size(); i++) {
+//                Element script = scripts.get(i);
+//                if ( script.hasAttr("src") && ! script.attr("src").startsWith("http") && ! script.hasAttr("no-inline") ) {
+//                    script.remove();
+//                }
+//            }
+//        }
+
         if ( isTop ) {
             Element body = doc.getElementsByTag("body").first();
             Element div = new Element(Tag.valueOf("div"),"");
             div.attr("hidden","");
             div.attr("by-vulcanize","");
             div.attr("not-really","");
-
             for (int i = bodyContent.size()-1; i >= 0; i--) {
                 List<Node> children = bodyContent.get(i);
                 div.insertChildren(0,children);
@@ -136,7 +145,7 @@ public class HtmlImportShim {
             ArrayList<Node> children = new ArrayList<>();
             children.add(div);
             body.insertChildren(0, children);
-            if ( minify && inlineScripts && scripts != null ) {
+            if ( inline && scripts != null ) {
                 inlineScripts(containingFileUrl, visited, changes, scripts );
                 changes.forEach( change -> change.run() );
                 changes.clear();
@@ -166,7 +175,7 @@ public class HtmlImportShim {
         if ( link.attr("href").indexOf("skeleton") >= 0 ) {
             int debug = 1;
         }
-        if ( inlineHtml && type.indexOf("html") >= 0 && "import".equals(rel)) {
+        if ( inline && type.indexOf("html") >= 0 && "import".equals(rel)) {
             String href = link.attr("href");
             String noinline = link.attr("no-inline");
             if ( noinline != "" ) {
@@ -178,7 +187,7 @@ public class HtmlImportShim {
                     if (imp instanceof Document) {
                         KUrl assetPath = computeAssetPath(containingFileUrl,href); //FIXME: needs to be computed to initial dir, will work for level 1 only
                         imp.getElementsByTag("dom-module").forEach( module -> {
-                            module.attr("assetpath", baseUrl.concat(assetPath).toUrlString() );
+                            module.attr("assetpath", baseUrl.concat(assetPath).toUrlString());
                         });
 
                         imp.getElementsByTag("head").forEach(node -> {
@@ -186,18 +195,17 @@ public class HtmlImportShim {
                             // children.add(0, new Comment(" == "+impFi.getName()+" == ",""));
                             changes.add(() -> {
                                 Integer integer = link.siblingIndex();
-                                if ( containingFileUrl.toUrlString().equals("index.html")) {
-                                    int debug = 1;
-                                }
                                 link.parent().insertChildren(integer, children);
                             });
                         });
+                        inlineScripts(impUrl, visited, changes, imp);
                         final List<List<Node>> finalBodyContent = bodyContent;
-                        imp.getElementsByTag("body").forEach(node -> {
-                            finalBodyContent.add(new ArrayList<>(node.children()));
+                        changes.add(() -> {
+                            imp.getElementsByTag("body").forEach(node -> {
+                                finalBodyContent.add(new ArrayList<>(node.children()));
+                            });
                         });
                         changes.add( () -> link.remove() );
-                        inlineScripts(impUrl, visited, changes, imp);
                     } else {
                         if ( imp == null ) {
                             changes.add(() -> link.remove() );
@@ -211,7 +219,7 @@ public class HtmlImportShim {
                     e.printStackTrace();
                 }
             }
-        } else if ( inlineCss && ("stylesheet".equals(type) || "css".equals(type) || rel.equals("stylesheet")) ) {
+        } else if ( inline && ("stylesheet".equals(type) || "css".equals(type) || rel.equals("stylesheet")) ) {
             String href = link.attr("href");
             String noinline = link.attr("no-inline");
             if ( noinline != "" ) {
@@ -234,19 +242,19 @@ public class HtmlImportShim {
     }
 
     public void inlineScripts(KUrl containingFileUrl, HashSet<KUrl> visited, List<Runnable> changes, Element doc) throws IOException {
-        if ( inlineScripts ) {
+        if ( inline ) {
             Elements scripts = doc.getElementsByTag("script");
             inlineScripts(containingFileUrl,visited,changes,scripts);
         }
     }
 
     public void inlineScripts(KUrl containingFileUrl, HashSet<KUrl> visited, List<Runnable> changes, Elements scripts) throws IOException {
-        if ( inlineScripts ) {
+        if ( inline ) {
             for (int i = 0; i < scripts.size(); i++) {
                 Element script = scripts.get(i);
                 String href = script.attr("src");
-                String ignore = script.attr("no-inline");
-                if ( ignore != "" ) {
+                boolean ignore = script.hasAttr("no-inline");
+                if ( ignore ) {
                     continue;
                 }
                 if ( href != null && href.length() > 0 ) {
@@ -257,13 +265,15 @@ public class HtmlImportShim {
                             if ( visited.contains(url) ) {
                                 changes.add(() -> script.remove());
                             } else {
+                                Log.Info(this, "inlining script " + href);
                                 visited.add(url);
-                                Element style = new Element(Tag.valueOf("script"), "" );
+                                Element newScript = new Element(Tag.valueOf("script"), "" );
                                 byte[] bytes = Files.readAllBytes(impFi.toPath());
                                 if ( minify && url.getExtension().equals("js") )
                                     bytes = JSMin.minify(bytes);
-                                style.appendChild(new DataNode(new String(bytes, "UTF-8"), ""));
-                                changes.add(() -> script.replaceWith(style));
+                                String scriptSource = new String(bytes, "UTF-8");
+                                newScript.appendChild(new DataNode(scriptSource, ""));
+                                changes.add(() -> script.replaceWith(newScript));
                             }
                         }
                     }
@@ -298,16 +308,6 @@ public class HtmlImportShim {
 
     public HtmlImportShim minify(final boolean minify) {
         this.minify = minify;
-        return this;
-    }
-
-    public HtmlImportShim inlineScripts(final boolean inlineScripts) {
-        this.inlineScripts = inlineScripts;
-        return this;
-    }
-
-    public HtmlImportShim inlineCss(final boolean inlineCss) {
-        this.inlineCss = inlineCss;
         return this;
     }
 

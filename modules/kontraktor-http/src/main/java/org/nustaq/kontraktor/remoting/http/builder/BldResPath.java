@@ -26,10 +26,8 @@ public class BldResPath {
     boolean cacheAggregates = true;
     Boolean compress;
 
-    boolean inlineCss = true;
-    boolean inlineScripts = true;
+    boolean inline = true;
     boolean stripComments = true;
-    boolean inlineHtml = true;
     boolean minify = true;
 
     public BldResPath(BldFourK cfg4k, String urlPath) {
@@ -42,22 +40,8 @@ public class BldResPath {
         return this;
     }
 
-    public BldResPath inlineCss(final boolean inlineCss) {
-        this.inlineCss = inlineCss;
-        return this;
-    }
-
-    public BldResPath inlineHtml(final boolean inlineHtml) {
-        this.inlineHtml = inlineHtml;
-        return this;
-    }
-
-    public boolean isInlineHtml() {
-        return inlineHtml;
-    }
-
-    public BldResPath inlineScripts(final boolean inlineScripts) {
-        this.inlineScripts = inlineScripts;
+    public BldResPath inline(final boolean inline) {
+        this.inline = inline;
         return this;
     }
 
@@ -71,12 +55,8 @@ public class BldResPath {
         return this;
     }
 
-    public boolean isInlineCss() {
-        return inlineCss;
-    }
-
-    public boolean isInlineScripts() {
-        return inlineScripts;
+    public boolean isInline() {
+        return inline;
     }
 
     public boolean isStripComments() {
@@ -99,9 +79,7 @@ public class BldResPath {
      * note this overwrites previous settings made to this
      */
     public BldResPath allDev(boolean dev) {
-        inlineCss(!dev);
-        inlineHtml(!dev);
-        inlineScripts(!dev);
+        inline(!dev);
         stripComments(!dev);
         minify(!dev);
         cacheAggregates(!dev);
