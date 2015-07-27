@@ -273,9 +273,18 @@ public class HtmlImportShim {
                                     bytes = JSMin.minify(bytes);
                                 String scriptSource = new String(bytes, "UTF-8");
                                 newScript.appendChild(new DataNode(scriptSource, ""));
+                                newScript.attr("no-inline", "true");
                                 changes.add(() -> script.replaceWith(newScript));
                             }
                         }
+                    }
+                } else {
+                    if ( minify && ! script.hasAttr("no-inline")) {
+                        String minified = new String(JSMin.minify(script.html().getBytes("UTF-8")), "UTF-8");
+                        Element newScript = new Element(Tag.valueOf("script"), "" );
+                        newScript.appendChild(new DataNode(minified, ""));
+                        newScript.attr("no-inline", "true");
+                        changes.add(() -> script.replaceWith(newScript));
                     }
                 }
             }
