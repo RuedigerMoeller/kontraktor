@@ -1,3 +1,0 @@
-# requires manual link of animate.css
-{ depends: [ lettering animate ] }
-
