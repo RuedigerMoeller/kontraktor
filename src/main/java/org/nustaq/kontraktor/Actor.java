@@ -291,8 +291,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * By using custom callbacks/other threading bugs accidental multi threading
      * can be detected that way.
      *
-     * WARNING: only feasable when running in dev on single threaded scheduler (ElasticScheduler with a single thread),
-     * else false alarm might occur
      */
     protected final void checkThread() {
         if (_t == null) {
