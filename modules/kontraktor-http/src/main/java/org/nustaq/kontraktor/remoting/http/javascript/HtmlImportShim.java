@@ -50,7 +50,7 @@ public class HtmlImportShim {
     }
 
     public File locateResource( KUrl urlPath ) {
-        File file = locator.locateResource( baseUrl.concat(urlPath).toUrlString() );
+        File file = locator.locateResource( urlPath.toUrlString() );
         if ( file == null || ! file.exists() ) {
             Log.Warn(this, "failed to resolve '" + urlPath + "'");
         }
