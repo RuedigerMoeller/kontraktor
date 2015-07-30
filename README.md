@@ -15,7 +15,7 @@ WebSite: http://ruedigermoeller.github.io/kontraktor/
 
 [**3.0 documentation**](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-3).
 
-Blockposts:
+Blogposts:
 
 http://java-is-the-new-c.blogspot.de/2015/07/polymer-webcomponents-served-with-java.html
 
