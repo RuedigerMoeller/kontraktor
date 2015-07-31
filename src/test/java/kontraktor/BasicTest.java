@@ -343,14 +343,13 @@ public class BasicTest {
             exec( () -> {
                 assertTrue(Thread.currentThread() instanceof DispatcherThread == false);
                 return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
-            }).then( content );
-//            (result, error) -> {
-//                if (Thread.currentThread() == myThread) {
-//                  content.complete(result, null);
-//                } else {
-//                  content.complete(null, "wrong thread");
-//                }
-//            });
+            }).then( (result, error) -> {
+                if (Thread.currentThread() == myThread) {
+                  content.complete(result, null);
+                } else {
+                  content.complete(null, "wrong thread");
+                }
+            });
             return content;
         }
     }
