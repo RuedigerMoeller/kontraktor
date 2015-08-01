@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-// version 3.05
+// version 3.5.3
 // JavaScript to Kontraktor bridge
 // matches kontraktor 3.0 json-no-ref encoded remoting
 // as I am kind of a JS beginner, hints are welcome :)
-if ( ! window )
+if ( typeof window === 'undefined')
   window = {}; // node
 window.jsk = window.jsk || (function () {
 
@@ -454,6 +454,7 @@ window.jsk = window.jsk || (function () {
                 inParse = false;
             };
             fr.readAsBinaryString(incomingMessages.shift());
+
           }; // end parse function
           if (!inParse) {
             inParse = true;
