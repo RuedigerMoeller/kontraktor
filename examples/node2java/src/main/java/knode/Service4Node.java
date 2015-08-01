@@ -21,11 +21,18 @@ public class Service4Node extends Actor<Service4Node> {
         return new Promise<>(a+separator+b);
     }
 
+    public IPromise typeTest( int i, float f, double d, String sa[], int ia[], double da[] ) {
+        return new Promise<>(new Object[] {
+            i,f,d,sa,ia,da
+        });
+    }
+
     public static void main(String[] args) {
 
         Service4Node service = Actors.AsActor(Service4Node.class);
         new WebSocketPublisher(service,"localhost","/s4n",8080)
             .serType(SerializerType.JsonNoRef)
+            .sendStringMessages(true)
             .publish(actor -> {
                 System.exit(0);
             });

@@ -63,7 +63,12 @@ public class BldFourK {
     }
 
     public WebSocketPublisher websocket( String urlPath, Actor facade ) {
+        return websocket(urlPath,facade,false);
+    }
+
+    public WebSocketPublisher websocket( String urlPath, Actor facade, boolean useStringMessages ) {
         WebSocketPublisher wp = new WebSocketPublisher(this,facade, hostName, urlPath, port);
+        wp.sendStringMessages(useStringMessages);
         items.add(wp);
         return wp;
     }

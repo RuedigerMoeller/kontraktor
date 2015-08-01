@@ -45,6 +45,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
     String host;
     String path;
     int port;
+    boolean sendStrings = false;
 
     public UndertowWebsocketServerConnector(String path, int port, String host) {
         this.path = path;
@@ -59,7 +60,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
             path,
             Handlers.websocket((exchange, channel) -> { // connection callback
                Runnable runnable = () -> {
-                   UTWebObjectSocket objectSocket = new UTWebObjectSocket(exchange, channel);
+                   UTWebObjectSocket objectSocket = new UTWebObjectSocket(exchange, channel, sendStrings);
                    ObjectSink sink = factory.apply(objectSocket);
                    objectSocket.setSink(sink);
 
@@ -118,23 +119,30 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
         return new Promise(null);
     }
 
-    static class UTWebObjectSocket extends WebObjectSocket {
+    public UndertowWebsocketServerConnector sendStrings(final boolean sendStrings) {
+        this.sendStrings = sendStrings;
+        return this;
+    }
 
+
+    protected static class UTWebObjectSocket extends WebObjectSocket {
+
+        protected final boolean sendStrings;
         protected WebSocketChannel channel;
         protected WebSocketHttpExchange ex;
         protected WeakReference<ObjectSink> sink;
 
-        public UTWebObjectSocket(WebSocketHttpExchange ex, WebSocketChannel channel) {
+        public UTWebObjectSocket(WebSocketHttpExchange ex, WebSocketChannel channel, boolean sendStrings) {
             this.ex = ex;
             this.channel = channel;
+            this.sendStrings = sendStrings;
         }
 
         @Override
         public void sendBinary(byte[] message) {
-            WebSockets.sendBinary(ByteBuffer.wrap(message), channel, new WebSocketCallback() {
+            WebSocketCallback callback = new WebSocketCallback() {
                 @Override
                 public void complete(WebSocketChannel channel, Object context) {
-
                 }
 
                 @Override
@@ -147,7 +155,12 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
                         FSTUtil.<RuntimeException>rethrow(e);
                     }
                 }
-            });
+            };
+            if ( sendStrings ) { // node filereader cannot handle blobs
+                WebSockets.sendText(ByteBuffer.wrap(message), channel, callback );
+            } else {
+                WebSockets.sendBinary(ByteBuffer.wrap(message), channel, callback);
+            }
         }
 
         @Override

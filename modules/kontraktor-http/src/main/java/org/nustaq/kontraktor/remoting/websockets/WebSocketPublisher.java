@@ -39,6 +39,7 @@ public class WebSocketPublisher implements ActorPublisher {
     int port;
     Coding coding = new Coding(SerializerType.FSTSer);
     Actor facade;
+    boolean sendStringMessages = false;
 
     public WebSocketPublisher() {}
 
@@ -62,7 +63,11 @@ public class WebSocketPublisher implements ActorPublisher {
     public IPromise<ActorServer> publish(Consumer<Actor> disconnectCallback) {
         Promise finished = new Promise();
         try {
-            ActorServer publisher = new ActorServer(new UndertowWebsocketServerConnector(urlPath,port,hostName), facade, coding);
+            ActorServer publisher = new ActorServer(
+                new UndertowWebsocketServerConnector(urlPath,port,hostName).sendStrings(sendStringMessages),
+                facade,
+                coding
+            );
             facade.execute(() -> {
                 try {
                     publisher.start(disconnectCallback);
@@ -104,6 +109,18 @@ public class WebSocketPublisher implements ActorPublisher {
 
     public WebSocketPublisher facade(Actor facade) {
         this.facade = facade;
+        return this;
+    }
+
+    /**
+     * node.js does not support full file api, so binary messages cannot be de'jsoned. Add an
+     * option to send all data as String via websocket (FIXME: quite some overhead as byte array is UTF-8'ed)
+     * default is binary messages (ok for browsers, not node)
+     * @param sendStringMessages
+     * @return
+     */
+    public WebSocketPublisher sendStringMessages(final boolean sendStringMessages) {
+        this.sendStringMessages = sendStringMessages;
         return this;
     }
 

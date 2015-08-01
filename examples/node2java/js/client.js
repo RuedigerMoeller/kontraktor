@@ -11,7 +11,12 @@ jsk.connect("ws://localhost:8080/s4n","WS").then( function( res, err ) {
     if ( res ) {
         console.log("connected");
         res.tell("hello", "from node");
-        res.ask("concat", 13, 17, "," );
+        res.ask("concat", 13, 17, ",").then( function(r,e) {
+            console.log("result:'"+r+"'");
+        });
+        res.ask("typeTest", 77, 13.2, 14.1414, ["a","b","c"], ["int", 1,2,3], ["double",10.0,20.0,30.0]).then( function(r,e) {
+            console.log(JSON.stringify(r));
+        });
     } else {
         console.log("res "+res+" err "+err);
     }

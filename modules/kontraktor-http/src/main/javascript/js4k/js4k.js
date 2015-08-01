@@ -417,7 +417,15 @@ window.jsk = window.jsk || (function () {
     self.onmessage = function (eventListener) {
       self.socket.onmessage = function (message) {
         if (typeof message.data == 'string') {
-          eventListener.apply(self, [message]);
+          try {
+            var response = JSON.parse(message.data);
+            processSocketResponse(-1,response, self.automaticTransformResults, eventListener, self);
+          } catch (err) {
+            console.error("unhandled decoding error:" + err);
+            if (self.socket.onerror)
+              self.socket.onerror.apply(self, [err]);
+          }
+//          eventListener.apply(self, [message]);
         } else {
           incomingMessages.push(message.data);
           // in order to parse binary messages, an async file reader must be used.
