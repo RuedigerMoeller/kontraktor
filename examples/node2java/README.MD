@@ -1,7 +1,7 @@
 
-# Connecting from node.js to a published java actor via WebSocket
+#  Connect a java actor from node.js
 
-example on how to connect and talk from node.js to a java actor. Note its required to do some java friendly json formatting in order to have java understand JS object structures. (**Note:** all of below holds true when connecting from a browser to a kontraktor based webservice).
+example on how to connect and talk from node.js to a java actor via websockets. Note its required to do some java friendly json formatting in order to have java understand JS object structures. (**Note:** all of below holds true when connecting from a browser to a kontraktor based webservice).
 
 ### Typesafe way
 
