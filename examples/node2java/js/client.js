@@ -1,4 +1,5 @@
-module.paths.push('/home/ruedi/projects/kontraktor/modules/kontraktor-http/src/main/javascript/js4k');
+//module.paths.push('/home/ruedi/projects/kontraktor/modules/kontraktor-http/src/main/javascript/js4k');
+module.paths.push('C:\\work\\GitHub\\kontraktor\\modules\\kontraktor-http\\src\\main\\javascript\\js4k');
 
 var jsk = require("js4k.js");
 
@@ -14,8 +15,14 @@ jsk.connect("ws://localhost:8080/s4n","WS").then( function( res, err ) {
         res.ask("concat", 13, 17, ",").then( function(r,e) {
             console.log("result:'"+r+"'");
         });
-        res.ask("typeTest", 77, 13.2, 14.1414, ["a","b","c"], ["int", 1,2,3], ["double",10.0,20.0,30.0]).then( function(r,e) {
+        res.ask("typeTest", 77, 13.2, 14.1414, ["a","b","c"], [1,2,3], ["double",10.0,20.0,30.0]).then( function(r,e) {
             console.log(JSON.stringify(r));
+        });
+        res.ask("mapOut").then( function(r,e) {
+            console.log("mapOut:"+JSON.stringify(r));
+            res.ask("mapIn", jsk.buildJMap( "map", r )).then(function(r,e) {
+                console.log("mapIn:"+JSON.stringify(r));
+            });
         });
     } else {
         console.log("res "+res+" err "+err);

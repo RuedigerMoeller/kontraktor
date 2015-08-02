@@ -99,7 +99,7 @@ window.jsk = window.jsk || (function () {
       return arr;
     }
     if (obj["typ"] && obj["obj"]) {
-      if ('list' === obj['typ']) {
+      if ('list' === obj['typ'] || 'map' === obj['typ'] ) {
         // remove leading element length from arraylist
         obj["obj"].shift();
       }

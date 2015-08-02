@@ -21,6 +21,7 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -352,7 +353,15 @@ public class DispatcherThread extends Thread implements Monitorable {
 
     private Object invoke(CallEntry poll) throws IllegalAccessException, InvocationTargetException {
         final Object target = poll.getTarget();
-        return poll.getMethod().invoke(target, poll.getArgs());
+        Object invoke = null;
+        try {
+            invoke = poll.getMethod().invoke(target, poll.getArgs());
+        } catch (IllegalArgumentException iea) {
+            System.err.println("method:"+poll.getMethod().toString());
+            System.err.println("arguments given:"+Arrays.toString(poll.getArgs()));
+            FSTUtil.rethrow(iea);
+        }
+        return invoke;
     }
 
     private void checkForSplit() {
