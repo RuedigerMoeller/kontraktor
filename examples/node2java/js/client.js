@@ -38,7 +38,7 @@ jsk.connect("ws://localhost:8080/s4n","WS").then( function( remoteActor, err ) {
                     someDouble: 3.1415,
                     someDoubles: ["double", 1.3, 4.566], // required to tag primitive array type
                     embeddedMap: jsk.jmap("map", [ // construct valid java.HashMap. array contains key,value, key1, value1
-                        "key", jsk.jarray( "array", [123,"value", [1,32]] ), // value is objectarray
+                        "key", jsk.oa( [123,"value", [1,32]] ), // value is objectarray
                         "key1", "Value1",
                         13, "numerickey"
                     ])
