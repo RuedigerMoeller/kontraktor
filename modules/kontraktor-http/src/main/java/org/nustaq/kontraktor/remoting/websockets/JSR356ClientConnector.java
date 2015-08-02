@@ -138,7 +138,11 @@ public class JSR356ClientConnector implements ActorClientConnector {
 
         @OnMessage
         public void onTextMessage(String message) {
-            Log.Warn(this,"unhandled text message:"+message);
+            if ( DumpProtocol ) {
+                System.out.println("resp:");
+                System.out.println(message);
+            }
+            sink.receiveObject(conf.asObject(message.getBytes() /*is already utf 8*/), null);
         }
 
         public void sendText(String message) {

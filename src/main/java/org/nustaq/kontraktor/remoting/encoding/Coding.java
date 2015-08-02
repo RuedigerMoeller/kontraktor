@@ -35,7 +35,7 @@ public class Coding {
         this.coding = coding;
     }
 
-    public Coding(SerializerType coding, Class[] crossPlatformShortClazzNames) {
+    public Coding(SerializerType coding, Class ... crossPlatformShortClazzNames) {
         this.coding = coding;
         this.crossPlatformShortClazzNames = crossPlatformShortClazzNames;
     }

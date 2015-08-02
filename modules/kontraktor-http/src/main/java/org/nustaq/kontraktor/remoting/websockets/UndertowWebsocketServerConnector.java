@@ -26,6 +26,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.http.Http4K;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.util.FSTUtil;
 import org.xnio.Buffers;
@@ -83,6 +84,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
 
                        @Override
                        protected void onError(WebSocketChannel channel, Throwable error) {
+                           Log.Debug(this,error);
                            sink.sinkClosed();
                        }
 

@@ -133,7 +133,7 @@ public class RemoteRefPolling implements Runnable {
                         count++;
                     }
                 } catch (Throwable e) {
-                    Log.Debug(this,e);
+                    Log.Info(this,e);
                     terminateEntry(i, entry, null, e);
                     i--;
                 }
