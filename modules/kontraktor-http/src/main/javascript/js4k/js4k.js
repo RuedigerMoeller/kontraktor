@@ -42,6 +42,7 @@ window.jsk = window.jsk || (function () {
     list.splice( 0, 0, list.length ); // insert number of elements at 0
     return { styp: type, seq: list };
   };
+  jsk.prototype.jarray = jsk.prototype.buildJArray;
 
   /**
    *
@@ -55,6 +56,7 @@ window.jsk = window.jsk || (function () {
     list.splice( 0, 0, list.length ); // insert number of elements at 0
     return { typ: type, obj: list };
   };
+  jsk.prototype.jcoll = jsk.prototype.buildJColl;
 
   /**
    * builds a java hashmap from array like '[ key, val, key, val ]'
@@ -66,6 +68,7 @@ window.jsk = window.jsk || (function () {
     list.splice( 0, 0, list.length/2 ); // insert number of elements at 0
     return { typ: type, obj: list };
   };
+  jsk.prototype.jmap = jsk.prototype.buildJMap;
 
   /**
    * create wrapper object to make given list a valid fst-json Java Object for sending
@@ -73,6 +76,7 @@ window.jsk = window.jsk || (function () {
   jsk.prototype.buildJObject = function( type, obj ) {
     return { typ: type, obj: obj }
   };
+  jsk.prototype.jmap = jsk.prototype.buildJObject;
 
   /**
    * makes a fst json serialized object more js-friendly
