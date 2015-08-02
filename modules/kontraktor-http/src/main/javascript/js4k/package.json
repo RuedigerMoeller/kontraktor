@@ -1,6 +1,6 @@
 {
   "name": "js4k",
-  "version": "3.5.4",
+  "version": "3.6.0",
   "description": "interoperate with kontraktor actors/http4k",
   "main": "js4k.js",
   "scripts": {
@@ -19,5 +19,9 @@
   "bugs": {
     "url": "https://github.com/RuedigerMoeller/kontraktor/issues"
   },
-  "homepage": "https://github.com/RuedigerMoeller/kontraktor#readme"
+  "homepage": "https://github.com/RuedigerMoeller/kontraktor#readme",
+  "dependencies": {
+    "websocket":  ">= 0.0.1",
+    "filereader": ">= 0.0.1"
+  }
 }
