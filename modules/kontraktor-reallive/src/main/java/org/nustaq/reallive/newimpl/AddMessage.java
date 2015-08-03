@@ -5,14 +5,34 @@ package org.nustaq.reallive.newimpl;
  */
 public class AddMessage<K,V extends Record<K>> implements ChangeMessage<K,V> {
 
+    boolean updateIfExisting = false;
+
     public AddMessage(V record) {
+        this.record = record;
+    }
+
+    public AddMessage(boolean updateIfExisting, V record) {
+        this.updateIfExisting = updateIfExisting;
         this.record = record;
     }
 
     private V record;
 
-    public V record() {
+    public V getRecord() {
         return record;
     }
 
+    public boolean isUpdateIfExisting() {
+        return updateIfExisting;
+    }
+
+    @Override
+    public int getType() {
+        return ADD;
+    }
+
+    @Override
+    public K getKey() {
+        return record.getKey();
+    }
 }
