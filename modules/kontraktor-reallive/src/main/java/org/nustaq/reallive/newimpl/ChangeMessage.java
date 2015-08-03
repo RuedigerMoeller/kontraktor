@@ -3,5 +3,5 @@ package org.nustaq.reallive.newimpl;
 /**
  * Created by moelrue on 03.08.2015.
  */
-public interface ChangeMessage {
+public interface ChangeMessage<K,V> {
 }
