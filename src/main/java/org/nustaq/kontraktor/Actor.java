@@ -39,17 +39,14 @@ package org.nustaq.kontraktor;
  */
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
-import org.nustaq.kontraktor.annotations.InThread;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.TicketMachine;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -150,6 +147,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
 
     /**
      * @return if this is an actorproxy, return the underlying actor instance, else return this
+     * Note: gets patched during proxy generation to guarantee correctness.
      */
     public SELF getActor() {
         return (SELF) this;

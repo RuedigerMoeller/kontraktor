@@ -108,6 +108,12 @@ public class BasicTest {
     }
 
     @Test
+    public void testSelfGetActor() {
+        final BenchSub bs = AsActor(BenchSub.class);
+        assertTrue(bs.getActor() != bs && bs.__self == bs);
+    }
+
+    @Test
     public void testInheritance() {
         final BenchSub bs = AsActor(BenchSub.class);
         for (int i : new int[10] ) {

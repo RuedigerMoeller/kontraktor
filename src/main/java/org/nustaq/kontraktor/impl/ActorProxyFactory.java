@@ -135,7 +135,18 @@ public class ActorProxyFactory {
                 }
                 if (cc == null) {
                     cc = pool.makeClass(proxyName);
-                    CtClass orig = pool.get(clazz.getName());
+                    CtClass orig;
+                    try {
+                        orig = pool.get(clazz.getName());
+                    } catch (NotFoundException ex) {
+                        //insert for next proxy
+                        pool.insertClassPath(new ClassClassPath(clazz));
+                        orig = pool.get(clazz.getName());
+                        if (orig == null)
+                        {
+                            throw ex;
+                        }
+                    }
                     cc.setSuperclass(orig);
                     cc.setInterfaces(new CtClass[]{pool.get(Externalizable.class.getName()), pool.get(ActorProxy.class.getName())});
 
