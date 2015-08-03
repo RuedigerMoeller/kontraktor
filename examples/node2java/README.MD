@@ -22,3 +22,4 @@ int array, double array (result in primitive arrays on java side)
 ["double", 2.3, 3.5 ] // double needs tag
 ```
 
+see also https://github.com/RuedigerMoeller/kontraktor-polymer-example on how to connect from a browser
