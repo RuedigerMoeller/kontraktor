@@ -30,4 +30,13 @@ public class ChangeUtils {
         changedFields.toArray(cf);
         return new Diff(cf,changedValues.toArray());
     }
+
+    public static int indexOf(String field, String[] changedFields) {
+        for (int i = 0; i < changedFields.length; i++) {
+            if ( field.equals(changedFields[i]) ) {
+                return i;
+            }
+        }
+        return -1;
+    }
 }

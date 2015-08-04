@@ -1,90 +1,98 @@
 package org.nustaq.reallive.newimpl;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+
 /**
- * Created by moelrue on 03.08.2015.
+ * Created by moelrue on 04.08.2015.
+ *
+ * A filtering listener allows for registration of filtered subscribers and
+ * processes + transforms incoming changes on a per subscriber base:
+ *
+ * in: old record, new record
+ * if ( filter matches old && ! new ) => send Remove
+ * if ( filter matches old && new ) => send Update
+ * if ( filter ! matches old && new ) => send Add
  */
-public class ChangeStreamImpl<K,V extends Record<K>> implements ChangeReceiver<K,V> {
+public class ChangeStreamImpl<K,V extends Record<K>> implements ChangeReceiver<K,V>, ChangeStream<K,V> {
 
-    RecordStore<K,V> store;
-    ChangeReceiver listener;
+    List<Subscriber<K,V>> filterList = new ArrayList<>();
+    RecordStreamProvider<K,V> provider;
 
-    public ChangeStreamImpl(RecordStore<K, V> store) {
-        this.store = store;
+    public ChangeStreamImpl(RecordStreamProvider<K, V> provider) {
+        this.provider = provider;
     }
 
-    public ChangeStreamImpl() {
+    @Override
+    public void subscribe(Subscriber<K,V> subs) {
+        filterList.add(subs);
+
+    }
+
+    public void unsubscribe( Subscriber<K,V> subs ) {
+        filterList.remove(subs);
     }
 
     @Override
     public void receive(ChangeMessage<K, V> change) {
         switch (change.getType()) {
             case ChangeMessage.ADD:
-            {
-                AddMessage<K,V> addMessage = (AddMessage) change;
-                V prevRecord = store.get(addMessage.getKey());
-                if ( prevRecord != null && ! addMessage.isUpdateIfExisting() ) {
-                    return;
-                }
-                if ( prevRecord != null ) {
-                    Diff diff = ChangeUtils.copyAndDiff(addMessage.getRecord(), prevRecord);
-                    V newRecord = prevRecord; // clarification
-                    listener.receive( new UpdateMessage<>(diff,newRecord) );
-                } else {
-                    store.put(change.getKey(),addMessage.getRecord());
-                    listener.receive(addMessage);
-                }
+                processAdd((AddMessage<K, V>) change);
                 break;
-            }
-            case ChangeMessage.REMOVE:
-            {
-                RemoveMessage<K> removeMessage = (RemoveMessage) change;
-                V v = store.remove(removeMessage.getKey());
-                if ( v != null ) {
-                    listener.receive(removeMessage);
-                }
-                break;
-            }
             case ChangeMessage.UPDATE:
-            {
-                UpdateMessage<K,V> updateMessage = (UpdateMessage<K, V>) change;
-                V oldRec = store.get(updateMessage.getKey());
-                if ( oldRec == null && updateMessage.isAddIfNotExists() ) {
-                    if ( updateMessage.getNewRecord() == null ) {
-                        throw new RuntimeException("updated record does not exist, cannot fall back to 'Add' as UpdateMessage.newRecord is null");
-                    }
-                    store.put(change.getKey(),updateMessage.getNewRecord());
-                    listener.receive( new AddMessage(updateMessage.getNewRecord()) );
-                } else if ( updateMessage.getDiff() == null ) {
-                    Diff diff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec);
-                    V newRecord = oldRec; // clarification
-                    listener.receive( new UpdateMessage<>(diff,newRecord) );
-                } else {
-                    // old values are actually not needed inside the diff
-                    // however they are needed in a change notification for filter processing (need to reconstruct prev record)
-                    Diff newDiff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(),oldRec,updateMessage.getDiff().getChangedFields());
-                    V newRecord = oldRec; // clarification
-                    listener.receive( new UpdateMessage(newDiff,newRecord));
+                processUpdate((UpdateMessage<K, V>) change);
+                break;
+            case ChangeMessage.REMOVE:
+                processUpdate((UpdateMessage<K, V>) change);
+                break;
+        }
+    }
+
+    protected void processUpdate(UpdateMessage<K, V> change) {
+        V newRecord = change.getNewRecord();
+        String[] changedFields = change.getDiff().getChangedFields();
+        Object[] oldValues = change.getDiff().getOldValues();
+        Record oldRec = new PatchedRecord(newRecord) {
+            @Override
+            public Object get(String field) {
+                int index = ChangeUtils.indexOf(field, changedFields);
+                if ( index >= 0 ) {
+                    return oldValues[index];
                 }
+                return super.get(field);
+            }
+        };
+        for ( Subscriber<K,V> subscriber : filterList ) {
+            boolean matchesOld = subscriber.getFilter().test((V) oldRec);
+            boolean matchesNew = subscriber.getFilter().test(newRecord);
+            // commented conditions are redundant
+            if ( matchesOld && matchesNew) {
+                subscriber.getReceiver().receive(change);
+            } else if ( matchesOld /*&& ! matchesNew*/ ) {
+                subscriber.getReceiver().receive(new RemoveMessage<>((Record)change.getNewRecord()));
+            } else if ( /*! matchesOld &&*/ matchesNew ) {
+                subscriber.getReceiver().receive(new AddMessage<>(change.getNewRecord()));
             }
         }
     }
 
-    public RecordStore<K, V> getStore() {
-        return store;
+    protected void processAdd(AddMessage<K,V> add) {
+        V record = add.getRecord();
+        for ( Subscriber<K,V> subscriber : filterList ) {
+            if ( subscriber.getFilter().test(record) ) {
+                subscriber.getReceiver().receive(add);
+            }
+        }
     }
 
-    public ChangeReceiver getListener() {
-        return listener;
-    }
-
-    public ChangeStreamImpl store(final RecordStore<K, V> store) {
-        this.store = store;
-        return this;
-    }
-
-    public ChangeStreamImpl listener(final ChangeReceiver listener) {
-        this.listener = listener;
-        return this;
+    protected void processRemove(RemoveMessage remove) {
+        Record record = remove.getRecord();
+        for ( Subscriber<K,V> subscriber : filterList ) {
+            if ( subscriber.getFilter().test((V) record) ) { // if matched before, promote remove
+                subscriber.getReceiver().receive((ChangeMessage<K, V>)remove);
+            }
+        }
     }
 
 }

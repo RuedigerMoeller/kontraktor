@@ -5,8 +5,9 @@ import java.util.function.*;
 /**
  * Created by moelrue on 03.08.2015.
  */
-public interface ChangeStream<K,V extends Record> {
+public interface ChangeStream<K,V extends Record<K>> {
 
-    public void subscribe( Predicate<V> filter, ChangeReceiver rec );
+    void subscribe( Subscriber<K,V> subs );
+    void unsubscribe( Subscriber<K,V> subs );
 
 }
