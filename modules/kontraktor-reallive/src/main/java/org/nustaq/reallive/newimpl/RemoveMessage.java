@@ -4,10 +4,10 @@ package org.nustaq.reallive.newimpl;
  * Created by moelrue on 03.08.2015.
  */
 public class RemoveMessage<K> implements ChangeMessage<K,Record> {
-    K key;
+    Record<K> deletedRow;
 
-    public RemoveMessage(K key) {
-        this.key = key;
+    public RemoveMessage(Record<K> rec) {
+        this.deletedRow = rec;
     }
 
     @Override
@@ -17,13 +17,17 @@ public class RemoveMessage<K> implements ChangeMessage<K,Record> {
 
     @Override
     public K getKey() {
-        return key;
+        return deletedRow.getKey();
     }
 
     @Override
     public String toString() {
         return "RemoveMessage{" +
-                "key=" + key +
+                "record=" + deletedRow.asString() +
                 '}';
+    }
+
+    public Record<K> getRecord() {
+        return deletedRow;
     }
 }

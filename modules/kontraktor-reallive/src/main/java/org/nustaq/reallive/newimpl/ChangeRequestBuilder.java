@@ -37,6 +37,6 @@ public class ChangeRequestBuilder {
     }
 
     public <K> RemoveMessage<K> remove(K key) {
-        return new RemoveMessage<>(key);
+        return new RemoveMessage<>(new MapRecord<>(key));
     }
 }
