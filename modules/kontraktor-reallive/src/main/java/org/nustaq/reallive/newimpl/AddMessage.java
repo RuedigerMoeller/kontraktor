@@ -35,4 +35,12 @@ public class AddMessage<K,V extends Record<K>> implements ChangeMessage<K,V> {
     public K getKey() {
         return record.getKey();
     }
+
+    @Override
+    public String toString() {
+        return "AddMessage{" +
+                "updateIfExisting=" + updateIfExisting +
+                ", record=" + record.asString() +
+                '}';
+    }
 }

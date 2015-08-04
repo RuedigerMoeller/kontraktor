@@ -23,6 +23,11 @@ public class HeapStore<K,V extends Record<K>> implements RecordStore<K,V> {
     }
 
     @Override
+    public V remove(K key) {
+        return map.remove(key);
+    }
+
+    @Override
     public void forEach(Consumer<V> action) {
         map.values().forEach(action);
     }

@@ -32,7 +32,7 @@ public class UpdateMessage<K,V extends Record<K>> implements ChangeMessage<K,V> 
 
     @Override
     public K getKey() {
-        return null;
+        return newRecord.getKey();
     }
 
     public Diff getDiff() {
@@ -47,4 +47,12 @@ public class UpdateMessage<K,V extends Record<K>> implements ChangeMessage<K,V> 
         return addIfNotExists;
     }
 
+    @Override
+    public String toString() {
+        return "UpdateMessage{" +
+                "diff=" + diff +
+                ", newRecord=" + newRecord.asString() +
+                ", addIfNotExists=" + addIfNotExists +
+                '}';
+    }
 }

@@ -1,5 +1,7 @@
 package org.nustaq.reallive.newimpl;
 
+import java.util.Arrays;
+
 /**
  * Created by ruedi on 03/08/15.
  *
@@ -22,4 +24,11 @@ public class Diff {
         return oldValues;
     }
 
+    @Override
+    public String toString() {
+        return "Diff{" +
+                "changedFields=" + Arrays.toString(changedFields) +
+                ", oldValues=" + Arrays.toString(oldValues) +
+                '}';
+    }
 }

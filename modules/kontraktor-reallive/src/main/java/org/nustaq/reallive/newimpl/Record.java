@@ -10,4 +10,13 @@ public interface Record<K> {
     Object get( String field );
     Record put( String field, Object value );
 
+    default String asString() {
+        String[] fields = getFields();
+        String res = "[  *"+getKey()+"  ";
+        for (int i = 0; i < fields.length; i++) {
+            String s = fields[i];
+            res += s+"="+get(s)+", ";
+        }
+        return res+"]";
+    }
 }

@@ -8,6 +8,13 @@ public class ChangeStreamImpl<K,V extends Record<K>> implements ChangeReceiver<K
     RecordStore<K,V> store;
     ChangeReceiver listener;
 
+    public ChangeStreamImpl(RecordStore<K, V> store) {
+        this.store = store;
+    }
+
+    public ChangeStreamImpl() {
+    }
+
     @Override
     public void receive(ChangeMessage<K, V> change) {
         switch (change.getType()) {
@@ -23,7 +30,7 @@ public class ChangeStreamImpl<K,V extends Record<K>> implements ChangeReceiver<K
                     V newRecord = prevRecord; // clarification
                     listener.receive( new UpdateMessage<>(diff,newRecord) );
                 } else {
-                    store.put(change.getKey(),prevRecord);
+                    store.put(change.getKey(),addMessage.getRecord());
                     listener.receive(addMessage);
                 }
                 break;
@@ -79,6 +86,5 @@ public class ChangeStreamImpl<K,V extends Record<K>> implements ChangeReceiver<K
         this.listener = listener;
         return this;
     }
-
 
 }

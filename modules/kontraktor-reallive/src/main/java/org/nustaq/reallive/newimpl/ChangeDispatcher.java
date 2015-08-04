@@ -6,7 +6,7 @@ package org.nustaq.reallive.newimpl;
  * propagates change events to listener according to their filter
  *
  */
-public class ChangeDispatcher<K,V> implements ChangeReceiver<K,V> {
+public class ChangeDispatcher<K,V extends Record<K>> implements ChangeReceiver<K,V> {
     @Override
     public void receive(ChangeMessage<K, V> change) {
 
