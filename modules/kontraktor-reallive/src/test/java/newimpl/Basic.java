@@ -1,7 +1,9 @@
 package newimpl;
 
 import org.junit.Test;
-import org.nustaq.reallive.newimpl.*;
+import org.nustaq.reallive.api.*;
+import org.nustaq.reallive.impl.*;
+import org.nustaq.reallive.storage.*;
 
 /**
  * Created by ruedi on 04.08.2015.
@@ -10,29 +12,21 @@ public class Basic {
 
     @Test
     public void test() {
-        ChangeReceiverImpl source = new ChangeReceiverImpl(new HeapStore<>());
-        
-        ChangeStreamImpl<String,Record<String>> stream = new ChangeStreamImpl(source.getStore());
-        source.listener(stream);
+        StorageDriver source = new StorageDriver(new HeapRecordStorage<>());
+        FilterProcessor<String,Record<String>> stream = new FilterProcessor(source.getStore());
+        source.setListener(stream);
 
         stream.subscribe(
-            new Subscriber<>(
-                record -> "one".equals(record.getKey()),
-                change -> { System.out.println("listener"+change); }
-            )
+            record -> "one".equals(record.getKey()),
+            change -> System.out.println("listener: " + change)
         );
 
-        ChangeRequestBuilder cb = ChangeRequestBuilder.get();
-        source.receive(cb.add("one",
-                                 "name", "emil",
-                                 "age", 9
-        ));
-        source.receive(cb.add("two",
-                                 "name", "felix",
-                                 "age", 17
-        ));
-        source.receive(cb.update("one", "age", 10));
-        source.receive(cb.remove("one"));
+        Mutation mut = source;
+        mut.add("one", "name", "emil", "age", 9);
+        mut.add("two","name", "felix", "age", 17);
+        mut.update("one", "age", 10);
+        mut.remove("one");
+
         source.getStore().forEach( rec -> {
             System.out.println(rec);
         });
@@ -43,8 +37,8 @@ public class Basic {
         long tim = System.currentTimeMillis();
         for ( int ii = 0; ii < 100; ii++) {
             ChangeRequestBuilder cb = ChangeRequestBuilder.get();
-            ChangeReceiverImpl stream = new ChangeReceiverImpl(new HeapStore<>());
-            stream.listener( change -> {
+            StorageDriver stream = new StorageDriver(new HeapRecordStorage<>());
+            stream.setListener(change -> {
                 //System.out.println(change);
             });
             tim = System.currentTimeMillis();
