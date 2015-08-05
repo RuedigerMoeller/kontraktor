@@ -11,6 +11,37 @@ import org.nustaq.reallive.storage.*;
 public class Basic {
 
     @Test
+    public void testOffHeap() {
+        StorageDriver source = new StorageDriver(new OffHeapRecordStorage<>(32,500,600_000));
+        insertTest(source);
+    }
+
+    public void insertTest(StorageDriver source) {FilterProcessor<String,Record<String>> stream = new FilterProcessor(source.getStore());
+        source.setListener(stream);
+
+        stream.subscribe(
+            record -> "one13".equals(record.getKey()),
+            change -> System.out.println("listener: " + change)
+        );
+
+        Mutation mut = source;
+        long tim = System.currentTimeMillis();
+        for ( int i = 0; i<500_000;i++ ) {
+            mut.add("one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
+        }
+        mut.update("one13", "age", 10);
+        mut.remove("one13");
+        System.out.println("add " + (System.currentTimeMillis() - tim));
+
+        tim = System.currentTimeMillis();
+        int count[] = {0};
+        source.getStore().forEach( rec -> {
+            count[0]++;
+        });
+        System.out.println("iter " + (System.currentTimeMillis() - tim)+" "+count[0]);
+    }
+
+    @Test
     public void test() {
         StorageDriver source = new StorageDriver(new HeapRecordStorage<>());
         FilterProcessor<String,Record<String>> stream = new FilterProcessor(source.getStore());
@@ -23,7 +54,7 @@ public class Basic {
 
         Mutation mut = source;
         mut.add("one", "name", "emil", "age", 9);
-        mut.add("two","name", "felix", "age", 17);
+        mut.add("two", "name", "felix", "age", 17);
         mut.update("one", "age", 10);
         mut.remove("one");
 

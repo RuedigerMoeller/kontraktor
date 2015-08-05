@@ -1,9 +1,11 @@
 package org.nustaq.reallive.api;
 
+import java.io.Serializable;
+
 /**
  * Created by moelrue on 03.08.2015.
  */
-public interface Record<K> {
+public interface Record<K> extends Serializable {
 
     K getKey();
     String[] getFields();

@@ -1,6 +1,12 @@
 package org.nustaq.reallive.storage;
 
+import org.nustaq.offheap.FSTBinaryOffheapMap;
+import org.nustaq.offheap.FSTSerializedOffheapMap;
+import org.nustaq.offheap.FSTUTFStringOffheapMap;
 import org.nustaq.reallive.api.*;
+import org.nustaq.serialization.simpleapi.DefaultCoder;
+import org.nustaq.serialization.simpleapi.FSTCoder;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.util.function.*;
 
@@ -9,14 +15,49 @@ import java.util.function.*;
  */
 public class OffHeapRecordStorage<V extends Record<String>> implements RecordStorage<String,V> {
 
+    static FSTCoder conf;
+
+    FSTSerializedOffheapMap<String,V> store;
+    int keyLen;
+
+    public OffHeapRecordStorage(int maxKeyLen, int sizeMB, int estimatedNumRecords) {
+        keyLen = maxKeyLen;
+        init(null, sizeMB, estimatedNumRecords, maxKeyLen, false, (Class[]) null);
+    }
+
+    protected void init(String tableFile, int sizeMB, int estimatedNumRecords, int keyLen, boolean persist, Class... toReg) {
+        this.keyLen = keyLen;
+        conf = new DefaultCoder();
+        if ( toReg != null )
+            conf.getConf().registerClass(toReg);
+        if ( persist ) {
+            try {
+                store = createPersistentMap(tableFile, sizeMB, estimatedNumRecords, keyLen);
+            } catch (Exception e) {
+                FSTUtil.rethrow(e);
+            }
+        }
+        else
+            store = createMemMap(sizeMB, estimatedNumRecords, keyLen);
+    }
+
+    protected FSTSerializedOffheapMap<String,V> createMemMap(int sizeMB, int estimatedNumRecords, int keyLen) {
+        return new FSTUTFStringOffheapMap<>(keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords,conf);
+    }
+
+    protected FSTSerializedOffheapMap<String,V> createPersistentMap(String tableFile, int sizeMB, int estimatedNumRecords, int keyLen) throws Exception {
+        return new FSTUTFStringOffheapMap<>(tableFile, keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords,conf);
+    }
+
     @Override
     public RecordStorage put(String key, V value) {
-        return null;
+        store.put(key,value);
+        return this;
     }
 
     @Override
     public V get(String key) {
-        return null;
+        return store.get(key);
     }
 
     @Override
@@ -26,6 +67,6 @@ public class OffHeapRecordStorage<V extends Record<String>> implements RecordSto
 
     @Override
     public void forEach(Consumer<V> action) {
-
+        store.values().forEachRemaining(action);
     }
 }
