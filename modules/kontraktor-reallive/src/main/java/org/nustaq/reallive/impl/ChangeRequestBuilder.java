@@ -43,4 +43,8 @@ public class ChangeRequestBuilder {
     public <K> RemoveMessage<K> remove(K key) {
         return new RemoveMessage<>(new MapRecord<>(key));
     }
+
+    public <K, V extends Record<K>> ChangeMessage<K, V> done() {
+        return new ControlMessage();
+    }
 }

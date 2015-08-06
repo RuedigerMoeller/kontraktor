@@ -30,9 +30,10 @@ public class FilterProcessor<K,V extends Record<K>> implements ChangeReceiver<K,
     @Override
     public void subscribe(Subscriber<K,V> subs) {
         filterList.add(subs);
-        provider.forEach( subs.getFilter(), record -> {
+        provider.forEach(subs.getFilter(), record -> {
             subs.getReceiver().receive(new AddMessage<>(record));
         });
+        subs.getReceiver().receive( ChangeRequestBuilder.get().done() );
     }
 
     public void unsubscribe( Subscriber<K,V> subs ) {
@@ -42,6 +43,8 @@ public class FilterProcessor<K,V extends Record<K>> implements ChangeReceiver<K,
     @Override
     public void receive(ChangeMessage<K, V> change) {
         switch (change.getType()) {
+            case ChangeMessage.QUERYDONE:
+                break;
             case ChangeMessage.ADD:
                 processAdd((AddMessage<K, V>) change);
                 break;

@@ -24,6 +24,8 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
     @Override
     public void receive(ChangeMessage<K, V> change) {
         switch (change.getType()) {
+            case ChangeMessage.QUERYDONE:
+                break;
             case ChangeMessage.ADD:
             {
                 AddMessage<K,V> addMessage = (AddMessage) change;
