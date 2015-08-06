@@ -281,8 +281,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return __scheduler.inThread(proxy, cbInterface);
     }
 
-    Thread _t; // debug
-
     /**
      * Debug method.
      * can be called to check actor code is actually single threaded.
@@ -291,12 +289,8 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      *
      */
     protected final void checkThread() {
-        if (_t == null) {
-            _t = Thread.currentThread();
-        } else {
-            if (_t != Thread.currentThread()) {
-                throw new RuntimeException("Wrong Thread");
-            }
+        if (getCurrentDispatcher() != null && getCurrentDispatcher() != Thread.currentThread()) {
+            throw new RuntimeException("Wrong Thread");
         }
     }
 

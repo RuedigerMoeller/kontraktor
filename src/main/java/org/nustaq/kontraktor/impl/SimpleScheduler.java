@@ -225,6 +225,9 @@ public class SimpleScheduler implements Scheduler {
 
     @Override
     public <T> T inThread(Actor actor, T callback) {
+        if (actor==null) {
+            return callback;
+        }
         Class<?>[] interfaces = callback.getClass().getInterfaces();
         InvocationHandler invoker = actor.__scheduler.getInvoker(actor, callback);
         if ( invoker == null ) // called from outside actor world

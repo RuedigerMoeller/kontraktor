@@ -66,7 +66,11 @@ public class OffHeapRecordStorage<V extends Record<String>> implements RecordSto
     }
 
     @Override
-    public void forEach(Consumer<V> action) {
-        store.values().forEachRemaining(action);
+    public void forEach(Predicate<V> filter, Consumer<V> action) {
+        store.values().forEachRemaining(record -> {
+            if (filter.test(record)) {
+                action.accept(record);
+            }
+        });
     }
 }

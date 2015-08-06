@@ -5,6 +5,7 @@ import org.nustaq.reallive.api.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * Created by ruedi on 03/08/15.
@@ -30,7 +31,10 @@ public class HeapRecordStorage<K,V extends Record<K>> implements RecordStorage<K
     }
 
     @Override
-    public void forEach(Consumer<V> action) {
-        map.values().forEach(action);
+    public void forEach(Predicate<V> filter,Consumer<V> action) {
+        map.values().forEach( record -> {
+            if (filter.test(record))
+                action.accept(record);
+        });
     }
 }

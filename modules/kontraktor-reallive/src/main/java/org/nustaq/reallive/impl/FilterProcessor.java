@@ -21,19 +21,17 @@ import java.util.List;
 public class FilterProcessor<K,V extends Record<K>> implements ChangeReceiver<K,V>, ChangeStream<K,V> {
 
     List<Subscriber<K,V>> filterList = new ArrayList<>();
-    RecordStreamProvider<K,V> provider;
+    RecordIterable<K,V> provider;
 
-    public FilterProcessor(RecordStreamProvider<K, V> provider) {
+    public FilterProcessor(RecordIterable<K, V> provider) {
         this.provider = provider;
     }
 
     @Override
     public void subscribe(Subscriber<K,V> subs) {
         filterList.add(subs);
-        provider.forEach( record -> {
-            if ( subs.getFilter().test(record) ) {
-                subs.getReceiver().receive(new AddMessage<>(record));
-            }
+        provider.forEach( subs.getFilter(), record -> {
+            subs.getReceiver().receive(new AddMessage<>(record));
         });
     }
 
