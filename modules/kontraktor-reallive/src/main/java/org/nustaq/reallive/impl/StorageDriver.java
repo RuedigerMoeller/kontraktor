@@ -96,6 +96,11 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
     }
 
     @Override
+    public void addOrUpdate(K key, Object... keyVals) {
+        receive(ChangeRequestBuilder.get().addOrUpdate(key,keyVals));
+    }
+
+    @Override
     public void add(K key, Object... keyVals) {
         receive(ChangeRequestBuilder.get().add(key,keyVals));
     }

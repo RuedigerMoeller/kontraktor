@@ -1,5 +1,7 @@
 package org.nustaq.reallive.api;
 
+import org.nustaq.kontraktor.annotations.InThread;
+
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -8,6 +10,6 @@ import java.util.function.Predicate;
  */
 public interface RecordIterable<K,V extends Record<K>> {
 
-    void forEach(Predicate<V> filter, Consumer<V> action);
+    void forEach(Predicate<V> filter, @InThread Consumer<V> action);
 
 }

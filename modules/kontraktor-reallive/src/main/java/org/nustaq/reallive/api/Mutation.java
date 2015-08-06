@@ -5,6 +5,7 @@ package org.nustaq.reallive.api;
  */
 public interface Mutation<K,V> {
 
+    void addOrUpdate( K key, Object ... keyVals );
     void add( K key, Object ... keyVals );
     void update( K key, Object ... keyVals);
     void remove(K key);

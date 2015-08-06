@@ -6,9 +6,13 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.reallive.actors.RealLiveStreamActor;
+import org.nustaq.reallive.actors.ShardFunc;
+import org.nustaq.reallive.actors.Sharding;
 import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.impl.*;
 import org.nustaq.reallive.storage.*;
+
+import java.util.stream.IntStream;
 
 /**
  * Created by ruedi on 04.08.2015.
@@ -53,7 +57,7 @@ public class Basic {
         FilterProcessor<String,Record<String>> stream = new FilterProcessor(source.getStore());
         source.setListener(stream);
 
-        stream.subscribe( new Subscriber<>(
+        stream.subscribe(new Subscriber<>(
             record -> "one".equals(record.getKey()),
             change -> System.out.println("listener: " + change)
         ));
@@ -112,25 +116,31 @@ public class Basic {
 
     public static class TA extends Actor<TA> {
 
-        public IPromise runTest(RealLiveStreamActor<String, Record<String>> rls) throws InterruptedException {
+        public IPromise runTest(RealLiveTable<String, Record<String>> rls) throws InterruptedException {
 
-            rls.subscribe( new Subscriber<>(
-                record -> "one13".equals(record.getKey()),
-                change -> {
-                    checkThread();
-                    System.out.println("listener: " + change);
-                }
-            ));
+            Subscriber<String, Record<String>> subs =
+                new Subscriber<>(
+                    record -> "one13".equals(record.getKey()),
+                    change -> {
+                      checkThread();
+                      System.out.println("listener: " + change);
+                    }
+                );
+            rls.subscribe(subs);
 
             Mutation mut = rls;
-            long tim = System.currentTimeMillis();
-            for ( int i = 0; i<500_000;i++ ) {
-                mut.add("one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
-            }
-            mut.update("one13", "age", 10);
-            mut.remove("one13");
-            rls.ping().await();
-            System.out.println("add " + (System.currentTimeMillis() - tim));
+
+            long tim = 0;
+            IntStream.range(0,1).forEach(ii -> {
+                long tim1 = System.currentTimeMillis();
+                for (int i = 0; i < 500_000; i++) {
+                    mut.addOrUpdate("one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
+                }
+                mut.update("one13", "age", 10);
+                mut.remove("one13");
+                rls.ping().await();
+                System.out.println("add " + (System.currentTimeMillis() - tim1));
+            });
 
             Promise res = new Promise();
             tim = System.currentTimeMillis();
@@ -139,11 +149,13 @@ public class Basic {
             rls.forEach(rec -> true, rec -> {
                 checkThread();
                 count[0]++;
-                if (count[0] == 500_000) {
+                if (count[0] == 500_000-1) {
                     System.out.println("iter " + (System.currentTimeMillis() - finalTim) + " " + count[0]);
                     res.complete();
+                    rls.unsubscribe(subs);
                 }
             });
+
             return res;
         }
     }
@@ -155,15 +167,37 @@ public class Basic {
 
         TA ta = Actors.AsActor(TA.class);
         ta.runTest(rls).await();
+        ta.stop();
+        rls.stop();
+    }
+
+    @Test
+    public void testActorShard() throws InterruptedException {
+        RealLiveStreamActor<String,Record<String>> rls[] = new RealLiveStreamActor[16];
+        for (int i = 0; i < rls.length; i++) {
+            rls[i] = Actors.AsActor(RealLiveStreamActor.class);
+            rls[i].init( () -> new OffHeapRecordStorage<>(32, 500, 500_000), true);
+        }
+        ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
+        Sharding<String,Record<String>> sharding = new Sharding<>(sfunc, rls);
+
+        TA ta = Actors.AsActor(TA.class);
+        while( System.currentTimeMillis() != 0) {
+            ta.runTest(sharding).await(500000);
+        }
+        ta.stop();
+        sharding.stop();
     }
 
     @Test
     public void testActorOutside() throws InterruptedException {
         RealLiveStreamActor<String,Record<String>> rls = Actors.AsActor(RealLiveStreamActor.class);
-        rls.init( () -> new OffHeapRecordStorage<>(32,500,500_000),false);
+        rls.init(() -> new OffHeapRecordStorage<>(32, 500,500_000),false);
 
         TA ta = new TA();
         ta.runTest(rls).await();
+        ta.stop();
+        rls.stop();
     }
 
 

@@ -19,14 +19,16 @@ import java.util.function.*;
  * - SnapFin
  * - originator
  */
-public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveStreamActor<K,V>> implements ChangeReceiver<K,V>, Mutation<K,V>, RecordIterable<K,V>, ChangeStream<K,V> {
+public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveStreamActor<K,V>> implements RealLiveTable<K,V> {
 
     StorageDriver<K,V> storageDriver;
     FilterProcessorActor<K,V> filterProcessor;
+    ConcurrentHashMap<Subscriber,Subscriber> subsMap;
 
     @Local
     public void init( Supplier<RecordStorage<K, V>> storeFactory, boolean dedicatedFilterThread) {
-        RecordStorage<K, V> store = storeFactory.get();
+        self().subsMap = new ConcurrentHashMap<>();
+         RecordStorage<K, V> store = storeFactory.get();
         storageDriver = new StorageDriver<>(store);
         if (dedicatedFilterThread) {
             filterProcessor = Actors.AsActor(FilterProcessorActor.class);
@@ -44,17 +46,24 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
     }
 
     @Override
+    public void addOrUpdate(K key, Object... keyVals) {
+        storageDriver.addOrUpdate(key,keyVals);
+    }
+
+    @Override
     public void add(K key, Object... keyVals) {
         storageDriver.add(key,keyVals);
     }
 
     @Override
     public void update(K key, Object... keyVals) {
+        checkThread();
         storageDriver.update(key,keyVals);
     }
 
     @Override
     public void remove(K key) {
+        checkThread();
         storageDriver.remove(key);
     }
 
@@ -63,7 +72,6 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
         storageDriver.getStore().forEach(filter,action);
     }
 
-    final ConcurrentHashMap<Subscriber,Subscriber> subsMap = new ConcurrentHashMap<>();
 
     @Override
     @CallerSideMethod public void subscribe(Subscriber<K, V> subs) {

@@ -17,4 +17,8 @@ public class ControlMessage implements ChangeMessage {
         return null;
     }
 
+    @Override
+    public String toString() {
+        return "ControlMessage{"+getType()+"}";
+    }
 }

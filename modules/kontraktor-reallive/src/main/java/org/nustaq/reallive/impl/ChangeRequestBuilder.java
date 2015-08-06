@@ -20,6 +20,11 @@ public class ChangeRequestBuilder {
         return new AddMessage<>((V) record);
     }
 
+    public <K,V extends Record<K>> AddMessage<K,V> addOrUpdate( K key, Object ... keyVals) {
+        Object record = record(key, keyVals);
+        return new AddMessage<>(true,(V) record);
+    }
+
     public <K,V extends Record<K>> UpdateMessage<K,V> update( K key, Object ... keyVals) {
         String fi[] = new String[keyVals.length/2];
         for (int i = 0; i < fi.length; i++) {

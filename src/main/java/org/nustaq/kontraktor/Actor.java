@@ -161,7 +161,14 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         if ( isRemote() ) {
             throw new RuntimeException("Cannot stop remote ref");
         }
-        self().ping().then(() -> self().asyncstop() ); // ensure all queues are cleaned
+        SELF self = self();
+        if ( self != null ) {
+            self.ping().then(() -> {
+                SELF selfInner = self();
+                if ( selfInner != null )
+                    selfInner.asyncstop();
+            }); // ensure all queues are cleaned
+        }
     }
 
     /**
@@ -291,6 +298,8 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     protected final void checkThread() {
         if (getCurrentDispatcher() != null && getCurrentDispatcher() != Thread.currentThread()) {
             throw new RuntimeException("Wrong Thread");
+        } else if ( getCurrentDispatcher() == null ){
+            throw new RuntimeException("Not in Dispatcher Thread:"+Thread.currentThread().getName());
         }
     }
 

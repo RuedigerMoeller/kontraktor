@@ -11,11 +11,16 @@ import java.util.function.*;
 /**
  * Created by moelrue on 06.08.2015.
  */
-public class Sharding<K,V extends Record<K>> implements ChangeReceiver<K,V>, Mutation<K,V>, RecordIterable<K,V>, ChangeStream<K,V> {
+public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
 
     ShardFunc<K> func;
     RealLiveStreamActor<K,V> shards[];
-    ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap<>();
+
+    public Sharding(ShardFunc<K> func, RealLiveStreamActor<K, V>[] shards) {
+        this.func = func;
+        this.shards = shards;
+    }
 
     @Override
     public void receive(ChangeMessage<K, V> change) {
@@ -57,13 +62,18 @@ public class Sharding<K,V extends Record<K>> implements ChangeReceiver<K,V>, Mut
     }
 
     @Override
+    public void addOrUpdate(K key, Object... keyVals) {
+        shards[func.apply(key)].addOrUpdate(key, keyVals);
+    }
+
+    @Override
     public void add(K key, Object... keyVals) {
-        shards[func.apply(key)].add(key,keyVals);
+        shards[func.apply(key)].add(key, keyVals);
     }
 
     @Override
     public void update(K key, Object... keyVals) {
-        shards[func.apply(key)].update(key,keyVals);
+        shards[func.apply(key)].update(key, keyVals);
     }
 
     @Override
@@ -76,6 +86,22 @@ public class Sharding<K,V extends Record<K>> implements ChangeReceiver<K,V>, Mut
         for (int i = 0; i < shards.length; i++) {
             RealLiveStreamActor<K, V> shard = shards[i];
             shard.forEach(filter, action );
+        }
+    }
+
+    @Override
+    public IPromise ping() {
+        List<IPromise<Object>> futs = new ArrayList<>();
+        for (int i = 0; i < shards.length; i++) {
+            RealLiveStreamActor<K, V> shard = shards[i];
+            futs.add(shard.ping());
+        }
+        return Actors.all(futs);
+    }
+
+    public void stop() {
+        for (int i = 0; i < shards.length; i++) {
+            shards[i].stop();
         }
     }
 }

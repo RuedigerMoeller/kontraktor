@@ -15,14 +15,14 @@ import java.util.function.*;
  */
 public class OffHeapRecordStorage<V extends Record<String>> implements RecordStorage<String,V> {
 
-    static FSTCoder coder;
+    FSTCoder coder;
 
     FSTSerializedOffheapMap<String,V> store;
     int keyLen;
 
     public OffHeapRecordStorage(int maxKeyLen, int sizeMB, int estimatedNumRecords) {
         keyLen = maxKeyLen;
-        init(null, sizeMB, estimatedNumRecords, maxKeyLen, false, Record.class);
+        init(null, sizeMB, estimatedNumRecords, maxKeyLen, false, (Class[])null ); //Record.class);
     }
 
     protected void init(String tableFile, int sizeMB, int estimatedNumRecords, int keyLen, boolean persist, Class... toReg) {
@@ -55,14 +55,27 @@ public class OffHeapRecordStorage<V extends Record<String>> implements RecordSto
         return this;
     }
 
+    Thread _t;
+    void checkThread() {
+        if ( _t == null ) {
+            _t = Thread.currentThread();
+        } else if ( _t != Thread.currentThread() ){
+            throw new RuntimeException("Unexpected MultiThreading");
+        }
+    }
+
     @Override
     public V get(String key) {
+        checkThread();
         return store.get(key);
     }
 
     @Override
     public V remove(String key) {
-        return null;
+        V v = get(key);
+        if ( v != null )
+            store.remove(key);
+        return v;
     }
 
     @Override
