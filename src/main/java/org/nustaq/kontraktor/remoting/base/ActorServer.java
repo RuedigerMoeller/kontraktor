@@ -18,6 +18,7 @@ package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.util.Log;
@@ -57,6 +58,8 @@ public class ActorServer {
 
     public ActorServer(ActorServerConnector connector, Actor facade, Coding coding) throws Exception {
         this.facade = facade;
+        if ( facade.getActor().getClass().getAnnotation(Local.class) != null )
+            throw new RuntimeException("Local Actor cannot be remoted: "+facade.getActor().getClass().getName());
         this.connector = connector;
         if ( coding == null )
             coding = new Coding(SerializerType.FSTSer);

@@ -228,6 +228,8 @@ public class SimpleScheduler implements Scheduler {
         if (actor==null) {
             return callback;
         }
+        if ( Proxy.isProxyClass(callback.getClass()) )
+            return callback;
         Class<?>[] interfaces = callback.getClass().getInterfaces();
         InvocationHandler invoker = actor.__scheduler.getInvoker(actor, callback);
         if ( invoker == null ) // called from outside actor world

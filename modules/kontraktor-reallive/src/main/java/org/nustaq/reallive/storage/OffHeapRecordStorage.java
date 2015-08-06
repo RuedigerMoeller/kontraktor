@@ -15,21 +15,21 @@ import java.util.function.*;
  */
 public class OffHeapRecordStorage<V extends Record<String>> implements RecordStorage<String,V> {
 
-    static FSTCoder conf;
+    static FSTCoder coder;
 
     FSTSerializedOffheapMap<String,V> store;
     int keyLen;
 
     public OffHeapRecordStorage(int maxKeyLen, int sizeMB, int estimatedNumRecords) {
         keyLen = maxKeyLen;
-        init(null, sizeMB, estimatedNumRecords, maxKeyLen, false, (Class[]) null);
+        init(null, sizeMB, estimatedNumRecords, maxKeyLen, false, Record.class);
     }
 
     protected void init(String tableFile, int sizeMB, int estimatedNumRecords, int keyLen, boolean persist, Class... toReg) {
         this.keyLen = keyLen;
-        conf = new DefaultCoder();
+        coder = new DefaultCoder();
         if ( toReg != null )
-            conf.getConf().registerClass(toReg);
+            coder.getConf().registerClass(toReg);
         if ( persist ) {
             try {
                 store = createPersistentMap(tableFile, sizeMB, estimatedNumRecords, keyLen);
@@ -42,11 +42,11 @@ public class OffHeapRecordStorage<V extends Record<String>> implements RecordSto
     }
 
     protected FSTSerializedOffheapMap<String,V> createMemMap(int sizeMB, int estimatedNumRecords, int keyLen) {
-        return new FSTUTFStringOffheapMap<>(keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords,conf);
+        return new FSTUTFStringOffheapMap<>(keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords, coder);
     }
 
     protected FSTSerializedOffheapMap<String,V> createPersistentMap(String tableFile, int sizeMB, int estimatedNumRecords, int keyLen) throws Exception {
-        return new FSTUTFStringOffheapMap<>(tableFile, keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords,conf);
+        return new FSTUTFStringOffheapMap<>(tableFile, keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords, coder);
     }
 
     @Override

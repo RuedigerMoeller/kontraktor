@@ -5,12 +5,10 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.reallive.actors.RealLiveStream;
+import org.nustaq.reallive.actors.RealLiveStreamActor;
 import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.impl.*;
 import org.nustaq.reallive.storage.*;
-
-import java.util.concurrent.CountDownLatch;
 
 /**
  * Created by ruedi on 04.08.2015.
@@ -114,7 +112,7 @@ public class Basic {
 
     public static class TA extends Actor<TA> {
 
-        public IPromise runTest(RealLiveStream<String, Record<String>> rls) throws InterruptedException {
+        public IPromise runTest(RealLiveStreamActor<String, Record<String>> rls) throws InterruptedException {
 
             rls.subscribe( new Subscriber<>(
                 record -> "one13".equals(record.getKey()),
@@ -152,8 +150,8 @@ public class Basic {
 
     @Test
     public void testActor() throws InterruptedException {
-        RealLiveStream<String,Record<String>> rls = Actors.AsActor(RealLiveStream.class);
-        rls.init(new OffHeapRecordStorage<>(32,500,500_000));
+        RealLiveStreamActor<String,Record<String>> rls = Actors.AsActor(RealLiveStreamActor.class);
+        rls.init( () -> new OffHeapRecordStorage<>(32,500,500_000),true);
 
         TA ta = Actors.AsActor(TA.class);
         ta.runTest(rls).await();
@@ -161,8 +159,8 @@ public class Basic {
 
     @Test
     public void testActorOutside() throws InterruptedException {
-        RealLiveStream<String,Record<String>> rls = Actors.AsActor(RealLiveStream.class);
-        rls.init(new OffHeapRecordStorage<>(32,500,500_000));
+        RealLiveStreamActor<String,Record<String>> rls = Actors.AsActor(RealLiveStreamActor.class);
+        rls.init( () -> new OffHeapRecordStorage<>(32,500,500_000),false);
 
         TA ta = new TA();
         ta.runTest(rls).await();
