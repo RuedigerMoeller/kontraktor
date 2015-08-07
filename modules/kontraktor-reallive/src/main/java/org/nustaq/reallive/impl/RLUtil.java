@@ -22,6 +22,11 @@ public class RLUtil {
         return new AddMessage<>((V) record);
     }
 
+    public <K,V extends Record<K>> PutMessage<K,V> put( K key, Object ... keyVals) {
+        Object record = record(key, keyVals);
+        return new PutMessage<>((V)record);
+    }
+
     public <K,V extends Record<K>> AddMessage<K,V> addOrUpdate( K key, Object ... keyVals) {
         Object record = record(key, keyVals);
         return new AddMessage<>(true,(V) record);

@@ -9,6 +9,7 @@ public interface ChangeMessage<K,V> {
     int REMOVE = 1;
     int UPDATE = 2;
     int QUERYDONE = 3;
+    int PUT = 4;
 
     int getType();
 

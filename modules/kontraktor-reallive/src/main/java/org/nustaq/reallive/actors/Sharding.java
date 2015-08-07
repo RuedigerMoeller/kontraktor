@@ -67,6 +67,11 @@ public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
     }
 
     @Override
+    public void addOrUpdate(K key, Object... keyVals) {
+        shards[func.apply(key)].addOrUpdate(key, keyVals);
+    }
+
+    @Override
     public void add(K key, Object... keyVals) {
         shards[func.apply(key)].add(key, keyVals);
     }

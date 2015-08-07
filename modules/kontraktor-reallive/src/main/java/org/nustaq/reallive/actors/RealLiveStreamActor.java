@@ -52,6 +52,12 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
     }
 
     @Override
+    public void addOrUpdate(K key, Object... keyVals) {
+        checkThread();
+        storageDriver.addOrUpdate(key, keyVals);
+    }
+
+    @Override
     public void add(K key, Object... keyVals) {
         checkThread();
         storageDriver.add(key,keyVals);

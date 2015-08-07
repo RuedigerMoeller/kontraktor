@@ -45,6 +45,9 @@ public class FilterProcessor<K,V extends Record<K>> implements ChangeReceiver<K,
         switch (change.getType()) {
             case ChangeMessage.QUERYDONE:
                 break;
+            case ChangeMessage.PUT:
+                processPut((PutMessage<K, V>) change);
+                break;
             case ChangeMessage.ADD:
                 processAdd((AddMessage<K, V>) change);
                 break;
@@ -54,6 +57,15 @@ public class FilterProcessor<K,V extends Record<K>> implements ChangeReceiver<K,
             case ChangeMessage.REMOVE:
                 processRemove((RemoveMessage) change);
                 break;
+        }
+    }
+
+    protected void processPut(PutMessage<K, V> change) {
+        V record = change.getRecord();
+        for ( Subscriber<K,V> subscriber : filterList ) {
+            if ( subscriber.getFilter().test(record) ) {
+                subscriber.getReceiver().receive(change);
+            }
         }
     }
 

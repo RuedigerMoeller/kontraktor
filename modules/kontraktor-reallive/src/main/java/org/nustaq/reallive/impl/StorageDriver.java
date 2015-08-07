@@ -100,6 +100,11 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
 
     @Override
     public void put(K key, Object... keyVals) {
+        receive(RLUtil.get().put(key,keyVals));
+    }
+
+    @Override
+    public void addOrUpdate(K key, Object... keyVals) {
         receive(RLUtil.get().addOrUpdate(key,keyVals));
     }
 

@@ -194,7 +194,7 @@ public class Basic {
             IntStream.range(0, 1).forEach(ii -> {
                 long tim1 = System.currentTimeMillis();
                 for (int i = 0; i < 500_000; i++) {
-                    mut.put("one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
+                    mut.addOrUpdate("one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
                 }
                 mut.update("one13", "age", 10);
                 mut.remove("one13");
@@ -237,7 +237,7 @@ public class Basic {
         RealLiveStreamActor<String,Record<String>> rls[] = new RealLiveStreamActor[8];
         for (int i = 0; i < rls.length; i++) {
             rls[i] = Actors.AsActor(RealLiveStreamActor.class);
-            rls[i].init( () -> new OffHeapRecordStorage<>(32, 500/rls.length, 500_000/rls.length), false);
+            rls[i].init( () -> new OffHeapRecordStorage<>(32, 500/rls.length, 500_000/rls.length), true);
         }
         ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
         Sharding<String,Record<String>> sharding = new Sharding<>(sfunc, rls);
@@ -252,7 +252,7 @@ public class Basic {
 
     @Test
     public void randomTestActorShard() throws InterruptedException {
-        while( System.currentTimeMillis() != 0)
+//        while( System.currentTimeMillis() != 0)
         {
             RealLiveStreamActor<String,Record<String>> rls[] = new RealLiveStreamActor[8];
             for (int i = 0; i < rls.length; i++) {
