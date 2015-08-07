@@ -62,8 +62,8 @@ public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
     }
 
     @Override
-    public void addOrUpdate(K key, Object... keyVals) {
-        shards[func.apply(key)].addOrUpdate(key, keyVals);
+    public void put(K key, Object... keyVals) {
+        shards[func.apply(key)].put(key, keyVals);
     }
 
     @Override
@@ -103,5 +103,25 @@ public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
         for (int i = 0; i < shards.length; i++) {
             shards[i].stop();
         }
+    }
+
+    @Override
+    public IPromise<V> get(K key) {
+        return shards[func.apply(key)].get(key);
+    }
+
+    @Override
+    public IPromise<Long> size() {
+        Promise result = new Promise();
+        List<IPromise<Long>> futs = new ArrayList<>();
+        for (int i = 0; i < shards.length; i++) {
+            RealLiveStreamActor<K, V> shard = shards[i];
+            futs.add(shard.size());
+        }
+        Actors.all(futs).then( longPromisList -> {
+            long sum = longPromisList.stream().mapToLong(prom -> prom.get()).sum();
+            result.resolve(sum);
+        });
+        return result;
     }
 }

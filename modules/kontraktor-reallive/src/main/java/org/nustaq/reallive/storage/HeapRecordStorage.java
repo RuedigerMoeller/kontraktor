@@ -31,6 +31,11 @@ public class HeapRecordStorage<K,V extends Record<K>> implements RecordStorage<K
     }
 
     @Override
+    public long size() {
+        return map.size();
+    }
+
+    @Override
     public void forEach(Predicate<V> filter,Consumer<V> action) {
         map.values().forEach( record -> {
             if (filter.test(record))

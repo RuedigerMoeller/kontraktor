@@ -33,5 +33,4 @@ import org.nustaq.reallive.impl.*;
         filterProcessor.unsubscribe(subs);
     }
 
-
 }

@@ -1,5 +1,7 @@
 package org.nustaq.reallive.api;
 
+import org.nustaq.kontraktor.IPromise;
+
 import java.util.function.*;
 
 /**

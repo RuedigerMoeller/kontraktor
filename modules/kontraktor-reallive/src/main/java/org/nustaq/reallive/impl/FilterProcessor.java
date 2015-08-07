@@ -33,7 +33,7 @@ public class FilterProcessor<K,V extends Record<K>> implements ChangeReceiver<K,
         provider.forEach(subs.getFilter(), record -> {
             subs.getReceiver().receive(new AddMessage<>(record));
         });
-        subs.getReceiver().receive( ChangeRequestBuilder.get().done() );
+        subs.getReceiver().receive( RLUtil.get().done() );
     }
 
     public void unsubscribe( Subscriber<K,V> subs ) {

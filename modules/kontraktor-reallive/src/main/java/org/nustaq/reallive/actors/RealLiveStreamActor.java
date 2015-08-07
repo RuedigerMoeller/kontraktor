@@ -5,7 +5,6 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.InThread;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.reallive.api.*;
-import org.nustaq.reallive.impl.FilterProcessor;
 import org.nustaq.reallive.impl.StorageDriver;
 
 import java.util.concurrent.*;
@@ -35,23 +34,26 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
         } else {
             filterProcessor = Actors.AsActor(FilterProcessorActor.class, getScheduler());
         }
-        filterProcessor.init(store);
+        filterProcessor.init(self());
         storageDriver.setListener(filterProcessor);
     }
 
 
     @Override
     public void receive(ChangeMessage<K, V> change) {
+        checkThread();
         storageDriver.receive(change);
     }
 
     @Override
-    public void addOrUpdate(K key, Object... keyVals) {
-        storageDriver.addOrUpdate(key,keyVals);
+    public void put(K key, Object... keyVals) {
+        checkThread();
+        storageDriver.put(key, keyVals);
     }
 
     @Override
     public void add(K key, Object... keyVals) {
+        checkThread();
         storageDriver.add(key,keyVals);
     }
 
@@ -69,9 +71,14 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
 
     @Override
     public void forEach(Predicate<V> filter, @InThread Consumer<V> action) {
+        checkThread();
         storageDriver.getStore().forEach(filter,action);
     }
 
+    @Override
+    protected void hasStopped() {
+        filterProcessor.stop();
+    }
 
     @Override
     @CallerSideMethod public void subscribe(Subscriber<K, V> subs) {
@@ -82,9 +89,11 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
     }
 
     public void _subscribe(Subscriber<K, V> subs) {
+        checkThread();
         filterProcessor.subscribe(subs);
     }
     public void _unsubscribe(Subscriber<K, V> subs) {
+        checkThread();
         filterProcessor.unsubscribe(subs);
     }
 
@@ -93,6 +102,16 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
         Subscriber realSubs = subsMap.get(subs);
         _unsubscribe(realSubs);
         subsMap.remove(subs);
+    }
+
+    @Override
+    public IPromise<V> get(K key) {
+        return resolve(storageDriver.getStore().get(key));
+    }
+
+    @Override
+    public IPromise<Long> size() {
+        return resolve(storageDriver.getStore().size());
     }
 
 }

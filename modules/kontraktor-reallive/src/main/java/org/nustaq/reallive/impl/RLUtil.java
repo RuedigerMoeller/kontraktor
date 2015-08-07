@@ -4,14 +4,16 @@ import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.records.*;
 
+import java.util.Objects;
+
 /**
  * Created by ruedi on 04.08.2015.
  */
-public class ChangeRequestBuilder {
+public class RLUtil {
 
-    static ChangeRequestBuilder instance = new ChangeRequestBuilder();
+    static RLUtil instance = new RLUtil();
 
-    public static ChangeRequestBuilder get() {
+    public static RLUtil get() {
         return instance;
     }
 
@@ -37,6 +39,10 @@ public class ChangeRequestBuilder {
 
     public <K> Record<K> record( K key, Object ... keyVals) {
         MapRecord<K> res = new MapRecord<>(key);
+        return buildRecord(res, keyVals);
+    }
+
+    public <K> Record<K> buildRecord(Record<K> res, Object[] keyVals) {
         for (int i = 0; i < keyVals.length; i+=2) {
             Object k = keyVals[i];
             Object v = keyVals[i+1];
@@ -51,5 +57,20 @@ public class ChangeRequestBuilder {
 
     public <K, V extends Record<K>> ChangeMessage<K, V> done() {
         return new ControlMessage();
+    }
+
+    public boolean isEqual(Record rlRec, Record copy) {
+        String[] fields = rlRec.getFields();
+        if ( fields.length != copy.getFields().length )
+            return false;
+        for (int i = 0; i < fields.length; i++) {
+            String field = fields[i];
+            Object a = rlRec.get(field);
+            Object b = copy.get(field);
+            if ( ! Objects.deepEquals(a,b) ) {
+                return false;
+            }
+        }
+        return true;
     }
 }

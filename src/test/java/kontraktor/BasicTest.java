@@ -316,11 +316,11 @@ public class BasicTest {
 
         }
 
-        public void stop() {
+        protected void hasStopped() {
             for (int i = 0; i < act.length; i++) {
                 act[i].stop();
             }
-             super.stop();
+            super.hasStopped();
         }
 
 

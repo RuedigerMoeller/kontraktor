@@ -1,6 +1,7 @@
 package org.nustaq.reallive.records;
 
 import org.nustaq.reallive.api.*;
+import org.nustaq.reallive.impl.RLUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,12 +11,17 @@ import java.util.Map;
  */
 public class MapRecord<K> implements Record<K> {
 
-    Map<String,Object> map = new HashMap<>();
+    public Map<String,Object> map = new HashMap<>(); // debug
     String fields[];
     K key;
 
     public MapRecord(K key) {
         this.key = key;
+    }
+
+    public MapRecord(K key, Object ... values) {
+        this(key);
+        RLUtil.get().buildRecord(this,values);
     }
 
     @Override

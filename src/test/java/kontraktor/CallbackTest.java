@@ -76,9 +76,8 @@ public class CallbackTest {
         }
 
         @Override
-        public void stop() {
+        protected void hasStopped() {
             cbt.stop();
-            super.stop();
         }
 
         public void sendPing() {

@@ -59,11 +59,20 @@ public class PromiseLatch<T> {
 
     public void countDown(T result, Object error) {
         int i = count.decrementAndGet();
+        if ( error != null ) {
+            wrapped.reject(error);
+            count.set(-1);
+            return;
+        }
         if ( i == 0 ) {
             wrapped.complete(result, error);
         } else if ( i < 0 ) {
             throw new RuntimeException("latch already triggered !");
         }
+    }
+
+    public boolean isComplete() {
+        return count.get() <= 0;
     }
 
     public void countUp(int amount) {
@@ -80,5 +89,9 @@ public class PromiseLatch<T> {
 
     public IPromise<T> getPromise() {
         return wrapped;
+    }
+
+    public void reject(String err) {
+        countDown(null,err);
     }
 }

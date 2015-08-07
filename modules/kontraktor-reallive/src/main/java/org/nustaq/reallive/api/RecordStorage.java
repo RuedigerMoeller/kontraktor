@@ -9,5 +9,6 @@ public interface RecordStorage<K, V extends Record<K>> extends RecordIterable<K,
     RecordStorage put( K key, V value );
     V get( K key );
     V remove( K key );
+    long size();
 
 }

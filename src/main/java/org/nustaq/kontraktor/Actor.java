@@ -339,14 +339,20 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     protected void closeCurrentClient() {
         RemoteConnection remoteConnection = connection.get();
         if ( remoteConnection != null ) {
-            delayed(1000, () -> remoteConnection.close() );
+            delayed(1000, () -> remoteConnection.close());
         }
     }
 
-    // internal. tweak to check for remote ref before sending
     @Local
     public void asyncstop() {
+        hasStopped();
         __stop();
+    }
+
+    /**
+     * override to clean up / stop dependend actors
+     */
+    protected void hasStopped() {
     }
 
     /**

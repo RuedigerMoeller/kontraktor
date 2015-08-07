@@ -36,6 +36,7 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
                 if ( prevRecord != null ) {
                     Diff diff = ChangeUtils.copyAndDiff(addMessage.getRecord(), prevRecord);
                     V newRecord = prevRecord; // clarification
+                    store.put(change.getKey(),newRecord);
                     listener.receive( new UpdateMessage<>(diff,newRecord) );
                 } else {
                     store.put(change.getKey(),addMessage.getRecord());
@@ -65,12 +66,14 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
                 } else if ( updateMessage.getDiff() == null ) {
                     Diff diff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec);
                     V newRecord = oldRec; // clarification
+                    store.put(change.getKey(),newRecord);
                     listener.receive( new UpdateMessage<>(diff,newRecord) );
                 } else {
                     // old values are actually not needed inside the diff
                     // however they are needed in a change notification for filter processing (need to reconstruct prev record)
                     Diff newDiff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec, updateMessage.getDiff().getChangedFields());
                     V newRecord = oldRec; // clarification
+                    store.put(change.getKey(),newRecord);
                     listener.receive( new UpdateMessage(newDiff,newRecord));
                 }
             }
@@ -96,23 +99,23 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
     }
 
     @Override
-    public void addOrUpdate(K key, Object... keyVals) {
-        receive(ChangeRequestBuilder.get().addOrUpdate(key,keyVals));
+    public void put(K key, Object... keyVals) {
+        receive(RLUtil.get().addOrUpdate(key,keyVals));
     }
 
     @Override
     public void add(K key, Object... keyVals) {
-        receive(ChangeRequestBuilder.get().add(key,keyVals));
+        receive(RLUtil.get().add(key,keyVals));
     }
 
     @Override
     public void update(K key, Object... keyVals) {
-        receive(ChangeRequestBuilder.get().update(key, keyVals));
+        receive(RLUtil.get().update(key, keyVals));
     }
 
     @Override
     public void remove(K key) {
-        RemoveMessage remove = ChangeRequestBuilder.get().remove(key);
+        RemoveMessage remove = RLUtil.get().remove(key);
         receive(remove);
     }
 }

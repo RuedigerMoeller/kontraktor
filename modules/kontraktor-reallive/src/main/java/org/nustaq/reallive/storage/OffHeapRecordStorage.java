@@ -3,7 +3,9 @@ package org.nustaq.reallive.storage;
 import org.nustaq.offheap.FSTBinaryOffheapMap;
 import org.nustaq.offheap.FSTSerializedOffheapMap;
 import org.nustaq.offheap.FSTUTFStringOffheapMap;
+import org.nustaq.offheap.bytez.bytesource.BytezByteSource;
 import org.nustaq.reallive.api.*;
+import org.nustaq.reallive.records.MapRecord;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
 import org.nustaq.serialization.simpleapi.FSTCoder;
 import org.nustaq.serialization.util.FSTUtil;
@@ -42,7 +44,26 @@ public class OffHeapRecordStorage<V extends Record<String>> implements RecordSto
     }
 
     protected FSTSerializedOffheapMap<String,V> createMemMap(int sizeMB, int estimatedNumRecords, int keyLen) {
-        return new FSTUTFStringOffheapMap<>(keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords, coder);
+        return new FSTUTFStringOffheapMap(keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords, coder)
+//        {
+//            public V decodeValue(BytezByteSource val) {
+//                while ( val.getLen() > buffer.length ) {
+//                    buffer = new byte[buffer.length*2];
+//                    tmpVal.setArr(buffer);
+//                    tmpVal.setOff(0);
+//                    tmpVal.setLen(buffer.length);
+//                }
+//                memory.getArr(val.getOff(), buffer, 0, val.getLen());
+//                V res = (V) coder.toObject(buffer);
+//                if ( res instanceof MapRecord && ((MapRecord)res).map == null) {
+//                    int debug = 1;
+//                    Object tmp = coder.toObject(buffer);
+//                    System.out.println("POK");
+//                }
+//                return res;
+//            }
+//        }
+         ;
     }
 
     protected FSTSerializedOffheapMap<String,V> createPersistentMap(String tableFile, int sizeMB, int estimatedNumRecords, int keyLen) throws Exception {
@@ -76,6 +97,11 @@ public class OffHeapRecordStorage<V extends Record<String>> implements RecordSto
         if ( v != null )
             store.remove(key);
         return v;
+    }
+
+    @Override
+    public long size() {
+        return store.getSize();
     }
 
     @Override
