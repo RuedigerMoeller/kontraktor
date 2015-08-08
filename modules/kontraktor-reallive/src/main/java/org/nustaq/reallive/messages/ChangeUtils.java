@@ -1,7 +1,6 @@
 package org.nustaq.reallive.messages;
 
-import org.nustaq.reallive.api.*;
-import org.nustaq.reallive.messages.*;
+import org.nustaq.reallive.interfaces.*;
 
 import java.util.ArrayList;
 import java.util.Objects;

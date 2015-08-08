@@ -1,8 +1,4 @@
-package org.nustaq.reallive.api;
-
-import org.nustaq.kontraktor.IPromise;
-
-import java.util.function.*;
+package org.nustaq.reallive.interfaces;
 
 /**
  * Created by moelrue on 03.08.2015.

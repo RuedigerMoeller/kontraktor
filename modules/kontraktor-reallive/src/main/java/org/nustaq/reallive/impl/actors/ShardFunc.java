@@ -1,4 +1,4 @@
-package org.nustaq.reallive.actors;
+package org.nustaq.reallive.impl.actors;
 
 /**
  * Created by moelrue on 06.08.2015.

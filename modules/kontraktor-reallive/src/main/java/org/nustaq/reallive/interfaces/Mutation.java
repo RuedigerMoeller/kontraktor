@@ -1,4 +1,4 @@
-package org.nustaq.reallive.api;
+package org.nustaq.reallive.interfaces;
 
 /**
  * Created by moelrue on 05.08.2015.

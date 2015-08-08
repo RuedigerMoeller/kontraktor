@@ -1,10 +1,11 @@
-package org.nustaq.reallive.actors;
+package org.nustaq.reallive.impl.actors;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.InThread;
 import org.nustaq.kontraktor.annotations.Local;
-import org.nustaq.reallive.api.*;
+import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.impl.Mutator;
 import org.nustaq.reallive.impl.StorageDriver;
 
 import java.util.concurrent.*;
@@ -18,7 +19,7 @@ import java.util.function.*;
  * - SnapFin
  * - originator
  */
-public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveStreamActor<K,V>> implements RealLiveTable<K,V> {
+public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveStreamActor<K,V>> implements RealLiveTable<K,V>, Mutatable<K,V> {
 
     StorageDriver<K,V> storageDriver;
     FilterProcessorActor<K,V> filterProcessor;
@@ -43,36 +44,6 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
     public void receive(ChangeMessage<K, V> change) {
         checkThread();
         storageDriver.receive(change);
-    }
-
-    @Override
-    public void put(K key, Object... keyVals) {
-        checkThread();
-        storageDriver.put(key, keyVals);
-    }
-
-    @Override
-    public void addOrUpdate(K key, Object... keyVals) {
-        checkThread();
-        storageDriver.addOrUpdate(key, keyVals);
-    }
-
-    @Override
-    public void add(K key, Object... keyVals) {
-        checkThread();
-        storageDriver.add(key,keyVals);
-    }
-
-    @Override
-    public void update(K key, Object... keyVals) {
-        checkThread();
-        storageDriver.update(key,keyVals);
-    }
-
-    @Override
-    public void remove(K key) {
-        checkThread();
-        storageDriver.remove(key);
     }
 
     @Override
@@ -120,4 +91,8 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
         return resolve(storageDriver.getStore().size());
     }
 
+    @Override @CallerSideMethod
+    public Mutation<K, V> getMutation() {
+        return new Mutator<>(self());
+    }
 }

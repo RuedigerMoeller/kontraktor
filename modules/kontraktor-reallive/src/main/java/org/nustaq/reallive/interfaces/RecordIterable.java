@@ -1,4 +1,4 @@
-package org.nustaq.reallive.api;
+package org.nustaq.reallive.interfaces;
 
 import org.nustaq.kontraktor.annotations.InThread;
 

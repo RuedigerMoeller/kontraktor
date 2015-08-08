@@ -1,8 +1,8 @@
-package org.nustaq.reallive.actors;
+package org.nustaq.reallive.impl.actors;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.*;
-import org.nustaq.reallive.api.*;
+import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.impl.*;
 
 /**

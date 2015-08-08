@@ -1,6 +1,6 @@
 package org.nustaq.reallive.impl;
 
-import org.nustaq.reallive.api.*;
+import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.*;
 
 /**
@@ -12,7 +12,7 @@ import org.nustaq.reallive.messages.*;
 public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>, Mutation<K,V> {
 
     RecordStorage<K,V> store;
-    ChangeReceiver listener;
+    ChangeReceiver listener = change -> {};
 
     public StorageDriver(RecordStorage<K, V> store) {
         this.store = store;

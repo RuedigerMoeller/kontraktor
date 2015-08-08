@@ -1,7 +1,9 @@
-package org.nustaq.reallive.actors;
+package org.nustaq.reallive.impl.actors;
 
 import org.nustaq.kontraktor.*;
-import org.nustaq.reallive.api.*;
+import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.impl.RLUtil;
+import org.nustaq.reallive.messages.RemoveMessage;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -61,29 +63,36 @@ public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
         subsMap.remove(subs);
     }
 
-    @Override
-    public void put(K key, Object... keyVals) {
-        shards[func.apply(key)].put(key, keyVals);
+    protected class ShardMutation implements Mutation<K,V> {
+        @Override
+        public void put(K key, Object... keyVals) {
+            shards[func.apply(key)].receive(RLUtil.get().put(key, keyVals));
+        }
+
+        @Override
+        public void addOrUpdate(K key, Object... keyVals) {
+            shards[func.apply(key)].receive(RLUtil.get().addOrUpdate(key, keyVals));
+        }
+
+        @Override
+        public void add(K key, Object... keyVals) {
+            shards[func.apply(key)].receive(RLUtil.get().add(key, keyVals));
+        }
+
+        @Override
+        public void update(K key, Object... keyVals) {
+            shards[func.apply(key)].receive(RLUtil.get().update(key, keyVals));
+        }
+
+        @Override
+        public void remove(K key) {
+            RemoveMessage remove = RLUtil.get().remove(key);
+            shards[func.apply(key)].receive(remove);
+        }
     }
 
-    @Override
-    public void addOrUpdate(K key, Object... keyVals) {
-        shards[func.apply(key)].addOrUpdate(key, keyVals);
-    }
-
-    @Override
-    public void add(K key, Object... keyVals) {
-        shards[func.apply(key)].add(key, keyVals);
-    }
-
-    @Override
-    public void update(K key, Object... keyVals) {
-        shards[func.apply(key)].update(key, keyVals);
-    }
-
-    @Override
-    public void remove(K key) {
-        shards[func.apply(key)].remove(key);
+    public Mutation<K,V> getMutation() {
+        return new ShardMutation();
     }
 
     @Override

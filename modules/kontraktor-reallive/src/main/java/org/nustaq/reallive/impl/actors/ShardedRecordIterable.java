@@ -1,7 +1,7 @@
-package org.nustaq.reallive.actors;
+package org.nustaq.reallive.impl.actors;
 
-import org.nustaq.reallive.api.Record;
-import org.nustaq.reallive.api.RecordIterable;
+import org.nustaq.reallive.interfaces.Record;
+import org.nustaq.reallive.interfaces.RecordIterable;
 
 import java.util.ArrayList;
 import java.util.List;

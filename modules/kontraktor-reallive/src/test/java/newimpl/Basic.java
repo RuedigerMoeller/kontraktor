@@ -6,15 +6,13 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.PromiseLatch;
-import org.nustaq.reallive.actors.RealLiveStreamActor;
-import org.nustaq.reallive.actors.ShardFunc;
-import org.nustaq.reallive.actors.Sharding;
-import org.nustaq.reallive.api.*;
+import org.nustaq.reallive.impl.actors.RealLiveStreamActor;
+import org.nustaq.reallive.impl.actors.ShardFunc;
+import org.nustaq.reallive.impl.actors.Sharding;
+import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.impl.*;
-import org.nustaq.reallive.records.MapRecord;
-import org.nustaq.reallive.storage.*;
+import org.nustaq.reallive.impl.storage.*;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -124,28 +122,55 @@ public class Basic {
 
 
         public IPromise randomTest(RealLiveTable<String, Record<String>> rls) throws InterruptedException {
-            HashMap<String, Record<String>> copy = new HashMap<>();
+            HeapRecordStorage<Object, Record<Object>> hstore = new HeapRecordStorage<>();
+            StorageDriver<String,Record<String>> copy = new StorageDriver(hstore);
+            rls.subscribe(new Subscriber<>(r -> true,copy));
+            Mutation<String, Record<String>> mut = rls.getMutation();
 
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
-                rls.add("k" + i,
-                           "name", "rm",
-                           "age", rand,
-                           "arr", new int[]{1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5,}
-                );
-                MapRecord<String> mrec
-                    = new MapRecord<String>(
-                        "k" + i,
+                yield();
+                mut.add("k" + i,
                         "name", "rm",
                         "age", rand,
-                        "arr", new int[]{1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5}
-                    );
-                copy.put(mrec.getKey(), mrec);
+                        "arr", new int[]{1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5,}
+                );
             }
             rls.ping().await();
-            System.out.println("SIZE" + rls.size().await());
+            System.out.println("ADD SIZE" + rls.size().await());
+
+            for ( int i = 0; i < 1_000_000; i++ ) {
+                double rand = Math.random() * 10;
+                yield();
+                mut.update("k" + i,
+                   "name", "rm"+(int)(Math.random()*i),
+                   "age", rand,
+                   "arr", new int[]{ 3, 4, 5, 1, 2, 3, 4, (int) rand}
+                );
+            }
+            rls.ping().await();
+            System.out.println("UPDATE SIZE" + rls.size().await());
+
+            for ( int i = 0; i < 500_000; i++ ) {
+                yield();
+                mut.remove("k" + (int) (Math.random() * 1_000_000));
+            }
+            rls.ping().await();
+            System.out.println("REM SIZE" + rls.size().await());
+
+            for ( int i = 0; i < 1_000_000; i++ ) {
+                double rand = Math.random() * 10;
+                yield();
+                mut.addOrUpdate("k" + i,
+                        "name", "rm",
+                        "age", rand
+                        );
+            }
+            rls.ping().await();
+            System.out.println("ADD SIZE" + rls.size().await());
+
             System.out.println("comparing ..");
-            return compare(copy, rls);
+            return compare(hstore.getMap(), rls);
         }
 
         IPromise compare( Map m, RealLiveTable rl ) {
@@ -158,6 +183,8 @@ public class Basic {
                 if ( count.incrementAndGet() % 100_000 == 0 )
                     System.out.println("compared "+count.get());
                 rl.get(next.getKey()).then(rlRec -> {
+                    if (pl.isComplete())
+                        return;
                     checkThread();
                     try {
                         if ( !RLUtil.get().isEqual( (Record) rlRec, copy) ) {
@@ -188,7 +215,7 @@ public class Basic {
                 );
             rls.subscribe(subs);
 
-            Mutation mut = rls;
+            Mutation mut = rls.getMutation();
 
             long tim = 0;
             IntStream.range(0, 1).forEach(ii -> {
@@ -224,7 +251,7 @@ public class Basic {
     @Test
     public void testActor() throws InterruptedException {
         RealLiveStreamActor<String,Record<String>> rls = Actors.AsActor(RealLiveStreamActor.class);
-        rls.init( () -> new OffHeapRecordStorage<>(32,500,500_000),true);
+        rls.init(() -> new OffHeapRecordStorage<>(32, 500, 500_000), true);
 
         TA ta = Actors.AsActor(TA.class);
         ta.runTest(rls).await();
@@ -237,7 +264,7 @@ public class Basic {
         RealLiveStreamActor<String,Record<String>> rls[] = new RealLiveStreamActor[8];
         for (int i = 0; i < rls.length; i++) {
             rls[i] = Actors.AsActor(RealLiveStreamActor.class);
-            rls[i].init( () -> new OffHeapRecordStorage<>(32, 500/rls.length, 500_000/rls.length), true);
+            rls[i].init(() -> new OffHeapRecordStorage<>(32, 500 / rls.length, 700_000 / rls.length), false);
         }
         ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
         Sharding<String,Record<String>> sharding = new Sharding<>(sfunc, rls);

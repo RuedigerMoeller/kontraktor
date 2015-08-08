@@ -1,6 +1,6 @@
-package org.nustaq.reallive.storage;
+package org.nustaq.reallive.impl.storage;
 
-import org.nustaq.reallive.api.*;
+import org.nustaq.reallive.interfaces.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -41,5 +41,9 @@ public class HeapRecordStorage<K,V extends Record<K>> implements RecordStorage<K
             if (filter.test(record))
                 action.accept(record);
         });
+    }
+
+    public Map<K, V> getMap() {
+        return map;
     }
 }

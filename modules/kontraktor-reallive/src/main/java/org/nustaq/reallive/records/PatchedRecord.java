@@ -1,6 +1,6 @@
 package org.nustaq.reallive.records;
 
-import org.nustaq.reallive.api.*;
+import org.nustaq.reallive.interfaces.*;
 
 /**
  * Created by ruedi on 04/08/15.
