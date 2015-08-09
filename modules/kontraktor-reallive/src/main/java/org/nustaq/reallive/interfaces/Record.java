@@ -12,6 +12,34 @@ public interface Record<K> extends Serializable {
     Object get( String field );
     Record put( String field, Object value );
 
+    default int getInt(String field) {
+        Object val = get(field);
+        if ( val == null )
+            return 0;
+        return ((Number)val).intValue();
+    }
+
+    default long getLong(String field) {
+        Object val = get(field);
+        if ( val == null )
+            return 0;
+        return ((Number)val).longValue();
+    }
+
+    default double getDouble(String field) {
+        Object val = get(field);
+        if ( val == null )
+            return 0;
+        return ((Number)val).doubleValue();
+    }
+
+    default String getString(String field) {
+        Object val = get(field);
+        if ( val == null )
+            return null;
+        return val.toString();
+    }
+
     default String asString() {
         String[] fields = getFields();
         String res = "[  *"+getKey()+"  ";
