@@ -3,6 +3,7 @@ package org.nustaq.reallive.impl.actors;
 import org.nustaq.kontraktor.*;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.impl.RLUtil;
+import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.RemoveMessage;
 
 import java.util.*;
@@ -18,10 +19,12 @@ public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
     ShardFunc<K> func;
     RealLiveStreamActor<K,V> shards[];
     final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap<>();
+    private TableDescription description;
 
-    public Sharding(ShardFunc<K> func, RealLiveStreamActor<K, V>[] shards) {
+    public Sharding(ShardFunc<K> func, RealLiveStreamActor<K, V>[] shards, TableDescription desc) {
         this.func = func;
         this.shards = shards;
+        this.description = desc;
     }
 
     @Override
@@ -80,6 +83,11 @@ public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
         }
 
         @Override
+        public void add(Record<K> rec) {
+            shards[func.apply(rec.getKey())].receive((ChangeMessage<K,V>)new AddMessage<>(rec));
+        }
+
+        @Override
         public void update(K key, Object... keyVals) {
             shards[func.apply(key)].receive(RLUtil.get().update(key, keyVals));
         }
@@ -111,6 +119,11 @@ public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
             futs.add(shard.ping());
         }
         return Actors.all(futs);
+    }
+
+    @Override
+    public IPromise<TableDescription> getDescription() {
+        return new Promise(description);
     }
 
     public void stop() {

@@ -251,7 +251,7 @@ public class Basic {
     @Test
     public void testActor() throws InterruptedException {
         RealLiveStreamActor<String,Record<String>> rls = Actors.AsActor(RealLiveStreamActor.class);
-        rls.init(() -> new OffHeapRecordStorage<>(32, 500, 500_000), true);
+        rls.init( () -> new OffHeapRecordStorage<>(32, 500, 500_000), rls.getScheduler(), null);
 
         TA ta = Actors.AsActor(TA.class);
         ta.runTest(rls).await();
@@ -264,10 +264,10 @@ public class Basic {
         RealLiveStreamActor<String,Record<String>> rls[] = new RealLiveStreamActor[8];
         for (int i = 0; i < rls.length; i++) {
             rls[i] = Actors.AsActor(RealLiveStreamActor.class);
-            rls[i].init(() -> new OffHeapRecordStorage<>(32, 500 / rls.length, 700_000 / rls.length), false);
+            rls[i].init(() -> new OffHeapRecordStorage<>(32, 500 / rls.length, 700_000 / rls.length), rls[i].getScheduler(), null);
         }
         ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
-        Sharding<String,Record<String>> sharding = new Sharding<>(sfunc, rls);
+        Sharding<String,Record<String>> sharding = new Sharding<>(sfunc, rls, null);
 
         TA ta = Actors.AsActor(TA.class);
         while( System.currentTimeMillis() != 0) {
@@ -284,10 +284,10 @@ public class Basic {
             RealLiveStreamActor<String,Record<String>> rls[] = new RealLiveStreamActor[8];
             for (int i = 0; i < rls.length; i++) {
                 rls[i] = Actors.AsActor(RealLiveStreamActor.class);
-                rls[i].init( () -> new OffHeapRecordStorage<>(32, 1500/rls.length, 1_500_000/rls.length), false);
+                rls[i].init( () -> new OffHeapRecordStorage<>(32, 1500/rls.length, 1_500_000/rls.length), rls[i].getScheduler(), null);
             }
             ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
-            Sharding<String,Record<String>> sharding = new Sharding<>(sfunc, rls);
+            Sharding<String,Record<String>> sharding = new Sharding<>(sfunc, rls, null);
 
             TA ta = Actors.AsActor(TA.class);
                 ta.randomTest(sharding).await(500000);
@@ -299,7 +299,7 @@ public class Basic {
     @Test
     public void testActorOutside() throws InterruptedException {
         RealLiveStreamActor<String,Record<String>> rls = Actors.AsActor(RealLiveStreamActor.class);
-        rls.init(() -> new OffHeapRecordStorage<>(32, 500,500_000),true);
+        rls.init(() -> new OffHeapRecordStorage<>(32, 500,500_000),rls.getScheduler(),null);
 
         TA ta = new TA();
         ta.runTest(rls).await();

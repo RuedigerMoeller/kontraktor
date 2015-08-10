@@ -24,17 +24,15 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
     StorageDriver<K,V> storageDriver;
     FilterProcessorActor<K,V> filterProcessor;
     ConcurrentHashMap<Subscriber,Subscriber> subsMap;
+    TableDescription description;
 
     @Local
-    public void init( Supplier<RecordStorage<K, V>> storeFactory, boolean dedicatedFilterThread) {
+    public void init( Supplier<RecordStorage<K, V>> storeFactory, Scheduler filterScheduler, TableDescription desc) {
         self().subsMap = new ConcurrentHashMap<>();
-         RecordStorage<K, V> store = storeFactory.get();
+        this.description = desc;
+        RecordStorage<K, V> store = storeFactory.get();
         storageDriver = new StorageDriver<>(store);
-        if (dedicatedFilterThread) {
-            filterProcessor = Actors.AsActor(FilterProcessorActor.class);
-        } else {
-            filterProcessor = Actors.AsActor(FilterProcessorActor.class, getScheduler());
-        }
+        filterProcessor = Actors.AsActor(FilterProcessorActor.class, filterScheduler);
         filterProcessor.init(self());
         storageDriver.setListener(filterProcessor);
     }
@@ -94,5 +92,10 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
     @Override @CallerSideMethod
     public Mutation<K, V> getMutation() {
         return new Mutator<>(self());
+    }
+
+    @Override
+    public IPromise<TableDescription> getDescription() {
+        return resolve(description);
     }
 }

@@ -8,6 +8,7 @@ public interface Mutation<K,V> {
     void put(K key, Object... keyVals);
     void addOrUpdate(K key, Object... keyVals);
     void add( K key, Object ... keyVals );
+    void add( Record<K> rec );
     void update( K key, Object ... keyVals );
     void remove(K key);
 

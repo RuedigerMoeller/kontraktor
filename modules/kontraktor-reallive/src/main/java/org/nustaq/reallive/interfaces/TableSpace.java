@@ -12,8 +12,11 @@ import java.util.List;
 public interface TableSpace {
 
     IPromise<RealLiveTable> createTable( TableDescription desc );
+    IPromise dropTable( String name );
     IPromise<List<TableDescription>> getTableDescriptions();
     IPromise<List<RealLiveTable>> getTables();
+    IPromise<RealLiveTable> getTable(String name);
     IPromise shutDown();
     void stateListener( Callback<StateMessage> stateListener );
+
 }
