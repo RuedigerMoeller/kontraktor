@@ -8,11 +8,14 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.PromiseLatch;
 import org.nustaq.reallive.impl.actors.RealLiveStreamActor;
 import org.nustaq.reallive.impl.actors.ShardFunc;
-import org.nustaq.reallive.impl.actors.Sharding;
+import org.nustaq.reallive.impl.actors.TableSharding;
+import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.impl.*;
 import org.nustaq.reallive.impl.storage.*;
+import org.nustaq.reallive.records.MapRecord;
 
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -22,6 +25,81 @@ import java.util.stream.IntStream;
  * Created by ruedi on 04.08.2015.
  */
 public class Basic {
+
+    @Test
+    public void testTableSpace() {
+        TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
+        ts.init(4, 0);
+
+        ts.createTable(new TableDescription("blogs").numEntries(500_000).sizeMB(500));
+        ts.createTable(new TableDescription("articles").numEntries(500_000*10).sizeMB(500*10));
+
+        RealLiveTable<String, Record<String>> blogs = ts.getTable("blogs").await();
+        Mutation<String, Record<String>> blogMutation = blogs.getMutation();
+
+        RealLiveTable<String, Record<String>> articles = ts.getTable("articles").await();
+        Mutation<String, Record<String>> artMutation = articles.getMutation();
+
+        int numBP = 30_000;
+        for ( int i = 0; i < numBP; i++ ) {
+            MapRecord<String> blogEntry = new MapRecord<>("blog"+i);
+            blogEntry
+                .put("title", "Java is beautiful")
+                .put("description", "High performance Java, realtime distributed computing, other stuff")
+                .put("tags", "#tech #java #distributed #actors #concurrency #webcomponents #realtime")
+                .put("author", "R.Moeller")
+                .put("likes", 199)
+                .put("reads", 3485)
+                .put("sequence", i );
+            blogMutation.add(blogEntry);
+        }
+
+        System.out.println("finished blogs");
+
+        for ( int i = 0; i < numBP *10; i++ ) {
+            MapRecord<String> article = new MapRecord<>("art"+i);
+//            article
+//                .put("title", "WebComponents BLabla")
+//                .put("description", "High performance Java, realtime distributed computing, other stuff")
+//                .put("tags", "#tech #java #distributed #actors #concurrency #webcomponents #realtime")
+//                .put("author", "R.Moeller")
+//                .put("likes", 199)
+//                .put("reads", 3485)
+//                .put("blog", "blog"+i)
+//                .put("date", new Date() );
+            article
+                .put("tags", new String[] {"#tech", "#java2", "#distributed", "#actors", "#concurrency", "#webcomponents", "#realtime"})
+                .put("likes", 199)
+                .put("reads", 3485)
+                .put("blog", "blog"+i)
+                .put("date", System.currentTimeMillis() );
+            artMutation.add(article);
+        }
+
+        System.out.println("finished articles");
+
+        while( true ) {
+            long tim = System.currentTimeMillis();
+
+            AtomicInteger counter = new AtomicInteger(0);
+            blogs.forEach( record -> record.getKey().indexOf("99") >= 0, result -> {
+                counter.incrementAndGet();
+            });
+            blogs.ping().await();
+            System.out.println("time blo " + (System.currentTimeMillis() - tim));
+            System.out.println("hits:" + counter.get());
+            counter.set(0);
+
+            tim = System.currentTimeMillis();
+            articles.forEach( record -> record.getKey().indexOf("999") >= 0, result -> {
+                counter.incrementAndGet();
+            });
+            articles.ping().await();
+            System.out.println("time art " + (System.currentTimeMillis() - tim));
+            System.out.println("hits:"+counter.get());
+        }
+        //ts.shutDown();
+    }
 
     @Test
     public void testOffHeap() {
@@ -267,7 +345,7 @@ public class Basic {
             rls[i].init(() -> new OffHeapRecordStorage<>(32, 500 / rls.length, 700_000 / rls.length), rls[i].getScheduler(), null);
         }
         ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
-        Sharding<String,Record<String>> sharding = new Sharding<>(sfunc, rls, null);
+        TableSharding<String,Record<String>> sharding = new TableSharding<>(sfunc, rls, null);
 
         TA ta = Actors.AsActor(TA.class);
         while( System.currentTimeMillis() != 0) {
@@ -287,7 +365,7 @@ public class Basic {
                 rls[i].init( () -> new OffHeapRecordStorage<>(32, 1500/rls.length, 1_500_000/rls.length), rls[i].getScheduler(), null);
             }
             ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
-            Sharding<String,Record<String>> sharding = new Sharding<>(sfunc, rls, null);
+            TableSharding<String,Record<String>> sharding = new TableSharding<>(sfunc, rls, null);
 
             TA ta = Actors.AsActor(TA.class);
                 ta.randomTest(sharding).await(500000);

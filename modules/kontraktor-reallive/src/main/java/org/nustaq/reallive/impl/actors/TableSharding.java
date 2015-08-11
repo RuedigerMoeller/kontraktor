@@ -14,14 +14,14 @@ import java.util.function.*;
 /**
  * Created by moelrue on 06.08.2015.
  */
-public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
+public class TableSharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
 
     ShardFunc<K> func;
-    RealLiveStreamActor<K,V> shards[];
+    RealLiveTable<K,V> shards[];
     final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap<>();
     private TableDescription description;
 
-    public Sharding(ShardFunc<K> func, RealLiveStreamActor<K, V>[] shards, TableDescription desc) {
+    public TableSharding(ShardFunc<K> func, RealLiveTable<K, V>[] shards, TableDescription desc) {
         this.func = func;
         this.shards = shards;
         this.description = desc;
@@ -39,7 +39,7 @@ public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
         ChangeReceiver<K, V> receiver = subs.getReceiver();
         ArrayList<Subscriber> subsList = new ArrayList<>();
         for (int i = 0; i < shards.length; i++) {
-            RealLiveStreamActor<K, V> shard = shards[i];
+            RealLiveTable<K, V> shard = shards[i];
             Subscriber<K, V> shardSubs = new Subscriber<>(subs.getFilter(), change -> {
                 if (change.getType() == ChangeMessage.QUERYDONE) {
                     int count = doneCount.decrementAndGet();
@@ -106,7 +106,7 @@ public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
     @Override
     public void forEach(Predicate<V> filter, Consumer<V> action) {
         for (int i = 0; i < shards.length; i++) {
-            RealLiveStreamActor<K, V> shard = shards[i];
+            RealLiveTable<K, V> shard = shards[i];
             shard.forEach(filter, action );
         }
     }
@@ -115,7 +115,7 @@ public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
     public IPromise ping() {
         List<IPromise<Object>> futs = new ArrayList<>();
         for (int i = 0; i < shards.length; i++) {
-            RealLiveStreamActor<K, V> shard = shards[i];
+            RealLiveTable<K, V> shard = shards[i];
             futs.add(shard.ping());
         }
         return Actors.all(futs);
@@ -142,7 +142,7 @@ public class Sharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
         Promise result = new Promise();
         List<IPromise<Long>> futs = new ArrayList<>();
         for (int i = 0; i < shards.length; i++) {
-            RealLiveStreamActor<K, V> shard = shards[i];
+            RealLiveTable<K, V> shard = shards[i];
             futs.add(shard.size());
         }
         Actors.all(futs).then( longPromisList -> {

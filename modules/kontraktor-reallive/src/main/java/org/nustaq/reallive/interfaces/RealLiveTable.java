@@ -9,5 +9,5 @@ public interface RealLiveTable<K, V extends Record<K>> extends ChangeReceiver<K,
 
     IPromise ping();
     IPromise<TableDescription> getDescription();
-
+    void stop();
 }

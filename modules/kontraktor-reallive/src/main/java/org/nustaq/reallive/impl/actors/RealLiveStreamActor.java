@@ -47,7 +47,7 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
     @Override
     public void forEach(Predicate<V> filter, @InThread Consumer<V> action) {
         checkThread();
-        storageDriver.getStore().forEach(filter,action);
+        storageDriver.getStore().forEach(filter, action);
     }
 
     @Override
@@ -98,4 +98,5 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
     public IPromise<TableDescription> getDescription() {
         return resolve(description);
     }
+
 }

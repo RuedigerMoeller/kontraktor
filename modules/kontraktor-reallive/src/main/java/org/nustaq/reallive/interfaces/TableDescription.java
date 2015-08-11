@@ -11,6 +11,7 @@ public class TableDescription implements Serializable {
     int sizeMB = 10;
     String filePath;
     int numEntries=100_000;
+    int shardNo;
 
     public TableDescription(String name) {
         this.name = name;
@@ -52,5 +53,14 @@ public class TableDescription implements Serializable {
         return numEntries;
     }
 
+
+    public int getShardNo() {
+        return shardNo;
+    }
+
+    public TableDescription shardNo(final int shardNo) {
+        this.shardNo = shardNo;
+        return this;
+    }
 
 }
