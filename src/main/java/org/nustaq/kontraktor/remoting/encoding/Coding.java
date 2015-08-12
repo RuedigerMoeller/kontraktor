@@ -18,6 +18,7 @@ package org.nustaq.kontraktor.remoting.encoding;
 
 import org.nustaq.serialization.FSTConfiguration;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.function.Consumer;
 
@@ -27,7 +28,7 @@ import java.util.function.Consumer;
  * umh .. unfinished concept of custom serializers
  *
  */
-public class Coding {
+public class Coding implements Serializable {
     SerializerType coding;
     Class crossPlatformShortClazzNames[];
 
