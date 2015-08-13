@@ -6,15 +6,15 @@ import org.nustaq.reallive.interfaces.Record;
 /**
  * Created by ruedi on 07/08/15.
  */
-public class PutMessage<K,V extends Record<K>> implements ChangeMessage<K,V> {
+public class PutMessage<K> implements ChangeMessage<K> {
 
-    public PutMessage(V record) {
+    public PutMessage(Record<K> record) {
         this.record = record;
     }
 
-    private V record;
+    private Record<K> record;
 
-    public V getRecord() {
+    public Record<K> getRecord() {
         return record;
     }
 

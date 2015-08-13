@@ -3,7 +3,7 @@ package org.nustaq.reallive.interfaces;
 /**
  * Created by moelrue on 03.08.2015.
  */
-public interface ChangeMessage<K,V> {
+public interface ChangeMessage<K> {
 
     int ADD = 0;
     int REMOVE = 1;

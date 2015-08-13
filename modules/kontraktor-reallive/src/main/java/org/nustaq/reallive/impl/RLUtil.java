@@ -17,29 +17,29 @@ public class RLUtil {
         return instance;
     }
 
-    public <K,V extends Record<K>> AddMessage<K,V> add( K key, Object ... keyVals) {
+    public <K> AddMessage<K> add( K key, Object ... keyVals) {
         Object record = record(key, keyVals);
-        return new AddMessage<>((V) record);
+        return new AddMessage<>((Record) record);
     }
 
-    public <K,V extends Record<K>> PutMessage<K,V> put( K key, Object ... keyVals) {
+    public <K> PutMessage<K> put( K key, Object ... keyVals) {
         Object record = record(key, keyVals);
-        return new PutMessage<>((V)record);
+        return new PutMessage<>((Record<K>)record);
     }
 
-    public <K,V extends Record<K>> AddMessage<K,V> addOrUpdate( K key, Object ... keyVals) {
+    public <K> AddMessage<K> addOrUpdate( K key, Object ... keyVals) {
         Object record = record(key, keyVals);
-        return new AddMessage<>(true,(V) record);
+        return new AddMessage<>(true,(Record<K>) record);
     }
 
-    public <K,V extends Record<K>> UpdateMessage<K,V> update( K key, Object ... keyVals) {
+    public <K> UpdateMessage<K> update( K key, Object ... keyVals) {
         String fi[] = new String[keyVals.length/2];
         for (int i = 0; i < fi.length; i++) {
             fi[i] = (String) keyVals[i*2];
         }
         Diff d = new Diff(fi,null);
         Object record = record(key, keyVals);
-        return new UpdateMessage<>(d, (V) record);
+        return new UpdateMessage<>(d, (Record<K>) record);
     }
 
     public <K> Record<K> record( K key, Object ... keyVals) {
@@ -60,7 +60,7 @@ public class RLUtil {
         return new RemoveMessage<>(new MapRecord<>(key));
     }
 
-    public <K, V extends Record<K>> ChangeMessage<K, V> done() {
+    public <K> ChangeMessage<K> done() {
         return new ControlMessage();
     }
 

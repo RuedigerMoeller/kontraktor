@@ -54,6 +54,11 @@ public class SimpleScheduler implements Scheduler {
         myThread.start();
     }
 
+    public SimpleScheduler(boolean keepAlive) {
+        myThread = new DispatcherThread(this,!keepAlive);
+        myThread.start();
+    }
+
     public SimpleScheduler(int qsize) {
         this.qsize = qsize;
         myThread = new DispatcherThread(this,true);

@@ -10,10 +10,10 @@ import org.nustaq.reallive.messages.RemoveMessage;
 /**
  * Created by ruedi on 08.08.2015.
  */
-public class Mutator<K,V extends Record<K>> implements Mutation<K,V> {
-    ChangeReceiver<K,V> receiver;
+public class Mutator<K> implements Mutation<K> {
+    ChangeReceiver<K> receiver;
 
-    public Mutator(ChangeReceiver<K, V> receiver) {
+    public Mutator(ChangeReceiver<K> receiver) {
         this.receiver = receiver;
     }
 
@@ -34,7 +34,7 @@ public class Mutator<K,V extends Record<K>> implements Mutation<K,V> {
 
     @Override
     public void add(Record<K> rec) {
-        receiver.receive((ChangeMessage<K, V>) new AddMessage<>(rec));
+        receiver.receive((ChangeMessage<K>) new AddMessage<>(rec));
     }
 
     @Override

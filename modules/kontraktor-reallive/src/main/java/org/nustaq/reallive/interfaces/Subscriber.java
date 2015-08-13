@@ -5,21 +5,21 @@ import java.util.function.Predicate;
 /**
  * Created by ruedi on 04/08/15.
  */
-public class Subscriber<K,V extends Record<K>> {
+public class Subscriber<K> {
 
-    Predicate<V> filter;
-    ChangeReceiver<K,V> receiver;
+    Predicate<Record<K>> filter;
+    ChangeReceiver<K> receiver;
 
-    public Subscriber(Predicate<V> filter, ChangeReceiver<K, V> receiver) {
+    public Subscriber(Predicate<Record<K>> filter, ChangeReceiver<K> receiver) {
         this.filter = filter;
         this.receiver = receiver;
     }
 
-    public Predicate<V> getFilter() {
+    public Predicate<Record<K>> getFilter() {
         return filter;
     }
 
-    public ChangeReceiver<K, V> getReceiver() {
+    public ChangeReceiver<K> getReceiver() {
         return receiver;
     }
 }

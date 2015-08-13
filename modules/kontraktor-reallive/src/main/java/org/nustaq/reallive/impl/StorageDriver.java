@@ -9,12 +9,12 @@ import org.nustaq.reallive.messages.*;
  * implements transaction processing on top of a physical storage
  *
  */
-public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>, Mutation<K,V> {
+public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
 
-    RecordStorage<K,V> store;
+    RecordStorage<K> store;
     ChangeReceiver listener = change -> {};
 
-    public StorageDriver(RecordStorage<K, V> store) {
+    public StorageDriver(RecordStorage<K> store) {
         this.store = store;
     }
 
@@ -22,20 +22,20 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
     }
 
     @Override
-    public void receive(ChangeMessage<K, V> change) {
+    public void receive(ChangeMessage<K> change) {
         switch (change.getType()) {
             case ChangeMessage.QUERYDONE:
                 break;
             case ChangeMessage.ADD:
             {
-                AddMessage<K,V> addMessage = (AddMessage) change;
-                V prevRecord = store.get(addMessage.getKey());
+                AddMessage<K> addMessage = (AddMessage) change;
+                Record<K> prevRecord = store.get(addMessage.getKey());
                 if ( prevRecord != null && ! addMessage.isUpdateIfExisting() ) {
                     return;
                 }
                 if ( prevRecord != null ) {
                     Diff diff = ChangeUtils.copyAndDiff(addMessage.getRecord(), prevRecord);
-                    V newRecord = prevRecord; // clarification
+                    Record<K> newRecord = prevRecord; // clarification
                     store.put(change.getKey(),newRecord);
                     listener.receive( new UpdateMessage<>(diff,newRecord) );
                 } else {
@@ -47,7 +47,7 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
             case ChangeMessage.REMOVE:
             {
                 RemoveMessage<K> removeMessage = (RemoveMessage) change;
-                V v = store.remove(removeMessage.getKey());
+                Record<K> v = store.remove(removeMessage.getKey());
                 if ( v != null ) {
                     listener.receive(new RemoveMessage<>(v));
                 }
@@ -55,8 +55,8 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
             }
             case ChangeMessage.UPDATE:
             {
-                UpdateMessage<K,V> updateMessage = (UpdateMessage<K, V>) change;
-                V oldRec = store.get(updateMessage.getKey());
+                UpdateMessage<K> updateMessage = (UpdateMessage<K>) change;
+                Record<K> oldRec = store.get(updateMessage.getKey());
                 if ( oldRec == null && updateMessage.isAddIfNotExists() ) {
                     if ( updateMessage.getNewRecord() == null ) {
                         throw new RuntimeException("updated record does not exist, cannot fall back to 'Add' as UpdateMessage.newRecord is null");
@@ -65,14 +65,14 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
                     listener.receive( new AddMessage(updateMessage.getNewRecord()) );
                 } else if ( updateMessage.getDiff() == null ) {
                     Diff diff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec);
-                    V newRecord = oldRec; // clarification
+                    Record<K> newRecord = oldRec; // clarification
                     store.put(change.getKey(),newRecord);
                     listener.receive( new UpdateMessage<>(diff,newRecord) );
                 } else {
                     // old values are actually not needed inside the diff
                     // however they are needed in a change notification for filter processing (need to reconstruct prev record)
                     Diff newDiff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec, updateMessage.getDiff().getChangedFields());
-                    V newRecord = oldRec; // clarification
+                    Record<K> newRecord = oldRec; // clarification
                     store.put(change.getKey(),newRecord);
                     listener.receive( new UpdateMessage(newDiff,newRecord));
                 }
@@ -80,7 +80,7 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
         }
     }
 
-    public RecordStorage<K, V> getStore() {
+    public RecordStorage<K> getStore() {
         return store;
     }
 
@@ -88,7 +88,7 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
         return listener;
     }
 
-    public StorageDriver store(final RecordStorage<K, V> store) {
+    public StorageDriver store(final RecordStorage<K> store) {
         this.store = store;
         return this;
     }
@@ -115,7 +115,7 @@ public class StorageDriver<K,V extends Record<K>> implements ChangeReceiver<K,V>
 
     @Override
     public void add(Record<K> rec) {
-        receive((ChangeMessage<K, V>) new AddMessage<K,Record<K>>(rec));
+        receive(new AddMessage<K>(rec));
     }
 
     @Override

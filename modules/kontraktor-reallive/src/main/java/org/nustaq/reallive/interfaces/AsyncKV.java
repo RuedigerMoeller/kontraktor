@@ -5,9 +5,9 @@ import org.nustaq.kontraktor.IPromise;
 /**
  * Created by ruedi on 07/08/15.
  */
-public interface AsyncKV<K,V> {
+public interface AsyncKV<K> {
 
-    IPromise<V> get( K key );
+    IPromise<Record<K>> get( K key );
     IPromise<Long> size();
 
 }
