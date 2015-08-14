@@ -5,7 +5,7 @@ import java.io.Serializable;
 /**
  * Created by ruedi on 08.08.2015.
  */
-public class TableDescription implements Serializable {
+public class TableDescription implements Serializable, Cloneable {
 
     String name;
     int sizeMB = 10;
@@ -61,6 +61,16 @@ public class TableDescription implements Serializable {
     public TableDescription shardNo(final int shardNo) {
         this.shardNo = shardNo;
         return this;
+    }
+
+    @Override
+    public TableDescription clone() {
+        try {
+            return (TableDescription) super.clone();
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 }

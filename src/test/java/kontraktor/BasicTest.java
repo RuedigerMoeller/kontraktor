@@ -77,6 +77,28 @@ public class BasicTest {
     }
 
     @Test
+    public void allTest() throws InterruptedException {
+        ArrayList<IPromise<Object>> al = new ArrayList();
+        al.add( new Promise() );
+        al.add( new Promise() );
+        new Thread( () -> {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            al.get(0).complete();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            al.get(1).complete();
+        }).start();
+        Actors.all(al).await();
+    }
+
+    @Test
     public void callBench() {
         Bench b = AsActor(Bench.class);
 

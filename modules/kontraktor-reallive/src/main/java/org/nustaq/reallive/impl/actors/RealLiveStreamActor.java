@@ -32,7 +32,6 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
 
     @Local
     public void init( Supplier<RecordStorage<K>> storeFactory, Scheduler filterScheduler, TableDescription desc) {
-//        self().subsMap = new ConcurrentHashMap<>(); does not work for remote ref
         this.description = desc;
         RecordStorage<K> store = storeFactory.get();
         storageDriver = new StorageDriver<>(store);

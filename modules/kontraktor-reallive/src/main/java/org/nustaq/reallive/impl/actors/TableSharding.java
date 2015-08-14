@@ -104,6 +104,7 @@ public class TableSharding<K> implements RealLiveTable<K> {
 
     @Override
     public <T> void forEach(Spore<Record<K>, T> spore) {
+        spore.setExpectedFinishCount(shards.length);
         for (int i = 0; i < shards.length; i++) {
             RealLiveTable<K> shard = shards[i];
             shard.forEach(spore);

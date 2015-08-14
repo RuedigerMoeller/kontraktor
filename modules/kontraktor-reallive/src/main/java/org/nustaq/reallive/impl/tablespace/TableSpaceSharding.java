@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.impl.actors.ShardFunc;
 import org.nustaq.reallive.impl.actors.TableSharding;
 import org.nustaq.reallive.interfaces.RealLiveTable;
@@ -34,28 +35,34 @@ public class TableSpaceSharding implements TableSpace {
             tableDescriptionMap.put(tableDesc.getName(),tableDesc);
             tableMap.put(tableDesc.getName(), shards[0].getTable(tableDesc.getName()).await());
         });
-    }
-
-    public void init(TableSpaceActor shards[], ShardFunc func) {
-        this.shards = shards;
-        this.func = func;
-        tableMap = new HashMap<>();
+        Log.Info(this,"added "+shards.length+" shards. Found "+tds.size()+" tables.");
     }
 
     @Override
     public IPromise<RealLiveTable> createTable(TableDescription desc) {
         Promise<RealLiveTable> res = new Promise<>();
-        ArrayList<IPromise> results = new ArrayList<>();
+        ArrayList<IPromise<RealLiveTable>> results = new ArrayList();
         for (int i = 0; i < shards.length; i++) {
             TableSpaceActor shard = shards[i];
-            results.add(shard.createTable(desc));
+            IPromise<RealLiveTable> table = shard.createTable(desc.clone().shardNo(i));
+            Promise p = new Promise();
+            results.add(p);
+            final int finalI = i;
+            table.then( (r,e) -> {
+                if ( e == null )
+                    Log.Info(this,"table creation: "+ finalI);
+                else
+                    Log.Info(this, "failed table creation: " + finalI+" "+e);
+                p.complete(r,e);
+            });
         }
-        IPromise<RealLiveTable>[] tables = Actors.all(res).await();
-        RealLiveTable tableShards[] = new RealLiveTable[tables.length];
+        List<IPromise<RealLiveTable>> tables = Actors.all(results).await();
+
+        RealLiveTable tableShards[] = new RealLiveTable[tables.size()];
         boolean errors = false;
-        for (int i = 0; i < tables.length; i++) {
-            if ( tables[i].get() == null ) {
-                res.reject(tables[i].getError());
+        for (int i = 0; i < tables.size(); i++) {
+            if ( tables.get(i).get() == null ) {
+                res.reject(tables.get(i).getError());
                 errors = true;
                 break;
             } else {
@@ -65,12 +72,14 @@ public class TableSpaceSharding implements TableSpace {
                     errors = true;
                     break;
                 }
-                tableShards[sno] = tables[i].get();
+                tableShards[sno] = tables.get(i).get();
             }
         }
         if ( ! errors ) {
             TableSharding ts = new TableSharding(func, tableShards, desc );
             tableMap.put(desc.getName(),ts);
+            tableDescriptionMap.put(desc.getName(),desc);
+            res.resolve(ts);
         }
         return res;
     }

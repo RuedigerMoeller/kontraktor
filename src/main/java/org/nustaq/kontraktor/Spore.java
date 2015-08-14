@@ -20,25 +20,33 @@ import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.serialization.annotations.AnonymousTransient;
 
 import java.io.Serializable;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A Spore is sent to a foreign actor executes on its data and sends results back to caller.
  *
  */
 @AnonymousTransient
-public abstract class Spore<I,O> implements Serializable {
+public abstract class Spore<I,O> implements Serializable, Cloneable {
 
     Callback cb;
     transient protected boolean finished;
     transient Callback<O> localCallback;
     transient Promise finSignal = new Promise();
+    transient AtomicInteger finishLatch; // in case multiple finishs are expected (sharding)
 
     public Spore() {
         Callback mycb = new Callback() {
             @Override
             public void complete(Object result, Object error) {
                 if ( Actors.isComplete(error) ) {
-                    finSignal.complete();
+                    if ( finishLatch != null ) {
+                        int count = finishLatch.decrementAndGet();
+                        if ( count == 0 ) {
+                            finSignal.complete();
+                        }
+                    } else
+                        finSignal.complete();
                 } else {
                     if (localCallback != null) {
                         localCallback.complete((O) result, error);
@@ -51,6 +59,9 @@ public abstract class Spore<I,O> implements Serializable {
         this.cb = new CallbackWrapper<>(Actor.sender.get(),mycb);
     }
 
+    public void setExpectedFinishCount(int count) {
+        finishLatch = new AtomicInteger(count);
+    }
     /**
      * implements code to be executed at receiver side
      * @param input
@@ -109,5 +120,15 @@ public abstract class Spore<I,O> implements Serializable {
      */
     public boolean isFinished() {
         return finished;
+    }
+
+    @Override
+    public Spore clone() {
+        try {
+            return (Spore) super.clone();
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

@@ -11,6 +11,7 @@ import org.nustaq.reallive.impl.tablespace.TableSpaceSharding;
 import org.nustaq.reallive.interfaces.*;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 /**
@@ -24,7 +25,7 @@ public class TableSpaceTest {
     public void simple() {
         TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
         ts.init(4, 0);
-        Assert.assertTrue( runSimpleTest(ts) == EXPECT_SIMPLECOUNT );
+        Assert.assertTrue( runSimpleTest(ts, () -> createTableDescription() ) == EXPECT_SIMPLECOUNT );
         ts.shutDown().await();
     }
 
@@ -34,8 +35,12 @@ public class TableSpaceTest {
             Actors.AsActor(TableSpaceActor.class),
             Actors.AsActor(TableSpaceActor.class)
         };
-        TableSpaceSharding ts = new TableSpaceSharding( spaces, key -> key.hashCode() );
-        Assert.assertTrue(runSimpleTest(ts) == EXPECT_SIMPLECOUNT);
+        for (int i = 0; i < spaces.length; i++) {
+            TableSpaceActor space = spaces[i];
+            space.init(2,0);
+        }
+        TableSpaceSharding ts = new TableSpaceSharding( spaces, key -> Math.abs(key.hashCode())%spaces.length );
+        Assert.assertTrue(runSimpleTest(ts, () -> createShardedTableDescription()) == EXPECT_SIMPLECOUNT);
         ts.shutDown().await();
     }
 
@@ -43,19 +48,20 @@ public class TableSpaceTest {
     public void simpleRemote() {
         TableSpaceActor ts = startServer();
 
-        Assert.assertTrue(runSimpleTest(ts) == EXPECT_SIMPLECOUNT);
+        Assert.assertTrue(runSimpleTest(ts, () -> createTableDescription()) == EXPECT_SIMPLECOUNT);
 
         ts.close();
         ts.shutDown().await();
     }
 
     @Test
-    public void simpleRemoteNoServer() {TableSpaceActor remoteTS =
+    public void simpleRemoteNoServer() {
+        TableSpaceActor remoteTS =
         (TableSpaceActor) new TCPConnectable(TableSpaceActor.class, "localhost", 5432)
             .connect((disc, err) -> System.out.println("client disc " + disc + " " + err))
             .await();
 
-        Assert.assertTrue(runSimpleTest(remoteTS) == 9);
+        Assert.assertTrue(runSimpleTest(remoteTS, () -> createTableDescription()) == EXPECT_SIMPLECOUNT);
     }
 
     @Test
@@ -71,29 +77,24 @@ public class TableSpaceTest {
         return ts;
     }
 
-    protected int runSimpleTest(TableSpace ts) {
+    protected int runSimpleTest(TableSpace ts, Supplier<TableDescription> fac) {
         AtomicInteger resultCount = new AtomicInteger(0);
         if ( ts.getTable("Test").await() == null ) {
-            TableDescription test =
-                new TableDescription("Test")
-                    .filePath("/tmp/test")
-                    .numEntries(500_000)
-                    .sizeMB(500)
-                    .shardNo(0);
+            TableDescription test = fac.get();
             ts.createTable(test).await();
         }
         RealLiveTable test = ts.getTable("Test").await();
 
-        test.filter(rec -> true, (r, e) -> System.out.println("filter:" + r + " " + resultCount.incrementAndGet()));
+//        test.filter(rec -> true, (r, e) -> System.out.println("filter:" + r + " " + resultCount.incrementAndGet()));
 
         Mutation mutation = test.getMutation();
-        IntStream.range(0,100).forEach( i -> {
-            mutation.addOrUpdate("emöil"+i, "age", 9, "name", "Emil");
-            mutation.addOrUpdate("fölix"+i, "age", 17, "name", "Felix");
+        IntStream.range(0,100).forEach(i -> {
+            mutation.addOrUpdate("emöil" + i, "age", 9, "name", "Emil");
+            mutation.addOrUpdate("fölix" + i, "age", 17, "name", "Felix");
         });
 
         System.out.println(test.get("emil0").await());
-        test.filter(rec -> true, (r, e) -> System.out.println("filter1:" + r + " " + resultCount.incrementAndGet()));
+//        test.filter(rec -> true, (r, e) -> System.out.println("filter1:" + r + " " + resultCount.incrementAndGet()));
         Subscriber subs[] = {null};
         subs[0] = new Subscriber(record -> true, change -> {
             System.out.println("stream: " + change + " " + resultCount.incrementAndGet());
@@ -109,4 +110,21 @@ public class TableSpaceTest {
         }
         return resultCount.get();
     }
+
+    private TableDescription createTableDescription() {
+        return new TableDescription("Test")
+            .filePath("/tmp/test")
+            .numEntries(500_000)
+            .sizeMB(500)
+            .shardNo(0);
+    }
+
+    private TableDescription createShardedTableDescription() {
+        return new TableDescription("Test")
+            .filePath("/tmp/testshard")
+            .numEntries(500_000/2)
+            .sizeMB(500/2)
+            .shardNo(0);
+    }
+
 }
