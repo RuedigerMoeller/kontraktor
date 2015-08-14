@@ -30,7 +30,7 @@ public class OffHeapRecordStorage implements RecordStorage<String> {
 
     public OffHeapRecordStorage(String file, int maxKeyLen, int sizeMB, int estimatedNumRecords) {
         keyLen = maxKeyLen;
-        init(file, sizeMB, estimatedNumRecords, maxKeyLen, false, Record.class );
+        init(file, sizeMB, estimatedNumRecords, maxKeyLen, true, Record.class );
     }
 
     protected void init(String tableFile, int sizeMB, int estimatedNumRecords, int keyLen, boolean persist, Class... toReg) {

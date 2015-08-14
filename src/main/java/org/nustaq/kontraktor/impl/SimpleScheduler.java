@@ -198,7 +198,7 @@ public class SimpleScheduler implements Scheduler {
 
     public void setKeepAlive(boolean b) {
         if ( myThread != null )
-            myThread.setAutoShutDown(b);
+            myThread.setAutoShutDown(!b);
     }
 
     class CallbackInvokeHandler implements InvocationHandler {

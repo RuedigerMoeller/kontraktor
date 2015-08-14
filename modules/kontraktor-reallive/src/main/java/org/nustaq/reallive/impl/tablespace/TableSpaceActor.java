@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -58,8 +59,8 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
         } else {
             new File(desc.getFilePath()).mkdirs();
             memFactory = () ->
-                new OffHeapRecordStorage<>(
-                    desc.getFilePath()+desc.getName()+"_"+desc.getShardNo()+".bin",
+                new OffHeapRecordStorage(
+                    desc.getFilePath()+"/"+desc.getName()+"_"+desc.getShardNo()+".bin",
                     48,
                     desc.getSizeMB(),
                     desc.getNumEntries()
@@ -115,7 +116,14 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
 
     @Override
     public IPromise shutDown() {
-        return null;
+        tables.values().forEach( table -> table.stop() );
+        Consumer<SimpleScheduler> loop = scheduler -> {
+            scheduler.setKeepAlive(false);
+            scheduler.terminateIfIdle();
+        };
+        stream(filterScheduler).forEach(loop);
+        stream(scanScheduler).forEach(loop);
+        return resolve();
     }
 
     @Override
