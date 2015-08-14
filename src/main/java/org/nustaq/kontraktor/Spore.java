@@ -58,7 +58,7 @@ public abstract class Spore<I,O> implements Serializable {
     public abstract void remote( I input );
 
     /**
-     * local. Register at sending side and will recieve data streamed back from remote.
+     * use local (sender side). Register and receive data streamed back from remote spore execution.
      *
      * @param cb
      * @return a future triggered

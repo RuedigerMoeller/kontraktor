@@ -18,6 +18,7 @@ package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.RemotedCallback;
+import org.nustaq.kontraktor.remoting.encoding.CallbackRefSerializer;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.util.*;
 
@@ -51,13 +52,18 @@ import java.util.function.Supplier;
 
 /**
  * If a promise or callback is wrapped by this, it will be treated correctly when remoted.
- * If callback/promises are part of an actor's async method signatures, kontraktor will autimatically
- * wrap primitives such that remote calls work correctly.
+ *
+ * If callback/promises are part of an actor's async method signature (parameter), kontraktor will automatically
+ * use this class to wrap such that remote calls work correctly.
+ *
  * However if a promise or callback is embedded inside some Pojo, and this pojo is sent over the network,
  * Promises and Callbacks do not work (performance issues, deep scan with many instanceof's required).
  *
- * However if a callback/promise is wrapped by this class, remoting works out as expected.
- *
+ * Note that identity of callbacks / promises gets lost when sent over network, e.g. when passing the
+ * same callback twice to a remote actor, on the remote actor these callback objects will not be equal
+ * (=> cannot hash on calbacks on remote side, e.g. for subscription schemes). Callbacks/Promises are lightweigt
+ * remote objects while remote actor references are hashed and managed by the framework in order to be able
+ * to detect identiy (remoteId).
  */
 public class CallbackWrapper<T> implements IPromise<T>, Serializable {
 

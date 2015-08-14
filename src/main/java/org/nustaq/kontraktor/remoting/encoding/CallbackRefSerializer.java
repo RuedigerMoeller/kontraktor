@@ -45,11 +45,6 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
     public void readObject(FSTObjectInput in, Object toRead, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy) throws Exception {
     }
 
-    @Override
-    public boolean alwaysCopy() {
-        return super.alwaysCopy();
-    }
-
     public class MyRemotedCallback implements Callback, RemotedCallback {
         AtomicReference<ObjectSocket> chan;
         int id;
@@ -80,6 +75,7 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
             }
             return closed;
         }
+
     }
 
     @Override
