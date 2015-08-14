@@ -27,6 +27,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -106,6 +107,8 @@ public class TCPClientConnector implements ActorClientConnector {
     }
 
     static class MyTCPSocket extends TCPObjectSocket implements ObjectSocket {
+        static AtomicInteger idCount = new AtomicInteger(0);
+        int id = idCount.incrementAndGet();
 
         ArrayList objects = new ArrayList();
 
@@ -137,6 +140,11 @@ public class TCPClientConnector implements ActorClientConnector {
             }
 
             super.flush();
+        }
+
+        @Override
+        public int getId() {
+            return id;
         }
     }
 

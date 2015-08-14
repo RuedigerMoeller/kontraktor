@@ -33,6 +33,7 @@ import org.xnio.Buffers;
 import java.io.IOException;
 import java.lang.ref.*;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 /**
@@ -175,6 +176,13 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
             conf = null;
             channel = null;
             ex = null;
+        }
+
+        static AtomicInteger idCount = new AtomicInteger(0);
+        int id = idCount.incrementAndGet();
+        @Override
+        public int getId() {
+            return id;
         }
 
         public void setSink(ObjectSink sink) {

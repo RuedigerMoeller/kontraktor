@@ -16,7 +16,7 @@ public interface RecordIterable<K> {
 
     <T> void forEach(Spore<Record<K>,T> spore);
 
-    @CallerSideMethod default void filter( Predicate<Record<K>> predicate, Callback cb ) {
+    @CallerSideMethod default void filter( RLPredicate<Record<K>> predicate, Callback cb ) {
         forEach(new FilterSpore<>(predicate).forEach(cb).onFinish( () -> cb.finish() ));
     }
 

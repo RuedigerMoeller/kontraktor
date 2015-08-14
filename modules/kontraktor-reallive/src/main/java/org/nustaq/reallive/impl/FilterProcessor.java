@@ -33,11 +33,13 @@ public class FilterProcessor<K> implements ChangeReceiver<K>, ChangeStream<K> {
     public void subscribe(Subscriber<K> subs) {
         filterList.add(subs);
         FilterSpore spore = new FilterSpore(subs.getFilter());
+        spore.onFinish( () -> subs.getReceiver().receive(RLUtil.get().done()) );
         provider.forEach(spore.forEach((r, e) -> {
             if (Actors.isResult(e)) {
                 subs.getReceiver().receive(new AddMessage((Record) r));
             } else {
                 // FIXME: pass errors also
+                // FIXME: never called (see onFinish above)
                 subs.getReceiver().receive(RLUtil.get().done());
             }
         }));

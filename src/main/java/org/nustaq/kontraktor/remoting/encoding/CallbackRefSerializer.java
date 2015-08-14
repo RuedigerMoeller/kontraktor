@@ -54,6 +54,14 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
             this.id = id;
         }
 
+        public int getChanId() {
+            return chan.get().getId();
+        }
+
+        public int getId() {
+            return id;
+        }
+
         @Override
         public void complete(Object result, Object error) {
             try {

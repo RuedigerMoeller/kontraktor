@@ -162,10 +162,16 @@ public class TCPServerConnector implements ActorServerConnector {
     }
 
     static class MyTCPSocket extends TCPObjectSocket implements ObjectSocket {
+        static AtomicInteger idCount = new AtomicInteger(0);
+        int id = idCount.incrementAndGet();
 
         public MyTCPSocket(Socket socket) throws IOException {
             super(socket,null);
         }
 
+        @Override
+        public int getId() {
+            return id;
+        }
     }
 }

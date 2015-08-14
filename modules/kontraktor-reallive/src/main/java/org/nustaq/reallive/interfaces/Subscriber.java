@@ -1,21 +1,30 @@
 package org.nustaq.reallive.interfaces;
 
-import java.util.function.Predicate;
+import java.io.Serializable;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by ruedi on 04/08/15.
  */
-public class Subscriber<K> {
+public class Subscriber<K> implements Serializable {
 
-    Predicate<Record<K>> filter;
+    static AtomicInteger idCount = new AtomicInteger(0);
+
+    RLPredicate<Record<K>> filter;
     ChangeReceiver<K> receiver;
+    int id;
 
-    public Subscriber(Predicate<Record<K>> filter, ChangeReceiver<K> receiver) {
+    public Subscriber(RLPredicate<Record<K>> filter, ChangeReceiver<K> receiver) {
         this.filter = filter;
         this.receiver = receiver;
+        id = idCount.incrementAndGet();
     }
 
-    public Predicate<Record<K>> getFilter() {
+    public int getId() {
+        return id;
+    }
+
+    public RLPredicate<Record<K>> getFilter() {
         return filter;
     }
 

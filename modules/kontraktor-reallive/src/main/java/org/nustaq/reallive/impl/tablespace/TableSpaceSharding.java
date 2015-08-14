@@ -22,8 +22,19 @@ import java.util.stream.Collectors;
 public class TableSpaceSharding implements TableSpace {
 
     TableSpaceActor shards[];
-    HashMap<String,TableSharding> tableMap;
+    HashMap<String,RealLiveTable> tableMap = new HashMap<>();
+    HashMap<String,TableDescription> tableDescriptionMap = new HashMap<>();
     ShardFunc func;
+
+    public TableSpaceSharding(TableSpaceActor[] shards, ShardFunc func) {
+        this.shards = shards;
+        this.func = func;
+        List<TableDescription> tds = shards[0].getTableDescriptions().await();
+        tds.forEach( tableDesc -> {
+            tableDescriptionMap.put(tableDesc.getName(),tableDesc);
+            tableMap.put(tableDesc.getName(), shards[0].getTable(tableDesc.getName()).await());
+        });
+    }
 
     public void init(TableSpaceActor shards[], ShardFunc func) {
         this.shards = shards;

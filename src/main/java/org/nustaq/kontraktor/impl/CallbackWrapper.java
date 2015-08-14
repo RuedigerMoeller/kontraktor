@@ -103,6 +103,10 @@ public class CallbackWrapper<T> implements IPromise<T>, Serializable {
         }
     }
 
+    public Callback<T> getRealCallback() {
+        return realCallback;
+    }
+
     @Override
     public IPromise<T> then(Runnable result) {
         if (realCallback instanceof IPromise == false)

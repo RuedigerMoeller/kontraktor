@@ -52,4 +52,6 @@ public interface ObjectSocket {
     }
 
     boolean isClosed();
+
+    int getId();
 }

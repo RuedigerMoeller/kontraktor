@@ -30,6 +30,7 @@ import org.nustaq.serialization.util.FSTUtil;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by ruedi on 12.05.2015.
@@ -38,6 +39,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  *
  */
 public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
+    static AtomicInteger idCount = new AtomicInteger(0);
+    int id = idCount.incrementAndGet();
 
     public static int LP_TIMEOUT = 15_000;
     public static int HISTORY_SIZE = 3; // max size of recovered polls on server sides
@@ -91,6 +94,11 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         if ( closeAction != null ) {
             closeAction.run();
         }
+    }
+
+    @Override
+    public int getId() {
+        return id;
     }
 
     public void setSink(ObjectSink sink) {

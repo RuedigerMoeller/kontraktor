@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -88,6 +89,8 @@ public class JSR356ClientConnector implements ActorClientConnector {
 
     @ClientEndpoint
     protected static class WSClientEndpoint extends WebObjectSocket {
+        static AtomicInteger idCount = new AtomicInteger(0);
+        int id = idCount.incrementAndGet();
 
         protected ObjectSink sink;
         protected volatile Session session = null;
@@ -176,6 +179,11 @@ public class JSR356ClientConnector implements ActorClientConnector {
             if ( session != null )
                 session.close();
             sink.sinkClosed();
+        }
+
+        @Override
+        public int getId() {
+            return id;
         }
 
     }

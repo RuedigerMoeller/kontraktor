@@ -1,9 +1,11 @@
 package org.nustaq.reallive.interfaces;
 
+import java.io.Serializable;
+
 /**
  * Created by moelrue on 03.08.2015.
  */
-public interface ChangeMessage<K> {
+public interface ChangeMessage<K> extends Serializable {
 
     int ADD = 0;
     int REMOVE = 1;
@@ -15,4 +17,5 @@ public interface ChangeMessage<K> {
 
     K getKey();
 
+    default boolean isDoneMsg() { return getType() == QUERYDONE; }
 }

@@ -1,38 +1,78 @@
 package newimpl;
 
+import junit.framework.Assert;
 import org.junit.Test;
 import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
+import org.nustaq.reallive.impl.actors.TableSharding;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
-import org.nustaq.reallive.interfaces.Mutation;
-import org.nustaq.reallive.interfaces.RealLiveTable;
-import org.nustaq.reallive.interfaces.TableDescription;
+import org.nustaq.reallive.impl.tablespace.TableSpaceSharding;
+import org.nustaq.reallive.interfaces.*;
+
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 /**
  * Created by ruedi on 14.08.2015.
  */
 public class TableSpaceTest {
 
+    public static final int EXPECT_SIMPLECOUNT = 603;
+
     @Test
     public void simple() {
         TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
         ts.init(4, 0);
-        runSimpleTest(ts);
+        Assert.assertTrue( runSimpleTest(ts) == EXPECT_SIMPLECOUNT );
+        ts.shutDown().await();
+    }
+
+    @Test
+    public void simpleSharded() {
+        TableSpaceActor spaces[] = {
+            Actors.AsActor(TableSpaceActor.class),
+            Actors.AsActor(TableSpaceActor.class)
+        };
+        TableSpaceSharding ts = new TableSpaceSharding( spaces, key -> key.hashCode() );
+        Assert.assertTrue(runSimpleTest(ts) == EXPECT_SIMPLECOUNT);
         ts.shutDown().await();
     }
 
     @Test
     public void simpleRemote() {
-        TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
-        ts.init(4, 0);
+        TableSpaceActor ts = startServer();
 
-        new TCPNIOPublisher()
+        Assert.assertTrue(runSimpleTest(ts) == EXPECT_SIMPLECOUNT);
 
-        runSimpleTest(ts);
+        ts.close();
         ts.shutDown().await();
     }
 
-    protected void runSimpleTest(TableSpaceActor ts) {
+    @Test
+    public void simpleRemoteNoServer() {TableSpaceActor remoteTS =
+        (TableSpaceActor) new TCPConnectable(TableSpaceActor.class, "localhost", 5432)
+            .connect((disc, err) -> System.out.println("client disc " + disc + " " + err))
+            .await();
+
+        Assert.assertTrue(runSimpleTest(remoteTS) == 9);
+    }
+
+    @Test
+    public void startServerNoResult() throws InterruptedException {
+        startServer();
+        Thread.sleep(1000000);
+    }
+
+    public TableSpaceActor startServer() {
+        TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
+        ts.init(4, 0);
+        new TCPNIOPublisher(ts,5432).publish(actor -> System.out.println("sidconnected: " + actor));
+        return ts;
+    }
+
+    protected int runSimpleTest(TableSpace ts) {
+        AtomicInteger resultCount = new AtomicInteger(0);
         if ( ts.getTable("Test").await() == null ) {
             TableDescription test =
                 new TableDescription("Test")
@@ -44,14 +84,29 @@ public class TableSpaceTest {
         }
         RealLiveTable test = ts.getTable("Test").await();
 
-        System.out.println(test.get("emil").await());
-        test.filter( rec -> true, (r,e) -> System.out.println(r));
+        test.filter(rec -> true, (r, e) -> System.out.println("filter:" + r + " " + resultCount.incrementAndGet()));
 
         Mutation mutation = test.getMutation();
-        mutation.addOrUpdate("emil", "age", 9, "name", "Emil");
-        mutation.addOrUpdate("felix", "age", 17, "name", "Felix");
+        IntStream.range(0,100).forEach( i -> {
+            mutation.addOrUpdate("emöil"+i, "age", 9, "name", "Emil");
+            mutation.addOrUpdate("fölix"+i, "age", 17, "name", "Felix");
+        });
 
-        System.out.println(test.get("emil").await());
-        test.filter( rec -> true, (r,e) -> System.out.println(r));
+        System.out.println(test.get("emil0").await());
+        test.filter(rec -> true, (r, e) -> System.out.println("filter1:" + r + " " + resultCount.incrementAndGet()));
+        Subscriber subs[] = {null};
+        subs[0] = new Subscriber(record -> true, change -> {
+            System.out.println("stream: " + change + " " + resultCount.incrementAndGet());
+            if (change.isDoneMsg()) {
+                test.unsubscribe(subs[0]);
+            }
+        });
+        test.subscribe(subs[0]);
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return resultCount.get();
     }
 }

@@ -33,6 +33,7 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 /**
@@ -85,6 +86,8 @@ public class _JSR356ServerConnector extends Endpoint implements ActorServerConne
     }
 
     static class MySocket extends WebObjectSocket {
+        static AtomicInteger idCount = new AtomicInteger(0);
+        int id = idCount.incrementAndGet();
 
         Session session;
 
@@ -109,6 +112,11 @@ public class _JSR356ServerConnector extends Endpoint implements ActorServerConne
         @Override
         public void close() throws IOException {
             session.close();
+        }
+
+        @Override
+        public int getId() {
+            return id;
         }
     }
 

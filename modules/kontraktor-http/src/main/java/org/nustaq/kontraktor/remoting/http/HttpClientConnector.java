@@ -235,6 +235,8 @@ public class HttpClientConnector implements ActorClientConnector {
         }
     };
 
+    static AtomicInteger wosIdCount = new AtomicInteger(0);
+
     class MyHttpWS extends WebObjectSocket {
 
         String url;
@@ -324,6 +326,12 @@ public class HttpClientConnector implements ActorClientConnector {
             }, HttpObjectSocket.LP_TIMEOUT + 1000); // give 1 second trip latency
             lpHttpClient.execute(req, callback);
             return p;
+        }
+
+        int id = wosIdCount.incrementAndGet();
+        @Override
+        public int getId() {
+            return id;
         }
 
         private FutureCallback<HttpResponse> getHttpLPFutureCallback(final Promise p, final AtomicInteger timedout) {

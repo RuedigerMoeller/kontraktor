@@ -28,11 +28,14 @@ import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by moelrue on 5/7/15.
  */
 public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConnection implements ObjectSocket {
+    static AtomicInteger idCount = new AtomicInteger(0);
+    int id = idCount.incrementAndGet();
 
     FSTConfiguration conf;
     Throwable lastError;
@@ -71,6 +74,10 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
                 break;
             }
         }
+    }
+
+    public int getId() {
+        return id;
     }
 
     public abstract void receivedObject(Object o);
