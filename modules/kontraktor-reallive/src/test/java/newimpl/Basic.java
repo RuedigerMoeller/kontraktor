@@ -1,10 +1,12 @@
 package newimpl;
 
+import junit.framework.Assert;
 import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.util.PromiseLatch;
 import org.nustaq.reallive.impl.actors.RealLiveStreamActor;
 import org.nustaq.reallive.impl.actors.ShardFunc;
@@ -15,7 +17,6 @@ import org.nustaq.reallive.impl.*;
 import org.nustaq.reallive.impl.storage.*;
 import org.nustaq.reallive.records.MapRecord;
 
-import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,11 +35,11 @@ public class Basic {
         ts.createTable(new TableDescription("blogs").numEntries(500_000).sizeMB(500));
         ts.createTable(new TableDescription("articles").numEntries(500_000*10).sizeMB(500*10));
 
-        RealLiveTable<String, Record<String>> blogs = ts.getTable("blogs").await();
-        Mutation<String, Record<String>> blogMutation = blogs.getMutation();
+        RealLiveTable<String> blogs = ts.getTable("blogs").await();
+        Mutation<String> blogMutation = blogs.getMutation();
 
-        RealLiveTable<String, Record<String>> articles = ts.getTable("articles").await();
-        Mutation<String, Record<String>> artMutation = articles.getMutation();
+        RealLiveTable<String> articles = ts.getTable("articles").await();
+        Mutation<String> artMutation = articles.getMutation();
 
         int numBP = 30_000;
         for ( int i = 0; i < numBP; i++ ) {
@@ -82,18 +83,23 @@ public class Basic {
             long tim = System.currentTimeMillis();
 
             AtomicInteger counter = new AtomicInteger(0);
-            blogs.forEach( record -> record.getKey().indexOf("99") >= 0, result -> {
-                counter.incrementAndGet();
-            });
+
+            blogs.forEach(
+                new FilterSpore<String>(record -> record.getKey().indexOf("99") >= 0).forEach((r, e) -> {
+
+                })
+            );
             blogs.ping().await();
             System.out.println("time blo " + (System.currentTimeMillis() - tim));
             System.out.println("hits:" + counter.get());
             counter.set(0);
 
             tim = System.currentTimeMillis();
-            articles.forEach( record -> record.getKey().indexOf("999") >= 0, result -> {
-                counter.incrementAndGet();
-            });
+            articles.forEach(
+                new FilterSpore<String>(record -> record.getKey().indexOf("999") >= 0).forEach( (r,e) -> {
+
+                })
+            );
             articles.ping().await();
             System.out.println("time art " + (System.currentTimeMillis() - tim));
             System.out.println("hits:"+counter.get());
@@ -103,17 +109,17 @@ public class Basic {
 
     @Test
     public void testOffHeap() {
-        StorageDriver source = new StorageDriver(new OffHeapRecordStorage<>(32,500,600_000));
+        StorageDriver source = new StorageDriver(new OffHeapRecordStorage(32,500,600_000));
         insertTest(source);
     }
 
     public void insertTest(StorageDriver source) {
-        FilterProcessor<String,Record<String>> stream = new FilterProcessor(source.getStore());
+        FilterProcessor<String> stream = new FilterProcessor(source.getStore());
         source.setListener(stream);
 
-        stream.subscribe( new Subscriber<>(
-            record -> "one13".equals(record.getKey()),
-            change -> System.out.println("listener: " + change)
+        stream.subscribe(new Subscriber<>(
+                                             record -> "one13".equals(record.getKey()),
+                                             change -> System.out.println("listener: " + change)
         ));
 
         Mutation mut = source;
@@ -127,8 +133,9 @@ public class Basic {
 
         tim = System.currentTimeMillis();
         int count[] = {0};
-        source.getStore().forEach( rec -> true, rec -> {
-            count[0]++;
+        source.getStore().filter(rec -> true, (r, e) -> {
+            if ( Actors.isResult(e) )
+                count[0]++;
         });
         System.out.println("iter " + (System.currentTimeMillis() - tim)+" "+count[0]);
     }
@@ -136,7 +143,7 @@ public class Basic {
     @Test
     public void test() {
         StorageDriver source = new StorageDriver(new HeapRecordStorage<>());
-        FilterProcessor<String,Record<String>> stream = new FilterProcessor(source.getStore());
+        FilterProcessor<String> stream = new FilterProcessor(source.getStore());
         source.setListener(stream);
 
         stream.subscribe(new Subscriber<>(
@@ -150,9 +157,7 @@ public class Basic {
         mut.update("one", "age", 10);
         mut.remove("one");
 
-        source.getStore().forEach( rec -> true, rec -> {
-            System.out.println(rec);
-        });
+        source.getStore().filter( rec -> true, (r,e) -> System.out.println("REC:"+r) );
     }
 
     @Test
@@ -199,11 +204,11 @@ public class Basic {
     public static class TA extends Actor<TA> {
 
 
-        public IPromise randomTest(RealLiveTable<String, Record<String>> rls) throws InterruptedException {
-            HeapRecordStorage<Object, Record<Object>> hstore = new HeapRecordStorage<>();
-            StorageDriver<String,Record<String>> copy = new StorageDriver(hstore);
+        public IPromise randomTest(RealLiveTable<String> rls) throws InterruptedException {
+            HeapRecordStorage<Object> hstore = new HeapRecordStorage<>();
+            StorageDriver<String> copy = new StorageDriver(hstore);
             rls.subscribe(new Subscriber<>(r -> true,copy));
-            Mutation<String, Record<String>> mut = rls.getMutation();
+            Mutation<String> mut = rls.getMutation();
 
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
@@ -280,15 +285,17 @@ public class Basic {
             return pl.getPromise();
         }
 
-        public IPromise runTest(RealLiveTable<String, Record<String>> rls) throws InterruptedException {
+        public IPromise runTest(RealLiveTable<String> rls) throws InterruptedException {
 
-            Subscriber<String, Record<String>> subs =
+            boolean inActor = Actor.inside();
+
+            Subscriber<String> subs =
                 new Subscriber<>(
                     record -> "one13".equals(record.getKey()),
                     change -> {
-                    if ( self() != null )
-                        checkThread();
-                      System.out.println("listener: " + change);
+                        if ( self() != null )
+                            checkThread();
+                        System.out.println("listener: " + change);
                     }
                 );
             rls.subscribe(subs);
@@ -296,7 +303,10 @@ public class Basic {
             Mutation mut = rls.getMutation();
 
             long tim = 0;
+
             IntStream.range(0, 1).forEach(ii -> {
+                if ( inActor )
+                    checkThread();
                 long tim1 = System.currentTimeMillis();
                 for (int i = 0; i < 500_000; i++) {
                     mut.addOrUpdate("one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
@@ -311,14 +321,14 @@ public class Basic {
             tim = System.currentTimeMillis();
             int count[] = {0};
             final long finalTim = tim;
-            rls.forEach(rec -> true, rec -> {
-                if ( self() != null )
+            rls.filter(rec -> true, (r, e) -> {
+                if ( inActor )
                     checkThread();
-                count[0]++;
-                if (count[0] == 500_000-1) {
-                    System.out.println("iter " + (System.currentTimeMillis() - finalTim) + " " + count[0]);
-                    res.complete();
-                    rls.unsubscribe(subs);
+                if (isResult(e))
+                    count[0]++;
+                else {
+                    System.out.println("count:"+count[0]+" tim:"+(System.currentTimeMillis()-finalTim));
+                    res.resolve();
                 }
             });
 
@@ -328,24 +338,24 @@ public class Basic {
 
     @Test
     public void testActor() throws InterruptedException {
-        RealLiveStreamActor<String,Record<String>> rls = Actors.AsActor(RealLiveStreamActor.class);
-        rls.init( () -> new OffHeapRecordStorage<>(32, 500, 500_000), rls.getScheduler(), null);
+        RealLiveStreamActor<String> rls = Actors.AsActor(RealLiveStreamActor.class,100_000);
+        rls.init( () -> new OffHeapRecordStorage(32, 500, 500_000), new SimpleScheduler(), null);
 
         TA ta = Actors.AsActor(TA.class);
-        ta.runTest(rls).await();
+        ta.runTest(rls).await(20_000);
         ta.stop();
         rls.stop();
     }
 
     @Test
     public void testActorShard() throws InterruptedException {
-        RealLiveStreamActor<String,Record<String>> rls[] = new RealLiveStreamActor[8];
+        RealLiveStreamActor<String> rls[] = new RealLiveStreamActor[8];
         for (int i = 0; i < rls.length; i++) {
             rls[i] = Actors.AsActor(RealLiveStreamActor.class);
-            rls[i].init(() -> new OffHeapRecordStorage<>(32, 500 / rls.length, 700_000 / rls.length), rls[i].getScheduler(), null);
+            rls[i].init(() -> new OffHeapRecordStorage(32, 500 / rls.length, 700_000 / rls.length), rls[i].getScheduler(), null);
         }
         ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
-        TableSharding<String,Record<String>> sharding = new TableSharding<>(sfunc, rls, null);
+        TableSharding<String> sharding = new TableSharding<>(sfunc, rls, null);
 
         TA ta = Actors.AsActor(TA.class);
         while( System.currentTimeMillis() != 0) {
@@ -359,16 +369,16 @@ public class Basic {
     public void randomTestActorShard() throws InterruptedException {
 //        while( System.currentTimeMillis() != 0)
         {
-            RealLiveStreamActor<String,Record<String>> rls[] = new RealLiveStreamActor[8];
+            RealLiveStreamActor<String> rls[] = new RealLiveStreamActor[8];
             for (int i = 0; i < rls.length; i++) {
                 rls[i] = Actors.AsActor(RealLiveStreamActor.class);
-                rls[i].init( () -> new OffHeapRecordStorage<>(32, 1500/rls.length, 1_500_000/rls.length), rls[i].getScheduler(), null);
+                rls[i].init( () -> new OffHeapRecordStorage(32, 1500/rls.length, 1_500_000/rls.length), rls[i].getScheduler(), null);
             }
             ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
-            TableSharding<String,Record<String>> sharding = new TableSharding<>(sfunc, rls, null);
+            TableSharding<String> sharding = new TableSharding<>(sfunc, rls, null);
 
             TA ta = Actors.AsActor(TA.class);
-                ta.randomTest(sharding).await(500000);
+            ta.randomTest(sharding).await(500000);
             ta.stop();
             sharding.stop();
         }
@@ -376,8 +386,8 @@ public class Basic {
 
     @Test
     public void testActorOutside() throws InterruptedException {
-        RealLiveStreamActor<String,Record<String>> rls = Actors.AsActor(RealLiveStreamActor.class);
-        rls.init(() -> new OffHeapRecordStorage<>(32, 500,500_000),rls.getScheduler(),null);
+        RealLiveStreamActor<String> rls = Actors.AsActor(RealLiveStreamActor.class);
+        rls.init(() -> new OffHeapRecordStorage(32, 500,500_000),new SimpleScheduler(),null);
 
         TA ta = new TA();
         ta.runTest(rls).await();

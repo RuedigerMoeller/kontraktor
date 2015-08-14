@@ -10,26 +10,26 @@ import org.nustaq.reallive.impl.*;
  *
  * Not remoteable, as expects subscriber to already be inThread correctly
  */
-@Local public class FilterProcessorActor<K,V extends Record<K>> extends Actor<FilterProcessorActor> implements ChangeReceiver<K,V>, ChangeStream<K,V> {
+@Local public class FilterProcessorActor<K> extends Actor<FilterProcessorActor> implements ChangeReceiver<K>, ChangeStream<K> {
 
-    FilterProcessor<K,V> filterProcessor;
+    FilterProcessor<K> filterProcessor;
 
-    public void init( RecordIterable<K,V> iterable ) {
+    public void init( RecordIterable<K> iterable ) {
         filterProcessor = new FilterProcessor<>(iterable);
     }
 
     @Override
-    public void receive(ChangeMessage<K, V> change) {
+    public void receive(ChangeMessage<K> change) {
         filterProcessor.receive(change);
     }
 
     @Override
-    public void subscribe(Subscriber<K, V> subs) { // expected to be inThread correctly
+    public void subscribe(Subscriber<K> subs) { // expected to be inThread correctly
         filterProcessor.subscribe(subs);
     }
 
     @Override
-    public void unsubscribe(Subscriber<K, V> subs) {
+    public void unsubscribe(Subscriber<K> subs) {
         filterProcessor.unsubscribe(subs);
     }
 

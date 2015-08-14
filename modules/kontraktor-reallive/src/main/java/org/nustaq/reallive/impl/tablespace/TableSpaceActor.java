@@ -54,7 +54,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
 
         Supplier<RecordStorage> memFactory;
         if ( desc.getFilePath() == null ) {
-            memFactory = () -> new OffHeapRecordStorage<>( 48, desc.getSizeMB(), desc.getNumEntries() );
+            memFactory = () -> new OffHeapRecordStorage( 48, desc.getSizeMB(), desc.getNumEntries() );
         } else {
             new File(desc.getFilePath()).mkdirs();
             memFactory = () ->

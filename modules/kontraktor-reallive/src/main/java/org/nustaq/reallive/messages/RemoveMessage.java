@@ -5,7 +5,7 @@ import org.nustaq.reallive.interfaces.*;
 /**
  * Created by moelrue on 03.08.2015.
  */
-public class RemoveMessage<K> implements ChangeMessage<K,Record> {
+public class RemoveMessage<K> implements ChangeMessage<K> {
     Record<K> deletedRow;
 
     public RemoveMessage(Record<K> rec) {

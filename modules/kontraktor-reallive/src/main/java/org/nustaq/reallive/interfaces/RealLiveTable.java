@@ -5,7 +5,7 @@ import org.nustaq.kontraktor.IPromise;
 /**
  * Created by ruedi on 06/08/15.
  */
-public interface RealLiveTable<K, V extends Record<K>> extends ChangeReceiver<K,V>, RecordIterable<K,V>, ChangeStream<K,V>, AsyncKV<K,V>, Mutatable<K,V> {
+public interface RealLiveTable<K> extends ChangeReceiver<K>, RecordIterable<K>, ChangeStream<K>, AsyncKV<K>, Mutatable<K> {
 
     IPromise ping();
     IPromise<TableDescription> getDescription();

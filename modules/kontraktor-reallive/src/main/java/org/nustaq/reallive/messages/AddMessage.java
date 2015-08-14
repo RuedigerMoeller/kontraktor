@@ -5,22 +5,22 @@ import org.nustaq.reallive.interfaces.*;
 /**
  * Created by moelrue on 03.08.2015.
  */
-public class AddMessage<K,V extends Record<K>> implements ChangeMessage<K,V> {
+public class AddMessage<K> implements ChangeMessage<K> {
 
     boolean updateIfExisting = false;
 
-    public AddMessage(V record) {
+    public AddMessage(Record<K> record) {
         this.record = record;
     }
 
-    public AddMessage(boolean updateIfExisting, V record) {
+    public AddMessage(boolean updateIfExisting, Record<K> record) {
         this.updateIfExisting = updateIfExisting;
         this.record = record;
     }
 
-    private V record;
+    private Record<K> record;
 
-    public V getRecord() {
+    public Record<K> getRecord() {
         return record;
     }
 

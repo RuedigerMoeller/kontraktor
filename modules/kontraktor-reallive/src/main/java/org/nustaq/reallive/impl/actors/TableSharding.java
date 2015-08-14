@@ -9,38 +9,37 @@ import org.nustaq.reallive.messages.RemoveMessage;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
-import java.util.function.*;
 
 /**
  * Created by moelrue on 06.08.2015.
  */
-public class TableSharding<K,V extends Record<K>> implements RealLiveTable<K,V> {
+public class TableSharding<K> implements RealLiveTable<K> {
 
     ShardFunc<K> func;
-    RealLiveTable<K,V> shards[];
+    RealLiveTable<K> shards[];
     final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap<>();
     private TableDescription description;
 
-    public TableSharding(ShardFunc<K> func, RealLiveTable<K, V>[] shards, TableDescription desc) {
+    public TableSharding(ShardFunc<K> func, RealLiveTable<K>[] shards, TableDescription desc) {
         this.func = func;
         this.shards = shards;
         this.description = desc;
     }
 
     @Override
-    public void receive(ChangeMessage<K, V> change) {
+    public void receive(ChangeMessage<K> change) {
         if ( change.getType() != ChangeMessage.QUERYDONE )
             shards[func.apply(change.getKey())].receive(change);
     }
 
     @Override
-    public void subscribe(Subscriber<K, V> subs) {
+    public void subscribe(Subscriber<K> subs) {
         AtomicInteger doneCount = new AtomicInteger(shards.length);
-        ChangeReceiver<K, V> receiver = subs.getReceiver();
+        ChangeReceiver<K> receiver = subs.getReceiver();
         ArrayList<Subscriber> subsList = new ArrayList<>();
         for (int i = 0; i < shards.length; i++) {
-            RealLiveTable<K, V> shard = shards[i];
-            Subscriber<K, V> shardSubs = new Subscriber<>(subs.getFilter(), change -> {
+            RealLiveTable<K> shard = shards[i];
+            Subscriber<K> shardSubs = new Subscriber<>(subs.getFilter(), change -> {
                 if (change.getType() == ChangeMessage.QUERYDONE) {
                     int count = doneCount.decrementAndGet();
                     if (count == 0) {
@@ -57,7 +56,7 @@ public class TableSharding<K,V extends Record<K>> implements RealLiveTable<K,V> 
     }
 
     @Override
-    public void unsubscribe(Subscriber<K, V> subs) {
+    public void unsubscribe(Subscriber<K> subs) {
         List<Subscriber> subscribers = subsMap.get(subs);
         for (int i = 0; i < subscribers.size(); i++) {
             Subscriber subscriber = subscribers.get(i);
@@ -66,7 +65,7 @@ public class TableSharding<K,V extends Record<K>> implements RealLiveTable<K,V> 
         subsMap.remove(subs);
     }
 
-    protected class ShardMutation implements Mutation<K,V> {
+    protected class ShardMutation implements Mutation<K> {
         @Override
         public void put(K key, Object... keyVals) {
             shards[func.apply(key)].receive(RLUtil.get().put(key, keyVals));
@@ -84,7 +83,7 @@ public class TableSharding<K,V extends Record<K>> implements RealLiveTable<K,V> 
 
         @Override
         public void add(Record<K> rec) {
-            shards[func.apply(rec.getKey())].receive((ChangeMessage<K,V>)new AddMessage<>(rec));
+            shards[func.apply(rec.getKey())].receive((ChangeMessage<K>)new AddMessage<>(rec));
         }
 
         @Override
@@ -99,15 +98,15 @@ public class TableSharding<K,V extends Record<K>> implements RealLiveTable<K,V> 
         }
     }
 
-    public Mutation<K,V> getMutation() {
+    public Mutation<K> getMutation() {
         return new ShardMutation();
     }
 
     @Override
-    public void forEach(Predicate<V> filter, Consumer<V> action) {
+    public <T> void forEach(Spore<Record<K>, T> spore) {
         for (int i = 0; i < shards.length; i++) {
-            RealLiveTable<K, V> shard = shards[i];
-            shard.forEach(filter, action );
+            RealLiveTable<K> shard = shards[i];
+            shard.forEach(spore);
         }
     }
 
@@ -115,7 +114,7 @@ public class TableSharding<K,V extends Record<K>> implements RealLiveTable<K,V> 
     public IPromise ping() {
         List<IPromise<Object>> futs = new ArrayList<>();
         for (int i = 0; i < shards.length; i++) {
-            RealLiveTable<K, V> shard = shards[i];
+            RealLiveTable<K> shard = shards[i];
             futs.add(shard.ping());
         }
         return Actors.all(futs);
@@ -133,7 +132,7 @@ public class TableSharding<K,V extends Record<K>> implements RealLiveTable<K,V> 
     }
 
     @Override
-    public IPromise<V> get(K key) {
+    public IPromise<Record<K>> get(K key) {
         return shards[func.apply(key)].get(key);
     }
 
@@ -142,7 +141,7 @@ public class TableSharding<K,V extends Record<K>> implements RealLiveTable<K,V> 
         Promise result = new Promise();
         List<IPromise<Long>> futs = new ArrayList<>();
         for (int i = 0; i < shards.length; i++) {
-            RealLiveTable<K, V> shard = shards[i];
+            RealLiveTable<K> shard = shards[i];
             futs.add(shard.size());
         }
         Actors.all(futs).then( longPromisList -> {

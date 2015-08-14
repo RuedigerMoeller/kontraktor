@@ -9,19 +9,19 @@ import org.nustaq.reallive.interfaces.*;
  * - if diff is != null => apply diff
  * - else take new Record and compare against old
  */
-public class UpdateMessage<K,V extends Record<K>> implements ChangeMessage<K,V> {
+public class UpdateMessage<K> implements ChangeMessage<K> {
 
     final Diff diff;   // can be null => then just compare with current record
-    final V newRecord; // can nevere be null
+    final Record<K> newRecord; // can nevere be null
     final boolean addIfNotExists ;
 
-    public UpdateMessage(Diff diff, V newRecord) {
+    public UpdateMessage(Diff diff, Record<K> newRecord) {
         this.diff = diff;
         this.newRecord = newRecord;
         this.addIfNotExists = true;
     }
 
-    public UpdateMessage(Diff diff, V newRecord, boolean addIfNotExists) {
+    public UpdateMessage(Diff diff, Record<K> newRecord, boolean addIfNotExists) {
         this.addIfNotExists = addIfNotExists;
         this.newRecord = newRecord;
         this.diff = diff;
@@ -41,7 +41,7 @@ public class UpdateMessage<K,V extends Record<K>> implements ChangeMessage<K,V> 
         return diff;
     }
 
-    public V getNewRecord() {
+    public Record<K> getNewRecord() {
         return newRecord;
     }
 

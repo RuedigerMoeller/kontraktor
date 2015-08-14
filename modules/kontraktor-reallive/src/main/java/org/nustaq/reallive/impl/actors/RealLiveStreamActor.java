@@ -2,7 +2,6 @@ package org.nustaq.reallive.impl.actors;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
-import org.nustaq.kontraktor.annotations.InThread;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.impl.Mutator;
@@ -19,18 +18,18 @@ import java.util.function.*;
  * - SnapFin
  * - originator
  */
-public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveStreamActor<K,V>> implements RealLiveTable<K,V>, Mutatable<K,V> {
+public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implements RealLiveTable<K>, Mutatable<K> {
 
-    StorageDriver<K,V> storageDriver;
-    FilterProcessorActor<K,V> filterProcessor;
+    StorageDriver<K> storageDriver;
+    FilterProcessorActor<K> filterProcessor;
     ConcurrentHashMap<Subscriber,Subscriber> subsMap;
     TableDescription description;
 
     @Local
-    public void init( Supplier<RecordStorage<K, V>> storeFactory, Scheduler filterScheduler, TableDescription desc) {
+    public void init( Supplier<RecordStorage<K>> storeFactory, Scheduler filterScheduler, TableDescription desc) {
         self().subsMap = new ConcurrentHashMap<>();
         this.description = desc;
-        RecordStorage<K, V> store = storeFactory.get();
+        RecordStorage<K> store = storeFactory.get();
         storageDriver = new StorageDriver<>(store);
         filterProcessor = Actors.AsActor(FilterProcessorActor.class, filterScheduler);
         filterProcessor.init(self());
@@ -39,15 +38,15 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
 
 
     @Override
-    public void receive(ChangeMessage<K, V> change) {
+    public void receive(ChangeMessage<K> change) {
         checkThread();
         storageDriver.receive(change);
     }
 
     @Override
-    public void forEach(Predicate<V> filter, @InThread Consumer<V> action) {
+    public <T> void forEach(Spore<Record<K>, T> spore) {
         checkThread();
-        storageDriver.getStore().forEach(filter, action);
+        storageDriver.getStore().forEach(spore);
     }
 
     @Override
@@ -56,31 +55,31 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
     }
 
     @Override
-    @CallerSideMethod public void subscribe(Subscriber<K, V> subs) {
+    @CallerSideMethod public void subscribe(Subscriber<K> subs) {
         // need callerside to inject inThread
-        Subscriber<K, V> newSubs = new Subscriber<>(subs.getFilter(), inThread(sender.get(), subs.getReceiver()));
+        Subscriber<K> newSubs = new Subscriber<>(subs.getFilter(), inThread(sender.get(), subs.getReceiver()));
         subsMap.put(subs,newSubs);
         _subscribe(newSubs);
     }
 
-    public void _subscribe(Subscriber<K, V> subs) {
+    public void _subscribe(Subscriber<K> subs) {
         checkThread();
         filterProcessor.subscribe(subs);
     }
-    public void _unsubscribe(Subscriber<K, V> subs) {
+    public void _unsubscribe(Subscriber<K> subs) {
         checkThread();
         filterProcessor.unsubscribe(subs);
     }
 
     @CallerSideMethod @Override
-    public void unsubscribe(Subscriber<K, V> subs) {
+    public void unsubscribe(Subscriber<K> subs) {
         Subscriber realSubs = subsMap.get(subs);
         _unsubscribe(realSubs);
         subsMap.remove(subs);
     }
 
     @Override
-    public IPromise<V> get(K key) {
+    public IPromise<Record<K>> get(K key) {
         return resolve(storageDriver.getStore().get(key));
     }
 
@@ -90,7 +89,7 @@ public class RealLiveStreamActor<K,V extends Record<K>> extends Actor<RealLiveSt
     }
 
     @Override @CallerSideMethod
-    public Mutation<K, V> getMutation() {
+    public Mutation<K> getMutation() {
         return new Mutator<>(self());
     }
 

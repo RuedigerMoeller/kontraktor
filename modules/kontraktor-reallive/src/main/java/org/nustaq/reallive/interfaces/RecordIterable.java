@@ -1,6 +1,10 @@
 package org.nustaq.reallive.interfaces;
 
+import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.Spore;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.InThread;
+import org.nustaq.reallive.impl.FilterSpore;
 
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -8,8 +12,12 @@ import java.util.function.Predicate;
 /**
  * Created by ruedi on 04/08/15.
  */
-public interface RecordIterable<K,V extends Record<K>> {
+public interface RecordIterable<K> {
 
-    void forEach(Predicate<V> filter, @InThread Consumer<V> action);
+    <T> void forEach(Spore<Record<K>,T> spore);
+
+    @CallerSideMethod default void filter( Predicate<Record<K>> predicate, Callback cb ) {
+        forEach(new FilterSpore<>(predicate).forEach(cb).onFinish( () -> cb.finish() ));
+    }
 
 }
