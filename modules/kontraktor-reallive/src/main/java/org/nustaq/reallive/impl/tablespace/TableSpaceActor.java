@@ -9,6 +9,7 @@ import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.StateMessage;
 import org.nustaq.reallive.records.MapRecord;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -55,7 +56,14 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
         if ( desc.getFilePath() == null ) {
             memFactory = () -> new OffHeapRecordStorage<>( 48, desc.getSizeMB(), desc.getNumEntries() );
         } else {
-            memFactory = null;
+            new File(desc.getFilePath()).mkdirs();
+            memFactory = () ->
+                new OffHeapRecordStorage<>(
+                    desc.getFilePath()+desc.getName()+"_"+desc.getShardNo()+".bin",
+                    48,
+                    desc.getSizeMB(),
+                    desc.getNumEntries()
+                );
         }
         table.init( memFactory, loadBalanceFilter(desc), desc );
         tables.put(desc.getName(),table);
