@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
-import org.nustaq.reallive.impl.actors.TableSharding;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
 import org.nustaq.reallive.impl.tablespace.TableSpaceSharding;
 import org.nustaq.reallive.interfaces.*;
@@ -36,6 +35,29 @@ public class TableSpaceTest {
             Actors.AsActor(TableSpaceActor.class)
         };
         for (int i = 0; i < spaces.length; i++) {
+            TableSpaceActor space = spaces[i];
+            space.init(2,0);
+        }
+        TableSpaceSharding ts = new TableSpaceSharding( spaces, key -> Math.abs(key.hashCode())%spaces.length );
+        Assert.assertTrue(runSimpleTest(ts, () -> createShardedTableDescription()) == EXPECT_SIMPLECOUNT);
+        ts.shutDown().await();
+    }
+
+    @Test
+    public void simpleShardedNoServer() {
+        TableSpaceActor spaces[] = {
+            null,
+            null
+        };
+        spaces[0] =
+        (TableSpaceActor) new TCPConnectable(TableSpaceActor.class, "localhost", 5432)
+            .connect((disc, err) -> System.out.println("client disc " + disc + " " + err))
+            .await();
+        spaces[1] =
+        (TableSpaceActor) new TCPConnectable(TableSpaceActor.class, "localhost", 5433)
+            .connect((disc, err) -> System.out.println("client disc " + disc + " " + err))
+            .await();
+       for (int i = 0; i < spaces.length; i++) {
             TableSpaceActor space = spaces[i];
             space.init(2,0);
         }
@@ -77,6 +99,15 @@ public class TableSpaceTest {
         return ts;
     }
 
+    @Test
+    public void startShardServer() throws InterruptedException {
+        startServer();
+        TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
+        ts.init(4, 0);
+        new TCPNIOPublisher(ts,5433).publish(actor -> System.out.println("sidconnected: " + actor));
+        Thread.sleep(1000000);
+    }
+
     protected int runSimpleTest(TableSpace ts, Supplier<TableDescription> fac) {
         AtomicInteger resultCount = new AtomicInteger(0);
         if ( ts.getTable("Test").await() == null ) {
@@ -85,7 +116,7 @@ public class TableSpaceTest {
         }
         RealLiveTable test = ts.getTable("Test").await();
 
-//        test.filter(rec -> true, (r, e) -> System.out.println("filter:" + r + " " + resultCount.incrementAndGet()));
+        test.filter(rec -> true, (r, e) -> System.out.println("filter:" + r + " " + resultCount.incrementAndGet()));
 
         Mutation mutation = test.getMutation();
         IntStream.range(0,100).forEach(i -> {
@@ -94,7 +125,7 @@ public class TableSpaceTest {
         });
 
         System.out.println(test.get("emil0").await());
-//        test.filter(rec -> true, (r, e) -> System.out.println("filter1:" + r + " " + resultCount.incrementAndGet()));
+        test.filter(rec -> true, (r, e) -> System.out.println("filter1:" + r + " " + resultCount.incrementAndGet()));
         Subscriber subs[] = {null};
         subs[0] = new Subscriber(record -> true, change -> {
             System.out.println("stream: " + change + " " + resultCount.incrementAndGet());
