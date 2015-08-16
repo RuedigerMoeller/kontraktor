@@ -31,9 +31,15 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
     SimpleScheduler filterScheduler[];
     int scanQSize = 64000;
     int filterQSize = 64000;
+    String baseDir;
 
     @Local
     public void init( int numScanThreads, int numFilterThreads ) {
+        initWitAllOptions(numScanThreads,numFilterThreads,scanQSize,filterQSize);
+    }
+
+    @Local
+    public void initWitAllOptions( int numScanThreads, int numFilterThreads, int scanQSize, int filterQSize ) {
         tables = new HashMap<>();
         stateListeners = new ArrayList<>();
         tableDesc = new HashMap<>();
@@ -47,6 +53,18 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
         }
     }
 
+    /**
+     * overrides setting in table description if set
+     * @param dir
+     */
+    public void setBaseDataDir(String dir) {
+        this.baseDir = dir;
+    }
+
+    protected String getBaseDir() {
+        return baseDir;
+    }
+
     @Override
     public IPromise<RealLiveTable> createTable(TableDescription desc) {
         if ( tables.containsKey( desc.getName()) )
@@ -58,9 +76,10 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
             memFactory = () -> new OffHeapRecordStorage( 48, desc.getSizeMB(), desc.getNumEntries() );
         } else {
             new File(desc.getFilePath()).mkdirs();
+            String bp = getBaseDir() == null ? desc.getFilePath() : getBaseDir();
             memFactory = () ->
                 new OffHeapRecordStorage(
-                    desc.getFilePath()+"/"+desc.getName()+"_"+desc.getShardNo()+".bin",
+                    bp+"/"+desc.getName()+"_"+desc.getShardNo()+".bin",
                     48,
                     desc.getSizeMB(),
                     desc.getNumEntries()
