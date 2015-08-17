@@ -66,7 +66,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
     }
 
     @Override
-    public IPromise<RealLiveTable> createTable(TableDescription desc) {
+    public IPromise<RealLiveTable> createOrLoadTable(TableDescription desc) {
         if ( tables.containsKey( desc.getName()) )
             reject("Table exists");
         RealLiveStreamActor table = Actors.AsActor(RealLiveStreamActor.class, loadBalance(desc));
@@ -77,6 +77,8 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
         } else {
             new File(desc.getFilePath()).mkdirs();
             String bp = getBaseDir() == null ? desc.getFilePath() : getBaseDir();
+            desc.filePath(bp);
+            new File(bp).mkdirs();
             memFactory = () ->
                 new OffHeapRecordStorage(
                     bp+"/"+desc.getName()+"_"+desc.getShardNo()+".bin",
@@ -120,7 +122,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
 
     @Override
     public IPromise<List<TableDescription>> getTableDescriptions() {
-        return resolve( new ArrayList<TableDescription>(tableDesc.values()) );
+        return resolve( new ArrayList<>(tableDesc.values()) );
     }
 
     @Override

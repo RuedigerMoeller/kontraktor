@@ -51,6 +51,9 @@ public class PromiseLatch<T> {
     public PromiseLatch(IPromise<T> wrapped, int counter) {
         this.wrapped = wrapped;
         count = new AtomicInteger(counter);
+        if ( counter == 0 ) {
+            wrapped.resolve();
+        }
     }
 
     public void countDown() {

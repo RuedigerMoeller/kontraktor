@@ -9,7 +9,7 @@ public class TableDescription implements Serializable, Cloneable {
 
     String name;
     int sizeMB = 10;
-    String filePath;
+    String filePath = TableSpace.USE_BASE_DIR;
     int numEntries=100_000;
     int shardNo;
 

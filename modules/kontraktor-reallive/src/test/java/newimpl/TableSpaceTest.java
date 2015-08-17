@@ -112,7 +112,7 @@ public class TableSpaceTest {
         AtomicInteger resultCount = new AtomicInteger(0);
         if ( ts.getTable("Test").await() == null ) {
             TableDescription test = fac.get();
-            ts.createTable(test).await();
+            ts.createOrLoadTable(test).await();
         }
         RealLiveTable test = ts.getTable("Test").await();
 

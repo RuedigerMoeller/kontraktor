@@ -11,7 +11,12 @@ import java.util.List;
  */
 public interface TableSpace {
 
-    IPromise<RealLiveTable> createTable( TableDescription desc );
+    /**
+     * ndicates to use a default (or self determine) in case this is set as a base dir
+     */
+    public static final String USE_BASE_DIR = "USE_BASE_DIR";
+
+    IPromise<RealLiveTable> createOrLoadTable(TableDescription desc);
     IPromise dropTable( String name );
     IPromise<List<TableDescription>> getTableDescriptions();
     IPromise<List<RealLiveTable>> getTables();

@@ -15,11 +15,11 @@ import java.util.List;
  */
 public class ClusteredTableSpaceClient<T extends ClusteredTableSpaceClient> extends Actor<T> implements TableSpace {
 
-    TableSpaceSharding tableSharding;
+    protected TableSpaceSharding tableSharding;
 
     @Override
-    public IPromise<RealLiveTable> createTable(TableDescription desc) {
-        return tableSharding.createTable(desc);
+    public IPromise<RealLiveTable> createOrLoadTable(TableDescription desc) {
+        return tableSharding.createOrLoadTable(desc);
     }
 
     @Override
@@ -39,7 +39,7 @@ public class ClusteredTableSpaceClient<T extends ClusteredTableSpaceClient> exte
 
     @Override
     public IPromise<RealLiveTable> getTable(String name) {
-        return getTable(name);
+        return tableSharding.getTable(name);
     }
 
     @Override

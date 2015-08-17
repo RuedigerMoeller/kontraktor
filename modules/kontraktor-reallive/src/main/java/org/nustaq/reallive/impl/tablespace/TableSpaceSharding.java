@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.util.PromiseLatch;
 import org.nustaq.reallive.impl.actors.ShardFunc;
 import org.nustaq.reallive.impl.actors.TableSharding;
 import org.nustaq.reallive.interfaces.RealLiveTable;
@@ -30,30 +31,42 @@ public class TableSpaceSharding implements TableSpace {
     public TableSpaceSharding(TableSpaceActor[] shards, ShardFunc func) {
         this.shards = shards;
         this.func = func;
+    }
+
+    public IPromise init() {
         List<TableDescription> tds = shards[0].getTableDescriptions().await();
-        tds.forEach( tableDesc -> {
-            tableDescriptionMap.put(tableDesc.getName(),tableDesc);
-            tableMap.put(tableDesc.getName(), shards[0].getTable(tableDesc.getName()).await());
+        Promise res = new Promise();
+        PromiseLatch latch = new PromiseLatch(tableDescriptionMap.size());
+        tds.forEach(tableDesc -> {
+            tableDescriptionMap.put(tableDesc.getName(), tableDesc);
+            shards[0].getTable(tableDesc.getName()).then(name -> {
+                tableMap.put(tableDesc.getName(), name);
+                latch.countDown();
+            });
         });
-        Log.Info(this,"added "+shards.length+" shards. Found "+tds.size()+" tables.");
+        latch.getPromise().then((r, e) -> {
+            Log.Info(this, "added " + shards.length + " shards. Found " + tds.size() + " tables.");
+            res.complete(r,e);
+        });
+        return res;
     }
 
     @Override
-    public IPromise<RealLiveTable> createTable(TableDescription desc) {
+    public IPromise<RealLiveTable> createOrLoadTable(TableDescription desc) {
         Promise<RealLiveTable> res = new Promise<>();
         ArrayList<IPromise<RealLiveTable>> results = new ArrayList();
         for (int i = 0; i < shards.length; i++) {
             TableSpaceActor shard = shards[i];
-            IPromise<RealLiveTable> table = shard.createTable(desc.clone().shardNo(i));
+            IPromise<RealLiveTable> table = shard.createOrLoadTable(desc.clone().shardNo(i));
             Promise p = new Promise();
             results.add(p);
             final int finalI = i;
-            table.then( (r,e) -> {
-                if ( e == null )
-                    Log.Info(this,"table creation: "+ finalI);
+            table.then((r, e) -> {
+                if (e == null)
+                    Log.Info(this, "table creation: " + finalI);
                 else
-                    Log.Info(this, "failed table creation: " + finalI+" "+e);
-                p.complete(r,e);
+                    Log.Info(this, "failed table creation: " + finalI + " " + e);
+                p.complete(r, e);
             });
         }
         List<IPromise<RealLiveTable>> tables = Actors.all(results).await();

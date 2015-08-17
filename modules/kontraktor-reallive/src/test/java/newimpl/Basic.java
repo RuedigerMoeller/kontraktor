@@ -1,6 +1,5 @@
 package newimpl;
 
-import junit.framework.Assert;
 import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
@@ -32,8 +31,8 @@ public class Basic {
         TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
         ts.init(4, 0);
 
-        ts.createTable(new TableDescription("blogs").numEntries(500_000).sizeMB(500));
-        ts.createTable(new TableDescription("articles").numEntries(500_000*10).sizeMB(500*10));
+        ts.createOrLoadTable(new TableDescription("blogs").numEntries(500_000).sizeMB(500));
+        ts.createOrLoadTable(new TableDescription("articles").numEntries(500_000 * 10).sizeMB(500 * 10));
 
         RealLiveTable<String> blogs = ts.getTable("blogs").await();
         Mutation<String> blogMutation = blogs.getMutation();
