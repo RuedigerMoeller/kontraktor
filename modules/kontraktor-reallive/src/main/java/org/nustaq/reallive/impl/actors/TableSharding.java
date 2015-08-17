@@ -1,6 +1,7 @@
 package org.nustaq.reallive.impl.actors;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.impl.RLUtil;
 import org.nustaq.reallive.messages.AddMessage;
@@ -130,6 +131,17 @@ public class TableSharding<K> implements RealLiveTable<K> {
         for (int i = 0; i < shards.length; i++) {
             shards[i].stop();
         }
+    }
+
+    @Override
+    public IPromise<StorageStats> getStats() {
+        IPromise<StorageStats>[] shardStats = Actors.all(shards.length, i -> shards[i].getStats()).await();
+        StorageStats stats = new StorageStats();
+        for (int i = 0; i < shardStats.length; i++) {
+            StorageStats storageStats = shardStats[i].get();
+            stats.addTo(storageStats);
+        }
+        return new Promise<>(stats);
     }
 
     @Override

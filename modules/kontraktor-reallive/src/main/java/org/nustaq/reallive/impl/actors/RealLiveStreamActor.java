@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.remoting.encoding.CallbackRefSerializer;
+import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.impl.Mutator;
 import org.nustaq.reallive.impl.StorageDriver;
@@ -125,6 +126,11 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
     @Override
     public IPromise<TableDescription> getDescription() {
         return resolve(description);
+    }
+
+    @Override
+    public IPromise<StorageStats> getStats() {
+        return resolve(storageDriver.getStore().getStats());
     }
 
 }

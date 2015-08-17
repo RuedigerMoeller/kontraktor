@@ -23,6 +23,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -204,6 +205,14 @@ public class Actors {
      */
     public static <T extends Actor> T AsActor(Class<T> actorClazz, Scheduler scheduler, int qsize) {
         return (T) instance.newProxy(actorClazz,scheduler,qsize);
+    }
+
+    public static <T> IPromise<IPromise<T>[]> all(int count, Function<Integer,IPromise<T>> loop) {
+        IPromise<T> promis[] = new IPromise[count];
+        for ( int i = 0; i < count; i++ ) {
+            promis[i] = loop.apply(i);
+        }
+        return all(promis);
     }
 
     /**

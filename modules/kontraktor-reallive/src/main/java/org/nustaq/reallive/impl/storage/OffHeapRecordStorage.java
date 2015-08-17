@@ -57,6 +57,15 @@ public class OffHeapRecordStorage implements RecordStorage<String> {
         return new FSTUTFStringOffheapMap<>(tableFile, keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords, coder);
     }
 
+    public StorageStats getStats() {
+        StorageStats stats = new StorageStats()
+            .capacity(store.getCapacityMB())
+            .freeMem(store.getFreeMem())
+            .usedMem(store.getUsedMem())
+            .numElems(store.getSize());
+        return stats;
+    }
+
     @Override
     public RecordStorage put(String key, Record<String> value) {
         store.put(key,value);

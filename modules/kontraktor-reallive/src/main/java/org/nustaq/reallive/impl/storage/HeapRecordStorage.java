@@ -35,6 +35,7 @@ public class HeapRecordStorage<K> implements RecordStorage<K> {
         return map.size();
     }
 
+
     @Override
     public <T> void forEach(Spore<Record<K>, T> spore) {
         for (Iterator iterator = map.values().iterator(); iterator.hasNext(); ) {
@@ -49,4 +50,16 @@ public class HeapRecordStorage<K> implements RecordStorage<K> {
     public Map<K,Record<K>> getMap() {
         return map;
     }
+
+    @Override
+    public StorageStats getStats() {
+        StorageStats stats = new StorageStats()
+            .capacity(-1)
+            .freeMem(-1)
+            .usedMem(-1)
+            .numElems(map.size());
+        return stats;
+    }
+
+
 }

@@ -34,21 +34,7 @@ public class TableSpaceSharding implements TableSpace {
     }
 
     public IPromise init() {
-        List<TableDescription> tds = shards[0].getTableDescriptions().await();
-        Promise res = new Promise();
-        PromiseLatch latch = new PromiseLatch(tableDescriptionMap.size());
-        tds.forEach(tableDesc -> {
-            tableDescriptionMap.put(tableDesc.getName(), tableDesc);
-            shards[0].getTable(tableDesc.getName()).then(name -> {
-                tableMap.put(tableDesc.getName(), name);
-                latch.countDown();
-            });
-        });
-        latch.getPromise().then((r, e) -> {
-            Log.Info(this, "added " + shards.length + " shards. Found " + tds.size() + " tables.");
-            res.complete(r,e);
-        });
-        return res;
+        return new Promise("done");
     }
 
     @Override
