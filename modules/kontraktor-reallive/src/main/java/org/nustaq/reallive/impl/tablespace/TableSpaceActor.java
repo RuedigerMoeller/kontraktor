@@ -75,7 +75,6 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
         if ( desc.getFilePath() == null ) {
             memFactory = () -> new OffHeapRecordStorage( 48, desc.getSizeMB(), desc.getNumEntries() );
         } else {
-            new File(desc.getFilePath()).mkdirs();
             String bp = getBaseDir() == null ? desc.getFilePath() : getBaseDir();
             desc.filePath(bp);
             new File(bp).mkdirs();
