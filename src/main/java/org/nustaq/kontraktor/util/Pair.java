@@ -20,6 +20,9 @@ import java.io.Serializable;
 
 /**
  * Created by ruedi on 03/05/15.
+ *
+ * A simple pair class. Though it has methods for mutation, it should be considered IMMUTABLE.
+ * Mutation should be used for init/setup only and Pair will be treated like a real immutable by kontraktor.
  */
 public class Pair<CAR, CDR> implements Serializable {
 
@@ -29,6 +32,9 @@ public class Pair<CAR, CDR> implements Serializable {
     public Pair(CAR CAR, CDR CDR) {
         this.car = CAR;
         this.cdr = CDR;
+    }
+
+    public Pair() {
     }
 
     public CAR getFirst() {
@@ -47,11 +53,25 @@ public class Pair<CAR, CDR> implements Serializable {
         return cdr;
     }
 
+    public Pair car(final CAR car) {
+        this.car = car;
+        return this;
+    }
+
+    public Pair cdr(final CDR cdr) {
+        this.cdr = cdr;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "Pair{" +
                    "first=" + car +
                    ", second=" + cdr +
                    '}';
+    }
+
+    public boolean allNull() {
+        return cdr == null && car == null;
     }
 }

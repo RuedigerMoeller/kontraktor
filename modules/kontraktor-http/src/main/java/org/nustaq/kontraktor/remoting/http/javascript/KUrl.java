@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.remoting.http.javascript;
 
+import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.*;
 
@@ -9,7 +10,7 @@ import java.util.*;
  * url wrapper. note '//www.x.y' style not supported
  *
  */
-public class KUrl {
+public class KUrl implements Serializable {
 
     String protocol;
     String elements[];
