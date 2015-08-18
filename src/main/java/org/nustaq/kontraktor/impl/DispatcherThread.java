@@ -78,6 +78,9 @@ public class DispatcherThread extends Thread implements Monitorable {
 
     public static AtomicInteger activeDispatchers = new AtomicInteger(0);
 
+    public static final int POLL_ALL_Q = 0;
+    public static final int POLL_CB_Q = 1;
+
     private Scheduler scheduler;
 
     private Actor actors[] = new Actor[0]; // always refs
@@ -227,7 +230,7 @@ public class DispatcherThread extends Thread implements Monitorable {
 
     // poll all actors in queue arr round robin
     int currentPolledActor = 0;
-    protected CallEntry pollQueues(Actor[] actors) {
+    protected CallEntry pollQueues(Actor[] actors, int queues) {
         if ( actors.length == 0 ) {
             return null;
         }
@@ -240,7 +243,7 @@ public class DispatcherThread extends Thread implements Monitorable {
             }
             Actor actor2poll = actors[currentPolledActor];
             res = (CallEntry) actor2poll.__cbQueue.poll();
-            if ( res == null )
+            if ( res == null && queues == POLL_ALL_Q)
                 res = (CallEntry) actor2poll.__mailbox.poll();
             currentPolledActor++;
             count++;
@@ -256,14 +259,19 @@ public class DispatcherThread extends Thread implements Monitorable {
      * @return false if no message could be polled
      */
     public boolean pollQs() {
-        return pollQs(actors);
+        return pollQs(actors,POLL_ALL_Q);
+    }
+
+    public boolean pollQs(int queues) {
+        return pollQs(actors,queues);
     }
 
     /**
+     * @param queues - see constants
      * @return false if no message could be polled
      */
-    public boolean pollQs(Actor actors[]) {
-        CallEntry callEntry = pollQueues(actors);
+    public boolean pollQs(Actor actors[], int queues) {
+        CallEntry callEntry = pollQueues(actors,queues);
         if (callEntry != null) {
             try {
                 // before calling the actor method, set current sender

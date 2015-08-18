@@ -24,7 +24,7 @@ public class KUrl {
         int idx = url.indexOf("://");
         if ( idx >= 0 ) {
             protocol = url.substring(0,idx);
-            url.substring(idx+3);
+            url = url.substring(idx+3);
         }
         url = stripDoubleSeps(url);
         elements = url.split("/");
@@ -41,21 +41,21 @@ public class KUrl {
     }
 
     protected void normalize() {
-        List<String> newElemns = new ArrayList<>();
+        List<String> newElems = new ArrayList<>();
         for (int i = 0; i < elements.length; i++) {
-            String element = elements[i].trim();
+            String element = elements[i].trim().toLowerCase();
             if ( element.length() > 0 ) {
                 if ( ! element.equals(".") ) {
-                    if ( element.equals("..") && newElemns.size() > 0 && ! "..".equals(newElemns.get(newElemns.size()-1)) ) {
-                        newElemns.remove(newElemns.size()-1);
+                    if ( element.equals("..") && newElems.size() > 0 && ! "..".equalsIgnoreCase(newElems.get(newElems.size()-1)) ) {
+                        newElems.remove(newElems.size()-1);
                     } else {
-                        newElemns.add(element);
+                        newElems.add(element);
                     }
                 }
             }
         }
-        elements = new String[newElemns.size()];
-        newElemns.toArray(elements);
+        elements = new String[newElems.size()];
+        newElems.toArray(elements);
     }
 
     public KUrl concat(String url) {
@@ -172,5 +172,30 @@ public class KUrl {
 
     public KUrl prepend(String name) {
         return new KUrl(name).concat(this);
+    }
+
+    public boolean startsWith(KUrl base) {
+        String protocol = getProtocol();
+        if ( protocol == null ) {
+            protocol = base.getProtocol();
+        }
+        if ( base.getElements().length >= elements.length )
+            return false;
+        if ( !protocol.equals(base.getProtocol()) )
+            return false; // FIXME: treat http and https equal ?
+        for (int i = 0; i < base.getElements().length; i++) {
+            if ( !elements[i].equalsIgnoreCase(base.getElements()[i]) ) {
+                if ( i == 0 ) // hack: treat missing www. equal
+                {
+                    if ( ("www."+elements[i]).equalsIgnoreCase(base.getElements()[i]) ||
+                         ("www."+base.getElements()[i]).equalsIgnoreCase(elements[i])
+                       ) {
+                        continue;
+                    }
+                }
+                return false;
+            }
+        }
+        return true;
     }
 }

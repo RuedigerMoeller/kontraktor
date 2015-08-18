@@ -411,6 +411,49 @@ public class Actors {
         }
     }
 
+    /**
+     * only process callbacks until timeout or cbQ is empty. Messages
+     * are not polled and processed. Useful in order to stall a producer,
+     * but preserve message processing order.
+     *
+     * @param timeout
+     */
+    public static void yieldCallbacks(long timeout) {
+        long endtime = 0;
+        if ( timeout > 0 ) {
+            endtime = System.currentTimeMillis() + timeout;
+        }
+        if ( Thread.currentThread() instanceof DispatcherThread ) {
+            DispatcherThread dt = (DispatcherThread) Thread.currentThread();
+            Scheduler scheduler = dt.getScheduler();
+            boolean term = false;
+            int idleCount = 0;
+            while ( ! term ) {
+                boolean hadSome = dt.pollQs(dt.POLL_CB_Q);
+                if ( ! hadSome ) {
+                    idleCount++;
+                    scheduler.pollDelay(idleCount);
+                    if ( endtime == 0 ) {
+                        term = true;
+                    }
+                } else {
+                    idleCount = 0;
+                }
+                if ( endtime != 0 && System.currentTimeMillis() > endtime ) {
+                    term = true;
+                }
+            }
+        } else {
+            if ( timeout > 0 ) {
+                try {
+                    Thread.sleep(timeout);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
     // end static API
     //
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
