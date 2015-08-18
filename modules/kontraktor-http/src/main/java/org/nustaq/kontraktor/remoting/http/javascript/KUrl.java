@@ -9,6 +9,8 @@ import java.util.*;
  *
  * url wrapper. note '//www.x.y' style not supported
  *
+ * FIXME: replace/subclass with HttpUrl from okhttp lib
+ *
  */
 public class KUrl implements Serializable {
 
@@ -100,8 +102,25 @@ public class KUrl implements Serializable {
     }
 
     public String toUrlString() {
+        return toUrlString(true);
+    }
+
+    public String mangled() {
+        String s = toUrlString(false);
+        StringBuilder res = new StringBuilder(s.length());
+        for (int i = 0; i < s.length(); i++) {
+             char c = s.charAt(i);
+             if ( c > 127 ) {
+                 c = '_';
+             }
+            res.append(c);
+        }
+        return res.toString();
+    }
+
+    public String toUrlString(boolean withProtocol) {
         String res = "";
-        if ( protocol != null )
+        if ( protocol != null && withProtocol )
             res += protocol+"://";
         for (int i = 0; i < elements.length; i++) {
             String element = elements[i];
@@ -188,9 +207,10 @@ public class KUrl implements Serializable {
             if ( !elements[i].equalsIgnoreCase(base.getElements()[i]) ) {
                 if ( i == 0 ) // hack: treat missing www. equal
                 {
-                    if ( ("www."+elements[i]).equalsIgnoreCase(base.getElements()[i]) ||
-                         ("www."+base.getElements()[i]).equalsIgnoreCase(elements[i])
-                       ) {
+                    String a = normalizeDomain(elements[i]);
+                    String b = normalizeDomain(base.getElements()[i]);
+                    if ( a.equals(b) )
+                    {
                         continue;
                     }
                 }
@@ -198,5 +218,16 @@ public class KUrl implements Serializable {
             }
         }
         return true;
+    }
+
+    protected String normalizeDomain(String s) {
+        // remove country code
+        int idx = s.lastIndexOf(".");
+        if ( idx >= 0 ) {
+            s = s.substring(0,idx-1);
+        }
+        if ( s.startsWith("www."))
+            s = s.substring(4);
+        return s;
     }
 }
