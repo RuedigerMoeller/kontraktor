@@ -106,11 +106,15 @@ public class KUrl implements Serializable {
     }
 
     public String mangled() {
+        return mangled(true);
+    }
+
+    public String mangled(boolean allowFileSep) {
         String s = toUrlString(false);
         StringBuilder res = new StringBuilder(s.length());
         for (int i = 0; i < s.length(); i++) {
              char c = s.charAt(i);
-             if ( c > 127 ) {
+             if ( c > 127 || (! Character.isLetterOrDigit(c) && (c != '/' || ! allowFileSep) && c != '.' ) ) {
                  c = '_';
              }
             res.append(c);
