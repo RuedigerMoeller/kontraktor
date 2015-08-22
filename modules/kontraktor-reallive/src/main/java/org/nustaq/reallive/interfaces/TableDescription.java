@@ -12,6 +12,7 @@ public class TableDescription implements Serializable, Cloneable {
     String filePath = TableSpace.USE_BASE_DIR;
     int numEntries=100_000;
     int shardNo;
+    int keyLen = 48;
 
     public TableDescription(String name) {
         this.name = name;
@@ -61,6 +62,15 @@ public class TableDescription implements Serializable, Cloneable {
     public TableDescription shardNo(final int shardNo) {
         this.shardNo = shardNo;
         return this;
+    }
+
+    public TableDescription keyLen(final int keyLen) {
+        this.keyLen = keyLen;
+        return this;
+    }
+
+    public int getKeyLen() {
+        return keyLen;
     }
 
     @Override

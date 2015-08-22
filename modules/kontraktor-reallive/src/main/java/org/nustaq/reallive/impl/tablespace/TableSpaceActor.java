@@ -73,7 +73,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
 
         Supplier<RecordStorage> memFactory;
         if ( desc.getFilePath() == null ) {
-            memFactory = () -> new OffHeapRecordStorage( 48, desc.getSizeMB(), desc.getNumEntries() );
+            memFactory = () -> new OffHeapRecordStorage( desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries() );
         } else {
             String bp = getBaseDir() == null ? desc.getFilePath() : getBaseDir();
             desc.filePath(bp);
@@ -81,7 +81,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
             memFactory = () ->
                 new OffHeapRecordStorage(
                     bp+"/"+desc.getName()+"_"+desc.getShardNo()+".bin",
-                    48,
+                    desc.getKeyLen(),
                     desc.getSizeMB(),
                     desc.getNumEntries()
                 );
