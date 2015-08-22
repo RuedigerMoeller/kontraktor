@@ -1,12 +1,13 @@
 package org.nustaq.reallive.messages;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
  * Created by ruedi on 03/08/15.
  *
  */
-public class Diff {
+public class Diff implements Serializable {
 
     final String changedFields[];
     final Object oldValues[];

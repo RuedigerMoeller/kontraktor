@@ -18,4 +18,6 @@ public interface ChangeMessage<K> extends Serializable {
     K getKey();
 
     default boolean isDoneMsg() { return getType() == QUERYDONE; }
+    default boolean isAdd() { return getType() == ADD; }
+    default Record<K> getRecord() { return null; }
 }

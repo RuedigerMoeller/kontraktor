@@ -5,6 +5,7 @@ import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.impl.RLUtil;
 import org.nustaq.reallive.messages.AddMessage;
+import org.nustaq.reallive.messages.PutMessage;
 import org.nustaq.reallive.messages.RemoveMessage;
 
 import java.util.*;
@@ -67,9 +68,10 @@ public class TableSharding<K> implements RealLiveTable<K> {
     }
 
     protected class ShardMutation implements Mutation<K> {
+
         @Override
         public void put(K key, Object... keyVals) {
-            shards[func.apply(key)].receive(RLUtil.get().put(key, keyVals));
+            shards[func.apply(key)].receive(new PutMessage<K>(RLUtil.get().record(key,keyVals)));
         }
 
         @Override
@@ -85,6 +87,16 @@ public class TableSharding<K> implements RealLiveTable<K> {
         @Override
         public void add(Record<K> rec) {
             shards[func.apply(rec.getKey())].receive((ChangeMessage<K>)new AddMessage<>(rec));
+        }
+
+        @Override
+        public void addOrdUpdate(Record<K> rec) {
+            shards[func.apply(rec.getKey())].receive(new AddMessage<K>(true,rec));
+        }
+
+        @Override
+        public void put(Record<K> rec) {
+            shards[func.apply(rec.getKey())].receive(new PutMessage<K>(rec));
         }
 
         @Override

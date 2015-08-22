@@ -26,6 +26,20 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
         switch (change.getType()) {
             case ChangeMessage.QUERYDONE:
                 break;
+            case ChangeMessage.PUT:
+            {
+                Record<K> prevRecord = store.get(change.getKey());
+                if ( prevRecord == null ) {
+                    store.put(change.getKey(),change.getRecord());
+                    receive( new AddMessage<K>(true,change.getRecord()));
+                } else {
+                    Diff diff = ChangeUtils.diff(change.getRecord(), prevRecord);
+                    Record<K> newRecord = change.getRecord(); // clarification
+                    store.put(change.getKey(),newRecord);
+                    listener.receive( new UpdateMessage<>(diff,newRecord) );
+                }
+                break;
+            }
             case ChangeMessage.ADD:
             {
                 AddMessage<K> addMessage = (AddMessage) change;
@@ -77,6 +91,8 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
                     listener.receive( new UpdateMessage(newDiff,newRecord));
                 }
             }
+            default:
+                throw new RuntimeException("unknown change type "+change.getType());
         }
     }
 
@@ -99,23 +115,33 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
     }
 
     @Override
-    public void put(K key, Object... keyVals) {
+    public void put(K key, Object ... keyVals) {
         receive(RLUtil.get().put(key,keyVals));
     }
 
     @Override
     public void addOrUpdate(K key, Object... keyVals) {
-        receive(RLUtil.get().addOrUpdate(key,keyVals));
+        receive(RLUtil.get().addOrUpdate(key, keyVals));
     }
 
     @Override
     public void add(K key, Object... keyVals) {
-        receive(RLUtil.get().add(key,keyVals));
+        receive(RLUtil.get().add(key, keyVals));
     }
 
     @Override
     public void add(Record<K> rec) {
         receive(new AddMessage<K>(rec));
+    }
+
+    @Override
+    public void addOrdUpdate(Record<K> rec) {
+        receive(new AddMessage<K>(true,rec));
+    }
+
+    @Override
+    public void put(Record<K> rec) {
+        receive( new PutMessage<K>(rec) );
     }
 
     @Override

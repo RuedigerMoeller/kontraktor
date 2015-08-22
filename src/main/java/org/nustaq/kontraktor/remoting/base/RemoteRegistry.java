@@ -348,7 +348,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                     // FIXME: need a better way to handle this. Frequently it is not an error.
                     Log.Warn(this,"call to stopped remote actor");
                 } else
-                    Log.Warn(this,"Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent");
+                    Log.Warn(this,"Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent. "+read);
             } else {
                 publishedCallback.complete(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
                 if (!isContinue)

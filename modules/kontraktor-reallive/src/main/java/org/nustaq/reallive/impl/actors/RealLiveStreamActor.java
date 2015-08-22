@@ -78,8 +78,9 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
         checkThread();
         Subscriber localSubs = new Subscriber(pred, change -> {
             cb.stream(change);
-            if (change.isDoneMsg())
-                cb.finish();
+            // disconnects ..
+            //if (change.isDoneMsg())
+            //    cb.finish();
         });
         String sid = addChannelIdIfPresent(cb, ""+id);
         receiverSideSubsMap.put(sid,localSubs);

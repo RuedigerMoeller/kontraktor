@@ -5,6 +5,7 @@ import org.nustaq.reallive.interfaces.ChangeReceiver;
 import org.nustaq.reallive.interfaces.Mutation;
 import org.nustaq.reallive.interfaces.Record;
 import org.nustaq.reallive.messages.AddMessage;
+import org.nustaq.reallive.messages.PutMessage;
 import org.nustaq.reallive.messages.RemoveMessage;
 
 /**
@@ -18,7 +19,7 @@ public class Mutator<K> implements Mutation<K> {
     }
 
     @Override
-    public void put(K key, Object... keyVals) {
+    public void put(K key, Object ... keyVals) {
         receiver.receive(RLUtil.get().put(key, keyVals));
     }
 
@@ -35,6 +36,16 @@ public class Mutator<K> implements Mutation<K> {
     @Override
     public void add(Record<K> rec) {
         receiver.receive((ChangeMessage<K>) new AddMessage<>(rec));
+    }
+
+    @Override
+    public void addOrdUpdate(Record<K> rec) {
+        receiver.receive(new AddMessage<K>(true,rec));
+    }
+
+    @Override
+    public void put(Record<K> rec) {
+        receiver.receive(new PutMessage<K>(rec));
     }
 
     @Override
