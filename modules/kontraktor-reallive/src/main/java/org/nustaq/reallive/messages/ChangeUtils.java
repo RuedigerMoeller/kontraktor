@@ -24,7 +24,7 @@ public class ChangeUtils {
     }
 
     public static Diff copyAndDiff(Record from, Record to, String[] fields) {
-        return mayCopyAndDiff(from,to,fields,true);
+        return mayCopyAndDiff(from, to, fields, true);
     }
 
     public static Diff mayCopyAndDiff(Record from, Record to, String[] fields, boolean copy) {
@@ -53,6 +53,13 @@ public class ChangeUtils {
             }
         }
         return -1;
+    }
+
+    public static void copy(Record from, Record to, String ... fields) {
+        for (int i = 0; i < fields.length; i++) {
+            String field = fields[i];
+            to.put(field,from.get(field));
+        }
     }
 
     public static String[] merge( String fieldsA[], String fieldsB[] ) {

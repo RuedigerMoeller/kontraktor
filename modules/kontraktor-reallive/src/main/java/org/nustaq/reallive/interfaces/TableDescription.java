@@ -14,6 +14,8 @@ public class TableDescription implements Serializable, Cloneable {
     int shardNo;
     int keyLen = 48;
 
+    public TableDescription() {}
+
     public TableDescription(String name) {
         this.name = name;
     }
@@ -70,6 +72,9 @@ public class TableDescription implements Serializable, Cloneable {
     }
 
     public int getKeyLen() {
+        if ( keyLen <= 8 ) {
+            throw new RuntimeException("keylen too short");
+        }
         return keyLen;
     }
 

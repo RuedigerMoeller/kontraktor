@@ -199,13 +199,18 @@ public class KUrl implements Serializable {
     }
 
     public boolean startsWith(KUrl base) {
-        String protocol = getProtocol();
+        String protocol = getProtocol().toLowerCase();
+        if ( "https".equals(protocol) )
+            protocol = "http";
+        String baseProtocol = base.getProtocol();
+        if ( "https".equals(baseProtocol) )
+            baseProtocol = "http";
         if ( protocol == null ) {
-            protocol = base.getProtocol();
+            protocol = baseProtocol;
         }
         if ( base.getElements().length >= elements.length )
             return false;
-        if ( !protocol.equals(base.getProtocol()) )
+        if ( !protocol.equals(baseProtocol) )
             return false; // FIXME: treat http and https equal ?
         for (int i = 0; i < base.getElements().length; i++) {
             if ( !elements[i].equalsIgnoreCase(base.getElements()[i]) ) {

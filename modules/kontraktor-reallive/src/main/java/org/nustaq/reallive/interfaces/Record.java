@@ -49,4 +49,11 @@ public interface Record<K> extends Serializable {
         }
         return res+"]";
     }
+
+    default boolean getBool(String field) {
+        Object val = get(field);
+        if ( val == null )
+            return false;
+        return true;
+    }
 }
