@@ -165,6 +165,22 @@ public class KUrl implements Serializable {
         return false;
     }
 
+    public boolean equalsIgnoreProtocol(Object obj) {
+        if ( obj instanceof KUrl ) {
+            KUrl other = (KUrl) obj;
+            if ( other.getElements().length != elements.length )
+                return false;
+            for (int i = 0; i < elements.length; i++) {
+                String element = elements[i];
+                if ( ! element.equals(other.getElements()[i]) ) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public int hashCode() {
         int hc = 0;

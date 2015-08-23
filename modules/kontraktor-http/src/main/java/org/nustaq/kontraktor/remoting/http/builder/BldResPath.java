@@ -35,6 +35,10 @@ public class BldResPath {
         this.urlPath = urlPath;
     }
 
+    /**
+     * @param resourcePath - a list of directories to lookup when searching for imports/resources
+     * @return
+     */
     public BldResPath elements(String... resourcePath) {
         this.resourcePath = resourcePath;
         return this;

@@ -657,5 +657,5 @@ window.jsk = window.jsk || (function () {
   return _jsk;
 }());
 
-if ( module && module.exports )
+if ( typeof module !== 'undefined' && module.exports )
   module.exports = window.jsk;
