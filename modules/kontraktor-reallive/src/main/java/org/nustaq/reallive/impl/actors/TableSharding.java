@@ -7,6 +7,7 @@ import org.nustaq.reallive.impl.RLUtil;
 import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.PutMessage;
 import org.nustaq.reallive.messages.RemoveMessage;
+import org.nustaq.reallive.records.RecordWrapper;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -86,16 +87,22 @@ public class TableSharding<K> implements RealLiveTable<K> {
 
         @Override
         public void add(Record<K> rec) {
+            if ( rec instanceof RecordWrapper )
+                rec = ((RecordWrapper) rec).getRecord();
             shards[func.apply(rec.getKey())].receive((ChangeMessage<K>)new AddMessage<>(rec));
         }
 
         @Override
         public void addOrdUpdate(Record<K> rec) {
+            if ( rec instanceof RecordWrapper )
+                rec = ((RecordWrapper) rec).getRecord();
             shards[func.apply(rec.getKey())].receive(new AddMessage<K>(true,rec));
         }
 
         @Override
         public void put(Record<K> rec) {
+            if ( rec instanceof RecordWrapper )
+                rec = ((RecordWrapper) rec).getRecord();
             shards[func.apply(rec.getKey())].receive(new PutMessage<K>(rec));
         }
 

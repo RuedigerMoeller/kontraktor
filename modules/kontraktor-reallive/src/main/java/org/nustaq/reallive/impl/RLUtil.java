@@ -61,7 +61,7 @@ public class RLUtil {
     }
 
     public <K> ChangeMessage<K> done() {
-        return new ControlMessage();
+        return new QueryDoneMessage();
     }
 
     public boolean isEqual(Record rlRec, Record copy) {

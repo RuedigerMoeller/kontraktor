@@ -29,7 +29,7 @@
     <dependency>
         <groupId>de.ruedigermoeller</groupId>
         <artifactId>kontraktor-http</artifactId>
-        <version>3.08</version>
+        <version>3.08.01</version>
     </dependency>
 
 </dependencies>

@@ -7,6 +7,7 @@ import org.nustaq.reallive.interfaces.Record;
 import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.PutMessage;
 import org.nustaq.reallive.messages.RemoveMessage;
+import org.nustaq.reallive.records.RecordWrapper;
 
 /**
  * Created by ruedi on 08.08.2015.
@@ -35,16 +36,22 @@ public class Mutator<K> implements Mutation<K> {
 
     @Override
     public void add(Record<K> rec) {
+        if ( rec instanceof RecordWrapper)
+            rec = ((RecordWrapper) rec).getRecord();
         receiver.receive((ChangeMessage<K>) new AddMessage<>(rec));
     }
 
     @Override
     public void addOrdUpdate(Record<K> rec) {
+        if ( rec instanceof RecordWrapper )
+            rec = ((RecordWrapper) rec).getRecord();
         receiver.receive(new AddMessage<K>(true,rec));
     }
 
     @Override
     public void put(Record<K> rec) {
+        if ( rec instanceof RecordWrapper )
+            rec = ((RecordWrapper) rec).getRecord();
         receiver.receive(new PutMessage<K>(rec));
     }
 

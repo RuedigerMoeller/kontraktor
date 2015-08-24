@@ -53,9 +53,9 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     BinaryQueue queue = new BinaryQueue(4096);
     ObjectSink sink;
     MessageStore store = new HeapMessageStore(HISTORY_SIZE);
-    Pair<Runnable, HttpServerExchange> longPollTask;
+    volatile Pair<Runnable, HttpServerExchange> longPollTask;
     Thread myThread;
-    long longPollTaskTime;
+    volatile long longPollTaskTime;
 
     public HttpObjectSocket(String sessionId, Runnable closeAction ) {
         this.sessionId = sessionId;
@@ -79,7 +79,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         checkThread();
         queue.addInt(sendSequence.get());
         queue.addInt(message.length);
-        queue.add( new HeapBytez(message) );
+        queue.add(new HeapBytez(message));
         triggerLongPoll();
     }
 
@@ -153,12 +153,18 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         }
     }
 
+    volatile boolean triggerPending = false;
     public void triggerLongPoll() {
         synchronized (this) {
             if (longPollTask!=null) {
+                System.out.println("RESET TRIGGER PENDING");
+                triggerPending = false;
                 Runnable car = longPollTask.car();
                 longPollTask = null;
                 car.run();
+            } else {
+                System.out.println("SET TRIGGER PENDING");
+                triggerPending = true;
             }
         }
     }
@@ -167,6 +173,10 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         synchronized (this) {
             this.longPollTask = longPollTask;
             this.longPollTaskTime = System.currentTimeMillis();
+            System.out.println("SET LONG POLL");
+            if ( triggerPending ) {
+                triggerLongPoll();
+            }
         }
     }
 
