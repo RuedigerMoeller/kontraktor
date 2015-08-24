@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// version 3.0.8
+// version 3.0.8.01
 // JavaScript to Kontraktor bridge
 // matches kontraktor 3.0 json-no-ref encoded remoting
 // as I am kind of a JS beginner, hints are welcome :)
@@ -118,6 +118,9 @@ window.jsk = window.jsk || (function () {
       var res = this.transform(obj["obj"], preserveTypeAsAttribute, optionalTransformer);
       if (preserveTypeAsAttribute)
         res["_typ"] = obj["typ"];
+      if ( typeof _jsk.postObjectDecodingMap[res["_typ"]] !== 'undefined' ) { // aplly mapping if present
+        res = _jsk.postObjectDecodingMap[res["_typ"]].apply(null,[res]);
+      }
       return res;
     }
     for (var property in obj) {
@@ -136,6 +139,10 @@ window.jsk = window.jsk || (function () {
 
   /////////////////////////////////////////////////////////////////////////////////////////////
   // actor remoting helper
+
+  // map from typeName to a mapping 'function( object ) returns obj'.
+  // e.g. jsk.postObjectDecodingMap["com.myclass.Foo"] = function( obj ) { obj.attr = ..; return obj; }
+  _jsk.postObjectDecodingMap = {};
 
   /**
    * Connects to a json-published Actor Server with given url using either websockets, Http-Long-Poll or plain http.

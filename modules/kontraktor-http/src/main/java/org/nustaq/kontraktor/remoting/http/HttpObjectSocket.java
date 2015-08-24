@@ -157,13 +157,13 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     public void triggerLongPoll() {
         synchronized (this) {
             if (longPollTask!=null) {
-                System.out.println("RESET TRIGGER PENDING");
+//                System.out.println("RESET TRIGGER PENDING");
                 triggerPending = false;
                 Runnable car = longPollTask.car();
                 longPollTask = null;
                 car.run();
             } else {
-                System.out.println("SET TRIGGER PENDING");
+//                System.out.println("SET TRIGGER PENDING");
                 triggerPending = true;
             }
         }
@@ -173,7 +173,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         synchronized (this) {
             this.longPollTask = longPollTask;
             this.longPollTaskTime = System.currentTimeMillis();
-            System.out.println("SET LONG POLL");
+//            System.out.println("SET LONG POLL");
             if ( triggerPending ) {
                 triggerLongPoll();
             }
