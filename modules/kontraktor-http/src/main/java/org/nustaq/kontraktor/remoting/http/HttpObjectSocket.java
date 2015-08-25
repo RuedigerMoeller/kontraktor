@@ -153,18 +153,19 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         }
     }
 
-    volatile boolean triggerPending = false;
+    AtomicInteger triggerPending = new AtomicInteger(0);
     public void triggerLongPoll() {
         synchronized (this) {
             if (longPollTask!=null) {
-//                System.out.println("RESET TRIGGER PENDING");
-                triggerPending = false;
+//                System.out.println("SEND PENDING "+triggerPending);
+                if (triggerPending.get() > 0) // fixme: concurrency bug
+                    triggerPending.decrementAndGet();
                 Runnable car = longPollTask.car();
                 longPollTask = null;
                 car.run();
             } else {
-//                System.out.println("SET TRIGGER PENDING");
-                triggerPending = true;
+//                System.out.println("INC PENDING "+triggerPending);
+                triggerPending.incrementAndGet();
             }
         }
     }
@@ -174,7 +175,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
             this.longPollTask = longPollTask;
             this.longPollTaskTime = System.currentTimeMillis();
 //            System.out.println("SET LONG POLL");
-            if ( triggerPending ) {
+            if ( triggerPending.get() > 0 ) {
                 triggerLongPoll();
             }
         }
