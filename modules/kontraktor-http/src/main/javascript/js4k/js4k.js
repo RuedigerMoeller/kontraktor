@@ -542,6 +542,7 @@ window.jsk = window.jsk || (function () {
       setTimeout(self.longPoll,0);
     };
 
+    self.longPollUnderway = 0;
     self.longPoll = function() {
       if ( self.doStop || ! self.doLongPoll )
         return;
@@ -551,29 +552,35 @@ window.jsk = window.jsk || (function () {
         var reqData = '{"styp":"array","seq":[1,'+self.lpSeqNo+']}';
         var request = new XMLHttpRequest();
         request.onload = function () {
+          self.longPollUnderway--;
           if ( request.status !== 200 ) {
             self.lastError = request.statusText;
+            console.log("response error:"+request.status);
             fireError();
             setTimeout(self.longPoll,1000);
             return;
           }
           try {
-            setTimeout(self.longPoll,0);
             var resp = request.responseText; //JSON.parse(request.responseText);
             if ( resp && resp.trim().length > 0 ) {
               var respObject = JSON.parse(resp);
               self.lpSeqNo = processSocketResponse(self.lpSeqNo, respObject, true, self.onmessageHandler, self);
+              setTimeout(self.longPoll,0);
             } else {
               console.log("resp is empty");
             }
+            setTimeout(self.longPoll,0); // progress, immediately next request
           } catch (err) {
-            console.error(err);
-            setTimeout(self.longPoll,1000);
+            console.log(err);
+            setTimeout(self.longPoll,3000); // error, slow down
           }
         };
-        request.open("POST", self.url+"/"+self.sessionId, true);
-        request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        request.send(reqData); // this is actually auth data currently unused. keep stuff websocket alike for now
+        if ( self.longPollUnderway == 0 ) {
+          request.open("POST", self.url+"/"+self.sessionId, true);
+          request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+          self.longPollUnderway++;
+          request.send(reqData); // this is actually auth data currently unused. keep stuff websocket alike for now
+        }
       }
     };
 

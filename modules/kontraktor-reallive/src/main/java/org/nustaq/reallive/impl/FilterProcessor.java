@@ -107,6 +107,7 @@ public class FilterProcessor<K> implements ChangeReceiver<K>, ChangeStream<K> {
     }
 
     protected void processAdd(AddMessage<K> add) {
+        System.out.println("Filter Processor Add "+add);
         Record<K> record = add.getRecord();
         for ( Subscriber<K> subscriber : filterList ) {
             if ( subscriber.getFilter().test(record) ) {

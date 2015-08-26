@@ -80,6 +80,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         queue.addInt(sendSequence.get());
         queue.addInt(message.length);
         queue.add(new HeapBytez(message));
+        System.out.println("send binary "+sendSequence.get());
         triggerLongPoll();
     }
 
@@ -157,14 +158,14 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     public void triggerLongPoll() {
         synchronized (this) {
             if (longPollTask!=null) {
-//                System.out.println("SEND PENDING "+triggerPending);
+                System.out.println("SEND PENDING "+triggerPending);
                 if (triggerPending.get() > 0) // fixme: concurrency bug
                     triggerPending.decrementAndGet();
                 Runnable car = longPollTask.car();
                 longPollTask = null;
                 car.run();
             } else {
-//                System.out.println("INC PENDING "+triggerPending);
+                System.out.println("INC PENDING "+triggerPending);
                 triggerPending.incrementAndGet();
             }
         }
@@ -174,7 +175,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         synchronized (this) {
             this.longPollTask = longPollTask;
             this.longPollTaskTime = System.currentTimeMillis();
-//            System.out.println("SET LONG POLL");
+            System.out.println("SET LONG POLL"+triggerPending);
             if ( triggerPending.get() > 0 ) {
                 triggerLongPoll();
             }

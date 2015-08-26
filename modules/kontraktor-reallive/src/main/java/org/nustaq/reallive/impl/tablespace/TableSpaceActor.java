@@ -67,8 +67,9 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
 
     @Override
     public IPromise<RealLiveTable> createOrLoadTable(TableDescription desc) {
-        if ( tables.containsKey( desc.getName()) )
-            reject("Table exists");
+        if ( tables.containsKey( desc.getName()) ) {
+            return resolve(tables.get(desc.getName()));
+        }
         RealLiveStreamActor table = Actors.AsActor(RealLiveStreamActor.class, loadBalance(desc));
 
         Supplier<RecordStorage> memFactory;

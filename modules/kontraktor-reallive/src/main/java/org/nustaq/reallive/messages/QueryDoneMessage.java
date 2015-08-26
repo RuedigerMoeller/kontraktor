@@ -19,6 +19,6 @@ public class QueryDoneMessage implements ChangeMessage {
 
     @Override
     public String toString() {
-        return "ControlMessage{"+getType()+"}";
+        return "QueryDoneMessage{"+getType()+"}";
     }
 }
