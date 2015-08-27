@@ -21,13 +21,8 @@
 
 package org.nustaq.reallive.query;
 
-import java.text.NumberFormat;
 import java.text.ParseException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Locale;
-import java.util.Stack;
-import java.util.StringTokenizer;
+import java.util.*;
 
 /**
  * Class for parsing and evaluating math expressions
@@ -36,86 +31,45 @@ import java.util.StringTokenizer;
  * @version 7.0
  * @since 1.0
  *
- * modified + improved by r.moeller
+ * modified + extended by r.moeller
  */
 public class Parser {
 
-    static class StringConstant {
-        String value;
-
-        public StringConstant(String value) {
-            this.value = value;
-        }
-
-        public String getValue() {
-            return value;
-        }
-    }
-
-    static class VarPath {
-        String value;
-
-        public VarPath(String value) {
-            this.value = value;
-        }
-
-        public String getValue() {
-            return value;
-        }
-    }
-
     /* list of available functions */
-    private final String[] FUNCTIONS = {"abs", "acos", "arg", "asin", "atan",
-            "conj", "cos", "cosh", "exp", "imag", "log", "neg", "pow", "real",
-            "sin", "sinh", "sqrt", "tan", "tanh", "not"};
+    HashMap<String,FuncOperand> functions;
+    {
+        functions = new HashMap<>();
+        functions.put("startsWith", new FuncOperand("startsWith"));
+        functions.put("endsWith", new FuncOperand("endsWith"));
+        functions.put("contains", new FuncOperand("contains"));
+    }
+
     /* list of available operators */
-    private final String OPERATORS = "+-*/&|!=><";
+    HashMap<String,Operator> operators;
+    {
+        operators = new HashMap<>();
+        operators.put("+", new Operator("+",7));
+        operators.put("-", new Operator("-",7));
+        operators.put("*", new Operator("*"));
+        operators.put("/", new Operator("/"));
+        operators.put("&", new Operator("&",3));
+        operators.put("|", new Operator("|",3));
+        operators.put("!", new Operator("!"));
+        operators.put("=", new Operator("=",6));
+        operators.put("<", new Operator("<",6));
+        operators.put(">", new Operator(">",6));
+    }
     /* separator of arguments */
     private final String SEPARATOR = ",";
     /* variable token */
     private final String VARIABLE = "it";
-    /* settings for complex formatting */
-//    private ComplexFormat complexFormat = new ComplexFormat(IMAGINARY);
-    /* settings for numbers formatting */
-    private NumberFormat numberFormat = NumberFormat.getInstance(Locale.US);
     /* temporary stack that holds operators, functions and brackets */
-    private Stack<String> stackOperations = new Stack<>();
+    private Stack stackOperations = new Stack();
     /* stack for holding expression converted to reversed polish notation */
     private Stack stackRPN = new Stack();
     /* stack for holding the calculations result */
     private Stack stackAnswer = new Stack();
 
-    /**
-     * Class ctor for setting up the complex format of the parser
-     *
-     * @param precision Number of digits after the dot
-     * @since 2.0
-     */
-    public Parser(int precision) {
-        setPrecision(precision);
-    }
-
-    /**
-     * Set the precision of the real and imaginary parts of numbers
-     *
-     * @param precision Number of digits after the dot
-     * @since 2.0
-     */
-    public void setPrecision(int precision) {
-        numberFormat.setMinimumFractionDigits(precision);
-        numberFormat.setMaximumFractionDigits(precision);
-//        complexFormat = new ComplexFormat(IMAGINARY, numberFormat, numberFormat);
-    }
-
-    /**
-     * Get the precision of the real and imaginary parts of numbers
-     *
-     * @return Precision
-     * @since 2.0
-     */
-    public int getPrecision() {
-        return numberFormat.getMinimumFractionDigits();
-    }
 
     /**
      * Parses the math expression (complicated formula) and stores the result
@@ -138,28 +92,26 @@ public class Parser {
                 .replace("°", "*" + Double.toString(Math.PI) + "/180")
                 .replace("(-", "(0-").replace(",-", ",0-").replace("(+", "(0+")
                 .replace(",+", ",0+");
-//                .replace("true", "1")
-//                .replace("false", "0")
-//                .replace("or", "|")
-//                .replace("and", "&");
         if (expression.charAt(0) == '-' || expression.charAt(0) == '+') {
             expression = "0" + expression;
         }
 		/* splitting input string into tokens */
+        StringBuilder ops = new StringBuilder();
+        operators.keySet().forEach(opString -> ops.append(opString));
         StringTokenizer stringTokenizer = new StringTokenizer(expression,
-                OPERATORS + SEPARATOR + "()", true);
+                ops.toString() + SEPARATOR + "()", true);
 
 		/* loop for handling each token - shunting-yard algorithm */
         while (stringTokenizer.hasMoreTokens()) {
-            String token = stringTokenizer.nextToken();
-            if (isSeparator(token)) {
+            String stringToken = stringTokenizer.nextToken();
+            if (isSeparator(stringToken)) {
                 while (!stackOperations.empty()
                         && !isOpenBracket(stackOperations.lastElement())) {
                     stackRPN.push(stackOperations.pop());
                 }
-            } else if (isOpenBracket(token)) {
-                stackOperations.push(token);
-            } else if (isCloseBracket(token)) {
+            } else if (isOpenBracket(stringToken)) {
+                stackOperations.push(stringToken);
+            } else if (isCloseBracket(stringToken)) {
                 while (!stackOperations.empty()
                         && !isOpenBracket(stackOperations.lastElement())) {
                     stackRPN.push(stackOperations.pop());
@@ -169,31 +121,31 @@ public class Parser {
                         && isFunction(stackOperations.lastElement())) {
                     stackRPN.push(stackOperations.pop());
                 }
-            } else if (isNumber(token)) {
-                if ( token.indexOf('.')<0) {
-                    Integer i = Integer.parseInt(token);
-                    stackRPN.push(i);
+            } else if (isNumber(stringToken)) {
+                if ( stringToken.indexOf('.')<0) {
+                    Integer i = Integer.parseInt(stringToken);
+                    stackRPN.push( new NumberOperand(i) );
                 } else {
-                    Double i = Double.parseDouble(token);
-                    stackRPN.push(i);
+                    Double d = Double.parseDouble(stringToken);
+                    stackRPN.push( new NumberOperand(d) );
                 }
-            } else if (isOperator(token)) {
+            } else if (operators.containsKey(stringToken)) {
+                Operator op = operators.get(stringToken);
                 while (!stackOperations.empty()
-                        && isOperator(stackOperations.lastElement())
-                        && getPrecedence(token) <= getPrecedence(stackOperations
-                        .lastElement())) {
+                        && operators.containsKey(stackOperations.lastElement())
+                        && op.getPrecedence() <= ((Operator)stackOperations.lastElement()).getPrecedence() ) {
                     stackRPN.push(stackOperations.pop());
                 }
-                stackOperations.push(token);
-            } else if (isFunction(token)) {
-                stackOperations.push(token);
+                stackOperations.push(op);
+            } else if (isFunction(stringToken)) {
+                stackOperations.push( functions.get(stringToken) );
             } else {
-                if ( token.startsWith("\'") && token.endsWith("'") ) {
-                    stackRPN.push(new StringConstant(token));
-                } else if ( token.startsWith(VARIABLE+".") ) {
-                    stackRPN.push(new VarPath(token));
+                if ( stringToken.startsWith("'") && stringToken.endsWith("'") ) {
+                    stackRPN.push(new StringConstant(stringToken));
+                } else if ( stringToken.startsWith(VARIABLE+".") ) {
+                    stackRPN.push(new VarPath(stringToken));
                 } else
-                    throw new ParseException("Unrecognized token: " + token, 0);
+                    throw new ParseException("Unrecognized stringToken: " + stringToken, 0);
             }
         }
         while (!stackOperations.empty()) {
@@ -247,15 +199,15 @@ public class Parser {
 
 		/* evaluating the RPN expression */
         while (!stackRPN.empty()) {
-            Object token = stackRPN.pop();
-            if (token instanceof Number) {
+            Token token = (Token) stackRPN.pop();
+            if (token instanceof Operand) {
                 stackAnswer.push(token);
-            } else if (isOperator(token)) {
-//                Complex a = complexFormat.parse(stackAnswer.pop());
-//                Complex b = complexFormat.parse(stackAnswer.pop());
-//                boolean aBoolean = a.getReal() == 1.0;
-//                boolean bBoolean = b.getReal() == 1.0;
-//                switch (token) {
+            } else if (token instanceof Operator) {
+                Operand a = (Operand) stackAnswer.pop();
+                Operand b = (Operand) stackAnswer.pop();
+
+//                switch (token)
+                {
 //                    case "+":
 //                        stackAnswer.push(complexFormat.format(b.add(a)));
 //                        break;
@@ -274,64 +226,12 @@ public class Parser {
 //                    case "&":
 //                        stackAnswer.push(String.valueOf(aBoolean && bBoolean ? "1" : "0"));
 //                        break;
-//                }
-//            } else if (isFunction(token)) {
-//                Complex a = complexFormat.parse(stackAnswer.pop());
-//                boolean aBoolean = a.getReal() == 1.0;
-//                switch (token) {
+                }
+            } else if (token instanceof FuncOperand) {
+//                switch (token)
+                {
 //                    case "abs":
 //                        stackAnswer.push(complexFormat.format(a.abs()));
-//                        break;
-//                    case "acos":
-//                        stackAnswer.push(complexFormat.format(a.acos()));
-//                        break;
-//                    case "arg":
-//                        stackAnswer.push(complexFormat.format(a.getArgument()));
-//                        break;
-//                    case "asin":
-//                        stackAnswer.push(complexFormat.format(a.asin()));
-//                        break;
-//                    case "atan":
-//                        stackAnswer.push(complexFormat.format(a.atan()));
-//                        break;
-//                    case "conj":
-//                        stackAnswer.push(complexFormat.format(a.conjugate()));
-//                        break;
-//                    case "cos":
-//                        stackAnswer.push(complexFormat.format(a.cos()));
-//                        break;
-//                    case "cosh":
-//                        stackAnswer.push(complexFormat.format(a.cosh()));
-//                        break;
-//                    case "exp":
-//                        stackAnswer.push(complexFormat.format(a.exp()));
-//                        break;
-//                    case "imag":
-//                        stackAnswer.push(complexFormat.format(a.getImaginary()));
-//                        break;
-//                    case "log":
-//                        stackAnswer.push(complexFormat.format(a.log()));
-//                        break;
-//                    case "neg":
-//                        stackAnswer.push(complexFormat.format(a.negate()));
-//                        break;
-//                    case "real":
-//                        stackAnswer.push(complexFormat.format(a.getReal()));
-//                        break;
-//                    case "sin":
-//                        stackAnswer.push(complexFormat.format(a.sin()));
-//                        break;
-//                    case "sinh":
-//                        stackAnswer.push(complexFormat.format(a.sinh()));
-//                        break;
-//                    case "sqrt":
-//                        stackAnswer.push(complexFormat.format(a.sqrt()));
-//                        break;
-//                    case "tan":
-//                        stackAnswer.push(complexFormat.format(a.tan()));
-//                        break;
-//                    case "tanh":
-//                        stackAnswer.push(complexFormat.format(a.tanh()));
 //                        break;
 //                    case "pow":
 //                        Complex b = complexFormat.parse(stackAnswer.pop());
@@ -340,7 +240,7 @@ public class Parser {
 //                    case "not":
 //                        stackAnswer.push(String.valueOf(!aBoolean ? "1" : "0"));
 //                        break;
-//                }
+                }
             }
         }
 
@@ -350,44 +250,6 @@ public class Parser {
 
         return stackAnswer.pop();
     }
-
-    /**
-     * Evaluates non-variable expression and returns it's value as a Complex
-     * object
-     *
-     * @return <code>Complex</code> representation of complex number
-     * @throws <code>ParseException</code> if the input expression is not
-     *                                     correct
-     * @since 4.0
-     */
-//    public Complex evaluateComplex() throws ParseException {
-//        return complexFormat.parse(evaluate());
-//    }
-
-    /**
-     * Evaluates variable expression and returns it's value as a Complex object
-     *
-     * @param variableValue User-specified <code>Double</code> value
-     * @return <code>Complex</code> representation of complex number
-     * @throws <code>ParseException</code> if the input expression is not
-     *                                     correct
-     * @since 4.0
-     */
-//    public Complex evaluateComplex(double variableValue) throws ParseException {
-//        return complexFormat.parse(evaluate(variableValue));
-//    }
-
-    /**
-     * Converts <code>Complex</code> object to it's <code>String</code>
-     * representation
-     *
-     * @param number Input <code>Complex</code> number to convert
-     * @return <code>String</code> representation of complex number
-     * @since 5.0
-     */
-//    public String format(Complex number) {
-//        return complexFormat.format(number);
-//    }
 
     /**
      * Get back an <b>unmodifiable copy</b> of the stack
@@ -420,13 +282,8 @@ public class Parser {
      * @return <code>boolean</code> output
      * @since 1.0
      */
-    private boolean isFunction(String token) {
-        for (String item : FUNCTIONS) {
-            if (item.equals(token)) {
-                return true;
-            }
-        }
-        return false;
+    private boolean isFunction(Object token) {
+        return functions.containsKey(token);
     }
 
     /**
@@ -447,8 +304,8 @@ public class Parser {
      * @return <code>boolean</code> output
      * @since 1.0
      */
-    private boolean isOpenBracket(String token) {
-        return token.equals("(");
+    private boolean isOpenBracket(Object token) {
+        return "(".equals(token);
     }
 
     /**
@@ -462,37 +319,9 @@ public class Parser {
         return token.equals(")");
     }
 
-    /**
-     * Check if the token is operator (e.g. "+")
-     *
-     * @param token Input <code>String</code> token
-     * @return <code>boolean</code> output
-     * @since 1.0
-     */
-    private boolean isOperator(Object token) {
-        return OPERATORS.contains(token.toString());
-    }
-
-    /**
-     * Gets the precedence of the operator
-     *
-     * @param token Input <code>String</code> token
-     * @return <code>byte</code> precedence
-     * @since 1.0
-     */
-    private byte getPrecedence(String token) {
-        if (token.equals("+") || token.equals("-")) {
-            return 5;
-        }
-        if (token.equals("|") || token.equals("&")) {
-            return 3;
-        }
-        return 7;
-    }
-
     public static void main(String[] args) throws ParseException {
-        Parser p = new Parser(3);
-        p.parse("it.key < 10 | it.test = 3");
+        Parser p = new Parser();
+        p.parse("it.key+'3' < 10 | (it.test-4) = 3 & contains(it.name)");
         System.out.println(p.evaluate());
     }
 }
