@@ -35,20 +35,45 @@ import java.util.StringTokenizer;
  * @author Dmytro Titov
  * @version 7.0
  * @since 1.0
+ *
+ * modified + improved by r.moeller
  */
 public class Parser {
+
+    static class StringConstant {
+        String value;
+
+        public StringConstant(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
+    static class VarPath {
+        String value;
+
+        public VarPath(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+    }
+
     /* list of available functions */
     private final String[] FUNCTIONS = {"abs", "acos", "arg", "asin", "atan",
             "conj", "cos", "cosh", "exp", "imag", "log", "neg", "pow", "real",
             "sin", "sinh", "sqrt", "tan", "tanh", "not"};
     /* list of available operators */
-    private final String OPERATORS = "+-*/&|!";
+    private final String OPERATORS = "+-*/&|!=><";
     /* separator of arguments */
     private final String SEPARATOR = ",";
-    /* imaginary symbol */
-    private final String IMAGINARY = "I";
     /* variable token */
-    private final String VARIABLE = "var";
+    private final String VARIABLE = "it";
     /* settings for complex formatting */
 //    private ComplexFormat complexFormat = new ComplexFormat(IMAGINARY);
     /* settings for numbers formatting */
@@ -56,9 +81,9 @@ public class Parser {
     /* temporary stack that holds operators, functions and brackets */
     private Stack<String> stackOperations = new Stack<>();
     /* stack for holding expression converted to reversed polish notation */
-    private Stack<String> stackRPN = new Stack<>();
+    private Stack stackRPN = new Stack();
     /* stack for holding the calculations result */
-    private Stack<String> stackAnswer = new Stack<>();
+    private Stack stackAnswer = new Stack();
 
     /**
      * Class ctor for setting up the complex format of the parser
@@ -112,8 +137,11 @@ public class Parser {
         expression = expression.replace(" ", "")
                 .replace("°", "*" + Double.toString(Math.PI) + "/180")
                 .replace("(-", "(0-").replace(",-", ",0-").replace("(+", "(0+")
-                .replace(",+", ",0+").replace("true", "1").replace("false", "0")
-                .replace("or", "|").replace("and", "&");
+                .replace(",+", ",0+");
+//                .replace("true", "1")
+//                .replace("false", "0")
+//                .replace("or", "|")
+//                .replace("and", "&");
         if (expression.charAt(0) == '-' || expression.charAt(0) == '+') {
             expression = "0" + expression;
         }
@@ -142,14 +170,12 @@ public class Parser {
                     stackRPN.push(stackOperations.pop());
                 }
             } else if (isNumber(token)) {
-//                if (token.equals(IMAGINARY)) {
-//                    stackRPN.push(complexFormat.format(new Complex(0, 1)));
-//                } else if (token.contains(IMAGINARY)) {
-//                    stackRPN.push(complexFormat.format(complexFormat.parse("0+"
-//                            + token)));
-//                } else
-                {
-                    stackRPN.push(token);
+                if ( token.indexOf('.')<0) {
+                    Integer i = Integer.parseInt(token);
+                    stackRPN.push(i);
+                } else {
+                    Double i = Double.parseDouble(token);
+                    stackRPN.push(i);
                 }
             } else if (isOperator(token)) {
                 while (!stackOperations.empty()
@@ -162,7 +188,12 @@ public class Parser {
             } else if (isFunction(token)) {
                 stackOperations.push(token);
             } else {
-                throw new ParseException("Unrecognized token: " + token, 0);
+                if ( token.startsWith("\'") && token.endsWith("'") ) {
+                    stackRPN.push(new StringConstant(token));
+                } else if ( token.startsWith(VARIABLE+".") ) {
+                    stackRPN.push(new VarPath(token));
+                } else
+                    throw new ParseException("Unrecognized token: " + token, 0);
             }
         }
         while (!stackOperations.empty()) {
@@ -181,7 +212,7 @@ public class Parser {
      *                                     correct
      * @since 1.0
      */
-    public String evaluate() throws ParseException {
+    public Object evaluate() throws ParseException {
         if (!stackRPN.contains("var")) {
             return evaluate(0);
         }
@@ -197,7 +228,7 @@ public class Parser {
      *                                     correct
      * @since 3.0
      */
-    public String evaluate(double variableValue) throws ParseException {
+    public Object evaluate(double variableValue) throws ParseException {
 		/* check if is there something to evaluate */
         if (stackRPN.empty()) {
             return "";
@@ -208,7 +239,7 @@ public class Parser {
 
 		/* get the clone of the RPN stack for further evaluating */
         @SuppressWarnings("unchecked")
-        Stack<String> stackRPN = (Stack<String>) this.stackRPN.clone();
+        Stack stackRPN = (Stack) this.stackRPN.clone();
 
 		/* enroll the variable value into expression */
         Collections.replaceAll(stackRPN, VARIABLE,
@@ -216,8 +247,8 @@ public class Parser {
 
 		/* evaluating the RPN expression */
         while (!stackRPN.empty()) {
-            String token = stackRPN.pop();
-            if (isNumber(token)) {
+            Object token = stackRPN.pop();
+            if (token instanceof Number) {
                 stackAnswer.push(token);
             } else if (isOperator(token)) {
 //                Complex a = complexFormat.parse(stackAnswer.pop());
@@ -376,10 +407,10 @@ public class Parser {
     private boolean isNumber(String token) {
         try {
             Double.parseDouble(token);
+            return true;
         } catch (Exception e) {
-            return token.contains(IMAGINARY) || token.equals(VARIABLE);
         }
-        return true;
+        return false;
     }
 
     /**
@@ -438,8 +469,8 @@ public class Parser {
      * @return <code>boolean</code> output
      * @since 1.0
      */
-    private boolean isOperator(String token) {
-        return OPERATORS.contains(token);
+    private boolean isOperator(Object token) {
+        return OPERATORS.contains(token.toString());
     }
 
     /**
@@ -451,8 +482,17 @@ public class Parser {
      */
     private byte getPrecedence(String token) {
         if (token.equals("+") || token.equals("-")) {
-            return 1;
+            return 5;
         }
-        return 2;
+        if (token.equals("|") || token.equals("&")) {
+            return 3;
+        }
+        return 7;
+    }
+
+    public static void main(String[] args) throws ParseException {
+        Parser p = new Parser(3);
+        p.parse("it.key < 10 | it.test = 3");
+        System.out.println(p.evaluate());
     }
 }
