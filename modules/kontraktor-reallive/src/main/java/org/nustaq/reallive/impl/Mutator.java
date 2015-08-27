@@ -42,7 +42,7 @@ public class Mutator<K> implements Mutation<K> {
     }
 
     @Override
-    public void addOrdUpdate(Record<K> rec) {
+    public void addOrUpdateRec(Record<K> rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         receiver.receive(new AddMessage<K>(true,rec));

@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.remoting.encoding.CallbackRefSerializer;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.impl.Mutator;
@@ -43,7 +44,11 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
     @Override
     public void receive(ChangeMessage<K> change) {
         checkThread();
-        storageDriver.receive(change);
+        try {
+            storageDriver.receive(change);
+        } catch (Exception th) {
+            Log.Error(this,th);
+        }
     }
 
     @Override

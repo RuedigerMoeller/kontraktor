@@ -93,7 +93,7 @@ public class TableSharding<K> implements RealLiveTable<K> {
         }
 
         @Override
-        public void addOrdUpdate(Record<K> rec) {
+        public void addOrUpdateRec(Record<K> rec) {
             if ( rec instanceof RecordWrapper )
                 rec = ((RecordWrapper) rec).getRecord();
             shards[func.apply(rec.getKey())].receive(new AddMessage<K>(true,rec));

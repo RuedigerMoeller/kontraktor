@@ -22,6 +22,7 @@ import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.messagestore.HeapMessageStore;
 import org.nustaq.kontraktor.remoting.base.messagestore.MessageStore;
 import org.nustaq.kontraktor.remoting.websockets.WebObjectSocket;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.offheap.BinaryQueue;
 import org.nustaq.offheap.bytez.onheap.HeapBytez;
@@ -39,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  */
 public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
+    private static final boolean LP_DEBUG = false;
     static AtomicInteger idCount = new AtomicInteger(0);
     int id = idCount.incrementAndGet();
 
@@ -80,7 +82,8 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         queue.addInt(sendSequence.get());
         queue.addInt(message.length);
         queue.add(new HeapBytez(message));
-        System.out.println("send binary "+sendSequence.get());
+        if ( LP_DEBUG )
+            System.out.println("send binary " + sendSequence.get());
         triggerLongPoll();
     }
 
@@ -136,7 +139,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         if ( myThread == null )
             myThread = Thread.currentThread();
         else if ( myThread != Thread.currentThread() ) {
-            System.out.println("unexpected multithreading detected:"+myThread.getName()+" curr:"+Thread.currentThread().getName());
+            Log.Error(this,"unexpected multithreading detected:" + myThread.getName() + " curr:" + Thread.currentThread().getName());
             Thread.dumpStack();
         }
     }
@@ -158,14 +161,16 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     public void triggerLongPoll() {
         synchronized (this) {
             if (longPollTask!=null) {
-                System.out.println("SEND PENDING "+triggerPending);
+                if ( LP_DEBUG )
+                    System.out.println("SEND PENDING "+triggerPending);
                 if (triggerPending.get() > 0) // fixme: concurrency bug
                     triggerPending.decrementAndGet();
                 Runnable car = longPollTask.car();
                 longPollTask = null;
                 car.run();
             } else {
-                System.out.println("INC PENDING "+triggerPending);
+                if ( LP_DEBUG )
+                    System.out.println("INC PENDING "+triggerPending);
                 triggerPending.incrementAndGet();
             }
         }
@@ -175,7 +180,8 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         synchronized (this) {
             this.longPollTask = longPollTask;
             this.longPollTaskTime = System.currentTimeMillis();
-            System.out.println("SET LONG POLL"+triggerPending);
+            if ( LP_DEBUG )
+                System.out.println("SET LONG POLL"+triggerPending);
             if ( triggerPending.get() > 0 ) {
                 triggerLongPoll();
             }

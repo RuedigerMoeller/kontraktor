@@ -135,7 +135,7 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
     }
 
     @Override
-    public void addOrdUpdate(Record<K> rec) {
+    public void addOrUpdateRec(Record<K> rec) {
         receive(new AddMessage<K>(true,rec));
     }
 
