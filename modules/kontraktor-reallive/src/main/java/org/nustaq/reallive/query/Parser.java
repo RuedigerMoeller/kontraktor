@@ -17,12 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-
 package org.nustaq.reallive.query;
 
 import java.text.ParseException;
 import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * Class for parsing and evaluating math expressions
@@ -48,26 +47,135 @@ public class Parser {
     HashMap<String,Operator> operators;
     {
         operators = new HashMap<>();
-        operators.put("+", new Operator("+",7));
-        operators.put("-", new Operator("-",7));
-        operators.put("*", new Operator("*"));
-        operators.put("/", new Operator("/"));
-        operators.put("&", new Operator("&",3));
-        operators.put("|", new Operator("|",3));
-        operators.put("!", new Operator("!"));
-        operators.put("=", new Operator("=",6));
-        operators.put("<", new Operator("<",6));
-        operators.put(">", new Operator(">",6));
+        operators.put("+", new Operator("+",7) {
+            @Override
+            protected long longOp(long longValue, long longValue1) {
+                return longValue+longValue1;
+            }
+
+            @Override
+            protected double doubleOp(double doubleValue, double doubleValue1) {
+                return doubleValue+doubleValue1;
+            }
+
+            @Override
+            protected String stringOp(String stringValue, String stringValue1) {
+                return stringValue + stringValue1;
+            }
+        });
+        operators.put("-", new Operator("-",7) {
+            @Override
+            protected long longOp(long longValue, long longValue1) {
+                return longValue-longValue1;
+            }
+
+            @Override
+            protected double doubleOp(double doubleValue, double doubleValue1) {
+                return doubleValue-doubleValue1;
+            }
+
+            @Override
+            protected String stringOp(String stringValue, String stringValue1) {
+                if ( stringValue.endsWith(stringValue1) )
+                    return stringValue.substring(0,stringValue.lastIndexOf(stringValue1));
+                return stringValue;
+            }
+        });
+        operators.put("*", new Operator("*") {
+            @Override
+            protected long longOp(long longValue, long longValue1) {
+                return longValue*longValue1;
+            }
+
+            @Override
+            protected double doubleOp(double doubleValue, double doubleValue1) {
+                return doubleValue*doubleValue1;
+            }
+
+            @Override
+            protected String stringOp(String stringValue, String stringValue1) {
+                return stringValue+"*"+stringValue;
+            }
+        });
+        operators.put("/", new Operator("/") {
+            @Override
+            protected long longOp(long longValue, long longValue1) {
+                return longValue/longValue1;
+            }
+
+            @Override
+            protected double doubleOp(double doubleValue, double doubleValue1) {
+                return doubleValue/doubleValue1;
+            }
+
+            @Override
+            protected String stringOp(String stringValue, String stringValue1) {
+                return stringValue.replace(stringValue1,"");
+            }
+        });
+
+        operators.put("==", new Operator("==",6) {
+            @Override
+            protected long longOp(long longValue, long longValue1) {
+                return longValue == longValue1 ? 1:0;
+            }
+
+            @Override
+            protected double doubleOp(double doubleValue, double doubleValue1) {
+                return doubleValue==doubleValue1 ?1:0;
+            }
+
+            @Override
+            protected String stringOp(String stringValue, String stringValue1) {
+                return stringValue.equals(stringValue1) ? "1" : "0";
+            }
+        });
+        operators.put("!=", new Operator("!=",6) {
+            @Override
+            protected long longOp(long longValue, long longValue1) {
+                return longValue != longValue1 ? 1:0;
+            }
+
+            @Override
+            protected double doubleOp(double doubleValue, double doubleValue1) {
+                return doubleValue!=doubleValue1 ?1:0;
+            }
+
+            @Override
+            protected String stringOp(String stringValue, String stringValue1) {
+                return !stringValue.equals(stringValue1) ? "1" : "0";
+            }
+        });
+        operators.put("&&", new Operator("&&",3) {
+            @Override
+            protected Value compare(Value vb, Value va) {
+                return vb.isTrue() && va.isTrue() ? Value.TRUE : Value.FALSE;
+            }
+        });
+        operators.put("||", new Operator("||",3) {
+            @Override
+            protected Value compare(Value vb, Value va) {
+                return vb.isTrue() || va.isTrue() ? Value.TRUE : Value.FALSE;
+            }
+        });
+        operators.put("^", new Operator("^",3) {
+            @Override
+            protected Value compare(Value vb, Value va) {
+                return vb.isTrue() ^ va.isTrue() ? Value.TRUE : Value.FALSE;
+            }
+        });
+//        operators.put("|", new Operator("|",3));
+//        operators.put("!", new Operator("!"));
+//        operators.put("<", new Operator("<",6));
+//        operators.put(">", new Operator(">",6));
     }
     /* separator of arguments */
     private final String SEPARATOR = ",";
-    /* variable token */
-    private final String VARIABLE = "it";
     /* temporary stack that holds operators, functions and brackets */
     private Stack stackOperations = new Stack();
     /* stack for holding expression converted to reversed polish notation */
     private Stack stackRPN = new Stack();
-    /* stack for holding the calculations result */
+    /* stack for holding the lambda calculation tree */
     private Stack stackAnswer = new Stack();
 
 
@@ -88,22 +196,17 @@ public class Parser {
 		 * make some preparations: remove spaces; handle unary + and -, handle
 		 * degree character
 		 */
-        expression = expression.replace(" ", "")
-                .replace("°", "*" + Double.toString(Math.PI) + "/180")
-                .replace("(-", "(0-").replace(",-", ",0-").replace("(+", "(0+")
-                .replace(",+", ",0+");
-        if (expression.charAt(0) == '-' || expression.charAt(0) == '+') {
-            expression = "0" + expression;
-        }
-		/* splitting input string into tokens */
-        StringBuilder ops = new StringBuilder();
-        operators.keySet().forEach(opString -> ops.append(opString));
-        StringTokenizer stringTokenizer = new StringTokenizer(expression,
-                ops.toString() + SEPARATOR + "()", true);
-
+//        expression = expression.replace(" ", "")
+//                .replace("°", "*" + Double.toString(Math.PI) + "/180")
+//                .replace("(-", "(0-").replace(",-", ",0-").replace("(+", "(0+")
+//                .replace(",+", ",0+");
+//        if (expression.charAt(0) == '-' || expression.charAt(0) == '+') {
+//            expression = "0" + expression;
+//        }
+        QScanner scanner = new QScanner(expression);
 		/* loop for handling each token - shunting-yard algorithm */
-        while (stringTokenizer.hasMoreTokens()) {
-            String stringToken = stringTokenizer.nextToken();
+        String stringToken;
+        while ( (stringToken=scanner.readNext()) != null) {
             if (isSeparator(stringToken)) {
                 while (!stackOperations.empty()
                         && !isOpenBracket(stackOperations.lastElement())) {
@@ -118,21 +221,21 @@ public class Parser {
                 }
                 stackOperations.pop();
                 if (!stackOperations.empty()
-                        && isFunction(stackOperations.lastElement())) {
+                        && stackOperations.lastElement() instanceof FuncOperand) {
                     stackRPN.push(stackOperations.pop());
                 }
             } else if (isNumber(stringToken)) {
                 if ( stringToken.indexOf('.')<0) {
-                    Integer i = Integer.parseInt(stringToken);
-                    stackRPN.push( new NumberOperand(i) );
+                    Long i = Long.parseLong(stringToken);
+                    stackRPN.push( new LongValue(i) );
                 } else {
                     Double d = Double.parseDouble(stringToken);
-                    stackRPN.push( new NumberOperand(d) );
+                    stackRPN.push( new DoubleValue(d) );
                 }
             } else if (operators.containsKey(stringToken)) {
                 Operator op = operators.get(stringToken);
                 while (!stackOperations.empty()
-                        && operators.containsKey(stackOperations.lastElement())
+                        && stackOperations.lastElement() instanceof Operator
                         && op.getPrecedence() <= ((Operator)stackOperations.lastElement()).getPrecedence() ) {
                     stackRPN.push(stackOperations.pop());
                 }
@@ -141,11 +244,12 @@ public class Parser {
                 stackOperations.push( functions.get(stringToken) );
             } else {
                 if ( stringToken.startsWith("'") && stringToken.endsWith("'") ) {
-                    stackRPN.push(new StringConstant(stringToken));
-                } else if ( stringToken.startsWith(VARIABLE+".") ) {
+                    stackRPN.push(new StringValue(stringToken.substring(1, stringToken.length() - 1)));
+                } else //if ( stringToken.startsWith(VARIABLE+".") )
+                {
                     stackRPN.push(new VarPath(stringToken));
-                } else
-                    throw new ParseException("Unrecognized stringToken: " + stringToken, 0);
+                }
+//                else throw new ParseException("Unrecognized stringToken: " + stringToken, 0);
             }
         }
         while (!stackOperations.empty()) {
@@ -157,33 +261,17 @@ public class Parser {
     }
 
     /**
-     * Evaluates once parsed math expression with no variable included
+     * Evaluates once parsed to a lambda term
      *
-     * @return <code>String</code> representation of the result
-     * @throws <code>ParseException</code> if the input expression is not
-     *                                     correct
-     * @since 1.0
-     */
-    public Object evaluate() throws ParseException {
-        if (!stackRPN.contains("var")) {
-            return evaluate(0);
-        }
-        throw new ParseException("Unrecognized token: var", 0);
-    }
-
-    /**
-     * Evaluates once parsed math expression with "var" variable included
-     *
-     * @param variableValue User-specified <code>Double</code> value
      * @return <code>String</code> representation of the result
      * @throws <code>ParseException</code> if the input expression is not
      *                                     correct
      * @since 3.0
      */
-    public Object evaluate(double variableValue) throws ParseException {
+    public Supplier<Value> evaluate() throws ParseException {
 		/* check if is there something to evaluate */
         if (stackRPN.empty()) {
-            return "";
+            return () -> new StringValue("");
         }
 
 		/* clean answer stack */
@@ -194,18 +282,18 @@ public class Parser {
         Stack stackRPN = (Stack) this.stackRPN.clone();
 
 		/* enroll the variable value into expression */
-        Collections.replaceAll(stackRPN, VARIABLE,
-                Double.toString(variableValue));
+//        Collections.replaceAll(stackRPN, VARIABLE,
+//                Double.toString(variableValue));
 
 		/* evaluating the RPN expression */
         while (!stackRPN.empty()) {
-            Token token = (Token) stackRPN.pop();
-            if (token instanceof Operand) {
-                stackAnswer.push(token);
+            Object token = stackRPN.pop();
+            if (token instanceof Value) {
+                stackAnswer.push( (Supplier) ()->token );
             } else if (token instanceof Operator) {
-                Operand a = (Operand) stackAnswer.pop();
-                Operand b = (Operand) stackAnswer.pop();
-
+                Supplier a = (Supplier) stackAnswer.pop();
+                Supplier b = (Supplier) stackAnswer.pop();
+                stackAnswer.push( ((Operator) token).getEval(a,b));
 //                switch (token)
                 {
 //                    case "+":
@@ -248,7 +336,7 @@ public class Parser {
             throw new ParseException("Some operator is missing", 0);
         }
 
-        return stackAnswer.pop();
+        return (Supplier<Value>) stackAnswer.pop();
     }
 
     /**
@@ -258,14 +346,6 @@ public class Parser {
         return Collections.unmodifiableCollection(stackRPN);
     }
 
-    /**
-     * Check if the token is number (0-9, <code>IMAGINARY</code> or
-     * <code>VARIABLE</code>)
-     *
-     * @param token Input <code>String</code> token
-     * @return <code>boolean</code> output
-     * @since 1.0
-     */
     private boolean isNumber(String token) {
         try {
             Double.parseDouble(token);
@@ -274,54 +354,26 @@ public class Parser {
         }
         return false;
     }
-
-    /**
-     * Check if the token is function (e.g. "sin")
-     *
-     * @param token Input <code>String</code> token
-     * @return <code>boolean</code> output
-     * @since 1.0
-     */
-    private boolean isFunction(Object token) {
+    private boolean isFunction(String token) {
         return functions.containsKey(token);
     }
-
-    /**
-     * Check if the token is <code>SEPARATOR</code>
-     *
-     * @param token Input <code>String</code> token
-     * @return <code>boolean</code> output
-     * @since 1.0
-     */
     private boolean isSeparator(String token) {
         return token.equals(SEPARATOR);
     }
-
-    /**
-     * Check if the token is opening bracket
-     *
-     * @param token Input <code>String</code> token
-     * @return <code>boolean</code> output
-     * @since 1.0
-     */
     private boolean isOpenBracket(Object token) {
         return "(".equals(token);
     }
-
-    /**
-     * Check if the token is closing bracket
-     *
-     * @param token Input <code>String</code> token
-     * @return <code>boolean</code> output
-     * @since 1.0
-     */
     private boolean isCloseBracket(String token) {
         return token.equals(")");
     }
 
     public static void main(String[] args) throws ParseException {
         Parser p = new Parser();
-        p.parse("it.key+'3' < 10 | (it.test-4) = 3 & contains(it.name)");
-        System.out.println(p.evaluate());
+//        p.parse("it.key+'3' < 10 | (it.test-4) = 3 & contains(it.name)");
+//        p.parse("(2*4 == 8) && (3*3 == 9)");
+        p.parse("2*4 + 13.44 / 2 -1");
+        Supplier evaluate = (Supplier) p.evaluate();
+        System.out.println(evaluate.get());
+//        System.out.println(2*4 + 13.44 / 2 -1);
     }
 }
