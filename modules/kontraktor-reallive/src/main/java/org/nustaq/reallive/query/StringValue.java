@@ -27,6 +27,11 @@ public class StringValue implements Value {
     }
 
     @Override
+    public Value negate() {
+        return isTrue() ? new StringValue("") : new StringValue("1");
+    }
+
+    @Override
     public String toString() {
         return "StringValue{" +
                 "value='" + value + '\'' +

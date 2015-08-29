@@ -16,6 +16,7 @@ import org.nustaq.reallive.impl.*;
 import org.nustaq.reallive.impl.storage.*;
 import org.nustaq.reallive.records.MapRecord;
 
+import java.text.ParseException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -146,17 +147,27 @@ public class Basic {
         source.setListener(stream);
 
         stream.subscribe(new Subscriber<>(
-            record -> "one".equals(record.getKey()),
-            change -> System.out.println("listener: " + change)
+                                             record -> "one".equals(record.getKey()),
+                                             change -> System.out.println("listener: " + change)
         ));
 
         Mutation mut = source;
         mut.add("one", "name", "emil", "age", 9);
         mut.add("two", "name", "felix", "age", 17);
+        mut.add("one1", "name", "emil", "age", 9);
+        mut.add("two1", "name", "felix", "age", 17);
         mut.update("one", "age", 10);
         mut.remove("one");
 
-        source.getStore().filter( rec -> true, (r,e) -> System.out.println("REC:"+r) );
+        source.getStore().filter(rec -> true, (r, e) -> System.out.println("REC:" + r));
+
+        source.getStore().filter( rec -> ((Record)rec).getInt("age") <= 10, (r, e) -> System.out.println("LQ:" + r));
+
+        try {
+            source.getStore().query("age <= 10 || age==17", (r, e) -> System.out.println("QUERY:" + r));
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
     }
 
     @Test

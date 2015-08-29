@@ -1,16 +1,16 @@
 package org.nustaq.reallive.query;
 
-import java.util.function.Supplier;
+import java.io.Serializable;
 
 /**
  * Created by ruedi on 28/08/15.
  */
-public class CompiledQuery {
+public class CompiledQuery implements Serializable {
 
-    Supplier<Value> compiled;
+    RLSupplier<Value> compiled;
     EvalContext[] ref;
 
-    public CompiledQuery(Supplier<Value> compiled, EvalContext[] ref) {
+    public CompiledQuery(RLSupplier<Value> compiled, EvalContext[] ref) {
         this.compiled = compiled;
         this.ref = ref;
     }

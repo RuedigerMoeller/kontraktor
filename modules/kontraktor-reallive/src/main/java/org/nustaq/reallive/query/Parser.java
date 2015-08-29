@@ -21,18 +21,16 @@ package org.nustaq.reallive.query;
 
 import org.nustaq.reallive.records.MapRecord;
 
-import java.text.ParseException;
 import java.util.*;
-import java.util.function.Supplier;
 
 /**
- * Class for parsing and evaluating math expressions
+ * Class for parsing and evaluating query expressions
  *
  * @author Dmytro Titov
  * @version 7.0
  * @since 1.0
  *
- * modified + extended by r.moeller
+ * modified + massively extended by r.moeller
  */
 public class Parser {
 
@@ -56,7 +54,7 @@ public class Parser {
         this.operators = operators;
     }
 
-    public CompiledQuery compile(String query) throws ParseException {
+    public CompiledQuery compile(String query) {
         ctxRef = new EvalContext[1];
         parse(query);
         return new CompiledQuery(evaluate(),ctxRef);
@@ -70,25 +68,15 @@ public class Parser {
      *                                     correct
      * @since 3.0
      */
-    protected void parse(String expression) throws ParseException {
+    protected void parse(String expression) {
         /* cleaning stacks */
         stackOperations.clear();
         stackRPN.clear();
 
-		/*
-		 * make some preparations: remove spaces; handle unary + and -, handle
-		 * degree character
-		 */
-//        expression = expression.replace(" ", "")
-//                .replace("°", "*" + Double.toString(Math.PI) + "/180")
-//                .replace("(-", "(0-").replace(",-", ",0-").replace("(+", "(0+")
-//                .replace(",+", ",0+");
-//        if (expression.charAt(0) == '-' || expression.charAt(0) == '+') {
-//            expression = "0" + expression;
-//        }
         QScanner scanner = new QScanner(expression);
+
 		/* loop for handling each token - shunting-yard algorithm */
-        String stringToken;
+        String stringToken,prevToken = null;
         while ( (stringToken=scanner.readNext()) != null) {
             if (isSeparator(stringToken)) {
                 while (!stackOperations.empty()
@@ -96,6 +84,11 @@ public class Parser {
                     stackRPN.push(stackOperations.pop());
                 }
             } else if (isOpenBracket(stringToken)) {
+                Object last = stackRPN.isEmpty() ? null : stackRPN.lastElement();
+                if ( last instanceof VarPath && isFunction(((VarPath) last).field)) {
+                    stackRPN.pop();
+                    stackOperations.push( functions.get(((VarPath) last).field) );
+                }
                 stackOperations.push(stringToken);
             } else if (isCloseBracket(stringToken)) {
                 while (!stackOperations.empty()
@@ -117,14 +110,24 @@ public class Parser {
                 }
             } else if (operators.containsKey(stringToken)) {
                 Operator op = operators.get(stringToken);
-                while (!stackOperations.empty()
+                // test for prefix op
+                boolean prefix = false;
+                if ( (stringToken.equals("+") || stringToken.equals("-")) &&
+                         (prevToken == null ||
+                       operators.containsKey(prevToken) ||
+                       isOpenBracket(prevToken) ||
+                       isSeparator(prevToken)
+                     )
+                   ) {
+                    prefix = true;
+                    stackRPN.push(new LongValue(0));
+                }
+                while (!stackOperations.empty() && ! prefix
                         && stackOperations.lastElement() instanceof Operator
                         && op.getPrecedence() <= ((Operator)stackOperations.lastElement()).getPrecedence() ) {
                     stackRPN.push(stackOperations.pop());
                 }
                 stackOperations.push(op);
-            } else if (isFunction(stringToken)) {
-                stackOperations.push( functions.get(stringToken) );
             } else {
                 if ( stringToken.startsWith("'") && stringToken.endsWith("'") ) {
                     stackRPN.push(new StringValue(stringToken.substring(1, stringToken.length() - 1)));
@@ -133,6 +136,7 @@ public class Parser {
                     stackRPN.push(new VarPath(stringToken,ctxRef));
                 }
             }
+            prevToken = stringToken;
         }
         while (!stackOperations.empty()) {
             stackRPN.push(stackOperations.pop());
@@ -150,7 +154,7 @@ public class Parser {
      *                                     correct
      * @since 3.0
      */
-    private Supplier<Value> evaluate() throws ParseException {
+    private RLSupplier<Value> evaluate() {
 		/* check if is there something to evaluate */
         if (stackRPN.empty()) {
             return () -> new StringValue("");
@@ -167,63 +171,35 @@ public class Parser {
         while (!stackRPN.empty()) {
             Object token = stackRPN.pop();
             if (token instanceof Value) {
-                stackAnswer.push( (Supplier) ()->token );
+                stackAnswer.push( (RLSupplier) ()->token );
             } else if (token instanceof Operator) {
                 int arity = ((Operator) token).getArity();
                 if ( arity == 2 ) {
-                    Supplier a = (Supplier) stackAnswer.pop();
-                    Supplier b = (Supplier) stackAnswer.pop();
+                    RLSupplier a = (RLSupplier) stackAnswer.pop();
+                    RLSupplier b = (RLSupplier) stackAnswer.pop();
                     stackAnswer.push( ((Operator) token).getEval(a,b));
                 } else { // assume 1
-                    Supplier a = (Supplier) stackAnswer.pop();
+                    RLSupplier a = (RLSupplier) stackAnswer.pop();
                     stackAnswer.push( ((Operator) token).getEval(a,null));
-                }
-//                switch (token)
-                {
-//                    case "+":
-//                        stackAnswer.push(complexFormat.format(b.add(a)));
-//                        break;
-//                    case "-":
-//                        stackAnswer.push(complexFormat.format(b.subtract(a)));
-//                        break;
-//                    case "*":
-//                        stackAnswer.push(complexFormat.format(b.multiply(a)));
-//                        break;
-//                    case "/":
-//                        stackAnswer.push(complexFormat.format(b.divide(a)));
-//                        break;
-//                    case "|":
-//                        stackAnswer.push(String.valueOf(aBoolean || bBoolean ? "1" : "0"));
-//                        break;
-//                    case "&":
-//                        stackAnswer.push(String.valueOf(aBoolean && bBoolean ? "1" : "0"));
-//                        break;
                 }
             } else if (token instanceof VarPath) {
                 VarPath vp = (VarPath) token;
                 stackAnswer.push( vp.getEval() );
             } else if (token instanceof FuncOperand) {
-//                switch (token)
-                {
-//                    case "abs":
-//                        stackAnswer.push(complexFormat.format(a.abs()));
-//                        break;
-//                    case "pow":
-//                        Complex b = complexFormat.parse(stackAnswer.pop());
-//                        stackAnswer.push(complexFormat.format(b.pow(a)));
-//                        break;
-//                    case "not":
-//                        stackAnswer.push(String.valueOf(!aBoolean ? "1" : "0"));
-//                        break;
+                FuncOperand func = (FuncOperand) token;
+                RLSupplier<Value> args[] = new RLSupplier[func.getArity()];
+                for (int i = 0; i < args.length; i++) {
+                    args[args.length-i-1] = ((RLSupplier<Value>)stackAnswer.pop());
                 }
+                stackAnswer.push(func.getEval(args));
             }
         }
 
         if (stackAnswer.size() > 1) {
-            throw new ParseException("Some operator is missing", 0);
+            throw new QParseException("Some operator is missing");
         }
 
-        return (Supplier<Value>) stackAnswer.pop();
+        return (RLSupplier<Value>) stackAnswer.pop();
     }
 
     private boolean isNumber(String token) {
@@ -247,18 +223,32 @@ public class Parser {
         return token.equals(")");
     }
 
-    public static void main(String[] args) throws ParseException {
-        Parser p = Query.newParser();
-        CompiledQuery compile = p.compile("test == 'hallo' && a < 101 && a <= 100 && b > 199 && b >= 200 && a+b == 300 && !0");
-
+    public static void main(String[] args) throws Throwable {
+//        Parser p = Query.newParser();
+//        CompiledQuery compile = p.compile("test == 'hallo' && a < 101 && a <= 100 && b > 199 && b >= 200 && a+b == 300 && !0");
+//
         MapRecord<String> hm = new MapRecord<>("key")
             .put("test","hallo")
             .put("a", 100)
+            .put("time", System.currentTimeMillis())
             .put("b", 200);
 
-        System.out.println(
-            compile.evaluate(hm)
-        );
+        Thread.sleep(2000);
+        CompiledQuery ctrue = Query.compile("time < age(1,'sec')");
+        CompiledQuery cfalse = Query.compile("time < age(5,'sec')");
+        System.out.println(ctrue.evaluate(hm));
+        System.out.println(cfalse.evaluate(hm));
+
+//
+//        System.out.println(
+//            compile.evaluate(hm)
+//        );
+
+//          System.out.println(Query.eval(" lower('HELLO'+'O')+'O' ",null));
+//          System.out.println(Query.eval("lower('HELLO'+'O')", null));
+//        System.out.println(Query.compile("3 * -3").evaluate(null));
+//        System.out.println(Query.compile("3555 ** 55").evaluate(null));
+//        System.out.println(Query.compile("'RuedI' ** 'dii'").evaluate(null));
 
 //        while( true ) {
 //            long now = System.currentTimeMillis();

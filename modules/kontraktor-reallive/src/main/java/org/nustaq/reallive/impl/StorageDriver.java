@@ -90,6 +90,7 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
                     store.put(change.getKey(),newRecord);
                     listener.receive( new UpdateMessage(newDiff,newRecord));
                 }
+                break;
             }
             default:
                 throw new RuntimeException("unknown change type "+change.getType());

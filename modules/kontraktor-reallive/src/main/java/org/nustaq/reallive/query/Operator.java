@@ -1,11 +1,11 @@
 package org.nustaq.reallive.query;
 
-import java.util.function.Supplier;
+import java.io.Serializable;
 
 /**
  * Created by moelrue on 27.08.2015.
  */
-public class Operator {
+public class Operator implements Serializable {
     int order = 10; // low = low precedence, +- < */
     String name;
     int arity = 2;
@@ -37,7 +37,7 @@ public class Operator {
         return order;
     }
 
-    public Supplier<Value> getEval( Supplier<Value> arg, Supplier<Value> arg1 ) {
+    public RLSupplier<Value> getEval( RLSupplier<Value> arg, RLSupplier<Value> arg1 ) {
         return () -> {
             Value vb = arg.get();
             Value va = arity > 1 ? arg1.get() : null;

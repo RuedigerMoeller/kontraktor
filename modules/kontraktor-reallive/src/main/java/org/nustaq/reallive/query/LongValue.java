@@ -27,6 +27,11 @@ public class LongValue implements Value {
     }
 
     @Override
+    public Value negate() {
+        return new LongValue(value*-1);
+    }
+
+    @Override
     public String toString() {
         return "LongValue{" +
                 "value=" + value +

@@ -27,6 +27,11 @@ public class DoubleValue implements Value {
     }
 
     @Override
+    public Value negate() {
+        return new DoubleValue(value*-1);
+    }
+
+    @Override
     public String toString() {
         return "DoubleValue{" +
                 "value=" + value +
