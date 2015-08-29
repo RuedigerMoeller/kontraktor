@@ -1,11 +1,13 @@
 package org.nustaq.reallive.interfaces;
 
+import org.nustaq.reallive.query.EvalContext;
+
 import java.io.Serializable;
 
 /**
  * Created by moelrue on 03.08.2015.
  */
-public interface Record<K> extends Serializable {
+public interface Record<K> extends Serializable, EvalContext {
 
     K getKey();
     String[] getFields();

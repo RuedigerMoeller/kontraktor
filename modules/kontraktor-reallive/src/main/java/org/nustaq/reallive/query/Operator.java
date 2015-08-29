@@ -5,9 +5,10 @@ import java.util.function.Supplier;
 /**
  * Created by moelrue on 27.08.2015.
  */
-public class Operator  {
+public class Operator {
     int order = 10; // low = low precedence, +- < */
     String name;
+    int arity = 2;
 
     public Operator(String name) {
         this.name = name;
@@ -16,6 +17,16 @@ public class Operator  {
     public Operator(String name, int order) {
         this.order = order;
         this.name = name;
+    }
+
+    public Operator(String name, int order, int arity) {
+        this.order = order;
+        this.name = name;
+        this.arity = arity;
+    }
+
+    public int getArity() {
+        return arity;
     }
 
     public String getString() {
@@ -29,7 +40,7 @@ public class Operator  {
     public Supplier<Value> getEval( Supplier<Value> arg, Supplier<Value> arg1 ) {
         return () -> {
             Value vb = arg.get();
-            Value va = arg1.get();
+            Value va = arity > 1 ? arg1.get() : null;
             return compare(vb, va);
         };
     }

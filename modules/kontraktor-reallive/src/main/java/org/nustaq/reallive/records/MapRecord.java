@@ -44,7 +44,7 @@ public class MapRecord<K> implements Record<K> {
     }
 
     @Override
-    public Record put(String field, Object value) {
+    public MapRecord put(String field, Object value) {
         if ( map.put(field, value) == null ) {
             fields = null;
         }

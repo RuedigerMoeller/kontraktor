@@ -19,6 +19,8 @@
  */
 package org.nustaq.reallive.query;
 
+import org.nustaq.reallive.records.MapRecord;
+
 import java.text.ParseException;
 import java.util.*;
 import java.util.function.Supplier;
@@ -34,141 +36,9 @@ import java.util.function.Supplier;
  */
 public class Parser {
 
-    /* list of available functions */
     HashMap<String,FuncOperand> functions;
-    {
-        functions = new HashMap<>();
-        functions.put("startsWith", new FuncOperand("startsWith"));
-        functions.put("endsWith", new FuncOperand("endsWith"));
-        functions.put("contains", new FuncOperand("contains"));
-    }
-
-    /* list of available operators */
     HashMap<String,Operator> operators;
-    {
-        operators = new HashMap<>();
-        operators.put("+", new Operator("+",7) {
-            @Override
-            protected long longOp(long longValue, long longValue1) {
-                return longValue+longValue1;
-            }
 
-            @Override
-            protected double doubleOp(double doubleValue, double doubleValue1) {
-                return doubleValue+doubleValue1;
-            }
-
-            @Override
-            protected String stringOp(String stringValue, String stringValue1) {
-                return stringValue + stringValue1;
-            }
-        });
-        operators.put("-", new Operator("-",7) {
-            @Override
-            protected long longOp(long longValue, long longValue1) {
-                return longValue-longValue1;
-            }
-
-            @Override
-            protected double doubleOp(double doubleValue, double doubleValue1) {
-                return doubleValue-doubleValue1;
-            }
-
-            @Override
-            protected String stringOp(String stringValue, String stringValue1) {
-                if ( stringValue.endsWith(stringValue1) )
-                    return stringValue.substring(0,stringValue.lastIndexOf(stringValue1));
-                return stringValue;
-            }
-        });
-        operators.put("*", new Operator("*") {
-            @Override
-            protected long longOp(long longValue, long longValue1) {
-                return longValue*longValue1;
-            }
-
-            @Override
-            protected double doubleOp(double doubleValue, double doubleValue1) {
-                return doubleValue*doubleValue1;
-            }
-
-            @Override
-            protected String stringOp(String stringValue, String stringValue1) {
-                return stringValue+"*"+stringValue;
-            }
-        });
-        operators.put("/", new Operator("/") {
-            @Override
-            protected long longOp(long longValue, long longValue1) {
-                return longValue/longValue1;
-            }
-
-            @Override
-            protected double doubleOp(double doubleValue, double doubleValue1) {
-                return doubleValue/doubleValue1;
-            }
-
-            @Override
-            protected String stringOp(String stringValue, String stringValue1) {
-                return stringValue.replace(stringValue1,"");
-            }
-        });
-
-        operators.put("==", new Operator("==",6) {
-            @Override
-            protected long longOp(long longValue, long longValue1) {
-                return longValue == longValue1 ? 1:0;
-            }
-
-            @Override
-            protected double doubleOp(double doubleValue, double doubleValue1) {
-                return doubleValue==doubleValue1 ?1:0;
-            }
-
-            @Override
-            protected String stringOp(String stringValue, String stringValue1) {
-                return stringValue.equals(stringValue1) ? "1" : "0";
-            }
-        });
-        operators.put("!=", new Operator("!=",6) {
-            @Override
-            protected long longOp(long longValue, long longValue1) {
-                return longValue != longValue1 ? 1:0;
-            }
-
-            @Override
-            protected double doubleOp(double doubleValue, double doubleValue1) {
-                return doubleValue!=doubleValue1 ?1:0;
-            }
-
-            @Override
-            protected String stringOp(String stringValue, String stringValue1) {
-                return !stringValue.equals(stringValue1) ? "1" : "0";
-            }
-        });
-        operators.put("&&", new Operator("&&",3) {
-            @Override
-            protected Value compare(Value vb, Value va) {
-                return vb.isTrue() && va.isTrue() ? Value.TRUE : Value.FALSE;
-            }
-        });
-        operators.put("||", new Operator("||",3) {
-            @Override
-            protected Value compare(Value vb, Value va) {
-                return vb.isTrue() || va.isTrue() ? Value.TRUE : Value.FALSE;
-            }
-        });
-        operators.put("^", new Operator("^",3) {
-            @Override
-            protected Value compare(Value vb, Value va) {
-                return vb.isTrue() ^ va.isTrue() ? Value.TRUE : Value.FALSE;
-            }
-        });
-//        operators.put("|", new Operator("|",3));
-//        operators.put("!", new Operator("!"));
-//        operators.put("<", new Operator("<",6));
-//        operators.put(">", new Operator(">",6));
-    }
     /* separator of arguments */
     private final String SEPARATOR = ",";
     /* temporary stack that holds operators, functions and brackets */
@@ -178,6 +48,19 @@ public class Parser {
     /* stack for holding the lambda calculation tree */
     private Stack stackAnswer = new Stack();
 
+    protected EvalContext ctxRef[];
+
+
+    Parser(HashMap<String, FuncOperand> functions, HashMap<String, Operator> operators) {
+        this.functions = functions;
+        this.operators = operators;
+    }
+
+    public CompiledQuery compile(String query) throws ParseException {
+        ctxRef = new EvalContext[1];
+        parse(query);
+        return new CompiledQuery(evaluate(),ctxRef);
+    }
 
     /**
      * Parses the math expression (complicated formula) and stores the result
@@ -187,7 +70,7 @@ public class Parser {
      *                                     correct
      * @since 3.0
      */
-    public void parse(String expression) throws ParseException {
+    protected void parse(String expression) throws ParseException {
         /* cleaning stacks */
         stackOperations.clear();
         stackRPN.clear();
@@ -247,9 +130,8 @@ public class Parser {
                     stackRPN.push(new StringValue(stringToken.substring(1, stringToken.length() - 1)));
                 } else //if ( stringToken.startsWith(VARIABLE+".") )
                 {
-                    stackRPN.push(new VarPath(stringToken));
+                    stackRPN.push(new VarPath(stringToken,ctxRef));
                 }
-//                else throw new ParseException("Unrecognized stringToken: " + stringToken, 0);
             }
         }
         while (!stackOperations.empty()) {
@@ -268,7 +150,7 @@ public class Parser {
      *                                     correct
      * @since 3.0
      */
-    public Supplier<Value> evaluate() throws ParseException {
+    private Supplier<Value> evaluate() throws ParseException {
 		/* check if is there something to evaluate */
         if (stackRPN.empty()) {
             return () -> new StringValue("");
@@ -281,19 +163,21 @@ public class Parser {
         @SuppressWarnings("unchecked")
         Stack stackRPN = (Stack) this.stackRPN.clone();
 
-		/* enroll the variable value into expression */
-//        Collections.replaceAll(stackRPN, VARIABLE,
-//                Double.toString(variableValue));
-
 		/* evaluating the RPN expression */
         while (!stackRPN.empty()) {
             Object token = stackRPN.pop();
             if (token instanceof Value) {
                 stackAnswer.push( (Supplier) ()->token );
             } else if (token instanceof Operator) {
-                Supplier a = (Supplier) stackAnswer.pop();
-                Supplier b = (Supplier) stackAnswer.pop();
-                stackAnswer.push( ((Operator) token).getEval(a,b));
+                int arity = ((Operator) token).getArity();
+                if ( arity == 2 ) {
+                    Supplier a = (Supplier) stackAnswer.pop();
+                    Supplier b = (Supplier) stackAnswer.pop();
+                    stackAnswer.push( ((Operator) token).getEval(a,b));
+                } else { // assume 1
+                    Supplier a = (Supplier) stackAnswer.pop();
+                    stackAnswer.push( ((Operator) token).getEval(a,null));
+                }
 //                switch (token)
                 {
 //                    case "+":
@@ -315,6 +199,9 @@ public class Parser {
 //                        stackAnswer.push(String.valueOf(aBoolean && bBoolean ? "1" : "0"));
 //                        break;
                 }
+            } else if (token instanceof VarPath) {
+                VarPath vp = (VarPath) token;
+                stackAnswer.push( vp.getEval() );
             } else if (token instanceof FuncOperand) {
 //                switch (token)
                 {
@@ -339,13 +226,6 @@ public class Parser {
         return (Supplier<Value>) stackAnswer.pop();
     }
 
-    /**
-     * Get back an <b>unmodifiable copy</b> of the stack
-     */
-    public Collection<String> getStackRPN() {
-        return Collections.unmodifiableCollection(stackRPN);
-    }
-
     private boolean isNumber(String token) {
         try {
             Double.parseDouble(token);
@@ -368,12 +248,27 @@ public class Parser {
     }
 
     public static void main(String[] args) throws ParseException {
-        Parser p = new Parser();
-//        p.parse("it.key+'3' < 10 | (it.test-4) = 3 & contains(it.name)");
-//        p.parse("(2*4 == 8) && (3*3 == 9)");
-        p.parse("2*4 + 13.44 / 2 -1");
-        Supplier evaluate = (Supplier) p.evaluate();
-        System.out.println(evaluate.get());
-//        System.out.println(2*4 + 13.44 / 2 -1);
+        Parser p = Query.newParser();
+        CompiledQuery compile = p.compile("test == 'hallo' && a < 101 && a <= 100 && b > 199 && b >= 200 && a+b == 300 && !0");
+
+        MapRecord<String> hm = new MapRecord<>("key")
+            .put("test","hallo")
+            .put("a", 100)
+            .put("b", 200);
+
+        System.out.println(
+            compile.evaluate(hm)
+        );
+
+//        while( true ) {
+//            long now = System.currentTimeMillis();
+//            int cnt = 0;
+//            while( System.currentTimeMillis() - now < 1000 ) {
+//                compile.evaluate(hm);
+//                cnt++;
+//            }
+//            System.out.println("COUNT: "+cnt);
+//        }
+
     }
 }
