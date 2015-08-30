@@ -29,6 +29,11 @@ public class PutMessage<K> implements ChangeMessage<K> {
     }
 
     @Override
+    public ChangeMessage reduced(String[] reducedFields) {
+        return new PutMessage<>(record.reduced(reducedFields));
+    }
+
+    @Override
     public String toString() {
         return "PutMessage{" +
                 ", record=" + record.asString() +

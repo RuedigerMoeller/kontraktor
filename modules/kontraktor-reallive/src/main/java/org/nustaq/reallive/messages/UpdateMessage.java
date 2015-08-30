@@ -37,6 +37,14 @@ public class UpdateMessage<K> implements ChangeMessage<K> {
         return newRecord.getKey();
     }
 
+    @Override
+    public ChangeMessage reduced(String[] reducedFields) {
+        return new UpdateMessage<K>(
+            diff.reduced(reducedFields),
+            newRecord.reduced(reducedFields),
+            addIfNotExists);
+    }
+
     public Diff getDiff() {
         return diff;
     }

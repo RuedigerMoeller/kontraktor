@@ -1,6 +1,7 @@
 package org.nustaq.reallive.interfaces;
 
 import org.nustaq.reallive.query.EvalContext;
+import org.nustaq.reallive.records.MapRecord;
 
 import java.io.Serializable;
 
@@ -57,5 +58,17 @@ public interface Record<K> extends Serializable, EvalContext {
         if ( val == null )
             return false;
         return true;
+    }
+
+    default Record<K> reduced(String[] reducedFields) {
+        MapRecord rec = new MapRecord(getKey());
+        for (int i = 0; i < reducedFields.length; i++) {
+            String reducedField = reducedFields[i];
+            Object val = get(reducedField);
+            if ( val != null ) {
+                rec.put(reducedField,val);
+            }
+        }
+        return rec;
     }
 }

@@ -18,6 +18,11 @@ public class QueryDoneMessage implements ChangeMessage {
     }
 
     @Override
+    public ChangeMessage reduced(String[] reducedFields) {
+        return this;
+    }
+
+    @Override
     public String toString() {
         return "QueryDoneMessage{"+getType()+"}";
     }

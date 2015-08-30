@@ -23,6 +23,11 @@ public class RemoveMessage<K> implements ChangeMessage<K> {
     }
 
     @Override
+    public ChangeMessage reduced(String[] reducedFields) {
+        return new RemoveMessage<>(deletedRow.reduced(reducedFields));
+    }
+
+    @Override
     public String toString() {
         return "RemoveMessage{" +
                 "record=" + deletedRow.asString() +

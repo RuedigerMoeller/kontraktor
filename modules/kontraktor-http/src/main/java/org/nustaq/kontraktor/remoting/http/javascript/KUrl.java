@@ -203,6 +203,8 @@ public class KUrl implements Serializable {
         KUrl url = new KUrl( "///test/one/../two/three");
         System.out.println(url.toUrlString());
         System.out.println(url.concat("../../bla").toUrlString());
+
+        System.out.println(new KUrl("http://pok.de:9090/test/img/../kacka.xx").mangled());
     }
 
 
@@ -246,14 +248,20 @@ public class KUrl implements Serializable {
     }
 
     /**
-     * removes www and country
+     * removes www, protocol and country
      * @return
      */
     public KUrl unified() {
-        KUrl res = new KUrl(normalizeDomain(toUrlString(false)));
+        KUrl res = new KUrl(toUrlString(false));
+        res.elements[0] = normalizeDomain(elements[0]);
         return res;
     }
 
+    /**
+     * removes 'www' in case and removes country code. EXPECT protocol to be absent
+      * @param s
+     * @return
+     */
     protected String normalizeDomain(String s) {
         // remove country code
         int idx = s.lastIndexOf(".");
