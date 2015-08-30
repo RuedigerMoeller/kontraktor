@@ -1,14 +1,18 @@
 package org.nustaq.reallive.impl.storage;
 
 import org.nustaq.kontraktor.Spore;
+import org.nustaq.offheap.FSTAsciiStringOffheapMap;
 import org.nustaq.offheap.FSTBinaryOffheapMap;
 import org.nustaq.offheap.FSTSerializedOffheapMap;
 import org.nustaq.offheap.FSTUTFStringOffheapMap;
 import org.nustaq.reallive.interfaces.*;
+import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
 import org.nustaq.serialization.simpleapi.FSTCoder;
 import org.nustaq.serialization.util.FSTUtil;
 
+import java.io.*;
+import java.util.ArrayList;
 import java.util.Iterator;
 
 /**
@@ -16,6 +20,8 @@ import java.util.Iterator;
  */
 public class OffHeapRecordStorage implements RecordStorage<String> {
 
+    private static final boolean DEBUG = false;
+    OutputStream protocol;
     FSTCoder coder;
 
     FSTSerializedOffheapMap<String,Record<String>> store;
@@ -30,6 +36,13 @@ public class OffHeapRecordStorage implements RecordStorage<String> {
 
     public OffHeapRecordStorage(String file, int maxKeyLen, int sizeMB, int estimatedNumRecords) {
         keyLen = maxKeyLen;
+        if ( DEBUG ) {
+            try {
+                protocol = new FileOutputStream(new File(file+"_prot") );
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
         init(file, sizeMB, estimatedNumRecords, maxKeyLen, true, Record.class );
     }
 
@@ -50,11 +63,11 @@ public class OffHeapRecordStorage implements RecordStorage<String> {
     }
 
     protected FSTSerializedOffheapMap<String,Record<String>> createMemMap(int sizeMB, int estimatedNumRecords, int keyLen) {
-        return new FSTUTFStringOffheapMap(keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords, coder);
+        return new FSTAsciiStringOffheapMap<Record<String>>(keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords, coder);
     }
 
     protected FSTSerializedOffheapMap<String,Record<String>> createPersistentMap(String tableFile, int sizeMB, int estimatedNumRecords, int keyLen) throws Exception {
-        return new FSTUTFStringOffheapMap<>(tableFile, keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords, coder);
+        return new FSTAsciiStringOffheapMap<>(tableFile, keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords, coder);
     }
 
     public StorageStats getStats() {
@@ -68,6 +81,14 @@ public class OffHeapRecordStorage implements RecordStorage<String> {
 
     @Override
     public RecordStorage put(String key, Record<String> value) {
+        if ( protocol != null ) {
+            try {
+                FSTConfiguration.getDefaultConfiguration().encodeToStream(protocol,new Object[] {"put",key,value});
+                protocol.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         store.put(key,value);
         return this;
     }
@@ -89,6 +110,14 @@ public class OffHeapRecordStorage implements RecordStorage<String> {
 
     @Override
     public Record<String> remove(String key) {
+        if ( protocol != null ) {
+            try {
+                FSTConfiguration.getDefaultConfiguration().encodeToStream(protocol,new Object[] {"remove",key});
+                protocol.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         Record<String> v = get(key);
         if ( v != null )
             store.remove(key);

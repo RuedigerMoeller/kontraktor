@@ -14,8 +14,11 @@ public interface EvalContext {
             return new StringValue((String) val);
         } else if ( val instanceof Float || val instanceof Double) {
             return new DoubleValue(((Number) val).doubleValue());
-        } else
+        } else if ( val instanceof Number ) {
             return new LongValue(((Number) val).longValue());
+        } else {
+            return new StringValue(val.toString());
+        }
     }
 
 }

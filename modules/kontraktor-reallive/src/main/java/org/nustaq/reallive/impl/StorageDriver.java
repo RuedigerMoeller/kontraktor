@@ -2,6 +2,7 @@ package org.nustaq.reallive.impl;
 
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.*;
+import org.nustaq.reallive.records.MapRecord;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -64,6 +65,15 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
                 Record<K> v = store.remove(removeMessage.getKey());
                 if ( v != null ) {
                     listener.receive(new RemoveMessage<>(v));
+                } else {
+                    System.out.println("*********** failed remove "+change.getKey());
+                    store.put(change.getKey(), new MapRecord<K>(change.getKey()).put("url", "POK"));
+                    System.out.println("  reput and get:" + store.get(change.getKey()));
+                    store.remove(change.getKey());
+                    System.out.println("  re-rem and get:" + store.get(change.getKey()));
+                    store.filter( rec -> rec.getKey().equals(change.getKey()), (r,e) -> {
+                        System.out.println("  "+r);
+                    });
                 }
                 break;
             }

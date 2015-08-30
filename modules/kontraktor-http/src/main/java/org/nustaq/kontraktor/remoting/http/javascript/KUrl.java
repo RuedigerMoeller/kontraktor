@@ -245,14 +245,24 @@ public class KUrl implements Serializable {
         return true;
     }
 
+    /**
+     * removes www and country
+     * @return
+     */
+    public KUrl unified() {
+        KUrl res = new KUrl(normalizeDomain(toUrlString(false)));
+        return res;
+    }
+
     protected String normalizeDomain(String s) {
         // remove country code
         int idx = s.lastIndexOf(".");
         if ( idx >= 0 ) {
-            s = s.substring(0,idx-1);
+            s = s.substring(0,idx);
         }
         if ( s.startsWith("www."))
             s = s.substring(4);
         return s;
     }
+
 }
