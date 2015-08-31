@@ -114,6 +114,7 @@ public class TCPClientConnector implements ActorClientConnector {
 
         public MyTCPSocket(String host, int port) throws IOException {
             super(host, port);
+            getSocket().setKeepAlive(true);
         }
 
         @Override
