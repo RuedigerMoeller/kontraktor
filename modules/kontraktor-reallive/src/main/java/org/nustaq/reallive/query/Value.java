@@ -6,9 +6,8 @@ import java.io.Serializable;
  * Created by moelrue on 27.08.2015.
  */
 public interface Value extends Serializable {
-    public final static Value TRUE = new LongValue(1);
-    public final static Value FALSE = new LongValue(0);
-
+    Value TRUE = new LongValue(1);
+    Value FALSE = new LongValue(0);
 
     double getDoubleValue();
     long getLongValue();
