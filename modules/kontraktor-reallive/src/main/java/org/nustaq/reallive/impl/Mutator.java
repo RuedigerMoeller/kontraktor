@@ -1,9 +1,8 @@
 package org.nustaq.reallive.impl;
 
-import org.nustaq.reallive.interfaces.ChangeMessage;
-import org.nustaq.reallive.interfaces.ChangeReceiver;
-import org.nustaq.reallive.interfaces.Mutation;
-import org.nustaq.reallive.interfaces.Record;
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
+import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.PutMessage;
 import org.nustaq.reallive.messages.RemoveMessage;
@@ -17,6 +16,14 @@ public class Mutator<K> implements Mutation<K> {
 
     public Mutator(ChangeReceiver<K> receiver) {
         this.receiver = receiver;
+    }
+
+    @Override
+    public IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object... keyVals) {
+        if ( receiver instanceof RealLiveTable) {
+            return ((RealLiveTable) receiver).putCAS(casCondition,key,keyVals);
+        }
+        return new Promise<>(null, "unsupported operation");
     }
 
     @Override

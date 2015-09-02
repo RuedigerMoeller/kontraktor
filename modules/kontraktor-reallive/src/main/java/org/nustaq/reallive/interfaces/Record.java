@@ -55,9 +55,9 @@ public interface Record<K> extends Serializable, EvalContext {
 
     default boolean getBool(String field) {
         Object val = get(field);
-        if ( val == null )
+        if ( val instanceof Boolean == false )
             return false;
-        return true;
+        return ((Boolean) val).booleanValue();
     }
 
     default Record<K> reduced(String[] reducedFields) {

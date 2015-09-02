@@ -1,5 +1,7 @@
 package org.nustaq.reallive.impl;
 
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.records.MapRecord;
@@ -123,6 +125,16 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
     public StorageDriver setListener(final ChangeReceiver listener) {
         this.listener = listener;
         return this;
+    }
+
+    @Override
+    public IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object... keyVals) {
+        Record<K> kRecord = getStore().get(key);
+        if ( casCondition == null || casCondition.test(kRecord) ) {
+            put(key,keyVals);
+            return new Promise(true);
+        }
+        return new Promise(false);
     }
 
     @Override

@@ -68,7 +68,17 @@ public class TableSharding<K> implements RealLiveTable<K> {
         subsMap.remove(subs);
     }
 
+    @Override
+    public IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object... keyVals) {
+        return shards[func.apply(key)].getMutation().putCAS(casCondition,key, keyVals);
+    }
+
     protected class ShardMutation implements Mutation<K> {
+
+        @Override
+        public IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object... keyVals) {
+            return shards[func.apply(key)].getMutation().putCAS(casCondition, key, keyVals);
+        }
 
         @Override
         public void put(K key, Object... keyVals) {

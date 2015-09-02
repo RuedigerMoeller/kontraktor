@@ -13,4 +13,5 @@ public interface RealLiveTable<K> extends ChangeReceiver<K>, RecordIterable<K>, 
     void stop();
     IPromise<StorageStats> getStats();
 
+    IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object[] keyVals);
 }

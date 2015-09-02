@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// version 3.0.8.01
+// version 3.0.8.02
 // JavaScript to Kontraktor bridge
 // matches kontraktor 3.0 json-no-ref encoded remoting
 // as I am kind of a JS beginner, hints are welcome :)
@@ -154,8 +154,14 @@ window.jsk = window.jsk || (function () {
    * @param optErrorcallback
    * @returns {jsk.Promise}
    */
+  _jsk.socket = null;
+  _jsk.remoteApp = null;
   _jsk.connect = function(wsurl, connectionMode, optErrorcallback) {
     var res = new _jsk.Promise();
+    if ( _jsk.socket != null ) {
+      res.complete(_jsk.remoteApp,null);
+      return res;
+    }
     var socket = null;
     if ( 'WS' === connectionMode ) {
       socket = new _jsk.KontraktorSocket(wsurl);
@@ -185,6 +191,7 @@ window.jsk = window.jsk || (function () {
         console.log(err);
     });
     socket.onclose( function() {
+      _jsk.socket = null;
       if ( ! res.isCompleted() )
         res.complete(null,"closed");
       if ( optErrorcallback )
@@ -193,6 +200,8 @@ window.jsk = window.jsk || (function () {
         console.log("close");
     });
     socket.onopen( function (event) {
+      _jsk.socket = socket;
+      _jsk.remoteApp = myHttpApp;
       res.complete(myHttpApp,null);
     });
     return res;
@@ -223,12 +232,11 @@ window.jsk = window.jsk || (function () {
   _jsk.Promise.prototype.then = function(cb) {
     if ( this.cb )
       throw "double callback registration on promise";
+    this.cb = cb;
+    this.nextPromise = new _jsk.Promise();
     if ( this.res ) {
       this._notify();
     }
-    else
-      this.cb = cb;
-    this.nextPromise = new _jsk.Promise();
     return this.nextPromise;
   };
 

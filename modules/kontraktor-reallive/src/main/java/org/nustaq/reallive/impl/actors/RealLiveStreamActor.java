@@ -137,4 +137,9 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
         return resolve(storageDriver.getStore().getStats());
     }
 
+    @Override
+    public IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object[] keyVals) {
+        return storageDriver.putCAS(casCondition,key,keyVals);
+    }
+
 }
