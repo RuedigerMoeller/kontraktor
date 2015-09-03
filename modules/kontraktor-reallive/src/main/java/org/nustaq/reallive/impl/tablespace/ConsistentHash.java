@@ -10,7 +10,6 @@ public class ConsistentHash<T> {
     final int SEGMENTS = 1013;
 
     Object primary[] = new Object[SEGMENTS];
-    Object secondary[] = new Object[SEGMENTS];
 
     ArrayList<T> servers = new ArrayList<>();
 
