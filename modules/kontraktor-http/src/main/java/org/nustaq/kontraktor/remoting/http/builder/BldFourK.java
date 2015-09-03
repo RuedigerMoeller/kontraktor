@@ -15,6 +15,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 */
 package org.nustaq.kontraktor.remoting.http.builder;
 
+import io.undertow.server.HttpHandler;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.http.HttpPublisher;
@@ -73,6 +74,11 @@ public class BldFourK {
         return wp;
     }
 
+    public BldFourK httpHandler( String urlPath, HttpHandler handler ) {
+        items.add(new BldHttpHandler(urlPath,handler));
+        return this;
+    }
+
     public HttpPublisher httpAPI(String urlPath, Actor facade) {
         HttpPublisher hp = new HttpPublisher( this, facade, hostName, urlPath, port);
         items.add(hp);
@@ -106,6 +112,9 @@ public class BldFourK {
             } else if (item instanceof BldDirRoot) {
                 BldDirRoot dr = (BldDirRoot) item;
                 http4K.publishFileSystem(getHostName(), dr.getUrlPath(), getPort(), new File(dr.getDir()));
+            } else if (item instanceof BldHttpHandler) {
+                BldHttpHandler dr = (BldHttpHandler) item;
+                http4K.publishHandler( getHostName(), dr.getUrlPath(), getPort(), dr.getHandler());
             } else if (item instanceof BldResPath) {
                 BldResPath dr = (BldResPath) item;
                 DynamicResourceManager drm = new DynamicResourceManager(!dr.isCacheAggregates(), dr.getUrlPath(), dr.isMinify(), dr.getResourcePath());

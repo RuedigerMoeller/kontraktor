@@ -44,8 +44,8 @@ public class BackOffStrategy {
     }
 
     /**
-     * @param spinUntilYield - number of busy spins until Thread.all is used
-     * @param yieldUntilPark  - number of Thread.all iterations until parkNanos(1) is used
+     * @param spinUntilYield - number of busy spins until Thread.yield is used
+     * @param yieldUntilPark  - number of Thread.yield iterations until parkNanos(1) is used
      * @param parkUntilSleep - number of parkNanos(1) is used until park(nanosToPark) is used. Default for nanosToPark is 0.5 milliseconds
      */
     public BackOffStrategy(int spinUntilYield, int yieldUntilPark, int parkUntilSleep) {

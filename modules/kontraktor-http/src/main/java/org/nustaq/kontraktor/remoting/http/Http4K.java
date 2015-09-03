@@ -63,7 +63,7 @@ public class Http4K {
     }
 
     public static BldFourK Build( String hostName, int port) {
-        return get().builder(hostName,port,null);
+        return get().builder(hostName, port, null);
     }
 
     // a map of port=>server
@@ -165,4 +165,9 @@ public class Http4K {
         return publisher.publish();
     }
 
+    public Http4K publishHandler(String hostName, String urlPath, int port, HttpHandler handler) {
+        Pair<PathHandler, Undertow> server = getServer(port, hostName);
+        server.car().addPrefixPath( urlPath, handler);
+        return this;
+    }
 }
