@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static org.nustaq.kontraktor.Actors.*;
 import static org.junit.Assert.assertTrue;
@@ -711,5 +712,50 @@ public class BasicTest {
         assertTrue(onFutCount.get() == 20);
     }
 
+    @Test
+    public void testTimeout() throws InterruptedException {
+        AtomicInteger count = new AtomicInteger(0);
+        IPromise p = new Promise().timeoutIn(1000);
+        Thread.sleep(2000);
+        p.then(new Callback() {
+            @Override
+            public void complete(Object result, Object error) {
+                System.out.println("res:" + result + " err:" + error);
+                count.incrementAndGet();
+            }
+        })
+        .onTimeout(new Consumer() {
+            @Override
+            public void accept(Object o) {
+                count.addAndGet(8);
+                System.out.println("the EXPECTED timout");
+            }
+        });
+        Thread.sleep(500);
+        assertTrue(count.get() == 9);
+    }
+
+
+    @Test
+    public void testTimeoutEarlyRegister() throws InterruptedException {
+        AtomicInteger count = new AtomicInteger(0);
+        IPromise p = new Promise().timeoutIn(1000);
+        p.then(new Callback() {
+            @Override
+            public void complete(Object result, Object error) {
+                System.out.println("res:" + result + " err:" + error);
+                count.incrementAndGet();
+            }
+        })
+        .onTimeout(new Consumer() {
+            @Override
+            public void accept(Object o) {
+                count.addAndGet(8);
+                System.out.println("the EXPECTED timout");
+            }
+        });
+        Thread.sleep(2000);
+        assertTrue(count.get() == 9);
+    }
 
 }
