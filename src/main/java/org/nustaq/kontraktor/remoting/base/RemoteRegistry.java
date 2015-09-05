@@ -73,6 +73,9 @@ public abstract class RemoteRegistry implements RemoteConnection {
     protected BiFunction<Actor,String,Boolean> remoteCallInterceptor =
     (actor,methodName) -> {
         Method method = actor.__getCachedMethod(methodName, actor);
+        if ( method == null ) {
+            Log.Warn(null, "no such method on "+actor.getClass().getSimpleName()+"#"+methodName);
+        }
         if ( method == null || method.getAnnotation(Local.class) != null ) {
             return false;
         }

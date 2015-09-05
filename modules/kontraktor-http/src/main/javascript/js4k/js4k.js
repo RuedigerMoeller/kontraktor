@@ -53,6 +53,18 @@ window.jsk = window.jsk || (function () {
   };
 
   /**
+   * transforms a java hashmap to a JS map, assumes keys are strings
+   * @param jmap
+   */
+  jsk.prototype.toJSMap = function(jmap) {
+    var res = {};
+    for ( var i = 0; i < jmap.length; i+=2 ) {
+      res[jmap[i]] = jmap[i+1];
+    }
+    return res;
+  };
+
+  /**
    *
    * build java list style collection
    * Does not work for java Map's
@@ -112,7 +124,7 @@ window.jsk = window.jsk || (function () {
     }
     if (obj["typ"] && obj["obj"]) {
       if ('list' === obj['typ'] || 'map' === obj['typ'] ) {
-        // remove leading element length from arraylist
+        // remove leading element length from arraylist, map
         obj["obj"].shift();
       }
       var res = this.transform(obj["obj"], preserveTypeAsAttribute, optionalTransformer);
