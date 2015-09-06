@@ -114,7 +114,7 @@ public class KUrl implements Serializable {
         StringBuilder res = new StringBuilder(s.length());
         for (int i = 0; i < s.length(); i++) {
              char c = s.charAt(i);
-             if ( c > 127 || (! Character.isLetterOrDigit(c) && (c != '/' || ! allowFileSep) && c != '.' ) ) {
+             if ( c > 127 || (! Character.isLetterOrDigit(c) && (c != '/' || ! allowFileSep) && c != '.' && c != '-') ) {
                  c = '_';
              }
             res.append(c);
