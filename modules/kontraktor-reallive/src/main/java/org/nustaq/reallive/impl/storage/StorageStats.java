@@ -81,4 +81,16 @@ public class StorageStats implements Serializable {
     public List<StorageStats> getSubStats() {
         return subStats;
     }
+
+    @Override
+    public String toString() {
+        return "StorageStats{" +
+                   "name='" + name + '\'' +
+                   ", usedMem=" + usedMem/(1024*1024) + " MB"+
+                   ", freeMem=" + freeMem/(1024*1024) + " MB"+
+                   ", capacity=" + capacity + " MB"+
+                   ", numElems=" + numElems +
+                   ", subStats=" + subStats +
+                   '}';
+    }
 }

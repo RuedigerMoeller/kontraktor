@@ -2,6 +2,7 @@ package org.nustaq.reallive.impl;
 
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.records.MapRecord;
@@ -19,6 +20,7 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
 
     public StorageDriver(RecordStorage<K> store) {
         this.store = store;
+        Log.Info(this,""+store.getStats());
     }
 
     public StorageDriver() {

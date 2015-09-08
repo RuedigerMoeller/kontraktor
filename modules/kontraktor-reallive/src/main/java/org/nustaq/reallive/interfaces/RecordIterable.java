@@ -20,11 +20,11 @@ public interface RecordIterable<K> {
 
     <T> void forEach(Spore<Record<K>,T> spore);
 
-    @CallerSideMethod default void filter( RLPredicate<Record<K>> predicate, Callback cb ) {
+    @CallerSideMethod default void filter( RLPredicate<Record<K>> predicate, Callback<Record<K>> cb ) {
         forEach(new FilterSpore<>(predicate).forEach(cb).onFinish( () -> cb.finish() ));
     }
 
-    @CallerSideMethod default void query(String query, Callback cb) throws ParseException {
+    @CallerSideMethod default void query(String query, Callback<Record<K>> cb) throws ParseException {
         this.filter(new QueryPredicate<Record<K>>(query), cb);
     }
 

@@ -72,6 +72,7 @@ public class OffHeapRecordStorage implements RecordStorage<String> {
 
     public StorageStats getStats() {
         StorageStats stats = new StorageStats()
+            .name(store.getFileName())
             .capacity(store.getCapacityMB())
             .freeMem(store.getFreeMem())
             .usedMem(store.getUsedMem())
