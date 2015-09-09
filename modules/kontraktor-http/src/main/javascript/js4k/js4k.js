@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// version 3.0.8.02
+// version 3.0.9
 // JavaScript to Kontraktor bridge
 // matches kontraktor 3.0 json-no-ref encoded remoting
 // as I am kind of a JS beginner, hints are welcome :)
