@@ -70,14 +70,14 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
                 if ( v != null ) {
                     listener.receive(new RemoveMessage<>(v));
                 } else {
-                    System.out.println("*********** failed remove "+change.getKey());
-                    store.put(change.getKey(), new MapRecord<K>(change.getKey()).put("url", "POK"));
-                    System.out.println("  reput and get:" + store.get(change.getKey()));
-                    store.remove(change.getKey());
-                    System.out.println("  re-rem and get:" + store.get(change.getKey()));
-                    store.filter( rec -> rec.getKey().equals(change.getKey()), (r,e) -> {
-                        System.out.println("  "+r);
-                    });
+//                    System.out.println("*********** failed remove "+change.getKey());
+//                    store.put(change.getKey(), new MapRecord<K>(change.getKey()).put("url", "POK"));
+//                    System.out.println("  reput and get:" + store.get(change.getKey()));
+//                    store.remove(change.getKey());
+//                    System.out.println("  re-rem and get:" + store.get(change.getKey()));
+//                    store.filter( rec -> rec.getKey().equals(change.getKey()), (r,e) -> {
+//                        System.out.println("  "+r);
+//                    });
                 }
                 break;
             }
