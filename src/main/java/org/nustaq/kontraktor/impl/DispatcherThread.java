@@ -430,7 +430,7 @@ public class DispatcherThread extends Thread implements Monitorable {
     }
 
     /**
-     * @return true if DispatcherThread is not shut down
+     * @return true if DispatcherThread is shut down
      */
     public boolean isShutDown() {
         return ! shutDown;
