@@ -36,7 +36,8 @@ public class DependencyResolver implements HtmlImportShim.ResourceLocator{
     protected File resourcePath[];
     protected String baseDir = ".";
 
-    public DependencyResolver(String[] resourcePath) {
+    public DependencyResolver(String baseDir, String[] resourcePath) {
+        this.baseDir = baseDir;
         setResourcePath(resourcePath);
     }
 

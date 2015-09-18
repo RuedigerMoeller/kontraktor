@@ -53,12 +53,12 @@ public class DynamicResourceManager extends FileResourceManager {
     ConcurrentHashMap<String,Resource> lookupCache = new ConcurrentHashMap<>();
     boolean minify;
 
-    public DynamicResourceManager(boolean devMode, String prefix, boolean minify, String ... resourcePath) {
+    public DynamicResourceManager(boolean devMode, String prefix, boolean minify, String resPathBase, String ... resourcePath) {
         super(new File("."), 100);
         this.devMode = devMode;
         this.minify = minify;
         setPrefix(prefix);
-        dependencyResolver = new DependencyResolver(resourcePath);
+        dependencyResolver = new DependencyResolver(resPathBase,resourcePath);
         if ( devMode )
             Log.Warn(this, "Dependency resolving is running in *DEVELOPMENT MODE*. Turn off development mode to cache aggregated resources");
         else

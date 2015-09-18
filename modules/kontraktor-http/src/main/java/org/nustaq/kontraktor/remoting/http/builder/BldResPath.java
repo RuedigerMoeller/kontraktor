@@ -23,6 +23,7 @@ public class BldResPath {
     transient BldFourK cfg4k;
     String urlPath = "/dyn";
     String resourcePath[];
+    String baseDir =".";
     boolean cacheAggregates = true;
     Boolean compress;
 
@@ -52,6 +53,15 @@ public class BldResPath {
     public BldResPath stripComments(final boolean stripComments) {
         this.stripComments = stripComments;
         return this;
+    }
+
+    public BldResPath baseDir(final String baseDir) {
+        this.baseDir = baseDir;
+        return this;
+    }
+
+    public String getBaseDir() {
+        return baseDir;
     }
 
     public BldResPath minify(final boolean minify) {

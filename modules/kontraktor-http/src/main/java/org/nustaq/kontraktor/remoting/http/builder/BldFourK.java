@@ -117,7 +117,7 @@ public class BldFourK {
                 http4K.publishHandler( getHostName(), dr.getUrlPath(), getPort(), dr.getHandler());
             } else if (item instanceof BldResPath) {
                 BldResPath dr = (BldResPath) item;
-                DynamicResourceManager drm = new DynamicResourceManager(!dr.isCacheAggregates(), dr.getUrlPath(), dr.isMinify(), dr.getResourcePath());
+                DynamicResourceManager drm = new DynamicResourceManager(!dr.isCacheAggregates(), dr.getUrlPath(), dr.isMinify(), dr.getBaseDir(), dr.getResourcePath());
                 HtmlImportShim shim = new HtmlImportShim(dr.getUrlPath());
                 shim
                     .minify(dr.isMinify())
