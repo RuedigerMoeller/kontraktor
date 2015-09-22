@@ -24,8 +24,7 @@ import org.nustaq.kontraktor.util.Log;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Queue;
-import java.util.TimerTask;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -228,6 +227,29 @@ public class SimpleScheduler implements Scheduler {
         return new CallbackInvokeHandler(toWrap, dispatcher);
     }
 
+    public static Class[] getAllInterfaces(Class<?> clazz) {
+        Set<Class<?>> classes = getAllInterfacesForClassAsSet(clazz, null);
+        Class cl[] = new Class[classes.size()];
+        classes.toArray(cl);
+        return cl;
+    }
+
+    public static Set<Class<?>> getAllInterfacesForClassAsSet(Class<?> clazz, ClassLoader classLoader) {
+        if (clazz.isInterface()) {
+            return Collections.<Class<?>>singleton(clazz);
+        }
+        Set<Class<?>> interfaces = new HashSet<Class<?>>();
+        while (clazz != null) {
+            Class<?>[] ifcs = clazz.getInterfaces();
+            for (Class<?> ifc : ifcs) {
+                interfaces.addAll(getAllInterfacesForClassAsSet(ifc, classLoader));
+            }
+            clazz = clazz.getSuperclass();
+        }
+        return interfaces;
+    }
+
+
     @Override
     public <T> T inThread(Actor actor, T callback) {
         if (actor==null) {
@@ -235,7 +257,7 @@ public class SimpleScheduler implements Scheduler {
         }
         if ( Proxy.isProxyClass(callback.getClass()) )
             return callback;
-        Class<?>[] interfaces = callback.getClass().getInterfaces();
+        Class<?>[] interfaces = getAllInterfaces(callback.getClass());
         InvocationHandler invoker = actor.__scheduler.getInvoker(actor, callback);
         if ( invoker == null ) // called from outside actor world
         {
