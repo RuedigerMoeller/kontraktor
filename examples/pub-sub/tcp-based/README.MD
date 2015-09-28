@@ -7,7 +7,7 @@
 
 show the power of abstraction. Just a few lines of quite naive code:
 * no callback id mapping and stuff
-* easy implementation of request timeout if one member has left the cluster
+* easy implementation of request timeout if a member has left the cluster
 * no encoding/decoding hassle
 
 `MediationActor` - the pub-sub server
