@@ -33,6 +33,8 @@ public class Mutator<K> implements Mutation<K> {
 
     @Override
     public void addOrUpdate(K key, Object... keyVals) {
+        if ( key instanceof Record )
+            throw new RuntimeException("probably accidental method resolution fail. Use addOrUpdateRec instead");
         receiver.receive(RLUtil.get().addOrUpdate(key, keyVals));
     }
 

@@ -48,7 +48,11 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
             case ChangeMessage.ADD:
             {
                 AddMessage<K> addMessage = (AddMessage) change;
-                Record<K> prevRecord = store.get(addMessage.getKey());
+                K key = addMessage.getKey();
+                if ( key instanceof String == false ) {
+                    int debug = 1;
+                }
+                Record<K> prevRecord = store.get(key);
                 if ( prevRecord != null && ! addMessage.isUpdateIfExisting() ) {
                     return;
                 }
