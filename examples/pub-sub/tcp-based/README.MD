@@ -1,5 +1,6 @@
-#topic based Pub-Sub example (websockets, connection based)
+#topic based Pub-Sub example 
 
+* websockets, connection based
 * uses a mediation service ("Gossip Server"). Need to start first.
 * can send messages fire-and-forget to all subscribers of a topic
 * supports one-to many request/response. A group memebr sends one message and receives a reply from each memeber of the group.
