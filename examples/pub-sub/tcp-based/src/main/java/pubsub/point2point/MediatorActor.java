@@ -47,7 +47,7 @@ public class MediatorActor extends Actor<MediatorActor> {
         if ( receiverActors != null ) {
             for (Iterator<ReceiverActor> iterator = receiverActors.iterator(); iterator.hasNext(); ) {
                 ReceiverActor receiverActor = iterator.next();
-                if ( receiverActor.equals(subsriber) ) // do not receive self sent
+                if ( receiverActor.equals(subsriber) )
                     iterator.remove();
             }
         }
@@ -64,7 +64,7 @@ public class MediatorActor extends Actor<MediatorActor> {
         List<ReceiverActor> subscriber = topic2Subscriber.get(topic);
         if ( subscriber != null ) {
             subscriber.stream()
-                .filter(subs -> !subs.equals(sender))
+                .filter(subs -> !subs.equals(sender)) // do not receive self sent
                 .forEach(subs -> subs.receiveTell(topic, message) );
         }
     }
