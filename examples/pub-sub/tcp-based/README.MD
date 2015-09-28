@@ -10,6 +10,8 @@ show the power of abstraction. Just a few lines of quite naive code:
 * easy implementation of request timeout if one member has left the cluster
 * no encoding/decoding hassle
 
-MediationActor - the pub-sub server
-ReceiverActor - a pub sub member sending and receiving on a topic
-BroadcastWithResultExample - a member sending a request to all other members and receives a result from each
+`MediationActor` - the pub-sub server
+
+`ReceiverActor` - a pub sub member sending and receiving on a topic
+
+`BroadcastWithResultExample` - a member sending a request to all other members and receives a result from each
