@@ -5,6 +5,9 @@ import org.nustaq.kontraktor.util.Log;
 
 /**
  * Created by ruedi on 28/09/15.
+ *
+ * does a broadcast and receives one result per receiver
+ *
  */
 public class BroadcastWithResultExample extends ReceiverActor {
 

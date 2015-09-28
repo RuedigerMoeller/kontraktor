@@ -6,6 +6,9 @@ import org.nustaq.kontraktor.util.Log;
 
 /**
  * Created by moelrue on 28.09.2015.
+ *
+ * subscribes and sends broadcasts cyclically on topic "defaultTopic"
+ *
  */
 public class ReceiverActor extends Actor<ReceiverActor> {
 
