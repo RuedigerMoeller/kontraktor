@@ -54,7 +54,11 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
     @Override
     public <T> void forEach(Spore<Record<K>, T> spore) {
         checkThread();
-        storageDriver.getStore().forEach(spore);
+        try {
+            storageDriver.getStore().forEach(spore);
+        } catch (Exception ex) {
+            spore.complete(null,ex);
+        }
     }
 
     @Override

@@ -168,7 +168,7 @@ public class TableSharding<K> implements RealLiveTable<K> {
         StorageStats stats = new StorageStats();
         for (int i = 0; i < shardStats.length; i++) {
             StorageStats storageStats = shardStats[i].get();
-            stats.addTo(storageStats);
+            storageStats.addTo(stats);
         }
         return new Promise<>(stats);
     }

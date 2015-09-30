@@ -115,6 +115,22 @@ public abstract class Spore<I,O> implements Serializable, Cloneable {
     }
 
     /**
+     * to called from remote site. directly send stuff to remote site via callback.
+     * Warning: prefer stream(), streamError() and finish().
+     *
+     * this can be used for generic exception catching etc. Take care to not accidentally
+     * introduce multithreading ..
+     *
+     * Any error != 'CONT' will shut down the backchannel to remote callee afterwards.
+     *
+     * @param res
+     * @param err
+     */
+    public void complete( O res, Object err ) {
+        cb.complete(res,err);
+    }
+
+    /**
      * to be read at remote side in order to decide wether to stop e.g. iteration.
      * @return
      */

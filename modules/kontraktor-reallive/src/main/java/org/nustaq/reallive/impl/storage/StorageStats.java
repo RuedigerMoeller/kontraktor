@@ -67,7 +67,7 @@ public class StorageStats implements Serializable {
         storageStats.numElems += numElems;
         storageStats.freeMem += freeMem;
         storageStats.usedMem += usedMem;
-        storageStats.name += name;
+        storageStats.name = name;
         storageStats.addSubstats(this);
     }
 
@@ -93,4 +93,15 @@ public class StorageStats implements Serializable {
                    ", subStats=" + subStats +
                    '}';
     }
+
+    public String toStringLean() {
+        return "" +
+                   "name='" + name + '\'' +
+                   ", usedMem=" + usedMem/(1024*1024) + " MB"+
+                   ", freeMem=" + freeMem/(1024*1024) + " MB"+
+                   ", capacity=" + capacity + " MB"+
+                   ", numElems=" + numElems +
+                   "";
+    }
+
 }
