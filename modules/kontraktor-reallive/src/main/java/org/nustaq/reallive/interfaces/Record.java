@@ -1,6 +1,8 @@
 package org.nustaq.reallive.interfaces;
 
 import org.nustaq.reallive.query.EvalContext;
+import org.nustaq.reallive.query.StringValue;
+import org.nustaq.reallive.query.Value;
 import org.nustaq.reallive.records.MapRecord;
 
 import java.io.Serializable;
@@ -12,8 +14,14 @@ public interface Record<K> extends Serializable, EvalContext {
 
     K getKey();
     String[] getFields();
-    Object get( String field );
     Record put( String field, Object value );
+
+    @Override
+    default Value getValue(String field) {
+        if ( "_key".equals(field))
+            return new StringValue( getKey().toString() );
+        return EvalContext.super.getValue(field);
+    }
 
     default int getInt(String field) {
         Object val = get(field);

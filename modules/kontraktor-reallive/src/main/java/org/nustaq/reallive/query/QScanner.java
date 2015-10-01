@@ -33,6 +33,12 @@ public class QScanner {
                 }
                 if ( ch > 0 ) pos--;
                 return text.substring(start,pos);
+            } else if ( ch == '\"' ) { // string
+                ch=readChar();
+                while( ch > 0 && ch != '\"') {
+                    ch=readChar();
+                }
+                return text.substring(start,pos);
             } else if ( ch == '\'' ) { // string
                 ch=readChar();
                 while( ch > 0 && ch != '\'') {
@@ -46,9 +52,9 @@ public class QScanner {
                 }
                 if ( ch > 0 ) pos--;
                 return text.substring(start,pos);
-            } else if ( !Character.isJavaIdentifierPart(ch) && ! Character.isWhitespace(ch) && ch != '\'') { // operator
+            } else if ( !Character.isJavaIdentifierPart(ch) && ! Character.isWhitespace(ch) && ch != '\'' && ch != '\"' ) { // operator
                 ch=readChar();
-                while( !Character.isJavaIdentifierPart(ch) && ! Character.isWhitespace(ch) && ch > 0 && ch != '\'') {
+                while( !Character.isJavaIdentifierPart(ch) && ! Character.isWhitespace(ch) && ch > 0 && ch != '\'' && ch != '\"') {
                     ch=readChar();
                 }
                 if ( ch > 0 ) pos--;

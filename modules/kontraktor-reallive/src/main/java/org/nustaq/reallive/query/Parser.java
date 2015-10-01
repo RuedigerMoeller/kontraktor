@@ -131,6 +131,8 @@ public class Parser {
             } else {
                 if ( stringToken.startsWith("'") && stringToken.endsWith("'") ) {
                     stackRPN.push(new StringValue(stringToken.substring(1, stringToken.length() - 1)));
+                } else if ( stringToken.startsWith("\"") && stringToken.endsWith("\"") ) {
+                    stackRPN.push(new StringValue(stringToken.substring(1, stringToken.length() - 1)));
                 } else //if ( stringToken.startsWith(VARIABLE+".") )
                 {
                     stackRPN.push(new VarPath(stringToken,ctxRef));
@@ -234,7 +236,7 @@ public class Parser {
             .put("b", 200);
 
         Thread.sleep(2000);
-        CompiledQuery ctrue = Query.compile("time < age(1,'sec')");
+        CompiledQuery ctrue = Query.compile("time < age(1,\"sec\")");
         CompiledQuery cfalse = Query.compile("time < age(5,'sec')");
         System.out.println(ctrue.evaluate(hm));
         System.out.println(cfalse.evaluate(hm));
