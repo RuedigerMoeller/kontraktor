@@ -17,6 +17,8 @@ public class KUrl implements Serializable {
     String protocol;
     String elements[];
 
+    boolean isTopDomain = false; // "/images/bla.png"
+    boolean isTopRoot = false; // "//x.y.com/images"
     public static String stripDoubleSeps(String url) {
         while( url.indexOf("//") > 0 )
             url = url.replace("//","/");
@@ -28,6 +30,10 @@ public class KUrl implements Serializable {
         if ( idx >= 0 ) {
             protocol = url.substring(0,idx);
             url = url.substring(idx+3);
+        }
+        isTopRoot = url.startsWith("//");
+        if (!isTopRoot) {
+            isTopDomain = url.startsWith("/");
         }
         url = stripDoubleSeps(url);
         elements = url.split("/");
@@ -67,6 +73,15 @@ public class KUrl implements Serializable {
 
     public KUrl concat(KUrl url) {
         String[] elems = url.getElements();
+        if (url.isTopRoot) {
+            return new KUrl(protocol,elems);
+        }
+        if (url.isTopDomain) {
+            String newElems[] = new String[elems.length+1];
+            System.arraycopy(elems,0,newElems,1,elems.length);
+            newElems[0] = elements[0];
+            return new KUrl(protocol,newElems);
+        }
         String newElems[] = new String[elems.length+elements.length];
         System.arraycopy(elements,0,newElems,0,elements.length);
         System.arraycopy(elems, 0, newElems, elements.length, elems.length);
@@ -200,8 +215,9 @@ public class KUrl implements Serializable {
     }
 
     public static void main(String[] args) {
-        KUrl url = new KUrl( "///test/one/../two/three");
-        System.out.println(url.toUrlString());
+        KUrl root = new KUrl("http://pok.as.de/pokpak.html");
+        KUrl url = new KUrl( "//test/one/../two/three");
+        System.out.println(root.concat(url));
         System.out.println(url.concat("../../bla").toUrlString());
 
         System.out.println(new KUrl("http://pok.de:9090/test/img/../kacka.xx").mangled());
