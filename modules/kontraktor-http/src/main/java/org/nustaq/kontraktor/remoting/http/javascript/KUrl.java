@@ -46,7 +46,7 @@ public class KUrl implements Serializable {
     protected void normalize() {
         List<String> newElems = new ArrayList<>();
         for (int i = 0; i < elements.length; i++) {
-            String element = elements[i].trim().toLowerCase();
+            String element = elements[i].trim();//.toLowerCase(); is significant (feedburner)
             if ( element.length() > 0 ) {
                 if ( ! element.equals(".") ) {
                     if ( element.equals("..") && newElems.size() > 0 && ! "..".equalsIgnoreCase(newElems.get(newElems.size()-1)) ) {
