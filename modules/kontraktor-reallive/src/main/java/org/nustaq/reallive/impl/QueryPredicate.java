@@ -24,6 +24,7 @@ public class QueryPredicate<T> implements RLPredicate<T> {
         if ( compiled == null ) {
             compiled = Query.compile(query);
         }
-        return compiled.evaluate((EvalContext) t).isTrue();
+        final boolean res = compiled.evaluate((EvalContext) t).isTrue();
+        return res;
     }
 }
