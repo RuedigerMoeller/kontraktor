@@ -89,6 +89,10 @@ public class Actors {
         return ! CONT.equals(error);
     }
 
+    public static boolean isTimeout(Object error) {
+        return error instanceof Timeout;
+    }
+
     public static boolean isComplete(Object error) {
         return error == null;
     }

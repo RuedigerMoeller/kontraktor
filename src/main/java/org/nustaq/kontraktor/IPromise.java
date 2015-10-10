@@ -192,7 +192,7 @@ public interface IPromise<T> extends Callback<T> {
      * @param millis
      * @return this for chaining
      */
-    public IPromise timeoutIn(long millis);
+    public IPromise<T> timeoutIn(long millis);
 
     /**
      * @return wether an error or a result has been set to this future
