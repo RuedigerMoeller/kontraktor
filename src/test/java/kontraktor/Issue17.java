@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPPublisher;
 
 import java.util.ArrayList;
@@ -48,7 +49,9 @@ public class Issue17 {
             };
             tpub.start();
 
-            ConnectableActor con = new org.nustaq.kontraktor.remoting.tcp.TCPConnectable(HelloActor.class, "localhost", 8181);
+            ConnectableActor con =
+                new TCPConnectable(HelloActor.class, "localhost", 8181);
+//                    .inboundQueueSize(1_000_000);
 
             Callback<ActorClientConnector> disconnectCallback = new Callback<ActorClientConnector>() {
                 @Override
@@ -110,7 +113,7 @@ public class Issue17 {
             }
         }
 
-        static void callActor(HelloActor act) {
+        static void callActor_BP(HelloActor act) {
             byte[] bb = new byte[500];
             long n = 1_000_000;
             try {
@@ -142,6 +145,62 @@ public class Issue17 {
                 th.printStackTrace();
             }
         }
+
+        // no BP version
+        static void callActorNOBP(HelloActor act) {
+            byte[] bb = new byte[500];
+            long n = 1_000_000;
+            try {
+                while (true) {
+
+                    List<IPromise<Integer>> l = new ArrayList<>();
+                    for (long i = 0; i < n; i++) {
+                        l.add(act.greet(bb));
+                    }
+
+                    l.forEach( promise -> {
+                        Integer i = promise.await();
+                        if ( i == null )
+                            throw new RuntimeException("ERROR");
+                    });
+
+                    System.out.println("..");
+                }
+            } catch (Throwable th) {
+                th.printStackTrace();
+            }
+        }
+
+        // complete original version
+        static void callActor(HelloActor act) {
+            byte [] bb = new byte[500];
+            long n=1000000;
+            try {
+                while (true) {
+                    long tim = System.currentTimeMillis();
+                    List<IPromise<Integer>> l = new ArrayList<>();
+                    for (long i = 0; i < n; i++) {
+                        l.add(act.greet(bb));
+                    }
+
+                    l.forEach((integerIPromise) -> {
+                        try{integerIPromise.await();}catch(Throwable th){th.printStackTrace();}
+                    });
+
+                    l.forEach(p -> {
+                        try {
+                            p.get();
+                        } catch (Throwable th) {
+                            th.printStackTrace();
+                        }
+                    });
+                    System.out.println(""+(System.currentTimeMillis()-tim));
+                }
+            } catch(Throwable th){
+                th.printStackTrace();
+            }
+        }
+
     }
 
     public static void main(String[] args) throws InterruptedException {
