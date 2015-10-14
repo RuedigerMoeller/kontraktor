@@ -29,14 +29,14 @@ public class RemoteCallEntry implements Serializable {
     public static final int MAILBOX = 0;
     public static final int CBQ = 1;
 
-    int receiverKey; // id of published actor in host, contains cbId in case of callbacks
-    int futureKey; // id of future if any
+    long receiverKey; // id of published actor in host, contains cbId in case of callbacks
+    long futureKey; // id of future if any
     String method;
     @ArgTypes
     Object args[];
     int queue;
 
-    public RemoteCallEntry(int futureKey, int receiverKey, String method, Object[] args) {
+    public RemoteCallEntry(long futureKey, long receiverKey, String method, Object[] args) {
         this.receiverKey = receiverKey;
         this.futureKey = futureKey;
         this.method = method;
@@ -51,7 +51,7 @@ public class RemoteCallEntry implements Serializable {
         this.queue = queue;
     }
 
-    public int getReceiverKey() {
+    public long getReceiverKey() {
         return receiverKey;
     }
 
@@ -59,7 +59,7 @@ public class RemoteCallEntry implements Serializable {
         this.receiverKey = receiverKey;
     }
 
-    public int getFutureKey() {
+    public long getFutureKey() {
         return futureKey;
     }
 

@@ -26,7 +26,7 @@ public interface RemoteConnection {
      */
     void close();
     void setClassLoader( ClassLoader l );
-    int getRemoteId( Actor act );
+    long getRemoteId(Actor act);
 
     /**
      * unpublishes this actor by removing mappings and stuff. Does not actively close the underlying connection

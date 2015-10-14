@@ -46,7 +46,7 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
     @Override
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws Exception {
         // fixme: detect local actors returned from foreign
-        int id = in.readInt();
+        long id = in.readLong();
 //        AtomicReference<ObjectSocket> chan = reg.getWriteObjectSocket();
 //        Callback cb = (Object result, Object error) -> {
 //            try {
@@ -62,8 +62,8 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
 
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
-        int id = reg.registerCallback((Callback) toWrite); // register published host side
-        out.writeInt(id);
+        long id = reg.registerCallback((Callback) toWrite); // register published host side
+        out.writeLong(id);
     }
 
 }

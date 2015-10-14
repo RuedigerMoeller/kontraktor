@@ -34,7 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -63,12 +63,12 @@ public abstract class RemoteRegistry implements RemoteConnection {
     protected FSTConfiguration conf;
     protected RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
     // holds published actors, futures and callbacks of this process
-    protected AtomicInteger actorIdCount = new AtomicInteger(0);
-    protected ConcurrentHashMap<Integer, Object> publishedActorMapping = new ConcurrentHashMap<>();
-    protected ConcurrentHashMap<Object, Integer> publishedActorMappingReverse = new ConcurrentHashMap<>();
+    protected AtomicLong actorIdCount = new AtomicLong(0);
+    protected ConcurrentHashMap<Long, Object> publishedActorMapping = new ConcurrentHashMap<>();
+    protected ConcurrentHashMap<Object, Long> publishedActorMappingReverse = new ConcurrentHashMap<>();
     // have disabled dispacther thread
     protected ConcurrentLinkedQueue<Actor> remoteActors = new ConcurrentLinkedQueue<>();
-    protected ConcurrentHashMap<Integer,Actor> remoteActorSet = new ConcurrentHashMap<>();
+    protected ConcurrentHashMap<Long,Actor> remoteActorSet = new ConcurrentHashMap<>();
     protected volatile boolean terminated = false;
     protected BiFunction<Actor,String,Boolean> remoteCallInterceptor =
     (actor,methodName) -> {
@@ -114,11 +114,11 @@ public abstract class RemoteRegistry implements RemoteConnection {
 		conf.registerSerializer(Timeout.class, new TimeoutSerializer(), false);
 	}
 
-    public Actor getPublishedActor(int id) {
+    public Actor getPublishedActor(long id) {
         return (Actor) publishedActorMapping.get(id);
     }
 
-    public Callback getPublishedCallback(int id) {
+    public Callback getPublishedCallback(long id) {
         return (Callback) publishedActorMapping.get(id);
     }
 
@@ -138,16 +138,21 @@ public abstract class RemoteRegistry implements RemoteConnection {
         this.terminated = terminated;
     }
 
-    public int publishActor(Actor act) {
-        Integer integer = publishedActorMappingReverse.get(act.getActorRef());
+    public long publishActor(Actor act) {
+        Long integer = publishedActorMappingReverse.get(act.getActorRef());
         if ( integer == null ) {
-            integer = actorIdCount.incrementAndGet();
+            integer = newActId();
             publishActorDirect(integer, act);
         }
         return integer;
     }
 
-    private void publishActorDirect(Integer integer, Actor act) {
+    private long newActId() {
+        long id = actorIdCount.incrementAndGet();
+        return id;
+    }
+
+    private void publishActorDirect(Long integer, Actor act) {
         publishedActorMapping.put(integer, act.getActorRef());
         publishedActorMappingReverse.put(act.getActorRef(), integer);
         act.__addRemoteConnection(this);
@@ -160,7 +165,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
      *
      */
     public void unpublishActor(Actor act) {
-        Integer integer = publishedActorMappingReverse.get(act.getActorRef());
+        Long integer = publishedActorMappingReverse.get(act.getActorRef());
         if ( integer != null ) {
             Log.Debug(this, ""+act.getClass().getSimpleName()+" unpublished");
             publishedActorMapping.remove(integer);
@@ -172,17 +177,17 @@ public abstract class RemoteRegistry implements RemoteConnection {
         }
     }
 
-    public int registerPublishedCallback(Callback cb) {
-        Integer integer = publishedActorMappingReverse.get(cb);
+    public long registerPublishedCallback(Callback cb) {
+        Long integer = publishedActorMappingReverse.get(cb);
         if ( integer == null ) {
-            integer = actorIdCount.incrementAndGet();
+            integer = newActId();
             publishedActorMapping.put(integer, cb);
             publishedActorMappingReverse.put(cb, integer);
         }
         return integer;
     }
 
-    public void removePublishedObject(int receiverKey) {
+    public void removePublishedObject(long receiverKey) {
         Object remove = publishedActorMapping.remove(receiverKey);
         if ( remove != null ) {
             publishedActorMappingReverse.remove(remove);
@@ -199,7 +204,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         });
     }
 
-    public Actor registerRemoteActorRef(Class actorClazz, int remoteId, Object client) {
+    public Actor registerRemoteActorRef(Class actorClazz, long remoteId, Object client) {
         Actor actorRef = remoteActorSet.get(remoteId);
         if ( actorRef == null ) {
             Actor res = Actors.AsActor(actorClazz, getScheduler());
@@ -393,7 +398,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         }
     }
 
-    public void receiveCBResult(ObjectSocket chan, int id, Object result, Object error) throws Exception {
+    public void receiveCBResult(ObjectSocket chan, long id, Object result, Object error) throws Exception {
         if (facadeActor!=null) {
             Thread debug = facadeActor.getCurrentDispatcher();
             if ( Thread.currentThread() != facadeActor.getCurrentDispatcher() ) {
@@ -441,8 +446,8 @@ public abstract class RemoteRegistry implements RemoteConnection {
         conf.setClassLoader(l);
     }
 
-    public int getRemoteId(Actor act) {
-        Integer integer = publishedActorMappingReverse.get(act.getActorRef());
+    public long getRemoteId(Actor act) {
+        Long integer = publishedActorMappingReverse.get(act.getActorRef());
         return integer == null ? -1 : integer;
     }
 
@@ -475,7 +480,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                     if ( ce.getMethod().getName().equals("asyncstop") ) {
                         Log.Lg.error(this, null, "cannot stop remote actors" );
                     } else {
-                        int futId = 0;
+                        long futId = 0;
                         if (ce.hasFutureResult()) {
                             futId = registerPublishedCallback(ce.getFutureCB());
                         }

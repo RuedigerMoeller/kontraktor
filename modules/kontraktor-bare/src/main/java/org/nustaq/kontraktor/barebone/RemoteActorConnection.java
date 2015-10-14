@@ -32,6 +32,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -108,11 +109,11 @@ public class RemoteActorConnection {
     /**
      * callback id => promise or callback
      */
-    protected ConcurrentHashMap<Integer,Callback> callbackMap = new ConcurrentHashMap<>();
+    protected ConcurrentHashMap<Long,Callback> callbackMap = new ConcurrentHashMap<>();
     /**
      * used to generate unique ids for callbacks/promises/actors
      */
-    protected AtomicInteger idCount = new AtomicInteger(0);
+    protected AtomicLong idCount = new AtomicLong(0);
     protected boolean requestUnderway = false; // avoid opening a second http connection
     /**
      * buffered requests to be sent, will be batched
@@ -358,7 +359,7 @@ public class RemoteActorConnection {
 
     protected void addRequest(RemoteCallEntry remoteCallEntry, Promise res) {
         if ( res != null ) {
-            int key = registerCallback(res);
+            long key = registerCallback(res);
             remoteCallEntry.futureKey = key;
             openFutureRequests.incrementAndGet();
         }
@@ -595,8 +596,8 @@ public class RemoteActorConnection {
         }
     }
 
-    protected int registerCallback(Callback res) {
-        int key = idCount.incrementAndGet();
+    protected long registerCallback(Callback res) {
+        long key = idCount.incrementAndGet();
         callbackMap.put(key, res );
         return key;
     }

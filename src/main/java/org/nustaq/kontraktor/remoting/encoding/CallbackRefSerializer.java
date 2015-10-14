@@ -47,9 +47,9 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
 
     public class MyRemotedCallback implements Callback, RemotedCallback {
         AtomicReference<ObjectSocket> chan;
-        int id;
+        long id;
 
-        public MyRemotedCallback(AtomicReference<ObjectSocket> chan, int id) {
+        public MyRemotedCallback(AtomicReference<ObjectSocket> chan, long id) {
             this.chan = chan;
             this.id = id;
         }
@@ -58,7 +58,7 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
             return chan.get().getId();
         }
 
-        public int getId() {
+        public long getId() {
             return id;
         }
 
@@ -89,7 +89,7 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
     @Override
     public Object instantiate(Class objectClass, FSTObjectInput in, FSTClazzInfo serializationInfo, FSTClazzInfo.FSTFieldInfo referencee, int streamPositioin) throws Exception {
         // fixme: detect local actors returned from foreign
-        int id = in.readInt();
+        long id = in.readLong();
         AtomicReference<ObjectSocket> chan = reg.getWriteObjectSocket();
         MyRemotedCallback cb = new MyRemotedCallback(chan, id);
         in.registerObject(cb, streamPositioin, serializationInfo, referencee);
@@ -99,8 +99,8 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
     @Override
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
         // fixme: catch republish of foreign actor
-        int id = reg.registerPublishedCallback((Callback) toWrite); // register published host side
-        out.writeInt(id);
+        long id = reg.registerPublishedCallback((Callback) toWrite); // register published host side
+        out.writeLong(id);
     }
 
 }

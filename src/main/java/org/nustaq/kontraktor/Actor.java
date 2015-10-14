@@ -115,7 +115,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     public Scheduler __scheduler;
     public volatile boolean __stopped;
     public Actor __self; // the proxy object
-    public int __remoteId; // id in case this actor is published via network
+    public long __remoteId; // id in case this actor is published via network
     public boolean __throwExAtBlock; // if true, trying to send a message to full queue will throw an exception instead of blocking
     public volatile ConcurrentLinkedQueue<RemoteConnection> __connections; // a list of connections required to be notified on close (publisher/server side))
     public RemoteConnection __clientConnection; // remoteconnection this in case of remote ref

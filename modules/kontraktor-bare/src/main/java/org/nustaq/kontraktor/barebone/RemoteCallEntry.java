@@ -25,8 +25,8 @@ import java.util.Arrays;
  */
 public class RemoteCallEntry implements Serializable {
 
-    int receiverKey; // id of published actor in host, contains cbId in case of callbacks
-    int futureKey; // id of future if any
+    long receiverKey; // id of published actor in host, contains cbId in case of callbacks
+    long futureKey; // id of future if any
     String method;
     Object args[];
     int queue;
@@ -39,11 +39,11 @@ public class RemoteCallEntry implements Serializable {
         this.queue = queue;
     }
 
-    public int getReceiverKey() {
+    public long getReceiverKey() {
         return receiverKey;
     }
 
-    public int getFutureKey() {
+    public long getFutureKey() {
         return futureKey;
     }
 
