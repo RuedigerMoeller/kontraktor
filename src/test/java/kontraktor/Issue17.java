@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
+import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.remoting.tcp.TCPPublisher;
 
 import java.util.ArrayList;
@@ -37,7 +38,7 @@ public class Issue17 {
             Thread tpub = new Thread() {
                 public void run() {
                     try {
-                        new TCPPublisher()
+                        new TCPNIOPublisher()
                             .facade(myService)
                             .port(8181)
                             .serType(SerializerType.FSTSer)
