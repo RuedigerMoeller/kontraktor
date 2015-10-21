@@ -1,6 +1,7 @@
 package org.nustaq.reallive.impl.actors;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.impl.RLUtil;
@@ -60,7 +61,15 @@ public class TableSharding<K> implements RealLiveTable<K> {
 
     @Override
     public void unsubscribe(Subscriber<K> subs) {
+        if ( subs == null ) {
+            Log.Warn(this,"unsubscribed is null");
+            return;
+        }
         List<Subscriber> subscribers = subsMap.get(subs);
+        if ( subscribers == null ) {
+            Log.Warn(this,"unknown subscriber to unsubscribe "+subs);
+            return;
+        }
         for (int i = 0; i < subscribers.size(); i++) {
             Subscriber subscriber = subscribers.get(i);
             shards[i].unsubscribe(subscriber);
