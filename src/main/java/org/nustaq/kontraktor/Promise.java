@@ -350,7 +350,7 @@ public class Promise<T> implements IPromise<T> {
                     return;
                 }
                 lock.set(false);
-                throw new RuntimeException("Double result received on future " + prevErr );
+                throw new RuntimeException("Double result received on future prevErr:" + prevErr +" (res,err) "+res+","+error );
             }
             hadResult = true;
             if (resultReceiver != null) {

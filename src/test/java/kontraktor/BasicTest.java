@@ -633,6 +633,7 @@ public class BasicTest {
         public void internalTimeout() {
             checkThread();
             self().timeOutingMethod().timeoutIn(2000).then( (r,e) -> {
+                System.out.println("internal "+r+" "+e);
                 checkThread();
                 if ( e == Timeout.INSTANCE ) {
                     System.out.println("timed out");
