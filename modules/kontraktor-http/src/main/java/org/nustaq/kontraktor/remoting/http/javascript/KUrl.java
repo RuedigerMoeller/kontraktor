@@ -214,16 +214,6 @@ public class KUrl implements Serializable {
         return toUrlString();
     }
 
-    public static void main(String[] args) {
-        KUrl root = new KUrl("http://pok.as.de/pokpak.html");
-        KUrl url = new KUrl( "//test/one/../two/three");
-        System.out.println(root.concat(url));
-        System.out.println(url.concat("../../bla").toUrlString());
-
-        System.out.println(new KUrl("http://pok.de:9090/test/img/../kacka.xx").mangled());
-    }
-
-
     public boolean isRelative() {
         return protocol == null;
     }
@@ -289,4 +279,7 @@ public class KUrl implements Serializable {
         return s;
     }
 
+    public String getDomain() {
+        return elements[0];
+    }
 }

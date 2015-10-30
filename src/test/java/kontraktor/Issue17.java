@@ -38,7 +38,7 @@ public class Issue17 {
             Thread tpub = new Thread() {
                 public void run() {
                     try {
-                        new TCPNIOPublisher()
+                        new TCPPublisher()
                             .facade(myService)
                             .port(8181)
                             .serType(SerializerType.FSTSer)

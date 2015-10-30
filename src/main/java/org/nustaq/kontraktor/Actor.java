@@ -297,8 +297,10 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      */
     protected final void checkThread() {
         if (getCurrentDispatcher() != null && getCurrentDispatcher() != Thread.currentThread()) {
+            Log.Error(this,"UNEXPECTED MULTITHREADING");
             throw new RuntimeException("Wrong Thread");
         } else if ( getCurrentDispatcher() == null ){
+            Log.Error(this,"Not in Dispatcher Thread");
             throw new RuntimeException("Not in Dispatcher Thread:"+Thread.currentThread().getName());
         }
     }

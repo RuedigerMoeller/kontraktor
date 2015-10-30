@@ -47,7 +47,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor</artifactId>
-            <version>3.11</version>
+            <version>3.12</version>
         </dependency>
 
         <dependency>

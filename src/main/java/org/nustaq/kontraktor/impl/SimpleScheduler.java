@@ -38,7 +38,7 @@ public class SimpleScheduler implements Scheduler {
      * time ms until a warning is printed once a sender is blocked by a
      * full actor queue
      */
-    public static long BLOCKED_MS_TIL_WARN = 5000;
+    public static long BLOCKED_MS_TIL_WARN = 1000;
     public static int DEFQSIZE = 32768; // will be alligned to 2^x
 
     protected BackOffStrategy backOffStrategy = new BackOffStrategy();
@@ -106,8 +106,6 @@ public class SimpleScheduler implements Scheduler {
                         sendingActor.__addDeadLetter((Actor) receiver, dl);
                     throw new StoppedActorTargetedException(dl);
                 }
-                if ( sendingActor != null && sendingActor.__throwExAtBlock )
-                    throw ActorBlockedException.Instance;
                 if ( backOffStrategy.isSleeping(count) ) {
                     if ( sleepStart == 0 ) {
                         sleepStart = System.currentTimeMillis();
@@ -129,6 +127,10 @@ public class SimpleScheduler implements Scheduler {
                         if (sendingActor != null)
                             sender = ", sender:" + sendingActor.getActor().getClass().getSimpleName();
                         Log.Lg.warn(this, "Warning: Thread " + Thread.currentThread().getName() + " blocked more than "+BLOCKED_MS_TIL_WARN+"ms trying to put message on " + receiverString + sender + " msg:" + o);
+                        if ( sendingActor != null && sendingActor.__throwExAtBlock ) {
+                            Log.Warn(this,"throwing ActorBlockedException to "+sendingActor.getClass().getName()+" qsiz:"+sendingActor.getMailboxSize()+"/"+sendingActor.getCallbackSize());
+                            throw ActorBlockedException.Instance;
+                        }
                     }
                 }
             }

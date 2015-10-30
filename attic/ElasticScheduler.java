@@ -139,8 +139,10 @@ public class ElasticScheduler implements Scheduler, Monitorable {
                         sendingActor.__addDeadLetter((Actor) receiver, dl);
                     throw new StoppedActorTargetedException(dl);
                 }
-                if ( sendingActor != null && sendingActor.__throwExAtBlock )
+                if ( sendingActor != null && sendingActor.__throwExAtBlock ) {
+                    Log.Warn(this,"throwing ActorBlockedException to "+sendingActor.getClass().getName()+" qs:"+sendingActor.getMailboxSize()+"/"+sendingActor.getCallbackSize());
                     throw ActorBlockedException.Instance;
+                }
                 if ( backOffStrategy.isSleeping(count) ) {
                     if (!warningPrinted) {
                         warningPrinted = true;
