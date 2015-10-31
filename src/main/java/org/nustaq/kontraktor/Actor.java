@@ -208,6 +208,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * of the result (delivered in caller thread). Can be used to isolate blocking operations
      *
      * WARNING: do not access local actor state (instance fields) from within the callable (=hidden parallelism).
+     * WARNING: a similar named method execute() works different (bad naming)
      *
      * @param callable
      * @param <T>
@@ -429,7 +430,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
 
     /**
      * just enqueue given runable to this actors mailbox and execute on the actor's thread
-     *
+     * WARNING: the similar named method exec() works different (bad naming)
      * @param command
      */
     @CallerSideMethod @Local @Override
