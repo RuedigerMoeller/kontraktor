@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// version 3.11.0
+// version 3.12.0
 // JavaScript to Kontraktor bridge
 // matches kontraktor 3.0 json-no-ref encoded remoting
 // as I am kind of a JS beginner, hints are welcome :)
@@ -81,12 +81,28 @@ window.jsk = window.jsk || (function () {
   /**
    * builds a java hashmap from array like '[ key, val, key, val ]'
    *
+   * if list is an object, build a hashmap from the properties of that object
+   *
    * @param type - "map" or class name if subclassed map is used
    * @param list - of key, val, key1, val1
    */
   jsk.prototype.buildJMap = function( type, list ) {
-    list.splice( 0, 0, list.length/2 ); // insert number of elements at 0
-    return { typ: type, obj: list };
+    if( Object.prototype.toString.call( list ) === '[object Array]' ) {
+        list.splice( 0, 0, list.length/2 ); // insert number of elements at 0
+        return { typ: type, obj: list };
+    } else {
+      var res = { typ: type, obj: [] };
+      var count = 0;
+      for (var property in list) {
+        if (list.hasOwnProperty(property)) {
+            count++;
+            res.obj.push(property);
+            res.obj.push(list[property]);
+        }
+      }
+      res.obj.splice( 0, 0, res.obj.length/2 ); // insert number of elements at 0
+      return res;
+    }
   };
   jsk.prototype.jmap = jsk.prototype.buildJMap;
 
