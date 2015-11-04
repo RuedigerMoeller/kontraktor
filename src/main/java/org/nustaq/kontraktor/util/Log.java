@@ -42,9 +42,11 @@ public class Log extends Actor<Log> {
     public static Log Lg = Actors.AsActor(Log.class,100000);
 
     public static void SetSynchronous() {
-        Log old = Lg;
-        Lg = new Log();
-        old.stop();
+        if ( Lg instanceof ActorProxy) { // only do once
+            Log old = Lg;
+            Lg = new Log();
+            old.stop();
+        }
     }
 
     /**
