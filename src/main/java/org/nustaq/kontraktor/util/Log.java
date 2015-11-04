@@ -17,6 +17,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.util;
 
 import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.ActorProxy;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 
@@ -39,6 +40,12 @@ public class Log extends Actor<Log> {
     public static final int ERROR = 3;
 
     public static Log Lg = Actors.AsActor(Log.class,100000);
+
+    public static void SetSynchronous() {
+        Log old = Lg;
+        Lg = new Log();
+        old.stop();
+    }
 
     /**
      * @param level = Log.DEBUG | Log.INFO | Log.WARN | Log.ERROR
@@ -137,7 +144,15 @@ public class Log extends Actor<Log> {
         this.severity = severity;
     }
 
-    /////////////////////////////////////////////////////////////////////
+    @Override
+    protected Log self() {
+        if ( Lg instanceof ActorProxy)
+            return super.self();
+        else
+            return this;
+    }
+
+/////////////////////////////////////////////////////////////////////
     // caller side wrappers are here to enable stacktrace capture etc.
     //
 
