@@ -76,7 +76,7 @@ public interface IPromise<T> extends Callback<T> {
      * Can be used in case a sender is not interested in the actual result
      * but when a remote method has finished processing.
      *
-     * e.g. actor.asyncMehod().then( () -> { furtherProcessing(); return new Promise("result"); } );
+     * e.g. actor.asyncMethod().then( () -> { furtherProcessing(); return new Promise("result"); } );
      *
      * @return a future ressolved empty after this
      */

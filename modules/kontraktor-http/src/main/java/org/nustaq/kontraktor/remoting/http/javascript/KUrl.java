@@ -134,6 +134,13 @@ public class KUrl implements Serializable {
              }
             res.append(c);
         }
+        while ( res.length() > 180 ) { // strange super long urls lead to "filename too long" errors. Just halve them
+            StringBuilder newB = new StringBuilder(res.length()/2);
+            for ( int i = 0; i < res.length(); i+=2 ) {
+                newB.append( res.charAt(i) );
+            }
+            res = newB;
+        }
         return res.toString();
     }
 

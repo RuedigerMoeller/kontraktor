@@ -107,6 +107,12 @@ public class CallbackWrapper<T> implements IPromise<T>, Serializable {
         return realCallback;
     }
 
+    /**
+     * Warning: this will not be called on error or timeout
+     *
+     * @param result
+     * @return
+     */
     @Override
     public IPromise<T> then(Runnable result) {
         if (realCallback instanceof IPromise == false)
@@ -123,6 +129,12 @@ public class CallbackWrapper<T> implements IPromise<T>, Serializable {
             return ((IPromise)realCallback).thenAnd(result);
     }
 
+    /**
+     * Warning: this will not be called on error or timeout
+     *
+     * @param result
+     * @return
+     */
     @Override
     public IPromise then(Callback<T> result) {
         if (realCallback instanceof IPromise == false)
@@ -131,6 +143,12 @@ public class CallbackWrapper<T> implements IPromise<T>, Serializable {
             return ((IPromise)realCallback).then(result);
     }
 
+    /**
+     * Warning: this will not be called on error or timeout
+     *
+     * @param resultHandler
+     * @return
+     */
     @Override
     public IPromise<T> onResult(Consumer<T> resultHandler) {
         if (realCallback instanceof IPromise == false)

@@ -641,11 +641,19 @@ public class BasicTest {
                 } else tocount.set(1000);
             });
         }
+
+        public void internalTimeout1() {
+            checkThread();
+            self().timeOutingMethod().timeoutIn(2000).then( (r,e) -> {
+                System.out.println("internal 1 timout "+r);
+            });
+        }
     }
 
     @Test public void testTimout() {
         TimeOuter to = Actors.AsActor(TimeOuter.class);
         to.internalTimeout();
+        to.internalTimeout1();
         to.timeOutingMethod()
           .timeoutIn(3000)
           .onResult( r -> tocount.set(9999) )
