@@ -65,10 +65,7 @@ public class Pair<CAR, CDR> implements Serializable {
 
     @Override
     public String toString() {
-        return "Pair{" +
-                   "first=" + car +
-                   ", second=" + cdr +
-                   '}';
+        return "( "+car+", "+cdr+" )";
     }
 
     public boolean allNull() {
