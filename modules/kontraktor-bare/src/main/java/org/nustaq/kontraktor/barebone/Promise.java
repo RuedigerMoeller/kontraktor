@@ -15,6 +15,7 @@
  */
 package org.nustaq.kontraktor.barebone;
 
+
 import org.nustaq.serialization.util.FSTUtil;
 
 import java.util.concurrent.CountDownLatch;
