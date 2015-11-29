@@ -125,7 +125,7 @@ public class Http4K {
      */
     public Http4K publishFileSystem( String hostName, String urlPath, int port, File root ) {
         if ( ! root.isDirectory() ) {
-            throw new RuntimeException("root must be an existing direcory");
+            throw new RuntimeException("root must be an existing direcory:"+root.getAbsolutePath());
         }
         Pair<PathHandler, Undertow> server = getServer(port, hostName);
         server.car().addPrefixPath(urlPath, new ResourceHandler(new FileResourceManager(root,100)));

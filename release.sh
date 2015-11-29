@@ -35,3 +35,12 @@ cd target
 rm *-jar-with*
 rm -r */
 jar -cf bundle.jar *
+cd ..
+
+cd ../kontraktor-reallive
+
+mvn clean package -Dmaven.test.skip=true gpg:sign
+cd target
+rm *-jar-with*
+rm -r */
+jar -cf bundle.jar *

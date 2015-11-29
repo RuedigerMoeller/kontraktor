@@ -71,7 +71,7 @@ public class RemoteActorConnection {
                     .setMaxConnTotal(MAX_CONN_TOTAL)
                     .setDefaultIOReactorConfig(
                         IOReactorConfig.custom()
-                            .setIoThreadCount(1)
+                            .setIoThreadCount(8)
                             .setSoKeepAlive(true)
                             .setSoReuseAddress(true)
                             .build()

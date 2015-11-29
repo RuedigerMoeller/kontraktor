@@ -62,7 +62,7 @@ public class HttpClientConnector implements ActorClientConnector {
                     .setMaxConnTotal(MAX_CONN_TOTAL)
                     .setDefaultIOReactorConfig(
                             IOReactorConfig.custom()
-                                    .setIoThreadCount(1)
+                                    .setIoThreadCount(4)
                                     .setSoKeepAlive(true)
                                     .setSoReuseAddress(true)
                                     .build()
