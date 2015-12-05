@@ -46,4 +46,17 @@ public class RecordWrapper<K> implements Record<K> {
                    "record=" + record +
                    '}';
     }
+
+    @Override
+    public int hashCode() {
+        return record.getKey().hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if ( obj instanceof Record ) {
+            return ((Record) obj).getKey().equals(getKey());
+        }
+        return super.equals(obj);
+    }
 }
