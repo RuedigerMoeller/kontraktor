@@ -18,6 +18,7 @@ package org.nustaq.kontraktor;
 
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.util.PromiseLatch;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -227,7 +228,7 @@ public class Actors {
      */
     public static <T> IPromise<IPromise<T>[]> all(IPromise<T>... futures) {
         Promise res = new Promise();
-        awaitSettle(futures, 0, res);
+        awaitSettle(futures, res);
         return res;
     }
 
@@ -245,7 +246,7 @@ public class Actors {
      */
     public static <T> IPromise<List<IPromise<T>>> all(List<IPromise<T>> futures) {
         Promise res = new Promise();
-        awaitSettle(futures, 0, res);
+        awaitSettle(futures, res);
         return res;
     }
 
@@ -466,20 +467,20 @@ public class Actors {
     //
     // helper
 
-    private static <T> void awaitSettle(final IPromise<T> futures[], final int index, final IPromise result) {
-        if ( index < futures.length ) {
-            futures[index].then( (r,e) -> awaitSettle(futures, index + 1, result) );
-        } else {
-            result.complete(futures, null);
+    // changed to non recursive due to stackoverflows ..
+    private static <T> void awaitSettle(final IPromise<T> futures[], final IPromise result) {
+        PromiseLatch latch = new PromiseLatch(futures.length);
+        latch.getPromise().then( () -> result.complete(futures, null) );
+        for (int i = 0; i < futures.length; i++) {
+            futures[i].then( () -> latch.countDown() );
         }
     }
 
-    private static <T> void awaitSettle(final List<IPromise<T>> futures, final int index, final IPromise result) {
-        if ( index < futures.size() ) {
-            futures.get(index).then((r, e) -> awaitSettle(futures, index + 1, result));
-        } else {
-            result.complete(futures, null);
-        }
+    // changed to non recursive due to stackoverflows ..
+    private static <T> void awaitSettle(final List<IPromise<T>> futures, final IPromise result) {
+        PromiseLatch latch = new PromiseLatch(futures.size());
+        latch.getPromise().then( () -> result.complete(futures, null) );
+        futures.forEach( fut -> fut.then(() -> latch.countDown()) );
     }
 
     /**
