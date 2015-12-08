@@ -7,12 +7,19 @@ import java.io.Serializable;
  */
 public class TableDescription implements Serializable, Cloneable {
 
+    public enum StorageType {
+        TEMP,
+        PERSIST,
+        CACHED
+    }
+
     String name;
     int sizeMB = 10;
     String filePath = TableSpace.USE_BASE_DIR;
     int numEntries=100_000;
     int shardNo;
     int keyLen = 48;
+    StorageType st = StorageType.CACHED;
 
     public TableDescription() {}
 
@@ -23,6 +30,10 @@ public class TableDescription implements Serializable, Cloneable {
     public TableDescription name(final String name) {
         this.name = name;
         return this;
+    }
+
+    public StorageType getType() {
+        return st;
     }
 
     public TableDescription sizeMB(final int sizeMB) {

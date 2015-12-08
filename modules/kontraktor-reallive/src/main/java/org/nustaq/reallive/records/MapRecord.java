@@ -55,4 +55,13 @@ public class MapRecord<K> implements Record<K> {
     public String toString() {
         return "MapRecord{" + asString() + '}';
     }
+
+    /**
+     * @return a shallow copy
+     */
+    public MapRecord<K> copied() {
+        MapRecord<K> newReq = new MapRecord<K>(getKey());
+        map.forEach( (k,v) -> newReq.put(k,v) );
+        return newReq;
+    }
 }

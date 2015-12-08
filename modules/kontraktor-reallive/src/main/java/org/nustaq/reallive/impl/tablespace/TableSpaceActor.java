@@ -4,6 +4,8 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.reallive.impl.actors.RealLiveStreamActor;
+import org.nustaq.reallive.impl.storage.CachedOffHeapStorage;
+import org.nustaq.reallive.impl.storage.HeapRecordStorage;
 import org.nustaq.reallive.impl.storage.OffHeapRecordStorage;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.StateMessage;
@@ -74,18 +76,50 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
 
         Supplier<RecordStorage> memFactory;
         if ( desc.getFilePath() == null ) {
-            memFactory = () -> new OffHeapRecordStorage( desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries() );
+            switch( desc.getType() ) {
+                case CACHED:
+                    memFactory = () -> new CachedOffHeapStorage(
+                        new OffHeapRecordStorage( desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries() ),
+                        new HeapRecordStorage<>() );
+                break;
+                default:
+                case PERSIST:
+                    memFactory = () -> new OffHeapRecordStorage( desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries() );
+                break;
+                case TEMP:
+                    memFactory = () -> new HeapRecordStorage<>();
+                break;
+            }
         } else {
             String bp = getBaseDir() == null ? desc.getFilePath() : getBaseDir();
             desc.filePath(bp);
             new File(bp).mkdirs();
-            memFactory = () ->
-                new OffHeapRecordStorage(
-                    bp+"/"+desc.getName()+"_"+desc.getShardNo()+".bin",
-                    desc.getKeyLen(),
-                    desc.getSizeMB(),
-                    desc.getNumEntries()
-                );
+            switch( desc.getType() ) {
+                case CACHED:
+                    memFactory = () -> new CachedOffHeapStorage(
+                        new OffHeapRecordStorage(
+                            bp+"/"+desc.getName()+"_"+desc.getShardNo()+".bin",
+                            desc.getKeyLen(),
+                            desc.getSizeMB(),
+                            desc.getNumEntries()
+                        ),
+                        new HeapRecordStorage<>()
+                    );
+                break;
+                default:
+                case PERSIST:
+                    memFactory = () ->
+                        new OffHeapRecordStorage(
+                            bp+"/"+desc.getName()+"_"+desc.getShardNo()+".bin",
+                            desc.getKeyLen(),
+                            desc.getSizeMB(),
+                            desc.getNumEntries()
+                        );
+                break;
+                case TEMP:
+                    memFactory = () -> new HeapRecordStorage<>();
+                break;
+            }
         }
         table.init( memFactory, loadBalanceFilter(desc), desc );
         tables.put(desc.getName(),table);

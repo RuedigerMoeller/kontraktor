@@ -79,4 +79,8 @@ public interface Record<K> extends Serializable, EvalContext {
         }
         return rec;
     }
+
+    default Record<K> copied() {
+        throw new RuntimeException("copy not implemented");
+    }
 }

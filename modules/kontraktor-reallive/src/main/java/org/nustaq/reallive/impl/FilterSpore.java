@@ -18,7 +18,7 @@ public class FilterSpore<K> extends Spore<Record<K>,Record<K>> {
     @Override
     public void remote(Record<K> input) {
         if ( filter.test(input) ) {
-            stream(input);
+            stream(input.copied());
         }
     }
 
