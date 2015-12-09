@@ -58,7 +58,12 @@ public class DependencyResolver implements HtmlImportShim.ResourceLocator{
         }
         resourcePath = new File[path.length];
         for (int i = 0; i < path.length; i++) {
-            String dir = baseDir+"/"+path[i];
+            String dir;
+            if ( path[i].startsWith("/") ) {
+                dir = path[i];
+            } else {
+                dir = baseDir+"/"+path[i];
+            }
             File f = new File( dir ).getAbsoluteFile();
             if ( f.exists() && ! f.isDirectory() ) {
                 throw new RuntimeException("only directorys can reside on resourcepath");
