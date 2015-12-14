@@ -114,9 +114,9 @@ public class SimpleScheduler implements Scheduler {
                         warningPrinted = true;
                         if (receiver instanceof Actor) {
                             if (q == ((Actor) receiver).__cbQueue) {
-                                receiverString = receiver.getClass().getSimpleName() + " callbackQ";
+                                receiverString = receiver.getClass().getSimpleName() + " callbackQ "+((Actor) receiver).getCallbackSize();
                             } else if (q == ((Actor) receiver).__mailbox) {
-                                receiverString = receiver.getClass().getSimpleName() + " mailbox";
+                                receiverString = receiver.getClass().getSimpleName() + " mailbox "+((Actor) receiver).getMailboxSize();
                             } else {
                                 receiverString = receiver.getClass().getSimpleName() + " unknown queue";
                             }
