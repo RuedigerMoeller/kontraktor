@@ -216,7 +216,7 @@ window.jsk = window.jsk || (function () {
       if ( optErrorcallback )
         optErrorcallback.apply(null,[err]);
       else
-        console.log(err);
+        console.error(err);
     });
     socket.onclose( function() {
       _jsk.socket = null;
