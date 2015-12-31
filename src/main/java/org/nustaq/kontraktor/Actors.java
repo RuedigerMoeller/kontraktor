@@ -58,6 +58,16 @@ public class Actors {
     public static int MAX_EXTERNAL_THREADS_POOL_SIZE = 1000; // max threads used when externalizing blocking api
     public static int DEFAULT_TIMOUT = 15000;
     public static ThreadPoolExecutor exec;
+
+    /**
+     * use bounded queues if true. bounded queues block caller when they are full,
+     * unfortunately this completely changes behaviour and characteristics of an actorsystem
+     * and leads to hard to predict behaviour under high workload.
+     * Default is to use Unbounded queues. Warning: calling queue size related
+     * methods is quite expensive then (except isEmpty()).
+     */
+    public static boolean DEFAULT_BOUNDED_QUEUE = false;
+
     static {
         exec = new ThreadPoolExecutor(
             MAX_EXTERNAL_THREADS_POOL_SIZE, MAX_EXTERNAL_THREADS_POOL_SIZE,
@@ -162,7 +172,7 @@ public class Actors {
      *
      * @return queue of dead letters. Note: only strings are recorded to avoid accidental references.
      */
-    public static ConcurrentLinkedQueue<String> DeadLetters() {
+    public static Queue<String> DeadLetters() {
         return instance.getDeadLetters();
     }
 

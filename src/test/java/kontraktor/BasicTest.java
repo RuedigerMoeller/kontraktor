@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 
 import static org.nustaq.kontraktor.Actors.*;
@@ -39,9 +40,12 @@ public class BasicTest {
 
     private long bench(Bench actorA) {
         long tim = System.currentTimeMillis();
-        int numCalls = 1000 * 1000 * 10;
+        int numCalls = 1000 * 1000 * 3;
         for ( int i = 0; i < numCalls; i++ ) {
             actorA.benchCall("A");
+        }
+        while (!actorA.isEmpty()) {
+            LockSupport.parkNanos(1);
         }
         final long l = (numCalls / (System.currentTimeMillis() - tim)) * 1000;
         System.out.println("tim "+ l +" calls per sec");
@@ -50,7 +54,7 @@ public class BasicTest {
 
     private long benchFut(Bench actorA) {
         long tim = System.currentTimeMillis();
-        int numCalls = 1000 * 1000 * 10;
+        int numCalls = 1000 * 1000 * 1;
         CountDownLatch latch = new CountDownLatch(numCalls);
         for ( int i = 0; i < numCalls; i++ ) {
             actorA.benchCallFut("A").then(() -> latch.countDown());

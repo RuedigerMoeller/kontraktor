@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// version 3.12.0
+// version 3.15.0
 // JavaScript to Kontraktor bridge
 // matches kontraktor 3.0 json-no-ref encoded remoting
 // as I am kind of a JS beginner, hints are welcome :)
@@ -216,7 +216,7 @@ window.jsk = window.jsk || (function () {
       if ( optErrorcallback )
         optErrorcallback.apply(null,[err]);
       else
-        console.error(err);
+        console.log(err);
     });
     socket.onclose( function() {
       _jsk.socket = null;

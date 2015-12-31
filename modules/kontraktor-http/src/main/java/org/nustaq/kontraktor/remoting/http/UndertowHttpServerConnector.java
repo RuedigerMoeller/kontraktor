@@ -147,10 +147,11 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    if ( facade.isMailboxPressured() || facade.isCallbackQPressured() ) {
-                        exchange.setResponseCode(503);
-                        exchange.endExchange();
-                    }
+//                    removed as too expensive on unbounded queues
+//                    if ( facade.isMailboxPressured() || facade.isCallbackQPressured() ) {
+//                        exchange.setResponseCode(503);
+//                        exchange.endExchange();
+//                    }
                     // switch to actor thread
                     facade.execute( () -> requestReceived( exchange, buf.array(), rpath ) );
                 }

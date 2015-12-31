@@ -52,7 +52,7 @@ public class EventSink<T> implements KxPublisher<T> {
             throw new RuntimeException("event cannot be null");
         if ( canceled )
             throw CancelException.Instance;
-        if ( ( (actorSubs != null && ! actorSubs.isMailboxPressured()) || actorSubs == null ) &&
+        if ( ( actorSubs != null || actorSubs == null ) &&
              credits.get() > 0 && subs != null ) {
             subs.onNext(event);
             credits.decrementAndGet();

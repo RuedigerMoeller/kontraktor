@@ -390,11 +390,11 @@ public class DispatcherThread extends Thread implements Monitorable {
         int res = 0;
         final Actor actors[] = this.actors;
         for (int i = 0; i < actors.length; i++) {
-            MpscArrayQueue queue = (MpscArrayQueue) actors[i].__mailbox;
+            Queue queue = actors[i].__mailbox;
             int load = queue.size() * 100 / actors[i].__mailboxCapacity;
             if ( load > res )
                 res = load;
-            queue = (MpscArrayQueue) actors[i].__cbQueue;
+            queue = actors[i].__cbQueue;
             load = queue.size() * 100 / actors[i].__mailboxCapacity;
             if ( load > res )
                 res = load;

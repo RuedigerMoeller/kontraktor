@@ -238,6 +238,9 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return __mailbox.size() * 2 > __mbCapacity;
     }
 
+    @CallerSideMethod public boolean isEmpty() {
+        return __mailbox.isEmpty() && __cbQueue.isEmpty();
+    }
     /**
      * @return the scheduler associated with this actor (determines scheduling of processing of actors to threads)
      */
