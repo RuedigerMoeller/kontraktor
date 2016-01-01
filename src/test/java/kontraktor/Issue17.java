@@ -33,12 +33,12 @@ public class Issue17 {
         }
 
         static void testRemote() throws InterruptedException {
-            HelloActor myService = AsActor(HelloActor.class, 10000000);
+            HelloActor myService = AsActor(HelloActor.class, 1_000_000);
 
             Thread tpub = new Thread() {
                 public void run() {
                     try {
-                        new TCPPublisher()
+                        new TCPNIOPublisher() // note TCPPublisher consumes more CPU
                             .facade(myService)
                             .port(8181)
                             .serType(SerializerType.FSTSer)
@@ -52,7 +52,6 @@ public class Issue17 {
 
             ConnectableActor con =
                 new TCPConnectable(HelloActor.class, "localhost", 8181);
-//                    .inboundQueueSize(1_000_000);
 
             Callback<ActorClientConnector> disconnectCallback = new Callback<ActorClientConnector>() {
                 @Override
@@ -91,91 +90,12 @@ public class Issue17 {
             System.out.println("main threads finished");
         }
 
-        // might reorder responses in contradiction to other solution
-        static void callActorBetter(HelloActor act) {
-            byte[] bb = new byte[500];
-            long n = 1_000_000;
-            try {
-                while (true) {
-
-                    for (long i = 0; i < n; i++) {
-                        act.greet(bb).then((integer, err) -> {
-                            // process result here
-                            //
-                        });
-                        // apply some backpressure to avoid overly large queues and timeouts
-                        if ( act.isMailboxPressured() )
-                            LockSupport.parkNanos(1);
-                    }
-                    System.out.println("..");
-                }
-            } catch (Throwable th) {
-                th.printStackTrace();
-            }
-        }
-
-        static void callActor_BP(HelloActor act) {
-            byte[] bb = new byte[500];
-            long n = 1_000_000;
-            try {
-                while (true) {
-
-                    List<IPromise<Integer>> l = new ArrayList<>();
-                    for (long i = 0; i < n; i++) {
-                        l.add(act.greet(bb));
-                        if ( act.isMailboxPressured() ) // apply some backpressure to avoid overly large queues and timeouts
-                            LockSupport.parkNanos(1);
-                    }
-
-                    // easiest way, but stackoverflow with huge sample (await is stack based)
-//                    awaitAll(l).forEach( i -> {
-//                        if ( i == null )
-//                            System.out.println("ERROR");
-//                    });
-
-                    // save agains stackoverflow
-                    l.forEach( promise -> {
-                        Integer i = promise.await();
-                        if ( i == null )
-                            throw new RuntimeException("ERROR");
-                    });
-
-                    System.out.println("..");
-                }
-            } catch (Throwable th) {
-                th.printStackTrace();
-            }
-        }
-
-        // no BP version
-        static void callActorNOBP(HelloActor act) {
-            byte[] bb = new byte[500];
-            long n = 1_000_000;
-            try {
-                while (true) {
-
-                    List<IPromise<Integer>> l = new ArrayList<>();
-                    for (long i = 0; i < n; i++) {
-                        l.add(act.greet(bb));
-                    }
-
-                    l.forEach( promise -> {
-                        Integer i = promise.await();
-                        if ( i == null )
-                            throw new RuntimeException("ERROR");
-                    });
-
-                    System.out.println("..");
-                }
-            } catch (Throwable th) {
-                th.printStackTrace();
-            }
-        }
-
-        // complete original version
+        // modified original version, somewhat flawed as creates a lot of queuing
+        // by sending batches of 1 million requests (=1 million calback ids createdm hashed, and removed)
+        //
         static void callActor(HelloActor act) {
             byte [] bb = new byte[500];
-            long n=1000000;
+            long n=1_000_000; // reduction to 200k increases throughput significantly (less queuing and callback management)
             try {
                 while (true) {
                     long tim = System.currentTimeMillis();
@@ -184,9 +104,11 @@ public class Issue17 {
                         l.add(act.greet(bb));
                     }
 
-                    l.forEach((integerIPromise) -> {
-                        try{integerIPromise.await();}catch(Throwable th){th.printStackTrace();}
-                    });
+// slow:
+//                    l.forEach((integerIPromise) -> {
+//                        try{integerIPromise.await();}catch(Throwable th){th.printStackTrace();}
+//                    });
+                    all(l).await(30_000); // better, even better would be elimination of await() using 'then()'
 
                     l.forEach(p -> {
                         try {

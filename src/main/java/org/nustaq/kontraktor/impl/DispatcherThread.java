@@ -373,17 +373,20 @@ public class DispatcherThread extends Thread implements Monitorable {
     }
 
     private void checkForSplit() {
-        int load = getLoad();
-        if (load > QUEUE_PERCENTAGE_TRIGGERING_REBALANCE &&
-            actors.length > 1 &&
-            System.currentTimeMillis()-created > MILLIS_AFTER_CREATION_BEFORE_REBALANCING )
-        {
-            scheduler.rebalance(this);
-        }
+        // uncessesary as auto balance has been abandonned. FIXME: clean up !
+//        int load = getLoad();
+//        if (load > QUEUE_PERCENTAGE_TRIGGERING_REBALANCE &&
+//            actors.length > 1 &&
+//            System.currentTimeMillis()-created > MILLIS_AFTER_CREATION_BEFORE_REBALANCING )
+//        {
+//            scheduler.rebalance(this);
+//        }
     }
 
 
     /**
+     * WARNING: call rarely, this method might have O(n) runtime with default unbounded queues.
+     *
      * @return percentage of queue fill of max actor
      */
     public int getLoad() {

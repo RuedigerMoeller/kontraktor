@@ -232,6 +232,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
+     * WARNING: call rarely, this method might have O(n) runtime with default unbounded queues.
      * @return true if mailbox fill size is ~half capacity
      */
     @CallerSideMethod public boolean isMailboxPressured() {
@@ -249,6 +250,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
+     * WARNING: call rarely, this method might have O(n) runtime with default unbounded queues.
      * @return wether the callback queue is mor than half full (can indicate overload)
      */
     @CallerSideMethod public boolean isCallbackQPressured() {
@@ -256,6 +258,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
+     * WARNING: call rarely, this method might have O(n) runtime with default unbounded queues.
      * @return an estimation on the queued up entries in the mailbox. Can be used for bogus flow control
      */
     @CallerSideMethod public int getMailboxSize() {
@@ -263,6 +266,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
+     * WARNING: call rarely, this method might have O(n) runtime with default unbounded queues.
      * @return summed queue size of mailbox+callback queue
      */
     @CallerSideMethod public int getQSizes() {
@@ -270,6 +274,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
+     * WARNING: call rarely, this method might have O(n) runtime with default unbounded queues.
      * @return an estimation on the queued up callback entries. Can be used for bogus flow control.
      */
     @CallerSideMethod public int getCallbackSize() {

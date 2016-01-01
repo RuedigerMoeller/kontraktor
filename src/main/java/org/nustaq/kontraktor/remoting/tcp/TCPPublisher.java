@@ -21,12 +21,15 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.util.Log;
 
 import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 18/06/15.
+ * @Deprecated use TCPNIOPublisher instead.
  */
+@Deprecated
 public class TCPPublisher extends TCPNIOPublisher {
 
     public TCPPublisher() {
@@ -35,6 +38,7 @@ public class TCPPublisher extends TCPNIOPublisher {
 
     public TCPPublisher(Actor facade, int port) {
         super(facade, port);
+        Log.Warn(this,"TCPPublisher uses blocking io, its strongly recommended to use TCPNIOPublisher instead.");
     }
 
     @Override
