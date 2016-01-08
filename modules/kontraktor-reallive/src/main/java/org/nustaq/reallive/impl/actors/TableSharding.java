@@ -184,6 +184,8 @@ public class TableSharding<K> implements RealLiveTable<K> {
 
     @Override
     public IPromise<Record<K>> get(K key) {
+        if ( key == null )
+            return null;
         return shards[func.apply(key)].get(key);
     }
 
