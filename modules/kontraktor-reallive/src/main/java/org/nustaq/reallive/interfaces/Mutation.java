@@ -7,7 +7,15 @@ import org.nustaq.kontraktor.IPromise;
  */
 public interface Mutation<K> {
 
+    /**
+     * FIXME: does not trigger a change notification !
+     * @param casCondition
+     * @param key
+     * @param keyVals
+     * @return
+     */
     IPromise<Boolean> putCAS( RLPredicate<Record<K>> casCondition, K key, Object... keyVals);
+
     void put(K key, Object... keyVals);
     void addOrUpdate(K key, Object... keyVals);
     void add( K key, Object ... keyVals );

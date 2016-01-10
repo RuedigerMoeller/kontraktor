@@ -38,6 +38,7 @@ public class HeapRecordStorage<K> implements RecordStorage<K> {
 
     @Override
     public <T> void forEach(Spore<Record<K>, T> spore) {
+        long now = System.currentTimeMillis();
         for (Iterator iterator = map.values().iterator(); iterator.hasNext(); ) {
             Record<K> record = (Record<K>) iterator.next();
             spore.remote(record);
@@ -45,6 +46,7 @@ public class HeapRecordStorage<K> implements RecordStorage<K> {
                 break;
         }
         spore.finish();
+        System.out.println("dur:"+(System.currentTimeMillis()-now)+" "+map.size());
     }
 
     public Map<K,Record<K>> getMap() {

@@ -82,7 +82,7 @@ public class FilterProcessor<K> implements ChangeReceiver<K>, ChangeStream<K> {
         Record<K> newRecord = change.getNewRecord();
         String[] changedFields = change.getDiff().getChangedFields();
         Object[] oldValues = change.getDiff().getOldValues();
-        Record oldRec = new PatchedRecord(newRecord) {
+        Record oldRec = new RecordWrapper(newRecord) {
             @Override
             public Object get(String field) {
                 int index = ChangeUtils.indexOf(field, changedFields);
