@@ -1,13 +1,13 @@
 package org.nustaq.reallive.impl;
 
 import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.Spore;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.records.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Created by moelrue on 04.08.2015.
@@ -20,12 +20,12 @@ import java.util.function.Predicate;
  * if ( filter matches old && new ) => send Update
  * if ( filter ! matches old && new ) => send Add
  */
-public class FilterProcessor<K> implements ChangeReceiver<K>, ChangeStream<K> {
+public class FilterProcessorImpl<K> implements FilterProcessor<K> {
 
     List<Subscriber<K>> filterList = new ArrayList<>();
     RecordIterable<K> provider;
 
-    public FilterProcessor(RecordIterable<K> provider) {
+    public FilterProcessorImpl(RecordIterable<K> provider) {
         this.provider = provider;
     }
 
@@ -34,15 +34,16 @@ public class FilterProcessor<K> implements ChangeReceiver<K>, ChangeStream<K> {
         filterList.add(subs);
         FilterSpore spore = new FilterSpore(subs.getFilter());
         spore.onFinish( () -> subs.getReceiver().receive(RLUtil.get().done()) );
-        provider.forEach(spore.forEach((r, e) -> {
+        spore.setForEach((r, e) -> {
             if (Actors.isResult(e)) {
                 subs.getReceiver().receive(new AddMessage((Record) r));
             } else {
-                // FIXME: pass errors also
-                // FIXME: never called (see onFinish above)
+                // FIXME: pass errors
+                // FIXME: called in case of error only (see onFinish above)
                 subs.getReceiver().receive(RLUtil.get().done());
             }
-        }));
+        });
+        provider.forEach(spore);
     }
 
     public void unsubscribe( Subscriber<K> subs ) {

@@ -9,13 +9,15 @@ import org.nustaq.reallive.impl.*;
  * Created by moelrue on 06.08.2015.
  *
  * Not remoteable, as expects subscriber to already be inThread correctly
+ *
+ * UNSAVE ! if used, tableactor has to queue incoming changes ..
  */
-@Local public class FilterProcessorActor<K> extends Actor<FilterProcessorActor> implements ChangeReceiver<K>, ChangeStream<K> {
+@Local public class FilterProcessorActor<K> extends Actor<FilterProcessorActor> implements FilterProcessor<K> {
 
-    FilterProcessor<K> filterProcessor;
+    FilterProcessorImpl<K> filterProcessor;
 
     public void init( RecordIterable<K> iterable ) {
-        filterProcessor = new FilterProcessor<>(iterable);
+        filterProcessor = new FilterProcessorImpl<>(iterable);
     }
 
     @Override

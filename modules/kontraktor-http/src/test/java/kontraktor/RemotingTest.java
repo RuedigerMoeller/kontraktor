@@ -379,7 +379,7 @@ public class RemotingTest {
                 public void remote(Integer input) {
                     stream(input);
                 }
-            }.forEach((res, e) -> {
+            }.setForEach((res, e) -> {
                 System.out.println("spore res " + res);
                 sporeResult.add(res);
             }).onFinish(() -> {

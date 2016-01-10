@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.remoting.encoding.CallbackRefSerializer;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.reallive.impl.FilterProcessorImpl;
 import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.impl.Mutator;
@@ -26,17 +27,16 @@ import java.util.function.*;
 public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implements RealLiveTable<K>, Mutatable<K> {
 
     StorageDriver<K> storageDriver;
-    FilterProcessorActor<K> filterProcessor;
+    FilterProcessor<K> filterProcessor;
     HashMap<String,Subscriber> receiverSideSubsMap = new HashMap();
     TableDescription description;
 
     @Local
-    public void init( Supplier<RecordStorage<K>> storeFactory, Scheduler filterScheduler, TableDescription desc) {
+    public void init( Supplier<RecordStorage<K>> storeFactory, TableDescription desc) {
         this.description = desc;
         RecordStorage<K> store = storeFactory.get();
         storageDriver = new StorageDriver<>(store);
-        filterProcessor = Actors.AsActor(FilterProcessorActor.class, filterScheduler);
-        filterProcessor.init(self());
+        filterProcessor = new FilterProcessorImpl<K>(this);
         storageDriver.setListener(filterProcessor);
     }
 
@@ -63,7 +63,6 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
 
     @Override
     protected void hasStopped() {
-        filterProcessor.stop();
     }
 
     // subscribe/unsubscribe

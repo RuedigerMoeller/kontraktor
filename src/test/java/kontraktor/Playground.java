@@ -105,7 +105,7 @@ public class Playground {
                     System.out.println("executed later " + sx + " " + sy + " " + sz);
                 }
 
-            }.forEach((r, e) -> System.out.println("POK " + r));
+            }.setForEach((r, e) -> System.out.println("POK " + r));
         }
     }
 

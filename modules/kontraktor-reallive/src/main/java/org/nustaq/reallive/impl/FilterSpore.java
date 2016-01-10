@@ -16,16 +16,19 @@ public class FilterSpore<K> extends Spore<Record<K>,Record<K>> {
         this.filter = filter;
     }
 
-    transient PatchingRecord rec;
+    transient static ThreadLocal<PatchingRecord> rec = new ThreadLocal<PatchingRecord>() {
+        @Override
+        protected PatchingRecord initialValue() {
+            return new PatchingRecord(null);
+        }
+    };
+
     @Override
     public void remote(Record<K> input) {
-        if ( rec == null ) {
-            rec = new PatchingRecord(input);
-        } else {
-            rec.reset(input);
-        }
-        if ( filter.test(rec) ) {
-            stream(rec.unwrapOrCopy());
+        final PatchingRecord patchingRecord = rec.get();
+        patchingRecord.reset(input);
+        if ( filter.test(patchingRecord) ) {
+            stream(patchingRecord.unwrapOrCopy());
         }
     }
 

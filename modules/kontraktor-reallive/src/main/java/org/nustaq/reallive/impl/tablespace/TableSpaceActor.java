@@ -29,30 +29,13 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
     HashMap<String,TableDescription> tableDesc;
     List<Callback<StateMessage>> stateListeners;
 
-    SimpleScheduler scanScheduler[];
-    SimpleScheduler filterScheduler[];
-    int scanQSize = 64000;
-    int filterQSize = 64000;
     String baseDir;
 
     @Local
     public void init( int numScanThreads, int numFilterThreads ) {
-        initWitAllOptions(numScanThreads,numFilterThreads,scanQSize,filterQSize);
-    }
-
-    @Local
-    public void initWitAllOptions( int numScanThreads, int numFilterThreads, int scanQSize, int filterQSize ) {
         tables = new HashMap<>();
         stateListeners = new ArrayList<>();
         tableDesc = new HashMap<>();
-        scanScheduler = new SimpleScheduler[numScanThreads];
-        filterScheduler = new SimpleScheduler[numFilterThreads];
-        for (int i = 0; i < scanScheduler.length; i++) {
-            scanScheduler[i] = new SimpleScheduler(scanQSize,true);
-        }
-        for (int i = 0; i < filterScheduler.length; i++) {
-            filterScheduler[i] = new SimpleScheduler(filterQSize,true);
-        }
     }
 
     /**
@@ -72,7 +55,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
         if ( tables.containsKey( desc.getName()) ) {
             return resolve(tables.get(desc.getName()));
         }
-        RealLiveStreamActor table = Actors.AsActor(RealLiveStreamActor.class, loadBalance(desc));
+        RealLiveStreamActor table = Actors.AsActor(RealLiveStreamActor.class);
 
         Supplier<RecordStorage> memFactory;
         if ( desc.getFilePath() == null ) {
@@ -121,27 +104,9 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
                 break;
             }
         }
-        table.init( memFactory, loadBalanceFilter(desc), desc );
+        table.init( memFactory, desc );
         tables.put(desc.getName(),table);
         return resolve(table);
-    }
-
-    int roundRobinFilterCounter = 0;
-    private Scheduler loadBalanceFilter(TableDescription desc) {
-        if ( filterScheduler.length <= 0 )  // if no threads, just use a scan thread
-            return loadBalance(desc);
-        roundRobinFilterCounter++;
-        if ( roundRobinFilterCounter >= filterScheduler.length )
-            roundRobinFilterCounter = 0;
-        return filterScheduler[roundRobinFilterCounter];
-    }
-
-    int roundRobinScanCounter = 0;
-    private Scheduler loadBalance(TableDescription desc) {
-        roundRobinScanCounter++;
-        if ( roundRobinScanCounter >= scanScheduler.length )
-            roundRobinScanCounter = 0;
-        return scanScheduler[roundRobinScanCounter];
     }
 
     @Override
@@ -172,12 +137,10 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
     @Override
     public IPromise shutDown() {
         tables.values().forEach( table -> table.stop() );
-        Consumer<SimpleScheduler> loop = scheduler -> {
+        stream(((SimpleScheduler) getScheduler())).forEach(scheduler -> {
             scheduler.setKeepAlive(false);
             scheduler.terminateIfIdle();
-        };
-        stream(filterScheduler).forEach(loop);
-        stream(scanScheduler).forEach(loop);
+        });
         return resolve();
     }
 

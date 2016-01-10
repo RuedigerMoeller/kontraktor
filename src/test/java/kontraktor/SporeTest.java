@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Spore;
-import org.nustaq.kontraktor.annotations.CallerSideMethod;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -64,7 +63,7 @@ public class SporeTest {
                     }
 
                 } // result receiving executed locally
-                .forEach((result, error) -> {
+                .setForEach((result, error) -> {
                     assert Thread.currentThread().getName().equals("Caller");
                     int i = res.incrementAndGet();
                     System.out.println("result " + i + ":" + result + " err:" + error);

@@ -85,7 +85,7 @@ public class Basic {
             AtomicInteger counter = new AtomicInteger(0);
 
             blogs.forEach(
-                new FilterSpore<String>(record -> record.getKey().indexOf("99") >= 0).forEach((r, e) -> {
+                new FilterSpore<String>(record -> record.getKey().indexOf("99") >= 0).setForEach((r, e) -> {
 
                 })
             );
@@ -96,7 +96,7 @@ public class Basic {
 
             tim = System.currentTimeMillis();
             articles.forEach(
-                new FilterSpore<String>(record -> record.getKey().indexOf("999") >= 0).forEach( (r,e) -> {
+                new FilterSpore<String>(record -> record.getKey().indexOf("999") >= 0).setForEach((r, e) -> {
 
                 })
             );
@@ -114,7 +114,7 @@ public class Basic {
     }
 
     public void insertTest(StorageDriver source) {
-        FilterProcessor<String> stream = new FilterProcessor(source.getStore());
+        FilterProcessorImpl<String> stream = new FilterProcessorImpl(source.getStore());
         source.setListener(stream);
 
         stream.subscribe(new Subscriber<>(
@@ -143,7 +143,7 @@ public class Basic {
     @Test
     public void test() {
         StorageDriver source = new StorageDriver(new HeapRecordStorage<>());
-        FilterProcessor<String> stream = new FilterProcessor(source.getStore());
+        FilterProcessorImpl<String> stream = new FilterProcessorImpl(source.getStore());
         source.setListener(stream);
 
         stream.subscribe(new Subscriber<>(
@@ -349,7 +349,7 @@ public class Basic {
     @Test
     public void testActor() throws InterruptedException {
         RealLiveStreamActor<String> rls = Actors.AsActor(RealLiveStreamActor.class,100_000);
-        rls.init( () -> new OffHeapRecordStorage(32, 500, 500_000), new SimpleScheduler(), null);
+        rls.init( () -> new OffHeapRecordStorage(32, 500, 500_000), null);
 
         TA ta = Actors.AsActor(TA.class);
         ta.runTest(rls).await(20_000);
@@ -362,7 +362,7 @@ public class Basic {
         RealLiveStreamActor<String> rls[] = new RealLiveStreamActor[8];
         for (int i = 0; i < rls.length; i++) {
             rls[i] = Actors.AsActor(RealLiveStreamActor.class);
-            rls[i].init(() -> new OffHeapRecordStorage(32, 500 / rls.length, 700_000 / rls.length), rls[i].getScheduler(), null);
+            rls[i].init(() -> new OffHeapRecordStorage(32, 500 / rls.length, 700_000 / rls.length), null);
         }
         ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
         TableSharding<String> sharding = new TableSharding<>(sfunc, rls, null);
@@ -382,7 +382,7 @@ public class Basic {
             RealLiveStreamActor<String> rls[] = new RealLiveStreamActor[8];
             for (int i = 0; i < rls.length; i++) {
                 rls[i] = Actors.AsActor(RealLiveStreamActor.class);
-                rls[i].init( () -> new OffHeapRecordStorage(32, 1500/rls.length, 1_500_000/rls.length), rls[i].getScheduler(), null);
+                rls[i].init( () -> new OffHeapRecordStorage(32, 1500/rls.length, 1_500_000/rls.length), null);
             }
             ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
             TableSharding<String> sharding = new TableSharding<>(sfunc, rls, null);
@@ -397,7 +397,7 @@ public class Basic {
     @Test
     public void testActorOutside() throws InterruptedException {
         RealLiveStreamActor<String> rls = Actors.AsActor(RealLiveStreamActor.class);
-        rls.init(() -> new OffHeapRecordStorage(32, 500,500_000),new SimpleScheduler(),null);
+        rls.init(() -> new OffHeapRecordStorage(32, 500,500_000),null);
 
         TA ta = new TA();
         ta.runTest(rls).await();

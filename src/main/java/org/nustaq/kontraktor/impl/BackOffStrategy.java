@@ -26,13 +26,14 @@ import java.util.concurrent.locks.*;
  *
  * if a message queue is empty, first busy spin is used for N iterations, then Thread.all, then LockSupport.park, then sleep(nanosToPark)
  *
+ * Note that default constants are public static, so one can globally trade higher latency against lower cpu (polling) load
  */
 public class BackOffStrategy {
 
-    public static int SLEEP_NANOS = 1000 * 1000;
-    public static int SPIN_UNTIL_YIELD = 100;
-    public static int YIELD_UNTIL_PARK = 100;
-    public static int PARK_UNTIL_SLEEP = 10;
+    public static int SLEEP_NANOS = 2*1000 * 1000; // 2 millis
+    public static int SPIN_UNTIL_YIELD = 10;
+    public static int YIELD_UNTIL_PARK = 10;
+    public static int PARK_UNTIL_SLEEP = 1;
 
     int yieldCount;
     int parkCount;

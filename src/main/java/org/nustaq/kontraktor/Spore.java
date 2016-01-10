@@ -72,9 +72,8 @@ public abstract class Spore<I,O> implements Serializable, Cloneable {
      * use local (sender side). Register and receive data streamed back from remote spore execution.
      *
      * @param cb
-     * @return a future triggered
      */
-    public Spore<I,O> forEach(Callback<O> cb) {
+    public Spore<I,O> setForEach(Callback<O> cb) {
         if ( localCallback != null ) {
             throw new RuntimeException("forEachResult callback handler can only be set once.");
         }
