@@ -27,10 +27,13 @@ window.jsk = window.jsk || (function () {
   var sbIdCount = 1;
   var batch = [];
 
+
   function jsk(){
   }
 
   var _jsk = new jsk();
+
+  _jsk.futureMap = futureMap; // debug read access
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // fst-Json Helpers
@@ -395,7 +398,7 @@ window.jsk = window.jsk || (function () {
       console.log("old data received:"+sequence+" last:"+lastSeenSequence);
       return lastSeenSequence;
     }
-    console.log("resplen:"+respLen);
+    //console.log("resplen:"+respLen);
     for (var i = 0; i < respLen; i++) {
       var resp = decodedResponse.seq[i + 1];
       if (!resp.obj.method && resp.obj.receiverKey) { // => callback
@@ -585,6 +588,13 @@ window.jsk = window.jsk || (function () {
       if ( ! self.isConnected ) {
         setTimeout(self.longPoll,1000);
       } else {
+        var cblen = Object.keys(_jsk.futureMap).length;
+        console.log("CBMAP SIZE ON LP *** ", cblen );
+        if ( cblen === 0 ) {
+          // in case no pending callback or promise is present => skip LP
+          setTimeout(self.longPoll,2000);
+          return;
+        }
         var reqData = '{"styp":"array","seq":[1,'+self.lpSeqNo+']}';
         var request = new XMLHttpRequest();
         request.onload = function () {
@@ -601,11 +611,11 @@ window.jsk = window.jsk || (function () {
             if ( resp && resp.trim().length > 0 ) {
               var respObject = JSON.parse(resp);
               self.lpSeqNo = processSocketResponse(self.lpSeqNo, respObject, true, self.onmessageHandler, self);
-              setTimeout(self.longPoll,0);
+              setTimeout(self.longPoll,0); // progress, immediately next request
             } else {
               console.log("resp is empty");
+              setTimeout(self.longPoll,1000);
             }
-            setTimeout(self.longPoll,0); // progress, immediately next request
           } catch (err) {
             console.log(err);
             setTimeout(self.longPoll,3000); // error, slow down
