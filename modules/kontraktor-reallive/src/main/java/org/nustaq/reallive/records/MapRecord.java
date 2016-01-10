@@ -45,9 +45,12 @@ public class MapRecord<K> implements Record<K> {
 
     @Override
     public MapRecord put(String field, Object value) {
+        field=field.intern();
         if ( map.put(field, value) == null ) {
             fields = null;
         }
+        if (value == null)
+            map.remove(field);
         return this;
     }
 
