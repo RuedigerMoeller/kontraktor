@@ -32,6 +32,11 @@ public class TableDescription implements Serializable, Cloneable {
         return this;
     }
 
+    public TableDescription type(final StorageType st) {
+        this.st = st;
+        return this;
+    }
+
     public StorageType getType() {
         return st;
     }
