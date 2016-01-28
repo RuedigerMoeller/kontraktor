@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.PromiseLatch;
 import org.nustaq.reallive.impl.actors.ShardFunc;
 import org.nustaq.reallive.impl.actors.TableSharding;
+import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.interfaces.RealLiveTable;
 import org.nustaq.reallive.interfaces.TableDescription;
 import org.nustaq.reallive.interfaces.TableSpace;
@@ -95,7 +96,14 @@ public class TableSpaceSharding implements TableSpace {
 
     @Override
     public IPromise<List<TableDescription>> getTableDescriptions() {
-        return new Promise(tableMap.values().stream().map( ts -> ts.getDescription() ).collect(Collectors.toList()));
+        List<IPromise> collect = tableMap.values().stream().map(ts -> ts.getDescription()).collect(Collectors.toList());
+        return new Promise( Actors.allMapped((List)collect) );
+    }
+
+    public List<StorageStats> getStats() {
+        return tableMap.keySet().stream()
+            .map(tableName -> ((StorageStats) tableMap.get(tableName).getStats().await()).tableName(tableName))
+            .collect(Collectors.toList());
     }
 
     @Override

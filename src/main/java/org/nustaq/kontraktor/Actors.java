@@ -27,6 +27,7 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -261,6 +262,26 @@ public class Actors {
     }
 
     /**
+     * similar all but map promises to their content
+     *
+     * returns a future which is settled once all promises provided are settled
+     *
+     */
+    public static <T> IPromise<List<T>> allMapped(List<IPromise<T>> futures) {
+        Promise returned = new Promise();
+        Promise res = new Promise();
+        awaitSettle(futures, res);
+        res.then( (r, e) -> {
+            if (r!=null) {
+                returned.resolve(((List<Promise>)r).stream().map(p -> p.get()).collect(Collectors.toList()));
+            } else {
+                returned.complete(null,e);
+            }
+        });
+        return returned;
+    }
+
+    /**
      * await until all futures are settled and stream their results
      */
     public static <T> Stream<T> awaitAll(long timeoutMS, IPromise<T>... futures) {
@@ -490,7 +511,7 @@ public class Actors {
     private static <T> void awaitSettle(final List<IPromise<T>> futures, final IPromise result) {
         PromiseLatch latch = new PromiseLatch(futures.size());
         latch.getPromise().then( () -> result.complete(futures, null) );
-        futures.forEach( fut -> fut.then(() -> latch.countDown()) );
+        futures.forEach( fut -> fut.then( () -> latch.countDown() ) );
     }
 
     /**

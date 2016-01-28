@@ -16,9 +16,19 @@ public class StorageStats implements Serializable {
     long capacity;
     int numElems;
     List<StorageStats> subStats;
+    String tableName;
 
     public StorageStats name(final String name) {
         this.name = name;
+        return this;
+    }
+
+    public String getTableName() {
+        return tableName;
+    }
+
+    public StorageStats tableName(final String tableName) {
+        this.tableName = tableName;
         return this;
     }
 
