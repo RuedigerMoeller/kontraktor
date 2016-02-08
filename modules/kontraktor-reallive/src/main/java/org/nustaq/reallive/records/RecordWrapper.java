@@ -26,6 +26,11 @@ public class RecordWrapper<K> implements Record<K> {
     }
 
     @Override
+    public void key(K key) {
+        record.key(key);
+    }
+
+    @Override
     public String[] getFields() {
         return record.getFields();
     }

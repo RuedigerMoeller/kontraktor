@@ -13,6 +13,12 @@ import java.io.Serializable;
 public interface Record<K> extends Serializable, EvalContext {
 
     K getKey();
+
+    /**
+     * take care, kind of dangerous
+     * @param key
+     */
+    void key(K key);
     String[] getFields();
     Record put( String field, Object value );
 

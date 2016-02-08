@@ -29,6 +29,11 @@ public class MapRecord<K> implements Record<K> {
         return key;
     }
 
+//    @Override
+    public void key(K key) {
+        this.key = key;
+    }
+
     @Override
     public String[] getFields() {
         if (fields==null) {
