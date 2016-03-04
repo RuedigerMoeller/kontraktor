@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Created by moelrue on 5/7/15.
@@ -152,9 +153,13 @@ public abstract class RemoteRegistry implements RemoteConnection {
         return id;
     }
 
-    private void publishActorDirect(Long integer, Actor act) {
-        publishedActorMapping.put(integer, act.getActorRef());
-        publishedActorMappingReverse.put(act.getActorRef(), integer);
+    private void publishActorDirect(Long id, Actor act) {
+        Object o = publishedActorMapping.get(id);
+        if ( o != null && o != act.getActorRef() ) {
+            Log.Error(this,"id already present old:"+o+" new:"+act);
+        }
+        publishedActorMapping.put(id, act.getActorRef());
+        publishedActorMappingReverse.put(act.getActorRef(), id);
         act.__addRemoteConnection(this);
     }
 
@@ -305,6 +310,16 @@ public abstract class RemoteRegistry implements RemoteConnection {
             read.getArgs()[1] = Callback.CONT; // enable ==
         if (read.getQueue() == read.MAILBOX) {
             Actor targetActor = getPublishedActor(read.getReceiverKey());
+            if (targetActor==null) {
+                if ( facadeActor instanceof SessionResurrector ) {
+                    // note this could become a bottle neck as its synchronous
+                    // workaround would be to create a queuing proxy until actor is returned
+                    targetActor = ((SessionResurrector) facadeActor).reanimate(objSocket.getConnectionIdentifier(),read.getReceiverKey()).await();
+                    if ( targetActor != null ) {
+                        publishActorDirect(read.getReceiverKey(), targetActor);
+                    }
+                }
+            }
             if (targetActor==null) {
                 Log.Lg.error(this, null, "registry:"+System.identityHashCode(this)+" no actor found for key " + read);
                 return true;

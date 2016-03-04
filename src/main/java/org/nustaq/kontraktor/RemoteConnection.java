@@ -17,6 +17,8 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor;
 
 
+import java.util.function.Function;
+
 /**
  * Created by ruedi on 24.08.2014.
  */
@@ -40,4 +42,5 @@ public interface RemoteConnection {
      * closes underlying network connection also. Can be dangerous as other clients might share it
      */
     IPromise closeNetwork();
+
 }

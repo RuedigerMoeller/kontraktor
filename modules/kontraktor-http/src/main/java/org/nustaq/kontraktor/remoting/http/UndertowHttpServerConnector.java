@@ -21,10 +21,8 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import io.undertow.util.Methods;
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.remoting.base.ActorServer;
-import org.nustaq.kontraktor.remoting.base.ActorServerConnector;
-import org.nustaq.kontraktor.remoting.base.ObjectSink;
-import org.nustaq.kontraktor.remoting.base.ObjectSocket;
+import org.nustaq.kontraktor.remoting.base.SessionResurrector;
+import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.FSTConfiguration;
@@ -36,6 +34,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -171,8 +170,13 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             if ( httpObjectSocket != null ) {
                 handleClientRequest(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null);
             } else {
-                exchange.setResponseCode(404);
-                exchange.endExchange();
+                httpObjectSocket = restoreSessionFromId(split[0]);
+                if ( httpObjectSocket != null ) {
+                    handleClientRequest(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null);
+                } else {
+                    exchange.setResponseCode(404);
+                    exchange.endExchange();
+                }
             }
         } else { // new session
             Object auth = null;
@@ -183,47 +187,76 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
             // auth check goes here
 
-            String sessionId = Long.toHexString((long) (Math.random() * Long.MAX_VALUE));
+            handleNewSession(exchange,UUID.randomUUID().toString());
+        }
+    }
+
+    protected HttpObjectSocket restoreSessionFromId(String sessionId) {
+        if ( facade instanceof SessionResurrector)
+        {
+            ((SessionResurrector)facade).restoreRemoteRefConnection(sessionId);
             HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(sessionId))) {
                 @Override
                 protected int getObjectMaxBatchSize() {
                     // huge batch size to make up for stupid sync http 1.1 protocol enforcing latency inclusion
                     return HttpObjectSocket.HTTP_BATCH_SIZE;
                 }
+
+                @Override
+                public String getConnectionIdentifier() {
+                    return sessionId;
+                }
+
             };
             sessions.put( sock.getSessionId(), sock );
             ObjectSink sink = factory.apply(sock);
             sock.setSink(sink);
+            return sock;
+        }
+        return null;
+    }
 
-            // send auth response
-            byte[] response = conf.asByteArray(sock.getSessionId());
-            ByteBuffer responseBuf = ByteBuffer.wrap(response);
+    protected void handleNewSession( HttpServerExchange exchange, String sessionId ) {
 
-            exchange.setResponseCode(200);
-            exchange.setResponseContentLength(response.length);
-            StreamSinkChannel sinkchannel = exchange.getResponseChannel();
-            sinkchannel.getWriteSetter().set(
-                channel -> {
-                    if ( responseBuf.remaining() > 0 )
-                        try {
-                            sinkchannel.write(responseBuf);
-                            if (responseBuf.remaining() == 0) {
-                                Log.Info(this, "client connected " + sessionId);
-                                exchange.endExchange();
-                            }
-                        } catch (IOException e) {
-                            e.printStackTrace();
+        HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(sessionId))) {
+            @Override
+            protected int getObjectMaxBatchSize() {
+                // huge batch size to make up for stupid sync http 1.1 protocol enforcing latency inclusion
+                return HttpObjectSocket.HTTP_BATCH_SIZE;
+            }
+        };
+        sessions.put( sock.getSessionId(), sock );
+        ObjectSink sink = factory.apply(sock);
+        sock.setSink(sink);
+
+        // send auth response
+        byte[] response = conf.asByteArray(sock.getSessionId());
+        ByteBuffer responseBuf = ByteBuffer.wrap(response);
+
+        exchange.setResponseCode(200);
+        exchange.setResponseContentLength(response.length);
+        StreamSinkChannel sinkchannel = exchange.getResponseChannel();
+        sinkchannel.getWriteSetter().set(
+            channel -> {
+                if ( responseBuf.remaining() > 0 )
+                    try {
+                        sinkchannel.write(responseBuf);
+                        if (responseBuf.remaining() == 0) {
+                            Log.Info(this, "client connected " + sessionId);
                             exchange.endExchange();
                         }
-                    else
-                    {
-                        Log.Info(this,"client connected "+sessionId);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                         exchange.endExchange();
                     }
+                else
+                {
+                    Log.Info(this,"client connected "+sessionId);
+                    exchange.endExchange();
                 }
-            );
-            sinkchannel.resumeWrites();
-        }
+            }
+        );
+        sinkchannel.resumeWrites();
     }
 
     protected HttpObjectSocket closeSession(String sessionId) {
