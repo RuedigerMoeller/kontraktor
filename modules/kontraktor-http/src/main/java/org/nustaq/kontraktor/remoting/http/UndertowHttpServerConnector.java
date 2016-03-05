@@ -224,6 +224,12 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                 // huge batch size to make up for stupid sync http 1.1 protocol enforcing latency inclusion
                 return HttpObjectSocket.HTTP_BATCH_SIZE;
             }
+
+            @Override
+            public String getConnectionIdentifier() {
+                return sessionId;
+            }
+
         };
         sessions.put( sock.getSessionId(), sock );
         ObjectSink sink = factory.apply(sock);

@@ -17,6 +17,8 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor;
 
 
+import org.nustaq.kontraktor.remoting.base.ObjectSocket;
+
 import java.util.function.Function;
 
 /**
@@ -42,5 +44,7 @@ public interface RemoteConnection {
      * closes underlying network connection also. Can be dangerous as other clients might share it
      */
     IPromise closeNetwork();
+
+    ObjectSocket getSocketRef();
 
 }

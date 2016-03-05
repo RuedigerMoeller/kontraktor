@@ -528,6 +528,11 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
     public abstract AtomicReference<ObjectSocket> getWriteObjectSocket();
 
+    @Override
+    public ObjectSocket getSocketRef() {
+        return getWriteObjectSocket().get();
+    }
+
     public boolean isObsolete() {
         return isObsolete;
     }
