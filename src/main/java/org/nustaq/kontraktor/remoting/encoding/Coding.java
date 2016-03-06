@@ -19,8 +19,6 @@ package org.nustaq.kontraktor.remoting.encoding;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 26.10.14.

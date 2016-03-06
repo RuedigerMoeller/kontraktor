@@ -312,11 +312,15 @@ public abstract class RemoteRegistry implements RemoteConnection {
             Actor targetActor = getPublishedActor(read.getReceiverKey());
             if (targetActor==null) {
                 if ( facadeActor instanceof SessionResurrector ) {
-                    // note this could become a bottle neck as its synchronous
-                    // workaround would be to create a queuing proxy until actor is returned
-                    targetActor = ((SessionResurrector) facadeActor).reanimate(objSocket.getConnectionIdentifier(),read.getReceiverKey()).await();
-                    if ( targetActor != null ) {
-                        publishActorDirect(read.getReceiverKey(), targetActor);
+                    try {
+                        // note this could become a bottle neck as its synchronous
+                        // workaround would be to create a queuing proxy until actor is returned
+                        targetActor = ((SessionResurrector) facadeActor.getActorRef()).reanimate(objSocket.getConnectionIdentifier(), read.getReceiverKey()).await();
+                        if (targetActor != null) {
+                            publishActorDirect(read.getReceiverKey(), targetActor);
+                        }
+                    } catch (Throwable th) {
+                        Log.Info(this,th);
                     }
                 }
             }

@@ -89,4 +89,15 @@ public interface Record<K> extends Serializable, EvalContext {
     default Record<K> copied() {
         throw new RuntimeException("copy not implemented");
     }
+
+    default Object[] getKeyVals() {
+        final String[] fields = getFields();
+        Object[] res = new Object[fields.length*2];
+        for (int i = 0; i < fields.length; i++) {
+            String field = fields[i];
+            res[i*2] = field;
+            res[i*2+1] = get(field);
+        }
+        return res;
+    }
 }

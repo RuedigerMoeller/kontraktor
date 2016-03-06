@@ -194,7 +194,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
     protected HttpObjectSocket restoreSessionFromId(String sessionId) {
         if ( facade instanceof SessionResurrector)
         {
-            ((SessionResurrector)facade).restoreRemoteRefConnection(sessionId);
+            ((SessionResurrector)facade.getActorRef()).restoreRemoteRefConnection(sessionId);
             HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(sessionId))) {
                 @Override
                 protected int getObjectMaxBatchSize() {
