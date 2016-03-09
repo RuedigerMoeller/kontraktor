@@ -23,7 +23,6 @@ public interface ChangeStream<K> {
 
     default @CallerSideMethod
     Subscriber<K> subscribeOn(String query, ChangeReceiver<K> receiver) throws ParseException {
-        System.out.println("SUBSCRIBE "+query);
         Subscriber<K> subs = new Subscriber<>(new QueryPredicate<>(query),receiver);
         this.subscribe(subs);
         return subs;
