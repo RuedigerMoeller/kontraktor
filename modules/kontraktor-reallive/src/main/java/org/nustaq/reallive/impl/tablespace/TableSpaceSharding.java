@@ -97,7 +97,7 @@ public class TableSpaceSharding implements TableSpace {
     @Override
     public IPromise<List<TableDescription>> getTableDescriptions() {
         List<IPromise> collect = tableMap.values().stream().map(ts -> ts.getDescription()).collect(Collectors.toList());
-        return new Promise( Actors.allMapped((List)collect) );
+        return Actors.allMapped((List)collect);
     }
 
     public List<StorageStats> getStats() {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// version 3.19.0
+// version 3.20.0
 // JavaScript to Kontraktor bridge
 // matches kontraktor 3.0 json-no-ref encoded remoting
 // as I am kind of a JS beginner, hints are welcome :)
@@ -23,9 +23,11 @@ if ( typeof window === 'undefined')
 window.jsk = window.jsk || (function () {
 
     var futureMap = {}; // future id => promise
+    var callMap = {}; // future id => argumentlist to support offline caching
     var currentSocket = { socket: null }; // use indirection to refer to a socket in order to ease reconnects
     var sbIdCount = 1;
     var batch = [];
+    var batchCB = [];
 
 
     function jsk(){
@@ -175,6 +177,9 @@ window.jsk = window.jsk || (function () {
     // map from typeName to a mapping 'function( object ) returns obj'.
     // e.g. jsk.postObjectDecodingMap["com.myclass.Foo"] = function( obj ) { obj.attr = ..; return obj; }
     _jsk.postObjectDecodingMap = {};
+
+    // offline cache callback (longpoll only), methods: put( [methodname,args], result ) and get( [methodname,args] )
+    _jsk.callCache = null;
 
     /**
      * Connects to a json-published Actor Server with given url using either websockets, Http-Long-Poll or plain http.
@@ -328,7 +333,7 @@ window.jsk = window.jsk || (function () {
       return { "typ" : "cbw", "obj" : [ callbackId ] };
     };
 
-    _jsk.KontrActor.prototype.mapCBObjects = function(argList) {
+    _jsk.KontrActor.prototype.mapCBObjects = function(methodName,argList) {
       for (var i = 0; i < argList.length; i++) {
         if ( typeof argList[i] === 'function' ) { // autogenerate Callback object with given function
           argList[i] = new _jsk.Callback(argList[i]);
@@ -336,20 +341,28 @@ window.jsk = window.jsk || (function () {
         if (argList[i] instanceof _jsk.Callback) {
           var callbackId = sbIdCount++;
           futureMap[callbackId] = argList[i];
+          callMap[callbackId] = [methodName,argList];
           argList[i] = this.buildCallback(callbackId);
         }
       }
     };
 
-    _jsk.KontrActor.prototype.sendBatched = function(msg) {
+    _jsk.KontrActor.prototype.sendBatched = function(msg,optCB) {
       batch.push(msg);
+      batchCB.push(optCB);
       var socket = this.socketHolder.socket;
       var othis = this;
       socket.triggerNextSend(function () {
         //console.log("send batched \n"+JSON.stringify(batch,null,2));
         var data = JSON.stringify(othis.buildCallList(batch, socket.lpSeqNo));
+        var prev = batchCB;
         batch = [];
-        socket.send(data);
+        batchCB = [];
+        socket.send(data).then( function( r,e) {
+          if (e!==null) {
+            currentSocket.socket.termOpenCBs(prev);
+          }
+        });
       });
     };
 
@@ -365,12 +378,13 @@ window.jsk = window.jsk || (function () {
       var argList = [];
       for ( var i = 1; i < arguments.length; i++ )
         argList.push(arguments[i]);
-      this.mapCBObjects(argList);
+      this.mapCBObjects(methodName,argList);
       var futID = sbIdCount++;
       var cb = new _jsk.Promise();
       futureMap[futID] = cb;
+      callMap[futID] = [methodName,args];
       var msg = this.buildCall( futID, this.id, methodName, argList );
-      this.sendBatched.call(this,msg);
+      this.sendBatched.call(this,msg,futID);
       return cb;
     };
 
@@ -385,7 +399,7 @@ window.jsk = window.jsk || (function () {
       var argList = [];
       for ( var i = 1; i < arguments.length; i++ )
         argList.push(arguments[i]);
-      this.mapCBObjects(argList);
+      this.mapCBObjects(methodName,argList);
       var msg = this.buildCall( 0, this.id, methodName, argList );
       this.sendBatched.call(this,msg);
       return this;
@@ -407,8 +421,11 @@ window.jsk = window.jsk || (function () {
           if (!cb) {
             console.error("unhandled callback " + JSON.stringify(resp, null, 2));
           } else {
-            if (cb instanceof _jsk.Promise || (cb instanceof _jsk.Callback && resp.obj.args.seq[2] !== 'CNT'))
+            var methodAndArgs = callMap[resp.obj.receiverKey];
+            if (cb instanceof _jsk.Promise || (cb instanceof _jsk.Callback && resp.obj.args.seq[2] !== 'CNT')) {
               delete futureMap[resp.obj.receiverKey];
+              delete callMap[resp.obj.receiverKey];
+            }
             if (automaticTransformResults) {
               var transFun = function (obj) {
                 if (obj != null && obj instanceof Array && obj.length == 2 && typeof obj[1] === 'string' && obj[1].indexOf("_ActorProxy") > 0) {
@@ -416,9 +433,20 @@ window.jsk = window.jsk || (function () {
                 }
                 return null;
               };
-              cb.complete(_jsk.transform(resp.obj.args.seq[1], true, transFun), _jsk.transform(resp.obj.args.seq[2], transFun)); // promise.complete(result, error)
-            } else
-              cb.complete(resp.obj.args.seq[1], resp.obj.args.seq[2]); // promise.complete(result, error)
+              var res = _jsk.transform(resp.obj.args.seq[1], true, transFun);
+              var err = _jsk.transform(resp.obj.args.seq[2], transFun);
+              if ( _jsk.callCache ) {
+                _jsk.callCache.put(methodAndArgs,[res,err]);
+              }
+              cb.complete(res, err); // promise.complete(result, error)
+            } else {
+              var res = resp.obj.args.seq[1];
+              var err = resp.obj.args.seq[2];
+              if ( _jsk.callCache ) {
+                _jsk.callCache.put(methodAndArgs,[res,err]);
+              }
+              cb.complete(res, err); // promise.complete(result, error)
+            }
           }
         } else {
           messageListener.apply(listenerThis, [resp]);
@@ -428,7 +456,7 @@ window.jsk = window.jsk || (function () {
     }
 
     /**
-     * Websocket wrapper class. Only difference methods are used instead of properties for onmessage, onerror, ...
+     * Websocket wrapper class. Only difference: methods are used instead of properties for onmessage, onerror, ...
      *
      * onmessage parses messages received. If a promise response is received, the promise is invoked. If onmessage
      * receives unrecognized messages, these are passed through
@@ -467,6 +495,9 @@ window.jsk = window.jsk || (function () {
 
       self.send = function( data ) {
         self.socket.send(data);
+        var p = new _jsk.Promise();
+        p.complete("",null); // dummy impl
+        return p;
       };
 
       self.onclose = function( eventListener ) {
@@ -563,12 +594,45 @@ window.jsk = window.jsk || (function () {
       self.onmessageHandler = null;
       self.lpSeqNo = 0;
       self.batchUnderway = false;
+      self.pollErrorsInRow = 0;
 
       function fireOpen() {
         self.onopenHandler.apply(self, [{event: "opened", session: self.sessionId}]);
       }
 
+      // throw an error to all open callbacks and close them or reply with response of cache delegate
+      self.termOpenCBs = function(optCBs) {
+        var keys = optCBs;
+        if (optCBs) {
+        } else {
+          keys = Object.keys(_jsk.futureMap);
+        }
+        for (var i = 0; i < keys.length; i++) {
+          var cb = futureMap[keys[i]];
+          if (cb) {
+            var methodAndArgs = callMap[keys[i]];
+            var res = null;
+            if (_jsk.callCache && (res = _jsk.callCache.get(methodAndArgs))) {
+              try {
+                cb.complete(res[0], res[1]); // promise.complete(result, error)
+              } catch (ex) {
+                console.error(ex);
+              }
+            } else {
+              try {
+                cb.complete(null, "connection error"); // promise.complete(result, error)
+              } catch (ex) {
+                console.error(ex);
+              }
+            }
+          }
+          delete futureMap[keys[i]];
+          delete callMap[keys[i]];
+        }
+      };
+
       function fireError() {
+        termAllOpenCBs();
         if (self.onerrorHandler && self.lastError) {
           self.onerrorHandler.apply(self, [{event: "connection failure", status: self.lastError}]);
         }
@@ -598,15 +662,21 @@ window.jsk = window.jsk || (function () {
           }
           var reqData = '{"styp":"array","seq":[1,'+self.lpSeqNo+']}';
           var request = new XMLHttpRequest();
-          request.onload = function () {
+          request.onreadystatechange = function () {
+            if ( request.readyState !== XMLHttpRequest.DONE ) {
+              return;
+            }
             self.longPollUnderway--;
             if ( request.status !== 200 ) {
               self.lastError = request.statusText;
               console.log("response error:"+request.status);
-              fireError();
-              setTimeout(self.longPoll,1000);
+              //fireError(); dont't give up on failed long poll
+              self.pollErrorsInRow++;
+              //if (self.pollErrorsInRow > XX) => handleTimeout
+              setTimeout(self.longPoll,3000);
               return;
             }
+            self.pollErrorsInRow = 0;
             try {
               var resp = request.responseText; //JSON.parse(request.responseText);
               if ( resp && resp.trim().length > 0 ) {
@@ -628,16 +698,21 @@ window.jsk = window.jsk || (function () {
             request.open("POST", self.url+"/"+self.sessionId, true);
             request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
             self.longPollUnderway++;
-            request.send(reqData); // this is actually auth data currently unused. keep stuff websocket alike for now
+            try {
+              request.send(reqData); // this is actually auth data currently unused. keep stuff websocket alike for now
+            } catch ( ex ) {
+              console.log("req error ",ex);
+            }
           }
         }
       };
 
+      // set error handler
       self.onerror = function (eventListener) {
         self.onerrorHandler = eventListener;
-        fireError();
       };
 
+      // set message handler
       self.onmessage = function(messageHandler) {
         self.onmessageHandler = messageHandler;
       };
@@ -667,17 +742,21 @@ window.jsk = window.jsk || (function () {
         if (sequence === 1 && self.lpSeqNo >= 1) {
           self.lpSeqNo = 0;
           console.log("session resurrection, reset sequence ");
-          // fixme: cleanup outstanding callbacks ?
+          self.termOpenCBs();
           if (_jsk.resurrectionCallback) {
             _jsk.resurrectionCallback.call(_jsk);
           }
         }
-      }
+      };
 
       self.send = function( data ) {
+        var res = new _jsk.Promise();
         self.batchUnderway = true;
         var request = new XMLHttpRequest();
-        request.onload = function () {
+        request.onreadystatechange = function () {
+          if ( request.readyState !== XMLHttpRequest.DONE ) {
+            return;
+          }
           self.batchUnderway = false;
           if ( self.sendFun ) {
             var tmp = self.sendFun;
@@ -686,24 +765,37 @@ window.jsk = window.jsk || (function () {
           }
           if ( request.status !== 200 ) {
             self.lastError = request.statusText;
-            fireError(); // fixme: should retry batch
+            res.complete(null,request.status);
             return;
           }
           var resp = request.responseText; //JSON.parse(request.responseText);
           if ( resp && resp.trim().length > 0 ) {
-            var respObject = JSON.parse(resp);
-            //console.log("req:",data);
-            //console.log("resp:",resp);
-            var sequence = respObject.seq[respObject.seq.length-1];
-            self.handleResurrection(sequence);
-            self.lpSeqNo = processSocketResponse(self.lpSeqNo, respObject, true, self.onmessageHandler, self);
+            try {
+              var respObject = JSON.parse(resp);
+              //console.log("req:",data);
+              //console.log("resp:",resp);
+              var sequence = respObject.seq[respObject.seq.length-1];
+              self.handleResurrection(sequence);
+              self.lpSeqNo = processSocketResponse(self.lpSeqNo, respObject, true, self.onmessageHandler, self);
+              res.complete("",null);
+            } catch (ex) {
+              res.complete(null,ex);
+            }
           } else {
             console.log("resp is empty");
+            res.complete("",null);
           }
         };
+
         request.open("POST", self.url+"/"+self.sessionId, true);
         request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        request.send(data);
+        try {
+          request.send(data);
+        } catch (ex) {
+          console.error(ex);
+          res.complete(null,ex);
+        }
+        return res;
       };
 
       self.onclose = function( eventListener ) {
@@ -712,7 +804,10 @@ window.jsk = window.jsk || (function () {
 
       // connect and obtain sessionId
       var request = new XMLHttpRequest();
-      request.onload = function () {
+      request.onreadystatechange = function () {
+        if ( request.readyState !== XMLHttpRequest.DONE ) {
+          return;
+        }
         if ( request.status !== 200 ) {
           self.lastError = request.statusText;
           fireError();
