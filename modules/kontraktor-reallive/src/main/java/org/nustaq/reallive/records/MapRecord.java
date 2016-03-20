@@ -15,6 +15,9 @@ public class MapRecord<K> implements Record<K> {
     String fields[];
     K key;
 
+    public MapRecord() {
+    }
+
     public MapRecord(K key) {
         this.key = key;
     }
