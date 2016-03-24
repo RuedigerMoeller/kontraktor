@@ -82,6 +82,11 @@ public class TableSharding<K> implements RealLiveTable<K> {
         return shards[func.apply(key)].getMutation().putCAS(casCondition,key, keyVals);
     }
 
+    @Override
+    public void atomic(K key, RLConsumer<Record<K>> action) {
+        shards[func.apply(key)].getMutation().atomic(key, action);
+    }
+
     protected class ShardMutation implements Mutation<K> {
 
         @Override
@@ -92,6 +97,11 @@ public class TableSharding<K> implements RealLiveTable<K> {
         @Override
         public void put(K key, Object... keyVals) {
             shards[func.apply(key)].receive(new PutMessage<K>(RLUtil.get().record(key,keyVals)));
+        }
+
+        @Override
+        public void atomic(K key, RLConsumer action) {
+            shards[func.apply(key)].getMutation().atomic(key, action);
         }
 
         @Override

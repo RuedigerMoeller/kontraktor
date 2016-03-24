@@ -54,12 +54,15 @@ public abstract class RemoteRegistry implements RemoteConnection {
     public static int MAX_BATCH_CALLS = 500;
     private ActorServer server;
 
+
     public static void registerDefaultClassMappings(FSTConfiguration conf) {
         conf.registerCrossPlatformClassMapping(new String[][]{
             {"call", RemoteCallEntry.class.getName()},
             {"cbw", CallbackWrapper.class.getName()}
         });
     }
+
+    public static BiFunction remoteCallMapper; // if set, each remote call and callback is mapped through
 
     protected FSTConfiguration conf;
     protected RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
@@ -309,6 +312,9 @@ public abstract class RemoteRegistry implements RemoteConnection {
         if ( isContinue )
             read.getArgs()[1] = Callback.CONT; // enable ==
         if (read.getQueue() == read.MAILBOX) {
+            if ( remoteCallMapper != null ) {
+                read = (RemoteCallEntry) remoteCallMapper.apply(this,read);
+            }
             Actor targetActor = getPublishedActor(read.getReceiverKey());
             if (targetActor==null) {
                 if ( facadeActor instanceof SessionResurrector ) {
@@ -346,12 +352,10 @@ public abstract class RemoteRegistry implements RemoteConnection {
                         createdFutures.add(p);
                     }
                     final Promise finalP = p;
-                    Thread debug = Thread.currentThread();
+                    final RemoteCallEntry finalRead = read;
                     ((IPromise) future).then( (r,e) -> {
                         try {
-                            Thread debug1 = Thread.currentThread();
-                            Thread debug2 = debug;
-                            receiveCBResult(objSocket, read.getFutureKey(), r, e);
+                            receiveCBResult(objSocket, finalRead.getFutureKey(), r, e);
                             if ( finalP != null )
                                 finalP.complete();
                         } catch (Exception ex) {
@@ -368,6 +372,9 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 }
             }
         } else if (read.getQueue() == read.CBQ) {
+            if ( remoteCallMapper != null ) {
+                read = (RemoteCallEntry) remoteCallMapper.apply(this,read);
+            }
             Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
             if ( publishedCallback == null ) {
                 if ( read.getArgs() != null && read.getArgs().length == 2 && read.getArgs()[1] instanceof InternalActorStoppedException ) {

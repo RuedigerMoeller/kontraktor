@@ -3,6 +3,8 @@ package org.nustaq.reallive.interfaces;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.reallive.impl.storage.StorageStats;
 
+import java.util.function.Consumer;
+
 /**
  * Created by ruedi on 06/08/15.
  */
@@ -14,4 +16,6 @@ public interface RealLiveTable<K> extends ChangeReceiver<K>, RecordIterable<K>, 
     IPromise<StorageStats> getStats();
 
     IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object[] keyVals);
+
+    void atomic(K key, RLConsumer<Record<K>> action);
 }

@@ -27,6 +27,10 @@ public class MapRecord<K> implements Record<K> {
         RLUtil.get().buildRecord(this,values);
     }
 
+    public int size() {
+        return map.size();
+    }
+
     @Override
     public K getKey() {
         return key;

@@ -5,7 +5,7 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.*;
-import org.nustaq.reallive.records.MapRecord;
+import org.nustaq.reallive.records.PatchingRecord;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -146,6 +146,21 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
     @Override
     public void put(K key, Object ... keyVals) {
         receive(RLUtil.get().put(key,keyVals));
+    }
+
+    @Override
+    public void atomic(K key, RLConsumer action) {
+        Record<K> rec = getStore().get(key);
+        if ( rec == null ) {
+            action.accept(rec);
+        } else {
+            PatchingRecord pr = new PatchingRecord(rec);
+            action.accept(pr);
+            UpdateMessage updates = pr.getUpdates();
+            if ( updates != null ) {
+                receive(updates);
+            }
+        }
     }
 
     @Override

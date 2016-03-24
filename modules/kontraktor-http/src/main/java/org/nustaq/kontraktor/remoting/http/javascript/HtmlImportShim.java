@@ -112,10 +112,17 @@ public class HtmlImportShim {
             for (int i = 0; i < resourcLinks.size(); i++) {
                 Element element = resourcLinks.get(i);
                 if ( element.tagName().equals("img") || element.tagName().equals("embed") || element.tagName().equals("iframe") ) {
-                    KUrl linkUrl = new KUrl(element.attr("src") );
-                    if ( linkUrl.isRelative() ) {
-                        linkUrl = linkUrl.prepend( containingFileUrl.getParentURL().getName() );
-                        element.attr("src", linkUrl.toUrlString());
+                    if ( element.attr("no-inline").equals("")) {
+                        String src = element.attr("src");
+                        KUrl linkUrl = new KUrl(src);
+                        boolean symbolic =  src.startsWith("{{");
+                        if ( symbolic ) {
+                            int debug = 1;
+                        }
+                        if ( linkUrl.isRelative() && !symbolic ) {
+                            linkUrl = linkUrl.prepend( containingFileUrl.getParentURL().getName() );
+                            element.attr("src", linkUrl.toUrlString());
+                        }
                     }
                 }
             }

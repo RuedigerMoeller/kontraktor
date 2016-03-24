@@ -1,10 +1,12 @@
 package org.nustaq.reallive.records;
-
 import org.nustaq.reallive.impl.RLUtil;
 import org.nustaq.reallive.interfaces.Record;
+import org.nustaq.reallive.messages.UpdateMessage;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Created by ruedi on 10.01.16.
@@ -49,7 +51,7 @@ public class PatchingRecord extends RecordWrapper {
     @Override
     public Record put(String field, Object value) {
         if ( override == null )
-            override = new MapRecord(super.getKey());
+            override = new MapRecord(getKey());
         return override.put(field, value);
     }
 
@@ -74,6 +76,19 @@ public class PatchingRecord extends RecordWrapper {
     public <K> void reset(Record<K> input) {
         record = input;
         override = null;
+    }
+
+    public <K> UpdateMessage<K> getUpdates() {
+        if ( override == null )
+            return null;
+        Object update[] = new Object[override.size()*2];
+        int idx = 0;
+        for (Iterator iterator = override.map.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry next = (Map.Entry) iterator.next();
+            update[idx++] = next.getKey();
+            update[idx++] = next.getValue();
+        }
+        return RLUtil.get().update((K) getKey(),update);
     }
 
     public <K> Record<K> unwrapOrCopy() {

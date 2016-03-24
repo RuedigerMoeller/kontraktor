@@ -145,4 +145,9 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
         return storageDriver.putCAS(casCondition,key,keyVals);
     }
 
+    @Override
+    public void atomic(K key, RLConsumer<Record<K>> action) {
+        storageDriver.atomic(key,action);
+    }
+
 }

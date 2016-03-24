@@ -32,6 +32,15 @@ public class Mutator<K> implements Mutation<K> {
     }
 
     @Override
+    public void atomic(K key, RLConsumer action) {
+        if ( receiver instanceof RealLiveTable) {
+            ((RealLiveTable) receiver).atomic(key, action);
+            return;
+        }
+        throw new RuntimeException("unsupported operation");
+    }
+
+    @Override
     public void addOrUpdate(K key, Object... keyVals) {
         if ( key instanceof Record )
             throw new RuntimeException("probably accidental method resolution fail. Use addOrUpdateRec instead");
