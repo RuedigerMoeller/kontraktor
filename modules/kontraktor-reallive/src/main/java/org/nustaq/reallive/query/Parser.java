@@ -232,10 +232,15 @@ public class Parser {
         MapRecord<String> hm = new MapRecord<>("key")
             .put("test","hallo")
             .put("a", 100)
+            .put("c", -1)
             .put("time", System.currentTimeMillis())
             .put("b", 200);
 
         Thread.sleep(2000);
+        CompiledQuery nums = Query.compile("c!= -1");
+        System.out.println(nums.evaluate(hm));
+        if ( 1 != 0 )
+            return;
         CompiledQuery ctrue = Query.compile("time < age(1,\"sec\")");
         CompiledQuery cfalse = Query.compile("time < age(5,'sec')");
         CompiledQuery tim = Query.compile("a<1000000000");
