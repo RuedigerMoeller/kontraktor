@@ -33,6 +33,7 @@ public class FilterSpore<K> extends Spore<Record<K>,Record<K>> {
         if ( ! filterNoPatch(input) ) {
             return;
         }
+
         final PatchingRecord patchingRecord = rec.get();
         patchingRecord.reset(input);
         if ( filter.test(patchingRecord) ) {
