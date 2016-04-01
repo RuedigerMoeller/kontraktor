@@ -13,14 +13,23 @@ public class Subscriber<K> implements Serializable {
     static AtomicInteger idCount = new AtomicInteger(0);
 
     RLPredicate<Record<K>> filter;
+    RLPredicate<Record<K>> prePatchFilter;
+
     ChangeReceiver<K> receiver;
     int id;
     transient Callback serverSideCB;
 
-    public Subscriber(RLPredicate<Record<K>> filter, ChangeReceiver<K> receiver) {
+    public Subscriber(RLPredicate<Record<K>> prepatch, RLPredicate<Record<K>> filter, ChangeReceiver<K> receiver) {
         this.filter = filter;
         this.receiver = receiver;
+        this.prePatchFilter = prepatch;
         id = idCount.incrementAndGet();
+    }
+
+    public RLPredicate<Record<K>> getPrePatchFilter() {
+        if ( prePatchFilter == null )
+            return rec -> true;
+        return prePatchFilter;
     }
 
     public int getId() {
@@ -28,6 +37,8 @@ public class Subscriber<K> implements Serializable {
     }
 
     public RLPredicate<Record<K>> getFilter() {
+        if ( filter == null )
+            return rec -> true;
         return filter;
     }
 

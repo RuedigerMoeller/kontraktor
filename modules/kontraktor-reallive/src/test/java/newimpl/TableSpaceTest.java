@@ -127,7 +127,7 @@ public class TableSpaceTest {
         System.out.println(test.get("emil0").await());
         test.filter(rec -> true, (r, e) -> System.out.println("filter1:" + r + " " + resultCount.incrementAndGet()));
         Subscriber subs[] = {null};
-        subs[0] = new Subscriber(record -> true, change -> {
+        subs[0] = new Subscriber(null, record -> true, change -> {
             System.out.println("stream: " + change + " " + resultCount.incrementAndGet());
             if (change.isDoneMsg()) {
                 test.unsubscribe(subs[0]);

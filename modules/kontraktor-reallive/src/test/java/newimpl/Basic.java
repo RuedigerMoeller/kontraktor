@@ -117,7 +117,7 @@ public class Basic {
         FilterProcessorImpl<String> stream = new FilterProcessorImpl(source.getStore());
         source.setListener(stream);
 
-        stream.subscribe(new Subscriber<>(
+        stream.subscribe(new Subscriber<>( null,
                                              record -> "one13".equals(record.getKey()),
                                              change -> System.out.println("listener: " + change)
         ));
@@ -146,7 +146,7 @@ public class Basic {
         FilterProcessorImpl<String> stream = new FilterProcessorImpl(source.getStore());
         source.setListener(stream);
 
-        stream.subscribe(new Subscriber<>(
+        stream.subscribe(new Subscriber<>( null,
                                              record -> "one".equals(record.getKey()),
                                              change -> System.out.println("listener: " + change)
         ));
@@ -217,7 +217,7 @@ public class Basic {
         public IPromise randomTest(RealLiveTable<String> rls) throws InterruptedException {
             HeapRecordStorage<Object> hstore = new HeapRecordStorage<>();
             StorageDriver<String> copy = new StorageDriver(hstore);
-            rls.subscribe(new Subscriber<>(r -> true,copy));
+            rls.subscribe(new Subscriber<>(null,r -> true,copy));
             Mutation<String> mut = rls.getMutation();
 
             for ( int i = 0; i < 1_000_000; i++ ) {
@@ -300,7 +300,7 @@ public class Basic {
             boolean inActor = Actor.inside();
 
             Subscriber<String> subs =
-                new Subscriber<>(
+                new Subscriber<>( null,
                     record -> "one13".equals(record.getKey()),
                     change -> {
                         if ( self() != null )

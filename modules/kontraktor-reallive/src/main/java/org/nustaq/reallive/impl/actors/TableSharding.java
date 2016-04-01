@@ -43,7 +43,7 @@ public class TableSharding<K> implements RealLiveTable<K> {
         ArrayList<Subscriber> subsList = new ArrayList<>();
         for (int i = 0; i < shards.length; i++) {
             RealLiveTable<K> shard = shards[i];
-            Subscriber<K> shardSubs = new Subscriber<>(subs.getFilter(), change -> {
+            Subscriber<K> shardSubs = new Subscriber<>(subs.getPrePatchFilter(),subs.getFilter(), change -> {
                 if (change.getType() == ChangeMessage.QUERYDONE) {
                     int count = doneCount.decrementAndGet();
                     if (count == 0) {

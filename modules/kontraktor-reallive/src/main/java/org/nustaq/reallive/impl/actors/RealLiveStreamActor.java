@@ -95,12 +95,12 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
             if (Actors.isResult(e))
                 subs.getReceiver().receive((ChangeMessage<K>) r);
         };
-        _subscribe(subs.getFilter(), callback, subs.getId());
+        _subscribe(subs.getPrePatchFilter(),subs.getFilter(), callback, subs.getId());
     }
 
-    public void _subscribe(RLPredicate pred, Callback cb, int id ) {
+    public void _subscribe(RLPredicate<Record<K>> prePatchFilter, RLPredicate pred, Callback cb, int id) {
         checkThread();
-        Subscriber localSubs = new Subscriber(pred, change -> {
+        Subscriber localSubs = new Subscriber(prePatchFilter,pred, change -> {
             cb.stream(change);
             // disconnects ..
             //if (change.isDoneMsg())

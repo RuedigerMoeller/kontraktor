@@ -23,7 +23,7 @@ public class SubscribedSet<K> {
     public void subscribe(RLPredicate<Record<K>> filter) {
         synchronized (this) {
             unsubscribe();
-            subs = new Subscriber<>(filter,change -> {
+            subs = new Subscriber<>(null,filter,change -> {
                 synchronized (this) {
                     storage.receive(change);
                 }

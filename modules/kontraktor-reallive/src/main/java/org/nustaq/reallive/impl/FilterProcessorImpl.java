@@ -32,7 +32,7 @@ public class FilterProcessorImpl<K> implements FilterProcessor<K> {
     @Override
     public void subscribe(Subscriber<K> subs) {
         filterList.add(subs);
-        FilterSpore spore = new FilterSpore(subs.getFilter());
+        FilterSpore spore = new FilterSpore(subs.getFilter(),subs.getPrePatchFilter());
         spore.onFinish( () -> subs.getReceiver().receive(RLUtil.get().done()) );
         spore.setForEach((r, e) -> {
             if (Actors.isResult(e)) {
@@ -94,15 +94,30 @@ public class FilterProcessorImpl<K> implements FilterProcessor<K> {
             }
         };
         for ( Subscriber<K> subscriber : filterList ) {
-            boolean matchesOld = subscriber.getFilter().test((Record<K>) oldRec);
-            boolean matchesNew = subscriber.getFilter().test(newRecord);
+            boolean matchesOld = subscriber.getPrePatchFilter().test((Record<K>) oldRec);
+            boolean matchesNew = subscriber.getPrePatchFilter().test(newRecord);
+
+            if ( matchesNew ) {
+                final PatchingRecord patchingRecord = FilterSpore.rec.get();
+                patchingRecord.reset(newRecord);
+                matchesNew = subscriber.getFilter().test(newRecord);
+                newRecord = patchingRecord.unwrapOrCopy();
+            }
+
+            if ( matchesOld ) {
+                final PatchingRecord patchingRecord = FilterSpore.rec.get();
+                patchingRecord.reset(oldRec);
+                matchesOld = subscriber.getFilter().test(oldRec);
+                oldRec = patchingRecord.unwrapOrCopy();
+            }
+
             // commented conditions are redundant
             if ( matchesOld && matchesNew) {
                 subscriber.getReceiver().receive(change);
             } else if ( matchesOld /*&& ! matchesNew*/ ) {
-                subscriber.getReceiver().receive(new RemoveMessage<>((Record)change.getNewRecord()));
+                subscriber.getReceiver().receive(new RemoveMessage<>((Record)newRecord));
             } else if ( /*! matchesOld &&*/ matchesNew ) {
-                subscriber.getReceiver().receive(new AddMessage<>(change.getNewRecord()));
+                subscriber.getReceiver().receive(new AddMessage<>(newRecord));
             }
         }
     }
@@ -110,8 +125,11 @@ public class FilterProcessorImpl<K> implements FilterProcessor<K> {
     protected void processAdd(AddMessage<K> add) {
         Record<K> record = add.getRecord();
         for ( Subscriber<K> subscriber : filterList ) {
-            if ( subscriber.getFilter().test(record) ) {
-                subscriber.getReceiver().receive(add);
+            if ( subscriber.getPrePatchFilter().test(record) ) {
+                final PatchingRecord patchingRecord = FilterSpore.rec.get();
+                patchingRecord.reset(record);
+                if ( subscriber.getFilter().test(patchingRecord))
+                    subscriber.getReceiver().receive(new AddMessage<K>(add.isUpdateIfExisting(),patchingRecord.unwrapOrCopy()));
             }
         }
     }
@@ -119,8 +137,11 @@ public class FilterProcessorImpl<K> implements FilterProcessor<K> {
     protected void processRemove(RemoveMessage remove) {
         Record record = remove.getRecord();
         for ( Subscriber<K> subscriber : filterList ) {
-            if ( subscriber.getFilter().test((Record<K>) record) ) { // if matched before, promote remove
-                subscriber.getReceiver().receive((ChangeMessage<K>)remove);
+            if ( subscriber.getPrePatchFilter().test(record) ) {
+                final PatchingRecord patchingRecord = FilterSpore.rec.get();
+                patchingRecord.reset(record);
+                if ( subscriber.getFilter().test(patchingRecord))
+                    subscriber.getReceiver().receive((ChangeMessage<K>)remove);
             }
         }
     }

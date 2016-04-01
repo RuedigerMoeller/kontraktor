@@ -15,8 +15,17 @@ public interface RecordIterable<K> {
 
     <T> void forEach(Spore<Record<K>,T> spore);
 
+    /**
+     *
+     * @param prePatch - a filter applied to original record (no patching allowed)
+     * @param predicate - a filter which gets a private copy (patching allowed)
+     * @param cb
+     */
+    @CallerSideMethod default void filterPP( RLPredicate<Record<K>> prePatch, RLPredicate<Record<K>> predicate, Callback<Record<K>> cb ) {
+        forEach(new FilterSpore<>(predicate,null).setForEach(cb).onFinish( () -> cb.finish() ));
+    }
     @CallerSideMethod default void filter( RLPredicate<Record<K>> predicate, Callback<Record<K>> cb ) {
-        forEach(new FilterSpore<>(predicate).setForEach(cb).onFinish( () -> cb.finish() ));
+        forEach(new FilterSpore<>(predicate,null).setForEach(cb).onFinish( () -> cb.finish() ));
     }
 
     @CallerSideMethod default void query(String query, Callback<Record<K>> cb) throws ParseException {

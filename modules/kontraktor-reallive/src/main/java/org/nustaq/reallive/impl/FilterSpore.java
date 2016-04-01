@@ -10,13 +10,18 @@ import org.nustaq.reallive.records.PatchingRecord;
  */
 public class FilterSpore<K> extends Spore<Record<K>,Record<K>> {
 
-    RLPredicate<Record<K>> filter;
+    RLPredicate<Record<K>> filter; // may modify record (gets patchable private copy
+    RLPredicate<Record<K>> prePatchFilter; // gets original record (no modification)
 
     public FilterSpore(RLPredicate<Record<K>> filter) {
+        this(filter,null);
+    }
+    public FilterSpore(RLPredicate<Record<K>> filter,RLPredicate<Record<K>> prePatchFilter) {
         this.filter = filter;
+        this.prePatchFilter = prePatchFilter;
     }
 
-    transient static ThreadLocal<PatchingRecord> rec = new ThreadLocal<PatchingRecord>() {
+    public transient static ThreadLocal<PatchingRecord> rec = new ThreadLocal<PatchingRecord>() {
         @Override
         protected PatchingRecord initialValue() {
             return new PatchingRecord(null);
@@ -25,11 +30,18 @@ public class FilterSpore<K> extends Spore<Record<K>,Record<K>> {
 
     @Override
     public void remote(Record<K> input) {
+        if ( ! filterNoPatch(input) ) {
+            return;
+        }
         final PatchingRecord patchingRecord = rec.get();
         patchingRecord.reset(input);
         if ( filter.test(patchingRecord) ) {
             stream(patchingRecord.unwrapOrCopy());
         }
+    }
+
+    protected boolean filterNoPatch(Record<K> input) {
+        return prePatchFilter == null || prePatchFilter.test(input);
     }
 
 }

@@ -16,14 +16,28 @@ public interface ChangeStream<K> {
 
     default @CallerSideMethod
     Subscriber<K> subscribeOn(RLPredicate<Record<K>> filter, ChangeReceiver<K> receiver) {
-        Subscriber<K> subs = new Subscriber<>(filter,receiver);
+        Subscriber<K> subs = new Subscriber<>(null,filter,receiver);
+        this.subscribe(subs);
+        return subs;
+    }
+
+    /**
+     *
+     * @param prePatchfilter - cannot modify
+     * @param filter - can modify record (private copy)
+     * @param receiver
+     * @return
+     */
+    default @CallerSideMethod
+    Subscriber<K> subscribeOn(RLPredicate<Record<K>> prePatchfilter, RLPredicate<Record<K>> filter, ChangeReceiver<K> receiver) {
+        Subscriber<K> subs = new Subscriber<>(prePatchfilter,filter,receiver);
         this.subscribe(subs);
         return subs;
     }
 
     default @CallerSideMethod
     Subscriber<K> subscribeOn(String query, ChangeReceiver<K> receiver) throws ParseException {
-        Subscriber<K> subs = new Subscriber<>(new QueryPredicate<>(query),receiver);
+        Subscriber<K> subs = new Subscriber<>(null,new QueryPredicate<>(query),receiver);
         this.subscribe(subs);
         return subs;
     }
