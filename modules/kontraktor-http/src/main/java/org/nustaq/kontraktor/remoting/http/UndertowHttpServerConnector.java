@@ -408,7 +408,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                     try {
                         sinkchannel.write(responseBuf);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Log.Warn(this,e);
                     }
                 }
 //                System.out.println("syncwrite time micros:"+(System.nanoTime()-tim)/1000);

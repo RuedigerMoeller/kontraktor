@@ -43,6 +43,8 @@ import java.util.Map;
  */
 public class Http4K {
 
+    public static int UNDERTOW_IO_THREADS = 8;
+    public static int UNDERTOW_WORKER_THREADS = 8;
     protected static Http4K instance;
     public static void set(Http4K http) {
         instance = http;
@@ -86,8 +88,8 @@ public class Http4K {
         if (pair == null) {
             PathHandler pathHandler = new PathHandler();
             Undertow.Builder builder = Undertow.builder()
-                                           .setIoThreads(2)
-                                           .setWorkerThreads(2);
+                                           .setIoThreads(UNDERTOW_IO_THREADS)
+                                           .setWorkerThreads(UNDERTOW_WORKER_THREADS);
             Undertow server = customize(builder,pathHandler,port,hostName,context).build();
             server.start();
             pair = new Pair<>(pathHandler,server);

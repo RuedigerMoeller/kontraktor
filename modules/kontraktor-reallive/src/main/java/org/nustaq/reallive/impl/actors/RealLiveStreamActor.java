@@ -18,6 +18,8 @@ import java.util.function.*;
 /**
  * Created by ruedi on 06.08.2015.
  *
+ * core implementation of a table
+ *
  * FIXME: missing
  * - CAS/updateActions
  * - originator
@@ -27,17 +29,33 @@ import java.util.function.*;
 public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implements RealLiveTable<K>, Mutatable<K> {
 
     StorageDriver<K> storageDriver;
-    FilterProcessor<K> filterProcessor;
+    FilterProcessor<K> filterProcessor[];
     HashMap<String,Subscriber> receiverSideSubsMap = new HashMap();
     TableDescription description;
+
+    int roundRobinFilter = 0;
 
     @Local
     public void init( Supplier<RecordStorage<K>> storeFactory, TableDescription desc) {
         this.description = desc;
+        Thread.currentThread().setName("Table "+desc.getName()+" main");
         RecordStorage<K> store = storeFactory.get();
         storageDriver = new StorageDriver<>(store);
-        filterProcessor = new FilterProcessorImpl<K>(this);
-        storageDriver.setListener(filterProcessor);
+        if ( desc.filterThreads() > 0 ) {
+            filterProcessor = new FilterProcessor[desc.filterThreads()];
+            for (int i = 0; i < filterProcessor.length; i++) {
+                FilterProcessor<K> kFilterProcessor = Actors.AsActor(FilterProcessorActor.class);
+                ((FilterProcessorActor) kFilterProcessor).init(self(),desc.getName()+"-filter_"+i);
+                filterProcessor[i] = kFilterProcessor;
+            }
+        } else {
+            filterProcessor = new FilterProcessor[] { new FilterProcessorImpl<>(this) };
+        }
+        storageDriver.setListener( change -> {
+            for (int i = 0; i < filterProcessor.length; i++) {
+                filterProcessor[i].receive(change);
+            }
+        });
     }
 
 
@@ -87,10 +105,14 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
             // disconnects ..
             //if (change.isDoneMsg())
             //    cb.finish();
-        });
+        }).serverSideCB(cb);
         String sid = addChannelIdIfPresent(cb, ""+id);
         receiverSideSubsMap.put(sid,localSubs);
-        filterProcessor.subscribe(localSubs);
+        filterProcessor[roundRobinFilter].subscribe(localSubs);
+        roundRobinFilter = roundRobinFilter+1;
+        if ( roundRobinFilter >= filterProcessor.length ) {
+            roundRobinFilter = 0;
+        }
     }
 
     protected String addChannelIdIfPresent(Callback cb, String sid) {
@@ -111,8 +133,15 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
     public void _unsubscribe( Callback cb /*dummy required to find sending connection*/, int id ) {
         checkThread();
         String sid = addChannelIdIfPresent(cb, ""+id);
-        filterProcessor.unsubscribe((Subscriber<K>) receiverSideSubsMap.get(sid));
+        Subscriber<K> subs = (Subscriber<K>) receiverSideSubsMap.get(sid);
+        // fixme: could memoize associated filterprocessor
+        for (int i = 0; i < filterProcessor.length; i++) {
+            FilterProcessor<K> kFilterProcessor = filterProcessor[i];
+            kFilterProcessor.unsubscribe(subs);
+        }
         receiverSideSubsMap.remove(sid);
+        cb.finish();
+        subs.getServerSideCB().finish();
     }
 
     @Override

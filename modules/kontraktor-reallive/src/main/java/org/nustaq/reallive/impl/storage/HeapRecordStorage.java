@@ -46,7 +46,6 @@ public class HeapRecordStorage<K> implements RecordStorage<K> {
                 break;
         }
         spore.finish();
-        System.out.println("dur:"+(System.currentTimeMillis()-now)+" "+map.size());
     }
 
     public Map<K,Record<K>> getMap() {

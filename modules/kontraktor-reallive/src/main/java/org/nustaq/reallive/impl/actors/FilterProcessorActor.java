@@ -16,8 +16,22 @@ import org.nustaq.reallive.impl.*;
 
     FilterProcessorImpl<K> filterProcessor;
 
-    public void init( RecordIterable<K> iterable ) {
-        filterProcessor = new FilterProcessorImpl<>(iterable);
+    public void init( RecordIterable<K> iterable, String threadName ) {
+        RecordIterable<K> queued = new RecordIterable<K>() {
+            @Override
+            public <T> void forEach(Spore<Record<K>, T> spore) {
+                iterable.filter( rec -> true, (r,e) -> {
+                    if ( r != null )
+                        spore.remote(r);
+                    else if ( e == null )
+                        spore.finish();
+                    else
+                        spore.complete(null,e);
+                });
+            }
+        };
+        filterProcessor = new FilterProcessorImpl<>(queued);
+        Thread.currentThread().setName(threadName);
     }
 
     @Override

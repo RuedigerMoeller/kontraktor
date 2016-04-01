@@ -1,5 +1,7 @@
 package org.nustaq.reallive.interfaces;
 
+import org.nustaq.kontraktor.Callback;
+
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -13,6 +15,7 @@ public class Subscriber<K> implements Serializable {
     RLPredicate<Record<K>> filter;
     ChangeReceiver<K> receiver;
     int id;
+    transient Callback serverSideCB;
 
     public Subscriber(RLPredicate<Record<K>> filter, ChangeReceiver<K> receiver) {
         this.filter = filter;
@@ -30,5 +33,14 @@ public class Subscriber<K> implements Serializable {
 
     public ChangeReceiver<K> getReceiver() {
         return receiver;
+    }
+
+    public Subscriber serverSideCB(final Callback serverSideCB) {
+        this.serverSideCB = serverSideCB;
+        return this;
+    }
+
+    public Callback getServerSideCB() {
+        return serverSideCB;
     }
 }
