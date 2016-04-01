@@ -191,7 +191,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
             integer = newActId();
             publishedActorMapping.put(integer, cb);
             publishedActorMappingReverse.put(cb, integer);
-            System.out.println("CBMAP SIZE:"+publishedActorMapping.size());
+//            System.out.println("CBMAP SIZE:"+publishedActorMapping.size());
         }
         return integer;
     }
@@ -200,7 +200,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         Object remove = publishedActorMapping.remove(receiverKey);
         if ( remove != null ) {
             publishedActorMappingReverse.remove(remove);
-            System.out.println("CBMAP SIZE:"+publishedActorMapping.size());
+//            System.out.println("CBMAP SIZE:"+publishedActorMapping.size());
             int debug = 1;
         } else {
             System.out.println("MISS REMOVE:"+receiverKey);
