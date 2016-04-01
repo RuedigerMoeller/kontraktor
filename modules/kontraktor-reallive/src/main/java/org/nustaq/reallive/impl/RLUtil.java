@@ -43,7 +43,7 @@ public class RLUtil {
     }
 
     public <K> Record<K> record( K key, Object ... keyVals) {
-        MapRecord<K> res = new MapRecord<>(key);
+        MapRecord<K> res = MapRecord.New(key);
         return buildRecord(res, keyVals);
     }
 
@@ -57,7 +57,7 @@ public class RLUtil {
     }
 
     public <K> RemoveMessage<K> remove(K key) {
-        return new RemoveMessage<>(new MapRecord<>(key));
+        return new RemoveMessage<>(MapRecord.New(key));
     }
 
     public <K> ChangeMessage<K> done() {

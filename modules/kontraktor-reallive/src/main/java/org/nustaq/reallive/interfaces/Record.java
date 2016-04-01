@@ -75,7 +75,7 @@ public interface Record<K> extends Serializable, EvalContext {
     }
 
     default Record<K> reduced(String[] reducedFields) {
-        MapRecord rec = new MapRecord(getKey());
+        MapRecord rec = MapRecord.New(getKey());
         for (int i = 0; i < reducedFields.length; i++) {
             String reducedField = reducedFields[i];
             Object val = get(reducedField);

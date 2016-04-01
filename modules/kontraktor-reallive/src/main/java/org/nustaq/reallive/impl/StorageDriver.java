@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.records.PatchingRecord;
+import org.nustaq.reallive.records.RecordWrapper;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -26,6 +27,16 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
     public StorageDriver() {
     }
 
+    public static Record unwrap(Record r) {
+        if ( r instanceof PatchingRecord ) {
+            return unwrap(((PatchingRecord) r).unwrapOrCopy());
+        }
+        if ( r instanceof RecordWrapper ) {
+            return unwrap(((RecordWrapper) r).getRecord());
+        }
+        return r;
+    }
+
     @Override
     public void receive(ChangeMessage<K> change) {
         switch (change.getType()) {
@@ -35,11 +46,11 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
             {
                 Record<K> prevRecord = store.get(change.getKey());
                 if ( prevRecord == null ) {
-                    store.put(change.getKey(),change.getRecord());
+                    store.put(change.getKey(),unwrap(change.getRecord()));
                     receive( new AddMessage<K>(true,change.getRecord()));
                 } else {
                     Diff diff = ChangeUtils.diff(change.getRecord(), prevRecord);
-                    Record<K> newRecord = change.getRecord(); // clarification
+                    Record<K> newRecord = unwrap(change.getRecord()); // clarification
                     store.put(change.getKey(),newRecord);
                     listener.receive( new UpdateMessage<>(diff,newRecord) );
                 }
@@ -49,20 +60,17 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
             {
                 AddMessage<K> addMessage = (AddMessage) change;
                 K key = addMessage.getKey();
-                if ( key instanceof String == false ) {
-                    int debug = 1;
-                }
                 Record<K> prevRecord = store.get(key);
                 if ( prevRecord != null && ! addMessage.isUpdateIfExisting() ) {
                     return;
                 }
                 if ( prevRecord != null ) {
                     Diff diff = ChangeUtils.copyAndDiff(addMessage.getRecord(), prevRecord);
-                    Record<K> newRecord = prevRecord; // clarification
+                    Record<K> newRecord = unwrap(prevRecord); // clarification
                     store.put(change.getKey(),newRecord);
                     listener.receive( new UpdateMessage<>(diff,newRecord) );
                 } else {
-                    store.put(change.getKey(),addMessage.getRecord());
+                    store.put(change.getKey(),unwrap(addMessage.getRecord()));
                     listener.receive(addMessage);
                 }
                 break;
@@ -72,7 +80,7 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
                 RemoveMessage<K> removeMessage = (RemoveMessage) change;
                 Record<K> v = store.remove(removeMessage.getKey());
                 if ( v != null ) {
-                    listener.receive(new RemoveMessage<>(v));
+                    listener.receive(new RemoveMessage<>(unwrap(v)));
                 } else {
 //                    System.out.println("*********** failed remove "+change.getKey());
 //                    store.put(change.getKey(), new MapRecord<K>(change.getKey()).put("url", "POK"));
@@ -97,14 +105,14 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
                     listener.receive( new AddMessage(updateMessage.getNewRecord()) );
                 } else if ( updateMessage.getDiff() == null ) {
                     Diff diff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec);
-                    Record<K> newRecord = oldRec; // clarification
+                    Record<K> newRecord = unwrap(oldRec); // clarification
                     store.put(change.getKey(),newRecord);
                     listener.receive( new UpdateMessage<>(diff,newRecord) );
                 } else {
                     // old values are actually not needed inside the diff
                     // however they are needed in a change notification for filter processing (need to reconstruct prev record)
                     Diff newDiff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec, updateMessage.getDiff().getChangedFields());
-                    Record<K> newRecord = oldRec; // clarification
+                    Record<K> newRecord = unwrap(oldRec); // clarification
                     store.put(change.getKey(),newRecord);
                     listener.receive( new UpdateMessage(newDiff,newRecord));
                 }

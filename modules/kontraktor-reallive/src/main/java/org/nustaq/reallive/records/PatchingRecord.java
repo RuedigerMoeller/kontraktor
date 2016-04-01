@@ -18,6 +18,9 @@ public class PatchingRecord extends RecordWrapper {
 
     public PatchingRecord(Record record) {
         super(record);
+        if ( record instanceof RecordWrapper ) {
+            int debug = 1;
+        }
     }
 
     public boolean isModified() {
@@ -51,7 +54,7 @@ public class PatchingRecord extends RecordWrapper {
     @Override
     public Record put(String field, Object value) {
         if ( override == null )
-            override = new MapRecord(getKey());
+            override = MapRecord.New(getKey());
         return override.put(field, value);
     }
 
@@ -94,7 +97,7 @@ public class PatchingRecord extends RecordWrapper {
     public <K> Record<K> unwrapOrCopy() {
         if ( override == null )
             return record;
-        MapRecord res = new MapRecord(getKey());
+        MapRecord res = MapRecord.New(getKey());
         final String[] fields = getFields();
         for (int i = 0; i < fields.length; i++) {
             String field = fields[i];

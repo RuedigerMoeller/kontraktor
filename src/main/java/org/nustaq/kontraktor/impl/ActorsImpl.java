@@ -88,7 +88,7 @@ public class ActorsImpl {
         if ( Actors.DEFAULT_BOUNDED_QUEUE )
             return new MpscArrayQueue<>(qSize);
         else
-            return new ConcurrentArrayQueue<>( Math.max(512, qSize/20) );
+            return new ConcurrentArrayQueue<>( Math.max(512, qSize/10) );
     }
 
     public Actor newProxy(Class<? extends Actor> clz, Scheduler sched, int qsize) {

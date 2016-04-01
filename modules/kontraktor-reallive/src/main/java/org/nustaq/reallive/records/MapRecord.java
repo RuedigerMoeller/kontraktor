@@ -5,26 +5,45 @@ import org.nustaq.reallive.impl.RLUtil;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 04.08.2015.
  */
 public class MapRecord<K> implements Record<K> {
 
-    public Map<String,Object> map = new HashMap<>(); // debug
-    String fields[];
-    K key;
+    public static Class<? extends MapRecord> recordClass = MapRecord.class;
+    public static Function<MapRecord,MapRecord> conversion;
 
-    public MapRecord() {
+    public static <K> MapRecord<K> New() {
+        try {
+            return recordClass.newInstance();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    public MapRecord(K key) {
-        this.key = key;
+    protected Map<String,Object> map = new HashMap<>();
+
+    protected String fields[];
+    protected K key;
+
+    protected MapRecord() {
     }
 
-    public MapRecord(K key, Object ... values) {
-        this(key);
-        RLUtil.get().buildRecord(this,values);
+    public static <K> MapRecord<K> New(K key) {
+        MapRecord mapRecord = New();
+        mapRecord.key = key;
+        return mapRecord;
+    }
+
+    public static <K> MapRecord<K> New(K key, Object ... values) {
+        MapRecord mapRecord = New();
+        RLUtil.get().buildRecord(mapRecord,values);
+        return mapRecord;
     }
 
     public int size() {
@@ -75,7 +94,7 @@ public class MapRecord<K> implements Record<K> {
      * @return a shallow copy
      */
     public MapRecord<K> copied() {
-        MapRecord<K> newReq = new MapRecord<K>(getKey());
+        MapRecord<K> newReq = MapRecord.New(getKey());
         map.forEach( (k,v) -> newReq.put(k,v) );
         return newReq;
     }

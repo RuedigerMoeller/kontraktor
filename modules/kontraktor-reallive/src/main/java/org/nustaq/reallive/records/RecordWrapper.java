@@ -10,11 +10,22 @@ public class RecordWrapper<K> implements Record<K> {
 
     protected Record<K> record;
 
-    public RecordWrapper(Record<K> record) {
-        this.record = record;
+    public static <T> RecordWrapper<T> Wrap(Record<T> rec) {
+        if ( rec instanceof RecordWrapper ) {
+            return (RecordWrapper<T>) rec;
+        }
+        return new RecordWrapper<T>(rec);
     }
+
+    protected RecordWrapper(Record<K> record) {
+        this.record = record;
+        if ( record instanceof RecordWrapper && record instanceof PatchingRecord == false) {
+            int debug = 1;
+        }
+    }
+
     public RecordWrapper(K key) {
-        this.record = new MapRecord<>(key);
+        this.record = MapRecord.New(key);
     }
 
     public Record<K> getRecord() {

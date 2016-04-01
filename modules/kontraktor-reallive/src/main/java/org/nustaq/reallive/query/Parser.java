@@ -229,7 +229,7 @@ public class Parser {
 //        Parser p = Query.newParser();
 //        CompiledQuery compile = p.compile("test == 'hallo' && a < 101 && a <= 100 && b > 199 && b >= 200 && a+b == 300 && !0");
 //
-        MapRecord<String> hm = new MapRecord<>("key")
+        MapRecord<String> hm = MapRecord.New("key")
             .put("test","hallo")
             .put("a", 100)
             .put("c", -1)

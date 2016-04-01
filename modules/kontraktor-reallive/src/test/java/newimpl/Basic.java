@@ -43,7 +43,7 @@ public class Basic {
 
         int numBP = 30_000;
         for ( int i = 0; i < numBP; i++ ) {
-            MapRecord<String> blogEntry = new MapRecord<>("blog"+i);
+            MapRecord<String> blogEntry = MapRecord.New("blog"+i);
             blogEntry
                 .put("title", "Java is beautiful")
                 .put("description", "High performance Java, realtime distributed computing, other stuff")
@@ -58,7 +58,7 @@ public class Basic {
         System.out.println("finished blogs");
 
         for ( int i = 0; i < numBP *10; i++ ) {
-            MapRecord<String> article = new MapRecord<>("art"+i);
+            MapRecord<String> article = MapRecord.New("art"+i);
 //            article
 //                .put("title", "WebComponents BLabla")
 //                .put("description", "High performance Java, realtime distributed computing, other stuff")
