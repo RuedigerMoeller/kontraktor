@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class Spore<I,O> implements Serializable, Cloneable {
 
     Callback cb;
-    transient protected boolean finished;
+    transient protected volatile boolean finished;
     transient Callback<O> localCallback;
     transient Promise finSignal = new Promise();
     transient AtomicInteger finishLatch; // in case multiple finishs are expected (sharding)

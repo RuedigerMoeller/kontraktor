@@ -30,7 +30,7 @@ public class FilterSpore<K> extends Spore<Record<K>,Record<K>> {
 
     @Override
     public void remote(Record<K> input) {
-        if ( ! filterNoPatch(input) ) {
+        if ( prePatchFilter != null && ! prePatchFilter.test(input) ) {
             return;
         }
 
@@ -39,10 +39,6 @@ public class FilterSpore<K> extends Spore<Record<K>,Record<K>> {
         if ( filter.test(patchingRecord) ) {
             stream(patchingRecord.unwrapOrCopy());
         }
-    }
-
-    protected boolean filterNoPatch(Record<K> input) {
-        return prePatchFilter == null || prePatchFilter.test(input);
     }
 
 }

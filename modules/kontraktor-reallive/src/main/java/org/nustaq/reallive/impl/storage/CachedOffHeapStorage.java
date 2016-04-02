@@ -8,6 +8,7 @@ import org.nustaq.reallive.records.MapRecord;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Created by ruedi on 08/12/15.
@@ -68,6 +69,11 @@ public class CachedOffHeapStorage implements RecordStorage<String> {
     @Override
     public StorageStats getStats() {
         return offheap.getStats();
+    }
+
+    @Override
+    public Stream<Record<String>> stream() {
+        return onHeap.stream();
     }
 
     @Override

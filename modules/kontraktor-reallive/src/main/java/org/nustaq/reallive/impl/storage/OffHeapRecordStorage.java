@@ -14,6 +14,10 @@ import org.nustaq.serialization.util.FSTUtil;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * Created by moelrue on 05.08.2015.
@@ -128,6 +132,13 @@ public class OffHeapRecordStorage implements RecordStorage<String> {
     @Override
     public long size() {
         return store.getSize();
+    }
+
+    @Override
+    public Stream<Record<String>> stream() {
+        return StreamSupport.stream(
+            Spliterators.spliteratorUnknownSize(store.values(), Spliterator.IMMUTABLE),
+            false);
     }
 
     @Override

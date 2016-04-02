@@ -6,6 +6,7 @@ import org.nustaq.reallive.interfaces.*;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * Created by ruedi on 03/08/15.
@@ -39,9 +40,9 @@ public class HeapRecordStorage<K> implements RecordStorage<K> {
     @Override
     public <T> void forEach(Spore<Record<K>, T> spore) {
         long now = System.currentTimeMillis();
-        for (Iterator iterator = map.values().iterator(); iterator.hasNext(); ) {
-            Record<K> record = (Record<K>) iterator.next();
-            spore.remote(record);
+        for (Iterator<Map.Entry<K, Record<K>>> iterator = map.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<K, Record<K>> next = iterator.next();
+            spore.remote(next.getValue());
             if ( spore.isFinished() )
                 break;
         }
@@ -60,6 +61,11 @@ public class HeapRecordStorage<K> implements RecordStorage<K> {
             .usedMem(-1)
             .numElems(map.size());
         return stats;
+    }
+
+    @Override
+    public Stream<Record<K>> stream() {
+        return map.entrySet().stream().map( en -> en.getValue() );
     }
 
 

@@ -7,6 +7,7 @@ import org.nustaq.reallive.impl.FilterSpore;
 import org.nustaq.reallive.impl.QueryPredicate;
 
 import java.text.ParseException;
+import java.util.stream.Stream;
 
 /**
  * Created by ruedi on 04/08/15.
