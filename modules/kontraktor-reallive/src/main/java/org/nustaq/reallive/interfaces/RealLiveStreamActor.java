@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 /**
  * Created by ruedi on 04/08/15.
  */
-public interface RecordIterable<K> {
+public interface RealLiveStreamActor<K> {
 
     <T> void forEach(Spore<Record<K>,T> spore);
 

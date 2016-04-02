@@ -1,7 +1,6 @@
 package org.nustaq.reallive.impl;
 
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.Spore;
+import org.nustaq.reallive.impl.actors.RealLiveTableActor;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.records.*;
@@ -20,37 +19,23 @@ import java.util.List;
  * if ( filter matches old && new ) => send Update
  * if ( filter ! matches old && new ) => send Add
  */
-public class FilterProcessorImpl<K> implements FilterProcessor<K> {
+public class FilterProcessor<K> implements ChangeReceiver<K> {
 
     List<Subscriber<K>> filterList = new ArrayList<>();
-    RecordIterable<K> provider;
+    RealLiveTableActor<K> table;
 
-    public FilterProcessorImpl(RecordIterable<K> provider) {
-        this.provider = provider;
+    public FilterProcessor(RealLiveTableActor<K> table) {
+        this.table = table;
     }
 
-    @Override
-    public void subscribe(Subscriber<K> subs) {
+    public void startListening(Subscriber<K> subs) {
         filterList.add(subs);
-        FilterSpore spore = new FilterSpore(subs.getFilter(),subs.getPrePatchFilter());
-        spore.onFinish( () -> subs.getReceiver().receive(RLUtil.get().done()) );
-        spore.setForEach((r, e) -> {
-            if (Actors.isResult(e)) {
-                subs.getReceiver().receive(new AddMessage((Record) r));
-            } else {
-                // FIXME: pass errors
-                // FIXME: called in case of error only (see onFinish above)
-                subs.getReceiver().receive(RLUtil.get().done());
-            }
-        });
-        provider.forEach(spore);
     }
 
     public void unsubscribe( Subscriber<K> subs ) {
         filterList.remove(subs);
     }
 
-    @Override
     public void receive(ChangeMessage<K> change) {
         switch (change.getType()) {
             case ChangeMessage.QUERYDONE:

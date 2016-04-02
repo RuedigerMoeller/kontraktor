@@ -3,21 +3,17 @@ package org.nustaq.reallive.impl.tablespace;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
-import org.nustaq.reallive.impl.actors.RealLiveStreamActor;
+import org.nustaq.reallive.impl.actors.RealLiveTableActor;
 import org.nustaq.reallive.impl.storage.CachedOffHeapStorage;
 import org.nustaq.reallive.impl.storage.HeapRecordStorage;
 import org.nustaq.reallive.impl.storage.OffHeapRecordStorage;
 import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.StateMessage;
-import org.nustaq.reallive.records.MapRecord;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -55,7 +51,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
         if ( tables.containsKey( desc.getName()) ) {
             return resolve(tables.get(desc.getName()));
         }
-        RealLiveStreamActor table = Actors.AsActor(RealLiveStreamActor.class);
+        RealLiveTableActor table = Actors.AsActor(RealLiveTableActor.class);
 
         Supplier<RecordStorage> memFactory;
         if ( desc.getFilePath() == null ) {

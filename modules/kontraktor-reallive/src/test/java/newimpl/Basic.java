@@ -5,9 +5,8 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.util.PromiseLatch;
-import org.nustaq.reallive.impl.actors.RealLiveStreamActor;
+import org.nustaq.reallive.impl.actors.RealLiveTableActor;
 import org.nustaq.reallive.impl.actors.ShardFunc;
 import org.nustaq.reallive.impl.actors.TableSharding;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
@@ -16,7 +15,6 @@ import org.nustaq.reallive.impl.*;
 import org.nustaq.reallive.impl.storage.*;
 import org.nustaq.reallive.records.MapRecord;
 
-import java.text.ParseException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -107,69 +105,69 @@ public class Basic {
         //ts.shutDown();
     }
 
-    @Test
-    public void testOffHeap() {
-        StorageDriver source = new StorageDriver(new OffHeapRecordStorage(32,500,600_000));
-        insertTest(source);
-    }
+//    @Test
+//    public void testOffHeap() {
+//        StorageDriver source = new StorageDriver(new OffHeapRecordStorage(32,500,600_000));
+//        insertTest(source);
+//    }
 
-    public void insertTest(StorageDriver source) {
-        FilterProcessorImpl<String> stream = new FilterProcessorImpl(source.getStore());
-        source.setListener(stream);
+//    public void insertTest(StorageDriver source) {
+//        FilterProcessorImpl<String> stream = new FilterProcessorImpl(source.getStore());
+//        source.setListener(stream);
+//
+//        stream.subscribe(new Subscriber<>( null,
+//                                             record -> "one13".equals(record.getKey()),
+//                                             change -> System.out.println("listener: " + change)
+//        ));
+//
+//        Mutation mut = source;
+//        long tim = System.currentTimeMillis();
+//        for ( int i = 0; i<500_000;i++ ) {
+//            mut.add("one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
+//        }
+//        mut.update("one13", "age", 10);
+//        mut.remove("one13");
+//        System.out.println("add " + (System.currentTimeMillis() - tim));
+//
+//        tim = System.currentTimeMillis();
+//        int count[] = {0};
+//        source.getStore().filter(rec -> true, (r, e) -> {
+//            if ( Actors.isResult(e) )
+//                count[0]++;
+//        });
+//        System.out.println("iter " + (System.currentTimeMillis() - tim)+" "+count[0]);
+//    }
 
-        stream.subscribe(new Subscriber<>( null,
-                                             record -> "one13".equals(record.getKey()),
-                                             change -> System.out.println("listener: " + change)
-        ));
-
-        Mutation mut = source;
-        long tim = System.currentTimeMillis();
-        for ( int i = 0; i<500_000;i++ ) {
-            mut.add("one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
-        }
-        mut.update("one13", "age", 10);
-        mut.remove("one13");
-        System.out.println("add " + (System.currentTimeMillis() - tim));
-
-        tim = System.currentTimeMillis();
-        int count[] = {0};
-        source.getStore().filter(rec -> true, (r, e) -> {
-            if ( Actors.isResult(e) )
-                count[0]++;
-        });
-        System.out.println("iter " + (System.currentTimeMillis() - tim)+" "+count[0]);
-    }
-
-    @Test
-    public void test() {
-        StorageDriver source = new StorageDriver(new HeapRecordStorage<>());
-        FilterProcessorImpl<String> stream = new FilterProcessorImpl(source.getStore());
-        source.setListener(stream);
-
-        stream.subscribe(new Subscriber<>( null,
-                                             record -> "one".equals(record.getKey()),
-                                             change -> System.out.println("listener: " + change)
-        ));
-
-        Mutation mut = source;
-        mut.add("one", "name", "emil", "age", 9);
-        mut.add("two", "name", "felix", "age", 17);
-        mut.add("one1", "name", "emil", "age", 9);
-        mut.add("two1", "name", "felix", "age", 17);
-        mut.update("one", "age", 10);
-        mut.remove("one");
-
-        source.getStore().filter(rec -> true, (r, e) -> System.out.println("REC:" + r));
-
-        source.getStore().filter( rec -> ((Record)rec).getInt("age") <= 10, (r, e) -> System.out.println("LQ:" + r));
-
-        try {
-            source.getStore().query("age <= 10 || age==17", (r, e) -> System.out.println("QUERY:" + r));
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-    }
-
+//    @Test
+//    public void test() {
+//        StorageDriver source = new StorageDriver(new HeapRecordStorage<>());
+//        FilterProcessorImpl<String> stream = new FilterProcessorImpl(source.getStore());
+//        source.setListener(stream);
+//
+//        stream.subscribe(new Subscriber<>( null,
+//                                             record -> "one".equals(record.getKey()),
+//                                             change -> System.out.println("listener: " + change)
+//        ));
+//
+//        Mutation mut = source;
+//        mut.add("one", "name", "emil", "age", 9);
+//        mut.add("two", "name", "felix", "age", 17);
+//        mut.add("one1", "name", "emil", "age", 9);
+//        mut.add("two1", "name", "felix", "age", 17);
+//        mut.update("one", "age", 10);
+//        mut.remove("one");
+//
+//        source.getStore().filter(rec -> true, (r, e) -> System.out.println("REC:" + r));
+//
+//        source.getStore().filter( rec -> ((Record)rec).getInt("age") <= 10, (r, e) -> System.out.println("LQ:" + r));
+//
+//        try {
+//            source.getStore().query("age <= 10 || age==17", (r, e) -> System.out.println("QUERY:" + r));
+//        } catch (ParseException e) {
+//            e.printStackTrace();
+//        }
+//    }
+//
     @Test
     public void bench() {
         long tim = System.currentTimeMillis();
@@ -348,7 +346,7 @@ public class Basic {
 
     @Test
     public void testActor() throws InterruptedException {
-        RealLiveStreamActor<String> rls = Actors.AsActor(RealLiveStreamActor.class,100_000);
+        RealLiveTableActor<String> rls = Actors.AsActor(RealLiveTableActor.class,100_000);
         rls.init( () -> new OffHeapRecordStorage(32, 500, 500_000), null);
 
         TA ta = Actors.AsActor(TA.class);
@@ -359,9 +357,9 @@ public class Basic {
 
     @Test
     public void testActorShard() throws InterruptedException {
-        RealLiveStreamActor<String> rls[] = new RealLiveStreamActor[8];
+        RealLiveTableActor<String> rls[] = new RealLiveTableActor[8];
         for (int i = 0; i < rls.length; i++) {
-            rls[i] = Actors.AsActor(RealLiveStreamActor.class);
+            rls[i] = Actors.AsActor(RealLiveTableActor.class);
             rls[i].init(() -> new OffHeapRecordStorage(32, 500 / rls.length, 700_000 / rls.length), null);
         }
         ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
@@ -379,9 +377,9 @@ public class Basic {
     public void randomTestActorShard() throws InterruptedException {
 //        while( System.currentTimeMillis() != 0)
         {
-            RealLiveStreamActor<String> rls[] = new RealLiveStreamActor[8];
+            RealLiveTableActor<String> rls[] = new RealLiveTableActor[8];
             for (int i = 0; i < rls.length; i++) {
-                rls[i] = Actors.AsActor(RealLiveStreamActor.class);
+                rls[i] = Actors.AsActor(RealLiveTableActor.class);
                 rls[i].init( () -> new OffHeapRecordStorage(32, 1500/rls.length, 1_500_000/rls.length), null);
             }
             ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
@@ -396,7 +394,7 @@ public class Basic {
 
     @Test
     public void testActorOutside() throws InterruptedException {
-        RealLiveStreamActor<String> rls = Actors.AsActor(RealLiveStreamActor.class);
+        RealLiveTableActor<String> rls = Actors.AsActor(RealLiveTableActor.class);
         rls.init(() -> new OffHeapRecordStorage(32, 500,500_000),null);
 
         TA ta = new TA();

@@ -6,17 +6,14 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.remoting.encoding.CallbackRefSerializer;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.reallive.impl.FilterProcessorImpl;
+import org.nustaq.reallive.impl.*;
 import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.interfaces.*;
-import org.nustaq.reallive.impl.Mutator;
-import org.nustaq.reallive.impl.StorageDriver;
+import org.nustaq.reallive.messages.AddMessage;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 import java.util.function.*;
-import java.util.stream.Stream;
 
 /**
  * Created by ruedi on 06.08.2015.
@@ -29,12 +26,17 @@ import java.util.stream.Stream;
  *
  *
  */
-public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implements RealLiveTable<K>, Mutatable<K> {
+public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implements RealLiveTable<K>, Mutatable<K> {
+
+    public static boolean DUMP_QUERY_TIME = false;
 
     StorageDriver<K> storageDriver;
     FilterProcessor<K> filterProcessor;
     HashMap<String,Subscriber> receiverSideSubsMap = new HashMap();
     TableDescription description;
+    ArrayList<QueryQEntry> queuedSpores = new ArrayList();
+
+    int taCount = 0;
 
     @Local
     public void init( Supplier<RecordStorage<K>> storeFactory, TableDescription desc) {
@@ -42,7 +44,7 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
         Thread.currentThread().setName("Table "+desc.getName()+" main");
         RecordStorage<K> store = storeFactory.get();
         storageDriver = new StorageDriver<>(store);
-        filterProcessor = new FilterProcessorImpl<>(this);
+        filterProcessor = new FilterProcessor<>(this);
         storageDriver.setListener( filterProcessor );
     }
 
@@ -66,20 +68,26 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
         }
     }
 
-//    @Override
+    @Override
     public <T> void forEach(Spore<Record<K>, T> spore) {
         checkThread();
         try {
-            storageDriver.getStore().stream().parallel().forEach( rec -> {
-                if ( ! spore.isFinished() ) {
+            Consumer<Record<K>> recordConsumer = rec -> {
+                if (!spore.isFinished()) {
                     try {
                         spore.remote(rec);
                     } catch (Throwable ex) {
                         spore.complete(null, ex);
                     }
                 }
-            });
-            spore.finish();
+            };
+            if ( description.filterThreads() > 0 ) {
+                storageDriver.getStore().stream().parallel().forEach(recordConsumer);
+                spore.finish();
+            } else {
+                storageDriver.getStore().stream().forEach(recordConsumer);
+                spore.finish();
+            }
         } catch (Throwable ex) {
             spore.complete(null,ex);
         }
@@ -108,13 +116,70 @@ public class RealLiveStreamActor<K> extends Actor<RealLiveStreamActor<K>> implem
         checkThread();
         Subscriber localSubs = new Subscriber(prePatchFilter,pred, change -> {
             cb.stream(change);
-            // disconnects ..
-            //if (change.isDoneMsg())
-            //    cb.finish();
         }).serverSideCB(cb);
         String sid = addChannelIdIfPresent(cb, ""+id);
         receiverSideSubsMap.put(sid,localSubs);
-        filterProcessor.subscribe(localSubs);
+
+        FilterSpore spore = new FilterSpore(localSubs.getFilter(),localSubs.getPrePatchFilter());
+        spore.onFinish( () -> localSubs.getReceiver().receive(RLUtil.get().done()) );
+        spore.setForEach((r, e) -> {
+            if (Actors.isResult(e)) {
+                localSubs.getReceiver().receive(new AddMessage((Record) r));
+            } else {
+                // FIXME: pass errors
+                // FIXME: called in case of error only (see onFinish above)
+                localSubs.getReceiver().receive(RLUtil.get().done());
+            }
+        });
+        forEachQueued(spore, () -> {
+            filterProcessor.startListening(localSubs);
+        });
+    }
+
+    static class QueryQEntry {
+        Spore spore;
+        Runnable onFin;
+
+        public QueryQEntry(Spore spore, Runnable onFin) {
+            this.spore = spore;
+            this.onFin = onFin;
+        }
+    }
+    void forEachQueued( Spore s, Runnable r ) {
+        queuedSpores.add(new QueryQEntry(s,r));
+        self().execQueriesOrDelay(queuedSpores.size(),taCount);
+    }
+
+    public void execQueriesOrDelay(int size, int taCount) {
+        if ( (queuedSpores.size() == size && this.taCount == taCount) || queuedSpores.size() > 10 ) {
+            long tim = System.currentTimeMillis();
+            Consumer<Record<K>> recordConsumer = rec -> {
+                queuedSpores.forEach( qqentry -> {
+                    Spore spore = qqentry.spore;
+                    if (!spore.isFinished()) {
+                        try {
+                            spore.remote(rec);
+                        } catch (Throwable ex) {
+                            spore.complete(null, ex);
+                        }
+                    }
+                });
+            };
+            if ( description.filterThreads() > 0 ) {
+                storageDriver.getStore().stream().parallel().forEach(recordConsumer);
+            } else {
+                storageDriver.getStore().stream().forEach(recordConsumer);
+            }
+            queuedSpores.forEach( qqentry -> {
+                qqentry.spore.finish();
+                qqentry.onFin.run();
+            });
+            if (DUMP_QUERY_TIME)
+                System.out.println("tim for "+queuedSpores.size()+" "+(System.currentTimeMillis()-tim));
+            queuedSpores.clear();
+            return;
+        }
+        execQueriesOrDelay(queuedSpores.size(),this.taCount);
     }
 
     protected String addChannelIdIfPresent(Callback cb, String sid) {

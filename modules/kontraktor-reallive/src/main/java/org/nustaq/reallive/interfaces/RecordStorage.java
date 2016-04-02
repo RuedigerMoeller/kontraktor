@@ -8,7 +8,7 @@ import java.util.stream.Stream;
 /**
  * Created by moelrue on 03.08.2015.
  */
-public interface RecordStorage<K> extends RecordIterable<K> {
+public interface RecordStorage<K> extends RealLiveStreamActor<K> {
 
     RecordStorage put( K key, Record<K> value );
     Record<K> get( K key );

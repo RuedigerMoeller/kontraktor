@@ -2,7 +2,7 @@ package org.nustaq.reallive.impl.actors;
 
 import org.nustaq.kontraktor.Spore;
 import org.nustaq.reallive.interfaces.Record;
-import org.nustaq.reallive.interfaces.RecordIterable;
+import org.nustaq.reallive.interfaces.RealLiveStreamActor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,24 +10,24 @@ import java.util.List;
 /**
  * Created by ruedi on 05.08.2015.
  */
-public class ShardedRecordIterable<K> implements RecordIterable<K> {
+public class ShardedRecordIterable<K> implements RealLiveStreamActor<K> {
 
-    List<RecordIterable<K>> shards = new ArrayList<>();
+    List<RealLiveStreamActor<K>> shards = new ArrayList<>();
 
     @Override
     public <T> void forEach(Spore<Record<K>, T> spore) {
         for (int i = 0; i < shards.size(); i++) {
-            RecordIterable<K> kvRecordIterable = shards.get(i);
+            RealLiveStreamActor<K> kvRecordIterable = shards.get(i);
             kvRecordIterable.forEach(spore);
         }
     }
 
-    public ShardedRecordIterable<K> addShard(RecordIterable<K> ri) {
+    public ShardedRecordIterable<K> addShard(RealLiveStreamActor<K> ri) {
         shards.add(ri);
         return this;
     }
 
-    public void removeShard(RecordIterable<K> ri) {
+    public void removeShard(RealLiveStreamActor<K> ri) {
         shards.add(ri);
     }
 
