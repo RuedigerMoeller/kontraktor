@@ -28,6 +28,7 @@ import java.util.function.*;
  */
 public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implements RealLiveTable<K>, Mutatable<K> {
 
+    public static int MAX_QUERY_BATCH_SIZE = 10;
     public static boolean DUMP_QUERY_TIME = false;
 
     StorageDriver<K> storageDriver;
@@ -70,27 +71,28 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
 
     @Override
     public <T> void forEach(Spore<Record<K>, T> spore) {
-        checkThread();
-        try {
-            Consumer<Record<K>> recordConsumer = rec -> {
-                if (!spore.isFinished()) {
-                    try {
-                        spore.remote(rec);
-                    } catch (Throwable ex) {
-                        spore.complete(null, ex);
-                    }
-                }
-            };
-            if ( description.filterThreads() > 0 ) {
-                storageDriver.getStore().stream().parallel().forEach(recordConsumer);
-                spore.finish();
-            } else {
-                storageDriver.getStore().stream().forEach(recordConsumer);
-                spore.finish();
-            }
-        } catch (Throwable ex) {
-            spore.complete(null,ex);
-        }
+        forEachQueued(spore, () -> {});
+//        checkThread();
+//        try {
+//            Consumer<Record<K>> recordConsumer = rec -> {
+//                if (!spore.isFinished()) {
+//                    try {
+//                        spore.remote(rec);
+//                    } catch (Throwable ex) {
+//                        spore.complete(null, ex);
+//                    }
+//                }
+//            };
+//            if ( description.isParallelFiltering() > 0 ) {
+//                storageDriver.getStore().stream().parallel().forEach(recordConsumer);
+//                spore.finish();
+//            } else {
+//                storageDriver.getStore().stream().forEach(recordConsumer);
+//                spore.finish();
+//            }
+//        } catch (Throwable ex) {
+//            spore.complete(null,ex);
+//        }
     }
 
     @Override
@@ -145,16 +147,18 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
             this.onFin = onFin;
         }
     }
+
     void forEachQueued( Spore s, Runnable r ) {
         queuedSpores.add(new QueryQEntry(s,r));
         self().execQueriesOrDelay(queuedSpores.size(),taCount);
     }
 
     public void execQueriesOrDelay(int size, int taCount) {
-        if ( (queuedSpores.size() == size && this.taCount == taCount) || queuedSpores.size() > 10 ) {
+        if ( (queuedSpores.size() == size && this.taCount == taCount) || queuedSpores.size() > MAX_QUERY_BATCH_SIZE) {
             long tim = System.currentTimeMillis();
             Consumer<Record<K>> recordConsumer = rec -> {
-                queuedSpores.forEach( qqentry -> {
+                for (int i = 0; i < queuedSpores.size(); i++) {
+                    QueryQEntry qqentry = queuedSpores.get(i);
                     Spore spore = qqentry.spore;
                     if (!spore.isFinished()) {
                         try {
@@ -163,9 +167,9 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
                             spore.complete(null, ex);
                         }
                     }
-                });
+                }
             };
-            if ( description.filterThreads() > 0 ) {
+            if ( description.isParallelFiltering() ) {
                 storageDriver.getStore().stream().parallel().forEach(recordConsumer);
             } else {
                 storageDriver.getStore().stream().forEach(recordConsumer);
@@ -209,6 +213,7 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
 
     @Override
     public IPromise<Record<K>> get(K key) {
+        taCount++;
         return resolve(storageDriver.getStore().get(key));
     }
 
@@ -234,11 +239,13 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
 
     @Override
     public IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object[] keyVals) {
+        taCount++;
         return storageDriver.putCAS(casCondition,key,keyVals);
     }
 
     @Override
     public void atomic(K key, RLConsumer<Record<K>> action) {
+        taCount++;
         storageDriver.atomic(key,action);
     }
 

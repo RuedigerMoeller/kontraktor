@@ -20,7 +20,7 @@ public class TableDescription implements Serializable, Cloneable {
     int shardNo;
     int keyLen = 48;
     StorageType st = StorageType.CACHED;
-    int filterThreads = 0; // if 0 => sync filtering
+    boolean parallelFiltering = false;
 
     public TableDescription() {}
 
@@ -33,12 +33,12 @@ public class TableDescription implements Serializable, Cloneable {
         return this;
     }
 
-    public int filterThreads() {
-        return filterThreads;
+    public boolean isParallelFiltering() {
+        return parallelFiltering;
     }
 
-    public TableDescription useAsyncFilterprocessing(final int useAsyncFilterprocessing) {
-        this.filterThreads = useAsyncFilterprocessing;
+    public TableDescription parallelFiltering(final boolean parallelFiltering) {
+        this.parallelFiltering = parallelFiltering;
         return this;
     }
 

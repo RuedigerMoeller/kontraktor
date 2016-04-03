@@ -404,12 +404,12 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
                 long tim = System.nanoTime();
                 ByteBuffer responseBuf = ByteBuffer.wrap(response);
-                while (responseBuf.remaining()>0) {
-                    try {
+                try {
+                    while (responseBuf.remaining()>0) {
                         sinkchannel.write(responseBuf);
-                    } catch (IOException e) {
-                        Log.Warn(this,e);
                     }
+                } catch (IOException e) {
+                    Log.Warn(this,e);
                 }
 //                System.out.println("syncwrite time micros:"+(System.nanoTime()-tim)/1000);
                 exchange.endExchange();
