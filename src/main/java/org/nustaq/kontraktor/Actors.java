@@ -190,6 +190,28 @@ public class Actors {
     }
 
     /**
+     * creates an actor instance which just bufferes messages (on heap).
+     * One can use tranferTo() in order to dispatch them later on.
+     *
+     * Use case is failover/reconnect. Note this is a best effort currently,
+     * transferTo() does not automatically guarantee seamless failover (e.g.
+     * its not safe if new messages are added on a buffered actor ref concurrently to running
+     * "transferTo", so the buffering actor ref should made unavailable before calling transferTo,
+     * which in turn might result in incorrect message order (e.g. real actor ref receives messages
+     * before transferTo has finished).
+     *
+     * so failover is either lossy or message order is not guaranteed. However its still useful in practice
+     * as frequently availability has a higher priority than correctness.
+     *
+     * @param actorClazz
+     * @param <T>
+     * @return
+     */
+    public static <T extends Actor> T AsBufferedActor(Class<T> actorClazz) {
+        return (T) instance.newProxy(actorClazz, new RemoteScheduler(SimpleScheduler.DEFQSIZE), -1);
+    }
+
+    /**
      * create an new actor. If this is called outside an actor, a new DispatcherThread will be scheduled. If
      * called from inside actor code, the new actor will share the thread+queue with the caller.
      *

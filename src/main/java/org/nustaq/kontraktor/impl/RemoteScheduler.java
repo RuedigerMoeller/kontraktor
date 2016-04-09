@@ -23,6 +23,8 @@ import java.util.concurrent.Callable;
 
 /**
  * Created by ruedi on 08.08.14.
+ *
+ * pure dummy buffering messages, which are then polled by a remote forwarder (RemoteRegistry, RemoteRefPolling etc)
  */
 public class RemoteScheduler extends SimpleScheduler {
 

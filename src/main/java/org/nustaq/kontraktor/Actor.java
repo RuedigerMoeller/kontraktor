@@ -411,9 +411,39 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
+     * only meaningful if this actor is a buffered actor (failover/reconnect scenarios).
+     * LIMITATION: not loss free in case. If new messages are enqueued from another thread while transfer is
+     * processed, messages can be lost. In case the buffering actor reference is replaced prior to calling
+     * transferTo(), message order might get messed up. However still useful on platforms which value
+     * availability over correctness.
+     *
+     * Note: In order to make this fully save, locking would be required at some point. As locking in central dispatch
+     * would result in a major performance bottleneck, so a special LockingScheduler or so could be implemented to support
+     * transactionally safe buffering actors. Due to time constraints, this might get implemented at some point in the future.
+     *
+     * @param target
+     */
+    @CallerSideMethod
+    public void transferTo(Actor target) {
+        Queue mailbox = __self.__mailbox;
+        Queue cbQueue = __self.__cbQueue;
+
+        target = target.__self;
+        Object poll;
+        while( (poll = cbQueue.poll()) != null ) {
+            while( ! target.__cbQueue.add(poll) );
+        }
+        while( (poll = mailbox.poll()) != null ) {
+            while( ! target.__mailbox.add(poll) );
+        }
+    }
+
+    /**
      * tell the execution machinery to throw an ActorBlockedException in case the actor is blocked trying to
      * put a message on an overloaded actor's mailbox/queue. Useful e.g. when dealing with actors representing
      * a remote client (might block or lag due to connection issues).
+     *
+     * Obsolete since kontraktor defaults to unbounded queues
      *
      * @param b
      * @return
