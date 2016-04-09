@@ -54,7 +54,7 @@ public class Coding implements Serializable {
                 conf = FSTConfiguration.createMinBinConfiguration();
                 break;
             case Json:
-                conf = FSTConfiguration.createJsonConfiguration();
+                conf = FSTConfiguration.createJsonConfiguration(false,true);
                 break;
             case JsonNoRef:
                 conf = FSTConfiguration.createJsonConfiguration(false, false);
@@ -63,7 +63,7 @@ public class Coding implements Serializable {
                 conf = FSTConfiguration.createJsonConfiguration(true, false);
                 break;
             case UnsafeBinary:
-                conf = FSTConfiguration.createFastBinaryConfiguration();
+                conf = FSTConfiguration.createUnsafeBinaryConfiguration();
                 break;
             case FSTSer:
                 conf = FSTConfiguration.createDefaultConfiguration();
