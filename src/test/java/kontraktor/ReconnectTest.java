@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.remoting.tcp.TCPClientConnector;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
@@ -19,6 +20,10 @@ public class ReconnectTest {
         public IPromise promise(int val) {
             Log.Info(this,"pinged "+val);
             return resolve(val);
+        }
+        @Override
+        protected void __stopImpl() {
+            // do not stop impl if remoteproxy, just buffer ..
         }
     }
 
@@ -39,6 +44,7 @@ public class ReconnectTest {
             service.promise(count++);
             delayed(1000,()->pingLoop());
         }
+
     }
 
     @Test @Ignore

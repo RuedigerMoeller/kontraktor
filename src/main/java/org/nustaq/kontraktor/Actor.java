@@ -510,8 +510,10 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             __connections.remove(con);
         }
     }
+    @CallerSideMethod public void __stop() { __stopImpl(); }
 
-    @CallerSideMethod public void __stop() {
+    // set to stopped and inform all stop listeners
+    @CallerSideMethod protected void __stopImpl() {
         Log.Debug(this,"stopping actor "+getClass().getSimpleName());
         Actor self = __self;
         if ( self == null || getActor() == null || (self.isStopped() && getActor().isStopped()) )

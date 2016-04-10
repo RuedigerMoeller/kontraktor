@@ -254,8 +254,9 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 Log.Warn(this, e);
             }
             actor.getActorRef().__stopped = true;
-            if (actor.getActor() != null)
-                actor.getActor().__stopped = true;
+            Actor tmp = actor.getActor();
+            if (tmp != null)
+                tmp.__stopped = true;
         });
     }
 
@@ -411,7 +412,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
     }
 
     /**
-     * called from ObjectSocket in case of disconnect (decoding or network issues)
+     * called from ObjectSocket in case of disconnect (decoding errors or network issues)
      */
     public void disconnect() {
         setTerminated(true);

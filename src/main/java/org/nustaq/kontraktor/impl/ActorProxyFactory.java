@@ -297,11 +297,10 @@ public class ActorProxyFactory {
                 cc.addMethod(method);
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
-                if (isCallerSide || method.getName().equals("toString")) {
+                if (isCallerSide || method.getName().equals("toString") || method.getName().equals("__stopImpl") ) {
                 } else if (
                     ! method.getName().equals("getActor") &&
                     ! method.getName().equals("delayed") &&
-//                    ! method.getName().equals("run") &&
                     ! method.getName().equals("exec")
                 )
                 {
