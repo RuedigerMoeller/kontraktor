@@ -103,8 +103,7 @@ public class ActorClient<T extends Actor> {
 
                     @Override
                     public void sinkClosed() {
-                        reg.setTerminated(true);
-                        reg.cleanUp();
+                        reg.disconnect();
                     }
                 };
                 reg.registerRemoteRefDirect(facadeProxy);

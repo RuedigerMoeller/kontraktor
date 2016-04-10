@@ -11,7 +11,8 @@ import java.util.Map;
 /**
  * Created by ruedi on 10.01.16.
  *
- * overrides on write
+ * overrides on write. Used to enable queries to patch result records (e.g. in order
+ * to submit results of cpu intensive computations)
  */
 public class PatchingRecord extends RecordWrapper {
     MapRecord override;

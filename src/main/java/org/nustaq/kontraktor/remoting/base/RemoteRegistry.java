@@ -410,6 +410,14 @@ public abstract class RemoteRegistry implements RemoteConnection {
         getFacadeProxy().__removeRemoteConnection(this);
     }
 
+    /**
+     * called from ObjectSocket in case of disconnect (decoding or network issues)
+     */
+    public void disconnect() {
+        setTerminated(true);
+        cleanUp();
+    }
+
     protected void closeRef(CallEntry ce, ObjectSocket chan) throws IOException {
         if (ce.getTargetActor().getActorRef() == getFacadeProxy().getActorRef() ) {
             // invalidating connections should cleanup all refs
@@ -424,8 +432,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
             chan.writeObject(rce);
         } catch (Exception e) {
             Log.Debug(this,"a connection closed '"+e.getMessage()+"', terminating registry");
-            setTerminated(true);
-            cleanUp();
+            disconnect();
         }
     }
 

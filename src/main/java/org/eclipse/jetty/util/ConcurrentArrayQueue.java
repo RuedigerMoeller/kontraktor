@@ -27,6 +27,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicReferenceArray;
@@ -63,6 +64,7 @@ public class ConcurrentArrayQueue<T> extends AbstractQueue<T>
 
     private final AtomicReferenceArray<Block<T>> _blocks = new AtomicReferenceArray<>(TAIL_OFFSET + 1);
     private final int _blockSize;
+    AtomicInteger size = new AtomicInteger();
 
     public ConcurrentArrayQueue()
     {
@@ -151,6 +153,7 @@ public class ConcurrentArrayQueue<T> extends AbstractQueue<T>
 
         updateTailBlock(initialTailBlock, currentTailBlock);
 
+        size.incrementAndGet();
         return true;
     }
 
@@ -241,6 +244,8 @@ public class ConcurrentArrayQueue<T> extends AbstractQueue<T>
 
         updateHeadBlock(initialHeadBlock, currentHeadBlock);
 
+        if ( result != null )
+            size.decrementAndGet();
         return result;
     }
 
@@ -362,6 +367,8 @@ public class ConcurrentArrayQueue<T> extends AbstractQueue<T>
             }
         }
 
+        if ( result )
+            size.decrementAndGet();
         return result;
     }
 
@@ -455,13 +462,17 @@ public class ConcurrentArrayQueue<T> extends AbstractQueue<T>
         };
     }
 
+    @Override
+    public int size() {
+        return size.get();
+    }
+
     /**
      * this method has been modified from original jetty version, it only returns
      * a size rounded to 'blockSize'
      * @return
      */
-    @Override
-    public int size()
+    public int originalSize()
     {
         Block<T> currentHeadBlock = getHeadBlock();
         int head = currentHeadBlock.head();

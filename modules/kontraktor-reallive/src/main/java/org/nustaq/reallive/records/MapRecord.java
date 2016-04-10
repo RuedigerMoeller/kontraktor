@@ -9,6 +9,9 @@ import java.util.function.Function;
 
 /**
  * Created by ruedi on 04.08.2015.
+ *
+ * a record stored by reallive.
+ *
  */
 public class MapRecord<K> implements Record<K> {
 

@@ -111,8 +111,7 @@ public class ActorServer {
 
                 @Override
                 public void sinkClosed() {
-                    reg.setTerminated(true);
-                    reg.cleanUp();
+                    reg.disconnect();
                 }
             };
         });

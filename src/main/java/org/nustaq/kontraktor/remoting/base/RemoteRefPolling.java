@@ -78,7 +78,7 @@ public class RemoteRefPolling implements Runnable {
     static AtomicInteger scansPersec = new AtomicInteger(0);
     Thread pollThread;
 
-    int remoteRefCounter = 0; // counts active remote refs, if none backoff remoteref polling massively
+    int remoteRefCounter = 0; // counts active remote refs, if none backoff remoteref polling massively eats cpu
     public void run() {
         pollThread = Thread.currentThread();
         if ( underway )

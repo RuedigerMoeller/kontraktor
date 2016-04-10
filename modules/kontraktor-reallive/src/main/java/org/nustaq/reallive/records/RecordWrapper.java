@@ -5,6 +5,8 @@ import org.nustaq.reallive.records.MapRecord;
 
 /**
  * Created by ruedi on 22/08/15.
+ *
+ * base for app specific typed wrappers. Wrappers submitted/stored to reallive will be automatically unwrapped
  */
 public class RecordWrapper<K> implements Record<K> {
 
