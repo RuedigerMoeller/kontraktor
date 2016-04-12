@@ -74,7 +74,7 @@ public class HttpClientConnector implements ActorClientConnector {
     }
 
     String sessionId;
-    FSTConfiguration authConf = FSTConfiguration.createJsonConfiguration();
+    FSTConfiguration authConf = FSTConfiguration.createJsonConfiguration(false, false);
     volatile boolean isClosed = false;
     Promise closedNotification;
     Callback<ActorClientConnector> disconnectCallback;

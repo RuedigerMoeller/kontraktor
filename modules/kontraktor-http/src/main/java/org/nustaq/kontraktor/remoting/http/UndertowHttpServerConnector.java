@@ -73,7 +73,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
     Actor facade;
     HashMap<String,HttpObjectSocket> sessions = new HashMap<>(); // use only from facade thread
 
-    FSTConfiguration conf = FSTConfiguration.createJsonConfiguration(); // used for authdata
+    FSTConfiguration conf = FSTConfiguration.createJsonConfiguration(false, false); // used for authdata
     Function<ObjectSocket, ObjectSink> factory;
     long sessionTimeout = SESSION_TIMEOUT_MS;
     volatile boolean isClosed = false;
