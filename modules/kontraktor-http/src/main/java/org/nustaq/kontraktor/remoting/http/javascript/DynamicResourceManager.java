@@ -103,7 +103,7 @@ public class DynamicResourceManager extends FileResourceManager {
                     return super.getResource(initialPath);
                 }
                 byte bytes[] = element.toString().getBytes("UTF-8");
-                return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/html", lastStartup ));
+                return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/html",  !isDevMode()? lastStartup : null ));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -114,7 +114,7 @@ public class DynamicResourceManager extends FileResourceManager {
                     try {
                         byte[] bytes = Files.readAllBytes(file.toPath());
                         bytes = JSMin.minify(bytes);
-                        return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/javascript", lastStartup ));
+                        return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/javascript", !isDevMode()? lastStartup : null ));
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
