@@ -22,8 +22,7 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.resource.FileResource;
 import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.server.handlers.resource.Resource;
-import io.undertow.util.ETag;
-import io.undertow.util.MimeMappings;
+import io.undertow.util.*;
 import org.jsoup.nodes.Element;
 import org.nustaq.kontraktor.remoting.http.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.util.Log;
@@ -46,6 +45,7 @@ public class DynamicResourceManager extends FileResourceManager {
     DependencyResolver dependencyResolver;
     HtmlImportShim importShim; // null means no imports supported
     String prefix = "";
+    Date lastStartup; // last startUp, will be returned as LastModifiedDate for cached resources..
     /**
      * in case not run with cacheAggregates, store lookup results in memory,
      * so file crawling is done once after server restart.
@@ -57,6 +57,7 @@ public class DynamicResourceManager extends FileResourceManager {
         super(new File("."), 100);
         this.devMode = devMode;
         this.minify = minify;
+        this.lastStartup = new Date();
         setPrefix(prefix);
         dependencyResolver = new DependencyResolver(resPathBase,resourcePath);
         if ( devMode )
@@ -90,8 +91,9 @@ public class DynamicResourceManager extends FileResourceManager {
             normalizedPath = initialPath;
         }
         if ( ! isDevMode() ) {
-            if (lookupCache.get(normalizedPath) != null) {
-                return lookupCache.get(normalizedPath);
+            Resource res = lookupCache.get(normalizedPath);
+            if (res != null) {
+                return res;
             }
         }
         if ( initialPath.endsWith(".html") && importShim != null ) {
@@ -101,7 +103,7 @@ public class DynamicResourceManager extends FileResourceManager {
                     return super.getResource(initialPath);
                 }
                 byte bytes[] = element.toString().getBytes("UTF-8");
-                return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/html"));
+                return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/html", lastStartup ));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -112,7 +114,7 @@ public class DynamicResourceManager extends FileResourceManager {
                     try {
                         byte[] bytes = Files.readAllBytes(file.toPath());
                         bytes = JSMin.minify(bytes);
-                        return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/javascript"));
+                        return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/javascript", lastStartup ));
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -135,12 +137,13 @@ public class DynamicResourceManager extends FileResourceManager {
         protected String finalP;
         protected byte[] bytes;
         protected String resType;
-
-        public MyResource(String p0, String finalP, byte[] bytes, String resType ) {
+        protected Date lastModified;
+        public MyResource(String p0, String finalP, byte[] bytes, String resType , Date lastStartup ) {
             this.p0 = p0;
             this.finalP = finalP;
             this.bytes = bytes;
             this.resType = resType;
+            this.lastModified = lastStartup;
         }
 
         @Override
@@ -150,12 +153,12 @@ public class DynamicResourceManager extends FileResourceManager {
 
         @Override
         public Date getLastModified() {
-            return null;
+            return lastModified;
         }
 
         @Override
         public String getLastModifiedString() {
-            return null;
+            return DateUtils.toDateString(lastModified);
         }
 
         @Override
