@@ -125,6 +125,7 @@ public class DynamicResourceManager extends FileResourceManager {
         return super.getResource(initialPath);
     }
 
+    // FIXME: Http level caching is independent of this result, needs redesign
     private Resource mightCache(String key, Resource fileResource) {
         if ( ! isDevMode() ) {
             lookupCache.put(key,fileResource);
