@@ -96,7 +96,7 @@ public class DynamicResourceManager extends FileResourceManager {
                 return res;
             }
         }
-        if ( initialPath.endsWith(".html") && importShim != null ) {
+        if ( initialPath.endsWith("index.html") && importShim != null ) {
             try {
                 Element element = importShim.shimImports(normalizedPath);
                 if ( element == null ) {
