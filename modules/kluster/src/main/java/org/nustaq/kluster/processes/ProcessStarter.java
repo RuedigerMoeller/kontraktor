@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Created by ruedi on 16/04/16.
@@ -87,6 +88,10 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         return resolve(new StarterDesc().host(hostName).id(id).remoteRef(self()));
     }
 
+    public IPromise<List<ProcessInfo>> getProcesses() {
+        return resolve(processes.entrySet().stream().map( x -> x.getValue() ).collect(Collectors.toList()));
+    }
+
     public static void main(String[] args) throws InterruptedException {
         ProcessStarter ps = Actors.AsActor(ProcessStarter.class);
         ps.init(null,null,0);
@@ -99,10 +104,15 @@ public class ProcessStarter extends Actor<ProcessStarter> {
 
         ProcessStarter remote = (ProcessStarter) new TCPConnectable(ProcessStarter.class,"localhost",6767).connect( (x,y) -> System.out.println("client disc "+x)).await();
 
-        ProcessInfo bash = remote.startProcess("/tmp", "java","-version",">>","/tmp/xx.txt").await();
+        ProcessInfo bash = remote.startProcess("/tmp", "bash", "-c", "java >> /tmp/xx.txt").await();
 
-        System.out.println(bash);
+        List<ProcessInfo> procs = remote.getProcesses().await();
+        procs.forEach( proc -> System.out.println(proc));
+
+//        System.out.println(bash);
         Thread.sleep(3000);
+
+
         Object await = remote.terminateProcess(bash.getId(), true, 15).await();
         System.out.println("term result "+await);
 
