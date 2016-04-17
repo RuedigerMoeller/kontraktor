@@ -1,11 +1,11 @@
 package org.nustaq.kluster.processes;
 
+import com.beust.jcommander.JCommander;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.remoting.encoding.Coding;
-import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
@@ -14,10 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -26,25 +23,71 @@ import java.util.stream.Collectors;
  */
 public class ProcessStarter extends Actor<ProcessStarter> {
 
-    HashMap<String,ProcessStarter> siblings;
+    HashMap<String,StarterDesc> siblings;
+    ConnectableActor primarySibling;
+    StarterDesc primaryDesc;
     String id;
-    String hostName;
+    String name;
     Map<String,ProcessInfo> processes = new HashMap<>();
     int pids = 1;
 
-    public void init( String hostName, String siblingHost, int siblingPort ) {
+    public void init( StarterArgs options ) {
         siblings = new HashMap<>();
         id = UUID.randomUUID().toString();
-        if ( hostName == null ) {
+        if ( options.getName() == null ) {
             try {
-                hostName = InetAddress.getLocalHost().getHostName();
+                this.name = InetAddress.getLocalHost().getHostName();
             } catch (UnknownHostException e) {
                 Log.Error(this,e);
-                hostName = "unknown";
+                this.name = "unknown";
             }
+        } else {
+            name = options.getName();
         }
-        if ( siblingHost != null ) {
+        if ( options.getSiblingHost() != null ) {
+            primarySibling = new TCPConnectable(ProcessStarter.class, options.getSiblingHost(),options.getSiblingPort());
+            ProcessStarter sibling =
+                (ProcessStarter) primarySibling
+                    .connect(
+                        (x, y) -> System.out.println("client disc " + x),
+                        act -> {
+                            System.out.println("act " + act);
+                            siblings.entrySet().forEach(en -> self().execute(() -> siblings.remove(en.getKey())));
+                        }
+                    ).await();
+            primaryDesc = sibling.getInstanceDesc().await();
+            siblings.put(primaryDesc.getId(),primaryDesc);
+            discoverSiblings(primaryDesc);
+        }
+    }
 
+    public void cycle() {
+        if ( ! isStopped() ) {
+            discoverSiblings(primaryDesc);
+            delayed(60_000, () -> cycle() );
+        }
+    }
+
+    public IPromise<Map<String,StarterDesc>> register(StarterDesc self) {
+        if ( ! siblings.containsKey(self.getId()) )
+            siblings.put(self.getId(),self);
+        return resolve(siblings);
+    }
+
+    private void discoverSiblings(StarterDesc desc) {
+        if ( desc.getId().equals(id) )
+            return;
+        if (desc.getRemoteRef().isStopped()) {
+            execute( () -> siblings.remove(desc.getId()) );
+        } else {
+            desc.getRemoteRef().register(getDesc()).then((rsib, err) -> {
+                rsib.forEach((rid, rdesc) -> {
+                    if (!siblings.containsKey(id)) {
+                        siblings.put(rid,rdesc);
+                        discoverSiblings(rdesc);
+                    }
+                });
+            });
         }
     }
 
@@ -70,8 +113,12 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         return res;
     }
 
-    public IPromise<ProcessInfo> startProcess( String workingDir, String ... commandLine ) {
+    public IPromise<ProcessInfo> startProcess( String workingDir, Map<String,String> env, String ... commandLine ) {
         ProcessBuilder pc = new ProcessBuilder(commandLine);
+        if ( env != null ) {
+            pc.environment().putAll(env);
+        }
+
         pc.directory(new File(workingDir));
         try {
             Process proc = pc.start();
@@ -85,7 +132,11 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     }
 
     public IPromise<StarterDesc> getInstanceDesc() {
-        return resolve(new StarterDesc().host(hostName).id(id).remoteRef(self()));
+        return resolve(getDesc());
+    }
+
+    private StarterDesc getDesc() {
+        return new StarterDesc().host(name).id(id).remoteRef(self());
     }
 
     public IPromise<List<ProcessInfo>> getProcesses() {
@@ -93,18 +144,23 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     }
 
     public static void main(String[] args) throws InterruptedException {
+
+        final StarterArgs options = new StarterArgs();
+        new JCommander(options).parse(args);
+
         ProcessStarter ps = Actors.AsActor(ProcessStarter.class);
-        ps.init(null,null,0);
+        ps.init(options);
+
         new TCPNIOPublisher()
-            .port(6767)
+            .port(options.getPort())
             .facade(ps)
             .publish( act -> {
                 System.out.println("Discon "+act);
             });
 
-        ProcessStarter remote = (ProcessStarter) new TCPConnectable(ProcessStarter.class,"localhost",6767).connect( (x,y) -> System.out.println("client disc "+x)).await();
-
-        ProcessInfo bash = remote.startProcess("/tmp", "bash", "-c", "java >> /tmp/xx.txt").await();
+        // testing
+        ProcessStarter remote = (ProcessStarter) new TCPConnectable(ProcessStarter.class,options.getHost(),options.getPort()).connect( (x,y) -> System.out.println("client disc "+x)).await();
+        ProcessInfo bash = remote.startProcess("/tmp", Collections.emptyMap(), "bash", "-c", "xclock -digital").await();
 
         List<ProcessInfo> procs = remote.getProcesses().await();
         procs.forEach( proc -> System.out.println(proc));
