@@ -44,33 +44,40 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         } else {
             name = options.getName();
         }
-        if ( options.getSiblingHost() != null ) {
-            primarySibling = new TCPConnectable(ProcessStarter.class, options.getSiblingHost(),options.getSiblingPort());
-            ProcessStarter sibling =
-                (ProcessStarter) primarySibling
-                    .connect(
-                        (x, y) -> System.out.println("client disc " + x),
-                        act -> {
-                            System.out.println("act " + act);
-                            siblings.entrySet().forEach(en -> self().execute(() -> siblings.remove(en.getKey())));
-                        }
-                    ).await();
-            primaryDesc = sibling.getInstanceDesc().await();
-            siblings.put(primaryDesc.getId(),primaryDesc);
-            discoverSiblings(primaryDesc);
+        final String siblingHost = options.getSiblingHost();
+        if ( siblingHost != null ) {
+            final int siblingPort = options.getSiblingPort();
+            initPrimary(siblingHost, siblingPort);
+            cycle();
         }
+    }
+
+    void initPrimary(String siblingHost, int siblingPort) {
+        primarySibling = new TCPConnectable(ProcessStarter.class, siblingHost, siblingPort);
+        ProcessStarter sibling =
+            (ProcessStarter) primarySibling
+                .connect(
+                    (x, y) -> System.out.println("client disc " + x),
+                    act -> {
+                        System.out.println("act " + act);
+                        siblings.entrySet().forEach(en -> self().execute(() -> siblings.remove(en.getKey())));
+                    }
+                ).await();
+        primaryDesc = sibling.getInstanceDesc().await();
+        siblings.put(primaryDesc.getId(),primaryDesc);
     }
 
     public void cycle() {
         if ( ! isStopped() ) {
+            // fixme reconnect / switch primary
             discoverSiblings(primaryDesc);
             delayed(60_000, () -> cycle() );
         }
     }
 
-    public IPromise<Map<String,StarterDesc>> register(StarterDesc self) {
-        if ( ! siblings.containsKey(self.getId()) )
-            siblings.put(self.getId(),self);
+    public IPromise<Map<String,StarterDesc>> register(StarterDesc other) {
+        if ( ! siblings.containsKey(other.getId()) )
+            siblings.put(other.getId(), other);
         return resolve(siblings);
     }
 
@@ -159,18 +166,18 @@ public class ProcessStarter extends Actor<ProcessStarter> {
             });
 
         // testing
-        ProcessStarter remote = (ProcessStarter) new TCPConnectable(ProcessStarter.class,options.getHost(),options.getPort()).connect( (x,y) -> System.out.println("client disc "+x)).await();
-        ProcessInfo bash = remote.startProcess("/tmp", Collections.emptyMap(), "bash", "-c", "xclock -digital").await();
+//        ProcessStarter remote = (ProcessStarter) new TCPConnectable(ProcessStarter.class,options.getHost(),options.getPort()).connect( (x,y) -> System.out.println("client disc "+x)).await();
+//        ProcessInfo bash = remote.startProcess("/tmp", Collections.emptyMap(), "bash", "-c", "xclock -digital").await();
+//
+//        List<ProcessInfo> procs = remote.getProcesses().await();
+//        procs.forEach( proc -> System.out.println(proc));
+//
 
-        List<ProcessInfo> procs = remote.getProcesses().await();
-        procs.forEach( proc -> System.out.println(proc));
-
-//        System.out.println(bash);
-        Thread.sleep(3000);
-
-
-        Object await = remote.terminateProcess(bash.getId(), true, 15).await();
-        System.out.println("term result "+await);
+//        Thread.sleep(3000);
+//
+//
+//        Object await = remote.terminateProcess(bash.getId(), true, 15).await();
+//        System.out.println("term result "+await);
 
         //http://stackoverflow.com/questions/5740390/printing-my-macs-serial-number-in-java-using-unix-commands/5740673#5740673
         //http://stackoverflow.com/questions/1980671/executing-untokenized-command-line-from-java/1980921#1980921
