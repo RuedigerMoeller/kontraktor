@@ -1,7 +1,10 @@
 #kontraktor-kluster
 
-a simple util to start/stop processes in a distributed environment. one can run several instances/environments of a
-distributed cluster on the same machine park using kontraktor-kluster to start/stop and control different set of distributed
-processes.
+a simple util to manage processes in a distributed environment. One can run several instances/environments of a
+distributed app on the same set of machines.
+
+A cluster is defined by a peer to peer network of demon processes. The client ("troll.sh" from german 'kontrolle')
+can connect to any of those demons and monitor, start and stop processes on all nodes making up the p2p network.
+
 
 tested on linux only, porting will require some adaption of process and path handling
