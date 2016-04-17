@@ -352,7 +352,13 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     public static void main(String[] args) throws InterruptedException {
 
         final StarterArgs options = new StarterArgs();
-        new JCommander(options).parse(args);
+        final JCommander jCommander = new JCommander(options);
+        jCommander.parse(args);
+
+        if ( options.isHelp() ) {
+            jCommander.usage();
+            System.exit(0);
+        }
 
         ProcessStarter ps = Actors.AsActor(ProcessStarter.class);
         ps.init(options);

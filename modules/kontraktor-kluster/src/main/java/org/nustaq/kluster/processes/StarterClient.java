@@ -16,7 +16,13 @@ public class StarterClient {
 
     public static void main(String[] args) throws IOException, InterruptedException {
         final StarterClientArgs options = new StarterClientArgs();
-        new JCommander(options).parse(args);
+        final JCommander jCommander = new JCommander(options);
+        jCommander.parse(args);
+
+        if ( options.isHelp() ) {
+            jCommander.usage();
+            System.exit(0);
+        }
 
         ProcessStarter starter = (ProcessStarter) new TCPConnectable(ProcessStarter.class, options.getHost(), options.getPort())
             .connect(
