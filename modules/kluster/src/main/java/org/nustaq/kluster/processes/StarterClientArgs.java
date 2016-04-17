@@ -21,6 +21,34 @@ public class StarterClientArgs {
     @Parameter(names = {"-port"}, help = true, description = "port of this service")
     int port = 6868;
 
+    @Parameter(names = {"-l"}, help = true, description = "list")
+    boolean list = false;
+
+    @Parameter(names = {"-k"}, arity = 1, help = true, description = "kill [processid]")
+    String pid = null;
+
+    @Parameter(names = {"-km"}, arity = 1, help = true, description = "kill [pattern]")
+    String killMatching = null;
+
+    @Parameter(names = {"-wd"}, help = true, description = "workingdir")
+    String wd = "./";
+
+    public boolean isList() {
+        return list;
+    }
+
+    public String getKillMatching() {
+        return killMatching;
+    }
+
+    public String getKillPid() {
+        return pid;
+    }
+
+    public String getWd() {
+        return wd;
+    }
+
     public String getHost() {
         return host;
     }

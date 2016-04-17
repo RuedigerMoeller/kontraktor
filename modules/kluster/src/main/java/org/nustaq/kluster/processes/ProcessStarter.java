@@ -12,6 +12,7 @@ import org.nustaq.kontraktor.util.Log;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
@@ -98,14 +99,39 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         }
     }
 
-    public IPromise terminateProcess( String id, boolean force, int timeoutSec ) {
+    public IPromise<Integer> terminateProcess( String id, boolean force, int timeoutSec ) {
         ProcessInfo processInfo = processes.get(id);
         if ( processInfo == null )
             return resolve(null);
-        if ( force )
-            processInfo.getProc().destroyForcibly();
-        else
-            processInfo.getProc().destroy();
+
+        long pid = -1;
+        try {
+            Field f = processInfo.getProc().getClass().getDeclaredField("pid");
+            f.setAccessible(true);
+            pid = f.getLong(processInfo.getProc());
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+        if ( pid != -1 ) {
+            try {
+                Process kl = Runtime.getRuntime().exec("kill -9 " + pid);
+                kl.waitFor(timeoutSec, TimeUnit.SECONDS);
+                return resolve(new Integer(kl.exitValue()));
+            } catch (IOException e) {
+                e.printStackTrace();
+                return reject(e);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        } else {
+            if ( force )
+                processInfo.getProc().destroyForcibly();
+            else
+                processInfo.getProc().destroy();
+        }
         Promise res = new Promise();
         exec( () -> {
             processInfo.getProc().waitFor( timeoutSec, TimeUnit.SECONDS);
@@ -113,7 +139,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                 res.reject("timeout");
             } else {
                 processes.remove(processInfo.getId());
-                res.resolve(processInfo);
+                res.resolve(processInfo.getProc().exitValue());
             }
             return null;
         });
@@ -129,7 +155,12 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         pc.directory(new File(workingDir));
         try {
             Process proc = pc.start();
-            ProcessInfo pi = new ProcessInfo().cmdLine(commandLine).id(this.id + ":" + pids++).proc(proc);
+            ProcessInfo pi = new ProcessInfo()
+                .cmdLine(commandLine)
+                .id(this.id + ":" + pids++)
+                .proc(proc)
+                .starterName(name)
+                .starterId(id);
             processes.put(pi.getId(), pi);
             return resolve(pi);
         } catch (IOException e) {

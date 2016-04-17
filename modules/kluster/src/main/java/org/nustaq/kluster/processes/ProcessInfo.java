@@ -9,7 +9,8 @@ import java.util.Arrays;
 public class ProcessInfo implements Serializable {
 
     String id;
-    ProcessStarter starter;
+    String starterName;
+    String starterId;
     String[] cmdLine;
     transient Process proc;
 
@@ -35,26 +36,36 @@ public class ProcessInfo implements Serializable {
         return this;
     }
 
-    public ProcessStarter getStarter() {
-        return starter;
-    }
-
     public ProcessInfo id(final String id) {
         this.id = id;
         return this;
     }
 
-    public ProcessInfo starter(final ProcessStarter starter) {
-        this.starter = starter;
+    public ProcessInfo starterName(final String starterName) {
+        this.starterName = starterName;
         return this;
+    }
+
+    public ProcessInfo starterId(final String starterId) {
+        this.starterId = starterId;
+        return this;
+    }
+
+    public String getStarterId() {
+        return starterId;
+    }
+
+    public String getStarterName() {
+        return starterName;
     }
 
     @Override
     public String toString() {
         return "ProcessInfo{" +
             "id='" + id + '\'' +
-            ", starter=" + starter +
-            ", cmdLine='" + Arrays.toString(cmdLine) + '\'' +
+            ", starterName='" + starterName + '\'' +
+            ", starterId='" + starterId + '\'' +
+            ", cmdLine=" + Arrays.toString(cmdLine) +
             ", proc=" + proc +
             '}';
     }
