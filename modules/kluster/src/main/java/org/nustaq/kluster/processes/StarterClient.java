@@ -33,6 +33,11 @@ public class StarterClient {
                 .sorted( (a,b) -> a.getCmdLine()[0].compareTo(b.getCmdLine()[0]))
                 .forEach( pi -> System.out.println(pi));
         }
+        if ( options.isListSiblings() ) {
+            List<StarterDesc> await = starter.getSiblings().await();
+            System.out.println("listing "+await.size()+" siblings");
+            await.forEach( sd -> System.out.println(sd) );
+        }
         if ( options.getKillPid() != null ) {
             System.out.println("killing "+options.getKillPid());
             Object await = starter.terminateProcess(options.getKillPid(), true, 10).await();

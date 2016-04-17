@@ -177,6 +177,12 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         return new StarterDesc().host(name).id(id).remoteRef(self());
     }
 
+    public IPromise<List<StarterDesc>> getSiblings() {
+        List<StarterDesc> collect = siblings.values().stream().collect(Collectors.toList());
+        collect.add(getDesc());
+        return resolve(collect);
+    }
+
     public IPromise<List<ProcessInfo>> getProcesses() {
         return resolve(processes.entrySet().stream().map( x -> x.getValue() ).collect(Collectors.toList()));
     }

@@ -38,5 +38,12 @@ public class StarterDesc implements Serializable {
         return this;
     }
 
-
+    @Override
+    public String toString() {
+        return "StarterDesc{" +
+            "id='" + id + '\'' +
+            ", host='" + host + '\'' +
+            ", remoteRef=" + remoteRef +
+            '}';
+    }
 }

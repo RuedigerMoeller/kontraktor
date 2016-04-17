@@ -24,6 +24,9 @@ public class StarterClientArgs {
     @Parameter(names = {"-l"}, help = true, description = "list")
     boolean list = false;
 
+    @Parameter(names = {"-ls"}, help = true, description = "list siblings")
+    boolean listSiblings = false;
+
     @Parameter(names = {"-k"}, arity = 1, help = true, description = "kill [processid]")
     String pid = null;
 
@@ -61,4 +64,7 @@ public class StarterClientArgs {
         return port;
     }
 
+    public boolean isListSiblings() {
+        return listSiblings;
+    }
 }
