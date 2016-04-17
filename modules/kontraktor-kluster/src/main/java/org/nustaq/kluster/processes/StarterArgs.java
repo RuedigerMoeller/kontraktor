@@ -7,10 +7,10 @@ import com.beust.jcommander.Parameter;
  */
 public class StarterArgs {
 
-    @Parameter(names={"-sh","-siblinghost"}, description = "sibling host")
+    @Parameter(names={"-shost"}, description = "sibling host")
     String siblingHost = null;
 
-    @Parameter(names={"-gp","-gravity port"}, description = "gravity port")
+    @Parameter(names={"-sport"}, description = "sibling port")
     int siblingPort = 0;
 
     @Parameter(names = {"-h","-help","-?", "--help"}, help = true, description = "display help")

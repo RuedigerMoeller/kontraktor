@@ -87,7 +87,7 @@ public class StarterClient {
         options.getParameters().toArray(cmd);
         if ( cmd.length > 0 ) {
             System.out.println("running "+ Arrays.toString(cmd));
-            ProcessInfo await = starter.startProcess(new File(".").getCanonicalPath(), new HashMap<>(), cmd).await();
+            ProcessInfo await = starter.startProcess(options.getId(), options.getName(), new File(".").getCanonicalPath(), new HashMap<>(), cmd).await();
 //        ProcessInfo await = starter.startProcess("/tmp", Collections.emptyMap(), "gnome-weather").await();
             System.out.println("started "+await);
         }

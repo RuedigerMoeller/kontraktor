@@ -36,8 +36,22 @@ public class StarterClientArgs {
     @Parameter(names = {"-wd"}, help = true, description = "workingdir")
     String wd = "./";
 
+    @Parameter(names = {"-id"}, help = true, description = "id of target sibling")
+    String id;
+
+    @Parameter(names = {"-name"}, help = true, description = "name of target sibling")
+    String name;
+
     public boolean isList() {
         return list;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public String getKillMatching() {

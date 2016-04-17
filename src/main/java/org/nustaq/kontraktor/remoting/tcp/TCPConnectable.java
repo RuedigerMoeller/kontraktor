@@ -123,4 +123,14 @@ public class TCPConnectable implements ConnectableActor {
         return this;
     }
 
+    @Override
+    public String toString() {
+        return "TCPConnectable{" +
+            "host='" + host + '\'' +
+            ", port=" + port +
+            ", actorClz=" + actorClz +
+            ", coding=" + coding +
+            ", inboundQueueSize=" + inboundQueueSize +
+            '}';
+    }
 }

@@ -31,8 +31,10 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     String name;
     Map<String,ProcessInfo> processes = new HashMap<>();
     int pids = 1;
+    StarterArgs options;
 
     public void init( StarterArgs options ) {
+        this.options = options;
         siblings = new HashMap<>();
         id = UUID.randomUUID().toString();
         if ( options.getName() == null ) {
@@ -48,31 +50,39 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         final String siblingHost = options.getSiblingHost();
         if ( siblingHost != null ) {
             final int siblingPort = options.getSiblingPort();
-            initPrimary(siblingHost, siblingPort);
+            primarySibling = new TCPConnectable(ProcessStarter.class, siblingHost, siblingPort);
             cycle();
         }
     }
 
-    void initPrimary(String siblingHost, int siblingPort) {
-        primarySibling = new TCPConnectable(ProcessStarter.class, siblingHost, siblingPort);
-        ProcessStarter sibling =
-            (ProcessStarter) primarySibling
-                .connect(
-                    (x, y) -> System.out.println("client disc " + x),
-                    act -> {
-                        System.out.println("act " + act);
-                        siblings.entrySet().forEach(en -> self().execute(() -> siblings.remove(en.getKey())));
-                    }
-                ).await();
-        primaryDesc = sibling.getInstanceDesc().await();
-        siblings.put(primaryDesc.getId(),primaryDesc);
+    void initPrimary() {
+        try {
+            ProcessStarter sibling =
+                (ProcessStarter) primarySibling
+                    .connect(
+                        (x, y) -> System.out.println("client disc " + x),
+                        act -> {
+                            System.out.println("act " + act);
+                            siblings.entrySet().forEach(en -> self().execute(() -> siblings.remove(en.getKey())));
+                        }
+                    ).await();
+            primaryDesc = sibling.getInstanceDesc().await();
+            siblings.put(primaryDesc.getId(),primaryDesc);
+            System.out.println("primary sibling connected "+primaryDesc);
+        } catch (Throwable e) {
+            System.out.println("failed to connect primary "+primarySibling);
+        }
     }
 
     public void cycle() {
         if ( ! isStopped() ) {
-            // fixme reconnect / switch primary
-            discoverSiblings(primaryDesc);
-            delayed(60_000, () -> cycle() );
+            if ( primaryDesc == null ) {
+                initPrimary();
+            }
+            if ( primarySibling != null ) {
+                discoverSiblings(primaryDesc);
+            }
+            delayed(3_000, () -> cycle() );
         }
     }
 
@@ -83,14 +93,14 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     }
 
     private void discoverSiblings(StarterDesc desc) {
-        if ( desc.getId().equals(id) )
+        if ( desc == null || desc.getId() == null || desc.getId().equals(id) )
             return;
         if (desc.getRemoteRef().isStopped()) {
             execute( () -> siblings.remove(desc.getId()) );
         } else {
             desc.getRemoteRef().register(getDesc()).then((rsib, err) -> {
                 rsib.forEach((rid, rdesc) -> {
-                    if (!siblings.containsKey(id)) {
+                    if (!siblings.containsKey(id) && !this.id.equals(id)) {
                         siblings.put(rid,rdesc);
                         discoverSiblings(rdesc);
                     }
@@ -146,7 +156,31 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         return res;
     }
 
-    public IPromise<ProcessInfo> startProcess( String workingDir, Map<String,String> env, String ... commandLine ) {
+    public IPromise<ProcessInfo> startProcess( String anId, String aName, String workingDir, Map<String,String> env, String ... commandLine ) {
+        if ( this.name.equals(aName) )
+            aName = null;
+        if ( this.id.equals(anId) )
+            anId = null;
+        if ( aName != null && ! aName.equals(this.name)) {
+            if ( anId != null )
+                return reject("cannot specify name and id: "+aName+" "+anId);
+            final String finalName = aName;
+            Optional<StarterDesc> first = siblings.values().stream().filter(desc -> finalName.equals(desc.getName())).findFirst();
+            if ( first.isPresent() ) {
+                anId = first.get().getId();
+            }
+        }
+        if ( anId != null && ! anId.equals(this.id) ) {
+            StarterDesc starterDesc = siblings.get(anId);
+            if ( starterDesc != null ) {
+                return starterDesc.getRemoteRef().startProcess(anId,aName,workingDir,env,commandLine);
+            } else {
+                return reject( "no sibling known with id "+anId);
+            }
+        }
+        if ( (anId != null || aName != null) ) {
+            return reject("could not find target for "+anId+" "+aName);
+        }
         ProcessBuilder pc = new ProcessBuilder(commandLine);
         if ( env != null ) {
             pc.environment().putAll(env);
@@ -159,8 +193,8 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                 .cmdLine(commandLine)
                 .id(this.id + ":" + pids++)
                 .proc(proc)
-                .starterName(name)
-                .starterId(id);
+                .starterName(this.name)
+                .starterId(this.id);
             processes.put(pi.getId(), pi);
             return resolve(pi);
         } catch (IOException e) {
@@ -174,7 +208,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     }
 
     private StarterDesc getDesc() {
-        return new StarterDesc().host(name).id(id).remoteRef(self());
+        return new StarterDesc().host(options.getHost()).name(name).id(id).remoteRef(self()).port(options.getPort());
     }
 
     public IPromise<List<StarterDesc>> getSiblings() {

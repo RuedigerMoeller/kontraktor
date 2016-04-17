@@ -10,6 +10,17 @@ public class StarterDesc implements Serializable {
     String id;
     String host;
     ProcessStarter remoteRef;
+    int port;
+    String name;
+
+    public String getName() {
+        return name;
+    }
+
+    public StarterDesc name(final String name) {
+        this.name = name;
+        return this;
+    }
 
     public String getId() {
         return id;
@@ -33,6 +44,11 @@ public class StarterDesc implements Serializable {
         return this;
     }
 
+    public StarterDesc port(final int port) {
+        this.port = port;
+        return this;
+    }
+
     public StarterDesc remoteRef(final ProcessStarter remoteRef) {
         this.remoteRef = remoteRef;
         return this;
@@ -45,5 +61,9 @@ public class StarterDesc implements Serializable {
             ", host='" + host + '\'' +
             ", remoteRef=" + remoteRef +
             '}';
+    }
+
+    public int getPort() {
+        return port;
     }
 }
