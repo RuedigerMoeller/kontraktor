@@ -24,7 +24,14 @@ import java.util.stream.Collectors;
  */
 public class ProcessStarter extends Actor<ProcessStarter> {
 
-    HashMap<String,StarterDesc> siblings;
+    private static final int TERMINATED = 0;
+    private static final int STARTED = 1;
+    private static final int SHUTDOWN = 2;
+    private static final int RESYNC = 3;
+    private static final int RESYNC_RESP = 4;
+    private static final int SOFT_SYNC = 5;
+
+    Map<String,StarterDesc> siblings;
     ConnectableActor primarySibling;
     StarterDesc primaryDesc;
     String id;
@@ -63,57 +70,174 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                         (x, y) -> System.out.println("client disc " + x),
                         act -> {
                             System.out.println("act " + act);
-                            siblings.entrySet().forEach(en -> self().execute(() -> siblings.remove(en.getKey())));
+                            siblings.clear();
+                            primaryDesc = null;
                         }
                     ).await();
             primaryDesc = sibling.getInstanceDesc().await();
             siblings.put(primaryDesc.getId(),primaryDesc);
             System.out.println("primary sibling connected "+primaryDesc);
+            distribute(SOFT_SYNC,null,null);
         } catch (Throwable e) {
             System.out.println("failed to connect primary "+primarySibling);
         }
     }
 
+    public void distribute( int mid, Object arg, HashSet<String> visited ) {
+        if ( visited == null ) {
+            visited = new HashSet<>();
+        } else if ( visited.contains(id) )
+            return;
+        visited.add(id);
+        processMessage(mid, arg);
+        final HashSet<String> finalVisited = visited;
+        siblings.values().forEach( desc -> {
+            if ( ! finalVisited.contains(desc.getId()) )
+                desc.getRemoteRef().distribute(mid,arg, finalVisited);
+        });
+    }
+
+    protected void processMessage(int mid, Object arg) {
+        switch ( mid ) {
+            case RESYNC:
+            {
+                Map<String, ProcessInfo> prevp = processes;
+                processes = new HashMap<>();
+                prevp.forEach( (k,v) -> {
+                    if ( v.getProc() != null ) {
+                        processes.put(k,v);
+                    }
+                });
+                processes.forEach( (k,v) -> {
+                    if ( v.getProc() != null ) {
+                        distribute(RESYNC_RESP, v, null);
+                    }
+                });
+            }
+            break;
+            case SOFT_SYNC: // no clear
+            {
+                Map<String, ProcessInfo> prevp = processes;
+                processes.forEach( (k,v) -> {
+                    if ( v.getProc() != null ) {
+                        distribute(RESYNC_RESP, v, null);
+                    }
+                });
+            }
+            break;
+            case RESYNC_RESP:
+            {
+                ProcessInfo inf = (ProcessInfo) arg;
+                if ( !id.equals(inf.getStarterId()) ) {
+                    processes.put(inf.getId(), inf);
+                }
+            }
+            break;
+            case TERMINATED:
+            {
+                ProcessInfo inf = (ProcessInfo) arg;
+                processes.remove(inf.getId());
+            }
+            break;
+            case STARTED:
+            {
+                ProcessInfo inf = (ProcessInfo) arg;
+                processes.put(inf.getId(), inf);
+            }
+            break;
+            case SHUTDOWN: {
+                System.out.println("shutting down");
+                delayed(1000,() -> System.exit(0));
+            }
+        }
+    }
+
+    int counter = 0;
     public void cycle() {
         if ( ! isStopped() ) {
-            if ( primaryDesc == null ) {
-                initPrimary();
+            try {
+                counter++;
+                if (primaryDesc == null) {
+                    initPrimary();
+                }
+                if (primaryDesc != null) {
+                    discoverSiblings();
+                    if (counter > 10) {
+                        counter = 0;
+                    }
+                }
+                processes = processes.entrySet().stream()
+                    .filter(en -> {
+                        if (en.getValue().getProc() == null) {
+                            if (!siblings.containsKey(en.getValue().getStarterId())) // host died
+                            {
+                                return false;
+                            }
+                        } else {
+                            if (!en.getValue().getProc().isAlive()) {
+                                self().distribute(TERMINATED, en.getValue(), null);
+                                return false;
+                            }
+                        }
+                        return true;
+                    })
+                    .collect(Collectors.toMap(en -> en.getKey(), en -> en.getValue()));
+            } catch (Throwable th) {
+                th.printStackTrace();
             }
-            if ( primarySibling != null ) {
-                discoverSiblings(primaryDesc);
-            }
-            delayed(3_000, () -> cycle() );
+//            System.out.println("sibs");
+//            siblings.forEach( (k,v) -> System.out.println(v));
+            delayed(3_000, () -> cycle());
         }
     }
 
     public IPromise<Map<String,StarterDesc>> register(StarterDesc other) {
-        if ( ! siblings.containsKey(other.getId()) )
+        if ( ! siblings.containsKey(other.getId()) ) {
             siblings.put(other.getId(), other);
+            System.out.println( "reg " + other);
+        }
         return resolve(siblings);
     }
 
-    private void discoverSiblings(StarterDesc desc) {
+    private void discoverSiblings() {
+        final StarterDesc desc = this.primaryDesc;
         if ( desc == null || desc.getId() == null || desc.getId().equals(id) )
             return;
         if (desc.getRemoteRef().isStopped()) {
-            execute( () -> siblings.remove(desc.getId()) );
+            execute( () -> siblings.clear() );
         } else {
             desc.getRemoteRef().register(getDesc()).then((rsib, err) -> {
-                rsib.forEach((rid, rdesc) -> {
-                    if (!siblings.containsKey(id) && !this.id.equals(id)) {
-                        siblings.put(rid,rdesc);
-                        discoverSiblings(rdesc);
-                    }
-                });
+                if ( rsib != null ) {
+                    rsib.put(desc.getId(),desc); // self is missing in receiver
+                    siblings.clear();
+//                    System.out.println("clear");
+                    rsib.forEach( (k,v) -> {
+                        if ( ! id.equals(k) ) {
+                            siblings.put(k, v);
+//                            System.out.println("got "+v);
+                        }
+                    });
+                }
             });
         }
     }
 
-    public IPromise<Integer> terminateProcess( String id, boolean force, int timeoutSec ) {
-        ProcessInfo processInfo = processes.get(id);
+    public void resyncProcesses() {
+        distribute(RESYNC,null,null);
+    }
+
+    public IPromise<Integer> terminateProcess( String procid, boolean force, int timeoutSec ) {
+        ProcessInfo processInfo = processes.get(procid);
         if ( processInfo == null )
             return resolve(null);
 
+        if (processInfo.getProc() == null ) {
+            StarterDesc sd = siblings.get(processInfo.getStarterId());
+            if (sd!=null)
+                return sd.getRemoteRef().terminateProcess(procid,force,timeoutSec);
+            else
+                return reject("unknown starter:"+processInfo.getStarterId());
+        }
         long pid = -1;
         try {
             Field f = processInfo.getProc().getClass().getDeclaredField("pid");
@@ -129,6 +253,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
             try {
                 Process kl = Runtime.getRuntime().exec("kill -9 " + pid);
                 kl.waitFor(timeoutSec, TimeUnit.SECONDS);
+                self().distribute(TERMINATED, processInfo, null);
                 return resolve(new Integer(kl.exitValue()));
             } catch (IOException e) {
                 e.printStackTrace();
@@ -143,13 +268,15 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                 processInfo.getProc().destroy();
         }
         Promise res = new Promise();
+        final Process proc = processInfo.getProc();
         exec( () -> {
-            processInfo.getProc().waitFor( timeoutSec, TimeUnit.SECONDS);
-            if ( processInfo.getProc().isAlive() ) {
+            proc.waitFor(timeoutSec, TimeUnit.SECONDS);
+            if ( proc.isAlive() ) {
                 res.reject("timeout");
             } else {
                 processes.remove(processInfo.getId());
-                res.resolve(processInfo.getProc().exitValue());
+                self().distribute(TERMINATED, processInfo, null);
+                res.resolve(proc.exitValue());
             }
             return null;
         });
@@ -196,6 +323,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                 .starterName(this.name)
                 .starterId(this.id);
             processes.put(pi.getId(), pi);
+            self().distribute( STARTED, pi, null);
             return resolve(pi);
         } catch (IOException e) {
             Log.Warn(this, e);

@@ -26,9 +26,12 @@ public class StarterClient {
                 }
             ).await();
 
+        if (options.isResync())
+            starter.resyncProcesses();
+
         if ( options.isList()) {
-            System.out.println("list:");
             List<ProcessInfo> pis = starter.getProcesses().await();
+            System.out.println("listing "+pis.size()+" processes:");
             pis.stream()
                 .sorted( (a,b) -> a.getCmdLine()[0].compareTo(b.getCmdLine()[0]))
                 .forEach( pi -> System.out.println(pi));
@@ -72,7 +75,7 @@ public class StarterClient {
                             }
                         }
                     }
-                    if (match) {
+                    if (match||"*".equals(killMatching)) {
                         System.out.print("killing " + pi + " .. ");
                         try {
                             Object await = starter.terminateProcess(pi.getId(), true, 10).await();
@@ -91,7 +94,7 @@ public class StarterClient {
 //        ProcessInfo await = starter.startProcess("/tmp", Collections.emptyMap(), "gnome-weather").await();
             System.out.println("started "+await);
         }
-//        Thread.sleep(3000);
+        starter.ping().await();
 //        starter.terminateProcess(await.getId(),true,15).await();
 //        System.out.println("killed "+await.getId());
         System.exit(0);

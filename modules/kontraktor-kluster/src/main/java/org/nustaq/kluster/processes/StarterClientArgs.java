@@ -42,6 +42,13 @@ public class StarterClientArgs {
     @Parameter(names = {"-name"}, help = true, description = "name of target sibling")
     String name;
 
+    @Parameter(names = {"-resync"}, help = true, description = "resync processes and siblings")
+    boolean resync;
+
+    public boolean isResync() {
+        return resync;
+    }
+
     public boolean isList() {
         return list;
     }
