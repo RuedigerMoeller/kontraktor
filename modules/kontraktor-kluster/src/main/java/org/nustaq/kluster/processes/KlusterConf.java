@@ -44,7 +44,19 @@ public class KlusterConf extends HashMap implements Serializable {
         while( index < prog.length ) {
             Pair def = new Pair( prog[index], prog[index+1]);
             index += 2;
-            if ( "process".equals( def.car() ) ) {
+            if ( def.car().toString().startsWith("loop_")) {
+                String[] split = def.car().toString().split("_");
+                int start = Integer.parseInt(split[1]);
+                int end = Integer.parseInt(split[2]);
+                for ( int i = start; i < end; i++ ) {
+                    List cdr = (List) def.cdr();
+                    Object newOb[] = new Object[cdr.size()];
+                    cdr.toArray(newOb);
+                    Properties props = new Properties(env);
+                    props.put("IDX",""+i);
+                    interpret(props, newOb);
+                }
+            } else if ( "process".equals( def.car() ) ) {
                 // resolve commandline string
                 String resolved[] = dequote(resolve((String) def.cdr(), x -> (String) env.getProperty(x)));
                 StarterClientArgs args = new StarterClientArgs();
@@ -149,7 +161,7 @@ public class KlusterConf extends HashMap implements Serializable {
     public static void main(String[] args) throws Exception {
         HashSet<String> gr = new HashSet<>();
         gr.add("base");
-        KlusterConf conf = new KlusterConf(gr,"/home/ruedi/projects/kontraktor/modules/kontraktor-kluster/src/main/test/test.kson");
+        KlusterConf conf = new KlusterConf(gr,"/home/ruedi/projects/Juptr/run/prod/cluster.kson");
         System.out.println(conf);
     }
 }
