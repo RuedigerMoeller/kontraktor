@@ -61,12 +61,10 @@ public class ProcessInfo implements Serializable {
 
     @Override
     public String toString() {
-        return "ProcessInfo{" +
-            "id='" + id + '\'' +
-            ", starterName='" + starterName + '\'' +
-            ", starterId='" + starterId + '\'' +
-            ", cmdLine=" + Arrays.toString(cmdLine) +
-            ", proc=" + proc +
-            '}';
+        return "" +
+            "['" + starterName + '\'' + ']' +
+            "  cmd = " + Arrays.toString(cmdLine) +
+            "  sid='" + starterId + '\'' +
+            "  vpid='" + id + '\'';
     }
 }

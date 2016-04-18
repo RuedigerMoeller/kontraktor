@@ -59,7 +59,7 @@ public class StarterDesc implements Serializable {
         return "StarterDesc{" +
             "id='" + id + '\'' +
             ", host='" + host + '\'' +
-            ", remoteRef=" + remoteRef +
+//            ", remoteRef=" + remoteRef +
             ", port=" + port +
             ", name='" + name + '\'' +
             '}';

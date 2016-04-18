@@ -10,8 +10,7 @@ import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -194,7 +193,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     public IPromise<Map<String,StarterDesc>> register(StarterDesc other) {
         if ( ! siblings.containsKey(other.getId()) ) {
             siblings.put(other.getId(), other);
-            System.out.println( "reg " + other);
+            System.out.println("reg " + other);
         }
         return resolve(siblings);
     }
@@ -283,7 +282,35 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         return res;
     }
 
-    public IPromise<ProcessInfo> startProcess( String anId, String aName, String workingDir, Map<String,String> env, String ... commandLine ) {
+    void ioPoller( String fileToWrite, InputStream in, String vpid, Process proc ) {
+        FileOutputStream fout = null;
+        if ( fileToWrite != null ) {
+            try {
+                fout = new FileOutputStream(fileToWrite);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        final FileOutputStream finalFout = fout;
+        new Thread("io poll "+vpid) {
+            public void run() {
+                try {
+                    while( proc.isAlive() ) {
+                        int read = in.read();
+                        if ( finalFout != null ) {
+                            finalFout.write(read);
+                        } else {
+                            System.out.write(read);
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+    }
+
+    public IPromise<ProcessInfo> startProcess( String redirectIO, String anId, String aName, String workingDir, Map<String,String> env, String ... commandLine ) {
         if ( this.name.equals(aName) )
             aName = null;
         if ( this.id.equals(anId) )
@@ -300,7 +327,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         if ( anId != null && ! anId.equals(this.id) ) {
             StarterDesc starterDesc = siblings.get(anId);
             if ( starterDesc != null ) {
-                return starterDesc.getRemoteRef().startProcess(anId,aName,workingDir,env,commandLine);
+                return starterDesc.getRemoteRef().startProcess(redirectIO,anId,aName,workingDir,env,commandLine);
             } else {
                 return reject( "no sibling known with id "+anId);
             }
@@ -322,6 +349,8 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                 .proc(proc)
                 .starterName(this.name)
                 .starterId(this.id);
+            ioPoller(redirectIO,proc.getInputStream(),pi.getId(),proc);
+            ioPoller(redirectIO,proc.getErrorStream(),pi.getId(),proc);
             processes.put(pi.getId(), pi);
             self().distribute( STARTED, pi, null);
             return resolve(pi);

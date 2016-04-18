@@ -1,0 +1,59 @@
+[
+
+  PORT: '-port 3200'    # kkluster sibling port
+
+  # default working dir
+  WD:   '-wd /home/ruedi/projects/Juptr/run/'
+  # default cp
+  CP:   '-cp /home/ruedi/projects/Juptr/target/juptr-1.0-SNAPSHOT-jar-with-dependencies.jar'
+
+  GRP:  '7654'          # gravity port
+  GRH:  '192.168.0.102' # gravity machine
+
+  DSPB: '-dsPortBase 35000' # portbase of data shards
+
+  SRV:  '-name sv0' # default machine
+
+  base: [
+    SRV:  '-name sv0'
+    process:
+      "$PORT $SRV $WD -sleep 3000 -redirect logs/gravity.log 'java -Dlogfile=gravity.log4j $CP io.juptr.gravity.Gravity -host $GRH -gp $GRP -nolog false'"
+
+    SRV:  '-name sv1'
+
+    process:
+      "$PORT $SRV $WD -redirect logs/data_0.log 'java $CP -Dlogfile=data_0.log4j io.juptr.blackhole.DataShard $DSPB -sn 0 -g $GRH -gp $GRP -nolog false'"
+
+    process:
+      "$PORT $SRV $WD -redirect logs/data_1.log 'java $CP -Dlogfile=data_1.log4j io.juptr.blackhole.DataShard $DSPB -sn 1 -g $GRH -gp $GRP -nolog false'"
+
+    process:
+      "$PORT $SRV $WD -sleep 3000 -redirect logs/data_2.log 'java $CP -Dlogfile=data_2.log4j io.juptr.blackhole.DataShard $DSPB -sn 2 -g $GRH -gp $GRP -nolog false'"
+  ]
+
+  apps: [
+    SRV: '-name sv2'
+    process:
+      "$PORT $SRV $WD -redirect logs/halley.log 'java $CP -Dlogfile=halley.log4j io.juptr.halley.Halley $DSPB -g $GRH -gp $GRP -nolog false'"
+
+    process:
+      "$PORT $SRV $WD -redirect logs/fusion.log 'java $CP -Dlogfile=fusion.log4j io.juptr.fusion.Fusion $DSPB -g $GRH -gp $GRP -nolog false'"
+
+    SRV: '-name sv0'
+    process:
+      "$PORT $SRV $WD -redirect logs/housekeeper.log 'java $CP -Dlogfile=housekeeper.log4j io.juptr.housekeeper.Housekeeper $DSPB -g $GRH -gp $GRP -nolog false'"
+  ]
+
+  admin: [
+    SRV: '-name sv0'
+    process:
+      "$PORT $SRV $WD -redirect logs/admin.log 'java $CP -Dlogfile=admin.log4j io.juptr.fourk.AdminApp $DSPB -g $GRH -gp $GRP -webhost twen -webport 9090 -nolog false'"
+  ]
+
+  web: [
+    SRV: '-name sv0'
+    process:
+      "$PORT $SRV $WD -redirect logs/webapp.log 'java $CP -Dlogfile=webapp.log4j io.juptr.fourk.JuptrApp $DSPB -g $GRH -gp $GRP -webhost twen -webport 8080 -nolog false'"
+  ]
+
+]

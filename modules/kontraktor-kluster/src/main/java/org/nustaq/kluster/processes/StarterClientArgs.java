@@ -4,13 +4,17 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Created by ruedi on 17.04.16.
  */
-public class StarterClientArgs {
+public class StarterClientArgs implements Serializable {
+
+    public StarterClientArgs() {
+    }
 
     @Parameter(names = {"-host"}, help = true, description = "host address of this service")
     String host = "localhost";
@@ -42,11 +46,21 @@ public class StarterClientArgs {
     @Parameter(names = {"-name"}, help = true, description = "name of target sibling")
     String name;
 
+    @Parameter(names = {"-redirect"}, help = true, description = "name remote file to redirect output to")
+    String redirect;
+
     @Parameter(names = {"-resync"}, help = true, description = "resync processes and siblings")
     boolean resync;
 
+    @Parameter(names = {"-sleep"}, help = true, description = "sleep (milli seconds) after starting a process")
+    long sleep;
+
     @Parameter(names = {"-h","-help","-?", "--help"}, help = true, description = "display help")
     boolean help;
+
+    public long getSleep() {
+        return sleep;
+    }
 
     public boolean isHelp() {
         return help;
@@ -94,5 +108,28 @@ public class StarterClientArgs {
 
     public boolean isListSiblings() {
         return listSiblings;
+    }
+
+    public String getRedirect() {
+        return redirect;
+    }
+
+    @Override
+    public String toString() {
+        return "StarterClientArgs{" +
+            "host='" + host + '\'' +
+            ", parameters=" + parameters +
+            ", port=" + port +
+            ", list=" + list +
+            ", listSiblings=" + listSiblings +
+            ", pid='" + pid + '\'' +
+            ", killMatching='" + killMatching + '\'' +
+            ", wd='" + wd + '\'' +
+            ", id='" + id + '\'' +
+            ", name='" + name + '\'' +
+            ", redirect='" + redirect + '\'' +
+            ", resync=" + resync +
+            ", help=" + help +
+            '}';
     }
 }
