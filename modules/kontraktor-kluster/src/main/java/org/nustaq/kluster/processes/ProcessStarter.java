@@ -39,6 +39,22 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     int pids = 1;
     StarterArgs options;
 
+    public static Properties locateProps() throws IOException {
+        return locateProps( 0, new File("./"), "troll.properties" );
+    }
+
+    public static Properties locateProps( int d, File cur, String s) throws IOException {
+        if ( cur == null || d > 20 || cur.getAbsolutePath().equals("/") )
+            return new Properties();
+        if ( new File(cur,s).exists() ) {
+            Properties par = locateProps(d+1,cur.getParentFile(),s);
+            Properties props = new Properties(par);
+            props.load(new FileInputStream(new File(cur,s) ));
+            return props;
+        }
+        return locateProps(d+1,cur.getParentFile(),s);
+    }
+
     public void init( StarterArgs options ) {
         this.options = options;
         siblings = new HashMap<>();
@@ -310,30 +326,53 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         }.start();
     }
 
-    public IPromise<ProcessInfo> startProcess( String redirectIO, String anId, String aName, String workingDir, Map<String,String> env, String ... commandLine ) {
-        if ( this.name.equals(aName) )
-            aName = null;
-        if ( this.id.equals(anId) )
-            anId = null;
-        if ( aName != null && ! aName.equals(this.name)) {
-            if ( anId != null )
-                return reject("cannot specify name and id: "+aName+" "+anId);
-            final String finalName = aName;
+    /**
+     *
+     * @param redirectIO - (remote) path to err+out stream redirect file
+     * @param aSiblingId - a sibling id identifiying the machine to start on (name must be null then !)
+     * @param aSiblingName - symbolic name of sibling identifiying the machine to start on (instead of id, id must be null then)
+     * @param workingDir - (remote) working directory to start in
+     * @param env - environment to use remotely
+     * @param commandLine - commandline of process to start
+     * @return
+     */
+    public IPromise<ProcessInfo> startProcess( String redirectIO, String aSiblingId, String aSiblingName, String workingDir, Map<String,String> env, String ... commandLine) {
+        ProcStartSpec spec = new ProcStartSpec(redirectIO, aSiblingId, aSiblingName, workingDir, env, commandLine);
+        return startProcessBySpec(spec);
+    }
+
+    public IPromise<ProcessInfo> startProcessBySpec( ProcStartSpec spec ) {
+
+        String aSiblingName = spec.getaSiblingName();
+        String aSiblingId = spec.getaSiblingId();
+        String redirectIO = spec.getRedirectIO();
+        String workingDir = spec.getWorkingDir();
+        String[] commandLine = spec.getCommandLine();
+
+        Map<? extends String, ? extends String> env = spec.getEnv();
+        if ( this.name.equals(aSiblingName) )
+            aSiblingName = null;
+        if ( this.id.equals(aSiblingId) )
+            aSiblingId = null;
+        if ( aSiblingName != null && ! aSiblingName.equals(this.name)) {
+            if ( aSiblingId != null )
+                return reject("cannot specify name and id: "+aSiblingName+" "+aSiblingId);
+            final String finalName = aSiblingName;
             Optional<StarterDesc> first = siblings.values().stream().filter(desc -> finalName.equals(desc.getName())).findFirst();
             if ( first.isPresent() ) {
-                anId = first.get().getId();
+                aSiblingId = first.get().getId();
             }
         }
-        if ( anId != null && ! anId.equals(this.id) ) {
-            StarterDesc starterDesc = siblings.get(anId);
+        if ( aSiblingId != null && ! aSiblingId.equals(this.id) ) {
+            StarterDesc starterDesc = siblings.get(aSiblingId);
             if ( starterDesc != null ) {
-                return starterDesc.getRemoteRef().startProcess(redirectIO,anId,aName,workingDir,env,commandLine);
+                return starterDesc.getRemoteRef().startProcessBySpec(spec);
             } else {
-                return reject( "no sibling known with id "+anId);
+                return reject( "no sibling known with id "+aSiblingId);
             }
         }
-        if ( (anId != null || aName != null) ) {
-            return reject("could not find target for "+anId+" "+aName);
+        if ( (aSiblingId != null || aSiblingName != null) ) {
+            return reject("could not find target for "+aSiblingId+" "+aSiblingName);
         }
         ProcessBuilder pc = new ProcessBuilder(commandLine);
         if ( env != null ) {
@@ -347,6 +386,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                 .cmdLine(commandLine)
                 .id(this.id + ":" + pids++)
                 .proc(proc)
+                .spec(spec)
                 .starterName(this.name)
                 .starterId(this.id);
             ioPoller(redirectIO,proc.getInputStream(),pi.getId(),proc);
@@ -378,7 +418,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         return resolve(processes.entrySet().stream().map( x -> x.getValue() ).collect(Collectors.toList()));
     }
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException, IOException {
 
         final StarterArgs options = new StarterArgs();
         final JCommander jCommander = new JCommander(options);
@@ -389,6 +429,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
             System.exit(0);
         }
 
+        options.underride(locateProps(0,new File("./"),"troll.properties"));
         ProcessStarter ps = Actors.AsActor(ProcessStarter.class);
         ps.init(options);
 

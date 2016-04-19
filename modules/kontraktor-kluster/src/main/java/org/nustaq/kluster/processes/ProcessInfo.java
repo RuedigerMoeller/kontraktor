@@ -12,6 +12,7 @@ public class ProcessInfo implements Serializable {
     String starterName;
     String starterId;
     String[] cmdLine;
+    ProcStartSpec spec;
     transient Process proc;
 
     public Process getProc() {
@@ -20,6 +21,15 @@ public class ProcessInfo implements Serializable {
 
     public ProcessInfo proc(final Process proc) {
         this.proc = proc;
+        return this;
+    }
+
+    public ProcStartSpec getSpec() {
+        return spec;
+    }
+
+    public ProcessInfo spec(final ProcStartSpec spec) {
+        this.spec = spec;
         return this;
     }
 

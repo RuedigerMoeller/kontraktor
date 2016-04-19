@@ -18,20 +18,8 @@ public class KlusterConf extends HashMap implements Serializable {
     public KlusterConf(HashSet<String> groups, String file) throws Exception {
         this.groups = groups;
         Object prog[] = (Object[]) new Kson().readObject(new File(file), Object[].class);
-        Properties properties = locateProps(0, new File("./"), "troll.properties");
+        Properties properties = ProcessStarter.locateProps(0, new File("./"), "troll.properties");
         interpret(properties, prog);
-    }
-
-    private Properties locateProps( int d, File cur, String s) throws IOException {
-        if ( cur == null || d > 20 || cur.getAbsolutePath().equals("/") )
-            return new Properties();
-        if ( new File(cur,s).exists() ) {
-            Properties par = locateProps(d+1,cur.getParentFile(),s);
-            Properties props = new Properties(par);
-            props.load(new FileInputStream(new File(cur,s) ));
-            return props;
-        }
-        return locateProps(d+1,cur.getParentFile(),s);
     }
 
     public List<StarterClientArgs> getToStart() {
@@ -62,7 +50,7 @@ public class KlusterConf extends HashMap implements Serializable {
                 StarterClientArgs args = new StarterClientArgs();
                 JCommander jc = new JCommander(args);
                 StarterClient.parseStarterConf(resolved,args,jc);
-                System.out.println(args);
+//                System.out.println(args);
                 toStart.add(args);
             } else {
                 if ( def.cdr() instanceof List ) {

@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Created by ruedi on 17.04.16.
@@ -16,14 +17,14 @@ public class StarterClientArgs implements Serializable {
     public StarterClientArgs() {
     }
 
-    @Parameter(names = {"-host"}, help = true, description = "host address of this service")
-    String host = "localhost";
+    @Parameter(names = {"-host"}, help = true, description = "host address of process starter")
+    String host;
 
     @Parameter
     private List<String> parameters = new ArrayList<>();
 
-    @Parameter(names = {"-port"}, help = true, description = "port of this service")
-    int port = 6868;
+    @Parameter(names = {"-port"}, help = true, description = "port of of process starter")
+    int port;
 
     @Parameter(names = {"-l"}, help = true, description = "list")
     boolean list = false;
@@ -38,7 +39,7 @@ public class StarterClientArgs implements Serializable {
     String killMatching = null;
 
     @Parameter(names = {"-wd"}, help = true, description = "workingdir")
-    String wd = "./";
+    String wd = null;
 
     @Parameter(names = {"-id"}, help = true, description = "id of target sibling")
     String id;
@@ -52,6 +53,9 @@ public class StarterClientArgs implements Serializable {
     @Parameter(names = {"-resync"}, help = true, description = "resync processes and siblings")
     boolean resync;
 
+    @Parameter(names = {"-restart"}, help = true, description = "restart process with given id or name")
+    String restartIdOrName;
+
     @Parameter(names = {"-sleep"}, help = true, description = "sleep (milli seconds) after starting a process")
     long sleep;
 
@@ -60,6 +64,10 @@ public class StarterClientArgs implements Serializable {
 
     public long getSleep() {
         return sleep;
+    }
+
+    public String getRestartIdOrName() {
+        return restartIdOrName;
     }
 
     public boolean isHelp() {
@@ -112,6 +120,25 @@ public class StarterClientArgs implements Serializable {
 
     public String getRedirect() {
         return redirect;
+    }
+
+    /**
+     * fill gaps by property lookup
+     * @param props
+     */
+    public void underride( Properties props ) {
+        if ( host == null ) {
+            host = props.getProperty("host");
+        }
+        if ( port == 0 ) {
+            port = Integer.parseInt(props.getProperty("port"));
+        }
+        if ( name == null ) {
+            name = props.getProperty("name");
+        }
+        if ( wd == null ) {
+            wd = props.getProperty("wd");
+        }
     }
 
     @Override

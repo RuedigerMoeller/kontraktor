@@ -2,6 +2,8 @@ package org.nustaq.kluster.processes;
 
 import com.beust.jcommander.Parameter;
 
+import java.util.Properties;
+
 /**
  * Created by ruedi on 16.04.16.
  */
@@ -17,13 +19,13 @@ public class StarterArgs {
     boolean help;
 
     @Parameter(names = {"-host"}, help = true, description = "host address of this service")
-    String host = "localhost";
+    String host = null;
 
     @Parameter(names = {"-name"}, help = true, description = "name of this service")
     String name = null;
 
     @Parameter(names = {"-port"}, help = true, description = "port of this service")
-    int port = 6868;
+    int port = 0;
 
     public String getSiblingHost() {
         return siblingHost;
@@ -47,5 +49,27 @@ public class StarterArgs {
 
     public int getPort() {
         return port;
+    }
+
+    /**
+     * fill gaps by property lookup
+     * @param props
+     */
+    public void underride( Properties props ) {
+        if ( siblingHost == null ) {
+            siblingHost = props.getProperty("shost");
+        }
+        if ( siblingPort == 0 ) {
+            siblingPort = Integer.parseInt(props.getProperty("sport"));
+        }
+        if ( host == null ) {
+            host = props.getProperty("host");
+        }
+        if ( port == 0 ) {
+            port = Integer.parseInt(props.getProperty("port"));
+        }
+        if ( name == null ) {
+            name = props.getProperty("name");
+        }
     }
 }
