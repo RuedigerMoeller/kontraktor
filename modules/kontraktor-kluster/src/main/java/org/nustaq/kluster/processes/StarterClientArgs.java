@@ -131,7 +131,7 @@ public class StarterClientArgs implements Serializable {
             host = props.getProperty("host");
         }
         if ( port == 0 ) {
-            port = Integer.parseInt(props.getProperty("port"));
+            port = Integer.parseInt(props.getProperty("port","0"));
         }
         if ( name == null ) {
             name = props.getProperty("name");

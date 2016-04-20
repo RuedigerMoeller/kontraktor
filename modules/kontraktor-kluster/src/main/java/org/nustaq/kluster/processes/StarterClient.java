@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -124,7 +125,7 @@ public class StarterClient {
         String[] cmd = new String[options.getParameters().size()];
         options.getParameters().toArray(cmd);
         if ( cmd.length > 0 ) {
-            System.out.println("running "+ Arrays.toString(cmd));
+            System.out.println("try '" + Arrays.stream(cmd).collect(Collectors.joining(" "))+"'");
             ProcessInfo await = starter.startProcess(options.getRedirect(),options.getId(), options.getName(), options.getWd(), new HashMap<>(), cmd).await();
             System.out.println("started " + await);
         }

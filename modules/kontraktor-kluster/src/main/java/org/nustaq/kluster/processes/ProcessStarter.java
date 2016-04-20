@@ -37,7 +37,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     String name;
     Map<String,ProcessInfo> processes = new HashMap<>();
     int pids = 1;
-    StarterArgs options;
+    ProcessStarterArgs options;
 
     public static Properties locateProps() throws IOException {
         return locateProps( 0, new File("./"), "troll.properties" );
@@ -52,10 +52,10 @@ public class ProcessStarter extends Actor<ProcessStarter> {
             props.load(new FileInputStream(new File(cur,s) ));
             return props;
         }
-        return locateProps(d+1,cur.getParentFile(),s);
+        return locateProps(d + 1, cur.getAbsoluteFile().getParentFile(), s);
     }
 
-    public void init( StarterArgs options ) {
+    public void init( ProcessStarterArgs options ) {
         this.options = options;
         siblings = new HashMap<>();
         id = UUID.randomUUID().toString();
@@ -442,7 +442,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
 
     public static void main(String[] args) throws InterruptedException, IOException {
 
-        final StarterArgs options = new StarterArgs();
+        final ProcessStarterArgs options = new ProcessStarterArgs();
         final JCommander jCommander = new JCommander(options);
         jCommander.parse(args);
 

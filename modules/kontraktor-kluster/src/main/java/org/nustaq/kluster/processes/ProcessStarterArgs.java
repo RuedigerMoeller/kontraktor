@@ -9,7 +9,7 @@ import java.util.Properties;
 /**
  * Created by ruedi on 16.04.16.
  */
-public class StarterArgs {
+public class ProcessStarterArgs {
 
     @Parameter(names={"-shost"}, description = "sibling host")
     String siblingHost = null;
@@ -59,13 +59,13 @@ public class StarterArgs {
      */
     public void underride( Properties props ) {
         if ( siblingHost == null ) {
-            siblingHost = props.getProperty("shost");
+            siblingHost = props.getProperty("starter.shost");
         }
         if ( siblingPort == 0 ) {
-            siblingPort = Integer.parseInt(props.getProperty("sport"));
+            siblingPort = Integer.parseInt(props.getProperty("starter.sport","0"));
         }
         if ( host == null ) {
-            host = props.getProperty("host");
+            host = props.getProperty("starter.host");
             if ( host == null ) {
                 try {
                     host = InetAddress.getLocalHost().getHostName();
@@ -75,10 +75,10 @@ public class StarterArgs {
             }
         }
         if ( port == 0 ) {
-            port = Integer.parseInt(props.getProperty("port"));
+            port = Integer.parseInt(props.getProperty("starter.port","0"));
         }
         if ( name == null ) {
-            name = props.getProperty("name");
+            name = props.getProperty("starter.name");
         }
     }
 }

@@ -2,6 +2,7 @@ package org.nustaq.kluster.processes;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * Created by ruedi on 16/04/16.
@@ -72,9 +73,10 @@ public class ProcessInfo implements Serializable {
     @Override
     public String toString() {
         return "" +
-            "['" + starterName + '\'' + ']' +
-            "  cmd = " + Arrays.toString(cmdLine) +
-            "  sid='" + starterId + '\'' +
-            "  vpid='" + id + '\'';
+            "" + starterName +
+            " '" + Arrays.stream(cmdLine).collect(Collectors.joining(" ")) + "'" +
+            " wd='" + spec.getWorkingDir() + '\'' +
+            " vpid='" + id + '\'' +
+            " sid='" + starterId + '\'';
     }
 }

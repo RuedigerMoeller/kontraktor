@@ -148,8 +148,11 @@ public class KlusterConf extends HashMap implements Serializable {
 
     public static void main(String[] args) throws Exception {
         HashSet<String> gr = new HashSet<>();
-        gr.add("base");
+//        gr.add("base");
         KlusterConf conf = new KlusterConf(gr,"/home/ruedi/projects/Juptr/run/prod/cluster.kson");
+
+        conf.getToStart().forEach( s -> System.out.println(s));
+
         System.out.println(conf);
     }
 }
