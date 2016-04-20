@@ -69,6 +69,16 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         } else {
             name = options.getName();
         }
+        if ( options.getHost() == null ) {
+            try {
+                options.host = InetAddress.getLocalHost().getHostName();
+            } catch (UnknownHostException e) {
+                Log.Error(this,e);
+                options.host = "unknown";
+            }
+        } else {
+            name = options.getName();
+        }
         final String siblingHost = options.getSiblingHost();
         if ( siblingHost != null ) {
             final int siblingPort = options.getSiblingPort();
@@ -299,6 +309,9 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     }
 
     void ioPoller( String fileToWrite, InputStream in, String vpid, Process proc ) {
+        if ( fileToWrite == null ) {
+            return;
+        }
         FileOutputStream fout = null;
         if ( fileToWrite != null ) {
             try {
@@ -316,12 +329,17 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                         if ( finalFout != null ) {
                             finalFout.write(read);
                         } else {
-                            System.out.write(read);
+                            if ( read > 0 )
+                                System.out.write(read);
+                            else if ( read < 0 ) {
+                                break;
+                            }
                         }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                System.out.println("outpoller terminated "+fileToWrite);
             }
         }.start();
     }
@@ -389,8 +407,12 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                 .spec(spec)
                 .starterName(this.name)
                 .starterId(this.id);
-            ioPoller(redirectIO,proc.getInputStream(),pi.getId(),proc);
-            ioPoller(redirectIO,proc.getErrorStream(),pi.getId(),proc);
+            if ( redirectIO != null ) {
+                ioPoller(redirectIO+".out",proc.getInputStream(),pi.getId(),proc);
+                ioPoller(redirectIO+".err",proc.getErrorStream(),pi.getId(),proc);
+            } else {
+                System.out.println("no redirect file specified, losing sysout and syserr");
+            }
             processes.put(pi.getId(), pi);
             self().distribute( STARTED, pi, null);
             return resolve(pi);

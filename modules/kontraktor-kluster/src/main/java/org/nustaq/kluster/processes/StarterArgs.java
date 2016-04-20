@@ -2,6 +2,8 @@ package org.nustaq.kluster.processes;
 
 import com.beust.jcommander.Parameter;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Properties;
 
 /**
@@ -64,6 +66,13 @@ public class StarterArgs {
         }
         if ( host == null ) {
             host = props.getProperty("host");
+            if ( host == null ) {
+                try {
+                    host = InetAddress.getLocalHost().getHostName();
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                }
+            }
         }
         if ( port == 0 ) {
             port = Integer.parseInt(props.getProperty("port"));
