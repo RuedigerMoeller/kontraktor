@@ -49,7 +49,7 @@ public class KlusterConf extends HashMap implements Serializable {
                 String resolved[] = dequote(resolve((String) def.cdr(), x -> (String) env.getProperty(x)));
                 StarterClientArgs args = new StarterClientArgs();
                 JCommander jc = new JCommander(args);
-                StarterClient.parseStarterConf(resolved,args,jc);
+                args = StarterClient.parseStarterConf(resolved,args,jc);
 //                System.out.println(args);
                 toStart.add(args);
             } else {

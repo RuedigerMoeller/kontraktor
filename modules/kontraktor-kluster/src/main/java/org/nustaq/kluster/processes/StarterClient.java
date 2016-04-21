@@ -17,7 +17,7 @@ import java.util.stream.Stream;
  */
 public class StarterClient {
 
-    public static void main(String[] args) throws Exception {
+    public void run(String[] args) throws Exception {
 
         if ( args.length >= 1 && args[args.length-1].endsWith(".kson") ) {
 
@@ -81,7 +81,7 @@ public class StarterClient {
         System.exit(0);
     }
 
-    public static void runProc(StarterClientArgs options, ProcessStarter starter) throws IOException {
+    public void runProc(StarterClientArgs options, ProcessStarter starter) throws IOException {
 
         if (options.isResync())
             starter.resyncProcesses();
@@ -109,7 +109,7 @@ public class StarterClient {
         String killMatching = options.getKillMatching();
         if ( killMatching != null ) {
             System.out.println("kill matching "+ killMatching);
-            Stream<ProcessInfo> matchinPis = getMatchingProcessInfos(starter, killMatching);
+            Stream<ProcessInfo> matchinPis = getMatchingProcessInfosFromRunningProcesses(starter, killMatching);
             matchinPis
                 .forEach(pi -> {
                         System.out.print("killing " + pi + " .. ");
@@ -138,9 +138,9 @@ public class StarterClient {
         }
     }
 
-    public static void restartIdOrName(ProcessStarter starter, String restartIdOrName) {
+    public void restartIdOrName(ProcessStarter starter, String restartIdOrName) {
             System.out.println("restart matching "+ restartIdOrName);
-            Stream<ProcessInfo> matchinPis = getMatchingProcessInfos(starter, restartIdOrName);
+            Stream<ProcessInfo> matchinPis = getMatchingProcessInfosFromRunningProcesses(starter, restartIdOrName);
             matchinPis
                 .forEach(pi -> {
                         System.out.println("killing " + pi + " .. ");
@@ -168,33 +168,33 @@ public class StarterClient {
         return hasCaps;
     }
 
-    public static Stream<ProcessInfo> getMatchingProcessInfos(ProcessStarter starter, String killMatching) {
+    public Stream<ProcessInfo> getMatchingProcessInfosFromRunningProcesses(ProcessStarter starter, String toSearch) {
         List<ProcessInfo> pis = starter.getProcesses().await();
-        boolean finalHasCaps = hasCaps(killMatching);
+        boolean finalHasCaps = hasCaps(toSearch);
         return pis.stream()
             .filter(pi -> {
                 String[] cmdLine = pi.getCmdLine();
-                if (pi.getId().equals(killMatching))
+                if (pi.getId().equals(toSearch))
                     return true;
                 boolean match = false;
                 for (int i = 0; i < cmdLine.length; i++) {
                     if (finalHasCaps) {
-                        if (cmdLine[i].indexOf(killMatching) >= 0) {
+                        if (cmdLine[i].indexOf(toSearch) >= 0) {
                             match = true;
                             break;
                         }
                     } else {
-                        if (cmdLine[i].toLowerCase().indexOf(killMatching) >= 0) {
+                        if (cmdLine[i].toLowerCase().indexOf(toSearch) >= 0) {
                             match = true;
                             break;
                         }
                     }
                 }
-                return (match || "all".equals(killMatching));
+                return (match || "all".equals(toSearch));
             });
     }
 
-    public static void parseStarterConf(String[] args, StarterClientArgs options, JCommander jCommander) {
+    public static StarterClientArgs parseStarterConf(String[] args, StarterClientArgs inOutOptions, JCommander jCommander) {
         String lastParms = null;
         // avoid jcommander dequoting + parse failure
         if ( args.length > 0 && args[args.length-1].indexOf(" ") > 0 ) // multiword
@@ -209,15 +209,20 @@ public class StarterClient {
 
         jCommander.parse(args);
         try {
-            options.underride(ProcessStarter.locateProps());
+            inOutOptions.underride(ProcessStarter.locateProps());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         if ( lastParms != null ) {
             String[] split = lastParms.split(" ");
-            Arrays.stream(split).forEach( x -> options.getParameters().add(x));
+            Arrays.stream(split).forEach( x -> inOutOptions.getParameters().add(x));
         }
+        return inOutOptions;
+    }
+
+    public static void main(String[] args) throws Exception {
+        new StarterClient().run(args);
     }
 
 }
