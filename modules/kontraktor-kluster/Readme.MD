@@ -6,13 +6,7 @@ distributed app on the same set of machines.
 A cluster is defined by a peer to peer network of demon processes. The client ("troll.sh" from german 'kontrolle')
 can connect to any of those demons and monitor, start and stop processes on all nodes making up the p2p network.
 
-As kontraktor has pluggable connectivity this could be easily enhanced to control heterogenously connected
-WAN clusters where p2p network nodes interconnect using a mix of tcp, websockets and http longpoll.
-
-The hosted distributed java application is able to control itself by connecting directly via kontraktor
+A hosted distributed java application is able to control itself by connecting directly via kontraktor
 remoting (see implementation of client).
 
 tested on linux only, porting will require some adaption of process and path handling.
-
-This is a quick, cutting corners implementation, however nicely illustrates that abstracting away low level networking
-uncovers the simplicity of seemingly "complex" networking apps.
