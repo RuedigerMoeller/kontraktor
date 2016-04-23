@@ -29,8 +29,10 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     private static final int RESYNC = 3;
     private static final int RESYNC_RESP = 4;
     private static final int SOFT_SYNC = 5;
+    private static final int SIBLING_PING = 6;
 
-    Map<String,StarterDesc> siblings;
+    Map<String,StarterDesc> siblings; // does not contain self
+    Map<String,StarterDesc> nextSiblings; // does not contain self
     ConnectableActor primarySibling;
     StarterDesc primaryDesc;
     String id;
@@ -58,6 +60,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     public void init( ProcessStarterArgs options ) {
         this.options = options;
         siblings = new HashMap<>();
+        nextSiblings = new HashMap<>();
         id = UUID.randomUUID().toString();
         if ( options.getName() == null ) {
             try {
@@ -95,7 +98,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                         (x, y) -> System.out.println("client disc " + x),
                         act -> {
                             System.out.println("act " + act);
-                            siblings.clear();
+//                            siblings.clear();
                             primaryDesc = null;
                         }
                     ).await();
@@ -105,6 +108,15 @@ public class ProcessStarter extends Actor<ProcessStarter> {
             distribute(SOFT_SYNC,null,null);
         } catch (Throwable e) {
             System.out.println("failed to connect primary "+primarySibling);
+            // try another
+            if (siblings.size()>0) {
+                Map.Entry<String, StarterDesc> next = siblings.entrySet().iterator().next();
+                primarySibling = new TCPConnectable()
+                    .actorClass(ProcessStarter.class)
+                    .host(next.getValue().getHost())
+                    .port(next.getValue().getPort());
+//                siblings.remove(next.getKey());
+            }
         }
     }
 
@@ -170,10 +182,18 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                 processes.put(inf.getId(), inf);
             }
             break;
+            case SIBLING_PING:
+            {
+                StarterDesc inf = (StarterDesc) arg;
+                if ( !id.equals(inf.getId()) )
+                    nextSiblings.put(inf.getId(), inf);
+            }
+            break;
             case SHUTDOWN: {
                 System.out.println("shutting down");
                 delayed(1000,() -> System.exit(0));
             }
+            break;
         }
     }
 
@@ -185,12 +205,18 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                 if (primaryDesc == null) {
                     initPrimary();
                 }
-                if (primaryDesc != null) {
-                    discoverSiblings();
-                    if (counter > 10) {
-                        counter = 0;
-                    }
+                distribute(SIBLING_PING,getDesc(),null);
+                if ( counter%5 == 4 ) {
+                    siblings = nextSiblings;
+                    if (primaryDesc!=null)
+                        siblings.put(primaryDesc.getId(),primaryDesc);
+//                    System.out.println("switching: "+nextSiblings.size());
+                    nextSiblings = new HashMap<>();
                 }
+                if (counter > 100_000) {
+                    counter = 0;
+                }
+                // check if processes died
                 processes = processes.entrySet().stream()
                     .filter(en -> {
                         if (en.getValue().getProc() == null) {
@@ -212,38 +238,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
             }
 //            System.out.println("sibs");
 //            siblings.forEach( (k,v) -> System.out.println(v));
-            delayed(3_000, () -> cycle());
-        }
-    }
-
-    public IPromise<Map<String,StarterDesc>> register(StarterDesc other) {
-        if ( ! siblings.containsKey(other.getId()) ) {
-            siblings.put(other.getId(), other);
-            System.out.println("reg " + other);
-        }
-        return resolve(siblings);
-    }
-
-    private void discoverSiblings() {
-        final StarterDesc desc = this.primaryDesc;
-        if ( desc == null || desc.getId() == null || desc.getId().equals(id) )
-            return;
-        if (desc.getRemoteRef().isStopped()) {
-            execute( () -> siblings.clear() );
-        } else {
-            desc.getRemoteRef().register(getDesc()).then((rsib, err) -> {
-                if (rsib != null) {
-                    rsib.put(desc.getId(), desc); // self is missing in receiver
-                    siblings.clear();
-//                    System.out.println("clear");
-                    rsib.forEach((k, v) -> {
-                        if (!id.equals(k)) {
-                            siblings.put(k, v);
-//                            System.out.println("got "+v);
-                        }
-                    });
-                }
-            });
+            delayed(1_000, () -> cycle());
         }
     }
 

@@ -109,25 +109,15 @@ public class StarterClient {
             await.forEach( sd -> System.out.println(sd) );
         }
         if ( options.getKillPid() != null ) {
-            System.out.println("killing "+options.getKillPid());
-            Object await = starter.terminateProcess(options.getKillPid(), true, 10).await();
-            System.out.println("killed "+await);
+            System.out.println("killing group, name or id:"+options.getKillPid());
+            killMatching(starter, options.getKillPid(), false);
+//            Object await = starter.terminateProcess(options.getKillPid(), true, 10).await();
+//            System.out.println("killed "+await);
         }
         String killMatching = options.getKillMatching();
         if ( killMatching != null ) {
             System.out.println("kill matching "+ killMatching);
-            Stream<ProcessInfo> matchinPis = getMatchingProcessInfosFromRunningProcesses(starter, killMatching,true);
-            matchinPis
-                .forEach(pi -> {
-                        System.out.print("killing " + pi + " .. ");
-                        try {
-                            Object await = starter.terminateProcess(pi.getId(), true, 10).await();
-                            System.out.println(await + " ");
-                        } catch (Exception e) {
-                            System.out.println("" + e.getMessage());
-                        }
-                    }
-                );
+            killMatching(starter, killMatching, true);
         }
         String[] cmd = new String[options.getParameters().size()];
         options.getParameters().toArray(cmd);
@@ -145,9 +135,24 @@ public class StarterClient {
         }
     }
 
+    public void killMatching(ProcessStarter starter, String killMatching, boolean substrSearch) {
+        Stream<ProcessInfo> matchinPis = getMatchingProcessInfosFromRunningProcesses(starter, killMatching,substrSearch);
+        matchinPis
+            .forEach(pi -> {
+                    System.out.print("killing " + pi + " .. ");
+                    try {
+                        Object await = starter.terminateProcess(pi.getId(), true, 10).await();
+                        System.out.println(await + " ");
+                    } catch (Exception e) {
+                        System.out.println("" + e.getMessage());
+                    }
+                }
+            );
+    }
+
     public void restartIdOrName(ProcessStarter starter, String restartIdOrName) {
             System.out.println("restart matching "+ restartIdOrName);
-            Stream<ProcessInfo> matchinPis = getMatchingProcessInfosFromRunningProcesses(starter, restartIdOrName, true);
+            Stream<ProcessInfo> matchinPis = getMatchingProcessInfosFromRunningProcesses(starter, restartIdOrName, false);
             matchinPis
                 .forEach(pi -> {
                         System.out.println("killing " + pi + " .. ");
