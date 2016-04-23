@@ -23,6 +23,9 @@ import java.util.stream.Collectors;
  */
 public class ProcessStarter extends Actor<ProcessStarter> {
 
+    // discovery time = 2 * TICK_M
+    public static int TICK_MILLIS = 3_000;
+
     private static final int TERMINATED = 0;
     private static final int STARTED = 1;
     private static final int SHUTDOWN = 2;
@@ -30,6 +33,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     private static final int RESYNC_RESP = 4;
     private static final int SOFT_SYNC = 5;
     private static final int SIBLING_PING = 6;
+
 
     Map<String,StarterDesc> siblings; // does not contain self
     Map<String,StarterDesc> nextSiblings; // does not contain self
@@ -129,7 +133,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         processMessage(mid, arg);
         final HashSet<String> finalVisited = visited;
         siblings.values().forEach( desc -> {
-            if ( ! finalVisited.contains(desc.getId()) )
+            if ( ! finalVisited.contains(desc.getId()) && ! desc.getRemoteRef().isStopped() )
                 desc.getRemoteRef().distribute(mid,arg, finalVisited);
         });
     }
@@ -206,7 +210,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                     initPrimary();
                 }
                 distribute(SIBLING_PING,getDesc(),null);
-                if ( counter%5 == 4 ) {
+                if ( counter%2 == 1 ) {
                     siblings = nextSiblings;
                     if (primaryDesc!=null)
                         siblings.put(primaryDesc.getId(),primaryDesc);
@@ -238,7 +242,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
             }
 //            System.out.println("sibs");
 //            siblings.forEach( (k,v) -> System.out.println(v));
-            delayed(1_000, () -> cycle());
+            delayed(TICK_MILLIS, () -> cycle());
         }
     }
 
