@@ -7,6 +7,7 @@ import org.nustaq.kson.Kson;
 import java.io.*;
 import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Created by ruedi on 18/04/16.
@@ -19,14 +20,24 @@ public class KlusterConf extends HashMap implements Serializable {
         this.groups = groups;
         Object prog[] = (Object[]) new Kson().readObject(new File(file), Object[].class);
         Properties properties = ProcessStarter.locateProps(0, new File("./"), "troll.properties");
-        interpret(properties, prog);
+        interpret(null,properties, prog);
     }
 
     public List<StarterClientArgs> getToStart() {
-        return toStart;
+        return toStart.stream().filter( sca -> {
+            if ( groups == null ||
+                 groups.size() == 0 ||
+                 (sca.getGroup() != null && groups.contains(sca.getGroup())) ||
+                 (sca.getProcessShortName() != null && groups.contains(sca.getProcessShortName())) )
+            {
+                return true;
+            } else {
+                return false;
+            }
+        }).collect(Collectors.toList());
     }
 
-    public void interpret(Properties par, Object[] prog) {
+    public void interpret(String grp, Properties par, Object[] prog) {
         Properties env = new Properties(par);
         int index = 0;
         while( index < prog.length ) {
@@ -42,7 +53,7 @@ public class KlusterConf extends HashMap implements Serializable {
                     cdr.toArray(newOb);
                     Properties props = new Properties(env);
                     props.put("IDX",""+i);
-                    interpret(props, newOb);
+                    interpret(grp, props, newOb);
                 }
             } else if ( "process".equals( def.car() ) ) {
                 // resolve commandline string
@@ -51,18 +62,19 @@ public class KlusterConf extends HashMap implements Serializable {
                 JCommander jc = new JCommander(args);
                 args = StarterClient.parseStarterConf(resolved,args,jc);
 //                System.out.println(args);
+                args.setGroup(grp);
                 toStart.add(args);
             } else {
                 if ( def.cdr() instanceof List ) {
                     if ( groups == null || groups.size() == 0 || groups.contains(def.car()) ) {
                         System.out.println("start group "+def.car());
-                        List cdr = (List) def.cdr();
-                        Object newOb[] = new Object[cdr.size()];
-                        cdr.toArray(newOb);
-                        interpret(env, newOb);
                     } else {
                         System.out.println("ignoring group "+def.car());
                     }
+                    List cdr = (List) def.cdr();
+                    Object newOb[] = new Object[cdr.size()];
+                    cdr.toArray(newOb);
+                    interpret(""+def.car(), env, newOb);
                 } else {
                     env.put(def.car(),def.cdr());
                 }
@@ -148,10 +160,19 @@ public class KlusterConf extends HashMap implements Serializable {
 
     public static void main(String[] args) throws Exception {
         HashSet<String> gr = new HashSet<>();
-//        gr.add("base");
+        gr.add("Gravity");
         KlusterConf conf = new KlusterConf(gr,"/home/ruedi/projects/Juptr/run/prod/cluster.kson");
 
-        conf.getToStart().forEach( s -> System.out.println(s));
+        conf.getToStart().forEach(s -> {
+            List<String> parameters = s.getParameters();
+            String a[] = new String[parameters.size()];
+            parameters.toArray(a);
+            if (s.getProcessShortName()==null)
+                System.out.println(ProcStartSpec.deriveShortname(a));
+            else
+                System.out.println(s.getProcessShortName());
+        });
+//        conf.getToStart().forEach( s -> System.out.println(s));
 
         System.out.println(conf);
     }

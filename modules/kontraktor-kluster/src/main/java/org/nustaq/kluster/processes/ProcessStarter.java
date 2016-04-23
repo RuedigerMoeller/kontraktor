@@ -232,12 +232,12 @@ public class ProcessStarter extends Actor<ProcessStarter> {
             execute( () -> siblings.clear() );
         } else {
             desc.getRemoteRef().register(getDesc()).then((rsib, err) -> {
-                if ( rsib != null ) {
-                    rsib.put(desc.getId(),desc); // self is missing in receiver
+                if (rsib != null) {
+                    rsib.put(desc.getId(), desc); // self is missing in receiver
                     siblings.clear();
 //                    System.out.println("clear");
-                    rsib.forEach( (k,v) -> {
-                        if ( ! id.equals(k) ) {
+                    rsib.forEach((k, v) -> {
+                        if (!id.equals(k)) {
                             siblings.put(k, v);
 //                            System.out.println("got "+v);
                         }
@@ -354,8 +354,8 @@ public class ProcessStarter extends Actor<ProcessStarter> {
      * @param commandLine - commandline of process to start
      * @return
      */
-    public IPromise<ProcessInfo> startProcess( String redirectIO, String aSiblingId, String aSiblingName, String workingDir, Map<String,String> env, String ... commandLine) {
-        ProcStartSpec spec = new ProcStartSpec(redirectIO, aSiblingId, aSiblingName, workingDir, env, commandLine);
+    public IPromise<ProcessInfo> startProcess( String group, String shortName, String redirectIO, String aSiblingId, String aSiblingName, String workingDir, Map<String,String> env, String ... commandLine) {
+        ProcStartSpec spec = new ProcStartSpec( group, shortName, redirectIO, aSiblingId, aSiblingName, workingDir, env, commandLine);
         return startProcessBySpec(spec);
     }
 
@@ -397,6 +397,9 @@ public class ProcessStarter extends Actor<ProcessStarter> {
             pc.environment().putAll(env);
         }
 
+        if (workingDir==null) {
+            workingDir = "./";
+        }
         pc.directory(new File(workingDir));
         try {
             Process proc = pc.start();

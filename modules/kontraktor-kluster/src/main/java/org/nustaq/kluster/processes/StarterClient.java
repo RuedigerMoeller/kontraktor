@@ -96,6 +96,13 @@ public class StarterClient {
                 .sorted( (a,b) -> a.getCmdLine()[0].compareTo(b.getCmdLine()[0]))
                 .forEach( pi -> System.out.println(pi));
         }
+        if ( options.isListDetailed()) {
+            List<ProcessInfo> pis = starter.getProcesses().await();
+            System.out.println("listing "+pis.size()+" processes:");
+            pis.stream()
+                .sorted((a, b) -> a.getSpec().getShortName().compareTo(b.getSpec().getSortString()))
+                .forEach(pi -> System.out.println(pi.getSpec().getGroup() + "\t " + pi.getStarterName() + "\t "+pi.getSpec().getShortName() ) );
+        }
         if ( options.isListSiblings() ) {
             List<StarterDesc> await = starter.getSiblings().await();
             System.out.println("listing "+await.size()+" siblings");
@@ -109,7 +116,7 @@ public class StarterClient {
         String killMatching = options.getKillMatching();
         if ( killMatching != null ) {
             System.out.println("kill matching "+ killMatching);
-            Stream<ProcessInfo> matchinPis = getMatchingProcessInfosFromRunningProcesses(starter, killMatching);
+            Stream<ProcessInfo> matchinPis = getMatchingProcessInfosFromRunningProcesses(starter, killMatching,true);
             matchinPis
                 .forEach(pi -> {
                         System.out.print("killing " + pi + " .. ");
@@ -126,7 +133,7 @@ public class StarterClient {
         options.getParameters().toArray(cmd);
         if ( cmd.length > 0 ) {
             System.out.println("try '" + Arrays.stream(cmd).collect(Collectors.joining(" "))+"'");
-            ProcessInfo await = starter.startProcess(options.getRedirect(),options.getId(), options.getName(), options.getWd(), new HashMap<>(), cmd).await();
+            ProcessInfo await = starter.startProcess( options.getGroup(), options.getProcessShortName(), options.getRedirect(),options.getId(), options.getName(), options.getWd(), new HashMap<>(), cmd).await();
             System.out.println("started " + await);
         }
         if ( options.getSleep() > 0 ) {
@@ -140,7 +147,7 @@ public class StarterClient {
 
     public void restartIdOrName(ProcessStarter starter, String restartIdOrName) {
             System.out.println("restart matching "+ restartIdOrName);
-            Stream<ProcessInfo> matchinPis = getMatchingProcessInfosFromRunningProcesses(starter, restartIdOrName);
+            Stream<ProcessInfo> matchinPis = getMatchingProcessInfosFromRunningProcesses(starter, restartIdOrName, true);
             matchinPis
                 .forEach(pi -> {
                         System.out.println("killing " + pi + " .. ");
@@ -168,29 +175,35 @@ public class StarterClient {
         return hasCaps;
     }
 
-    public Stream<ProcessInfo> getMatchingProcessInfosFromRunningProcesses(ProcessStarter starter, String toSearch) {
+    public Stream<ProcessInfo> getMatchingProcessInfosFromRunningProcesses(ProcessStarter starter, String pidOrGroupOrNameOrSub, boolean matchBySubstring) {
         List<ProcessInfo> pis = starter.getProcesses().await();
-        boolean finalHasCaps = hasCaps(toSearch);
+        boolean finalHasCaps = hasCaps(pidOrGroupOrNameOrSub);
         return pis.stream()
             .filter(pi -> {
                 String[] cmdLine = pi.getCmdLine();
-                if (pi.getId().equals(toSearch))
+                if (pi.getSpec().getShortName().equals(pidOrGroupOrNameOrSub))
                     return true;
+                if (pi.getSpec().getGroup().equals(pidOrGroupOrNameOrSub))
+                    return true;
+                if (pi.getId().equals(pidOrGroupOrNameOrSub))
+                    return true;
+                if (!matchBySubstring)
+                    return false;
                 boolean match = false;
                 for (int i = 0; i < cmdLine.length; i++) {
                     if (finalHasCaps) {
-                        if (cmdLine[i].indexOf(toSearch) >= 0) {
+                        if (cmdLine[i].indexOf(pidOrGroupOrNameOrSub) >= 0) {
                             match = true;
                             break;
                         }
                     } else {
-                        if (cmdLine[i].toLowerCase().indexOf(toSearch) >= 0) {
+                        if (cmdLine[i].toLowerCase().indexOf(pidOrGroupOrNameOrSub) >= 0) {
                             match = true;
                             break;
                         }
                     }
                 }
-                return (match || "all".equals(toSearch));
+                return (match || "all".equals(pidOrGroupOrNameOrSub));
             });
     }
 

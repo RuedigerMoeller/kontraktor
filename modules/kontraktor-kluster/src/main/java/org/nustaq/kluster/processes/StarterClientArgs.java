@@ -17,6 +17,11 @@ public class StarterClientArgs implements Serializable {
     public StarterClientArgs() {
     }
 
+    String group;
+
+    @Parameter(names = {"-shortname","-sn"}, help = true, description = "short name of process for display")
+    String processShortName;
+
     @Parameter(names = {"-host"}, help = true, description = "host address of process starter")
     String host;
 
@@ -29,13 +34,16 @@ public class StarterClientArgs implements Serializable {
     @Parameter(names = {"-l"}, help = true, description = "list")
     boolean list = false;
 
+    @Parameter(names = {"-ld"}, help = true, description = "list fully detailed")
+    boolean listDetailed = false;
+
     @Parameter(names = {"-ls"}, help = true, description = "list siblings")
     boolean listSiblings = false;
 
     @Parameter(names = {"-k"}, arity = 1, help = true, description = "kill [processid]")
     String pid = null;
 
-    @Parameter(names = {"-km"}, arity = 1, help = true, description = "kill [pattern]")
+    @Parameter(names = {"-km"}, arity = 1, help = true, description = "kill [cmd line substring to search]")
     String killMatching = null;
 
     @Parameter(names = {"-wd"}, help = true, description = "workingdir")
@@ -64,6 +72,22 @@ public class StarterClientArgs implements Serializable {
 
     public long getSleep() {
         return sleep;
+    }
+
+    public String getGroup() {
+        return group;
+    }
+
+    public boolean isListDetailed() {
+        return listDetailed;
+    }
+
+    public String getProcessShortName() {
+        return processShortName;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
     }
 
     public String getRestartIdOrName() {
