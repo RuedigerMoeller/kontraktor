@@ -10,7 +10,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
-    <artifactId>kontraktor-kluster</artifactId>
+    <artifactId>kluster-troll</artifactId>
     <version>3.24</version>
 
     <description>clustering tools</description>

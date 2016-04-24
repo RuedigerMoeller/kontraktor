@@ -129,6 +129,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
             visited = new HashSet<>();
         } else if ( visited.contains(id) )
             return;
+//        System.out.println("distribute "+mid+" "+visited.size());
         visited.add(id);
         processMessage(mid, arg);
         final HashSet<String> finalVisited = visited;
@@ -307,9 +308,11 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         return res;
     }
 
-    void ioPoller( String fileToWrite, InputStream in, String vpid, Process proc ) {
-        if ( fileToWrite == null ) {
-            return;
+    void ioPoller( String fileToWrite, InputStream in, String vpid, String wd, Process proc ) {
+        if ( fileToWrite != null ) {
+            if ( ! new File(fileToWrite).isAbsolute() ) {
+                fileToWrite = new File(wd,fileToWrite).getAbsolutePath();
+            }
         }
         FileOutputStream fout = null;
         if ( fileToWrite != null ) {
@@ -320,6 +323,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
             }
         }
         final FileOutputStream finalFout = fout;
+        final String finalFileToWrite = fileToWrite;
         new Thread("io poll "+vpid) {
             public void run() {
                 try {
@@ -332,13 +336,19 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                                 System.out.write(read);
                             else if ( read < 0 ) {
                                 break;
+                            } else {
+                                try {
+                                    Thread.sleep(1);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
                             }
                         }
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                System.out.println("outpoller terminated "+fileToWrite);
+                System.out.println("outpoller terminated "+ finalFileToWrite);
             }
         }.start();
     }
@@ -409,12 +419,14 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                 .spec(spec)
                 .starterName(this.name)
                 .starterId(this.id);
-            if ( redirectIO != null ) {
-                ioPoller(redirectIO+".out",proc.getInputStream(),pi.getId(),proc);
-                ioPoller(redirectIO+".err",proc.getErrorStream(),pi.getId(),proc);
-            } else {
-                System.out.println("no redirect file specified, losing sysout and syserr");
+//            if ( redirectIO != null )
+            {
+                ioPoller( redirectIO+".out",proc.getInputStream(),pi.getId(),workingDir, proc);
+                ioPoller( redirectIO+".err",proc.getErrorStream(),pi.getId(),workingDir, proc);
             }
+//            else {
+//                System.out.println("no redirect file specified, losing sysout and syserr");
+//            }
             processes.put(pi.getId(), pi);
             self().distribute( STARTED, pi, null);
             return resolve(pi);
