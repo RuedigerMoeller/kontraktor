@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+java -cp $TROLLPATH/kkluster.jar org.nustaq.kluster.processes.ProcessStarter $* 2>&1

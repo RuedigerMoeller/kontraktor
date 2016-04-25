@@ -1,0 +1,4 @@
+
+
+export TROLLPATH=~/troll
+export PATH=$PATH:$TROLLPATH
