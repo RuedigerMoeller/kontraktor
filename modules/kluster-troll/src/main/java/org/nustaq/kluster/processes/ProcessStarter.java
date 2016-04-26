@@ -474,6 +474,12 @@ public class ProcessStarter extends Actor<ProcessStarter> {
             .facade(ps)
             .publish( act -> {
                 System.out.println("Discon "+act);
+            }).then( (r,e) -> {
+                if ( e == null ) {
+                    System.out.println("started demon on all nics port "+options.getPort()+" sibling expected on "+options.getSiblingHost()+":"+options.getSiblingPort());
+                } else {
+                    System.out.println("error connecting "+e);
+                }
             });
 
         // testing

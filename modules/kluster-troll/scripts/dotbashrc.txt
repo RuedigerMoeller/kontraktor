@@ -1,4 +1,2 @@
-
-
-export TROLLPATH=~/troll
-export PATH=$PATH:$TROLLPATH
+export TROLLPATH=/home/ruedi/projects/kontraktor/modules/kluster-troll
+export PATH=$PATH:$TROLLPATH/scripts:$TROLLPATH/dist

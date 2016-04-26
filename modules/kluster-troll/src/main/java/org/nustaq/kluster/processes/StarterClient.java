@@ -39,21 +39,26 @@ public class StarterClient {
             }
 
 //            StarterClientArgs options = klusterConf.getToStart().get(0);
-            ProcessStarter starter = (ProcessStarter) new TCPConnectable(ProcessStarter.class, options.getHost(), options.getPort())
-                .connect(
-                    (x, y) -> System.out.println("client disc " + x),
-                    act -> {
-                        System.out.println("act " + act);
+            try {
+                ProcessStarter starter = (ProcessStarter) new TCPConnectable(ProcessStarter.class, options.getHost(), options.getPort())
+                    .connect(
+                        (x, y) -> System.out.println("client disc " + x),
+                        act -> {
+                            System.out.println("act " + act);
+                        }
+                    ).await();
+                klusterConf.getToStart().forEach( opts -> {
+                    try {
+                        runProc(opts, starter);
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                ).await();
-            klusterConf.getToStart().forEach( opts -> {
-                try {
-                    runProc(opts, starter);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
-            starter.ping().await();
+                });
+                starter.ping().await();
+            } catch (Throwable th) {
+                System.out.println("could not connect "+th+" host:"+options.getHost()+" "+options.getPort());
+                System.exit(-1);
+            }
         } else {
             final StarterClientArgs options = new StarterClientArgs();
             final JCommander jCommander = new JCommander(options);
@@ -66,16 +71,21 @@ public class StarterClient {
                 System.exit(0);
             }
 
-            ProcessStarter starter = (ProcessStarter) new TCPConnectable(ProcessStarter.class, options.getHost(), options.getPort())
-                .connect(
-                    (x, y) -> System.out.println("client disc " + x),
-                    act -> {
-                        System.out.println("act " + act);
-                    }
-                ).await();
+            try {
+                ProcessStarter starter = (ProcessStarter) new TCPConnectable(ProcessStarter.class, options.getHost(), options.getPort())
+                    .connect(
+                        (x, y) -> System.out.println("client disc " + x),
+                        act -> {
+                            System.out.println("act " + act);
+                        }
+                    ).await();
 
-            runProc(options, starter);
-            starter.ping().await();
+                runProc(options, starter);
+                starter.ping().await();
+            } catch (Throwable th) {
+                System.out.println("could not connect "+th+" host:"+options.getHost()+" "+options.getPort());
+                System.exit(-1);
+            }
         }
 
         System.exit(0);
@@ -89,18 +99,18 @@ public class StarterClient {
         if (options.getRestartIdOrName()!=null)
             restartIdOrName(starter,options.getRestartIdOrName());
 
-        if ( options.isList()) {
+        if ( options.isListDetailed()) {
             List<ProcessInfo> pis = starter.getProcesses().await();
             System.out.println("listing "+pis.size()+" processes:");
             pis.stream()
                 .sorted( (a,b) -> a.getCmdLine()[0].compareTo(b.getCmdLine()[0]))
                 .forEach( pi -> System.out.println(pi));
         }
-        if ( options.isListDetailed()) {
+        if ( options.isList()) {
             List<ProcessInfo> pis = starter.getProcesses().await();
             System.out.println("listing "+pis.size()+" processes:");
             pis.stream()
-                .sorted((a, b) -> a.getSpec().getShortName().compareTo(b.getSpec().getSortString()))
+                .sorted((a, b) -> a.getSpec().getSortString().compareTo(b.getSpec().getSortString()))
                 .forEach(pi -> System.out.println(pi.getSpec().getGroup() + "\t " + pi.getStarterName() + "\t "+pi.getSpec().getShortName() ) );
         }
         if ( options.isListSiblings() ) {

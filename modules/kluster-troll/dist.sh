@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-mvn package
-cp -f ./target/kontraktor*dependencies.jar ./dist/kkluster.jar
+mvn clean package
+cp -f ./target/kluster-troll-3.24-jar-with-dependencies.jar ./dist/kkluster.jar

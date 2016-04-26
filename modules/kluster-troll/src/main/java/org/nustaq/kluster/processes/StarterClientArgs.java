@@ -40,7 +40,7 @@ public class StarterClientArgs implements Serializable {
     @Parameter(names = {"-ls"}, help = true, description = "list siblings")
     boolean listSiblings = false;
 
-    @Parameter(names = {"-k"}, arity = 1, help = true, description = "kill [processid]")
+    @Parameter(names = {"-k"}, arity = 1, help = true, description = "kill [processid, group, symbolic name]")
     String pid = null;
 
     @Parameter(names = {"-km"}, arity = 1, help = true, description = "kill [cmd line substring to search]")
