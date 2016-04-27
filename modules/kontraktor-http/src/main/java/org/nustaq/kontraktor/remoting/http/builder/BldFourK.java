@@ -19,8 +19,7 @@ import io.undertow.server.HttpHandler;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.http.HttpPublisher;
-import org.nustaq.kontraktor.remoting.http.javascript.DynamicResourceManager;
-import org.nustaq.kontraktor.remoting.http.javascript.HtmlImportShim;
+import org.nustaq.kontraktor.remoting.http.javascript.*;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 
 import javax.net.ssl.SSLContext;
@@ -36,6 +35,7 @@ public class BldFourK {
     String hostName;
     int port;
     SSLContext context;
+    boolean httpCachedEnabled = false ;
 
     List items = new ArrayList<>();
 
@@ -50,6 +50,13 @@ public class BldFourK {
         items.add(rt);
         return this;
     }
+
+    public BldFourK httpCachedEnabled()
+    {
+        httpCachedEnabled = true;
+        return this;
+    }
+
 
     public BldFourK fileRoot(String urlPath, File dir) {
         BldDirRoot rt = new BldDirRoot(urlPath,dir.getAbsolutePath());
@@ -85,6 +92,8 @@ public class BldFourK {
         return hp;
     }
 
+    public boolean getHttpCacheEnabled() { return httpCachedEnabled; }
+
     public String getHostName() {
         return hostName;
     }
@@ -111,7 +120,9 @@ public class BldFourK {
                 http4K.publish((WebSocketPublisher) item);
             } else if (item instanceof BldDirRoot) {
                 BldDirRoot dr = (BldDirRoot) item;
-                http4K.publishFileSystem(getHostName(), dr.getUrlPath(), getPort(), new File(dr.getDir()));
+                CachedFileResourceManager resMan = new CachedFileResourceManager( getHttpCacheEnabled() ,  new File(dr.getDir()) , 100 );
+//                http4K.publishFileSystem(getHostName(), dr.getUrlPath(), getPort(), new File(dr.getDir()));
+                http4K.publishFileSystem(getHostName(), dr.getUrlPath(), getPort(), resMan );
             } else if (item instanceof BldHttpHandler) {
                 BldHttpHandler dr = (BldHttpHandler) item;
                 http4K.publishHandler( getHostName(), dr.getUrlPath(), getPort(), dr.getHandler());
