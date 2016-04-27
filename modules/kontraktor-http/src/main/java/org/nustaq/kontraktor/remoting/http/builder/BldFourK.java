@@ -51,9 +51,9 @@ public class BldFourK {
         return this;
     }
 
-    public BldFourK httpCachedEnabled()
+    public BldFourK httpCachedEnabled(boolean b)
     {
-        httpCachedEnabled = true;
+        httpCachedEnabled = b;
         return this;
     }
 
