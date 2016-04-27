@@ -133,6 +133,14 @@ public class Http4K {
         server.car().addPrefixPath(urlPath, new ResourceHandler(new FileResourceManager(root,100)));
         return this;
     }
+    public Http4K publishFileSystem( String hostName, String urlPath, int port, FileResourceManager man ) {
+        if ( ! man.getBase().isDirectory() ) {
+            throw new RuntimeException("root must be an existing direcory:"+man.getBase().getAbsolutePath());
+        }
+        Pair<PathHandler, Undertow> server = getServer(port, hostName);
+        server.car().addPrefixPath(urlPath, new ResourceHandler(man ));
+        return this;
+    }
 
     public Http4K publishResourcePath( String hostName, String urlPath, int port, DynamicResourceManager man, boolean compress ) {
         Pair<PathHandler, Undertow> server = getServer(port, hostName);
