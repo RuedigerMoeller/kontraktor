@@ -4,10 +4,14 @@ import org.nustaq.reallive.impl.StorageDriver;
 import org.nustaq.reallive.impl.storage.HeapRecordStorage;
 import org.nustaq.reallive.interfaces.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by ruedi on 22/08/15.
  *
- * Threadsafe for sharded tables in a non-actor usage scenario
+ * Synchronized local replication of a subscriütion
+ *
  */
 public class SubscribedSet<K> {
 
@@ -41,7 +45,18 @@ public class SubscribedSet<K> {
         }
     }
 
-    public Record<K> getAnyRecord() {
-        return null;
+    public Record<K> get(K key) {
+        synchronized (this) {
+            return storage.getStore().get(key);
+        }
+    }
+
+    public Map<K,Record<K>> cloneMap() {
+        HashMap res = new HashMap();
+        synchronized (this) {
+            storage.getStore().stream()
+                .forEach( rec -> res.put(rec.getKey(),rec));
+        }
+        return res;
     }
 }
