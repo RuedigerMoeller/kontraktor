@@ -183,13 +183,25 @@ public class TableSharding<K> implements RealLiveTable<K> {
 
     @Override
     public IPromise<StorageStats> getStats() {
-        IPromise<StorageStats>[] shardStats = Actors.all(shards.length, i -> shards[i].getStats()).await();
-        StorageStats stats = new StorageStats();
-        for (int i = 0; i < shardStats.length; i++) {
-            StorageStats storageStats = shardStats[i].get();
-            storageStats.addTo(stats);
+        Promise res = new Promise();
+        try {
+            Actors.all(shards.length, i -> shards[i].getStats()).then( (shardStats,err) -> {
+                if (shardStats!=null) {
+                    StorageStats stats = new StorageStats();
+                    for (int i = 0; i < shardStats.length; i++) {
+                        StorageStats storageStats = shardStats[i].get();
+                        storageStats.addTo(stats);
+                    }
+                    res.resolve(stats);
+                } else {
+                    res.reject(err);
+                }
+            });
+        } catch (Exception e) {
+            Log.Warn(this,e);
+            res.reject(e);
         }
-        return new Promise<>(stats);
+        return res;
     }
 
     @Override

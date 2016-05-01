@@ -234,7 +234,13 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
 
     @Override
     public IPromise<StorageStats> getStats() {
-        return resolve(storageDriver.getStore().getStats());
+        try {
+            final StorageStats stats = storageDriver.getStore().getStats();
+            return resolve(stats);
+        } catch (Throwable th) {
+            Log.Warn(this,th);
+            return reject(th.getMessage());
+        }
     }
 
     @Override
