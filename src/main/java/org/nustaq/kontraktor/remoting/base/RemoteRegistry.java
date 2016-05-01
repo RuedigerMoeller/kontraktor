@@ -278,8 +278,10 @@ public abstract class RemoteRegistry implements RemoteConnection {
      * @throws Exception
      */
     public boolean receiveObject(ObjectSocket responseChannel, ObjectSink receiver, Object response, List<IPromise> createdFutures) throws Exception {
-        if ( response == RemoteRegistry.OUT_OF_ORDER_SEQ )
+        if ( response == RemoteRegistry.OUT_OF_ORDER_SEQ ) {
+            Log.Warn(this,"out of sequence remote call received");
             return false;
+        }
         if ( response instanceof Object[] ) { // bundling. last element contains sequence
             Object arr[] = (Object[]) response;
             boolean hadResp = false;

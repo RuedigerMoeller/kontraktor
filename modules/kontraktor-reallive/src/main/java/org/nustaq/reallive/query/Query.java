@@ -7,7 +7,7 @@ import java.util.HashMap;
  */
 public class Query {
 
-    public static CompiledQuery compile(String query) {
+    public static synchronized CompiledQuery compile(String query) {
         return newParser().compile(query);
     }
 
