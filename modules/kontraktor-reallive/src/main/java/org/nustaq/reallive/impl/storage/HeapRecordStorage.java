@@ -13,7 +13,15 @@ import java.util.stream.Stream;
  */
 public class HeapRecordStorage<K> implements RecordStorage<K> {
 
-    Map<K,Record<K>> map = new HashMap<>();
+    Map<K,Record<K>> map;
+
+    public HeapRecordStorage() {
+        map = new HashMap<>();
+    }
+
+    public HeapRecordStorage(Map<K,Record<K>> map) {
+        this.map = map;
+    }
 
     @Override
     public RecordStorage put(K key, Record<K> value) {

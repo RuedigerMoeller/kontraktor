@@ -6,6 +6,7 @@ import org.nustaq.reallive.interfaces.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by ruedi on 22/08/15.
@@ -15,13 +16,17 @@ import java.util.Map;
  */
 public class SubscribedSet<K> {
 
-    final RealLiveTable<K> source;
+    RealLiveTable<K> source;
     StorageDriver<K> storage;
     Subscriber<K> subs;
 
     public SubscribedSet(RealLiveTable<K> source) {
+        this(source,false);
+    }
+
+    public SubscribedSet(RealLiveTable<K> source, boolean usConc) {
         this.source = source;
-        storage = new StorageDriver<>(new HeapRecordStorage<>());
+        storage = new StorageDriver<>(new HeapRecordStorage<>( usConc ? new ConcurrentHashMap<>() : new HashMap<>() ) );
     }
 
     public void subscribe(RLPredicate<Record<K>> filter) {
@@ -59,4 +64,13 @@ public class SubscribedSet<K> {
         }
         return res;
     }
+
+    /**
+     * should be used only if this is a HeapRecordStorage, accessed single threaded or this has been initialized using a concurrent map
+     * @return
+     */
+    public Map<K,Record<K>> getMap() {
+        return ((HeapRecordStorage)storage.getStore()).getMap();
+    }
+
 }

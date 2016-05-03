@@ -120,9 +120,12 @@ public class BldFourK {
                 http4K.publish((WebSocketPublisher) item);
             } else if (item instanceof BldDirRoot) {
                 BldDirRoot dr = (BldDirRoot) item;
-                CachedFileResourceManager resMan = new CachedFileResourceManager( getHttpCacheEnabled() ,  new File(dr.getDir()) , 100 );
-//                http4K.publishFileSystem(getHostName(), dr.getUrlPath(), getPort(), new File(dr.getDir()));
-                http4K.publishFileSystem(getHostName(), dr.getUrlPath(), getPort(), resMan );
+                if ( getHttpCacheEnabled() ) {
+                    CachedFileResourceManager resMan = new CachedFileResourceManager( getHttpCacheEnabled() ,  new File(dr.getDir()) , 100 );
+                    http4K.publishFileSystem(getHostName(), dr.getUrlPath(), getPort(), resMan );
+                } else {
+                    http4K.publishFileSystem(getHostName(), dr.getUrlPath(), getPort(), new File(dr.getDir()));
+                }
             } else if (item instanceof BldHttpHandler) {
                 BldHttpHandler dr = (BldHttpHandler) item;
                 http4K.publishHandler( getHostName(), dr.getUrlPath(), getPort(), dr.getHandler());
