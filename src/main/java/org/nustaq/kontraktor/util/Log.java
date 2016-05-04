@@ -50,10 +50,15 @@ public class Log extends Actor<Log> {
     }
 
     /**
+     * Sets the logging level to the specified value.
+     *
      * @param level = Log.DEBUG | Log.INFO | Log.WARN | Log.ERROR
+     * @return the previously set severity
      */
-    public static void setLevel( int level ) {
+    public static int setLevel( int level ) {
+        int oldSeverity = Lg.getSeverity();
         Lg.setSeverity(level);
+        return oldSeverity;
     }
     public static void Info( Object source, String msg ) {
         Lg.info(source, msg);
