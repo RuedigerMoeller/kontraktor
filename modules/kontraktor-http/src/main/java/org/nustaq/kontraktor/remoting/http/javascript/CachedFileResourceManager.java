@@ -7,14 +7,13 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Created by juptr on 27.04.16.
  */
 public class CachedFileResourceManager extends FileResourceManager{
     Date lastStartup; // last startUp, will be returned as LastModifiedDate for cached resources..
 
     public CachedFileResourceManager(boolean enableCaching  , final File base, long transferMinSize) {
         super(base , transferMinSize );
-        this.lastStartup = enableCaching ? new Date() : null ;
+        this.lastStartup = enableCaching ? new Date() : null ; // note: plain wrong and obviously untested
     }
 
 
@@ -31,12 +30,15 @@ public class CachedFileResourceManager extends FileResourceManager{
 
         @Override
         public Date getLastModified() {
+            if ( lastModified == null ) {
+                return new Date(); // quick fix for severe cache fail
+            }
             return lastModified;
         }
 
         @Override
         public String getLastModifiedString() {
-            return DateUtils.toDateString(lastModified);
+            return DateUtils.toDateString(getLastModified());
         }
     }
 }

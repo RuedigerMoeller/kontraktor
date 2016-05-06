@@ -154,12 +154,12 @@ public class DynamicResourceManager extends FileResourceManager {
 
         @Override
         public Date getLastModified() {
-            return lastModified;
+            return lastModified == null ? new Date(): lastModified;
         }
 
         @Override
         public String getLastModifiedString() {
-            return DateUtils.toDateString(lastModified);
+            return DateUtils.toDateString(getLastModified());
         }
 
         @Override
