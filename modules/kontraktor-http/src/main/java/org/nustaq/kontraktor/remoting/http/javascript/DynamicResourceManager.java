@@ -26,6 +26,7 @@ import io.undertow.util.*;
 import org.jsoup.nodes.Element;
 import org.nustaq.kontraktor.remoting.http.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -119,7 +120,11 @@ public class DynamicResourceManager extends FileResourceManager {
                         e.printStackTrace();
                     }
                 }
-                return mightCache(normalizedPath, new FileResource(file, this, initialPath));
+                try {
+                    return mightCache(normalizedPath, getFileResource(file, initialPath));
+                } catch (IOException e) {
+                    FSTUtil.rethrow(e);
+                }
             }
         }
         return super.getResource(initialPath);
