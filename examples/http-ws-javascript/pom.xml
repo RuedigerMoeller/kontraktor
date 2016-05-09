@@ -35,7 +35,7 @@
     <dependency>
         <groupId>de.ruedigermoeller</groupId>
         <artifactId>kontraktor-http</artifactId>
-        <version>3.24.03</version>
+        <version>3.24.04</version>
     </dependency>
 
 </dependencies>
