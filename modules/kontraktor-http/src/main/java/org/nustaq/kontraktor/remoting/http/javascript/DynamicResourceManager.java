@@ -125,6 +125,34 @@ public class DynamicResourceManager extends FileResourceManager {
         return super.getResource(initialPath);
     }
 
+    protected FileResource getFileResource(final File file, final String path) throws IOException {
+        if (_isFileSameCase(file)) {
+            return new FileResource(file, this, path) {
+                @Override
+                public Date getLastModified() {
+                    if ( isDevMode() ) {
+                        return new Date();
+                    } else {
+                        if ( lastStartup == null )
+                            lastStartup = new Date();
+                        return lastStartup;
+                    }
+                }
+            };
+        } else {
+            return null;
+        }
+    }
+
+    private boolean _isFileSameCase(final File file) throws IOException {
+        String canonicalName = file.getCanonicalFile().getName();
+        if (canonicalName.equals(file.getName())) {
+            return true;
+        } else {
+            return !canonicalName.equalsIgnoreCase(file.getName());
+        }
+    }
+
     // FIXME: Http level caching is independent of this result, needs redesign
     private Resource mightCache(String key, Resource fileResource) {
         if ( ! isDevMode() ) {
