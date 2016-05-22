@@ -37,6 +37,13 @@ window.jsk = window.jsk || (function () {
 
     _jsk.futureMap = futureMap; // debug read access
     _jsk.resurrectionCallback = null; // called upon connection resurrection
+    _jsk.maxLongpollFailures = 5;
+    _jsk.longpollFailureCallback = null; // called after maxLongPollFailures
+    _jsk.handleLongpollFailureCallback = function(){
+      if (typeof(this.longpollFailureCallback) == 'function'){
+        this.longpollFailureCallback.apply();
+      }
+    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // fst-Json Helpers
@@ -116,6 +123,7 @@ window.jsk = window.jsk || (function () {
      * create wrapper object to make given list a valid fst-json Java Object for sending
      */
     jsk.prototype.buildJObject = function( type, obj ) {
+      delete obj._key; // only quick fix - see: #859
       return { typ: type, obj: obj }
     };
     jsk.prototype.jobj = jsk.prototype.buildJObject;
@@ -178,7 +186,7 @@ window.jsk = window.jsk || (function () {
     // e.g. jsk.postObjectDecodingMap["com.myclass.Foo"] = function( obj ) { obj.attr = ..; return obj; }
     _jsk.postObjectDecodingMap = {};
 
-    // offline cache callback (longpoll only), methods: put( [methodname,args], result ) and get( [methodname,args] )
+    // offline cache callback (http only, not websockets), methods: put( [methodname,args], result ) and get( [methodname,args] )
     _jsk.callCache = null;
 
     /**
@@ -187,7 +195,7 @@ window.jsk = window.jsk || (function () {
      * works.
      *
      * @param wsurl - e.g. "ws://localhost:8080/ws" or "http://localhost:8080/api"
-     * @param connectionMode - 'WS' | 'HTLP' | 'HTTP'
+     * @param connectionMode - 'WS' | 'HTLP' | ['HTTP' is discontinued]
      * @param optErrorcallback
      * @returns {jsk.Promise}
      */
@@ -632,7 +640,7 @@ window.jsk = window.jsk || (function () {
       };
 
       function fireError() {
-        termAllOpenCBs();
+        self.termOpenCBs();
         if (self.onerrorHandler && self.lastError) {
           self.onerrorHandler.apply(self, [{event: "connection failure", status: self.lastError}]);
         }
@@ -672,7 +680,9 @@ window.jsk = window.jsk || (function () {
               console.log("response error:"+request.status);
               //fireError(); dont't give up on failed long poll
               self.pollErrorsInRow++;
-              //if (self.pollErrorsInRow > XX) => handleTimeout
+              if (self.pollErrorsInRow >= _jsk.maxLongpollFailures){
+                _jsk.handleLongpollFailureCallback();
+              }
               setTimeout(self.longPoll,3000);
               return;
             }
@@ -742,7 +752,7 @@ window.jsk = window.jsk || (function () {
         if (sequence === 1 && self.lpSeqNo >= 1) {
           self.lpSeqNo = 0;
           console.log("session resurrection, reset sequence ");
-          self.termOpenCBs();
+          //self.termOpenCBs(); wrong here as resurrection is detected AFTER a valid new callback has been registered
           if (_jsk.resurrectionCallback) {
             _jsk.resurrectionCallback.call(_jsk);
           }
@@ -777,9 +787,14 @@ window.jsk = window.jsk || (function () {
               var sequence = respObject.seq[respObject.seq.length-1];
               self.handleResurrection(sequence);
               self.lpSeqNo = processSocketResponse(self.lpSeqNo, respObject, true, self.onmessageHandler, self);
-              res.complete("",null);
             } catch (ex) {
+              console.error("exception in callback ",ex);
               res.complete(null,ex);
+            }
+            try {
+              res.complete("",null);
+            } catch ( ex1 ) {
+              console.error("exception in promise callback ",ex1);
             }
           } else {
             console.log("resp is empty");

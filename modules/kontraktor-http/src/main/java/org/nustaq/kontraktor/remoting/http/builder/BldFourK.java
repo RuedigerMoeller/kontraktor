@@ -138,7 +138,8 @@ public class BldFourK {
                     .inline(dr.isInline())
                     .stripComments(dr.isStripComments());
                 drm.setImportShim(shim);
-                http4K.publishResourcePath(getHostName(), dr.getUrlPath(), getPort(), drm, dr.isCompress() );
+                drm.setTranspilerMap(dr.getTranspilers());
+                http4K.publishResourcePath( getHostName(), dr.getUrlPath(), getPort(), drm, dr.isCompress() );
             } else {
                 System.out.println("unexpected item " + item);
             }

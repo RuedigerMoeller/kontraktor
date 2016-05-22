@@ -16,6 +16,15 @@ import java.util.List;
 
 /**
  * Created by ruedi on 16/07/15.
+ *
+ * inline all html imports of given file recursively (incl. adaption of pathes)
+ * optionally also minify javascript code on the fly.
+ * also inlines css files
+ *
+ * similar to polymer's vulcanize.
+ *
+ * by specifying 'no-inline=true' on a script tag one can exclude specific script tags
+ *
  */
 public class HtmlImportShim {
 

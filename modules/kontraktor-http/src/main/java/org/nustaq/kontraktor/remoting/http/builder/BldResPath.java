@@ -15,6 +15,13 @@ See https://www.gnu.org/licenses/lgpl.txt
 */
 package org.nustaq.kontraktor.remoting.http.builder;
 
+import org.nustaq.kontraktor.remoting.http.javascript.TranspilerHook;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Created by ruedi on 09.06.2015.
  */
@@ -30,6 +37,7 @@ public class BldResPath {
     boolean inline = true;
     boolean stripComments = true;
     boolean minify = true;
+    transient Map<String,TranspilerHook> transpilers = new HashMap<>();
 
     public BldResPath(BldFourK cfg4k, String urlPath) {
         this.cfg4k = cfg4k;
@@ -128,4 +136,12 @@ public class BldResPath {
         return compress;
     }
 
+    public BldResPath transpile( String ending, TranspilerHook hook ) {
+        transpilers.put(ending,hook);
+        return this;
+    }
+
+    public Map<String, TranspilerHook> getTranspilers() {
+        return transpilers;
+    }
 }

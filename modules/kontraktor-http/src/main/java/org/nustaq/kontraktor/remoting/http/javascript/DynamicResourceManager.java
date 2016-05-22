@@ -34,6 +34,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -47,12 +48,14 @@ public class DynamicResourceManager extends FileResourceManager {
     HtmlImportShim importShim; // null means no imports supported
     String prefix = "";
     Date lastStartup; // last startUp, will be returned as LastModifiedDate for cached resources..
+
     /**
      * in case not run with cacheAggregates, store lookup results in memory,
      * so file crawling is done once after server restart.
      */
     ConcurrentHashMap<String,Resource> lookupCache = new ConcurrentHashMap<>();
     boolean minify;
+    private Map<String, TranspilerHook> transpilerMap;
 
     public DynamicResourceManager(boolean devMode, String prefix, boolean minify, String resPathBase, String ... resourcePath) {
         super(new File("."), 100);
@@ -91,12 +94,13 @@ public class DynamicResourceManager extends FileResourceManager {
         } else {
             normalizedPath = initialPath;
         }
-        if ( ! isDevMode() ) {
+        if ( ! isDevMode() ) { // lookup cache if not devmode
             Resource res = lookupCache.get(normalizedPath);
             if (res != null) {
                 return res;
             }
         }
+        // import shim is applied to *index.html file only
         if ( initialPath.endsWith("index.html") && importShim != null ) {
             try {
                 Element element = importShim.shimImports(normalizedPath);
@@ -109,15 +113,37 @@ public class DynamicResourceManager extends FileResourceManager {
                 e.printStackTrace();
             }
         } else {
+            if (normalizedPath.endsWith(".js")) {
+                int debug =1;
+            }
             File file = dependencyResolver.locateResource(normalizedPath);
             if ( file != null ) {
-                if ( file.getName().endsWith(".js") && minify ) {
+                // FIMXE: could be done via TranspilerHook now ..
+                final String fname = file.getName();
+                if ( fname.endsWith(".js") && minify ) {
                     try {
                         byte[] bytes = Files.readAllBytes(file.toPath());
                         bytes = JSMin.minify(bytes);
                         return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/javascript", !isDevMode()? lastStartup : null ));
                     } catch (IOException e) {
                         e.printStackTrace();
+                    }
+                }
+                if ( transpilerMap != null && transpilerMap.size() > 0 ) {
+                    try {
+                        int idx = fname.lastIndexOf('.');
+                        if ( idx > 0 ) {
+                            String ext = fname.substring(idx+1).toLowerCase();
+                            TranspilerHook transpilerHook = transpilerMap.get(ext);
+                            if ( transpilerHook != null ) {
+                                byte[] transpiled = transpilerHook.transpile(file);
+                                if ( transpiled != null ) {
+                                    return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, transpiled, "text/javascript", !isDevMode()? lastStartup : null ));
+                                }
+                            }
+                        }
+                    } catch (Exception ex) {
+                        Log.Error(this, ex);
                     }
                 }
                 try {
@@ -164,6 +190,14 @@ public class DynamicResourceManager extends FileResourceManager {
             lookupCache.put(key,fileResource);
         }
         return fileResource;
+    }
+
+    public void setTranspilerMap(Map<String, TranspilerHook> transpilerMap) {
+        this.transpilerMap = transpilerMap;
+    }
+
+    public Map<String, TranspilerHook> getTranspilerMap() {
+        return transpilerMap;
     }
 
     protected static class MyResource implements Resource {
@@ -255,6 +289,7 @@ public class DynamicResourceManager extends FileResourceManager {
         public URL getUrl() {
             return null;
         }
+
     }
 
 }
