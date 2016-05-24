@@ -327,6 +327,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                 return true;
             } catch ( Throwable e) {
                 if ( e instanceof InvocationTargetException && ((InvocationTargetException) e).getTargetException() == InternalActorStoppedException.Instance ) {
+
                     // fixme: rare classcast exception with elasticscheduler seen here when stop is called from a callback ..
                     Actor actor = (Actor) callEntry.getTarget();
                     actor.__stopped = true;
