@@ -1,13 +1,17 @@
 package org.nustaq.reallive.interfaces;
 
-import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.Spore;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.reallive.impl.FilterSpore;
 import org.nustaq.reallive.impl.QueryPredicate;
 
 import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Stream;
+
+import static javafx.scene.input.KeyCode.T;
 
 /**
  * Created by ruedi on 04/08/15.
@@ -31,6 +35,20 @@ public interface RealLiveStreamActor<K> {
 
     @CallerSideMethod default void query(String query, Callback<Record<K>> cb) throws ParseException {
         this.filter(new QueryPredicate<Record<K>>(query), cb);
+    }
+
+    @CallerSideMethod default <REC> IPromise<List<REC>> collect(RLPredicate<Record<K>> predicate, Function<Record,REC> map) {
+        Promise res = new Promise();
+        ArrayList resl = new ArrayList();
+        filter( predicate, (r,e) -> {
+            if ( r != null ) {
+                resl.add(map.apply(r));
+            }
+            if ( Actors.isComplete(e) ) {
+                res.resolve(resl);
+            }
+        });
+        return res;
     }
 
 }
