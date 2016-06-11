@@ -30,7 +30,8 @@ import java.util.Date;
  *
  * A wrapper for logging + metrics. This logger facade is asynchronous (so does not block by IO).
  * In order to redirect logging, use Log.Lg.setLogWrapper( .. );
- *
+ * Note its possible to log to a remote host using kontraktor remoting as the core logging class
+ * is an actor.
  */
 public class Log extends Actor<Log> {
 
@@ -159,7 +160,7 @@ public class Log extends Actor<Log> {
             return this;
     }
 
-/////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////
     // caller side wrappers are here to enable stacktrace capture etc.
     //
 
