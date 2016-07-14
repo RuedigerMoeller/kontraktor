@@ -1,5 +1,6 @@
 package org.nustaq.reallive.interfaces;
 
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 
 import java.util.function.Consumer;
@@ -18,6 +19,7 @@ public interface Mutation<K> {
      */
     IPromise<Boolean> putCAS( RLPredicate<Record<K>> casCondition, K key, Object... keyVals);
     void atomic(K key, RLConsumer action);
+    IPromise atomicQuery(K key, RLFunction<Object, Record<K>> action);
 
     // FIXME: collides with put key, record
     void put(K key, Object... keyVals);

@@ -125,6 +125,9 @@ public class TableSpaceTest {
         });
 
         System.out.println(test.get("emil0").await());
+
+        test.atomicQuery("emöil0", rec -> ((Record)rec).getInt("age")).then( i -> System.out.println("atomicQuery age "+i));
+
         test.filter(rec -> true, (r, e) -> System.out.println("filter1:" + r + " " + resultCount.incrementAndGet()));
         Subscriber subs[] = {null};
         subs[0] = new Subscriber(null, record -> true, change -> {

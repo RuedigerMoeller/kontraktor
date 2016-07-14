@@ -41,6 +41,14 @@ public class Mutator<K> implements Mutation<K> {
     }
 
     @Override
+    public IPromise atomicQuery(K key, RLFunction<Object, Record<K>> action) {
+        if ( receiver instanceof RealLiveTable) {
+            return ((RealLiveTable) receiver).atomicQuery(key, action);
+        }
+        return new Promise<>(null, "unsupported operation");
+    }
+
+    @Override
     public void addOrUpdate(K key, Object... keyVals) {
         if ( key instanceof Record )
             throw new RuntimeException("probably accidental method resolution fail. Use addOrUpdateRec instead");

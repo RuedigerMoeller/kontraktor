@@ -87,6 +87,11 @@ public class TableSharding<K> implements RealLiveTable<K> {
         shards[func.apply(key)].getMutation().atomic(key, action);
     }
 
+    @Override
+    public IPromise atomicQuery(K key, RLFunction<Object, Record<K>> action) {
+        return shards[func.apply(key)].getMutation().atomicQuery(key, action);
+    }
+
     protected class ShardMutation implements Mutation<K> {
 
         @Override
@@ -102,6 +107,11 @@ public class TableSharding<K> implements RealLiveTable<K> {
         @Override
         public void atomic(K key, RLConsumer action) {
             shards[func.apply(key)].getMutation().atomic(key, action);
+        }
+
+        @Override
+        public IPromise atomicQuery(K key, RLFunction<Object, Record<K>> action) {
+            return shards[func.apply(key)].getMutation().atomicQuery(key, action);
         }
 
         @Override

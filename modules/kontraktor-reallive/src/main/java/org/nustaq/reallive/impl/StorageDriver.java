@@ -172,6 +172,22 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
     }
 
     @Override
+    public IPromise atomicQuery(K key, RLFunction<Object, Record<K>> action) {
+        Record<K> rec = getStore().get(key);
+        if ( rec == null ) {
+            return new Promise(action.apply(rec));
+        } else {
+            PatchingRecord pr = new PatchingRecord(rec);
+            final Object res = action.apply(pr);
+            UpdateMessage updates = pr.getUpdates();
+            if ( updates != null ) {
+                receive(updates);
+            }
+            return new Promise<>(res);
+        }
+    }
+
+    @Override
     public void addOrUpdate(K key, Object... keyVals) {
         receive(RLUtil.get().addOrUpdate(key, keyVals));
     }

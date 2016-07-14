@@ -255,4 +255,10 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
         storageDriver.atomic(key,action);
     }
 
+    @Override
+    public IPromise atomicQuery(K key, RLFunction<Object, Record<K>> action) {
+        taCount++;
+        return storageDriver.atomicQuery(key,action);
+    }
+
 }
