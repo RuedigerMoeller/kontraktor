@@ -19,7 +19,7 @@ public interface Mutation<K> {
      */
     IPromise<Boolean> putCAS( RLPredicate<Record<K>> casCondition, K key, Object... keyVals);
     void atomic(K key, RLConsumer action);
-    IPromise atomicQuery(K key, RLFunction<Object, Record<K>> action);
+    IPromise atomicQuery(K key, RLFunction<Record<K>,Object> action);
 
     // FIXME: collides with put key, record
     void put(K key, Object... keyVals);

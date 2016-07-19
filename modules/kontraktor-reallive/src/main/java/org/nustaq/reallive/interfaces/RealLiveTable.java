@@ -17,5 +17,5 @@ public interface RealLiveTable<K> extends ChangeReceiver<K>, RealLiveStreamActor
 
     void atomic(K key, RLConsumer<Record<K>> action);
 
-    IPromise atomicQuery(K key, RLFunction<Object, Record<K>> action);
+    IPromise atomicQuery(K key, RLFunction<Record<K>, Object> action);
 }

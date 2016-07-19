@@ -41,7 +41,7 @@ public class Mutator<K> implements Mutation<K> {
     }
 
     @Override
-    public IPromise atomicQuery(K key, RLFunction<Object, Record<K>> action) {
+    public IPromise atomicQuery(K key, RLFunction<Record<K>,Object> action) {
         if ( receiver instanceof RealLiveTable) {
             return ((RealLiveTable) receiver).atomicQuery(key, action);
         }

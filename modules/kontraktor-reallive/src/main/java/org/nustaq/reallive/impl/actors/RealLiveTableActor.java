@@ -256,7 +256,7 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
     }
 
     @Override
-    public IPromise atomicQuery(K key, RLFunction<Object, Record<K>> action) {
+    public IPromise atomicQuery(K key, RLFunction<Record<K>, Object> action) {
         taCount++;
         return storageDriver.atomicQuery(key,action);
     }
