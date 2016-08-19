@@ -92,6 +92,13 @@ public class TableSharding<K> implements RealLiveTable<K> {
         return shards[func.apply(key)].getMutation().atomicQuery(key, action);
     }
 
+    @Override
+    public void atomicUpdate(RLPredicate<Record<K>> filter, RLFunction<Record<K>, Boolean> action) {
+        for (int i = 0; i < shards.length; i++) {
+            shards[i].atomicUpdate(filter,action);
+        }
+    }
+
     protected class ShardMutation implements Mutation<K> {
 
         @Override
@@ -112,6 +119,11 @@ public class TableSharding<K> implements RealLiveTable<K> {
         @Override
         public IPromise atomicQuery(K key, RLFunction<Record<K>,Object> action) {
             return shards[func.apply(key)].getMutation().atomicQuery(key, action);
+        }
+
+        @Override
+        public void atomicUpdate(RLPredicate<Record<K>> filter, RLFunction<Record<K>, Boolean> action) {
+            TableSharding.this.atomicUpdate(filter,action);
         }
 
         @Override

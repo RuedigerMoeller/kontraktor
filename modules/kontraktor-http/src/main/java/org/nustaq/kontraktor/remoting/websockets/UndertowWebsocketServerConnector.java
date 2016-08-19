@@ -33,6 +33,8 @@ import org.xnio.Buffers;
 import java.io.IOException;
 import java.lang.ref.*;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -61,12 +63,13 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
         server.addExactPath(
             path,
             Handlers.websocket((exchange, channel) -> { // connection callback
-               Runnable runnable = () -> {
-                   UTWebObjectSocket objectSocket = new UTWebObjectSocket(exchange, channel, sendStrings);
-                   ObjectSink sink = factory.apply(objectSocket);
-                   objectSocket.setSink(sink);
+                final CountDownLatch latch = new CountDownLatch(1);
+                Runnable runnable = () -> {
+                    UTWebObjectSocket objectSocket = new UTWebObjectSocket(exchange, channel, sendStrings);
+                    ObjectSink sink = factory.apply(objectSocket);
+                    objectSocket.setSink(sink);
 
-                   channel.getReceiveSetter().set(new AbstractReceiveListener() {
+                    channel.getReceiveSetter().set(new AbstractReceiveListener() {
                        @Override
                        protected void onCloseMessage(CloseMessage cm, WebSocketChannel channel) {
                            try {
@@ -102,10 +105,16 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
                            byte[] bytez = Buffers.take(data, 0, data.length);
                            sink.receiveObject(objectSocket.getConf().asObject(bytez), null);
                        }
-                   });
-               };
-            //                runnable.run();
-               facade.execute(runnable);
+                    });
+                    latch.countDown();
+                };
+                facade.execute(runnable);
+                try {
+                    latch.await(3000, TimeUnit.MILLISECONDS); // fix provided by billtob, race condition during connection init
+                } catch (Exception e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
                channel.resumeReceives();
             })
         );

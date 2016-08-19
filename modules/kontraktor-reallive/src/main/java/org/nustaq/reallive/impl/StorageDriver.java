@@ -188,6 +188,24 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
     }
 
     @Override
+    public void atomicUpdate(RLPredicate<Record<K>> filter, RLFunction<Record<K>, Boolean> action) {
+        store.filter(filter, (r,e) -> {
+            if ( r != null ) {
+                PatchingRecord pr = new PatchingRecord(r);
+                Boolean res = action.apply(pr);
+                if (res==Boolean.FALSE) {
+                    receive(RLUtil.get().remove((K) pr.getKey()));
+                } else {
+                    UpdateMessage updates = pr.getUpdates();
+                    if (updates != null) {
+                        receive(updates);
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
     public void addOrUpdate(K key, Object... keyVals) {
         receive(RLUtil.get().addOrUpdate(key, keyVals));
     }
