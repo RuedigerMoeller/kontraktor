@@ -72,27 +72,6 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
     @Override
     public <T> void forEach(Spore<Record<K>, T> spore) {
         forEachQueued(spore, () -> {});
-//        checkThread();
-//        try {
-//            Consumer<Record<K>> recordConsumer = rec -> {
-//                if (!spore.isFinished()) {
-//                    try {
-//                        spore.remote(rec);
-//                    } catch (Throwable ex) {
-//                        spore.complete(null, ex);
-//                    }
-//                }
-//            };
-//            if ( description.isParallelFiltering() > 0 ) {
-//                storageDriver.getStore().stream().parallel().forEach(recordConsumer);
-//                spore.finish();
-//            } else {
-//                storageDriver.getStore().stream().forEach(recordConsumer);
-//                spore.finish();
-//            }
-//        } catch (Throwable ex) {
-//            spore.complete(null,ex);
-//        }
     }
 
     @Override
@@ -259,6 +238,12 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
     public IPromise atomicQuery(K key, RLFunction<Record<K>, Object> action) {
         taCount++;
         return storageDriver.atomicQuery(key,action);
+    }
+
+    @Override
+    public void atomicUpdate(RLPredicate<Record<K>> filter, RLFunction<Record<K>, Boolean> action) {
+        taCount++;
+        storageDriver.atomicUpdate(filter, action);
     }
 
 }
