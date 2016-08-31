@@ -2,6 +2,8 @@ package org.nustaq.reallive.messages;
 
 import org.nustaq.reallive.interfaces.*;
 
+import java.util.*;
+
 /**
  * Created by moelrue on 03.08.2015.
  *
@@ -14,17 +16,28 @@ public class UpdateMessage<K> implements ChangeMessage<K> {
     final Diff diff;   // can be null => then just compare with current record
     final Record<K> newRecord; // can nevere be null
     final boolean addIfNotExists ;
+    Set<String> forcedUpdateFields;
 
-    public UpdateMessage(Diff diff, Record<K> newRecord) {
+    public UpdateMessage(Diff diff, Record<K> newRecord,Set<String> forcedUpdateFields) {
         this.diff = diff;
         this.newRecord = newRecord;
         this.addIfNotExists = true;
+        this.forcedUpdateFields = forcedUpdateFields;
     }
 
-    public UpdateMessage(Diff diff, Record<K> newRecord, boolean addIfNotExists) {
+    public UpdateMessage(Diff diff, Record<K> newRecord, Set<String> forcedUpdateFields, boolean addIfNotExists) {
         this.addIfNotExists = addIfNotExists;
         this.newRecord = newRecord;
         this.diff = diff;
+        this.forcedUpdateFields = forcedUpdateFields;
+    }
+
+    public Set<String> getForcedUpdateFields() {
+        return forcedUpdateFields;
+    }
+
+    public void setForcedUpdateFields(Set<String> forcedUpdateFields) {
+        this.forcedUpdateFields = forcedUpdateFields;
     }
 
     @Override
@@ -42,6 +55,7 @@ public class UpdateMessage<K> implements ChangeMessage<K> {
         return new UpdateMessage<K>(
             diff.reduced(reducedFields),
             newRecord.reduced(reducedFields),
+            forcedUpdateFields,
             addIfNotExists);
     }
 

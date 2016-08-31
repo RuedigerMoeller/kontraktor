@@ -52,7 +52,7 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
                     Diff diff = ChangeUtils.diff(change.getRecord(), prevRecord);
                     Record<K> newRecord = unwrap(change.getRecord()); // clarification
                     store.put(change.getKey(),newRecord);
-                    listener.receive( new UpdateMessage<>(diff,newRecord) );
+                    listener.receive( new UpdateMessage<>(diff,newRecord,null) );
                 }
                 break;
             }
@@ -68,7 +68,7 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
                     Diff diff = ChangeUtils.copyAndDiff(addMessage.getRecord(), prevRecord);
                     Record<K> newRecord = unwrap(prevRecord); // clarification
                     store.put(change.getKey(),newRecord);
-                    listener.receive( new UpdateMessage<>(diff,newRecord) );
+                    listener.receive( new UpdateMessage<>(diff,newRecord,null) );
                 } else {
                     store.put(change.getKey(),unwrap(addMessage.getRecord()));
                     listener.receive(addMessage);
@@ -107,14 +107,14 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
                     Diff diff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec);
                     Record<K> newRecord = unwrap(oldRec); // clarification
                     store.put(change.getKey(),newRecord);
-                    listener.receive( new UpdateMessage<>(diff,newRecord) );
+                    listener.receive( new UpdateMessage<>(diff,newRecord,change.getForcedUpdateFields()) );
                 } else {
                     // old values are actually not needed inside the diff
                     // however they are needed in a change notification for filter processing (need to reconstruct prev record)
                     Diff newDiff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec, updateMessage.getDiff().getChangedFields());
                     Record<K> newRecord = unwrap(oldRec); // clarification
                     store.put(change.getKey(),newRecord);
-                    listener.receive( new UpdateMessage(newDiff,newRecord));
+                    listener.receive( new UpdateMessage(newDiff,newRecord,change.getForcedUpdateFields()));
                 }
                 break;
             }

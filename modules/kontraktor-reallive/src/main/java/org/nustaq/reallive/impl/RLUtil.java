@@ -4,7 +4,7 @@ import org.nustaq.reallive.interfaces.*;
 import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.records.*;
 
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Created by ruedi on 04.08.2015.
@@ -32,6 +32,12 @@ public class RLUtil {
         return new AddMessage<>(true,(Record<K>) record);
     }
 
+    public <K> UpdateMessage<K> updateWithForced(K key, Set<String> forced, Object ... keyVals) {
+        UpdateMessage<K> update = update(key, keyVals);
+        update.setForcedUpdateFields(forced);
+        return update;
+    }
+
     public <K> UpdateMessage<K> update( K key, Object ... keyVals) {
         String fi[] = new String[keyVals.length/2];
         for (int i = 0; i < fi.length; i++) {
@@ -39,7 +45,7 @@ public class RLUtil {
         }
         Diff d = new Diff(fi,null);
         Object record = record(key, keyVals);
-        return new UpdateMessage<>(d, (Record<K>) record);
+        return new UpdateMessage<>(d, (Record<K>) record, null);
     }
 
     public <K> Record<K> record( K key, Object ... keyVals) {

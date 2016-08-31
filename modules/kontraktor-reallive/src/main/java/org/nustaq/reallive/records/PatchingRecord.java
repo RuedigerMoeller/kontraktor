@@ -3,10 +3,7 @@ import org.nustaq.reallive.impl.RLUtil;
 import org.nustaq.reallive.interfaces.Record;
 import org.nustaq.reallive.messages.UpdateMessage;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by ruedi on 10.01.16.
@@ -16,6 +13,7 @@ import java.util.Map;
  */
 public class PatchingRecord extends RecordWrapper {
     MapRecord override;
+    HashSet<String> forcedUpdate;
 
     public PatchingRecord(Record record) {
         super(record);
@@ -80,6 +78,18 @@ public class PatchingRecord extends RecordWrapper {
     public <K> void reset(Record<K> input) {
         record = input;
         override = null;
+        forcedUpdate = null;
+    }
+
+    public void forceUpdate(String name) {
+        if ( forcedUpdate == null ) {
+            forcedUpdate = new HashSet<>();
+        }
+        forcedUpdate.add(name);
+    }
+
+    public Set<String> getForcedUpdates(){
+        return forcedUpdate;
     }
 
     public <K> UpdateMessage<K> getUpdates() {
@@ -92,7 +102,7 @@ public class PatchingRecord extends RecordWrapper {
             update[idx++] = next.getKey();
             update[idx++] = next.getValue();
         }
-        return RLUtil.get().update((K) getKey(),update);
+        return RLUtil.get().updateWithForced((K) getKey(),forcedUpdate,update);
     }
 
     public <K> Record<K> unwrapOrCopy() {
