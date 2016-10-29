@@ -1,1 +1,1 @@
-playground space
+distributed, sharded realtime database. supports key/value semantics as well as plain queries. makes use of distributed lambda execution to run distributed computations/queries/modifications of data. Support for continous query defined by an arbitrary lambda. In addtion provides a query language to use directly from javascript client side code 
