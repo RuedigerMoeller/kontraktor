@@ -16,6 +16,11 @@ public interface RealLiveTable<K> extends ChangeReceiver<K>, RealLiveStreamActor
     IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object[] keyVals);
     void atomic(K key, RLConsumer<Record<K>> action);
     IPromise atomicQuery(K key, RLFunction<Record<K>, Object> action);
+
+    /**
+     * @param filter
+     * @param action - return true in order to update record, false in order to remove the record
+     */
     void atomicUpdate(RLPredicate<Record<K>> filter, RLFunction<Record<K>,Boolean> action);
 
 }
