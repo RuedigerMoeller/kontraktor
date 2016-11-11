@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// version 3.26.0
+// version 3.28.0
 // JavaScript to Kontraktor bridge
 // matches kontraktor 3.0 json-no-ref encoded remoting
 // as I am kind of a JS beginner, hints are welcome :)
@@ -190,7 +190,7 @@ window.jsk = window.jsk || (function () {
   // e.g. jsk.postObjectDecodingMap["com.myclass.Foo"] = function( obj ) { obj.attr = ..; return obj; }
   _jsk.postObjectDecodingMap = {};
 
-  // offline cache callback (http only, not websockets), methods: put( [methodname,args], result ) and get( [methodname,args] )
+  // offline cache callback (http only, not websockets), methods: put( [methodname,args], result ) and get( [methodname,args] ) and getCached([methodname,args])
   _jsk.callCache = null;
 
   /**
@@ -384,7 +384,18 @@ window.jsk = window.jsk || (function () {
    * "public IPromise myMethod( arg0, arg1, .. );"
    *
    */
+  _jsk.NO_RESULT = "NO_RESULT";
   _jsk.KontrActor.prototype.ask = function( methodName, args ) {
+    if ( _jsk.callCache && _jsk.callCache.getCached ) {
+      var res = _jsk.callCache.getCached( methodName,arguments );
+      if ( res !== _jsk.NO_RESULT ) {
+        var cbr = new _jsk.Promise();
+        setTimeout( function() {
+          cbr.complete(res[0],res[1]);
+        }, 0 );
+        return cbr;
+      }
+    }
     if ( this.socketHolder.socket === null )
       throw "not connected";
     var argList = [];
@@ -394,7 +405,7 @@ window.jsk = window.jsk || (function () {
     var futID = sbIdCount++;
     var cb = new _jsk.Promise();
     futureMap[futID] = cb;
-    callMap[futID] = [methodName,args];
+    callMap[futID] = [methodName,argList];
     var msg = this.buildCall( futID, this.id, methodName, argList );
     this.sendBatched.call(this,msg,futID);
     return cb;
@@ -408,6 +419,9 @@ window.jsk = window.jsk || (function () {
   _jsk.KontrActor.prototype.tell = function( methodName, args ) {
     if ( this.socketHolder.socket === null )
       throw "not connected";
+    if ( _jsk.callCache ) { // also tell cache in order to enable proper cleaning
+      _jsk.callCache.put([methodName],null);
+    }
     var argList = [];
     for ( var i = 1; i < arguments.length; i++ )
       argList.push(arguments[i]);
@@ -423,7 +437,7 @@ window.jsk = window.jsk || (function () {
     //console.log("GOT SEQUENCE:"+sequence);
     if ( sequence <= lastSeenSequence ) {
       console.log("old data received:"+sequence+" last:"+lastSeenSequence);
-      return lastSeenSequence;
+      // return lastSeenSequence;
     }
     //console.log("resplen:"+respLen);
     for (var i = 0; i < respLen; i++) {
