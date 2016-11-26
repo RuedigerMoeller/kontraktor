@@ -337,13 +337,11 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                         if ( finalFout != null ) {
                             finalFout.write(read);
                         } else {
-                            if ( read > 0 )
+                            if ( read > 0 ) {
                                 System.out.write(read);
-                            else if ( read < 0 ) {
-                                break;
                             } else {
                                 try {
-                                    Thread.sleep(1);
+                                    Thread.sleep(10);
                                 } catch (InterruptedException e) {
                                     e.printStackTrace();
                                 }

@@ -49,7 +49,6 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
         storageDriver.setListener( filterProcessor );
     }
 
-
     @Override
     public void receive(ChangeMessage<K> change) {
         checkThread();
