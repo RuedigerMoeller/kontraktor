@@ -74,7 +74,7 @@ public class UpdateMessage<K> implements ChangeMessage<K> {
 
     public Record<K> getOldRecord() {
         if ( diff.getChangedFields() != null && diff.getChangedFields().length > 0 ) {
-            Record<K> copied = getRecord().copied();
+            Record<K> copied = getNewRecord().copied();
             for (int i = 0; i < diff.getChangedFields().length; i++) {
                 String k = diff.getChangedFields()[i];
                 copied.put(k,diff.getOldValues()[i]);
