@@ -1,6 +1,7 @@
 package org.nustaq.reallive.messages;
 
 import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.records.MapRecord;
 
 import java.util.*;
 
@@ -69,6 +70,23 @@ public class UpdateMessage<K> implements ChangeMessage<K> {
 
     public boolean isAddIfNotExists() {
         return addIfNotExists;
+    }
+
+    public Record<K> getOldRecord() {
+        if ( diff.getChangedFields() != null && diff.getChangedFields().length > 0 ) {
+            Record<K> copied = getRecord().copied();
+            for (int i = 0; i < diff.getChangedFields().length; i++) {
+                String k = diff.getChangedFields()[i];
+                copied.put(k,diff.getOldValues()[i]);
+            }
+            return copied;
+        }
+        return getRecord().copied();
+    }
+
+    @Override
+    public Record<K> getRecord() {
+        return getNewRecord();
     }
 
     @Override
