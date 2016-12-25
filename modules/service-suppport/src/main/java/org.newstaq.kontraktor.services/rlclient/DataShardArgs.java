@@ -1,0 +1,24 @@
+package org.newstaq.kontraktor.services.rlclient;
+
+import com.beust.jcommander.Parameter;
+import org.newstaq.kontraktor.services.ServiceArgs;
+
+/**
+ * Created by ruedi on 15.08.2015.
+ */
+public class DataShardArgs extends ServiceArgs {
+
+    @Parameter( required = true, names = "-sn")
+    int shardNo;
+
+    public int getShardNo() {
+        return shardNo;
+    }
+
+    @Override
+    public String toString() {
+        return "DataShardArgs{" +
+                   "shardNo=" + shardNo +
+                   "} " + super.toString();
+    }
+}

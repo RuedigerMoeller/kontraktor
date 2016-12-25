@@ -7,8 +7,8 @@
   # default cp
   CP:   '-cp /home/ruedi/projects/Juptr/target/juptr-1.0-SNAPSHOT-jar-with-dependencies.jar'
 
-  GRP:  '7654'          # gravity port
-  GRH:  '192.168.0.102' # gravity machine
+  GRP:  '7654'          # serviceRegistry port
+  GRH:  '192.168.0.102' # serviceRegistry machine
 
   DSPB: '-dsPortBase 35000' # portbase of data shards
 
@@ -17,7 +17,7 @@
   base: [
     SRV:  '-name sv0'
     process:
-      "$PORT $SRV $WD -sleep 3000 -redirect logs/gravity.log 'java -Dlogfile=gravity.log4j $CP io.juptr.gravity.Gravity -host $GRH -gp $GRP -nolog false'"
+      "$PORT $SRV $WD -sleep 3000 -redirect logs/serviceRegistry.log 'java -Dlogfile=serviceRegistry.log4j $CP io.juptr.gravity.ServiceRegistry.Gravity -host $GRH -gp $GRP -nolog false'"
 
     SRV:  '-name sv1'
 
