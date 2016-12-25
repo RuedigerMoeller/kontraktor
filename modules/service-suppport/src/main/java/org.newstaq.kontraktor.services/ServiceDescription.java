@@ -3,6 +3,7 @@ package org.newstaq.kontraktor.services;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 /**
  * Created by ruedi on 11.08.2015.
@@ -11,7 +12,7 @@ public class ServiceDescription implements Serializable {
 
     String name;
     String description;
-    String uniqueKey = ""+Math.random();
+    String uniqueKey = UUID.randomUUID().toString();
     ConnectableActor connectable;
     transient long lastPing;
     long timeout = 100_000L; // TODO: dev-setting needs to be replaced for production mode
