@@ -11,7 +11,6 @@ import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
-import org.nustaq.reallive.interfaces.RealLiveTable;
 
 import java.util.*;
 
