@@ -16,15 +16,15 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.impl;
 
-import org.jctools.queues.MpscArrayQueue;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.util.FSTUtil;
 
-import java.lang.reflect.*;
-import java.util.*;
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
@@ -353,7 +353,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                     callEntry.getFutureCB().complete(null, e);
                 }
                 else
-                    Log.Warn(this,e,"");
+                    Log.Warn(this,e,"exception: " + e.getMessage());
             }
         }
         return false;

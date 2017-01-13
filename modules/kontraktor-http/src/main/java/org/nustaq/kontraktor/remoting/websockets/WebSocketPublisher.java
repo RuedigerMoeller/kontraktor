@@ -22,9 +22,15 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.builder.BldFourK;
+import org.nustaq.kontraktor.util.Log;
+import org.nustaq.serialization.FSTConfiguration;
 
+import io.undertow.websockets.spi.WebSocketHttpExchange;
+
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -40,6 +46,8 @@ public class WebSocketPublisher implements ActorPublisher {
     Coding coding = new Coding(SerializerType.FSTSer);
     Actor facade;
     boolean sendStringMessages = false;
+    private long sessionTimeout;
+    private int maxMsgSize;
 
     public WebSocketPublisher() {}
 
@@ -61,23 +69,27 @@ public class WebSocketPublisher implements ActorPublisher {
 
     @Override
     public IPromise<ActorServer> publish(Consumer<Actor> disconnectCallback) {
+        return publish(disconnectCallback, null, null);
+    }
+    
+    public IPromise<ActorServer> publish(Consumer<Actor> disconnectCallback, BiConsumer<RemoteCallEntry, WebSocketHttpExchange> requestInterceptor, Consumer<FSTConfiguration> fstConf) {
         Promise finished = new Promise();
         try {
             ActorServer publisher = new ActorServer(
-                new UndertowWebsocketServerConnector(urlPath,port,hostName).sendStrings(sendStringMessages),
+                new UndertowWebsocketServerConnector(urlPath,port,hostName, requestInterceptor, sessionTimeout, maxMsgSize).sendStrings(sendStringMessages),
                 facade,
                 coding
             );
             facade.execute(() -> {
                 try {
-                    publisher.start(disconnectCallback);
+                    publisher.start(disconnectCallback, fstConf);
                     finished.resolve(publisher);
                 } catch (Exception e) {
                     finished.reject(e);
                 }
             });
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.Error(this, e);
             return new Promise(null,e);
         }
         return finished;
@@ -109,6 +121,16 @@ public class WebSocketPublisher implements ActorPublisher {
 
     public WebSocketPublisher facade(Actor facade) {
         this.facade = facade;
+        return this;
+    }
+    
+    public WebSocketPublisher setSessionTimeout(long sessionTimeout) {
+        this.sessionTimeout = sessionTimeout;
+        return this;
+    }
+
+    public WebSocketPublisher setMaxMsgSize(int maxMsgSize) {
+        this.maxMsgSize = maxMsgSize;
         return this;
     }
 

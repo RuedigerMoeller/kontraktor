@@ -58,6 +58,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     volatile Pair<Runnable, HttpServerExchange> longPollTask;
     Thread myThread;
     volatile long longPollTaskTime;
+    long lastLongPollOut;
 
     public HttpObjectSocket(String sessionId, Runnable closeAction ) {
         this.sessionId = sessionId;
@@ -68,12 +69,23 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         return sessionId;
     }
 
-    public void updateTimeStamp() {
+    public long updateTimeStamp() {
         lastUse = System.currentTimeMillis();
+        return lastUse;
     }
 
     public long getLastUse() {
         return lastUse;
+    }
+    
+    public void setLongPollOut(long time) {
+        lastLongPollOut = time;
+    }
+    
+    public void setLongPollIn(long time) {
+        if (stats != null &&  lastLongPollOut > 0 ) {
+            stats.updateLatency((int) (time - lastLongPollOut));
+        }
     }
 
     @Override
@@ -83,7 +95,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         queue.addInt(message.length);
         queue.add(new HeapBytez(message));
         if ( LP_DEBUG )
-            System.out.println("send binary " + sendSequence.get());
+            Log.Info(this, "send binary " + sendSequence.get() + " length="+message.length);
         triggerLongPoll();
     }
 
@@ -162,7 +174,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         synchronized (this) {
             if (longPollTask!=null) {
                 if ( LP_DEBUG )
-                    System.out.println("SEND PENDING "+triggerPending);
+                    Log.Info(this, "SEND PENDING "+triggerPending);
                 if (triggerPending.get() > 0) // fixme: concurrency bug
                     triggerPending.decrementAndGet();
                 Runnable car = longPollTask.car();
@@ -170,7 +182,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
                 car.run();
             } else {
                 if ( LP_DEBUG )
-                    System.out.println("INC PENDING "+triggerPending);
+                    Log.Info(this, "INC PENDING "+triggerPending);
                 triggerPending.incrementAndGet();
             }
         }
@@ -181,7 +193,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
             this.longPollTask = longPollTask;
             this.longPollTaskTime = System.currentTimeMillis();
             if ( LP_DEBUG )
-                System.out.println("SET LONG POLL"+triggerPending);
+                Log.Info(this, "SET LONG POLL"+triggerPending);
             if ( triggerPending.get() > 0 ) {
                 triggerLongPoll();
             }

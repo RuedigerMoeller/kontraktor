@@ -22,6 +22,7 @@ import io.undertow.util.Headers;
 import io.undertow.util.Methods;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.SessionResurrector;
+import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
@@ -36,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
@@ -78,10 +80,15 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
     long sessionTimeout = SESSION_TIMEOUT_MS;
     volatile boolean isClosed = false;
     private ActorServer actorServer;
+    private BiConsumer<RemoteCallEntry, HttpServerExchange> requestInterceptor;
+    
+    private final int houseKeepingInterval = 2000;
+    private final int longPollTaskTimeoutThreshold = HttpObjectSocket.LP_TIMEOUT - houseKeepingInterval;
 
-    public UndertowHttpServerConnector(Actor facade) {
+    public UndertowHttpServerConnector(Actor facade, BiConsumer<RemoteCallEntry, HttpServerExchange> requestInterceptor) {
         this.facade = facade;
-        facade.delayed( HttpObjectSocket.LP_TIMEOUT/2, () -> houseKeeping() );
+        this.requestInterceptor = requestInterceptor;
+        facade.delayed( longPollTaskTimeoutThreshold, () -> houseKeeping() );
     }
 
     public void houseKeeping() {
@@ -90,16 +97,16 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         ArrayList<String> toRemove = new ArrayList<>(0);
         sessions.entrySet().forEach( entry -> {
             HttpObjectSocket socket = entry.getValue();
-            if ( now- socket.getLongPollTaskTime() >= HttpObjectSocket.LP_TIMEOUT/2 ) {
+            if ( now - socket.getLongPollTaskTime() > longPollTaskTimeoutThreshold ) {
                 socket.triggerLongPoll();
             }
-            if ( now- socket.getLastUse() > getSessionTimeout() ) {
+            if ( now - socket.getLastUse() > sessionTimeout ) {
                 toRemove.add(entry.getKey());
             }
         });
         toRemove.forEach(sessionId -> closeSession(sessionId));
         if ( ! isClosed ) {
-            facade.delayed( HttpObjectSocket.LP_TIMEOUT/4, () -> houseKeeping() );
+            facade.delayed( houseKeepingInterval, () -> houseKeeping() );
         }
     }
 
@@ -144,7 +151,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                     try {
                         requestChannel.shutdownReads();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Log.Warn(this, e);
                     }
 //                    removed as too expensive on unbounded queues
 //                    if ( facade.isMailboxPressured() || facade.isCallbackQPressured() ) {
@@ -287,7 +294,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         }
 
         // executed in facade thread
-        httpObjectSocket.updateTimeStamp(); // keep alive
+        long updateTimeStamp = httpObjectSocket.updateTimeStamp(); // keep alive
 
         Object received[] = (Object[]) httpObjectSocket.getConf().asObject(postData);
 
@@ -299,6 +306,8 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             return;
         }
 
+        httpObjectSocket.setLongPollIn(updateTimeStamp);
+        
         // long poll request
         // parse sequence
         int lastClientSeq = -1;
@@ -345,18 +354,23 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
                     ByteBuffer responseBuf = ByteBuffer.wrap(response);
                     try {
+                        int written = 0;
                         while (responseBuf.remaining()>0) {
-                            sinkchannel.write(responseBuf);
+                            written += sinkchannel.write(responseBuf);
+                        }
+                        if (written > 0 && httpObjectSocket.getStats() != null) {
+                            httpObjectSocket.getStats().updateBytesSent(written);
                         }
                     } catch (Throwable e) {
                         System.out.println("buffer size:"+response.length);
                         try {
                             sinkchannel.close();
                         } catch (IOException e1) {
-                            e1.printStackTrace();
+                            Log.Warn(this, e1);
                         }
-                        e.printStackTrace();
+                        Log.Warn(this, e);
                     }
+                    httpObjectSocket.setLongPollOut(System.currentTimeMillis());
                     exchange.endExchange();
                 }
             },
@@ -377,7 +391,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                         } else
                             sinkchannel.resumeWrites(); // required ?
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        Log.Warn(this, e);
                         exchange.endExchange();
                     }
                 else {
@@ -390,6 +404,11 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
     protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object[] received, StreamSinkChannel sinkchannel) {
         ArrayList<IPromise> futures = new ArrayList<>();
+        if (requestInterceptor != null && received[0] instanceof RemoteCallEntry) {
+            RemoteCallEntry rce = (RemoteCallEntry)received[0];
+            requestInterceptor.accept(rce, exchange);
+        }
+            
         httpObjectSocket.getSink().receiveObject(received, futures);
 
         Runnable reply = () -> {
@@ -402,7 +421,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             } else {
                 httpObjectSocket.storeLPMessage(nextQueuedMessage.cdr(), response);
 
-                long tim = System.nanoTime();
+//                long tim = System.nanoTime();
                 ByteBuffer responseBuf = ByteBuffer.wrap(response);
                 try {
                     while (responseBuf.remaining()>0) {

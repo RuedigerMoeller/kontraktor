@@ -73,10 +73,13 @@ public class ActorServer {
     }
 
     public void start() throws Exception {
-        start(null);
+        start(null, null);
     }
 
-    public void start(Consumer<Actor> disconnectHandler) throws Exception {
+    public void start(Consumer<Actor> disconnectHandler, Consumer<FSTConfiguration> fstConf) throws Exception {
+        if (fstConf != null) {
+            fstConf.accept(conf);
+        }
         connector.connect(facade, writesocket -> {
             AtomicReference<ObjectSocket> socketRef = new AtomicReference<>(writesocket);
             RemoteRegistry reg = new RemoteRegistry( conf.deriveConfiguration(), coding) {
@@ -91,7 +94,11 @@ public class ActorServer {
                 }
             };
             reg.setDisconnectHandler(disconnectHandler);
-            writesocket.setConf(reg.getConf());
+            FSTConfiguration regConf = reg.getConf();
+            if (fstConf != null) {
+                fstConf.accept(regConf);
+            }
+            writesocket.setConf(regConf);
             Actor.current(); // ensure running in actor thread
             poller.get().scheduleSendLoop(reg);
             reg.setFacadeActor(facade);
@@ -105,7 +112,7 @@ public class ActorServer {
                     try {
                         reg.receiveObject(socketRef.get(), sink, received, createdFutures);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        Log.Warn(this, e);
                     }
                 }
 

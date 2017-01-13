@@ -17,6 +17,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.http;
 
 import io.undertow.Undertow;
+import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.PathHandler;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
@@ -24,13 +25,16 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.builder.BldFourK;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
+import org.nustaq.serialization.FSTConfiguration;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -80,26 +84,31 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
             .facade(facade)
             .hostName(hostName)
             .port(port)
-            .urlPath(urlPath);
+            .urlPath(urlPath)
+            .setSessionTimeout(sessionTimeout);
     }
-
-    @Override
-    public IPromise<ActorServer> publish(Consumer<Actor> disconnectCallback) {
+    
+    public IPromise<ActorServer> publish(Consumer<Actor> disconnectCallback, BiConsumer<RemoteCallEntry, HttpServerExchange> requestInterceptor, Consumer<FSTConfiguration> fstConf) {
         ActorServer actorServer;
         try {
             facade.setThrowExWhenBlocked(true);
             Pair<PathHandler, Undertow> serverPair = Http4K.get().getServer(port, hostName);
-            UndertowHttpServerConnector con = new UndertowHttpServerConnector(facade);
+            UndertowHttpServerConnector con = new UndertowHttpServerConnector(facade, requestInterceptor);
             con.setSessionTimeout(sessionTimeout);
             actorServer = new ActorServer( con, facade, coding == null ? new Coding(SerializerType.FSTSer) : coding );
             con.setActorServer(actorServer);
-            actorServer.start(disconnectCallback);
+            actorServer.start(disconnectCallback, fstConf);
             serverPair.getFirst().addPrefixPath(urlPath, con);
         } catch (Exception e) {
             Log.Warn(null, e);
             return new Promise<>(null,e);
         }
         return new Promise<>(actorServer);
+    }
+
+    @Override
+    public IPromise<ActorServer> publish(Consumer<Actor> disconnectCallback) {
+        return publish(disconnectCallback, null, null);
     }
 
     public HttpPublisher hostName(String hostName) {

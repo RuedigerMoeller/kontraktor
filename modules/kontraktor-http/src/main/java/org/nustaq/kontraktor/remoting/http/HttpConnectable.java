@@ -25,6 +25,7 @@ import org.nustaq.kontraktor.remoting.base.ActorClient;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 
 import java.util.function.Consumer;
@@ -53,14 +54,17 @@ public class HttpConnectable implements ConnectableActor {
 
     protected boolean shortPollMode = false;   // if true, do short polling instead
     protected long shortPollIntervalMS = 5000;
+    protected long timeout;
     protected int inboundQueueSize = SimpleScheduler.DEFQSIZE;
+    Consumer<FSTConfiguration> fstConf;
 
     public HttpConnectable() {
     }
 
-    public HttpConnectable(Class clz, String url) {
+    public HttpConnectable(Class clz, String url, Consumer<FSTConfiguration> fstConf) {
         this.clz = clz;
         this.url = url;
+        this.fstConf = fstConf;
     }
 
     public HttpConnectable noPoll(boolean noPoll) {
@@ -92,6 +96,11 @@ public class HttpConnectable implements ConnectableActor {
         this.coding = coding;
         return this;
     }
+    
+    public HttpConnectable timeout(long timeout) {
+        this.timeout = timeout;
+        return this;
+    }
 
     /**
      * overwrites settings made by 'coding'
@@ -116,7 +125,7 @@ public class HttpConnectable implements ConnectableActor {
         Promise p = new Promise();
         con.getRefPollActor().execute(() -> {
             Thread.currentThread().setName("Http Ref Polling");
-            actorClient.connect(inboundQueueSize, null).then(p);
+            actorClient.connect(inboundQueueSize, null, fstConf).then(p);
         });
         return p;
     }
@@ -153,6 +162,10 @@ public class HttpConnectable implements ConnectableActor {
 
     public long getShortPollIntervalMS() {
         return shortPollIntervalMS;
+    }
+    
+    public long getTimeout() {
+        return timeout;
     }
 
     public HttpConnectable inboundQueueSize(final int inboundQSize) {

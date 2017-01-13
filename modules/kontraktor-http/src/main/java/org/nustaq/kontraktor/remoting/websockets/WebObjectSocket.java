@@ -17,6 +17,7 @@ package org.nustaq.kontraktor.remoting.websockets;
 
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.util.FSTUtil;
 
@@ -39,6 +40,22 @@ public abstract class WebObjectSocket implements ObjectSocket {
     protected Throwable lastError;
     protected AtomicInteger sendSequence = new AtomicInteger(0); // defensive
     protected volatile boolean isClosed;
+    protected SendStatistics stats;
+    protected int maxMsgSize;
+    protected int maxMsgSizeSeen;
+    
+    public interface SendStatistics {
+        void updateBytesSent(int bytesSent);
+        void updateLatency(int latency);
+    }
+
+    public SendStatistics getStats() {
+        return stats;
+    }
+
+    public void setStats(SendStatistics stats) {
+        this.stats = stats;
+    }
 
     public AtomicInteger getSendSequence() {
         return sendSequence;
@@ -74,10 +91,41 @@ public abstract class WebObjectSocket implements ObjectSocket {
                 throw new IOException("WebSocket is closed");
             }
         }
-        objects.add(sendSequence.incrementAndGet()); // sequence
+        int seqNr = sendSequence.incrementAndGet();
+        objects.add(seqNr); // sequence
         Object[] objArr = objects.toArray();
+        byte[] asByteArray = conf.asByteArray(objArr);
+        int bytesSent = asByteArray.length;
+        if (maxMsgSize > 0 && bytesSent > maxMsgSize) {
+            // if bundle is too large send all messages separately
+            Log.Warn(this, "bundled msg too large, size=" + bytesSent + " maxMsgSize=" + maxMsgSize + ", #msg=" + (objects.size()-1));
+            bytesSent = 0;
+            int curMaxMsgSize = 0;
+            // last object is sequence number!
+            for (int j = 0; j < objects.size() - 1; j++) {
+                int curSeqNr = (j == 0) ? seqNr : sendSequence.incrementAndGet();
+                objArr = new Object[]{objects.get(j), curSeqNr};
+                asByteArray = conf.asByteArray(objArr);
+                int curLength = asByteArray.length;
+                curMaxMsgSize = Math.max(curMaxMsgSize, curLength);
+                bytesSent += curLength;
+                if (curLength > maxMsgSize) {
+                    Log.Error(this, "single msg too large, size=" + curLength + ", msg=" + objects.get(j));
+                    // send msg anyway, can't hide random messages...
+                }
+                sendBinary(asByteArray);
+            }
+            if (curMaxMsgSize > maxMsgSizeSeen) {
+                maxMsgSizeSeen = curMaxMsgSize;
+                Log.Info(this, "new max single msg size seen: " + curMaxMsgSize);
+            }
+        } else {
+            sendBinary(asByteArray);
+        }
         objects.clear();
-        sendBinary(conf.asByteArray(objArr));
+        if (stats != null) {
+            stats.updateBytesSent(bytesSent);
+        }
     }
 
     @Override

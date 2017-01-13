@@ -17,10 +17,15 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.http;
 
 import org.apache.http.*;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.nustaq.kontraktor.*;
@@ -53,11 +58,11 @@ public class HttpClientConnector implements ActorClientConnector {
     public static int MAX_CONN_PER_ROUTE = 2;
     public static boolean DumpProtocol = false;
 
-    protected static CloseableHttpAsyncClient asyncHttpClient;
-    public static CloseableHttpAsyncClient getClient() {
+    protected CloseableHttpAsyncClient asyncHttpClient;
+    public CloseableHttpAsyncClient getClient() {
         synchronized (HttpClientConnector.class) {
-            if (asyncHttpClient == null ) {
-                asyncHttpClient = HttpAsyncClients.custom()
+            if (asyncHttpClient == null) {
+                HttpAsyncClientBuilder asyncHttpClientBuilder = HttpAsyncClients.custom()
                     .setMaxConnPerRoute(MAX_CONN_PER_ROUTE)
                     .setMaxConnTotal(MAX_CONN_TOTAL)
                     .setDefaultIOReactorConfig(
@@ -66,7 +71,19 @@ public class HttpClientConnector implements ActorClientConnector {
                                     .setSoKeepAlive(true)
                                     .setSoReuseAddress(true)
                                     .build()
-                    ).build();
+                    );
+                ProxySettings proxySettings = ProxySettings.getProxySettings();
+                if (proxySettings != null) {
+                    asyncHttpClientBuilder.setProxy(new HttpHost(proxySettings.getProxy(), proxySettings.getProxyPort()));
+                    if (proxySettings.getProxyUser() != null && proxySettings.getProxyPassword() != null) {
+                        CredentialsProvider credsProvider = new BasicCredentialsProvider();
+                        credsProvider.setCredentials(
+                                new AuthScope(proxySettings.getProxy(), proxySettings.getProxyPort()),
+                                new UsernamePasswordCredentials(proxySettings.getProxyUser(), proxySettings.getProxyPassword()));
+                        asyncHttpClientBuilder.setDefaultCredentialsProvider(credsProvider);
+                    }
+                }
+                asyncHttpClient = asyncHttpClientBuilder.build();
                 asyncHttpClient.start();
             }
             return asyncHttpClient;
@@ -78,6 +95,7 @@ public class HttpClientConnector implements ActorClientConnector {
     volatile boolean isClosed = false;
     Promise closedNotification;
     Callback<ActorClientConnector> disconnectCallback;
+    private long lastLPResponseTime;
     HttpConnectable cfg;
 
     long currentShortPollIntervalMS;
@@ -110,6 +128,7 @@ public class HttpClientConnector implements ActorClientConnector {
             public void completed(HttpResponse result) {
                 if (result.getStatusLine().getStatusCode() != 200) {
                     closeClient();
+                    doAfterClose();
                     res.reject(result.getStatusLine().getStatusCode());
                     return;
                 }
@@ -157,6 +176,7 @@ public class HttpClientConnector implements ActorClientConnector {
     }
 
     Runnable pollRunnable;
+    Runnable checkConnectionLossRunnable;
     protected void startLongPoll(MyHttpWS myHttpWS) {
         if ( cfg.noPoll )
             return;
@@ -166,10 +186,7 @@ public class HttpClientConnector implements ActorClientConnector {
             if ( cfg.shortPollMode ) {
                 getRefPollActor().delayed(currentShortPollIntervalMS, () -> {
                     if (isClosed) {
-                        if (closedNotification != null) {
-                            closedNotification.complete();
-                            closedNotification = null;
-                        }
+                        doAfterClose();
                         return;
                     }
                     try {
@@ -187,10 +204,7 @@ public class HttpClientConnector implements ActorClientConnector {
                 // sends either queued outgoing calls or creates LP request
                 myHttpWS.longPoll().then( (r, e) -> {
                     if (isClosed) {
-                        if (closedNotification != null) {
-                            closedNotification.complete();
-                            closedNotification = null;
-                        }
+                        doAfterClose();
                         return;
                     }
                     if (e == null)
@@ -203,8 +217,40 @@ public class HttpClientConnector implements ActorClientConnector {
         if ( ! cfg.shortPollMode ) {
             getReceiveActor().getCurrentDispatcher().setName("Http LP dispatcher");
             getReceiveActor().execute(pollRunnable);
+            final long timeout = cfg.getTimeout();
+            if (timeout > 0) {
+                checkConnectionLossRunnable = () -> {
+                    if (isClosed) {
+                        return;
+                    }
+                    long timeSinceLastBcast = System.currentTimeMillis() - lastLPResponseTime;
+                    if (timeSinceLastBcast > timeout) {
+                        Log.Warn(this, "Connection Loss detected! Time since last LP response: " + timeSinceLastBcast);
+                        closeClient();
+                    } else {
+                        getReceiveActor().delayed(3000l, checkConnectionLossRunnable);
+                    }
+                };
+                getReceiveActor().execute(() -> lastLPResponseTime = System.currentTimeMillis());
+                getReceiveActor().delayed(timeout+1000, checkConnectionLossRunnable);
+            }
         } else {
             getRefPollActor().execute(pollRunnable);
+        }
+    }
+
+    private void doAfterClose() {
+        if (closedNotification != null) {
+            closedNotification.complete();
+            closedNotification = null;
+        }
+        if (asyncHttpClient != null) {
+            try {
+                Log.Info(this, "close asyncHttpClient: " + asyncHttpClient);
+                asyncHttpClient.close();
+            } catch (Exception e) {
+                Log.Warn(this, e, "exception on close asyncHttpClient");
+            }
         }
     }
 
@@ -368,10 +414,16 @@ public class HttpClientConnector implements ActorClientConnector {
 
         protected Runnable getProcessLPRunnable(Promise p, HttpResponse result) {
             return () -> {
-                if (result.getStatusLine().getStatusCode() == 404) {
+                int statusCode = result.getStatusLine().getStatusCode();
+                if (statusCode == 404) {
+                    Log.Warn(this, "return code 404 received");
                     closeClient();
+                    doAfterClose();
                     p.reject("Closed");
                     return;
+                }
+                if (statusCode == 200) {
+                    lastLPResponseTime = System.currentTimeMillis();
                 }
                 String cl = result.getFirstHeader("Content-Length").getValue();
                 int len = Integer.parseInt(cl);
@@ -418,7 +470,7 @@ public class HttpClientConnector implements ActorClientConnector {
 
         @Override
         public void writeObject(Object toWrite) throws Exception {
-            if ( ! "SP".equals(toWrite) ) { // short polling marker
+            if (cfg.shortPollMode && ! "SP".equals(toWrite)) { // short polling marker
                 // fixme: should check if short polling is enabled !
                 // a call is made
                 // decrease poll interval temporary (backoff)

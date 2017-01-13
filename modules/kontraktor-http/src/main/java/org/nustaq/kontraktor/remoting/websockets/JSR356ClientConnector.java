@@ -16,6 +16,33 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.remoting.websockets;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+
+import javax.websocket.ClientEndpoint;
+import javax.websocket.CloseReason;
+import javax.websocket.ContainerProvider;
+import javax.websocket.OnClose;
+import javax.websocket.OnError;
+import javax.websocket.OnMessage;
+import javax.websocket.OnOpen;
+import javax.websocket.SendHandler;
+import javax.websocket.SendResult;
+import javax.websocket.Session;
+import javax.websocket.WebSocketContainer;
+
+import org.apache.commons.codec.binary.Base64;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
@@ -23,17 +50,31 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
+import org.nustaq.kontraktor.remoting.http.ProxySettings;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.util.FSTUtil;
+import org.xnio.Cancellable;
+import org.xnio.ChannelListener;
+import org.xnio.FutureResult;
+import org.xnio.IoFuture;
+import org.xnio.StreamConnection;
+import org.xnio.http.HttpUpgrade;
 
-import javax.websocket.*;
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import io.undertow.UndertowMessages;
+import io.undertow.client.ClientCallback;
+import io.undertow.client.ClientConnection;
+import io.undertow.client.ClientExchange;
+import io.undertow.client.ClientRequest;
+import io.undertow.client.UndertowClient;
+import io.undertow.protocols.ssl.UndertowXnioSsl;
+import io.undertow.util.Headers;
+import io.undertow.util.Methods;
+import io.undertow.util.Protocols;
+import io.undertow.websockets.client.WebSocketClient;
+import io.undertow.websockets.client.WebSocketClient.ConnectionBuilder;
+import io.undertow.websockets.client.WebSocketClientHandshake;
+import io.undertow.websockets.core.WebSocketChannel;
+import io.undertow.websockets.jsr.ServerWebSocketContainer;
 
 /**
  * Created by ruedi on 10/05/15.
@@ -70,10 +111,11 @@ public class JSR356ClientConnector implements ActorClientConnector {
 
     @Override
     public IPromise connect(Function<ObjectSocket, ObjectSink> factory) throws Exception {
-        endpoint = new WSClientEndpoint(uri,null);
+        IPromise connected = new Promise();
+        endpoint = new WSClientEndpoint(uri,null, connected);
         ObjectSink sink = factory.apply(endpoint);
         endpoint.setSink(sink);
-        return new Promise<>(null);
+        return connected;
     }
 
     @Override
@@ -94,11 +136,26 @@ public class JSR356ClientConnector implements ActorClientConnector {
 
         protected ObjectSink sink;
         protected volatile Session session = null;
+        private volatile IPromise connected;
 
-        public WSClientEndpoint(URI endpointURI, ObjectSink sink) {
+        public WSClientEndpoint(URI endpointURI, ObjectSink sink, IPromise connected) {
+            this.connected = connected;
             try {
                 WebSocketContainer container = ContainerProvider.getWebSocketContainer();
-                container.connectToServer(this, endpointURI);
+                ProxySettings proxySettings = ProxySettings.getProxySettings();
+                if (proxySettings != null) {
+                    ServerWebSocketContainer serverWebSocketContainer = (ServerWebSocketContainer)container;
+                    ConnectionBuilder connectionBuilder = null;
+                    if (proxySettings.getProxyUser() != null) {
+                        connectionBuilder = new ProxyWithAuthenticationUndertowConnectionBuilder(serverWebSocketContainer.getXnioWorker(), serverWebSocketContainer.getBufferPool(), endpointURI, proxySettings.getProxyUser(), proxySettings.getProxyPassword());
+                    } else {
+                        connectionBuilder = new ConnectionBuilder(serverWebSocketContainer.getXnioWorker(), serverWebSocketContainer.getBufferPool(), endpointURI);
+                    }
+                    connectionBuilder.setProxyUri(new URI("http", null, proxySettings.getProxy(), proxySettings.getProxyPort(), "/", null, null));
+                    serverWebSocketContainer.connectToServer(this, connectionBuilder);
+                } else {
+                    container.connectToServer(this, endpointURI);
+                }
                 this.sink = sink;
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -116,6 +173,7 @@ public class JSR356ClientConnector implements ActorClientConnector {
         @OnOpen
         public void onOpen(Session userSession) {
             this.session = userSession;
+            connected.complete();
         }
 
         @OnClose

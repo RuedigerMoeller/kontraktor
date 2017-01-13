@@ -277,8 +277,10 @@ public abstract class RemoteRegistry implements RemoteConnection {
      * @throws Exception
      */
     public boolean receiveObject(ObjectSocket responseChannel, ObjectSink receiver, Object response, List<IPromise> createdFutures) throws Exception {
-        if ( response == RemoteRegistry.OUT_OF_ORDER_SEQ )
+        if ( response == RemoteRegistry.OUT_OF_ORDER_SEQ ) {
+            Log.Warn(this,"out of sequence remote call received");
             return false;
+        }
         if ( response instanceof Object[] ) { // bundling. last element contains sequence
             Object arr[] = (Object[]) response;
             boolean hadResp = false;
@@ -431,15 +433,15 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
     public void receiveCBResult(ObjectSocket chan, long id, Object result, Object error) throws Exception {
         if (facadeActor!=null) {
-            Thread debug = facadeActor.getCurrentDispatcher();
+//            Thread debug = facadeActor.getCurrentDispatcher();
             if ( Thread.currentThread() != facadeActor.getCurrentDispatcher() ) {
                 facadeActor.execute( () -> {
                     try {
-                        if ( Thread.currentThread() != debug )
-                            System.out.println("??");
+//                        if ( Thread.currentThread() != debug )
+//                            System.out.println("??");
                         receiveCBResult(chan,id,result, error);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        Log.Warn(this, e);
                     }
                 });
                 return;

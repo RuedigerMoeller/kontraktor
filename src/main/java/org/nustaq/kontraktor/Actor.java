@@ -353,6 +353,10 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             delayed(1000, () -> remoteConnection.close());
         }
     }
+    
+    protected RemoteConnection getCurrentClient() {
+        return connection.get();
+    }
 
     @Local
     public void asyncstop() {

@@ -23,6 +23,8 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.util.Log;
+import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.util.FSTUtil;
 
 import java.util.List;
@@ -64,12 +66,13 @@ public class ActorClient<T extends Actor> {
     public IPromise<T> connect(int qsiz) {
         return connect(qsiz, null);
     }
-
-    public IPromise<T> connect(int qsiz, Consumer<Actor> discon)
+    
+    public IPromise<T> connect(int qsiz, Consumer<Actor> discon, Consumer<FSTConfiguration> fstConf)
     {
         Promise<T> result = new Promise<>();
         try {
-            client.connect( writesocket -> {
+            Promise<T> temp = new Promise<>();
+            IPromise connect = client.connect( writesocket -> {
                 Actor facadeProxy = Actors.AsActor(facadeClass, new RemoteScheduler(qsiz));
                 facadeProxy.__remoteId = 1;
 
@@ -85,6 +88,9 @@ public class ActorClient<T extends Actor> {
                     }
                 };
                 reg.setDisconnectHandler(discon);
+                if (fstConf != null) {
+                    fstConf.accept(reg.getConf());
+                }
                 if ( coding.getCrossPlatformShortClazzNames() != null )
                    reg.getConf().registerCrossPlatformClassMappingUseSimpleName(coding.getCrossPlatformShortClazzNames());
                 writesocket.setConf(reg.getConf());
@@ -112,16 +118,33 @@ public class ActorClient<T extends Actor> {
                     objectSink.sinkClosed();
 
                 });
-                result.resolve((T) facadeProxy);
+                temp.resolve((T) facadeProxy);
                 return objectSink;
+            });
+            connect.then((r, e)->{
+                if (e != null) {
+                    result.reject(e);
+                }
+                temp.then((r1, e1)-> {
+                    if (!result.isSettled()) {
+                        result.resolve((T) r1);}
+                    }
+                );
             });
         } catch (Exception e) {
             if ( ! result.isSettled() )
                 result.reject(e);
             else
-                e.printStackTrace();
+                Log.Warn(this, e);;
         }
         return result;
+    
+        
+    }
+
+    public IPromise<T> connect(int qsiz, Consumer<Actor> discon)
+    {
+        return connect(qsiz, discon, null);
     }
 
 }

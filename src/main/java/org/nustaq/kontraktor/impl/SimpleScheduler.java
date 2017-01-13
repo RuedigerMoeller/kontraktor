@@ -63,17 +63,30 @@ public class SimpleScheduler implements Scheduler {
         myThread = new DispatcherThread(this,true);
         myThread.start();
     }
+    
+    /**
+    *
+    * @param qsize
+    * @param keepAlive - keep thread idle even if no actor is scheduled. Required for assisted scheduling e.g.
+    * in servers
+    */
+   public SimpleScheduler(int qsize, boolean keepAlive) {
+       this.qsize = qsize;
+       myThread = new DispatcherThread(this,!keepAlive);
+       myThread.start();
+   }
 
     /**
      *
      * @param qsize
      * @param keepAlive - keep thread idle even if no actor is scheduled. Required for assisted scheduling e.g.
-     * in servers
+     * @param threadName name of dispatcher thread
      */
-    public SimpleScheduler(int qsize, boolean keepAlive ) {
-        this.qsize = qsize;
-        myThread = new DispatcherThread(this,!keepAlive);
-        myThread.start();
+    public SimpleScheduler(int qsize, boolean keepAlive, String threadName ) {
+        this(qsize, keepAlive);
+        if (threadName != null) {
+            myThread.setName(threadName);
+        }
     }
 
     @Override

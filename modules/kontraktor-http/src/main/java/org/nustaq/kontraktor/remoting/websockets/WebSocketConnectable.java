@@ -26,6 +26,7 @@ import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.serialization.FSTConfiguration;
 
 import java.net.URISyntaxException;
 import java.util.function.Consumer;
@@ -42,12 +43,14 @@ public class WebSocketConnectable implements ConnectableActor {
     String url;
     Coding coding = new Coding(SerializerType.FSTSer);
     int inboundQueueSize = SimpleScheduler.DEFQSIZE;
+    Consumer<FSTConfiguration> fstConf;
 
     public WebSocketConnectable() {}
 
-    public WebSocketConnectable(Class clz, String url) {
+    public WebSocketConnectable(Class clz, String url, Consumer<FSTConfiguration> fstConf) {
         this.clz = clz;
         this.url = url;
+        this.fstConf = fstConf;
     }
 
     public WebSocketConnectable url(String url) {
@@ -63,7 +66,7 @@ public class WebSocketConnectable implements ConnectableActor {
             try {
                 client = new JSR356ClientConnector(url);
                 ActorClient connector = new ActorClient(client,clz,coding);
-                connector.connect(inboundQueueSize, actorDisconnecCB).then(result);
+                connector.connect(inboundQueueSize, actorDisconnecCB, fstConf).then(result);
             } catch (URISyntaxException e) {
                 e.printStackTrace();
                 result.reject(e);

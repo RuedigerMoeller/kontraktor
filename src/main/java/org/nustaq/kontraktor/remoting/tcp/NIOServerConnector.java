@@ -50,7 +50,7 @@ public class NIOServerConnector extends AsyncServerSocket implements ActorServer
             ActorServer publisher = new ActorServer(new NIOServerConnector(port), facade, coding);
             facade.execute(() -> {
                 try {
-                    publisher.start(disconnectHandler);
+                    publisher.start(disconnectHandler, null);
                     finished.resolve(publisher);
                 } catch (Exception e) {
                     finished.reject(e);

@@ -58,7 +58,7 @@ public class TCPServerConnector implements ActorServerConnector {
             ActorServer publisher = new ActorServer(new TCPServerConnector(port), facade, coding);
             facade.execute(() -> {
                 try {
-                    publisher.start(disconnectCB);
+                    publisher.start(disconnectCB, null);
                     finished.resolve(publisher);
                 } catch (Exception e) {
                     finished.reject(e);
