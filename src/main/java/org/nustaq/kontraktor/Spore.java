@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @AnonymousTransient
 public abstract class Spore<I,O> implements Serializable, Cloneable {
 
-    Callback cb;
+    protected Callback cb;
     transient protected volatile boolean finished;
     transient Callback<O> localCallback;
     transient Promise finSignal = new Promise();
