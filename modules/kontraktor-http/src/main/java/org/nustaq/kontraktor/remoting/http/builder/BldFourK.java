@@ -23,9 +23,11 @@ import org.nustaq.kontraktor.remoting.http.javascript.*;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 
 import javax.net.ssl.SSLContext;
+import javax.xml.ws.spi.http.HttpExchange;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 09.06.2015.
@@ -38,6 +40,7 @@ public class BldFourK {
     boolean httpCachedEnabled = false ;
 
     List items = new ArrayList<>();
+
 
     public BldFourK(String hostName, int port, SSLContext context) {
         this.hostName = hostName;
@@ -139,7 +142,7 @@ public class BldFourK {
                     .stripComments(dr.isStripComments());
                 drm.setImportShim(shim);
                 drm.setTranspilerMap(dr.getTranspilers());
-                http4K.publishResourcePath( getHostName(), dr.getUrlPath(), getPort(), drm, dr.isCompress() );
+                http4K.publishResourcePath( getHostName(), dr.getUrlPath(), getPort(), drm, dr.isCompress(), dr.getHandlerInterceptor() );
             } else {
                 System.out.println("unexpected item " + item);
             }

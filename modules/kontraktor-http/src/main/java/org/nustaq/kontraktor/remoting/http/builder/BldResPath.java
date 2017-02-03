@@ -15,12 +15,13 @@ See https://www.gnu.org/licenses/lgpl.txt
 */
 package org.nustaq.kontraktor.remoting.http.builder;
 
+import io.undertow.server.HttpServerExchange;
 import org.nustaq.kontraktor.remoting.http.javascript.TranspilerHook;
 
-import java.util.ArrayList;
+import javax.xml.ws.spi.http.HttpExchange;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 09.06.2015.
@@ -38,10 +39,20 @@ public class BldResPath {
     boolean stripComments = true;
     boolean minify = true;
     transient Map<String,TranspilerHook> transpilers = new HashMap<>();
+    // all requests are forwarded to this, return true in case function wants to capture the request
+    Function<HttpServerExchange, Boolean> handlerInterceptor;
 
     public BldResPath(BldFourK cfg4k, String urlPath) {
         this.cfg4k = cfg4k;
         this.urlPath = urlPath;
+    }
+    public BldResPath handlerInterceptor(final Function<HttpServerExchange,Boolean> handlerInterceptor) {
+        this.handlerInterceptor = handlerInterceptor;
+        return this;
+    }
+
+    public Function<HttpServerExchange, Boolean> getHandlerInterceptor() {
+        return handlerInterceptor;
     }
 
     /**

@@ -18,6 +18,7 @@ package org.nustaq.kontraktor.remoting.http;
 
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.PathHandler;
 import io.undertow.server.handlers.encoding.EncodingHandler;
 import io.undertow.server.handlers.resource.FileResourceManager;
@@ -30,9 +31,11 @@ import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.util.Pair;
 
 import javax.net.ssl.SSLContext;
+import javax.xml.ws.spi.http.HttpExchange;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 25/05/15.
@@ -143,15 +146,36 @@ public class Http4K {
         server.car().addPrefixPath(urlPath, new ResourceHandler(man ));
         return this;
     }
-
     public Http4K publishResourcePath( String hostName, String urlPath, int port, DynamicResourceManager man, boolean compress ) {
+        return publishResourcePath(hostName,urlPath,port,man,compress,null);
+    }
+
+    public Http4K publishResourcePath(String hostName, String urlPath, int port, DynamicResourceManager man, boolean compress, Function<HttpServerExchange,Boolean> interceptor ) {
         Pair<PathHandler, Undertow> server = getServer(port, hostName);
         ResourceHandler handler = new ResourceHandler(man);
         if ( compress ) {
             HttpHandler httpHandler = new EncodingHandler.Builder().build(new HashMap<>()).wrap(handler);
-            server.car().addPrefixPath( urlPath, httpHandler);
+            if ( interceptor != null ) {
+                server.car().addPrefixPath( urlPath, httpExchange -> {
+                    boolean apply = interceptor.apply(httpExchange);
+                    if ( ! apply ) {
+                        httpHandler.handleRequest(httpExchange);
+                    }
+                });
+            } else {
+                server.car().addPrefixPath( urlPath, httpHandler);
+            }
         } else {
-            server.car().addPrefixPath( urlPath, handler);
+            if ( interceptor != null ) {
+                server.car().addPrefixPath( urlPath, httpExchange -> {
+                    boolean apply = interceptor.apply(httpExchange);
+                    if ( ! apply ) {
+                        handler.handleRequest(httpExchange);
+                    }
+                });
+            } else {
+                server.car().addPrefixPath( urlPath, handler);
+            }
         }
         return this;
     }
