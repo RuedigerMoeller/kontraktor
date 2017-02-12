@@ -105,7 +105,7 @@ public class ActorServer {
                     try {
                         reg.receiveObject(socketRef.get(), sink, received, createdFutures);
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        Log.Error(this,e);
                     }
                 }
 

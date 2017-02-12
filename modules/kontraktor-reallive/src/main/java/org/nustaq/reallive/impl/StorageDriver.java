@@ -171,17 +171,40 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
         }
     }
 
+    /**
+     * apply the function to the record with given key and return the result inside a promise
+     *
+     * changes to the record inside the function are applied to the real record and a change message
+     * is generated.
+     *
+     * In case the function returns a changemessage (add,put,remove ..), the change message is applied
+     * to the original record and the change is broadcasted
+     *
+     * @param key
+     * @param action
+     * @return the result of function.
+     */
     @Override
     public IPromise atomicQuery(K key, RLFunction<Record<K>,Object> action) {
         Record<K> rec = getStore().get(key);
         if ( rec == null ) {
-            return new Promise(action.apply(rec));
+            final Object apply = action.apply(rec);
+            if ( apply instanceof ChangeMessage )
+            {
+                receive( (ChangeMessage) apply ) ;
+            }
+            return new Promise(apply);
         } else {
             PatchingRecord pr = new PatchingRecord(rec);
             final Object res = action.apply(pr);
-            UpdateMessage updates = pr.getUpdates();
-            if ( updates != null ) {
-                receive(updates);
+            if ( res instanceof ChangeMessage )
+            {
+                receive( (ChangeMessage) res ) ;
+            } else {
+                UpdateMessage updates = pr.getUpdates();
+                if (updates != null) {
+                    receive(updates);
+                }
             }
             return new Promise<>(res);
         }

@@ -19,6 +19,20 @@ public interface Mutation<K> {
      */
     IPromise<Boolean> putCAS( RLPredicate<Record<K>> casCondition, K key, Object... keyVals);
     void atomic(K key, RLConsumer action);
+
+    /**
+     * apply the function to the record with given key and return the result inside a promise
+     *
+     * changes to the record inside the function are applied to the real record and a change message
+     * is generated.
+     *
+     * In case the function returns a changemessage (add,put,remove ..), the change message is applied
+     * to the original record and broadcasted
+     *
+     * @param key
+     * @param action
+     * @return the result of function.
+     */
     IPromise atomicQuery(K key, RLFunction<Record<K>,Object> action);
     void atomicUpdate(RLPredicate<Record<K>> filter, RLFunction<Record<K>, Boolean> action);
 
