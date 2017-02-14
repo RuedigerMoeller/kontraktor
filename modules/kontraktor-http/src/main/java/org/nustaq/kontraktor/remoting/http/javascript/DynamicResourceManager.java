@@ -88,13 +88,17 @@ public class DynamicResourceManager extends FileResourceManager {
 
     @Override
     public Resource getResource(String initialPath) {
-        final String normalizedPath;
+        String normalizedPath;
         if (initialPath.startsWith("/")) {
             normalizedPath = initialPath.substring(1);
         } else {
             normalizedPath = initialPath;
         }
         if ( ! isDevMode() ) { // lookup cache if not devmode
+            if ( normalizedPath.startsWith("f5_") ) {
+                lookupCache.clear();
+                return super.getResource(initialPath);
+            }
             Resource res = lookupCache.get(normalizedPath);
             if (res != null) {
                 return res;
@@ -113,9 +117,6 @@ public class DynamicResourceManager extends FileResourceManager {
                 e.printStackTrace();
             }
         } else {
-            if (normalizedPath.endsWith(".js")) {
-                int debug =1;
-            }
             File file = dependencyResolver.locateResource(normalizedPath);
             if ( file != null ) {
                 // FIMXE: could be done via TranspilerHook now ..

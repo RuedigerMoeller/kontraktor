@@ -20,7 +20,11 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.serialization.util.FSTUtil;
 
+import java.io.IOError;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -133,9 +137,13 @@ public class RemoteRefPolling implements Runnable {
                         count++;
                     }
                 } catch (Throwable e) {
-                    Log.Info(this,e);
-                    terminateEntry(i, entry, null, e);
-                    i--;
+                    if ( e instanceof InvocationTargetException && ((InvocationTargetException) e).getTargetException() != null )
+                        e = ((InvocationTargetException) e).getTargetException();
+                    Log.Error(this,e);
+                    if ( e instanceof IOException || e instanceof IOError ) {
+                        terminateEntry(i, entry, null, e);
+                        i--;
+                    }
                 }
             }
             maxit--;

@@ -27,6 +27,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -137,6 +138,7 @@ public class TCPClientConnector implements ActorClientConnector {
             try {
                 super.writeObject(objArr);
             } catch (Exception e) {
+                Log.Error(this, "** FAILED TO SERIALIZE:"+Arrays.toString(objArr));
                 FSTUtil.<RuntimeException>rethrow(e);
             }
 

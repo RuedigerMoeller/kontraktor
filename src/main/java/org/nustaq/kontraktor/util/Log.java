@@ -129,11 +129,7 @@ public class Log extends Actor<Log> {
                 }
                 System.out.println(svString+formatter.format(new Date())+" : "+ tname +" : "+source+" : "+msg);
                 if ( ex != null ) {
-                    if ( sev == INFO ) {
-                        System.out.println(ex.toString());
-                    } else {
-                        ex.printStackTrace(System.out);
-                    }
+                    ex.printStackTrace(System.out);
                 }
             }
         }

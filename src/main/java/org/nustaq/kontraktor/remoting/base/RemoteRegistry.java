@@ -27,10 +27,10 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.util.FSTUtil;
 
+import java.io.IOError;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -435,16 +435,9 @@ public abstract class RemoteRegistry implements RemoteConnection {
     protected void writeObject(ObjectSocket chan, RemoteCallEntry rce) throws Exception {
         try {
             chan.writeObject(rce);
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.Debug(this,"a connection closed '"+e.getMessage()+"', terminating registry");
             disconnect();
-        } catch (InvocationTargetException ite) {
-            if ( ite.getCause() instanceof IOException ) {
-                Log.Debug(this,"a connection closed '"+ite.getMessage()+"', terminating registry");
-                disconnect();
-            } else {
-                throw ite;
-            }
         }
     }
 
@@ -458,7 +451,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                             System.out.println("??");
                         receiveCBResult(chan,id,result, error);
                     } catch (Exception e) {
-                        Log.Error(this,e);
+                        e.printStackTrace();
                     }
                 });
                 return;
@@ -534,15 +527,17 @@ public abstract class RemoteRegistry implements RemoteConnection {
                         if (ce.hasFutureResult()) {
                             futId = registerPublishedCallback(ce.getFutureCB());
                         }
-                        RemoteCallEntry rce = null;
                         try {
-                            rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs());
+                            RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs());
                             rce.setQueue(cb ? rce.CBQ : rce.MAILBOX);
                             writeObject(chan, rce);
                             sumQueued++;
                             hadAnyMsg = true;
                         } catch (Throwable ex) {
-                            if ( ex instanceof IOException) {
+                            if ( ex instanceof InvocationTargetException && ((InvocationTargetException) ex).getTargetException() != null ) {
+                                ex = ((InvocationTargetException) ex).getTargetException();
+                            }
+                            if ( ex instanceof IOError || ex instanceof IOException ) {
                                 chan.setLastError(ex);
                                 if (toRemove == null)
                                     toRemove = new ArrayList();
@@ -550,8 +545,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                                 remoteActor.__stop();
                                 Log.Lg.infoLong(this, ex, "connection closed");
                             } else {
-                                Log.Lg.error(this, null,"encoding error:"+rce);
-                                Log.Lg.error(this, ex, "error during encoding");
+                                Log.Error(this,ex);
                             }
                             break;
                         }

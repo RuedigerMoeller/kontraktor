@@ -34,6 +34,12 @@ public interface Mutation<K> {
      * @return the result of function.
      */
     IPromise atomicQuery(K key, RLFunction<Record<K>,Object> action);
+
+    /**
+     *
+     * @param filter - selects record
+     * @param action - function, the function might modify the record using putField. If false is returned, the record is deleted
+     */
     void atomicUpdate(RLPredicate<Record<K>> filter, RLFunction<Record<K>, Boolean> action);
 
     // FIXME: collides with put key, record
