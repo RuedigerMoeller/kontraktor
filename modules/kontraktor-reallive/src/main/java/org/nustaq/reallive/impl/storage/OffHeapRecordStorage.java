@@ -142,6 +142,14 @@ public class OffHeapRecordStorage implements RecordStorage<String> {
     }
 
     @Override
+    public void resizeIfLoadFactorLarger(double loadFactor, long maxGrow) {
+        double lf = (double)store.getUsedMem()/(double)(store.getUsedMem()+store.getFreeMem());
+        if ( lf >= loadFactor ) {
+            store.resizeStore(store.getCapacityMB()*1024l*1024l * 2,maxGrow);
+        }
+    }
+
+    @Override
     public <T> void forEach(Spore<Record<String>, T> spore) {
         for (Iterator iterator = store.values(); iterator.hasNext(); ) {
             Record<String> record = (Record<String>) iterator.next();

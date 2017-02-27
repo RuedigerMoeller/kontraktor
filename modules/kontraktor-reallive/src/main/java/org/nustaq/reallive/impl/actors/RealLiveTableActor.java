@@ -245,4 +245,13 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
         storageDriver.atomicUpdate(filter, action);
     }
 
+    @Override
+    public IPromise resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes) {
+        Log.Info(this,"resizing table if lf: "+loadFactor+" maxgrow:"+maxGrowBytes);
+        long now = System.currentTimeMillis();
+        storageDriver.resizeIfLoadFactorLarger(loadFactor,maxGrowBytes);
+        Log.Info(this,"resizing duration"+(System.currentTimeMillis()-now));
+        return resolve();
+    }
+
 }

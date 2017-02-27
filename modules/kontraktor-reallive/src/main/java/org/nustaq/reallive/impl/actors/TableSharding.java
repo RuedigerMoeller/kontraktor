@@ -36,6 +36,15 @@ public class TableSharding<K> implements RealLiveTable<K> {
             shards[func.apply(change.getKey())].receive(change);
     }
 
+    public IPromise resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes) {
+        List<IPromise<Object>> futs = new ArrayList<>();
+        for (int i = 0; i < shards.length; i++) {
+            RealLiveTable<K> shard = shards[i];
+            futs.add(shard.resizeIfLoadFactorLarger(loadFactor,maxGrowBytes));
+        }
+        return Actors.all(futs);
+    }
+
     @Override
     public void subscribe(Subscriber<K> subs) {
         AtomicInteger doneCount = new AtomicInteger(shards.length);

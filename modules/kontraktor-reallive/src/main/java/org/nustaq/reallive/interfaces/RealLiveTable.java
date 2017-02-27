@@ -23,4 +23,8 @@ public interface RealLiveTable<K> extends ChangeReceiver<K>, RealLiveStreamActor
      */
     void atomicUpdate(RLPredicate<Record<K>> filter, RLFunction<Record<K>,Boolean> action);
 
+    // administrative .. avoid growing at an arbitrary point in time
+    IPromise resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes);
+
+
 }

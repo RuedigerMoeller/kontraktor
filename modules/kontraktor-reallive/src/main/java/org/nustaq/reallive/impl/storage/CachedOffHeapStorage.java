@@ -77,6 +77,11 @@ public class CachedOffHeapStorage implements RecordStorage<String> {
     }
 
     @Override
+    public void resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes) {
+        offheap.resizeIfLoadFactorLarger(loadFactor,maxGrowBytes);
+    }
+
+    @Override
     public <T> void forEach(Spore<Record<String>, T> spore) {
         onHeap.forEach(spore);
     }

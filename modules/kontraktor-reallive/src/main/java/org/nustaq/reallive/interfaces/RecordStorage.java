@@ -16,5 +16,6 @@ public interface RecordStorage<K> extends RealLiveStreamActor<K> {
     long size();
     StorageStats getStats();
     Stream<Record<K>> stream();
-
+    // administration level method
+    void resizeIfLoadFactorLarger( double loadFactor, long maxGrow );
 }

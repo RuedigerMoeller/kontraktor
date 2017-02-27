@@ -76,5 +76,10 @@ public class HeapRecordStorage<K> implements RecordStorage<K> {
         return map.entrySet().stream().map( en -> en.getValue() );
     }
 
+    @Override
+    public void resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes) {
+        // do nothing
+    }
+
 
 }

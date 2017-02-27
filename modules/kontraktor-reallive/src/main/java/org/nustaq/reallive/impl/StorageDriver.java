@@ -141,6 +141,10 @@ public class StorageDriver<K> implements ChangeReceiver<K>, Mutation<K> {
         return this;
     }
 
+    public void resizeIfLoadFactorLarger( double loadFactor, long maxGrowBytes ) {
+        store.resizeIfLoadFactorLarger(loadFactor, maxGrowBytes);
+    }
+
     @Override
     public IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object... keyVals) {
         Record<K> kRecord = getStore().get(key);
