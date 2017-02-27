@@ -5,6 +5,8 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.impl.BackOffStrategy;
+import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
@@ -20,6 +22,8 @@ import java.util.stream.Collectors;
 
 /**
  * Created by ruedi on 16/04/16.
+ *
+ * Troll demon implementation
  */
 public class ProcessStarter extends Actor<ProcessStarter> {
 
@@ -50,13 +54,20 @@ public class ProcessStarter extends Actor<ProcessStarter> {
         return locateProps( 0, new File("./"), "troll.properties" );
     }
 
+    static HashSet<String> alreadyDumped = new HashSet<>();
     public static Properties locateProps( int d, File cur, String s) throws IOException {
         if ( cur == null || d > 20 || cur.getAbsolutePath().equals("/") )
             return new Properties();
-        if ( new File(cur,s).exists() ) {
+        File pfile = new File(cur, s);
+        if ( pfile.exists() ) {
             Properties par = locateProps(d+1,cur.getParentFile(),s);
             Properties props = new Properties(par);
-            props.load(new FileInputStream(new File(cur,s) ));
+            props.load(new FileInputStream(pfile));
+            String absolutePath = pfile.getAbsolutePath();
+            if ( ! alreadyDumped.contains(absolutePath) ) {
+                System.out.println("reading props from "+ absolutePath);
+                alreadyDumped.add(absolutePath);
+            }
             return props;
         }
         return locateProps(d + 1, cur.getAbsoluteFile().getParentFile(), s);
@@ -335,13 +346,21 @@ public class ProcessStarter extends Actor<ProcessStarter> {
                     while( proc.isAlive() ) {
                         int read = in.read();
                         if ( finalFout != null ) {
-                            finalFout.write(read);
+                            if ( read >= 0 )
+                                finalFout.write(read);
+                            else {
+                                try {
+                                    Thread.sleep(20);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                            }
                         } else {
                             if ( read > 0 ) {
                                 System.out.write(read);
                             } else {
                                 try {
-                                    Thread.sleep(10);
+                                    Thread.sleep(20);
                                 } catch (InterruptedException e) {
                                     e.printStackTrace();
                                 }
@@ -458,7 +477,7 @@ public class ProcessStarter extends Actor<ProcessStarter> {
     }
 
     public static void main(String[] args) throws InterruptedException, IOException {
-
+        BackOffStrategy.SLEEP_NANOS = 10 * 1000 * 1000;
         final ProcessStarterArgs options = new ProcessStarterArgs();
         final JCommander jCommander = new JCommander(options);
         jCommander.parse(args);

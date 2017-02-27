@@ -23,12 +23,14 @@ public class KlusterConf extends HashMap implements Serializable {
         interpret(null,properties, prog);
     }
 
+    // either group matches or processshortname
+    // exception: group "tasks". These are only executed if processshortname matches
     public List<StarterClientArgs> getToStart() {
         return toStart.stream().filter( sca -> {
-            if ( groups == null ||
-                 groups.size() == 0 ||
-                 (sca.getGroup() != null && groups.contains(sca.getGroup())) ||
-                 (sca.getProcessShortName() != null && groups.contains(sca.getProcessShortName())) )
+            if ( ( !"tasks".equals(sca.getGroup()) && // either group is given (and its not "tasks"!!)
+                    ( groups == null || groups.size() == 0 || (sca.getGroup() != null && groups.contains(sca.getGroup())) )
+                 )
+                 || (sca.getProcessShortName() != null && groups.contains(sca.getProcessShortName())) ) // "tasks" group members need to get started by name
             {
                 return true;
             } else {
@@ -57,7 +59,9 @@ public class KlusterConf extends HashMap implements Serializable {
                 }
             } else if ( "process".equals( def.car() ) ) {
                 // resolve commandline string
-                String resolved[] = dequote(resolve((String) def.cdr(), x -> (String) env.getProperty(x)));
+                String unresolvedString = (String) def.cdr();
+                String resolvedString = resolve(unresolvedString, x -> (String) env.getProperty(x));
+                String resolved[] = dequote(resolvedString);
                 StarterClientArgs args = new StarterClientArgs();
                 JCommander jc = new JCommander(args);
                 args = StarterClient.parseStarterConf(resolved,args,jc);
@@ -66,10 +70,10 @@ public class KlusterConf extends HashMap implements Serializable {
                 toStart.add(args);
             } else {
                 if ( def.cdr() instanceof List ) {
-                    if ( groups == null || groups.size() == 0 || groups.contains(def.car()) ) {
-                        System.out.println("start group "+def.car());
+                    if ( !"tasks".equals(def.car()) && (groups == null || groups.size() == 0 || (groups.contains(def.car()))) ) {
+                        System.out.println( "start group "+def.car() );
                     } else {
-                        System.out.println("ignoring group "+def.car());
+                        System.out.println( "ignoring group "+def.car() );
                     }
                     List cdr = (List) def.cdr();
                     Object newOb[] = new Object[cdr.size()];
@@ -124,6 +128,7 @@ public class KlusterConf extends HashMap implements Serializable {
         return resarr;
     }
 
+    // replace $variables by mapping function result
     private String resolve(String cdr, Function<String,String> map) {
         StringBuilder res = new StringBuilder(cdr.length()*2);
         int state = 0;
@@ -159,9 +164,7 @@ public class KlusterConf extends HashMap implements Serializable {
     }
 
     public static void main(String[] args) throws Exception {
-        HashSet<String> gr = new HashSet<>();
-        gr.add("Gravity");
-        KlusterConf conf = new KlusterConf(gr,"/home/ruedi/projects/Juptr/run/prod/cluster.kson");
+        KlusterConf conf = new KlusterConf(new HashSet<>(),"/home/ruedi/projects/kontraktor/modules/kluster-troll/testconfig.kson");
 
         conf.getToStart().forEach(s -> {
             List<String> parameters = s.getParameters();

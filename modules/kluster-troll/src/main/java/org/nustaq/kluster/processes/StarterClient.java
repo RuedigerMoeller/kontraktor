@@ -26,7 +26,7 @@ public class StarterClient {
             parseStarterConf(args, options, jCommander);
             options.underride(ProcessStarter.locateProps(0,new File("./"),"troll.properties"));
 
-            // special to process a whole cluster definition form a file (quite a quick hack)
+            // special to process a whole cluster definition from a file (quite a quick hack)
             HashSet<String> groups = new HashSet<>();
             for (int i = 0; i < options.getParameters().size()-1; i++) {
                 String arg = options.getParameters().get(i);
@@ -37,8 +37,9 @@ public class StarterClient {
                 System.out.println("no processes found in "+args[0]);
                 System.exit(0);
             }
-
-//            StarterClientArgs options = klusterConf.getToStart().get(0);
+            klusterConf.getToStart().forEach( proc -> {
+                System.out.println("will try "+proc.getGroup()+" "+proc.getProcessShortName());
+            });
             try {
                 ProcessStarter starter = (ProcessStarter) new TCPConnectable(ProcessStarter.class, options.getHost(), options.getPort())
                     .connect(
@@ -234,8 +235,12 @@ public class StarterClient {
             lastParms = args[args.length-1];
             args = newargs;
         }
-
-        jCommander.parse(args);
+        try {
+            jCommander.parse(args);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("PARSE FAILURE "+Arrays.toString(args));
+        }
         try {
             inOutOptions.underride(ProcessStarter.locateProps());
         } catch (IOException e) {

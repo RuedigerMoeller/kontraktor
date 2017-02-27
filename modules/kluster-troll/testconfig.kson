@@ -1,0 +1,63 @@
+[
+
+  SRV:  '-name sv0' # default target machine
+
+  base: [
+    SRV:  '-name sv1'
+    process:
+      "-sn Gravity $SRV -sleep 3000 -redirect /home/juptr/logs_01/gravity.log 'java -Dlogfile=gravity.log4j $CP io.juptr.gravity.Gravity -host $GRH -gp $GRP -nolog false'"
+
+    SRV:  '-name sv1'
+    loop_0_5 [
+      process:
+        "-sn DataShard$IDX $SRV -redirect /home/juptr/logs_01/data_$IDX.log 'java $DNODEMEM $GC $CP -Dlogfile=data_$IDX.log4j io.juptr.blackhole.DataShard $DSPB -host 10.29.138.10 -sn $IDX -g $GRH -gp $GRP -nolog false'"
+    ]
+    SRV:  '-name sv2'
+    loop_5_10 [
+      process:
+        "-sn DataShard$IDX $SRV -redirect /home/juptr/logs_01/data_$IDX.log 'java $DNODEMEM $GC $CP -Dlogfile=data_$IDX.log4j io.juptr.blackhole.DataShard $DSPB -host 10.29.138.8 -sn $IDX -g $GRH -gp $GRP -nolog false'"
+    ]
+    # one extra to add a sleep
+    process:
+      "-sn DataShard10 $SRV -sleep 5000 -redirect /home/juptr/logs_01/data_10.log 'java $DNODEMEM $GC $CP -Dlogfile=data_10.log4j io.juptr.blackhole.DataShard -host 10.29.138.8 $DSPB -sn 10 -g $GRH -gp $GRP -nolog false'"
+  ]
+
+  apps: [
+
+    # do not log to nfs drives !!!
+
+    SRV: '-name sv1'
+    process:
+      "-sn Halley $SRV -redirect /home/juptr/logs_01/halley.log 'java $LIBP -Xmx16g $CP $GC -Dlogfile=halley.log4j io.juptr.halley.Halley $DSPB -g $GRH -gp $GRP -nolog false'"
+
+    SRV: '-name sv1'
+    process:
+      "-sn Fusion $SRV -redirect /home/juptr/logs_01/fusion.log 'java $LIBP -Xmx16g $CP $GC -Dlogfile=fusion.log4j io.juptr.fusion.Fusion $DSPB -g $GRH -gp $GRP -export -nolog false'"
+
+    SRV: '-name sv0'
+    process:
+      "-sn Housekeeper $SRV -redirect /home/juptr/logs_01/housekeeper.log 'java $LIBP $GC -verbosegc -Xmx16g $CP -Dlogfile=housekeeper.log4j io.juptr.housekeeper.Housekeeper $DSPB -g $GRH -gp $GRP -nolog false -updateTouchIcons'"
+
+    SRV: '-name sv0'
+    process:
+      "-sn Pushomat $SRV -redirect /home/juptr/logs_01/pushomat.log 'java $LIBP -Xmx8g $CP $GC -Dlogfile=pushomat.log4j io.juptr.pushomat.Pushomat $DSPB -g $GRH -gp $GRP -webhost 10.29.138.9 -webport 7778 -nolog false'"
+  ]
+
+  admin: [
+    SRV: '-name sv2'
+    process:
+      "-sn AdminApp $SRV -redirect /home/juptr/logs_01/admin.log 'java $CP $GC -Dlogfile=admin.log4j io.juptr.fourk.AdminApp $DSPB -g $GRH -gp $GRP -webhost $PUBADMIN -webport $PUBADMINPORT -nolog false'"
+  ]
+
+  web: [
+    SRV: '-name sv2'
+    process:
+      "-sn JuptrApp $SRV -redirect /home/juptr/logs_01/webapp_sv2.log 'java -Xmx12g $GC -verbosegc $CP -Dlogfile=webapp_sv2.log4j io.juptr.fourk.JuptrApp $DSPB -g $GRH -gp $GRP -webhost 10.29.138.8 -prod -webport 7777 -nolog false'"
+  ]
+
+  tasks: [
+    SRV: '-name sv2'
+    process:
+      "-sn TaskApp $SRV -redirect /home/juptr/logs_01/webapp_sv2.log 'java -Xmx12g $GC -verbosegc $CP -Dlogfile=webapp_sv2.log4j io.juptr.fourk.JuptrApp $DSPB -g $GRH -gp $GRP -webhost 10.29.138.8 -prod -webport 7777 -nolog false'"
+  ]
+]
