@@ -689,6 +689,7 @@ window.jsk = window.jsk || (function () {
         var reqData = '{"styp":"array","seq":[1,'+self.lpSeqNo+']}';
         var request = new XMLHttpRequest();
         request.onreadystatechange = function () {
+          // console.log("RESP!!!",JSON.stringify(request));
           if ( request.readyState !== XMLHttpRequest.DONE ) {
             return;
           }
@@ -706,6 +707,7 @@ window.jsk = window.jsk || (function () {
           }
           self.pollErrorsInRow = 0;
           try {
+            // console.log(request);
             var resp = request.responseText; //JSON.parse(request.responseText);
             if ( resp && resp.trim().length > 0 ) {
               var respObject = JSON.parse(resp);

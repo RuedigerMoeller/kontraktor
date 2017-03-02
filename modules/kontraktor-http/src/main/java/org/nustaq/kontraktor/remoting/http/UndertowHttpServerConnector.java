@@ -138,20 +138,14 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                 try {
                     streamSourceChannel.read(buf);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    Log.Warn(this,e);
                 }
                 if ( buf.remaining() == 0 ) {
                     try {
                         requestChannel.shutdownReads();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Log.Warn(this,e);
                     }
-//                    removed as too expensive on unbounded queues
-//                    if ( facade.isMailboxPressured() || facade.isCallbackQPressured() ) {
-//                        exchange.setResponseCode(503);
-//                        exchange.endExchange();
-//                    }
-                    // switch to actor thread
                     facade.execute( () -> requestReceived( exchange, buf.array(), rpath ) );
                 }
             }
@@ -198,7 +192,6 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(sessionId))) {
                 @Override
                 protected int getObjectMaxBatchSize() {
-                    // huge batch size to make up for stupid sync http 1.1 protocol enforcing latency inclusion
                     return HttpObjectSocket.HTTP_BATCH_SIZE;
                 }
 
