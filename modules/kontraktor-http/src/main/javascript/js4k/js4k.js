@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-// version 3.28.0
+// version 3.31.0
 // JavaScript to Kontraktor bridge
 // matches kontraktor 3.0 json-no-ref encoded remoting
-// as I am kind of a JS beginner, hints are welcome :)
 var jskIsNode = false;
 if ( typeof module !== 'undefined' && module.exports ) {
   if ( typeof window === 'undefined')
     window = {}; // node
   jskIsNode = true;
+  XMLHttpRequest = require("./xmlhttpdummy.js");
 }
 
 window.jsk = window.jsk || (function () {
@@ -33,7 +33,6 @@ window.jsk = window.jsk || (function () {
   var sbIdCount = 1;
   var batch = [];
   var batchCB = [];
-
 
   function jsk(){
   }
@@ -831,48 +830,15 @@ window.jsk = window.jsk || (function () {
         processRawRepsonse(request.responseText);
       };
 
-      if ( jskIsNode ) { // there is no fully working xmlhttprequest impl for node ..
-        var post_options = {
-              host: 'localhost',
-              port: '7777',
-              path: '/api/'+self.sessionId,
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json;charset=UTF-8',
-                  'Content-Length': Buffer.byteLength(data)
-              }
-          };
-
-          // Set up the request
-          var rawData = '';
-          var post_req = http.request(post_options, function(res) {
-              res.setEncoding('utf8');
-              res.on('data', function (chunk) {
-                  console.log('Response: ' + chunk);
-                  rawData += chunk;
-              });
-              res.on("end", function () {
-                processRawRepsonse(rawData);
-              });
-              res.on("error", function (err) {
-                res.complete(null,err);
-              });
-          });
-          // post the data
-          post_req.write(data);
-          post_req.end();
-          return res;
-      } else {
-        request.open("POST", self.url+"/"+self.sessionId, true);
-        request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        try {
-          request.send(data);
-        } catch (ex) {
-          console.error(ex);
-          res.complete(null,ex);
-        }
-        return res;
+      request.open("POST", self.url+"/"+self.sessionId, true);
+      request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      try {
+        request.send(data);
+      } catch (ex) {
+        console.error(ex);
+        res.complete(null,ex);
       }
+      return res;
     };
 
     self.onclose = function( eventListener ) {
