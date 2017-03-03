@@ -147,7 +147,7 @@ public class RemoteActorConnection {
         this.connectionListener = connectionListener;
         try {
             if ( Class.forName("org.nustaq.kontraktor.Actor") != null ) {
-                throw new RuntimeException("this client library clashes with full kontraktor release. Use standard kontraktor client if its on the classpath anyway.");
+//                throw new RuntimeException("this client library clashes with full kontraktor release. Use standard kontraktor client if its on the classpath anyway.");
             }
         } catch (ClassNotFoundException e) {
             // expected

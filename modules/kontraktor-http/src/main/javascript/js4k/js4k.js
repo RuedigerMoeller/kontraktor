@@ -18,8 +18,13 @@
 // JavaScript to Kontraktor bridge
 // matches kontraktor 3.0 json-no-ref encoded remoting
 // as I am kind of a JS beginner, hints are welcome :)
-if ( typeof window === 'undefined')
-  window = {}; // node
+var jskIsNode = false;
+if ( typeof module !== 'undefined' && module.exports ) {
+  if ( typeof window === 'undefined')
+    window = {}; // node
+  jskIsNode = true;
+}
+
 window.jsk = window.jsk || (function () {
 
   var futureMap = {}; // future id => promise
@@ -371,7 +376,7 @@ window.jsk = window.jsk || (function () {
       batch = [];
       batchCB = [];
       socket.send(data).then( function( r,e) {
-        if (e!==null) {
+        if (e) {
           currentSocket.socket.termOpenCBs(prev);
         }
       });
@@ -631,7 +636,7 @@ window.jsk = window.jsk || (function () {
       var keys = optCBs;
       if (optCBs) {
       } else {
-        keys = Object.keys(_jsk.futureMap);
+        keys = Object.keys(futureMap);
       }
       for (var i = 0; i < keys.length; i++) {
         var cb = futureMap[keys[i]];
@@ -679,8 +684,8 @@ window.jsk = window.jsk || (function () {
       if ( ! self.isConnected ) {
         setTimeout(self.longPoll,1000);
       } else {
-        var cblen = Object.keys(_jsk.futureMap).length;
-        console.log("CBMAP SIZE ON LP *** ", cblen );
+        var cblen = Object.keys(futureMap).length;
+        console.log("futureMap SIZE ON LP *** ", cblen );
         if ( cblen === 0 ) {
           // in case no pending callback or promise is present => skip LP
           setTimeout(self.longPoll,2000);
@@ -783,6 +788,31 @@ window.jsk = window.jsk || (function () {
       var res = new _jsk.Promise();
       self.batchUnderway = true;
       var request = new XMLHttpRequest();
+
+      function processRawRepsonse(resp) {
+        if (resp && resp.trim().length > 0) {
+          try {
+            var respObject = JSON.parse(resp);
+            //console.log("req:",data);
+            //console.log("resp:",resp);
+            var sequence = respObject.seq[respObject.seq.length - 1];
+            self.handleResurrection(sequence);
+            self.lpSeqNo = processSocketResponse(self.lpSeqNo, respObject, true, self.onmessageHandler, self);
+          } catch (ex) {
+            console.error("exception in callback ", ex);
+            res.complete(null, ex);
+          }
+          try {
+            res.complete("", null);
+          } catch (ex1) {
+            console.error("exception in promise callback ", ex1);
+          }
+        } else {
+          console.log("resp is empty");
+          res.complete("", null);
+        }
+      }
+
       request.onreadystatechange = function () {
         if ( request.readyState !== XMLHttpRequest.DONE ) {
           return;
@@ -798,39 +828,51 @@ window.jsk = window.jsk || (function () {
           res.complete(null,request.status);
           return;
         }
-        var resp = request.responseText; //JSON.parse(request.responseText);
-        if ( resp && resp.trim().length > 0 ) {
-          try {
-            var respObject = JSON.parse(resp);
-            //console.log("req:",data);
-            //console.log("resp:",resp);
-            var sequence = respObject.seq[respObject.seq.length-1];
-            self.handleResurrection(sequence);
-            self.lpSeqNo = processSocketResponse(self.lpSeqNo, respObject, true, self.onmessageHandler, self);
-          } catch (ex) {
-            console.error("exception in callback ",ex);
-            res.complete(null,ex);
-          }
-          try {
-            res.complete("",null);
-          } catch ( ex1 ) {
-            console.error("exception in promise callback ",ex1);
-          }
-        } else {
-          console.log("resp is empty");
-          res.complete("",null);
-        }
+        processRawRepsonse(request.responseText);
       };
 
-      request.open("POST", self.url+"/"+self.sessionId, true);
-      request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-      try {
-        request.send(data);
-      } catch (ex) {
-        console.error(ex);
-        res.complete(null,ex);
+      if ( jskIsNode ) { // there is no fully working xmlhttprequest impl for node ..
+        var post_options = {
+              host: 'localhost',
+              port: '7777',
+              path: '/api/'+self.sessionId,
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json;charset=UTF-8',
+                  'Content-Length': Buffer.byteLength(data)
+              }
+          };
+
+          // Set up the request
+          var rawData = '';
+          var post_req = http.request(post_options, function(res) {
+              res.setEncoding('utf8');
+              res.on('data', function (chunk) {
+                  console.log('Response: ' + chunk);
+                  rawData += chunk;
+              });
+              res.on("end", function () {
+                processRawRepsonse(rawData);
+              });
+              res.on("error", function (err) {
+                res.complete(null,err);
+              });
+          });
+          // post the data
+          post_req.write(data);
+          post_req.end();
+          return res;
+      } else {
+        request.open("POST", self.url+"/"+self.sessionId, true);
+        request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        try {
+          request.send(data);
+        } catch (ex) {
+          console.error(ex);
+          res.complete(null,ex);
+        }
+        return res;
       }
-      return res;
     };
 
     self.onclose = function( eventListener ) {
@@ -865,5 +907,6 @@ window.jsk = window.jsk || (function () {
   return _jsk;
 }());
 
-if ( typeof module !== 'undefined' && module.exports )
+if ( jskIsNode ) {
   module.exports = window.jsk;
+}
