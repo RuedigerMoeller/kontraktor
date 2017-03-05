@@ -116,8 +116,11 @@ public abstract class RemoteRegistry implements RemoteConnection {
 		conf.registerSerializer(Actor.class,new ActorRefSerializer(this),true);
 		conf.registerSerializer(CallbackWrapper.class, new CallbackRefSerializer(this), true);
 		conf.registerSerializer(Spore.class, new SporeRefSerializer(), true);
-		conf.registerClass(RemoteCallEntry.class);
-		conf.registerSerializer(Timeout.class, new TimeoutSerializer(), false);
+        conf.registerSerializer(Timeout.class, new TimeoutSerializer(), false);
+        conf.registerClass(RemoteCallEntry.class);
+        conf.registerClass(Spore.class);
+        conf.registerClass(CallbackWrapper.class);
+        conf.registerClass(Actor.class);
 	}
 
     public Actor getPublishedActor(long id) {
@@ -318,6 +321,10 @@ public abstract class RemoteRegistry implements RemoteConnection {
     // dispatch incoming remotecalls
     protected boolean processRemoteCallEntry(ObjectSocket objSocket, RemoteCallEntry response, List<IPromise> createdFutures ) throws Exception {
         RemoteCallEntry read = response;
+        if ( read.getSerializedArgs() != null ) {
+            read.setArgs((Object[]) conf.asObject(read.getSerializedArgs()));
+            read.setSerializedArgs(null);
+        }
         boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
         if ( isContinue )
             read.getArgs()[1] = Callback.CONT; // enable ==
@@ -457,7 +464,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 return;
             }
         }
-        RemoteCallEntry rce = new RemoteCallEntry(0, id, null, new Object[] {result,error});
+        RemoteCallEntry rce = new RemoteCallEntry(0, id, null, new Object[] {result,error}, null);
         rce.setQueue(rce.CBQ);
         writeObject(chan, rce);
     }
@@ -528,7 +535,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                             futId = registerPublishedCallback(ce.getFutureCB());
                         }
                         try {
-                            RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs());
+                            RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs(), ce.getSerializedArgs() );
                             rce.setQueue(cb ? rce.CBQ : rce.MAILBOX);
                             writeObject(chan, rce);
                             sumQueued++;

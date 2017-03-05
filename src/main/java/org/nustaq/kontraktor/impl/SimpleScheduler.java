@@ -156,7 +156,7 @@ public class SimpleScheduler implements Scheduler {
 
     @Override
     public Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
-        return enqueueCallFromRemote(null,sendingActor,receiver,methodName,args,isCB);
+        return enqueueCallFromRemote((RemoteRegistry) receiver.__clientConnection,sendingActor,receiver,methodName,args,isCB);
     }
 
     @Override
@@ -176,6 +176,11 @@ public class SimpleScheduler implements Scheduler {
             }
         }
 
+        CallEntry e = createCallentry(reg, args, isCB, actor, method);
+        return put2QueuePolling(e);
+    }
+
+    protected CallEntry createCallentry(RemoteRegistry reg, Object[] args, boolean isCB, Actor actor, Method method) {
         CallEntry e = new CallEntry(
                 actor, // target
                 method,
@@ -185,7 +190,7 @@ public class SimpleScheduler implements Scheduler {
                 isCB
         );
         e.setRemoteRefRegistry(reg);
-        return put2QueuePolling(e);
+        return e;
     }
 
     @Override

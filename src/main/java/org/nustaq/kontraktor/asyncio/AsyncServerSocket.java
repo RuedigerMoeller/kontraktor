@@ -123,7 +123,7 @@ public class AsyncServerSocket {
                                             // yield ?
                                         }
                                     } catch (Exception ioe) {
-//                                        ioe.printStackTrace();
+                                        ioe.printStackTrace();
                                         con.closed(ioe);
                                         key.cancel();
                                         try {

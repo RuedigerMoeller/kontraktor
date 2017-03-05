@@ -49,7 +49,7 @@ var jskXMLHttpRequest = function() {
         self.readyState = self.DONE;
         self.status = 500;
         self.statusText = ""+err;
-        self.responseText = err;
+        self.responseText = "";
         self.onreadystatechange();
       });
     });

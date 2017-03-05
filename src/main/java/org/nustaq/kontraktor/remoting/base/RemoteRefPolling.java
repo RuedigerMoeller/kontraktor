@@ -90,11 +90,11 @@ public class RemoteRefPolling implements Runnable {
         underway = true;
         try {
             int count = 1;
-            while( count > 0 ) {
+            while( count > 0 ) { // as long there are messages, keep sending them
                 count = onePoll();
                 if ( sendJobs.size() > 0 ) {
                     if ( count > 0 ) {
-//                        Actor.current().yield();
+                        int debug =1;
                     }
                     else {
                         if ( remoteRefCounter == 0 ) // no remote actors registered

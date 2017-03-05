@@ -109,7 +109,6 @@ public class ActorClient<T extends Actor> {
                 reg.registerRemoteRefDirect(facadeProxy);
                 poller.get().scheduleSendLoop(reg).then( () -> {
                     objectSink.sinkClosed();
-
                 });
                 result.resolve((T) facadeProxy);
                 return objectSink;

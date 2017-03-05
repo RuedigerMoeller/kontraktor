@@ -18,7 +18,9 @@ package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 
+import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 
 /**
@@ -58,4 +60,20 @@ public class RemoteScheduler extends SimpleScheduler {
     public <T> void runBlockingCall(Actor emitter, Callable<T> toCall, Callback<T> resultHandler) {
         throw new RuntimeException("cannot be used on a remote reference (no thread)");
     }
+
+    protected CallEntry createCallentry(RemoteRegistry reg, Object[] args, boolean isCB, Actor actor, Method method) {
+
+        CallEntry e = new CallEntry(
+            actor, // target
+            method,
+            null,
+            Actor.sender.get(), // enqueuer
+            actor,
+            isCB
+        );
+        e.setRemoteRefRegistry(reg);
+        e.serializedArgs(reg.getConf().asByteArray(args));
+        return e;
+    }
+
 }

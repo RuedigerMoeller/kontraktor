@@ -34,13 +34,21 @@ public class RemoteCallEntry implements Serializable {
     String method;
     @ArgTypes
     Object args[];
+    byte[] serializedArgs;
     int queue;
 
-    public RemoteCallEntry(long futureKey, long receiverKey, String method, Object[] args) {
+    public RemoteCallEntry() {}
+
+    public RemoteCallEntry(long futureKey, long receiverKey, String method, Object[] args, byte[] serializedArgs) {
         this.receiverKey = receiverKey;
         this.futureKey = futureKey;
         this.method = method;
         this.args = args;
+        this.serializedArgs = serializedArgs;
+    }
+
+    public byte[] getSerializedArgs() {
+        return serializedArgs;
     }
 
     public int getQueue() {
@@ -92,6 +100,10 @@ public class RemoteCallEntry implements Serializable {
                 ", args=" + Arrays.toString(args) +
                 ", queue=" + queue +
                 '}';
+    }
+
+    public void setSerializedArgs(byte[] serializedArgs) {
+        this.serializedArgs = serializedArgs;
     }
 }
 
