@@ -56,7 +56,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
     public static int MAX_BATCH_CALLS = 500;
     private ActorServer server;
 
-
     public static void registerDefaultClassMappings(FSTConfiguration conf) {
         conf.registerCrossPlatformClassMapping(new String[][]{
             {"call", RemoteCallEntry.class.getName()},
