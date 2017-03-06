@@ -3,6 +3,7 @@ package org.nustaq.reallive.interfaces;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.reallive.impl.FilterSpore;
+import org.nustaq.reallive.impl.MapSpore;
 import org.nustaq.reallive.impl.QueryPredicate;
 
 import java.text.ParseException;
@@ -31,6 +32,10 @@ public interface RealLiveStreamActor<K> {
     }
     @CallerSideMethod default void filter( RLPredicate<Record<K>> predicate, Callback<Record<K>> cb ) {
         forEach(new FilterSpore<>(predicate,null).setForEach(cb).onFinish( () -> cb.finish() ));
+    }
+
+    @CallerSideMethod default <R> void map( RLPredicate<Record<K>> predicate, RLFunction<Record<K>,R> mapFun, Callback<R> cb ) {
+        forEach(new MapSpore<>(predicate,mapFun).setForEach(cb).onFinish( () -> cb.finish() ));
     }
 
     @CallerSideMethod default void query(String query, Callback<Record<K>> cb) throws ParseException {
