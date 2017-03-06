@@ -91,6 +91,7 @@ public class ActorServer {
                 }
             };
             reg.setDisconnectHandler(disconnectHandler);
+            reg.constraints(connector.getConstraints());
             writesocket.setConf(reg.getConf());
             Actor.current(); // ensure running in actor thread
             poller.get().scheduleSendLoop(reg);
@@ -101,9 +102,9 @@ public class ActorServer {
             return new ObjectSink() {
 
                 @Override
-                public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures) {
+                public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures, Object securityContext) {
                     try {
-                        reg.receiveObject(socketRef.get(), sink, received, createdFutures);
+                        reg.receiveObject(socketRef.get(), sink, received, createdFutures, securityContext);
                     } catch (Exception e) {
                         Log.Error(this,e);
                     }

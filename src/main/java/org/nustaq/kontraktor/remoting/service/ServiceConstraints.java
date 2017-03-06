@@ -7,9 +7,9 @@ import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
  */
 public interface ServiceConstraints {
 
-    // create and register a new session token (~connect)
-    String createToken(String secret);
+    // register a new session token (~connect)
+    DenialReason registerToken(String token, String uname);
     // verify if remote call is allowed and within SLAs
-    DenialReason isCallValid(String token, RemoteCallEntry rce);
+    DenialReason isCallValid(Object token, RemoteCallEntry rce);
 
 }

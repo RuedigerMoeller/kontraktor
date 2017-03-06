@@ -31,10 +31,11 @@ public interface ObjectSink {
      * @param sink - usually this or a wrapper of this
      * @param received - decoded object(s)
      * @param createdFutures - list of futures/callbacks contained in the decoded object remote calls (unused)
+     * @param securityContext
      */
-    void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures);
-    default void receiveObject(Object received, List<IPromise> createdFutures) {
-        receiveObject(this,received,createdFutures);
+    void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures, Object securityContext);
+    default void receiveObject(Object received, List<IPromise> createdFutures, Object securityContext) {
+        receiveObject(this,received,createdFutures, securityContext);
     }
     void sinkClosed();
 

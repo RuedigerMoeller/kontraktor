@@ -400,7 +400,7 @@ public class HttpClientConnector implements ActorClientConnector {
                                 lastReceivedSequence = sequence;
                         }
                         if (send) {
-                            sink.receiveObject(o, null);
+                            sink.receiveObject(o, null, null );
                         }
                         else {
 //                            Log.Warn(this, "IGNORED LP RESPONSE, OUT OF SEQ");

@@ -18,6 +18,8 @@ package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.remoting.service.ServiceConstraints;
+
 import java.util.function.Function;
 
 /**
@@ -29,5 +31,8 @@ public interface ActorServerConnector {
 
     void connect(Actor facade, Function<ObjectSocket, ObjectSink> factory) throws Exception;
     IPromise closeServer();
+    default ServiceConstraints getConstraints() {
+        return null;
+    }
 
 }

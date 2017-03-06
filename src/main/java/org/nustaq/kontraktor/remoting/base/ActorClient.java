@@ -93,9 +93,9 @@ public class ActorClient<T extends Actor> {
 
                 ObjectSink objectSink = new ObjectSink() {
                     @Override
-                    public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures) {
+                    public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures, Object securityContext) {
                         try {
-                            reg.receiveObject(socketRef.get(), sink, received, createdFutures);
+                            reg.receiveObject(socketRef.get(), sink, received, createdFutures, securityContext );
                         } catch (Exception e) {
                             FSTUtil.rethrow(e);
                         }

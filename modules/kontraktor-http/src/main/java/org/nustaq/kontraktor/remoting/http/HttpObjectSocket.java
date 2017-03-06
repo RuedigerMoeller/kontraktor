@@ -30,7 +30,6 @@ import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -193,8 +192,8 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     }
 
     @Override
-    public void receiveObject(ObjectSink asink, Object received, List<IPromise> createdFutures) {
-        sink.receiveObject(asink,received, createdFutures);
+    public void receiveObject(ObjectSink asink, Object received, List<IPromise> createdFutures, Object securityContext) {
+        sink.receiveObject(asink,received, createdFutures, securityContext);
     }
 
     @Override

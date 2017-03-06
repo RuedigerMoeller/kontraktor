@@ -26,7 +26,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by ruedi on 02/04/15.
@@ -156,11 +155,11 @@ public class SimpleScheduler implements Scheduler {
 
     @Override
     public Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
-        return enqueueCallFromRemote((RemoteRegistry) receiver.__clientConnection,sendingActor,receiver,methodName,args,isCB);
+        return enqueueCallFromRemote((RemoteRegistry) receiver.__clientConnection,sendingActor,receiver,methodName,args,isCB, null);
     }
 
     @Override
-    public Object enqueueCallFromRemote(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
+    public Object enqueueCallFromRemote(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB, Object securityContext) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
         Actor actor = receiver.getActor();

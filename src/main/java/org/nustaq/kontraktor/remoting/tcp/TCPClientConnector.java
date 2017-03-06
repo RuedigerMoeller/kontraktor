@@ -18,7 +18,6 @@ package org.nustaq.kontraktor.remoting.tcp;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.*;
-import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.net.TCPObjectSocket;
 import org.nustaq.serialization.util.FSTUtil;
@@ -74,7 +73,7 @@ public class TCPClientConnector implements ActorClientConnector {
             while (!socket.isClosed()) {
                 try {
                     Object o = socket.readObject();
-                    sink.receiveObject(o, null);
+                    sink.receiveObject(o, null, null );
                 } catch (Exception e) {
                     if (e instanceof EOFException == false && e instanceof SocketException == false )
                         Log.Warn(this, e);

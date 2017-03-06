@@ -96,14 +96,14 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
                        protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
                            String data = message.getData();
                            byte[] bytez = data.getBytes("UTF-8");
-                           sink.receiveObject(objectSocket.getConf().asObject(bytez), null);
+                           sink.receiveObject(objectSocket.getConf().asObject(bytez), null, null );
                        }
 
                        @Override
                        protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
                            ByteBuffer[] data = message.getData().getResource();
                            byte[] bytez = Buffers.take(data, 0, data.length);
-                           sink.receiveObject(objectSocket.getConf().asObject(bytez), null);
+                           sink.receiveObject(objectSocket.getConf().asObject(bytez), null, null );
                        }
                     });
                     latch.countDown();

@@ -23,6 +23,8 @@ import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.impl.InternalActorStoppedException;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.encoding.*;
+import org.nustaq.kontraktor.remoting.service.DenialReason;
+import org.nustaq.kontraktor.remoting.service.ServiceConstraints;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.util.FSTUtil;
@@ -40,7 +42,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Created by moelrue on 5/7/15.
@@ -65,6 +66,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
     public static BiFunction remoteCallMapper; // if set, each remote call and callback is mapped through
 
+    protected ServiceConstraints constraints;
     protected FSTConfiguration conf;
     protected RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
     // holds published actors, futures and callbacks of this process
@@ -102,6 +104,15 @@ public abstract class RemoteRegistry implements RemoteConnection {
         registerDefaultClassMappings(conf);
         configureSerialization(code);
 	}
+
+    public RemoteRegistry constraints(final ServiceConstraints constraints) {
+        this.constraints = constraints;
+        return this;
+    }
+
+    public ServiceConstraints getConstraints() {
+        return constraints;
+    }
 
     public BiFunction<Actor, String, Boolean> getRemoteCallInterceptor() {
         return remoteCallInterceptor;
@@ -278,10 +289,11 @@ public abstract class RemoteRegistry implements RemoteConnection {
      * @param responseChannel - writer required to route callback messages
      * @param response
      * @param createdFutures - can be null. Contains futures created by the submitted callsequence
+     * @param authContext
      * @return
      * @throws Exception
      */
-    public boolean receiveObject(ObjectSocket responseChannel, ObjectSink receiver, Object response, List<IPromise> createdFutures) throws Exception {
+    public boolean receiveObject(ObjectSocket responseChannel, ObjectSink receiver, Object response, List<IPromise> createdFutures, Object authContext) throws Exception {
         if ( response == RemoteRegistry.OUT_OF_ORDER_SEQ ) {
             Log.Warn(this,"out of sequence remote call received");
             return false;
@@ -302,7 +314,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                     if ( resp != null && ! "SP".equals(resp) ) // FIXME: hack for short polling
                         Log.Lg.error(this, null, "unexpected response:" + resp); // fixme
                     hadResp = true;
-                } else if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) resp, createdFutures))
+                } else if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) resp, createdFutures, authContext))
                     hadResp = true;
             }
             return hadResp;
@@ -312,13 +324,22 @@ public abstract class RemoteRegistry implements RemoteConnection {
                     Log.Lg.error(this, null, "unexpected response:" + response); // fixme
                 return true;
             }
-            if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) response, createdFutures)) return true;
+            if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) response, createdFutures, authContext)) return true;
         }
         return false;
     }
 
     // dispatch incoming remotecalls
-    protected boolean processRemoteCallEntry(ObjectSocket objSocket, RemoteCallEntry response, List<IPromise> createdFutures ) throws Exception {
+    protected boolean processRemoteCallEntry(ObjectSocket objSocket, RemoteCallEntry response, List<IPromise> createdFutures, Object authContext) throws Exception {
+        if ( constraints != null ) {
+            DenialReason callValid = constraints.isCallValid(authContext, response);
+            if ( callValid != null ) {
+                objSocket.writeObject(callValid);
+                objSocket.flush();
+                objSocket.close();
+                return true;
+            }
+        }
         RemoteCallEntry read = response;
         if ( read.getSerializedArgs() != null ) {
             read.setArgs((Object[]) conf.asObject(read.getSerializedArgs()));
@@ -360,7 +381,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 return false;
             }
             try {
-                Object future = targetActor.getScheduler().enqueueCallFromRemote(this, null, targetActor, read.getMethod(), read.getArgs(), false);
+                Object future = targetActor.getScheduler().enqueueCallFromRemote(this, null, targetActor, read.getMethod(), read.getArgs(), false, null);
                 if ( future instanceof IPromise) {
                     Promise p = null;
                     if ( createdFutures != null ) {

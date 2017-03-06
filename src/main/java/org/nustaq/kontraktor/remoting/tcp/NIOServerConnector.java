@@ -27,7 +27,6 @@ import org.nustaq.kontraktor.remoting.encoding.Coding;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -99,7 +98,7 @@ public class NIOServerConnector extends AsyncServerSocket implements ActorServer
 
         public void init( ObjectSink sink ) { this.sink = sink; }
 
-        @Override public void receivedObject(Object o) { sink.receiveObject(o, null); }
+        @Override public void receivedObject(Object o) { sink.receiveObject(o, null, null ); }
 
         @Override
         public void closed(Throwable ioe) {

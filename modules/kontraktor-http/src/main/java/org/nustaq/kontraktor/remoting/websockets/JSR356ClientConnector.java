@@ -136,7 +136,7 @@ public class JSR356ClientConnector implements ActorClientConnector {
                 System.out.println("resp:");
                 System.out.println(new String(message,0));
             }
-            sink.receiveObject(conf.asObject(message), null);
+            sink.receiveObject(conf.asObject(message), null, null );
         }
 
         @OnMessage
@@ -145,7 +145,7 @@ public class JSR356ClientConnector implements ActorClientConnector {
                 System.out.println("resp:");
                 System.out.println(message);
             }
-            sink.receiveObject(conf.asObject(message.getBytes() /*is already utf 8*/), null);
+            sink.receiveObject(conf.asObject(message.getBytes() /*is already utf 8*/), null, null );
         }
 
         public void sendText(String message) {

@@ -208,6 +208,7 @@ window.jsk = window.jsk || (function () {
    * @returns {jsk.Promise}
    */
   _jsk.socket = null;
+  _jsk.token = null;
   _jsk.remoteApp = null;
   _jsk.connect = function(wsurl, connectionMode, optErrorcallback) {
     var res = new _jsk.Promise();
@@ -245,6 +246,7 @@ window.jsk = window.jsk || (function () {
     });
     socket.onclose( function() {
       _jsk.socket = null;
+      _jsk.token = null;
       if ( ! res.isCompleted() )
         res.complete(null,"closed");
       if ( optErrorcallback )
@@ -731,6 +733,8 @@ window.jsk = window.jsk || (function () {
         if ( self.longPollUnderway == 0 ) {
           request.open("POST", self.url+"/"+self.sessionId, true);
           request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+          if ( self.token )
+            request.setRequestHeader("token", self.token );
           self.longPollUnderway++;
           try {
             request.send(reqData); // this is actually auth data currently unused. keep stuff websocket alike for now
@@ -832,6 +836,9 @@ window.jsk = window.jsk || (function () {
 
       request.open("POST", self.url+"/"+self.sessionId, true);
       request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      if ( self.token )
+        request.setRequestHeader("token", self.token );
+
       try {
         request.send(data);
       } catch (ex) {
@@ -866,6 +873,8 @@ window.jsk = window.jsk || (function () {
 
     request.open("POST", self.url, true);
     request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    if ( self.token )
+      request.setRequestHeader("token", self.token );
     request.send("null"); // this is actually auth data currently unused. keep stuff websocket alike for now
     return this;
   };

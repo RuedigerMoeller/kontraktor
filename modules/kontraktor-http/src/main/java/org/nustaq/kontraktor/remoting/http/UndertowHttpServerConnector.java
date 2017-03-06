@@ -23,6 +23,7 @@ import io.undertow.util.Methods;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.SessionResurrector;
 import org.nustaq.kontraktor.remoting.base.*;
+import org.nustaq.kontraktor.remoting.service.ServiceConstraints;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.FSTConfiguration;
@@ -78,10 +79,21 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
     long sessionTimeout = SESSION_TIMEOUT_MS;
     volatile boolean isClosed = false;
     private ActorServer actorServer;
+    ServiceConstraints constraints;
 
     public UndertowHttpServerConnector(Actor facade) {
         this.facade = facade;
         facade.delayed( HttpObjectSocket.LP_TIMEOUT/2, () -> houseKeeping() );
+    }
+
+    public UndertowHttpServerConnector constraints(final ServiceConstraints constraints) {
+        this.constraints = constraints;
+        return this;
+    }
+
+    @Override
+    public ServiceConstraints getConstraints() {
+        return constraints;
     }
 
     public void houseKeeping() {
@@ -383,7 +395,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
     protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object[] received, StreamSinkChannel sinkchannel) {
         ArrayList<IPromise> futures = new ArrayList<>();
-        httpObjectSocket.getSink().receiveObject(received, futures);
+        httpObjectSocket.getSink().receiveObject(received, futures, exchange.getRequestHeaders().getFirst("token") );
 
         Runnable reply = () -> {
             // piggy back outstanding lp messages, outstanding lp request is untouched

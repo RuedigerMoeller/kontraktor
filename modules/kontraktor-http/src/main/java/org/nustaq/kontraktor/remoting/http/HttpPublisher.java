@@ -26,6 +26,7 @@ import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.builder.BldFourK;
+import org.nustaq.kontraktor.remoting.service.ServiceConstraints;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
@@ -85,11 +86,16 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
 
     @Override
     public IPromise<ActorServer> publish(Consumer<Actor> disconnectCallback) {
+        return publish(disconnectCallback,null);
+    }
+
+    public IPromise<ActorServer> publish(Consumer<Actor> disconnectCallback, ServiceConstraints constraints) {
         ActorServer actorServer;
         try {
             facade.setThrowExWhenBlocked(true);
             Pair<PathHandler, Undertow> serverPair = Http4K.get().getServer(port, hostName);
             UndertowHttpServerConnector con = new UndertowHttpServerConnector(facade);
+            con.constraints(constraints);
             con.setSessionTimeout(sessionTimeout);
             actorServer = new ActorServer( con, facade, coding == null ? new Coding(SerializerType.FSTSer) : coding );
             con.setActorServer(actorServer);

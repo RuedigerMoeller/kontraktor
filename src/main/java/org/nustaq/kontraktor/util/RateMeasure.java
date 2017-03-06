@@ -17,6 +17,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.util;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 /**
  * Created with IntelliJ IDEA.
@@ -45,11 +46,12 @@ public class RateMeasure {
         this.name = name;
     }
 
-    public void count() {
+    public long count() {
         int c = count.incrementAndGet();
         if ( (c & ~checkEachMask) == c ) {
             checkStats();
         }
+        return lastRatePersecond;
     }
 
     private void checkStats() {
@@ -68,7 +70,7 @@ public class RateMeasure {
      * @param lastRatePersecond
      */
     protected void statsUpdated(long lastRatePersecond) {
-        Log.Info(this,"***** Stats for "+name+":   "+lastRatePersecond+"   per second *********");
+        //Log.Info(this,"***** Stats for "+name+":   "+lastRatePersecond+"   per second *********");
     }
 
 
