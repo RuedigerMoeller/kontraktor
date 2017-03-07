@@ -208,7 +208,6 @@ window.jsk = window.jsk || (function () {
    * @returns {jsk.Promise}
    */
   _jsk.socket = null;
-  _jsk.token = null;
   _jsk.remoteApp = null;
   _jsk.connect = function(wsurl, connectionMode, optErrorcallback) {
     var res = new _jsk.Promise();
@@ -221,6 +220,8 @@ window.jsk = window.jsk || (function () {
       socket = new _jsk.KontraktorSocket(wsurl);
     } else if ( "HTLP" === connectionMode || "HTTP" === connectionMode ) {
       socket = new _jsk.KontraktorPollSocket(wsurl, "HTLP" === connectionMode );
+    } else if ( connectionMode && connectionMode.uname && connectionMode.token ) { // token
+      socket = new _jsk.KontraktorPollSocket(wsurl, true,connectionMode.token, connectionMode.uname );
     } else {
       console.log("unknown connectionMode, default to HTLP");
       socket = new _jsk.KontraktorPollSocket(wsurl, true );
@@ -246,7 +247,6 @@ window.jsk = window.jsk || (function () {
     });
     socket.onclose( function() {
       _jsk.socket = null;
-      _jsk.token = null;
       if ( ! res.isCompleted() )
         res.complete(null,"closed");
       if ( optErrorcallback )
@@ -609,13 +609,15 @@ window.jsk = window.jsk || (function () {
   }; // KontraktorSocket
 
 
-  _jsk.KontraktorPollSocket = function( url, doLongPoll ) {
+  _jsk.KontraktorPollSocket = function( url, doLongPoll, token, uname ) {
     var self = this;
 
     currentSocket.socket = self;
 
     self.doLongPoll = doLongPoll ? doLongPoll : true;
     self.url = url;
+    self.uname = uname;
+    self.token = token;
     self.sessionId = null;
     self.onopenHandler = null;
     self.onerrorHandler = null;
@@ -633,7 +635,9 @@ window.jsk = window.jsk || (function () {
     }
 
     // throw an error to all open callbacks and close them or reply with response of cache delegate
-    self.termOpenCBs = function(optCBs) {
+    self.termOpenCBs = function(optCBs,error) {
+      if ( ! error )
+        error = "connection error";
       var keys = optCBs;
       if (optCBs) {
       } else {
@@ -652,7 +656,7 @@ window.jsk = window.jsk || (function () {
             }
           } else {
             try {
-              cb.complete(null, "connection error"); // promise.complete(result, error)
+              cb.complete(null, error ); // promise.complete(result, error)
             } catch (ex) {
               console.error(ex);
             }
@@ -800,6 +804,10 @@ window.jsk = window.jsk || (function () {
             //console.log("resp:",resp);
             var sequence = respObject.seq[respObject.seq.length - 1];
             self.handleResurrection(sequence);
+            if ( respObject.seq && respObject.seq.length == 3 && typeof respObject.seq[1] === 'string') { // error
+              self.termOpenCBs(null,respObject.seq[1]);
+              return;
+            }
             self.lpSeqNo = processSocketResponse(self.lpSeqNo, respObject, true, self.onmessageHandler, self);
           } catch (ex) {
             console.error("exception in callback ", ex);
@@ -875,6 +883,8 @@ window.jsk = window.jsk || (function () {
     request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     if ( self.token )
       request.setRequestHeader("token", self.token );
+    if ( self.uname )
+      request.setRequestHeader("uname", self.uname );
     request.send("null"); // this is actually auth data currently unused. keep stuff websocket alike for now
     return this;
   };

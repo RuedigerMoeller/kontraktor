@@ -31,7 +31,7 @@ public class RateMeasure {
 
     AtomicInteger count = new AtomicInteger(0);
     long lastStats;
-    int checkEachMask = 127;
+    int checkEachMask = 7;
     long statInterval = 1000;
     long lastRatePersecond;
 
@@ -46,12 +46,22 @@ public class RateMeasure {
         this.name = name;
     }
 
+    /**
+     * @return lastRate per interval
+     */
     public long count() {
         int c = count.incrementAndGet();
         if ( (c & ~checkEachMask) == c ) {
             checkStats();
         }
         return lastRatePersecond;
+    }
+
+    /**
+     * @return count of current unfinished interval
+     */
+    public int getOpenCount() {
+        return count.get();
     }
 
     private void checkStats() {

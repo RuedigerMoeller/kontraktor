@@ -36,19 +36,19 @@ var jskXMLHttpRequest = function() {
     var post_req = http.request(post_options, function(res) {
       res.setEncoding('utf8');
       res.on('data', function (chunk) {
-        console.log('Response: ' + chunk);
         rawData += chunk;
       });
       res.on("end", function () {
         self.readyState = 4;
-        self.status = 200;
+        self.status = res.statusCode;
+        self.statusText = res.statusMessage;
         self.responseText = rawData;
         self.onreadystatechange();
       });
       res.on("error", function (err) {
-        self.readyState = self.DONE;
-        self.status = 500;
-        self.statusText = ""+err;
+        self.readyState = 4;
+        self.status = res.statusCode;
+        self.statusText = res.statusMessage;
         self.responseText = "";
         self.onreadystatechange();
       });

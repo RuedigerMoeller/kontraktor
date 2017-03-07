@@ -334,7 +334,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         if ( constraints != null ) {
             DenialReason callValid = constraints.isCallValid(authContext, response);
             if ( callValid != null ) {
-                objSocket.writeObject(callValid);
+                objSocket.writeObject(""+callValid);
                 objSocket.flush();
                 objSocket.close();
                 return true;

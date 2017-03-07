@@ -6,5 +6,6 @@ package org.nustaq.kontraktor.remoting.service;
 public enum DenialReason {
     RATE_LIMIT_EXCEEDED,
     ILLEGAL_METHOD_OR_PARAMETER_TYPES,
-    INVALID_TOKEN
+    INVALID_TOKEN,
+    INVALID_USER,
 }

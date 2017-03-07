@@ -23,6 +23,7 @@ import io.undertow.util.Methods;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.SessionResurrector;
 import org.nustaq.kontraktor.remoting.base.*;
+import org.nustaq.kontraktor.remoting.service.DenialReason;
 import org.nustaq.kontraktor.remoting.service.ServiceConstraints;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
@@ -193,7 +194,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
             // auth check goes here
 
-            handleNewSession(exchange,UUID.randomUUID().toString());
+            handleNewSession(exchange);
         }
     }
 
@@ -221,9 +222,26 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         return null;
     }
 
-    protected void handleNewSession( HttpServerExchange exchange, String sessionId ) {
+    protected void handleNewSession( HttpServerExchange exchange ) {
 
-        HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(sessionId))) {
+        String sessionId = null;
+        if ( constraints != null ) {
+            String token = exchange.getRequestHeaders().getFirst("token");
+            String uname = exchange.getRequestHeaders().getFirst("uname");
+            DenialReason denialReason = constraints.registerToken(token, uname);
+            if ( denialReason != null ) {
+                exchange.setResponseCode(403);
+                exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/html; charset=utf-8");
+                exchange.getResponseSender().send(""+denialReason);
+                exchange.endExchange();
+                return;
+            }
+            sessionId = token;
+        } else {
+            sessionId = UUID.randomUUID().toString();
+        }
+        String finalSessionId = sessionId;
+        HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(finalSessionId))) {
             @Override
             protected int getObjectMaxBatchSize() {
                 // huge batch size to make up for stupid sync http 1.1 protocol enforcing latency inclusion
@@ -243,17 +261,17 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         // send auth response
         byte[] response = conf.asByteArray(sock.getSessionId());
         ByteBuffer responseBuf = ByteBuffer.wrap(response);
-
         exchange.setResponseCode(200);
         exchange.setResponseContentLength(response.length);
         StreamSinkChannel sinkchannel = exchange.getResponseChannel();
+        String finalSessionId1 = sessionId;
         sinkchannel.getWriteSetter().set(
             channel -> {
                 if ( responseBuf.remaining() > 0 )
                     try {
                         sinkchannel.write(responseBuf);
                         if (responseBuf.remaining() == 0) {
-                            Log.Info(this, "client connected " + sessionId);
+                            Log.Info(this, "client connected " + finalSessionId1);
                             exchange.endExchange();
                         }
                     } catch (IOException e) {
@@ -262,7 +280,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                     }
                 else
                 {
-                    Log.Info(this,"client connected "+sessionId);
+        Log.Info(this,"client connected "+ finalSessionId1);
                     exchange.endExchange();
                 }
             }
