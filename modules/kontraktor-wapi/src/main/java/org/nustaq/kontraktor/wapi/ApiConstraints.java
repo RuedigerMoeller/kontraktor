@@ -19,12 +19,12 @@ public interface ApiConstraints {
      * @return - return the length of the interval the limit is actually checked.
      *           Example: rate = 1 call per second, checked every 10 second means one can do 10 calls in one second and pause for 9.
      */
-    long   getGraceInterval(String methodName);
+    long   getGraceInterval( String methodName );
 
     /**
      *
      * @return the maximum number of calls accepted until the GraceInterval is reached
      */
-    int    getMaxOverload(String methodName);
+    int    getMaxOverload( String methodName );
 
 }

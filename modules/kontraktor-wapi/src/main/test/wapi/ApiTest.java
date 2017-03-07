@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.wapi.test;
+package wapi;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
