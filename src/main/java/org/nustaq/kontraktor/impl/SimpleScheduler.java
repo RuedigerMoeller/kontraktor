@@ -70,9 +70,16 @@ public class SimpleScheduler implements Scheduler {
      * in servers
      */
     public SimpleScheduler(int qsize, boolean keepAlive ) {
+        this(qsize,keepAlive,null);
+    }
+
+    public SimpleScheduler(int qsize, boolean keepAlive, String name ) {
         this.qsize = qsize;
         myThread = new DispatcherThread(this,!keepAlive);
         myThread.start();
+        if ( name != null ) {
+            myThread.setName(name);
+        }
     }
 
     @Override

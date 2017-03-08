@@ -98,6 +98,7 @@ public class RemoteCallEntry implements Serializable {
                 ", futureKey=" + futureKey +
                 ", method='" + method + '\'' +
                 ", args=" + Arrays.toString(args) +
+                ", serargs=" + serializedArgs +
                 ", queue=" + queue +
                 '}';
     }

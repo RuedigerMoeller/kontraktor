@@ -68,16 +68,11 @@ public class FilterProcessor<K> implements ChangeReceiver<K> {
         Record<K> newRecord = change.getNewRecord();
         String[] changedFields = change.getDiff().getChangedFields();
         Object[] oldValues = change.getDiff().getOldValues();
-        Record oldRec = new RecordWrapper(newRecord) {
-            @Override
-            public Object get(String field) {
-                int index = ChangeUtils.indexOf(field, changedFields);
-                if ( index >= 0 ) {
-                    return oldValues[index];
-                }
-                return super.get(field);
-            }
-        };
+        Record oldRec = new PatchingRecord(newRecord);
+        for (int i = 0; i < changedFields.length; i++) {
+            String changedField = changedFields[i];
+            oldRec.put(changedField, oldValues[i]);
+        }
         for ( Subscriber<K> subscriber : filterList ) {
             boolean matchesOld = subscriber.getPrePatchFilter().test((Record<K>) oldRec);
             boolean matchesNew = subscriber.getPrePatchFilter().test(newRecord);
