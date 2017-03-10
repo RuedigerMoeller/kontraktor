@@ -61,7 +61,7 @@ import java.util.function.Function;
  * With many clients and connection limited clients (browser,mobiles) a short poll with larger intervals (>3s) might scale better
  * at cost of latency.
  *
- * When used no-poll, streaming results to a callback is not supported. Only 'tell' (void methods) and 'ask' (IPromise-returning)
+ * When used no-poll, streaming results to a callback is not supported. Only 'tellMsg' (void methods) and 'askMsg' (IPromise-returning)
  * messages can be used.
  *
  * TODO: support temporary/discardable websocket connections as a LP optimization.

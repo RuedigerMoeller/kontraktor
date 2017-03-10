@@ -59,14 +59,18 @@ import java.util.*;
  */
 public class ActorProxyFactory {
 
-    HashMap<Class,Class> generatedProxyClasses = new HashMap<Class, Class>();
+    Map<Class,Class> generatedProxyClasses = new HashMap<Class, Class>();
 
     public ActorProxyFactory() {
     }
 
     public <T> T instantiateProxy(Actor target) {
+        Class<? extends Actor> targetClass = target.getClass();
+        return instantiateProxy(targetClass,target);
+    }
+
+    public <T> T instantiateProxy(Class<? extends Actor> targetClass , Actor target) {
         try {
-            Class<? extends Actor> targetClass = target.getClass();
             if ( ! Modifier.isPublic(targetClass.getModifiers()) ) {
                 throw new RuntimeException("Actor class must be public:" + targetClass.getName() );
             }
@@ -240,8 +244,8 @@ public class ActorProxyFactory {
                 // async methods at actor class. FIXME: add annotation
                  originalMethod.getName().equals("getSubMonitorables") ||
                  originalMethod.getName().equals("getReport") ||
-                 originalMethod.getName().equals("ask") ||
-                 originalMethod.getName().equals("tell") ||
+                 originalMethod.getName().equals("askMsg") ||
+                 originalMethod.getName().equals("tellMsg") ||
                  originalMethod.getName().equals("__unpublish") ||
                  originalMethod.getName().equals("__republished") ||
                  originalMethod.getName().equals("ping") ||

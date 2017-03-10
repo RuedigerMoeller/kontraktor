@@ -1,7 +1,8 @@
-package org.nustaq.kontraktor.server.test;
+package wapi;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
@@ -12,7 +13,7 @@ import org.nustaq.kontraktor.util.Log;
 /**
  * Created by ruedi on 09.03.17.
  */
-public class DummyService extends Actor<DummyService> {
+public class DummyService extends Actor {
 
     WapiRegistry wapi;
     WapiDescription dummyService;
@@ -33,6 +34,11 @@ public class DummyService extends Actor<DummyService> {
         heartbeat();
     }
 
+    public IPromise service(String dummy) {
+        System.out.println("service "+dummy);
+        return resolve(dummy+" "+System.currentTimeMillis());
+    }
+
     public void heartbeat() {
         if ( ! isStopped() ) {
             wapi.receiveHeartbeat(dummyService.getName(),dummyService.getUniqueKey());
@@ -41,8 +47,8 @@ public class DummyService extends Actor<DummyService> {
     }
 
     public static void main(String[] args) {
-        DummyService serv = Actors.AsActor(DummyService.class);
-        serv.init();
+        Actor serv = Actors.AsUntypedActor(new DummyService());
+        serv.tell("init");
     }
 
 }

@@ -49,18 +49,29 @@ public class ActorsImpl {
 
     public Actor makeProxy(Class<? extends Actor> clz, DispatcherThread disp, int qs) {
         try {
+            return makeProxy((Actor)clz.newInstance(),clz,disp,qs);
+        } catch (Exception e) {
+            FSTUtil.rethrow(e);
+        }
+        return null;
+    }
+
+    public Actor makeProxy(Actor realActor, Class<? extends Actor> clz, DispatcherThread disp, int qs) {
+        try {
+            if ( realActor == null ) {
+                realActor = clz.newInstance();
+            }
             if ( qs <= 100 )
                 qs = disp.getScheduler().getDefaultQSize();
 
             qs = FSTUtil.nextPow2(qs);
 
-            Actor realActor = clz.newInstance();
             realActor.__mailbox =  createQueue(qs);
             realActor.__mailboxCapacity = qs;
             realActor.__mbCapacity = realActor.__mailboxCapacity; // wtf
             realActor.__cbQueue =  createQueue(qs);
 
-            Actor selfproxy = getFactory().instantiateProxy(realActor);
+            Actor selfproxy = getFactory().instantiateProxy(clz,realActor);
             realActor.__self = selfproxy;
             selfproxy.__self = selfproxy;
 
@@ -92,6 +103,10 @@ public class ActorsImpl {
     }
 
     public Actor newProxy(Class<? extends Actor> clz, Scheduler sched, int qsize) {
+        return newProxy(null,clz,sched,qsize);
+    }
+
+    public Actor newProxy(Actor instance, Class<? extends Actor> clz, Scheduler sched, int qsize) {
         if ( sched == null ) {
             if (Thread.currentThread() instanceof DispatcherThread) {
                 sched = ((DispatcherThread) Thread.currentThread()).getScheduler();
@@ -102,7 +117,7 @@ public class ActorsImpl {
                 sched = Actors.defaultScheduler.get();
             if ( qsize < 1 )
                 qsize = sched.getDefaultQSize();
-            return makeProxy(clz, sched.assignDispatcher(70), qsize);
+            return makeProxy(instance, clz, sched.assignDispatcher(70), qsize);
         } catch (Exception e) {
             if ( e instanceof RuntimeException)
                 throw (RuntimeException)e;

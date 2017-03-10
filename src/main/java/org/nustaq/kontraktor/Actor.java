@@ -42,6 +42,7 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
+import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.TicketMachine;
 
@@ -191,7 +192,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * @param messageId
      * @return
      */
-    public IPromise ask( String messageId, Object ... args ) {
+    public IPromise askMsg(String messageId, Object ... args ) {
         return resolve(null);
     }
 
@@ -201,7 +202,32 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * @param messageId
      * @return
      */
-    public void tell( String messageId, Object ... args ) { }
+    public void tellMsg(String messageId, Object ... args ) { }
+
+    /**
+     * generic method for untyped remoting.
+     *
+     * @param messageId
+     * @return
+     */
+    @CallerSideMethod
+    public IPromise ask(String messageId, Object ... args ) {
+        if ( __clientConnection instanceof RemoteRegistry ) {
+            return (IPromise) getScheduler().enqueueCall((RemoteRegistry) __clientConnection,Actor.sender.get(),getActor(),messageId,args,false);
+        }
+        return (IPromise) getScheduler().enqueueCall(Actor.sender.get(),getActor(),messageId,args,false);
+    }
+
+    /**
+     * generic method for untyped remoting.
+     *
+     * @param messageId
+     * @return
+     */
+    @CallerSideMethod
+    public void tell(String messageId, Object ... args ) {
+        getScheduler().enqueueCall(Actor.sender.get(),getActor(),messageId,args,false);
+    }
 
     /**
      * execute a callable asynchronously (in a different thread) and return a future
@@ -439,7 +465,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
-     * tell the execution machinery to throw an ActorBlockedException in case the actor is blocked trying to
+     * tellMsg the execution machinery to throw an ActorBlockedException in case the actor is blocked trying to
      * put a message on an overloaded actor's mailbox/queue. Useful e.g. when dealing with actors representing
      * a remote client (might block or lag due to connection issues).
      *

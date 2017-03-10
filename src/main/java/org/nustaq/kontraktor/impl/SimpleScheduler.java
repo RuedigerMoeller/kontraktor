@@ -166,6 +166,11 @@ public class SimpleScheduler implements Scheduler {
     }
 
     @Override
+    public Object enqueueCall(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
+        return enqueueCallFromRemote( reg,sendingActor,receiver,methodName,args,isCB, null);
+    }
+
+    @Override
     public Object enqueueCallFromRemote(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB, Object securityContext) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context

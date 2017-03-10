@@ -105,7 +105,7 @@ public class KxReactiveStreams extends Actors {
     }
 
     /**
-     * tell the execution thread to stop as soon no actors are scheduled on it.
+     * tellMsg the execution thread to stop as soon no actors are scheduled on it.
      */
     public void terminateScheduler() {
         scheduler.setKeepAlive(false);

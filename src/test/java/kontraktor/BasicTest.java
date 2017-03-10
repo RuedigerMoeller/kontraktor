@@ -401,12 +401,12 @@ public class BasicTest {
         }
 
         @Override
-        public void tell(String messageId, Object ... args) {
+        public void tellMsg(String messageId, Object ... args) {
             succCounter.incrementAndGet();
         }
 
         @Override
-        public IPromise ask(String messageId, Object ... args) {
+        public IPromise askMsg(String messageId, Object ... args) {
             return new Promise<>(messageId);
         }
 
@@ -433,8 +433,8 @@ public class BasicTest {
     @Test
     public void testUntyped() {
         FutureTest futureTest = AsActor(FutureTest.class);
-        futureTest.tell("Hello");
-        String hello1 = (String) futureTest.ask("Hello1").await();
+        futureTest.tellMsg("Hello");
+        String hello1 = (String) futureTest.askMsg("Hello1").await();
         assertTrue( "Hello1".equals(hello1) );
         assertTrue( futureTest.getActor().succCounter.get()==1 );
         futureTest.stop();

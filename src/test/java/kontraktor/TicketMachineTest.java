@@ -62,7 +62,7 @@ public class TicketMachineTest {
                         @Override
                         public void complete(Object result, Object error) {
                             System.out.println("fin work "+stock+" "+sequence);
-                            finSignal.complete("done", null); // tell i am done
+                            finSignal.complete("done", null); // tellMsg i am done
                         }
                     });
                 }

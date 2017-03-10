@@ -187,7 +187,7 @@ public interface IPromise<T> extends Callback<T> {
     public Object getError();
 
     /**
-     * tell the future to call the onTimeout callback in N milliseconds if future is not settled until then
+     * tellMsg the future to call the onTimeout callback in N milliseconds if future is not settled until then
      *
      * @param millis
      * @return this for chaining

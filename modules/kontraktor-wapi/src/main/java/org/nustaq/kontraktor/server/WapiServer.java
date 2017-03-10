@@ -36,6 +36,15 @@ public class WapiServer extends Actor<WapiServer> {
         // log service activity
         serviceRegistry.subscribe((pair, err) -> {
             if ( pair.car().equals(WapiRegistry.AVAILABLE)) {
+                WapiDescription desc = pair.cdr();
+//                Forwarder forwarder = Actors.AsActor(Forwarder.class,getScheduler());
+//                forwarder.remoteRef(desc.getRemoteRef());
+//                HttpPublisher pub = new HttpPublisher(forwarder,"localhost", desc.getName().toLowerCase(), PORT)
+//                    .coding(new Coding(SerializerType.JsonNoRef, new Class[] {DenialReason.class} ));
+//                pub.publish( act -> {
+//                        System.out.println("DISCON "+desc);
+//                    } //, new TestConstraints()
+//                );
                 // put to servicemap
                 int debug = 1;
             } else if ( pair.car().equals( WapiRegistry.TIMEOUT ) ) {
@@ -44,7 +53,6 @@ public class WapiServer extends Actor<WapiServer> {
             Log.Info(serviceRegistry.getClass(), pair.car() + " " + pair.cdr());
         });
     }
-
 
     public static void main(String[] args) {
         WapiServer wsTest = Actors.AsActor(WapiServer.class);

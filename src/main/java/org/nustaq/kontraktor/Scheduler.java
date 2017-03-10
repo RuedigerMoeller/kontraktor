@@ -40,6 +40,8 @@ public interface Scheduler extends Monitorable{
 
     Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object args[], boolean isCB);
 
+    Object enqueueCall(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB);
+
     Object enqueueCallFromRemote(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object args[], boolean isCB, Object securityContext);
 
     void threadStopped(DispatcherThread th);

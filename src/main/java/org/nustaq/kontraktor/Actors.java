@@ -190,6 +190,9 @@ public class Actors {
         return (T) instance.newProxy(actorClazz, defaultScheduler.get(), -1);
     }
 
+    public static Actor AsUntypedActor(Actor instance) {
+        return Actors.instance.newProxy(instance,Actor.class,null,-1);
+    }
     /**
      * creates an actor instance which just bufferes messages (on heap).
      * One can use tranferTo() in order to dispatch them later on.

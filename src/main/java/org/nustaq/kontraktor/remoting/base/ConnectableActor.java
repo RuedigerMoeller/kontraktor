@@ -31,7 +31,7 @@ import java.util.function.Consumer;
  * the remote actor.
  *
  * In peer to peer actor remoting model, this can be passed around (over network) in order to
- * tell other actors/services on how to connect a certain actor directly (e.g. a Service Registry would
+ * tellMsg other actors/services on how to connect a certain actor directly (e.g. a Service Registry would
  * pass ConnectableActors to clients).
  *
  */

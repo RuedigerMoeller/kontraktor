@@ -17,7 +17,7 @@ public class BroadcastWithResultExample extends ReceiverActor {
     }
 
     /**
-     * instead of broadcasting fire-and-forget (tell), this one send a request
+     * instead of broadcasting fire-and-forget (tellMsg), this one send a request
      * and receives results from each actor.
      */
     public void pingLoop() {
