@@ -19,8 +19,8 @@ public class DummyClient {
         Actor dummyService = (Actor) connect.getService("DummyService", "1").await();
         dummyService.ask("service","hello").then( (x,y) -> System.out.println(x));
 
-        DummyService dummyService1 = (DummyService) connect.getService("DummyService", "1").await();
-        dummyService1.service("hello1").then( (x,y) -> System.out.println(x));
+//        DummyService dummyService1 = (DummyService) connect.getService("DummyService", "1").await();
+//        dummyService1.service("hello1").then( (x,y) -> System.out.println(x));
 
 //        while( true ) {
 //            AtomicLong sum = new AtomicLong();
