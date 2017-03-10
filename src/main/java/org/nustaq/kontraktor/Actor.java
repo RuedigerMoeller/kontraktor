@@ -48,6 +48,7 @@ import org.nustaq.kontraktor.util.TicketMachine;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -212,8 +213,9 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      */
     @CallerSideMethod
     public IPromise ask(String messageId, Object ... args ) {
-        if ( __clientConnection instanceof RemoteRegistry ) {
-            return (IPromise) getScheduler().enqueueCall((RemoteRegistry) __clientConnection,Actor.sender.get(),getActor(),messageId,args,false);
+        if ( isRemote() && __clientConnection instanceof RemoteRegistry ) {
+            Object[] newArgs = new Object[] { messageId,args};
+            return (IPromise) getScheduler().enqueueCall((RemoteRegistry) __clientConnection,Actor.sender.get(),getActor(),"ask",newArgs,false);
         }
         return (IPromise) getScheduler().enqueueCall(Actor.sender.get(),getActor(),messageId,args,false);
     }

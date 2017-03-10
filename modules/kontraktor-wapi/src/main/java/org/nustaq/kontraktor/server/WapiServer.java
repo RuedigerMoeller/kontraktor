@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.server;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
@@ -22,7 +23,7 @@ public class WapiServer extends Actor<WapiServer> {
 
     WapiRegistry registry;
 
-    HashMap<String,Actor> serviceMap;
+    HashMap<String,WapiDescription> serviceMap;
 
     @Local
     public void init() {
@@ -30,28 +31,30 @@ public class WapiServer extends Actor<WapiServer> {
 
         WapiRegistry serviceRegistry = Actors.AsActor(WapiRegistry.class);
         serviceRegistry.init();
-        new TCPNIOPublisher(serviceRegistry, REGPORT).publish(actor -> {
-            Log.Info(null, actor + " has disconnected");
-        });
+        new TCPNIOPublisher(serviceRegistry, REGPORT)
+            .coding(new Coding(SerializerType.JsonNoRef))
+            .publish(actor -> {
+                Log.Info(null, actor + " has disconnected");
+            });
         // log service activity
         serviceRegistry.subscribe((pair, err) -> {
             if ( pair.car().equals(WapiRegistry.AVAILABLE)) {
                 WapiDescription desc = pair.cdr();
-//                Forwarder forwarder = Actors.AsActor(Forwarder.class,getScheduler());
-//                forwarder.remoteRef(desc.getRemoteRef());
-//                HttpPublisher pub = new HttpPublisher(forwarder,"localhost", desc.getName().toLowerCase(), PORT)
-//                    .coding(new Coding(SerializerType.JsonNoRef, new Class[] {DenialReason.class} ));
-//                pub.publish( act -> {
-//                        System.out.println("DISCON "+desc);
-//                    } //, new TestConstraints()
-//                );
-                // put to servicemap
-                int debug = 1;
+                serviceMap.put(desc.getName()+"#"+desc.getVersion(),desc);
             } else if ( pair.car().equals( WapiRegistry.TIMEOUT ) ) {
                 // remove
+                WapiDescription desc = pair.cdr();
+                serviceMap.remove(desc.getName()+"#"+desc.getVersion());
             }
             Log.Info(serviceRegistry.getClass(), pair.car() + " " + pair.cdr());
         });
+    }
+
+    public IPromise getService( String name, String version ) {
+        WapiDescription res = serviceMap.get(name + "#" + version);
+        if ( res == null )
+            return reject("unknown service:"+name + "#" + version);
+        return resolve(res.getRemoteRef());
     }
 
     public static void main(String[] args) {

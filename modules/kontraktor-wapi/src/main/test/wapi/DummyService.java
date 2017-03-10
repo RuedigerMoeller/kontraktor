@@ -20,7 +20,7 @@ public class DummyService extends Actor {
 
     public void init() {
         TCPConnectable con = new TCPConnectable(WapiRegistry.class,"localhost",6665);
-        con.coding(new Coding(SerializerType.FSTSer));
+        con.coding(new Coding(SerializerType.JsonNoRef));
         wapi = (WapiRegistry) con.connect((x, err) -> {
             System.out.println("disconnect");
         }).await(15000);
@@ -37,6 +37,10 @@ public class DummyService extends Actor {
     public IPromise service(String dummy) {
         System.out.println("service "+dummy);
         return resolve(dummy+" "+System.currentTimeMillis());
+    }
+
+    public IPromise roundTrip(long cur) {
+        return resolve(cur);
     }
 
     public void heartbeat() {
