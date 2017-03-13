@@ -2,6 +2,7 @@ package wapi;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
@@ -37,6 +38,17 @@ public class DummyService extends Actor {
     public IPromise service(String dummy) {
         System.out.println("service "+dummy);
         return resolve(dummy+" "+System.currentTimeMillis());
+    }
+
+    public void subscribe(Callback dummy) {
+        System.out.println("subscribe "+dummy);
+        pingIt(dummy);
+    }
+
+    private void pingIt(Callback dummy) {
+        System.out.println("pinging");
+        dummy.stream("Hello "+System.currentTimeMillis());
+        delayed( 1000, () -> pingIt(dummy) );
     }
 
     public IPromise roundTrip(long cur) {

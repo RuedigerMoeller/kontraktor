@@ -1,23 +1,33 @@
 package wapi;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.remoting.encoding.Coding;
-import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.http.HttpConnectable;
-import org.nustaq.kontraktor.server.WapiServer;
-
-import java.util.concurrent.atomic.AtomicLong;
+import org.nustaq.kontraktor.barebone.Callback;
+import org.nustaq.kontraktor.barebone.RemoteActor;
+import org.nustaq.kontraktor.barebone.RemoteActorConnection;
 
 /**
  * Created by ruedi on 10.03.17.
  */
 public class DummyClient {
     public static void main(String[] args) throws InterruptedException {
-        HttpConnectable con = new HttpConnectable(WapiServer.class,"http://localhost:7777/api").coding(new Coding(SerializerType.JsonNoRef));
-        WapiServer connect = (WapiServer) con.connect((x, y) -> System.out.println("" + x + y)).await();
-        Actor dummyService = (Actor) connect.getService("DummyService", "1").await();
-        dummyService.ask("service","hello").then( (x,y) -> System.out.println(x));
+        final RemoteActorConnection act = new RemoteActorConnection( s -> System.out.println("connection closed:"+s) );
+        final RemoteActor facade = act.connect("http://localhost:7777/dummyservice", true).await();
+        System.out.println("facade:" + facade);
+        facade.ask("ask","service", new Object[] {"hello"}).then(
+            new Callback() {
+                @Override
+                public void receive(Object result, Object error) {
+                    System.out.println(result+" "+error);
+                }
+            }
+        );
+//        dummyService.tell("subscribe",
+//            new Callback() {
+//                @Override
+//                public void receive(Object result, Object error) {
+//                    System.out.println(result);
+//                }
+//            }
+//        );
 
 //        DummyService dummyService1 = (DummyService) connect.getService("DummyService", "1").await();
 //        dummyService1.service("hello1").then( (x,y) -> System.out.println(x));

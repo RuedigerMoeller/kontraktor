@@ -341,13 +341,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
             }
         }
         RemoteCallEntry read = response;
-        if ( read.getSerializedArgs() != null ) {
-            read.setArgs((Object[]) conf.asObject(read.getSerializedArgs()));
-            read.setSerializedArgs(null);
-        }
-        boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
-        if ( isContinue )
-            read.getArgs()[1] = Callback.CONT; // enable ==
         if (read.getQueue() == read.MAILBOX) {
             if ( remoteCallMapper != null ) {
                 read = (RemoteCallEntry) remoteCallMapper.apply(this,read);
@@ -371,6 +364,10 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 Log.Lg.error(this, null, "registry:"+System.identityHashCode(this)+" no actor found for key " + read);
                 return true;
             }
+            if ( targetActor instanceof Forwarder ) {
+                return ((Forwarder)targetActor).forward(read);
+            }
+            unpackArgs(read);
             if (targetActor.isStopped() || targetActor.getScheduler() == null ) {
                 Log.Lg.error(this, null, "actor found for key " + read + " is stopped and/or has no scheduler set");
                 receiveCBResult(objSocket, read.getFutureKey(), null, InternalActorStoppedException.Instance);
@@ -409,6 +406,10 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 }
             }
         } else if (read.getQueue() == read.CBQ) {
+            unpackArgs(read);
+            boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
+            if ( isContinue )
+                read.getArgs()[1] = Callback.CONT; // enable ==
             if ( remoteCallMapper != null ) {
                 read = (RemoteCallEntry) remoteCallMapper.apply(this,read);
             }
@@ -427,6 +428,13 @@ public abstract class RemoteRegistry implements RemoteConnection {
             }
         }
         return createdFutures != null && createdFutures.size() > 0;
+    }
+
+    private void unpackArgs(RemoteCallEntry read) {
+        if ( read.getSerializedArgs() != null ) {
+            read.setArgs((Object[]) conf.asObject(read.getSerializedArgs()));
+            read.setSerializedArgs(null);
+        }
     }
 
     /**

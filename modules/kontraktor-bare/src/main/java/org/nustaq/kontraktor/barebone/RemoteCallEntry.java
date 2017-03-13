@@ -15,6 +15,8 @@
  */
 package org.nustaq.kontraktor.barebone;
 
+import org.nustaq.serialization.FSTConfiguration;
+
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -29,6 +31,7 @@ public class RemoteCallEntry implements Serializable {
     long futureKey; // id of future if any
     String method;
     Object args[];
+    byte[] serializedArgs;
     int queue;
 
     public RemoteCallEntry(int receiverKey, int futureKey, String method, Object[] args, int queue) {
@@ -68,5 +71,12 @@ public class RemoteCallEntry implements Serializable {
                    ", args=" + Arrays.toString(args) +
                    ", queue=" + queue +
                    '}';
+    }
+
+    public void pack(FSTConfiguration conf) {
+        if ( args != null && serializedArgs == null ) {
+            serializedArgs = conf.asByteArray(args);
+            args = null;
+        }
     }
 }

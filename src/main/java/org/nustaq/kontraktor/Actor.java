@@ -228,6 +228,11 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      */
     @CallerSideMethod
     public void tell(String messageId, Object ... args ) {
+        if ( isRemote() && __clientConnection instanceof RemoteRegistry ) {
+            Object[] newArgs = new Object[] { messageId,args};
+            getScheduler().enqueueCall((RemoteRegistry) __clientConnection,Actor.sender.get(),getActor(),"tell",newArgs,false);
+            return;
+        }
         getScheduler().enqueueCall(Actor.sender.get(),getActor(),messageId,args,false);
     }
 

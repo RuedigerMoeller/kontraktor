@@ -41,6 +41,12 @@ public class WapiServer extends Actor<WapiServer> {
             if ( pair.car().equals(WapiRegistry.AVAILABLE)) {
                 WapiDescription desc = pair.cdr();
                 serviceMap.put(desc.getName()+"#"+desc.getVersion(),desc);
+
+                WapiForwarder forwarder = Actors.AsActor(WapiForwarder.class,getScheduler());
+                forwarder.remoteRef(desc.getRemoteRef());
+                HttpPublisher pub = new HttpPublisher(forwarder,"localhost", desc.getName().toLowerCase(), PORT)
+                    .coding(new Coding(SerializerType.JsonNoRef, new Class[] {DenialReason.class} ));
+                pub.publish( act -> System.out.println("DISCON "+desc) );
             } else if ( pair.car().equals( WapiRegistry.TIMEOUT ) ) {
                 // remove
                 WapiDescription desc = pair.cdr();

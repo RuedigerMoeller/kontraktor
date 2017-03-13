@@ -438,6 +438,12 @@ public class RemoteActorConnection {
         final Promise<Integer> p = new Promise<>();
         if (SENDDEBUG)
             System.out.println("SENDING "+(req.length-1));
+        for (int i = 0; i < req.length; i++) {
+            Object o = req[i];
+            if ( o instanceof RemoteCallEntry ) {
+                ((RemoteCallEntry) o).pack(conf);
+            }
+        }
         byte[] message = conf.asByteArray(req);
         HttpPost request = createRequest(sessionUrl, message);
         if ( DumpProtocol ) {
