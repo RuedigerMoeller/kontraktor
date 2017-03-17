@@ -42,13 +42,16 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
+import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.TicketMachine;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -609,6 +612,47 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             }
         }
         return method;
+    }
+
+    /**
+     * called if a message invokation from remote is received
+     * @return true if a new promise has been created
+     */
+    @CallerSideMethod public boolean __dispatchRemoteCall(ObjectSocket objSocket, RemoteCallEntry rce, RemoteRegistry registry, List<IPromise> createdFutures) {
+        rce.unpackArgs(registry.getConf());
+        try {
+            Object future = getScheduler().enqueueCallFromRemote(registry, null, self(), rce.getMethod(), rce.getArgs(), false, null);
+            if ( future instanceof IPromise) {
+                Promise p = null;
+                if ( createdFutures != null ) {
+                    p = new Promise();
+                    createdFutures.add(p);
+                }
+                final Promise finalP = p;
+                final RemoteCallEntry finalRce = rce;
+                ((IPromise) future).then( (r,e) -> {
+                    try {
+                        registry.receiveCBResult(objSocket, finalRce.getFutureKey(), r, e);
+                        if ( finalP != null )
+                            finalP.complete();
+                    } catch (Exception ex) {
+                        Log.Warn(this, ex, "");
+                    }
+                });
+            }
+        } catch (Throwable th) {
+            Log.Warn(this,th);
+            if ( rce.getFutureKey() > 0 ) {
+                try {
+                    registry.receiveCBResult(objSocket, rce.getFutureKey(), null, FSTUtil.toString(th));
+                } catch (Exception e) {
+                    Log.Error(this,e);
+                }
+            } else {
+                FSTUtil.<RuntimeException>rethrow(th);
+            }
+        }
+        return createdFutures != null && createdFutures.size() > 0;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////

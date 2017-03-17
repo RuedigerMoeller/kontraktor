@@ -40,6 +40,11 @@ public class DummyService extends Actor {
         return resolve(dummy+" "+System.currentTimeMillis());
     }
 
+    public IPromise<ForeignClass> foreign(ForeignClass in) {
+        System.out.println("foreign "+in);
+        return resolve(in);
+    }
+
     public void subscribe(Callback dummy) {
         System.out.println("subscribe "+dummy);
         pingIt(dummy);

@@ -42,7 +42,7 @@ public class WapiServer extends Actor<WapiServer> {
                 WapiDescription desc = pair.cdr();
                 serviceMap.put(desc.getName()+"#"+desc.getVersion(),desc);
 
-                WapiForwarder forwarder = Actors.AsActor(WapiForwarder.class,getScheduler());
+                WapiForwarder forwarder = Actors.AsActor(WapiForwarder.class,serviceRegistry.getScheduler());
                 forwarder.remoteRef(desc.getRemoteRef());
                 HttpPublisher pub = new HttpPublisher(forwarder,"localhost", desc.getName().toLowerCase(), PORT)
                     .coding(new Coding(SerializerType.JsonNoRef, new Class[] {DenialReason.class} ));

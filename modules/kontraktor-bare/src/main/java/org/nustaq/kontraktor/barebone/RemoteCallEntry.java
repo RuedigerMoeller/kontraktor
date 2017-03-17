@@ -79,4 +79,12 @@ public class RemoteCallEntry implements Serializable {
             args = null;
         }
     }
+
+    public void unpack(FSTConfiguration conf) {
+        if ( args == null && serializedArgs != null ) {
+            args = (Object[]) conf.asObject(serializedArgs);
+            serializedArgs = null;
+        }
+    }
+
 }

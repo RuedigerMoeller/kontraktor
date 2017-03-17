@@ -18,6 +18,8 @@ package org.nustaq.kontraktor.remoting.encoding;
 
 
 import org.nustaq.kson.ArgTypes;
+import org.nustaq.serialization.FSTConfiguration;
+
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -63,7 +65,7 @@ public class RemoteCallEntry implements Serializable {
         return receiverKey;
     }
 
-    public void setReceiverKey(int receiverKey) {
+    public void setReceiverKey(long receiverKey) {
         this.receiverKey = receiverKey;
     }
 
@@ -71,7 +73,7 @@ public class RemoteCallEntry implements Serializable {
         return futureKey;
     }
 
-    public void setFutureKey(int futureKey) {
+    public void setFutureKey(long futureKey) {
         this.futureKey = futureKey;
     }
 
@@ -106,5 +108,13 @@ public class RemoteCallEntry implements Serializable {
     public void setSerializedArgs(byte[] serializedArgs) {
         this.serializedArgs = serializedArgs;
     }
+
+    public void unpackArgs(FSTConfiguration conf) {
+        if ( getSerializedArgs() != null ) {
+            setArgs((Object[]) conf.asObject(getSerializedArgs()));
+            setSerializedArgs(null);
+        }
+    }
+
 }
 

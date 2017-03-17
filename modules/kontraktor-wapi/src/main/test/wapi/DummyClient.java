@@ -12,7 +12,15 @@ public class DummyClient {
         final RemoteActorConnection act = new RemoteActorConnection( s -> System.out.println("connection closed:"+s) );
         final RemoteActor facade = act.connect("http://localhost:7777/dummyservice", true).await();
         System.out.println("facade:" + facade);
-        facade.ask("ask","service", new Object[] {"hello"}).then(
+        facade.ask("service", "hello" ).then(
+            new Callback() {
+                @Override
+                public void receive(Object result, Object error) {
+                    System.out.println(result+" "+error);
+                }
+            }
+        );
+        facade.ask("foreign", new ForeignClass(1,2,3) ).then(
             new Callback() {
                 @Override
                 public void receive(Object result, Object error) {

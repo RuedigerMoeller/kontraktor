@@ -556,6 +556,7 @@ public class RemoteActorConnection {
             final RemoteCallEntry call = (RemoteCallEntry) o[i];
             if ( call.getQueue() == 1 ) // callback
             {
+                call.unpack(conf);
                 // catch and transform remote actor reference
                 if ( call.getArgs()[0] instanceof Unknown) {
                     Unknown uk = (Unknown) call.getArgs()[0];

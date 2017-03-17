@@ -27,7 +27,6 @@ import org.nustaq.kontraktor.remoting.service.DenialReason;
 import org.nustaq.kontraktor.remoting.service.ServiceConstraints;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
-import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.IOError;
 import java.io.IOException;
@@ -206,7 +205,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
             integer = newActId();
             publishedActorMapping.put(integer, cb);
             publishedActorMappingReverse.put(cb, integer);
-//            System.out.println("CBMAP SIZE:"+publishedActorMapping.size());
         }
         return integer;
     }
@@ -329,8 +327,11 @@ public abstract class RemoteRegistry implements RemoteConnection {
         return false;
     }
 
-    // dispatch incoming remotecalls
+    // dispatch incoming remotecalls, return true if a future has been created
     protected boolean processRemoteCallEntry(ObjectSocket objSocket, RemoteCallEntry response, List<IPromise> createdFutures, Object authContext) throws Exception {
+        if ( response.getFutureKey() < 0 ) { // forwarded rce
+            int debug = 1;
+        }
         if ( constraints != null ) {
             DenialReason callValid = constraints.isCallValid(authContext, response);
             if ( callValid != null ) {
@@ -364,57 +365,19 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 Log.Lg.error(this, null, "registry:"+System.identityHashCode(this)+" no actor found for key " + read);
                 return true;
             }
-            if ( targetActor instanceof Forwarder ) {
-                return ((Forwarder)targetActor).forward(read);
-            }
-            unpackArgs(read);
-            if (targetActor.isStopped() || targetActor.getScheduler() == null ) {
-                Log.Lg.error(this, null, "actor found for key " + read + " is stopped and/or has no scheduler set");
-                receiveCBResult(objSocket, read.getFutureKey(), null, InternalActorStoppedException.Instance);
-                return true;
-            }
-            if (remoteCallInterceptor != null && !remoteCallInterceptor.apply(targetActor,read.getMethod())) {
-                Log.Warn(this,"remote message blocked by securityinterceptor "+targetActor.getClass().getName()+" "+read.getMethod());
-                return false;
-            }
-            try {
-                Object future = targetActor.getScheduler().enqueueCallFromRemote(this, null, targetActor, read.getMethod(), read.getArgs(), false, null);
-                if ( future instanceof IPromise) {
-                    Promise p = null;
-                    if ( createdFutures != null ) {
-                        p = new Promise();
-                        createdFutures.add(p);
-                    }
-                    final Promise finalP = p;
-                    final RemoteCallEntry finalRead = read;
-                    ((IPromise) future).then( (r,e) -> {
-                        try {
-                            receiveCBResult(objSocket, finalRead.getFutureKey(), r, e);
-                            if ( finalP != null )
-                                finalP.complete();
-                        } catch (Exception ex) {
-                            Log.Warn(this, ex, "");
-                        }
-                    });
-                }
-            } catch (Throwable th) {
-                Log.Warn(this,th);
-                if ( read.getFutureKey() > 0 ) {
-                    receiveCBResult(objSocket, read.getFutureKey(), null, FSTUtil.toString(th));
-                } else {
-                    FSTUtil.<RuntimeException>rethrow(th);
-                }
-            }
+            targetActor.__dispatchRemoteCall(objSocket,read,this,createdFutures);
         } else if (read.getQueue() == read.CBQ) {
-            unpackArgs(read);
-            boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
-            if ( isContinue )
-                read.getArgs()[1] = Callback.CONT; // enable ==
             if ( remoteCallMapper != null ) {
                 read = (RemoteCallEntry) remoteCallMapper.apply(this,read);
             }
             Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
             if ( publishedCallback == null ) {
+                publishedCallback = getPublishedCallback(-read.getReceiverKey()); // check forward
+                if ( publishedCallback != null ) {
+                    publishedCallback.complete(read,null); // in case of forwards => promote full remote call object
+                    removePublishedObject(-read.getReceiverKey());
+                    return false;
+                }
                 if ( read.getArgs() != null && read.getArgs().length == 2 && read.getArgs()[1] instanceof InternalActorStoppedException ) {
                     // FIXME: this might happen frequently as messages are in flight.
                     // FIXME: need a better way to handle this. Frequently it is not an error.
@@ -422,19 +385,16 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 } else
                     Log.Warn(this,"Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent. "+read);
             } else {
+                read.unpackArgs(conf);
+                boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
+                if ( isContinue )
+                    read.getArgs()[1] = Callback.CONT; // enable ==
                 publishedCallback.complete(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
                 if (!isContinue)
                     removePublishedObject(read.getReceiverKey());
             }
         }
         return createdFutures != null && createdFutures.size() > 0;
-    }
-
-    private void unpackArgs(RemoteCallEntry read) {
-        if ( read.getSerializedArgs() != null ) {
-            read.setArgs((Object[]) conf.asObject(read.getSerializedArgs()));
-            read.setSerializedArgs(null);
-        }
     }
 
     /**
@@ -492,7 +452,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 return;
             }
         }
-        RemoteCallEntry rce = new RemoteCallEntry(0, id, null, new Object[] {result,error}, null);
+        RemoteCallEntry rce = new RemoteCallEntry(0, id, null, null, conf.asByteArray(new Object[] {result,error}));
         rce.setQueue(rce.CBQ);
         writeObject(chan, rce);
     }
@@ -594,6 +554,17 @@ public abstract class RemoteRegistry implements RemoteConnection {
         } while ( sumQueued > 0 && fullqueued < MAX_BATCH_CALLS);
         chan.flush();
         return hadAnyMsg;
+    }
+
+    //WARNING: must be called on correct thread ! FIXME: batching ??
+    public void forwardRemoteMessage(RemoteCallEntry rce) {
+        try {
+            ObjectSocket chan = getWriteObjectSocket().get();
+            writeObject(chan, rce);
+            chan.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public abstract AtomicReference<ObjectSocket> getWriteObjectSocket();
