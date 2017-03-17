@@ -28,7 +28,15 @@ public class DummyClient {
                 }
             }
         );
-//        dummyService.tell("subscribe",
+        facade.ask("service", "holla" ).then(
+            new Callback() {
+                @Override
+                public void receive(Object result, Object error) {
+                    System.out.println(result+" "+error);
+                }
+            }
+        );
+//        facade.tell("subscribe",
 //            new Callback() {
 //                @Override
 //                public void receive(Object result, Object error) {

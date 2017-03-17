@@ -329,9 +329,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
     // dispatch incoming remotecalls, return true if a future has been created
     protected boolean processRemoteCallEntry(ObjectSocket objSocket, RemoteCallEntry response, List<IPromise> createdFutures, Object authContext) throws Exception {
-        if ( response.getFutureKey() < 0 ) { // forwarded rce
-            int debug = 1;
-        }
         if ( constraints != null ) {
             DenialReason callValid = constraints.isCallValid(authContext, response);
             if ( callValid != null ) {
@@ -385,8 +382,8 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 } else
                     Log.Warn(this,"Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent. "+read);
             } else {
+                boolean isContinue = read.isContinue();
                 read.unpackArgs(conf);
-                boolean isContinue = read.getArgs().length > 1 && Callback.CONT.equals(read.getArgs()[1]);
                 if ( isContinue )
                     read.getArgs()[1] = Callback.CONT; // enable ==
                 publishedCallback.complete(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
@@ -454,6 +451,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
         }
         RemoteCallEntry rce = new RemoteCallEntry(0, id, null, null, conf.asByteArray(new Object[] {result,error}));
         rce.setQueue(rce.CBQ);
+        rce.setContinue( error == Actors.CONT );
         writeObject(chan, rce);
     }
 

@@ -588,7 +588,7 @@ public class RemoteActorConnection {
                         callbackMap.remove(call.getReceiverKey());
                     }
                     else {
-                        if ( ! "CNT".equals(error) ) {
+                        if ( ! call.isContinue() ) {
                             callbackMap.remove(call.getReceiverKey());
                         }
                     }

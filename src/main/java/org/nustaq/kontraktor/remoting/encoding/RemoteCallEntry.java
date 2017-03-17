@@ -38,6 +38,7 @@ public class RemoteCallEntry implements Serializable {
     Object args[];
     byte[] serializedArgs;
     int queue;
+    boolean isContinue;
 
     public RemoteCallEntry() {}
 
@@ -47,6 +48,14 @@ public class RemoteCallEntry implements Serializable {
         this.method = method;
         this.args = args;
         this.serializedArgs = serializedArgs;
+    }
+
+    public boolean isContinue() {
+        return isContinue;
+    }
+
+    public void setContinue(boolean aContinue) {
+        isContinue = aContinue;
     }
 
     public byte[] getSerializedArgs() {
