@@ -216,7 +216,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
 //            System.out.println("CBMAP SIZE:"+publishedActorMapping.size());
             int debug = 1;
         } else {
-            System.out.println("MISS REMOVE:"+receiverKey);
+            Log.Warn(this,"MISS REMOVE:"+receiverKey);
         }
     }
 
@@ -372,7 +372,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 publishedCallback = getPublishedCallback(-read.getReceiverKey()); // check forward
                 if ( publishedCallback != null ) {
                     publishedCallback.complete(read,null); // in case of forwards => promote full remote call object
-                    removePublishedObject(-read.getReceiverKey());
                     return false;
                 }
                 if ( read.getArgs() != null && read.getArgs().length == 2 && read.getArgs()[1] instanceof InternalActorStoppedException ) {
