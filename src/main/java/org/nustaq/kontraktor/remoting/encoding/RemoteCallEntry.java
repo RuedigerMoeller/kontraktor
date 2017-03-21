@@ -19,6 +19,7 @@ package org.nustaq.kontraktor.remoting.encoding;
 
 import org.nustaq.kson.ArgTypes;
 import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.coders.JSONString;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -36,6 +37,7 @@ public class RemoteCallEntry implements Serializable {
     String method;
     @ArgTypes
     Object args[];
+    @JSONString
     byte[] serializedArgs;
     int queue;
     boolean isContinue;

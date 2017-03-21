@@ -458,6 +458,9 @@ window.jsk = window.jsk || (function () {
             delete futureMap[resp.obj.receiverKey];
             delete callMap[resp.obj.receiverKey];
           }
+          if ( resp.obj.serializedArgs ) {
+            resp.obj.args = JSON.parse(resp.obj.serializedArgs);
+          }
           if (automaticTransformResults) {
             var transFun = function (obj) {
               if (obj != null && obj instanceof Array && obj.length == 2 && typeof obj[1] === 'string' && obj[1].indexOf("_ActorProxy") > 0) {
