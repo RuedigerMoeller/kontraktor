@@ -59,7 +59,7 @@ public class Actors {
     public static int MAX_EXTERNAL_THREADS_POOL_SIZE = 1000; // max threads used when externalizing blocking api
     public static int DEFAULT_TIMOUT = 15000;
     public static ThreadPoolExecutor exec;
-    public final static String version = "3.32";
+    public final static String version = "3.32.1";
 
     /**
      * use bounded queues if true. bounded queues block caller when they are full,
