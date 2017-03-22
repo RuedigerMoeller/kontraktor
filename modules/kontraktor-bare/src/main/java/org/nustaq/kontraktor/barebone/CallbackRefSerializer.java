@@ -56,7 +56,6 @@ public class CallbackRefSerializer extends FSTBasicObjectSerializer {
 //            }
 //        };
 //        in.registerObject(cb, streamPositioin, serializationInfo, referencee);
-//        return cb;
         return null;
     }
 

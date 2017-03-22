@@ -34,6 +34,7 @@ public class RemoteCallEntry implements Serializable {
     byte[] serializedArgs;
     int queue;
     boolean isContinue;
+    Callback cb; // contains callback in case arglist has a callback
 
     public RemoteCallEntry(int receiverKey, int futureKey, String method, Object[] args, int queue) {
         this.receiverKey = receiverKey;
@@ -80,6 +81,10 @@ public class RemoteCallEntry implements Serializable {
 
     public void pack(FSTConfiguration conf) {
         if ( args != null && serializedArgs == null ) {
+            if ( args.length > 0 && args[args.length-1] instanceof Callback ) {
+                cb = (Callback) args[args.length-1];
+                args[args.length-1] = null;
+            }
             serializedArgs = conf.asByteArray(args);
             args = null;
         }
@@ -88,6 +93,10 @@ public class RemoteCallEntry implements Serializable {
     public void unpack(FSTConfiguration conf) {
         if ( args == null && serializedArgs != null ) {
             args = (Object[]) conf.asObject(serializedArgs);
+            if ( cb != null ) {
+                args[args.length-1] = cb;
+                cb = null;
+            }
             serializedArgs = null;
         }
     }

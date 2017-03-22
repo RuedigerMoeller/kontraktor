@@ -66,13 +66,12 @@ public class RemoteScheduler extends SimpleScheduler {
         CallEntry e = new CallEntry(
             actor, // target
             method,
-            null,
+            args,
             Actor.sender.get(), // enqueuer
             actor,
             isCB
         );
         e.setRemoteRefRegistry(reg);
-        e.serializedArgs(reg.getConf().asByteArray(args));
         return e;
     }
 

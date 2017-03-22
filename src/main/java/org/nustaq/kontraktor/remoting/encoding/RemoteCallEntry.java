@@ -17,6 +17,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.encoding;
 
 
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kson.ArgTypes;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.coders.JSONString;
@@ -41,6 +42,7 @@ public class RemoteCallEntry implements Serializable {
     byte[] serializedArgs;
     int queue;
     boolean isContinue;
+    Callback cb;
 
     public RemoteCallEntry() {}
 
@@ -120,12 +122,34 @@ public class RemoteCallEntry implements Serializable {
         this.serializedArgs = serializedArgs;
     }
 
+    public void pack(FSTConfiguration conf) {
+        if ( args != null && serializedArgs == null ) {
+            if ( args.length > 0 && args[args.length-1] instanceof Callback ) {
+                cb = (Callback) args[args.length-1];
+                args[args.length-1] = null;
+            }
+            serializedArgs = conf.asByteArray(args);
+            args = null;
+        }
+    }
+
     public void unpackArgs(FSTConfiguration conf) {
         if ( getSerializedArgs() != null ) {
             setArgs((Object[]) conf.asObject(getSerializedArgs()));
+            if ( cb != null ) {
+                args[args.length-1] = cb;
+                cb = null;
+            }
             setSerializedArgs(null);
         }
     }
 
+    public Callback getCB() {
+        return cb;
+    }
+
+    public void setCB(Callback CB) {
+        this.cb = CB;
+    }
 }
 

@@ -28,7 +28,6 @@ public class CallEntry<T> {
 
     final private Method method;
     final private Object[] args;
-    private byte[] serializedArgs; // used for remote stubs to a) snapshot args and b) avoid multiple arg serialization overhead
     private IPromise futureCB;
     transient final private T target;    // target and target actor are not necessary equal. E.g. target can be callback, but calls are put onto sendingActor Q
     transient private Actor sendingActor; // defines the sender of this message. null in case of outside call
@@ -90,15 +89,6 @@ public class CallEntry<T> {
                    ", targetActor=" + targetActor +
                    ", onCBQueue=" + onCBQueue +
                    '}';
-    }
-
-    public byte[] getSerializedArgs() {
-        return serializedArgs;
-    }
-
-    public CallEntry serializedArgs(final byte[] serializedArgs) {
-        this.serializedArgs = serializedArgs;
-        return this;
     }
 
     public boolean isCallback() {

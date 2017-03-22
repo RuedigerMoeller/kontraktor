@@ -36,6 +36,14 @@ public class DummyClient {
                 }
             }
         );
+        facade.tell("subscribe", new ForeignClass(1,2,3),
+            new Callback() {
+                @Override
+                public void receive(Object result, Object error) {
+                    System.out.println(result+" "+error);
+                }
+            }
+        );
 //        facade.tell("subscribe",
 //            new Callback() {
 //                @Override

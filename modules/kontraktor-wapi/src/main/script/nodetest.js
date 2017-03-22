@@ -12,21 +12,15 @@ var token = jwt.sign(
 );
 console.log("token:",token);
 
-jsk.connect("http://localhost:7777/api", { token: token, uname: 'test' }).then(function(serv,err) {
+jsk.connect("http://localhost:7777/dummyservice", { token: token, uname: 'test' }).then(function(serv,err) {
   if ( err ) {
     console.log("error:",err);
     return;
   }
-  serv.ask("hello", "Rüdi").then( function(r,e) {
-    console.log("hello "+r+" err:"+e);
+  serv.ask("service", "Rüdi").then( function(r,e) {
+    console.log("Rüdi "+r+" err:"+e);
   });
-  serv.ask("verify", token).then( function(rr,ee) {
-    console.log("verify "+rr+" err:"+ee);
+  serv.tell( "subscribe", jsk.jobj("wapi.ForeignClass", { x: 3, y: 2, z: 1 }), function(r,e) {
+    console.log("bcast ",r,e);
   });
-  serv.tell("cyclicPing", function(rr,ee) {
-    console.log("cyclicPing "+rr);
-  });
-  for ( var i = 0; i < 7; i++ ) {
-    serv.tell("load");
-  }
 });

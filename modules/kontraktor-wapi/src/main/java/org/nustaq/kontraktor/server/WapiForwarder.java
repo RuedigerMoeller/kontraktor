@@ -1,10 +1,8 @@
 package org.nustaq.kontraktor.server;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.Scheduler;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
@@ -45,6 +43,10 @@ public class WapiForwarder extends Actor<WapiForwarder>  {
                 cbrce.setReceiverKey(prevFuturekey);
                 registry.forwardRemoteMessage(cbrce);
             });
+        }
+        if ( rce.getCB() != null ) {
+            Callback cb = rce.getCB();
+            rce.setCB( new CallbackWrapper( self(), cb ) );
         }
         remoteReg.forwardRemoteMessage(rce);
         return false;

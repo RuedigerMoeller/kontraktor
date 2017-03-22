@@ -520,8 +520,9 @@ public abstract class RemoteRegistry implements RemoteConnection {
                             futId = registerPublishedCallback(ce.getFutureCB());
                         }
                         try {
-                            RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs(), ce.getSerializedArgs() );
+                            RemoteCallEntry rce = new RemoteCallEntry(futId, remoteActor.__remoteId, ce.getMethod().getName(), ce.getArgs(), null );
                             rce.setQueue(cb ? rce.CBQ : rce.MAILBOX);
+                            rce.pack(conf);
                             writeObject(chan, rce);
                             sumQueued++;
                             hadAnyMsg = true;

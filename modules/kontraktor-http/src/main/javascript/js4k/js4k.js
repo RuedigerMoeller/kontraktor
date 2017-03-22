@@ -344,7 +344,12 @@ window.jsk = window.jsk || (function () {
    * @returns {{typ, obj}|*}
    */
   _jsk.KontrActor.prototype.buildCall = function( callbackId, receiverKey, methodName, args ) {
-    return _jsk.buildJObject( "call", { futureKey: callbackId, queue: 0, method: methodName, receiverKey: receiverKey, args: _jsk.buildJArray("array",args) } );
+    var cb = null;
+    if ( args && args[args.length-1].typ === 'cbw' ) {
+      cb = args[args.length-1];
+      args[args.length-1] = null;
+    }
+    return _jsk.buildJObject( "call", { futureKey: callbackId, queue: 0, method: methodName, receiverKey: receiverKey, serializedArgs: JSON.stringify(_jsk.buildJArray("array",args)), cb: cb } );
   };
 
   _jsk.KontrActor.prototype.buildCallback = function( callbackId ) {
@@ -454,6 +459,10 @@ window.jsk = window.jsk || (function () {
           console.error("unhandled callback " + JSON.stringify(resp, null, 2));
         } else {
           var methodAndArgs = callMap[resp.obj.receiverKey];
+          if ( resp.obj.serializedArgs ) {
+            resp.obj.args = JSON.parse(resp.obj.serializedArgs);
+            resp.obj.serializedArgs = null;
+          }
           if (cb instanceof _jsk.Promise || (cb instanceof _jsk.Callback && resp.obj.args.seq[2] !== 'CNT')) {
             delete futureMap[resp.obj.receiverKey];
             delete callMap[resp.obj.receiverKey];
