@@ -206,4 +206,12 @@ public class Http4K {
         server.car().addPrefixPath( urlPath, handler);
         return this;
     }
+
+    public Http4K unPublishHandler(String urlPath, int port) {
+        Pair<PathHandler, Undertow> server = serverMap.get(port);
+        if (server!=null) {
+            server.car().removePrefixPath(urlPath);
+        }
+        return this;
+    }
 }

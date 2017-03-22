@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.http.HttpPublisher;
 import org.nustaq.kontraktor.remoting.service.DenialReason;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
@@ -34,23 +35,27 @@ public class WapiServer extends Actor<WapiServer> {
         new TCPNIOPublisher(serviceRegistry, REGPORT)
             .coding(new Coding(SerializerType.JsonNoRef))
             .publish(actor -> {
-                Log.Info(null, actor + " has disconnected");
+                Log.Info(null, actor + " has disconnected.");
             });
         // log service activity
         serviceRegistry.subscribe((pair, err) -> {
             if ( pair.car().equals(WapiRegistry.AVAILABLE)) {
                 WapiDescription desc = pair.cdr();
+                Log.Info(this,desc+" connecting ..");
                 serviceMap.put(desc.getName()+"#"+desc.getVersion(),desc);
 
                 WapiForwarder forwarder = Actors.AsActor(WapiForwarder.class,serviceRegistry.getScheduler());
                 forwarder.remoteRef(desc.getRemoteRef());
-                HttpPublisher pub = new HttpPublisher(forwarder,"localhost", desc.getName().toLowerCase(), PORT)
+                final String urlPath = desc.getName().toLowerCase();
+                Http4K.get().unPublishHandler(urlPath,PORT);
+                HttpPublisher pub = new HttpPublisher(forwarder,"localhost", urlPath, PORT)
                     .coding(new Coding(SerializerType.JsonNoRef, new Class[] {DenialReason.class} ));
                 pub.publish( act -> System.out.println("DISCON "+desc) );
             } else if ( pair.car().equals( WapiRegistry.TIMEOUT ) ) {
                 // remove
                 WapiDescription desc = pair.cdr();
                 serviceMap.remove(desc.getName()+"#"+desc.getVersion());
+                Log.Warn(this,desc+" has disconnected");
             }
             Log.Info(serviceRegistry.getClass(), pair.car() + " " + pair.cdr());
         });

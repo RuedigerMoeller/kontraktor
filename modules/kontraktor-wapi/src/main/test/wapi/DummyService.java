@@ -18,21 +18,36 @@ public class DummyService extends Actor {
 
     WapiRegistry wapi;
     WapiDescription dummyService;
+    boolean connected = false;
 
     public void init() {
+        connect();
+    }
+
+    public void connect() {
+        if ( isStopped() )
+            return;
         TCPConnectable con = new TCPConnectable(WapiRegistry.class,"localhost",6665);
         con.coding(new Coding(SerializerType.JsonNoRef));
-        wapi = (WapiRegistry) con.connect((x, err) -> {
-            System.out.println("disconnect");
-        }).await(15000);
+        con.connect((x, err) -> {
+            Log.Warn(this, "disconnected");
+            connected = false;
+            delayed(1000,() -> connect() );
+        }).then( (wapires,error) -> {
+            if ( wapires != null && error == null ) {
+                wapi = (WapiRegistry)wapires;
+                dummyService = new WapiDescription()
+                    .name("DummyService");
+                wapi.registerService( dummyService, self() );
+                Log.Info(this,"connected wapireg");
+                connected = true;
+                heartbeat();
+            } else {
+                Log.Warn(this, "disconnected retry in 1 second");
+                delayed(1000,() -> connect() );
+            }
+        });
 
-        dummyService = new WapiDescription()
-            .name("DummyService");
-
-        wapi.registerService( dummyService, self() );
-
-        Log.Info(this,"connected wapireg");
-        heartbeat();
     }
 
     public IPromise service(String dummy) {
@@ -61,7 +76,7 @@ public class DummyService extends Actor {
     }
 
     public void heartbeat() {
-        if ( ! isStopped() ) {
+        if ( ! isStopped() && connected ) {
             wapi.receiveHeartbeat(dummyService.getName(),dummyService.getUniqueKey());
             delayed(3000,() -> heartbeat());
         }
