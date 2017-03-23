@@ -23,8 +23,6 @@ import io.undertow.util.Methods;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.base.SessionResurrector;
 import org.nustaq.kontraktor.remoting.base.*;
-import org.nustaq.kontraktor.remoting.service.DenialReason;
-import org.nustaq.kontraktor.remoting.service.ServiceConstraints;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.FSTConfiguration;
@@ -80,21 +78,10 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
     long sessionTimeout = SESSION_TIMEOUT_MS;
     volatile boolean isClosed = false;
     private ActorServer actorServer;
-    ServiceConstraints constraints;
 
     public UndertowHttpServerConnector(Actor facade) {
         this.facade = facade;
         facade.delayed( HttpObjectSocket.LP_TIMEOUT/2, () -> houseKeeping() );
-    }
-
-    public UndertowHttpServerConnector constraints(final ServiceConstraints constraints) {
-        this.constraints = constraints;
-        return this;
-    }
-
-    @Override
-    public ServiceConstraints getConstraints() {
-        return constraints;
     }
 
     public void houseKeeping() {
@@ -225,19 +212,20 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
     protected void handleNewSession( HttpServerExchange exchange ) {
 
         String sessionId = null;
-        if ( constraints != null ) {
-            String token = exchange.getRequestHeaders().getFirst("token");
-            String uname = exchange.getRequestHeaders().getFirst("uname");
-            DenialReason denialReason = constraints.registerToken(token, uname);
-            if ( denialReason != null ) {
-                exchange.setResponseCode(403);
-                exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/html; charset=utf-8");
-                exchange.getResponseSender().send(""+denialReason);
-                exchange.endExchange();
-                return;
-            }
-            sessionId = token;
-        } else {
+//        if ( constraints != null ) {
+//            String token = exchange.getRequestHeaders().getFirst("token");
+//            String uname = exchange.getRequestHeaders().getFirst("uname");
+//            DenialReason denialReason = constraints.registerToken(token, uname);
+//            if ( denialReason != null ) {
+//                exchange.setResponseCode(403);
+//                exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/html; charset=utf-8");
+//                exchange.getResponseSender().send(""+denialReason);
+//                exchange.endExchange();
+//                return;
+//            }
+//            sessionId = token;
+//        } else
+        {
             sessionId = UUID.randomUUID().toString();
         }
         String finalSessionId = sessionId;

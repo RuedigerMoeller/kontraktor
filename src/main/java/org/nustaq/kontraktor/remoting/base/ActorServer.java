@@ -91,7 +91,7 @@ public class ActorServer {
                 }
             };
             reg.setDisconnectHandler(disconnectHandler);
-            reg.constraints(connector.getConstraints());
+            //reg.constraints(connector.getConstraints());
             writesocket.setConf(reg.getConf());
             Actor.current(); // ensure running in actor thread
             poller.get().scheduleSendLoop(reg);

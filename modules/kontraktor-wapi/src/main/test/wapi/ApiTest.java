@@ -8,7 +8,6 @@ import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.http.HttpPublisher;
-import org.nustaq.kontraktor.remoting.service.DenialReason;
 
 import java.io.File;
 
@@ -33,13 +32,12 @@ public class ApiTest extends Actor<ApiTest> {
     public static void main(String[] args) {
         ApiTest wsTest = Actors.AsActor(ApiTest.class);
         HttpPublisher pub = new HttpPublisher(wsTest,"localhost","api",7777)
-            .coding(new Coding(SerializerType.JsonNoRef, new Class[] {DenialReason.class} ));
+            .coding(new Coding(SerializerType.JsonNoRef, new Class[] {} ));
         pub.publish( act -> {
                 System.out.println("DISCON");
-            }, new TestConstraints()
+            } //, new TestConstraints()
         );
         Http4K.get().publishFileSystem("localhost","html",7777,new File("/home/ruedi/projects/mnistplay/src/main/script/"));
         Http4K.get().publishFileSystem("localhost","scripts",7777,new File("/home/ruedi/projects/kontraktor/modules/kontraktor-http/src/main/javascript/js4k/"));
-
     }
 }

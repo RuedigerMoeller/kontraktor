@@ -23,8 +23,6 @@ import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.impl.InternalActorStoppedException;
 import org.nustaq.kontraktor.impl.RemoteScheduler;
 import org.nustaq.kontraktor.remoting.encoding.*;
-import org.nustaq.kontraktor.remoting.service.DenialReason;
-import org.nustaq.kontraktor.remoting.service.ServiceConstraints;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
@@ -65,7 +63,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
     public static BiFunction remoteCallMapper; // if set, each remote call and callback is mapped through
 
-    protected ServiceConstraints constraints;
     protected FSTConfiguration conf;
     protected RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
     // holds published actors, futures and callbacks of this process
@@ -103,15 +100,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
         registerDefaultClassMappings(conf);
         configureSerialization(code);
 	}
-
-    public RemoteRegistry constraints(final ServiceConstraints constraints) {
-        this.constraints = constraints;
-        return this;
-    }
-
-    public ServiceConstraints getConstraints() {
-        return constraints;
-    }
 
     public BiFunction<Actor, String, Boolean> getRemoteCallInterceptor() {
         return remoteCallInterceptor;
@@ -329,15 +317,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
     // dispatch incoming remotecalls, return true if a future has been created
     protected boolean processRemoteCallEntry(ObjectSocket objSocket, RemoteCallEntry response, List<IPromise> createdFutures, Object authContext) throws Exception {
-        if ( constraints != null ) {
-            DenialReason callValid = constraints.isCallValid(authContext, response);
-            if ( callValid != null ) {
-                objSocket.writeObject(""+callValid);
-                objSocket.flush();
-                objSocket.close();
-                return true;
-            }
-        }
         RemoteCallEntry read = response;
         if (read.getQueue() == read.MAILBOX) {
             if ( remoteCallMapper != null ) {

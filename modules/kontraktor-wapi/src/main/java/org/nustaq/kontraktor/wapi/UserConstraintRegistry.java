@@ -14,6 +14,11 @@ import java.util.Base64;
  */
 public interface UserConstraintRegistry {
 
+    /**
+     * created secret must be stored explicitely
+     * @param ukey
+     * @return
+     */
     default String createSecret(String ukey) {
         // create new key
         SecretKey secretKey = null;

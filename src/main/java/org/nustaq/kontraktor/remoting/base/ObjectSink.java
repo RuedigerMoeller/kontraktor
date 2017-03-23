@@ -17,7 +17,6 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.remoting.service.ServiceConstraints;
 
 import java.util.List;
 
@@ -39,8 +38,5 @@ public interface ObjectSink {
         receiveObject(this,received,createdFutures, securityContext);
     }
     void sinkClosed();
-    default ServiceConstraints getConstraints() {
-        return null;
-    }
 }
 

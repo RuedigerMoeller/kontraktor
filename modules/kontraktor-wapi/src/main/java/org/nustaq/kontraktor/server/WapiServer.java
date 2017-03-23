@@ -8,7 +8,6 @@ import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.http.HttpPublisher;
-import org.nustaq.kontraktor.remoting.service.DenialReason;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
 
@@ -49,11 +48,13 @@ public class WapiServer extends Actor<WapiServer> {
                 final String urlPath = desc.getName().toLowerCase();
                 Http4K.get().unPublishHandler(urlPath,PORT);
                 HttpPublisher pub = new HttpPublisher(forwarder,"localhost", urlPath, PORT)
-                    .coding(new Coding(SerializerType.JsonNoRef, new Class[] {DenialReason.class} ));
+                    .coding(new Coding(SerializerType.JsonNoRef, new Class[] {} ));
                 pub.publish( act -> System.out.println("DISCON "+desc) );
             } else if ( pair.car().equals( WapiRegistry.TIMEOUT ) ) {
                 // remove
                 WapiDescription desc = pair.cdr();
+                final String urlPath = desc.getName().toLowerCase();
+                Http4K.get().unPublishHandler(urlPath,PORT);
                 serviceMap.remove(desc.getName()+"#"+desc.getVersion());
                 Log.Warn(this,desc+" has disconnected");
             }
@@ -73,7 +74,7 @@ public class WapiServer extends Actor<WapiServer> {
         wsTest.init();
 
         HttpPublisher pub = new HttpPublisher(wsTest,"localhost","api", PORT)
-            .coding(new Coding(SerializerType.JsonNoRef, new Class[] {DenialReason.class} ));
+            .coding(new Coding(SerializerType.JsonNoRef, new Class[] {} ));
         pub.publish( act -> {
                 System.out.println("DISCON");
             } //, new TestConstraints()

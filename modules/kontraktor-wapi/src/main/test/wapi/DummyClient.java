@@ -8,10 +8,42 @@ import org.nustaq.kontraktor.barebone.RemoteActorConnection;
  * Created by ruedi on 10.03.17.
  */
 public class DummyClient {
-    public static void main(String[] args) throws InterruptedException {
-        final RemoteActorConnection act = new RemoteActorConnection( s -> System.out.println("connection closed:"+s) );
-        final RemoteActor facade = act.connect("http://localhost:7777/dummyservice", true).await();
-        System.out.println("facade:" + facade);
+    RemoteActorConnection actorConnection;
+    RemoteActor facade;
+
+    public boolean isConnected() {
+        return actorConnection != null && facade != null;
+    }
+
+    public void connect() {
+        System.out.println("try connecting ..");
+        actorConnection = new RemoteActorConnection( s -> {
+            disconnect();
+        });
+        try {
+            facade = actorConnection.connect("http://localhost:7777/dummyservice", true).await();
+            run();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            disconnect();
+        }
+    }
+
+    private void disconnect() {
+        System.out.println("connection closed");
+        actorConnection = null;
+        facade = null;
+        new Thread(()->{
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e1) {
+                e1.printStackTrace();
+            }
+            connect();
+        }).start();
+    }
+
+    public void run() {
         facade.ask("service", "hello" ).then(
             new Callback() {
                 @Override
@@ -44,26 +76,10 @@ public class DummyClient {
                 }
             }
         );
-//        facade.tell("subscribe",
-//            new Callback() {
-//                @Override
-//                public void receive(Object result, Object error) {
-//                    System.out.println(result);
-//                }
-//            }
-//        );
+    }
 
-//        DummyService dummyService1 = (DummyService) connect.getService("DummyService", "1").await();
-//        dummyService1.service("hello1").then( (x,y) -> System.out.println(x));
-
-//        while( true ) {
-//            AtomicLong sum = new AtomicLong();
-//            for ( int i = 0; i < 1000; i++ ) {
-//                dummyService.ask("roundTrip", System.currentTimeMillis()).then( l -> sum.addAndGet(System.currentTimeMillis()-(Long)l));
-//                Thread.yield();
-//            }
-//            Thread.sleep(1000L);
-//            System.out.println("lat "+sum.get()/1000);
-//        }
+    public static void main(String[] args) throws InterruptedException {
+        DummyClient dummyClient = new DummyClient();
+        dummyClient.connect();
     }
 }

@@ -62,13 +62,17 @@ public class DummyService extends Actor {
 
     public void subscribe(ForeignClass in, Callback dummy) {
         System.out.println("subscribe "+dummy);
-        pingIt(in, dummy);
+        pingIt(10,in, dummy);
     }
 
-    private void pingIt(ForeignClass in, Callback dummy) {
-        System.out.println("pinging");
+    private void pingIt(int i, ForeignClass in, Callback dummy) {
+        if ( i < 0 ) {
+            dummy.finish();
+            return;
+        }
+        System.out.println("pinging "+i);
         dummy.stream(in );
-        delayed( 1000, () -> pingIt( in, dummy) );
+        delayed( 1000, () -> pingIt(i-1, in, dummy) );
     }
 
     public IPromise roundTrip(long cur) {
