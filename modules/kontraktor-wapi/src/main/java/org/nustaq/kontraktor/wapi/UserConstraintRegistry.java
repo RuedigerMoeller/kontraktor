@@ -6,6 +6,9 @@ import io.jsonwebtoken.Jwts;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.xml.bind.DatatypeConverter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
@@ -50,6 +53,11 @@ public interface UserConstraintRegistry {
             e.printStackTrace();
             return null;
         }
+    }
+
+    static String readSecret(String fi) throws IOException {
+        byte[] bytes = Files.readAllBytes(Paths.get(fi));
+        return new String(bytes,"UTF-8");
     }
 
 }

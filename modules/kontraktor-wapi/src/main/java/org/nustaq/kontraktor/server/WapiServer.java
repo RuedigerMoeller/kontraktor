@@ -1,15 +1,19 @@
 package org.nustaq.kontraktor.server;
 
+import io.jsonwebtoken.Claims;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.http.ConnectionAuthResult;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.http.HttpPublisher;
+import org.nustaq.kontraktor.remoting.http.UndertowHttpServerConnector;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.wapi.UserConstraintRegistry;
 
 import java.util.HashMap;
 
@@ -22,8 +26,8 @@ public class WapiServer extends Actor<WapiServer> {
     static int PORT = 7777;
 
     WapiRegistry registry;
-
     HashMap<String,WapiDescription> serviceMap;
+    UserConstraintRegistry userReg = new TestUserConstraintRegistry();
 
     @Local
     public void init() {
@@ -48,6 +52,15 @@ public class WapiServer extends Actor<WapiServer> {
                 final String urlPath = desc.getName().toLowerCase();
                 Http4K.get().unPublishHandler(urlPath,PORT);
                 HttpPublisher pub = new HttpPublisher(forwarder,"localhost", urlPath, PORT)
+                    .connectionVerifier( exchange -> {
+                        String token = exchange.getRequestHeaders().getFirst("JWT");
+                        String uname = exchange.getRequestHeaders().getFirst("ID");
+                        Claims claims = userReg.verifyToken(token, uname);
+                        if ( claims == null ) {
+                            return new ConnectionAuthResult(null,"token verification failed");
+                        }
+                        return new ConnectionAuthResult(token,null);
+                    })
                     .coding(new Coding(SerializerType.JsonNoRef, new Class[] {} ));
                 pub.publish( act -> System.out.println("DISCON "+desc) );
             } else if ( pair.car().equals( WapiRegistry.TIMEOUT ) ) {
