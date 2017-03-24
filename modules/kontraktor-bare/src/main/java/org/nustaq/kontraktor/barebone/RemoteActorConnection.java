@@ -97,6 +97,46 @@ public class RemoteActorConnection {
         }
     };
 
+    final static class JWTHeadeer implements Header {
+        public JWTHeadeer(String jwt) {
+            this.jwt = jwt;
+        }
+
+        String jwt;
+        @Override
+        public String getName() {
+            return "JWT";
+        }
+        @Override
+        public String getValue() {
+            return jwt;
+        }
+        @Override
+        public HeaderElement[] getElements() throws ParseException {
+            return new HeaderElement[0];
+        }
+    };
+
+    final static class IDHeadeer implements Header {
+        public IDHeadeer(String id) {
+            this.id = id;
+        }
+
+        String id;
+        @Override
+        public String getName() {
+            return "ID";
+        }
+        @Override
+        public String getValue() {
+            return id;
+        }
+        @Override
+        public HeaderElement[] getElements() throws ParseException {
+            return new HeaderElement[0];
+        }
+    };
+
     protected FSTConfiguration conf;
     protected static ExecutorService myExec = Executors.newSingleThreadExecutor();
     protected String sessionId;
@@ -106,6 +146,9 @@ public class RemoteActorConnection {
     protected volatile long timeout = LONG_POLL_MAX_TIME*2; // signal close if no longpoll has been received for this time
 
     protected long lastPing;
+    protected String jwt = "";
+    protected String id = "";
+
     /**
      * callback id => promise or callback
      */
@@ -503,6 +546,25 @@ public class RemoteActorConnection {
         return p;
     }
 
+    public String getJwt() {
+        return jwt;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public RemoteActorConnection jwt(final String jwt) {
+        this.jwt = jwt;
+        return this;
+    }
+
+    public RemoteActorConnection id(final String id) {
+        this.id = id;
+        return this;
+    }
+
+
     Map sequenceCache = new HashMap(); // caches early responses in case of response race
     protected int processResponse(byte[] b) {
         if ( DumpProtocol ) {
@@ -620,6 +682,8 @@ public class RemoteActorConnection {
     protected HttpPost createRequest(String url, byte[] message) {
         HttpPost req = new HttpPost(url);
         req.addHeader(NO_CACHE);
+        req.addHeader(new JWTHeadeer(jwt));
+        req.addHeader(new IDHeadeer(id));
         req.setEntity(new ByteArrayEntity(message));
         return req;
     }

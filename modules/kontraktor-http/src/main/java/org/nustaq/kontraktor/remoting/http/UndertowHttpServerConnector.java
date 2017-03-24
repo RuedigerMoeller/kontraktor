@@ -78,6 +78,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
     long sessionTimeout = SESSION_TIMEOUT_MS;
     volatile boolean isClosed = false;
     private ActorServer actorServer;
+    private Function<HttpServerExchange,ConnectionAuthResult> connectionVerifier;
 
     public UndertowHttpServerConnector(Actor facade) {
         this.facade = facade;
@@ -209,22 +210,30 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         return null;
     }
 
-    protected void handleNewSession( HttpServerExchange exchange ) {
+    public Function<HttpServerExchange, ConnectionAuthResult> getConnectionVerifier() {
+        return connectionVerifier;
+    }
+
+    public void setConnectionVerifier(Function<HttpServerExchange, ConnectionAuthResult> connectionVerifier) {
+        this.connectionVerifier = connectionVerifier;
+    }
+
+    protected void handleNewSession(HttpServerExchange exchange ) {
 
         String sessionId = null;
-//        if ( constraints != null ) {
+        if ( connectionVerifier != null ) {
 //            String token = exchange.getRequestHeaders().getFirst("token");
 //            String uname = exchange.getRequestHeaders().getFirst("uname");
-//            DenialReason denialReason = constraints.registerToken(token, uname);
-//            if ( denialReason != null ) {
-//                exchange.setResponseCode(403);
-//                exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/html; charset=utf-8");
-//                exchange.getResponseSender().send(""+denialReason);
-//                exchange.endExchange();
-//                return;
-//            }
-//            sessionId = token;
-//        } else
+            ConnectionAuthResult denialReason = connectionVerifier.apply(exchange);
+            if ( denialReason == null || denialReason.isError() ) {
+                exchange.setResponseCode(403);
+                exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/html; charset=utf-8");
+                exchange.getResponseSender().send( denialReason != null ? denialReason.getError() : "expected ConnectionAuthResult, got null");
+                exchange.endExchange();
+                return;
+            }
+            sessionId = denialReason.getSid();
+        } else
         {
             sessionId = UUID.randomUUID().toString();
         }

@@ -17,6 +17,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.http;
 
 import io.undertow.Undertow;
+import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.PathHandler;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
@@ -32,6 +33,7 @@ import org.nustaq.kontraktor.util.Pair;
 
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 04/06/15.
@@ -48,6 +50,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
     Coding coding = new Coding(SerializerType.FSTSer);
     long sessionTimeout = TimeUnit.MINUTES.toMillis(30);
     Actor facade;
+    private Function<HttpServerExchange,ConnectionAuthResult> connectionVerifier;
 
     public HttpPublisher() {}
 
@@ -61,6 +64,15 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
     public HttpPublisher(BldFourK cfgFourK, Actor facade, String hostName, String urlPath, int port) {
         this(facade,hostName,urlPath,port);
         this.cfg = cfgFourK;
+    }
+
+    public HttpPublisher connectionVerifier(final Function<HttpServerExchange, ConnectionAuthResult> connectionVerifier) {
+        this.connectionVerifier = connectionVerifier;
+        return this;
+    }
+
+    public Function<HttpServerExchange, ConnectionAuthResult> getConnectionVerifier() {
+        return connectionVerifier;
     }
 
     /**
@@ -90,6 +102,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
             facade.setThrowExWhenBlocked(true);
             Pair<PathHandler, Undertow> serverPair = Http4K.get().getServer(port, hostName);
             UndertowHttpServerConnector con = new UndertowHttpServerConnector(facade);
+            con.setConnectionVerifier(connectionVerifier);
             con.setSessionTimeout(sessionTimeout);
             actorServer = new ActorServer( con, facade, coding == null ? new Coding(SerializerType.FSTSer) : coding );
             con.setActorServer(actorServer);
