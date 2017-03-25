@@ -311,7 +311,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
         Object received[] = (Object[]) httpObjectSocket.getConf().asObject(postData);
 
-        boolean isEmptyLP = received instanceof Object[] && ((Object[]) received).length == 1 && ((Object[]) received)[0] instanceof Number;
+        boolean isEmptyLP = received.length == 1 && received[0] instanceof Number;
 
 
         if ( ! isEmptyLP ) {
@@ -410,7 +410,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
     protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object[] received, StreamSinkChannel sinkchannel) {
         ArrayList<IPromise> futures = new ArrayList<>();
-        httpObjectSocket.getSink().receiveObject(received, futures, exchange.getRequestHeaders().getFirst("token") );
+        httpObjectSocket.getSink().receiveObject(received, futures, exchange.getRequestHeaders().getFirst("JWT") );
 
         Runnable reply = () -> {
             // piggy back outstanding lp messages, outstanding lp request is untouched

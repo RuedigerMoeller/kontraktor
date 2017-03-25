@@ -341,7 +341,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 Log.Lg.error(this, null, "registry:"+System.identityHashCode(this)+" no actor found for key " + read);
                 return true;
             }
-            targetActor.__dispatchRemoteCall(objSocket,read,this,createdFutures);
+            targetActor.__dispatchRemoteCall(objSocket,read,this,createdFutures, authContext);
         } else if (read.getQueue() == read.CBQ) {
             if ( remoteCallMapper != null ) {
                 read = (RemoteCallEntry) remoteCallMapper.apply(this,read);

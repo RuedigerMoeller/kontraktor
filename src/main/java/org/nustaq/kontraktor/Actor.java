@@ -618,7 +618,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * called if a message invokation from remote is received
      * @return true if a new promise has been created
      */
-    @CallerSideMethod public boolean __dispatchRemoteCall(ObjectSocket objSocket, RemoteCallEntry rce, RemoteRegistry registry, List<IPromise> createdFutures) {
+    @CallerSideMethod public boolean __dispatchRemoteCall(ObjectSocket objSocket, RemoteCallEntry rce, RemoteRegistry registry, List<IPromise> createdFutures, Object authContext) {
         rce.unpackArgs(registry.getConf());
         try {
             Object future = getScheduler().enqueueCallFromRemote(registry, null, self(), rce.getMethod(), rce.getArgs(), false, null);
