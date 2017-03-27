@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-// version 3.31.0
+// version 3.33
 // JavaScript to Kontraktor bridge
-// matches kontraktor 3.0 json-no-ref encoded remoting
+// matches kontraktor 3 json-no-ref encoded remoting
 var jskIsNode = false;
 if ( typeof module !== 'undefined' && module.exports ) {
   if ( typeof window === 'undefined')
@@ -345,7 +345,7 @@ window.jsk = window.jsk || (function () {
    */
   _jsk.KontrActor.prototype.buildCall = function( callbackId, receiverKey, methodName, args ) {
     var cb = null;
-    if ( args && args[args.length-1].typ === 'cbw' ) {
+    if ( args && args.lengt > 0 && args[args.length-1].typ === 'cbw' ) {
       cb = args[args.length-1];
       args[args.length-1] = null;
     }
@@ -750,7 +750,7 @@ window.jsk = window.jsk || (function () {
           request.open("POST", self.url+"/"+self.sessionId, true);
           request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
           if ( self.token )
-            request.setRequestHeader("token", self.token );
+            request.setRequestHeader("JWT", self.token );
           self.longPollUnderway++;
           try {
             request.send(reqData); // this is actually auth data currently unused. keep stuff websocket alike for now
@@ -857,7 +857,9 @@ window.jsk = window.jsk || (function () {
       request.open("POST", self.url+"/"+self.sessionId, true);
       request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
       if ( self.token )
-        request.setRequestHeader("token", self.token );
+        request.setRequestHeader("JWT", self.token );
+      if ( self.uname )
+        request.setRequestHeader("ID", self.token );
 
       try {
         request.send(data);
@@ -894,9 +896,9 @@ window.jsk = window.jsk || (function () {
     request.open("POST", self.url, true);
     request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     if ( self.token )
-      request.setRequestHeader("token", self.token );
+      request.setRequestHeader("JWT", self.token );
     if ( self.uname )
-      request.setRequestHeader("uname", self.uname );
+      request.setRequestHeader("ID", self.uname );
     request.send("null"); // this is actually auth data currently unused. keep stuff websocket alike for now
     return this;
   };
