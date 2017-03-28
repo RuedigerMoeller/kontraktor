@@ -35,4 +35,7 @@ public class StaticLoggerBinder {
         return fac;
     }
 
+    public String getLoggerFactoryClassStr() {
+        return "";
+    }
 }

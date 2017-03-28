@@ -34,6 +34,7 @@ public class RateMeasure {
     int checkEachMask = 7;
     long statInterval = 1000;
     long lastRatePersecond;
+    boolean print = false;
 
     String name = "none";
 
@@ -64,6 +65,11 @@ public class RateMeasure {
         return count.get();
     }
 
+    public RateMeasure print(final boolean print) {
+        this.print = print;
+        return this;
+    }
+
     private void checkStats() {
         long now = System.currentTimeMillis();
         long diff = now-lastStats;
@@ -80,7 +86,8 @@ public class RateMeasure {
      * @param lastRatePersecond
      */
     protected void statsUpdated(long lastRatePersecond) {
-        //Log.Info(this,"***** Stats for "+name+":   "+lastRatePersecond+"   per second *********");
+        if ( print )
+            Log.Info(this,"***** Stats for "+name+":   "+lastRatePersecond+"   per second *********");
     }
 
 

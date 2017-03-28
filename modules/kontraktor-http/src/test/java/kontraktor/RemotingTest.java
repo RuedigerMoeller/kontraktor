@@ -36,9 +36,9 @@ public class RemotingTest {
     private static final boolean ONLY_PROM = false;
     static AtomicInteger errors = new AtomicInteger();
     static boolean checkSequenceErrors = true;
-    static boolean spore = true;
+    static boolean spore = false;
 //    static int NUM_MSG = 15_000_000;
-    static int NUM_MSG = 30_000_000;
+    static int NUM_MSG = 5_000_000;
 
     public static class RemotingTestService extends Actor<RemotingTestService> {
 
@@ -61,9 +61,14 @@ public class RemotingTest {
             spore.finish();
         }
 
-        RateMeasure measure = new RateMeasure("calls",1000);
+        RateMeasure measure = new RateMeasure("calls",1000).print(true);
+        int callCount = 0;
         public void benchMarkVoid(int someVal) {
             measure.count();
+            callCount++;
+            if ( callCount % 100_000 == 0 ) {
+                System.out.println("CC "+callCount);
+            }
         }
 
         int prev = -1;
@@ -177,7 +182,7 @@ public class RemotingTest {
 
     @Test
     public void testWSJson() throws Exception {
-        Coding coding = new Coding(SerializerType.Json);
+        Coding coding = new Coding(SerializerType.JsonNoRef);
         runWS(coding);
     }
 
@@ -400,6 +405,7 @@ public class RemotingTest {
                 client.benchMarkVoid(i);
             }
         }
+        client.ping().await(60_000);
         System.out.println("two way performance");
         errors.set(0);
         boolean seq[] = new boolean[NUM_MSG];
