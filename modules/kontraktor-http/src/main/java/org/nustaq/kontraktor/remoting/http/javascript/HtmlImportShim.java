@@ -8,7 +8,9 @@ import org.nustaq.kontraktor.remoting.http.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -339,11 +341,14 @@ public class HtmlImportShim {
 
     public static void main(String[] args) throws IOException {
 
-        File file = new File("/home/ruedi/projects/polystrene/bower_components/paper-slider/paper-slider.html");
-        File baseDir = new File("/home/ruedi/projects/polystrene/bower_components/");
+        File file = new File("/home/ruedi/projects/mnistplay/uberholer/website/index.html");
+        File baseDir = new File("/home/ruedi/projects/mnistplay/uberholer/website/");
+
         HtmlImportShim shim = new HtmlImportShim(baseDir, "");
-        Element element = shim.shimImports( new KUrl("paper-slider/paper-slider.html"), new HashSet<>(), null);
-        System.out.println(element);
+        Element element = shim.shimImports( new KUrl("index.html"), new HashSet<>(), null);
+        PrintStream ps = new PrintStream(new FileOutputStream("/home/ruedi/projects/mnistplay/uberholer/dist/index.html"));
+        ps.println(element);
+        ps.close();
     }
 
 }
