@@ -43,10 +43,10 @@ public abstract class Spore<I,O> implements Serializable, Cloneable {
                     if ( finishLatch != null ) {
                         int count = finishLatch.decrementAndGet();
                         if ( count == 0 ) {
-                            finSignal.complete();
+                            finSignal.resolve();
                         }
                     } else
-                        finSignal.complete();
+                        finSignal.resolve();
                 } else {
                     if (localCallback != null) {
                         localCallback.complete((O) result, error);

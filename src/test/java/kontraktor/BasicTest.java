@@ -92,13 +92,13 @@ public class BasicTest {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            al.get(0).complete();
+            al.get(0).resolve();
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            al.get(1).complete();
+            al.get(1).resolve();
         }).start();
         Actors.all(al).await();
     }
@@ -630,7 +630,7 @@ public class BasicTest {
 
         public IPromise timeOutingMethod() {
             final Promise promise = new Promise();
-            delayed(4000, () -> promise.complete() );
+            delayed(4000, () -> promise.resolve() );
             return promise;
         }
 

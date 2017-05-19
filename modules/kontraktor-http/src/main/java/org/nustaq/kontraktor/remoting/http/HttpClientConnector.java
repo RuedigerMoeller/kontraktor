@@ -167,7 +167,7 @@ public class HttpClientConnector implements ActorClientConnector {
                 getRefPollActor().delayed(currentShortPollIntervalMS, () -> {
                     if (isClosed) {
                         if (closedNotification != null) {
-                            closedNotification.complete();
+                            closedNotification.resolve();
                             closedNotification = null;
                         }
                         return;
@@ -188,7 +188,7 @@ public class HttpClientConnector implements ActorClientConnector {
                 myHttpWS.longPoll().then( (r, e) -> {
                     if (isClosed) {
                         if (closedNotification != null) {
-                            closedNotification.complete();
+                            closedNotification.resolve();
                             closedNotification = null;
                         }
                         return;

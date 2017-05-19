@@ -46,12 +46,12 @@ import java.io.Serializable;
  * Note that the callback invocation is added as a message to the end of the calling actor.
  * e.g. actor.method( arg, new Callbacl() { public void complete(T result, Object error ) { ..runs in caller thread.. } }
  */
-public interface Callback<T> extends Serializable  // do not use interface, slows down instanceof significantly
+public interface Callback<T> extends Serializable
 {
     /**
      * use value as error to indicate more messages are to come (else remoting will close channel).
      */
-    public final String CONT = "CNT";
+    String CONT = "CNT";
 
     /**
      * set result or error. error might also contain flow indicators to signal end/continue of
@@ -60,19 +60,19 @@ public interface Callback<T> extends Serializable  // do not use interface, slow
      * @param result
      * @param error
      */
-    public void complete(T result, Object error);
+    void complete(T result, Object error);
 
     /**
      * same as complete(null,null)
      */
-    default public void complete() {
+    default void complete() {
         complete(null, null);
     }
 
     /**
      * same as complete(null,null) and resolve(null)
      */
-    default public void resolve() {
+    default void resolve() {
         complete(null, null);
     }
 
@@ -108,7 +108,7 @@ public interface Callback<T> extends Serializable  // do not use interface, slow
 
     /**
      * signal end of streamed objects (required for remoteref housekeeping if actors run remotely)
-     * same as complete( null, FIN );
+     * same as complete( null, null );
      *
      */
     default void finish() {

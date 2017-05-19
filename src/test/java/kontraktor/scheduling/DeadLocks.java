@@ -26,7 +26,7 @@ public class DeadLocks {
             } else {
                 if ( ! signaled ) {
                     signaled = true;
-                    signal.complete();
+                    signal.resolve();
                 }
             }
         }

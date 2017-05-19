@@ -132,7 +132,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     // <- internal
 
     /**
-     * required by bytecode magic. Use Actors.Channel(..) to construct actor instances
+     * required by bytecode magic. Use Actors.AsActor(..) to construct actor instances
      */
     public Actor() {
     }
@@ -634,7 +634,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
                     try {
                         registry.receiveCBResult(objSocket, finalRce.getFutureKey(), r, e);
                         if ( finalP != null )
-                            finalP.complete();
+                            finalP.resolve();
                     } catch (Exception ex) {
                         Log.Warn(this, ex, "");
                     }

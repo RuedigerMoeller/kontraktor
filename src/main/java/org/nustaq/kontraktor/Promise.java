@@ -165,7 +165,7 @@ public class Promise<T> implements IPromise<T> {
                     res.complete(null, error);
                 } else {
                     function.accept(result);
-                    res.complete();
+                    res.resolve();
                 }
             }
         });
@@ -225,7 +225,7 @@ public class Promise<T> implements IPromise<T> {
                     res.complete(null, error);
                 } else {
                     function.accept(error);
-                    res.complete();
+                    res.resolve();
                 }
             }
         });

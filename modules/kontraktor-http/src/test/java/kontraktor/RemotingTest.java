@@ -389,7 +389,7 @@ public class RemotingTest {
                 sporeResult.add(res);
             }).onFinish(() -> {
                 System.out.println("Finish");
-                sporeP.complete();
+                sporeP.resolve();
             }));
             sporeP.await(30_000);
             Assert.assertTrue(sporeResult.size() == 4);

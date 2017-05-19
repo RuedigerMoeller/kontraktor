@@ -143,7 +143,7 @@ public abstract class AsyncSocketConnection {
             if ( error != null )
                 wp.reject(error);
             else
-                wp.complete();
+                wp.resolve();
         }
     }
 
