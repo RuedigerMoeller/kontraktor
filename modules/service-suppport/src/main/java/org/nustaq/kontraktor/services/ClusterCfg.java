@@ -6,15 +6,16 @@ import org.nustaq.kson.Kson;
 import org.nustaq.reallive.interfaces.TableDescription;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Created by ruedi on 26.12.16.
  */
-public class ClusterCfg {
+public class ClusterCfg implements Serializable {
 
-    public static String pathname = "etc/cluster.kson";
+    public static String pathname = "run/etc/clustercfg.kson";
     public static long lastTime;
 
     public static boolean isDirty() {

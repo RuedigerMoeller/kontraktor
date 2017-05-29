@@ -114,6 +114,11 @@
             <artifactId>junit</artifactId>
             <version>4.12</version>
         </dependency>
+        <dependency>
+            <groupId>de.ruedigermoeller</groupId>
+            <artifactId>kontraktor-http</artifactId>
+            <version>3.33.1</version>
+        </dependency>
 
     </dependencies>
 

@@ -1,0 +1,36 @@
+ClusterCfg {
+  publicHostUrl: "http://localhost:8888"
+  dataCluster:
+    DataCfg {
+      dataDir: [ "./reallive" ]
+      schema:
+        [
+          {
+            name: user
+            sizeMB: 10
+            filePath: USE_BASE_DIR
+            numEntries: 100000
+            keyLen: 48
+            st:
+              StorageType {
+                name: CACHED
+                ordinal: 2
+              }
+          }
+          {
+            name: confirmation
+            sizeMB: 10
+            filePath: USE_BASE_DIR
+            numEntries: 100000
+            keyLen: 48
+            st:
+              StorageType {
+                name: CACHED
+                ordinal: 2
+              }
+          }
+        ]
+      threadsPerShard: 2
+      shardQSize: 64000
+    }
+}

@@ -1,6 +1,12 @@
 package org.nustaq.kontraktor.services;
 
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
+import org.nustaq.reallive.interfaces.Record;
+import org.nustaq.reallive.messages.AddMessage;
+import org.nustaq.reallive.messages.QueryDoneMessage;
+import org.nustaq.reallive.messages.RemoveMessage;
+import org.nustaq.reallive.messages.UpdateMessage;
+import org.nustaq.reallive.records.MapRecord;
 
 import java.io.Serializable;
 import java.util.UUID;

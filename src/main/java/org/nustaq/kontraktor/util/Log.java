@@ -98,8 +98,8 @@ public class Log extends Actor<Log> {
         Lg.error(source,th,s);
     }
 
-    public static interface LogWrapper {
-        public void msg(Thread t, int severity, Object source, Throwable ex, String msg);
+    public interface LogWrapper {
+        void msg(Thread t, int severity, Object source, Throwable ex, String msg);
     }
 
     public LogWrapper defaultLogger = new LogWrapper() {

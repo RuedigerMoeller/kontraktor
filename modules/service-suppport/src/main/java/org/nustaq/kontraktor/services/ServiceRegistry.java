@@ -9,6 +9,12 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
+import org.nustaq.reallive.interfaces.Record;
+import org.nustaq.reallive.messages.AddMessage;
+import org.nustaq.reallive.messages.QueryDoneMessage;
+import org.nustaq.reallive.messages.RemoveMessage;
+import org.nustaq.reallive.messages.UpdateMessage;
+import org.nustaq.reallive.records.MapRecord;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,6 +41,10 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     public static final String SERVICEDUMP = "running";
     public static final String AVAILABLE = "available";
     public static final String TIMEOUT = "timeout";
+
+    public static Class JSONCLASSES[] = {
+        AddMessage.class, RemoveMessage.class, UpdateMessage.class, QueryDoneMessage.class, Record.class, MapRecord.class,
+    };
 
     HashMap<String, List<ServiceDescription>> services;
     List<Callback> listeners;

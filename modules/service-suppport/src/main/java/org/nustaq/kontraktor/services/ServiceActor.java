@@ -56,6 +56,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         if (needsDataCluster()) {
             Log.Info(this, "init datacluster client");
             int nShards = config.getDataCluster().getNumberOfShards();
+            Log.Info(this, "number of shards "+nShards);
             DataShard shards[] =  new DataShard[nShards];
             TableSpaceActor tsShard[] = new TableSpaceActor[nShards];
             for ( int i = 0; i < nShards; i++ ) {
@@ -108,6 +109,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
             Log.Warn(this,"Service "+getServiceDescription().getName()+" has no port and host configured. Unpublished.");
             return;
         }
+        Log.Info(this,"publishing self at "+defaultPort);
         new TCPNIOPublisher(self(), defaultPort).publish(actor -> {
             Log.Info(null, actor + " has disconnected");
         });
@@ -201,6 +203,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
                             notify.complete();
                         } else {
                             requiredServices.put(servName,UNCONNECTED);
+                            Log.Warn(this, "failed to connect " + servName + " " + connectionError+" "+serviceDescription.getConnectable());
                             notify.reject("failed to connect " + servName + " " + connectionError);
                         }
                     });

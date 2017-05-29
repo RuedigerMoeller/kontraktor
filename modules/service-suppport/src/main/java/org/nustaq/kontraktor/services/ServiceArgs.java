@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.services;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import org.nustaq.kontraktor.util.Log;
 
@@ -11,10 +12,10 @@ import java.net.UnknownHostException;
  */
 public class ServiceArgs {
 
-    @Parameter(names={"-g","-gravity"}, description = "gravity host")
+    @Parameter(names={"-s","-servicereg"}, description = "serviceregistry host")
     String gravityHost = "localhost";
 
-    @Parameter(names={"-gp","-gravity port"}, description = "gravity port")
+    @Parameter(names={"-sp","-serviceregport"}, description = "serviceregistry port")
     int gravityPort = 4567;
 
     @Parameter(names = {"-h","-help","-?", "--help"}, help = true, description = "display help")
@@ -72,5 +73,21 @@ public class ServiceArgs {
         return sysoutlog;
     }
 
+    public static ServiceArgs parseCommandLine(String[] args, ServiceArgs options) {
+
+        JCommander com = new JCommander();
+        com.addObject(options);
+        try {
+            com.parse(args);
+        } catch (Exception ex) {
+            System.out.println("command line error: '"+ex.getMessage()+"'");
+            options.help = true;
+        }
+        if ( options.help ) {
+            com.usage();
+            System.exit(-1);
+        }
+        return options;
+    }
 
 }
