@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
@@ -58,7 +59,7 @@ public class WebServer extends Actor<WebServer> implements IWebServer, IRegistra
     /**
      * handles direct links (see interceptor below)
      *
-     * here redirects /direct/register/regid to the IRegistration
+     * here redirects /direct/register/regid to IRegistration
      *
      * @param exchange
      */
@@ -83,14 +84,12 @@ public class WebServer extends Actor<WebServer> implements IWebServer, IRegistra
 
     ///////////////////////////////// registration /////////////////////////////
 
-    @Override
+    @Override @Local
     public void sendConfirmationMail(String wapp, String email, String confId) {
         Log.Info(this,"sending mail to "+email+" confimation: "+confId);
     }
 
     ///////////////////////////////// .. registration /////////////////////////////
-
-
 
     /**
      * start as a cluster member expecting datastorage and service registry exists

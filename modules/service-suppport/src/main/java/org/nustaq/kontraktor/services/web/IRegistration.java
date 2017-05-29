@@ -68,7 +68,7 @@ public interface IRegistration extends IDataConnected {
     }
 
     default void handleRegistrationConfirmation(String[] tokens, HttpServerExchange exchange) {
-        getDataClient().getTableSync("confirmation" ).get(tokens[2]).then( (r,e) -> {
+        getTable( getConfirmationTableName() ).get(tokens[2]).then( (r,e) -> {
             if ( r != null ) {
                 getTable(getUserTableName()).getMutation().atomic(((Record)r).getString("uid"),
                 user -> {
