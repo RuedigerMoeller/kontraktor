@@ -1,6 +1,6 @@
-package org.newstaq.kontraktor.services;
+package org.nustaq.kontraktor.services;
 
-import org.newstaq.kontraktor.services.rlclient.DataCfg;
+import org.nustaq.kontraktor.services.rlclient.DataCfg;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
 import org.nustaq.reallive.interfaces.TableDescription;

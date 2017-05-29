@@ -1,4 +1,4 @@
-package org.newstaq.kontraktor.services;
+package org.nustaq.kontraktor.services;
 
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 

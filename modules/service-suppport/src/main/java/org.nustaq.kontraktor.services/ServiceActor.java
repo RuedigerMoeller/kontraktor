@@ -1,7 +1,7 @@
-package org.newstaq.kontraktor.services;
+package org.nustaq.kontraktor.services;
 
-import org.newstaq.kontraktor.services.rlclient.DataClient;
-import org.newstaq.kontraktor.services.rlclient.DataShard;
+import org.nustaq.kontraktor.services.rlclient.DataClient;
+import org.nustaq.kontraktor.services.rlclient.DataShard;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;

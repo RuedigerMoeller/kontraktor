@@ -1,4 +1,4 @@
-package org.newstaq.kontraktor.services.rlclient;
+package org.nustaq.kontraktor.services.rlclient;
 
 import org.nustaq.reallive.interfaces.TableDescription;
 

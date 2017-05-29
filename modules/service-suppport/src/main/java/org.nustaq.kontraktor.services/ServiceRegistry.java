@@ -1,4 +1,4 @@
-package org.newstaq.kontraktor.services;
+package org.nustaq.kontraktor.services;
 
 import com.beust.jcommander.JCommander;
 import org.nustaq.kontraktor.Actor;

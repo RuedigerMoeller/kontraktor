@@ -1,6 +1,6 @@
-package org.newstaq.kontraktor.services.rlclient;
+package org.nustaq.kontraktor.services.rlclient;
 
-import org.newstaq.kontraktor.services.ServiceActor;
+import org.nustaq.kontraktor.services.ServiceActor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;

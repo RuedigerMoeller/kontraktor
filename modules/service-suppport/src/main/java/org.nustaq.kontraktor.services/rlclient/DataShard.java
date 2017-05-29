@@ -1,9 +1,9 @@
-package org.newstaq.kontraktor.services.rlclient;
+package org.nustaq.kontraktor.services.rlclient;
 
-import org.newstaq.kontraktor.services.ServiceActor;
-import org.newstaq.kontraktor.services.ServiceArgs;
-import org.newstaq.kontraktor.services.ServiceDescription;
-import org.newstaq.kontraktor.services.ServiceRegistry;
+import org.nustaq.kontraktor.services.ServiceActor;
+import org.nustaq.kontraktor.services.ServiceArgs;
+import org.nustaq.kontraktor.services.ServiceDescription;
+import org.nustaq.kontraktor.services.ServiceRegistry;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
