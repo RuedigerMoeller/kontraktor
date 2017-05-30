@@ -34,7 +34,8 @@ import java.net.URLDecoder;
  */
 public class WebServer<T extends WebServer> extends Actor<T> implements IWebServer, IRegistration {
 
-    PlainService service;
+    protected PlainService service;
+    protected DataClient dclient;
 
     public IPromise<WebServer> init(ServiceArgs options) {
         Promise p = new Promise();
@@ -42,6 +43,7 @@ public class WebServer<T extends WebServer> extends Actor<T> implements IWebServ
             .then( (r,e) -> {
                 if ( r != null ) {
                     service = r;
+                    dclient = service.getDataClient().await();
                     p.resolve(self());
                 } else {
                     p.reject(e);
@@ -51,9 +53,11 @@ public class WebServer<T extends WebServer> extends Actor<T> implements IWebServ
     }
 
     // IDataConnected
-    @Override @CallerSideMethod
+    @Override @CallerSideMethod @Local
     public DataClient getDataClient() {
-        return getActor().getDataClient();
+        if (isProxy())
+            return getActor().getDataClient();
+        return dclient;
     }
 
     /**
