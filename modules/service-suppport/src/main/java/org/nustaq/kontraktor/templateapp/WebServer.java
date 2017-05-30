@@ -122,7 +122,7 @@ public class WebServer extends Actor<WebServer> implements IWebServer, IRegistra
                     return true;
                 })
                 .build()
-            .httpAPI("/app/ep", serv)
+            .httpAPI("/ep", serv)
                 .coding(new Coding(SerializerType.JsonNoRef, ServiceRegistry.JSONCLASSES))
                 .setSessionTimeout(5*60_000)
                 .build();

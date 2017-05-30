@@ -1,0 +1,66 @@
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iron-pages/iron-pages.html">
+<script src="routing.js"></script>
+
+<dom-module id="main-app">
+  <template>
+    <style>
+    </style>
+    Hello
+  </template>
+  <script>
+    Polymer({
+      is: 'main-app',
+      properties: {
+        routing: {},
+        route: { type: Object, value: { head: "home", full: ["home"]}, notify: true },
+      },
+      created: function() {
+        window.app = this;
+        this.routing = new Routing();
+        this.routing.addRouteListener( ev => {
+          if ( ev.type == 'post' ) {
+            this.set("route", { head: ev.newRoute, full: ev.fullRoute } );
+          }
+        });
+        var requestUrl = window.location.protocol + "//"+window.location.host+"/ep";
+        var self = this;
+        jsk.connect( requestUrl ).then( (serv,err) => {
+          if ( serv ) {
+            self.initService(serv);
+          }
+          else
+            console.log("connection fail")
+        });
+        this.routing.addRouteListener( ev => {
+          if ( ev.type == 'post' ) {
+            this.processRoute(ev.newRoute, ev);
+          }
+        });
+        if ( window.location.hash == "" )
+          window.location.hash = "home";
+      },
+      attached: function() {
+        // trigger route processing in case of refresh
+        if ( window.location.hash )
+          this.processRoute(window.location.hash.substring(1));
+      },
+
+      // handlers/protected stuff
+      initService: function(serv) {
+        app.service = serv;
+      },
+
+      // called after each route change
+      processRoute: function(newRoute, ev) {
+        console.log("route change: "+newRoute);
+      },
+
+      //////////// pub api
+      page: function(path) {
+        this.routing.page(path);
+      }
+
+    });
+  </script>
+</dom-module>
