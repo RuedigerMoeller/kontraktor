@@ -32,7 +32,7 @@ import java.net.URLDecoder;
 /**
  * Created by ruedi on 29.05.17.
  */
-public class WebServer extends Actor<WebServer> implements IWebServer, IRegistration {
+public class WebServer<T extends WebServer> extends Actor<T> implements IWebServer, IRegistration {
 
     PlainService service;
 
@@ -95,10 +95,10 @@ public class WebServer extends Actor<WebServer> implements IWebServer, IRegistra
      * start as a cluster member expecting datastorage and service registry exists
      * @param args
      */
-    public static void mainClustered(String[] args) {
+    public static void mainClustered(Class<? extends WebServer> clazz, String[] args) {
         DispatcherThread.DUMP_CATCHED = true;
         WebServerArgs options = (WebServerArgs) ServiceArgs.parseCommandLine(args, new WebServerArgs());
-        WebServer serv = Actors.AsActor(WebServer.class);
+        WebServer serv = Actors.AsActor(clazz);
         serv.init( options );
 
         BldFourK builder = Http4K.Build(options.webHost, options.webPort)
@@ -140,7 +140,7 @@ public class WebServer extends Actor<WebServer> implements IWebServer, IRegistra
         DataShard.main( new String[] {"-sn","0", "-host", "localhost"} );
 
         Thread.sleep(2000);
-        WebServer.mainClustered(new String[0]);
+        WebServer.mainClustered(WebServer.class,new String[0]);
     }
 
 }
