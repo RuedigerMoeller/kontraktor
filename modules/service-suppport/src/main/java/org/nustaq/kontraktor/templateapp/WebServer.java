@@ -108,6 +108,7 @@ public class WebServer extends Actor<WebServer> implements IWebServer, IRegistra
             .resourcePath("/")
                 .elements(
                     "src/main/web/client",
+                    "src/main/web/lib",
                     "src/main/web/bower_components"
                 )
                 .allDev(!options.prod)
