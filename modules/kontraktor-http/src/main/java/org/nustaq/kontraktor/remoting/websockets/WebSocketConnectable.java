@@ -111,4 +111,12 @@ public class WebSocketConnectable implements ConnectableActor {
         return this;
     }
 
+    @Override
+    public String toString() {
+        return "WebSocketConnectable{" +
+                "clz=" + clz +
+                ", url='" + url + '\'' +
+                ", coding=" + coding +
+                '}';
+    }
 }
