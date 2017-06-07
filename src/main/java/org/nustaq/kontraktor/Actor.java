@@ -636,7 +636,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
                         if ( finalP != null )
                             finalP.resolve();
                     } catch (Exception ex) {
-                        Log.Warn(this, ex, "");
+                        Log.Warn(this, ex, "--");
                     }
                 });
             }
