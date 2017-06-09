@@ -35,6 +35,35 @@ jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets
         if ( err )
           console.log(err);
         else {
+          var anAddr = jsk.jobj(
+                			"sample.httpjs.Address",
+                      {
+                        addr1: "232",
+                        addr2: "High Street"
+                      }
+                	);
+         	var addrList = jsk.buildJColl("list", [anAddr]);
+         	server.ask( "test1", "heidi.popplewell@yahoo.com", "1nyqs6", addrList, "device1", "dev2", "resd",16500000,"employ",36,3500000, 2000000,"HSBC").then( (x,y) => console.log("POK "+x));
+         	server.ask(
+            "identity",
+            "heidi.popplewell@yahoo.com",
+            "1nyqs6",
+            addrList,
+            "device1",
+            "device2",
+            "HO",
+            16500000,
+            "EMPLOYED",
+            36,
+            3500000,
+            2000000,
+			      "HSBC"
+          ).then((sess, err) => {
+              console.log(sess);
+              console.log(err);
+          });
+
+
           console.log("send getToDo");
           mySession.ask("getToDo").then( function( res,err ) {
             console.log("received getToDo");

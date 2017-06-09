@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by ruedi on 29/05/15.
@@ -65,6 +66,19 @@ public class MyHttpApp extends Actor<MyHttpApp> {
     public void clientClosed(MyHttpAppSession session) {
         sessionCount--;
         System.out.println("client closed "+session);
+    }
+
+    public IPromise<String> test1(String username, String password, List<Address> addresses, String device1, String device2, String residentialStatus,
+        int pval, String employStatus, int employDuration, int grossIncome, int usersIncome, String bank ) {
+        return resolve("1");
+    }
+
+    public IPromise<String> identity(String username, String password,
+                                     List<Address> addresses, String device1, String device2, String residentialStatus,
+                                     int propertyValue, String employStatus, int employDuration, int grossIncome,
+                                     int usersIncome, String bankWith)
+    {
+        return resolve(username + " " + username + " " + addresses.get(0).addr1 );
     }
 
 }
