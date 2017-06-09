@@ -64,6 +64,11 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
         }
     }
 
+    public IPromise<String> test1(String username, String password, List<Address> addresses, String device1, String device2, String residentialStatus,
+        int pval, String employStatus, int employDuration, int grossIncome, int usersIncome, String bank ) {
+        return resolve("1");
+    }
+
     public void pushEventLoop() {
         if ( ! isStopped() ) {
             if ( subscription != null ) {

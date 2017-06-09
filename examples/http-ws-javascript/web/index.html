@@ -43,7 +43,7 @@ jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets
                       }
                 	);
          	var addrList = jsk.buildJColl("list", [anAddr]);
-         	server.ask( "test1", "heidi.popplewell@yahoo.com", "1nyqs6", addrList, "device1", "dev2", "resd",16500000,"employ",36,3500000, 2000000,"HSBC").then( (x,y) => console.log("POK "+x));
+         	mySession.ask( "test1", "heidi.popplewell@yahoo.com", "1nyqs6", addrList, "device1", "dev2", "resd",16500000,"employ",36,3500000, 2000000,"HSBC").then( (x,y) => console.log("POK "+x));
          	server.ask(
             "identity",
             "heidi.popplewell@yahoo.com",
