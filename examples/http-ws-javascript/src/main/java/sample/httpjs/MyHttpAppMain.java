@@ -1,5 +1,6 @@
 package sample.httpjs;
 
+import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.Http4K;
 import org.nustaq.kontraktor.remoting.http.HttpPublisher;
@@ -34,6 +35,7 @@ public class MyHttpAppMain {
         MyHttpApp myHttpApp = AsActor(MyHttpApp.class);
         myHttpApp.init();
 
+        Class msgClasses[] = { Address.class };
         Http4K.Build("localhost", 8080)
             .fileRoot("/", root)
             .fileRoot("/jsk", jsroot)
@@ -43,6 +45,8 @@ public class MyHttpAppMain {
                 .build()
             .websocket("/ws", myHttpApp)
                 .serType(SerializerType.JsonNoRef)
+                // replace serType like below to provide classes which are encoded using simple names (no fqclassnames)
+//                .coding(new Coding(SerializerType.JsonNoRef, msgClasses ))
                 .build()
             .build();
     }
