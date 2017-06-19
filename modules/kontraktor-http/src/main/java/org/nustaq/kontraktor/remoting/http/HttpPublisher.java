@@ -50,7 +50,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
     Coding coding = new Coding(SerializerType.FSTSer);
     long sessionTimeout = TimeUnit.MINUTES.toMillis(30);
     Actor facade;
-    private Function<HttpServerExchange,ConnectionAuthResult> connectionVerifier;
+    private Function<KHttpExchange,ConnectionAuthResult> connectionVerifier;
 
     public HttpPublisher() {}
 
@@ -66,12 +66,12 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
         this.cfg = cfgFourK;
     }
 
-    public HttpPublisher connectionVerifier(final Function<HttpServerExchange, ConnectionAuthResult> connectionVerifier) {
+    public HttpPublisher connectionVerifier(final Function<KHttpExchange, ConnectionAuthResult> connectionVerifier) {
         this.connectionVerifier = connectionVerifier;
         return this;
     }
 
-    public Function<HttpServerExchange, ConnectionAuthResult> getConnectionVerifier() {
+    public Function<KHttpExchange, ConnectionAuthResult> getConnectionVerifier() {
         return connectionVerifier;
     }
 

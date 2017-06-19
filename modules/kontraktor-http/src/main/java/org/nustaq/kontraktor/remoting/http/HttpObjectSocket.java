@@ -16,7 +16,6 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.remoting.http;
 
-import io.undertow.server.HttpServerExchange;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.messagestore.HeapMessageStore;
@@ -54,7 +53,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     BinaryQueue queue = new BinaryQueue(4096);
     ObjectSink sink;
     MessageStore store = new HeapMessageStore(HISTORY_SIZE);
-    volatile Pair<Runnable, HttpServerExchange> longPollTask;
+    volatile Pair<Runnable, KHttpExchange> longPollTask;
     Thread myThread;
     volatile long longPollTaskTime;
 
@@ -143,7 +142,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         }
     }
 
-    public Pair<Runnable,HttpServerExchange> getLongPollTask() {
+    public Pair<Runnable,KHttpExchange> getLongPollTask() {
         return longPollTask;
     }
 
@@ -175,7 +174,7 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         }
     }
 
-    public void setLongPollTask(Pair<Runnable, HttpServerExchange> longPollTask) {
+    public void setLongPollTask(Pair<Runnable, KHttpExchange> longPollTask) {
         synchronized (this) {
             this.longPollTask = longPollTask;
             this.longPollTaskTime = System.currentTimeMillis();

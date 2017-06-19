@@ -21,21 +21,16 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import io.undertow.util.Methods;
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.remoting.base.SessionResurrector;
 import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
-import org.nustaq.serialization.FSTConfiguration;
 import org.xnio.channels.StreamSinkChannel;
 import org.xnio.channels.StreamSourceChannel;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
@@ -62,54 +57,15 @@ import java.util.function.Function;
  * When used no-poll, streaming results to a callback is not supported. Only 'tellMsg' (void methods) and 'askMsg' (IPromise-returning)
  * messages can be used.
  *
+ * ATTENTION: parts of stuff was pulled up into an abstract class
+ *
  * TODO: support temporary/discardable websocket connections as a LP optimization.
  * TODO: investigate http 2.0
  */
-public class UndertowHttpServerConnector implements ActorServerConnector, HttpHandler {
-
-    public static int REQUEST_RESULTING_FUTURE_TIMEOUT = 3000; // max wait time for a returned promise to fulfil
-    public static long SESSION_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(30); // 30 minutes
-
-    Actor facade;
-    HashMap<String,HttpObjectSocket> sessions = new HashMap<>(); // use only from facade thread
-
-    FSTConfiguration conf = FSTConfiguration.createJsonConfiguration(); // used for authdata
-    Function<ObjectSocket, ObjectSink> factory;
-    long sessionTimeout = SESSION_TIMEOUT_MS;
-    volatile boolean isClosed = false;
-    private ActorServer actorServer;
-    private Function<HttpServerExchange,ConnectionAuthResult> connectionVerifier;
+public class UndertowHttpServerConnector extends AbstractHttpServerConnector implements HttpHandler {
 
     public UndertowHttpServerConnector(Actor facade) {
-        this.facade = facade;
-        facade.delayed( HttpObjectSocket.LP_TIMEOUT/2, () -> houseKeeping() );
-    }
-
-    public void houseKeeping() {
-//        System.out.println("----------------- HOUSEKEEPING ------------------------");
-        long now = System.currentTimeMillis();
-        ArrayList<String> toRemove = new ArrayList<>(0);
-        sessions.entrySet().forEach( entry -> {
-            HttpObjectSocket socket = entry.getValue();
-            if ( now- socket.getLongPollTaskTime() >= HttpObjectSocket.LP_TIMEOUT/2 ) {
-                socket.triggerLongPoll();
-            }
-            if ( now- socket.getLastUse() > getSessionTimeout() ) {
-                toRemove.add(entry.getKey());
-            }
-        });
-        toRemove.forEach(sessionId -> closeSession(sessionId));
-        if ( ! isClosed ) {
-            facade.delayed( HttpObjectSocket.LP_TIMEOUT/4, () -> houseKeeping() );
-        }
-    }
-
-    public void setSessionTimeout(long sessionTimeout) {
-        this.sessionTimeout = sessionTimeout;
-    }
-
-    public long getSessionTimeout() {
-        return sessionTimeout;
+        super(facade);
     }
 
     /**
@@ -182,116 +138,8 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
             // auth check goes here
 
-            handleNewSession(exchange);
+            handleNewSession(new UndertowKHttpExchangeImpl(exchange));
         }
-    }
-
-    protected HttpObjectSocket restoreSessionFromId(String sessionId) {
-        if ( facade instanceof SessionResurrector)
-        {
-            ((SessionResurrector)facade.getActorRef()).restoreRemoteRefConnection(sessionId);
-            HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(sessionId))) {
-                @Override
-                protected int getObjectMaxBatchSize() {
-                    return HttpObjectSocket.HTTP_BATCH_SIZE;
-                }
-
-                @Override
-                public String getConnectionIdentifier() {
-                    return sessionId;
-                }
-
-            };
-            sessions.put( sock.getSessionId(), sock );
-            ObjectSink sink = factory.apply(sock);
-            sock.setSink(sink);
-            return sock;
-        }
-        return null;
-    }
-
-    public Function<HttpServerExchange, ConnectionAuthResult> getConnectionVerifier() {
-        return connectionVerifier;
-    }
-
-    public void setConnectionVerifier(Function<HttpServerExchange, ConnectionAuthResult> connectionVerifier) {
-        this.connectionVerifier = connectionVerifier;
-    }
-
-    protected void handleNewSession(HttpServerExchange exchange ) {
-
-        String sessionId = null;
-        if ( connectionVerifier != null ) {
-//            String token = exchange.getRequestHeaders().getFirst("token");
-//            String uname = exchange.getRequestHeaders().getFirst("uname");
-            ConnectionAuthResult denialReason = connectionVerifier.apply(exchange);
-            if ( denialReason == null || denialReason.isError() ) {
-                exchange.setResponseCode(403);
-                exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/html; charset=utf-8");
-                exchange.getResponseSender().send( denialReason != null ? denialReason.getError() : "expected ConnectionAuthResult, got null");
-                exchange.endExchange();
-                return;
-            }
-            sessionId = denialReason.getSid();
-        } else
-        {
-            sessionId = UUID.randomUUID().toString();
-        }
-        String finalSessionId = sessionId;
-        HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(finalSessionId))) {
-            @Override
-            protected int getObjectMaxBatchSize() {
-                // huge batch size to make up for stupid sync http 1.1 protocol enforcing latency inclusion
-                return HttpObjectSocket.HTTP_BATCH_SIZE;
-            }
-
-            @Override
-            public String getConnectionIdentifier() {
-                return sessionId;
-            }
-
-        };
-        sessions.put( sock.getSessionId(), sock );
-        ObjectSink sink = factory.apply(sock);
-        sock.setSink(sink);
-
-        // send auth response
-        byte[] response = conf.asByteArray(sock.getSessionId());
-        ByteBuffer responseBuf = ByteBuffer.wrap(response);
-        exchange.setResponseCode(200);
-        exchange.setResponseContentLength(response.length);
-        StreamSinkChannel sinkchannel = exchange.getResponseChannel();
-        String finalSessionId1 = sessionId;
-        sinkchannel.getWriteSetter().set(
-            channel -> {
-                if ( responseBuf.remaining() > 0 )
-                    try {
-                        sinkchannel.write(responseBuf);
-                        if (responseBuf.remaining() == 0) {
-                            Log.Info(this, "client connected " + finalSessionId1);
-                            exchange.endExchange();
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        exchange.endExchange();
-                    }
-                else
-                {
-        Log.Info(this,"client connected "+ finalSessionId1);
-                    exchange.endExchange();
-                }
-            }
-        );
-        sinkchannel.resumeWrites();
-    }
-
-    protected HttpObjectSocket closeSession(String sessionId) {
-        Log.Info(this,sessionId+" closed");
-        HttpObjectSocket httpObjectSocket = sessions.get(sessionId);
-        if ( httpObjectSocket != null ) {
-            httpObjectSocket.sinkClosed();
-        }
-        return sessions.remove(sessionId);
     }
 
     public void handleClientRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String lastSeenSequence) {
@@ -302,8 +150,6 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             Log.Error(this,"could not aquire response channel. rejecting request.");
             exchange.endExchange();
             return;
-//            Actor.current().delayed(10, () -> {handleClientRequest(exchange,httpObjectSocket,postData,lastSeenSequence);});
-//            return;
         }
 
         // executed in facade thread
@@ -344,13 +190,13 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
 
         sinkchannel.resumeWrites();
         // read next batch of pending messages from binary queue and send them
-        Pair<Runnable,HttpServerExchange> lpTask = createLongPollTask(exchange, httpObjectSocket, sinkchannel);
+        Pair<Runnable,KHttpExchange> lpTask = createLongPollTask( new UndertowKHttpExchangeImpl(exchange), httpObjectSocket, sinkchannel);
         // release previous long poll request if present
         httpObjectSocket.cancelLongPoll();
         httpObjectSocket.setLongPollTask(lpTask);
     }
 
-    protected Pair<Runnable,HttpServerExchange> createLongPollTask(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, StreamSinkChannel sinkchannel) {
+    protected Pair<Runnable,KHttpExchange> createLongPollTask(KHttpExchange exchange, HttpObjectSocket httpObjectSocket, StreamSinkChannel sinkchannel) {
         return new Pair<>(
             () -> {
                 if ( ! sinkchannel.isOpen() )
@@ -363,21 +209,24 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
                 } else {
                     httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
 
-                    ByteBuffer responseBuf = ByteBuffer.wrap(response);
-                    try {
-                        while (responseBuf.remaining()>0) {
-                            sinkchannel.write(responseBuf);
-                        }
-                    } catch (Throwable e) {
-                        System.out.println("buffer size:"+response.length);
-                        try {
-                            sinkchannel.close();
-                        } catch (IOException e1) {
-                            e1.printStackTrace();
-                        }
-                        e.printStackTrace();
-                    }
-                    exchange.endExchange();
+
+                    // FIXME: should be async ?
+                    exchange.send(response);
+//                    ByteBuffer responseBuf = ByteBuffer.wrap(response);
+//                    try {
+//                        while (responseBuf.remaining()>0) {
+//                            sinkchannel.write(responseBuf);
+//                        }
+//                    } catch (Throwable e) {
+//                        System.out.println("buffer size:"+response.length);
+//                        try {
+//                            sinkchannel.close();
+//                        } catch (IOException e1) {
+//                            e1.printStackTrace();
+//                        }
+//                        e.printStackTrace();
+//                    }
+//                    exchange.endExchange();
                 }
             },
             exchange
@@ -408,6 +257,14 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         sinkchannel.resumeWrites();
     }
 
+    /**
+     * handle a remote method call (not a long poll)
+     *
+     * @param exchange
+     * @param httpObjectSocket
+     * @param received
+     * @param sinkchannel
+     */
     protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object[] received, StreamSinkChannel sinkchannel) {
         ArrayList<IPromise> futures = new ArrayList<>();
         httpObjectSocket.getSink().receiveObject(received, futures, exchange.getRequestHeaders().getFirst("JWT") );
@@ -422,6 +279,7 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
             } else {
                 httpObjectSocket.storeLPMessage(nextQueuedMessage.cdr(), response);
 
+                //FIXME: ASYNC !!!
                 long tim = System.nanoTime();
                 ByteBuffer responseBuf = ByteBuffer.wrap(response);
                 try {
@@ -445,23 +303,4 @@ public class UndertowHttpServerConnector implements ActorServerConnector, HttpHa
         }
     }
 
-    @Override
-    public void connect(Actor facade, Function<ObjectSocket, ObjectSink> factory) throws Exception {
-        this.facade = facade;
-        this.factory = factory;
-    }
-
-    @Override
-    public IPromise closeServer() {
-        isClosed = true;
-        return new Promise<>(null); // FIXME: should wait for real finish
-    }
-
-    public void setActorServer(ActorServer actorServer) {
-        this.actorServer = actorServer;
-    }
-
-    public ActorServer getActorServer() {
-        return actorServer;
-    }
 }
