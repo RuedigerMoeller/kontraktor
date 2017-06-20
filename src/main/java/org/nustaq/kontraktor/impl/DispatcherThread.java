@@ -314,14 +314,7 @@ public class DispatcherThread extends Thread implements Monitorable {
                     final IPromise futureCB = callEntry.getFutureCB();   // the future of caller side
                     final Promise invokeResult = (Promise) invoke;  // the future returned sync from call
                     if ( invokeResult != null ) { // if return null instead a promise, method is handled like void
-                        invokeResult.then(
-                            new Callback() {
-                                @Override
-                                public void complete(Object result, Object error) {
-                                    futureCB.complete(result, error);
-                                }
-                            }
-                        );
+                        invokeResult.then( futureCB );
                     }
                 }
                 return true;

@@ -211,22 +211,22 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
 
 
                     // FIXME: should be async ?
-                    exchange.send(response);
-//                    ByteBuffer responseBuf = ByteBuffer.wrap(response);
-//                    try {
-//                        while (responseBuf.remaining()>0) {
-//                            sinkchannel.write(responseBuf);
-//                        }
-//                    } catch (Throwable e) {
-//                        System.out.println("buffer size:"+response.length);
-//                        try {
-//                            sinkchannel.close();
-//                        } catch (IOException e1) {
-//                            e1.printStackTrace();
-//                        }
-//                        e.printStackTrace();
-//                    }
-//                    exchange.endExchange();
+//                    exchange.send(response);
+                    ByteBuffer responseBuf = ByteBuffer.wrap(response);
+                    try {
+                        while (responseBuf.remaining()>0) {
+                            sinkchannel.write(responseBuf);
+                        }
+                    } catch (Throwable e) {
+                        System.out.println("buffer size:"+response.length);
+                        try {
+                            sinkchannel.close();
+                        } catch (IOException e1) {
+                            e1.printStackTrace();
+                        }
+                        e.printStackTrace();
+                    }
+                    exchange.endExchange();
                 }
             },
             exchange

@@ -10,6 +10,9 @@ import java.io.File;
 
 /**
  * Created by ruedi on 19.06.17.
+ *
+ * runs app using servlet 3.1 async features
+ *
  */
 public class TomcatEmbeddedMain {
 

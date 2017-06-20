@@ -12,7 +12,7 @@ import static org.nustaq.kontraktor.Actors.AsActor;
 /**
  * Created by ruedi on 19.06.17.
  *
- * runs the same app using standalone undertow server (no servlet api)
+ * runs the same app using standalone undertow server (no servlet api + faster)
  *
  */
 public class UndertowMain {

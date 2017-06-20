@@ -3,8 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <title>Kontraktor Servlet Test</title>
+  <style>
+    #error {
+      background: tomato;
+      color: white;
+    }
+  </style>
 
 </head>
+
 <body>
 
   <script src="jsk/js4k.js"></script>
@@ -25,6 +32,27 @@ jsk.connect("http://localhost:8080/ep","HTLP",errCB) // use this for long poll
     server.ask("hello", "from client").then( (res,err) => {
       document.getElementById("here").innerHTML = res;
     });
+    server.tell("push", (res,err) => {
+      document.getElementById("there").innerHTML = res;
+    });
+
+    var session = null;
+    server.ask("login","angela","grökaz").then( (r,e) => {
+      if ( r ) {
+        session = r;
+        server.ask("hello", "from client after login").then( (r,e) => {
+          document.getElementById("here").innerHTML = r;
+        });
+        session.ask("whatsYourName").then( (r,e) => {
+          if ( r )
+            document.getElementById("name").innerHTML = r;
+          else
+            document.getElementById("error").innerHTML = r;
+        });
+      }
+      else
+        document.getElementById("error").innerHTML = e;
+    });
   });
 </script>
 
@@ -34,5 +62,10 @@ jsk.connect("http://localhost:8080/ep","HTLP",errCB) // use this for long poll
 
   <div id="here"></div>
 
+  <div id="there"></div>
+
+  <div id="name"></div>
+
+  <div id="error"></div>
 </body>
 </html>

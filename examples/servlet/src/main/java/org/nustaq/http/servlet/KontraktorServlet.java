@@ -24,15 +24,24 @@ import java.io.IOException;
 )
 public class KontraktorServlet extends HttpServlet {
 
-    Actor facade;
-    ServletActorConnector connector;
+    protected Actor facade;
+    protected ServletActorConnector connector;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        facade = Actors.AsActor(ServletApp.class);
-        connector = new ServletActorConnector(facade,this, new Coding(SerializerType.JsonNoRef), fail -> System.out.println("FAIL "+fail));
+        createAndInitFacadeApp(config);
+        createAndInitConnector();
         super.init(config);
 
+    }
+
+    protected void createAndInitConnector() {
+        connector = new ServletActorConnector(facade,this, new Coding(SerializerType.JsonNoRef), fail -> System.out.println("FAIL "+fail));
+    }
+
+    protected void createAndInitFacadeApp(ServletConfig config) {
+        facade = Actors.AsActor(ServletApp.class);
+        ((ServletApp) facade).init();
     }
 
     @Override
@@ -55,7 +64,6 @@ public class KontraktorServlet extends HttpServlet {
 
             @Override
             public void onDataAvailable() throws IOException {
-                System.out.println("available ");
                 if ( buffer == null ) {
                     int available = aCtx.getRequest().getContentLength();
                     buffer = new byte[available];

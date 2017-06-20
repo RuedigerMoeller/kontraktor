@@ -4,7 +4,6 @@ import org.nustaq.kontraktor.remoting.http.KHttpExchange;
 import org.nustaq.kontraktor.util.Log;
 
 import javax.servlet.AsyncContext;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -40,6 +39,8 @@ public class ServletKHttpExchangeImpl implements KHttpExchange {
     @Override
     public void send(String s) {
         try {
+            aCtx.getResponse().setCharacterEncoding("UTF-8");
+            aCtx.getResponse().setContentType("text/html; charset=utf-8");
             aCtx.getResponse().getWriter().write(s);
         } catch (IOException e) {
             Log.Warn(this,e);

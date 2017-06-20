@@ -20,7 +20,7 @@ public interface IWebServer {
         exchange.setResponseCode(200);
         exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/html; charset=utf-8");
         exchange.getResponseSender().send(getResponse(exchange));
-        exchange.endExchange();
+//        exchange.endExchange();
     }
 
     @CallerSideMethod
