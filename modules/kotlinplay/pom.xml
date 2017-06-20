@@ -15,7 +15,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-kotlin</artifactId>
-    <version>3.33</version>
+    <version>3.34</version>
 
     <description></description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -129,7 +129,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor</artifactId>
-            <version>3.33</version>
+            <version>3.34</version>
         </dependency>
 
         <dependency>
