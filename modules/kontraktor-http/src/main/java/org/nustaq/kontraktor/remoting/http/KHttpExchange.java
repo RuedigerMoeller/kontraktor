@@ -1,7 +1,5 @@
 package org.nustaq.kontraktor.remoting.http;
 
-import java.nio.ByteBuffer;
-
 /**
  * Created by ruedi on 19.06.17.
  *

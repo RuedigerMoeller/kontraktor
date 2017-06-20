@@ -14,7 +14,7 @@ Lesser General Public License for more details.
 See https://www.gnu.org/licenses/lgpl.txt
 */
 
-package org.nustaq.kontraktor.remoting.http.builder;
+package org.nustaq.kontraktor.remoting.http.undertow.builder;
 
 /**
  * Created by ruedi on 09.06.2015.

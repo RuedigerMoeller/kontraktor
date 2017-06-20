@@ -1,9 +1,7 @@
 package sample.httpjs;
 
-import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.http.Http4K;
-import org.nustaq.kontraktor.remoting.http.HttpPublisher;
+import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 
 import java.io.File;
 import java.io.IOException;

@@ -2,7 +2,7 @@ package org.nustaq.http.undertow;
 
 import org.nustaq.http.example.ServletApp;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.http.Http4K;
+import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 
 import java.io.File;
 import java.io.IOException;

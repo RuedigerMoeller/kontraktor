@@ -1,21 +1,13 @@
 package org.nustaq.kontraktor.remoting.http;
 
-import io.undertow.server.HttpServerExchange;
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.FSTConfiguration;
-import org.xnio.channels.StreamSinkChannel;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;

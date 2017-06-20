@@ -14,7 +14,7 @@ Lesser General Public License for more details.
 See https://www.gnu.org/licenses/lgpl.txt
 */
 
-package org.nustaq.kontraktor.remoting.websockets;
+package org.nustaq.kontraktor.remoting.http.undertow;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
@@ -23,7 +23,7 @@ import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.http.builder.BldFourK;
+import org.nustaq.kontraktor.remoting.http.undertow.builder.BldFourK;
 
 import java.util.function.Consumer;
 

@@ -14,14 +14,16 @@ Lesser General Public License for more details.
 See https://www.gnu.org/licenses/lgpl.txt
 */
 
-package org.nustaq.kontraktor.remoting.http;
+package org.nustaq.kontraktor.remoting.http.undertow;
 
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import io.undertow.util.Methods;
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.remoting.base.*;
+import org.nustaq.kontraktor.remoting.http.AbstractHttpServerConnector;
+import org.nustaq.kontraktor.remoting.http.HttpObjectSocket;
+import org.nustaq.kontraktor.remoting.http.KHttpExchange;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.xnio.channels.StreamSinkChannel;
@@ -31,7 +33,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Created by ruedi on 12.05.2015.

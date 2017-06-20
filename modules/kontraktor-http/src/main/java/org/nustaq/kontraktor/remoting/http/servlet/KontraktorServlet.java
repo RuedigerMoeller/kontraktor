@@ -1,8 +1,6 @@
-package org.nustaq.http.servlet;
+package org.nustaq.kontraktor.remoting.http.servlet;
 
-import org.nustaq.http.example.ServletApp;
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.util.Log;
@@ -18,11 +16,11 @@ import java.io.IOException;
  * Created by ruedi on 19.06.17.
  */
 @WebServlet(
-    name = "MyServlet",
+    name = "KontraktorServler",
     urlPatterns = {"/ep/*"},
     asyncSupported = true
 )
-public class KontraktorServlet extends HttpServlet {
+public abstract class KontraktorServlet extends HttpServlet {
 
     protected Actor facade;
     protected ServletActorConnector connector;
@@ -36,13 +34,17 @@ public class KontraktorServlet extends HttpServlet {
     }
 
     protected void createAndInitConnector() {
-        connector = new ServletActorConnector(facade,this, new Coding(SerializerType.JsonNoRef), fail -> System.out.println("FAIL "+fail));
+        connector = new ServletActorConnector(facade,this, new Coding(SerializerType.JsonNoRef), fail -> handleDisconnect(fail) );
     }
 
-    protected void createAndInitFacadeApp(ServletConfig config) {
+    protected void handleDisconnect(Actor fail) {
+        Log.Warn(this,"");
+    }
+
+    protected abstract void createAndInitFacadeApp(ServletConfig config); /** {
         facade = Actors.AsActor(ServletApp.class);
         ((ServletApp) facade).init();
-    }
+    }**/
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)

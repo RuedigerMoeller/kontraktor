@@ -2,13 +2,8 @@ package org.nustaq.kontraktor.services.web;
 
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
-import org.nustaq.kontraktor.remoting.http.HttpSyncActorAdaptorHandler;
 import org.nustaq.kontraktor.util.Log;
-
-import java.net.URLDecoder;
 
 /**
  * Created by ruedi on 29.05.17.

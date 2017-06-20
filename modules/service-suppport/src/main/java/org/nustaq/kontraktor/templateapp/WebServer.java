@@ -2,7 +2,6 @@ package org.nustaq.kontraktor.templateapp;
 
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
-import io.undertow.util.StatusCodes;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
@@ -12,10 +11,8 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.http.Http4K;
-import org.nustaq.kontraktor.remoting.http.HttpSyncActorAdaptorHandler;
-import org.nustaq.kontraktor.remoting.http.builder.BldFourK;
-import org.nustaq.kontraktor.services.ClusterCfg;
+import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
+import org.nustaq.kontraktor.remoting.http.undertow.builder.BldFourK;
 import org.nustaq.kontraktor.services.PlainService;
 import org.nustaq.kontraktor.services.ServiceArgs;
 import org.nustaq.kontraktor.services.ServiceRegistry;
@@ -24,7 +21,6 @@ import org.nustaq.kontraktor.services.rlclient.DataShard;
 import org.nustaq.kontraktor.services.web.IRegistration;
 import org.nustaq.kontraktor.services.web.IWebServer;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.reallive.interfaces.Record;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;

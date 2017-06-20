@@ -14,7 +14,7 @@ Lesser General Public License for more details.
 See https://www.gnu.org/licenses/lgpl.txt
 */
 
-package org.nustaq.kontraktor.remoting.http;
+package org.nustaq.kontraktor.remoting.http.undertow;
 
 import io.undertow.Undertow;
 import io.undertow.server.HttpHandler;
@@ -25,13 +25,11 @@ import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.server.handlers.resource.ResourceHandler;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
-import org.nustaq.kontraktor.remoting.http.builder.BldFourK;
+import org.nustaq.kontraktor.remoting.http.undertow.builder.BldFourK;
 import org.nustaq.kontraktor.remoting.http.javascript.DynamicResourceManager;
-import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 import org.nustaq.kontraktor.util.Pair;
 
 import javax.net.ssl.SSLContext;
-import javax.xml.ws.spi.http.HttpExchange;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;

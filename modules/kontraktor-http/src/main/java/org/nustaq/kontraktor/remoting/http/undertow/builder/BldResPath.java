@@ -13,12 +13,11 @@ Lesser General Public License for more details.
 
 See https://www.gnu.org/licenses/lgpl.txt
 */
-package org.nustaq.kontraktor.remoting.http.builder;
+package org.nustaq.kontraktor.remoting.http.undertow.builder;
 
 import io.undertow.server.HttpServerExchange;
 import org.nustaq.kontraktor.remoting.http.javascript.TranspilerHook;
 
-import javax.xml.ws.spi.http.HttpExchange;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;

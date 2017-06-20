@@ -1,4 +1,4 @@
-package org.nustaq.http.servlet;
+package org.nustaq.kontraktor.remoting.http.servlet;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;

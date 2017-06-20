@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.builder;
+package org.nustaq.kontraktor.remoting.http.undertow.builder;
 
 import io.undertow.server.HttpHandler;
 
