@@ -5,7 +5,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
+import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;
 import org.nustaq.kontraktor.util.Log;
 
 import java.util.ArrayList;

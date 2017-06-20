@@ -2,7 +2,7 @@ package examples.http4k;
 
 import org.nustaq.kontraktor.reactivestreams.KxPublisher;
 import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
-import org.nustaq.kontraktor.remoting.http.Http4K;
+import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 
 import java.util.Iterator;
 import java.util.function.Function;

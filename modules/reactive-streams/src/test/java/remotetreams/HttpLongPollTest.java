@@ -5,7 +5,7 @@ import org.junit.Test;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.http.HttpConnectable;
-import org.nustaq.kontraktor.remoting.http.HttpPublisher;
+import org.nustaq.kontraktor.remoting.http.undertow.HttpPublisher;
 
 /**
  * Created by ruedi on 03/07/15.

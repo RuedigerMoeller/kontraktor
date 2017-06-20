@@ -12,8 +12,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static javafx.scene.input.KeyCode.T;
-
 /**
  * Created by ruedi on 04/08/15.
  */

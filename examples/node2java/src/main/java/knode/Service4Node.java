@@ -6,7 +6,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
+import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.coders.Unknown;
 

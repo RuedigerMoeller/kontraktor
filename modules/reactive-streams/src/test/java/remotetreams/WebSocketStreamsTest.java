@@ -4,8 +4,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
+import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
-import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 
 /**
  * Created by ruedi on 03/07/15.

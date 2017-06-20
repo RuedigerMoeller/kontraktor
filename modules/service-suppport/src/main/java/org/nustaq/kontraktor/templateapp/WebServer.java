@@ -27,6 +27,7 @@ import java.net.URLDecoder;
 
 /**
  * Created by ruedi on 29.05.17.
+ * Currently bound to Undertow server
  */
 public class WebServer<T extends WebServer> extends Actor<T> implements IWebServer, IRegistration {
 
