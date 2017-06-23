@@ -98,7 +98,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>reallive</artifactId>
-            <version>3.33</version>
+            <version>3.34</version>
         </dependency>
 
         <!-- commandline parsing -->
@@ -117,7 +117,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor-http</artifactId>
-            <version>3.33</version>
+            <version>3.34</version>
         </dependency>
 
     </dependencies>
