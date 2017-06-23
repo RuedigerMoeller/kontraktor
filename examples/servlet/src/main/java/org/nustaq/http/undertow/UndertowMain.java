@@ -3,6 +3,7 @@ package org.nustaq.http.undertow;
 import org.nustaq.http.example.ServletApp;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
+import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,7 +24,7 @@ public class UndertowMain {
         File root = new File("./src/main/webapp");
 
         if ( ! new File(root,"index.html").exists() ) {
-            System.out.println("Please run with working dir: '[..]/servlet");
+            System.out.println("Please run with working dir: '[..]examples/servlet");
             System.exit(-1);
         }
 
@@ -32,7 +33,7 @@ public class UndertowMain {
 
         // create server actor
         ServletApp myHttpApp = AsActor(ServletApp.class);
-        myHttpApp.init();
+        myHttpApp.init(new BasicWebAppConfig());
 
         Class msgClasses[] = {};
         Http4K.Build("localhost", 8080)

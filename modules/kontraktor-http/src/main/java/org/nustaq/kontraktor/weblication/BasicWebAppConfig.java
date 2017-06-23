@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.application;
+package org.nustaq.kontraktor.weblication;
 
 import java.io.Serializable;
 
@@ -8,7 +8,7 @@ import java.io.Serializable;
 public class BasicWebAppConfig implements Serializable {
 
 
-    int numSessionThreads;
+    int numSessionThreads = 4;
 
     public int getNumSessionThreads() {
         return numSessionThreads;

@@ -1,44 +1,31 @@
 package org.nustaq.http.example;
 
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.impl.SimpleScheduler;
+import org.nustaq.kontraktor.weblication.BasicWebAppActor;
+import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
 
 import java.util.Date;
 
 /**
  * Created by ruedi on 19.06.17.
  */
-public class ServletApp extends Actor<ServletApp> {
-
-    private Scheduler[] sessionThreads;
-
-    public void init() {
-        sessionThreads = new Scheduler[]{
-            new SimpleScheduler(10_000,true),
-            new SimpleScheduler(10_000,true),
-        };
-    }
+public class ServletApp extends BasicWebAppActor<ServletApp,BasicWebAppConfig> {
 
     public IPromise<String> hello(String s) {
         System.out.println("hello received "+s);
         return resolve(s+" "+new Date());
     }
 
-    public void push(Callback<String> cb) {
-        if ( ! isStopped() ) {
-            cb.stream(""+new Date());
-            delayed(1000, () -> push(cb) );
-        }
-    }
-
-    public IPromise<ServletSession> login(String user, String pw) {
-        //TODO: verify user, pw ASYNC !
+    @Override
+    protected IPromise<String> verifyCredentials(String user, String pw, String jwt)  {
         if ( "admin".equals(user)) {
-            return new Promise<>(null,"hehe");
+            return reject("authentication failed");
         }
-        ServletSession sess = Actors.AsActor(ServletSession.class,sessionThreads[(int) (Math.random()*sessionThreads.length)]);
-        sess.init(self(),user);
-        return new Promise<>(sess);
+        return resolve("logged in");
     }
 
+    @Override
+    protected Class getSessionClazz() {
+        return ServletSession.class;
+    }
 }

@@ -12,7 +12,7 @@ import java.io.File;
  * Created by ruedi on 19.06.17.
  *
  * runs app using servlet 3.1 async features
- *
+ * expects to run with working dir [..]/examples/servlet
  */
 public class TomcatEmbeddedMain {
 
@@ -20,6 +20,11 @@ public class TomcatEmbeddedMain {
 
         String webappDirLocation = "src/main/webapp/";
         Tomcat tomcat = new Tomcat();
+
+        if ( ! new File(webappDirLocation+"index.html").exists() ) {
+            System.out.println("Please run with working dir: '[..]examples/servlet");
+            System.exit(-1);
+        }
 
         //The port that we should run on can be set into an environment variable
         //Look for that variable and default to 8080 if it isn't there.

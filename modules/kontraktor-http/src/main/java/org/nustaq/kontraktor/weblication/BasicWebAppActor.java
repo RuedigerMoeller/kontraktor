@@ -1,6 +1,7 @@
-package org.nustaq.kontraktor.application;
+package org.nustaq.kontraktor.weblication;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.remoting.base.SessionResurrector;
@@ -9,10 +10,10 @@ import org.nustaq.kontraktor.util.Log;
 /**
  * Created by ruedi on 20.06.17.
  */
-public class BasicWebApp<T extends BasicWebApp,C extends BasicWebAppConfig> extends Actor<T> implements SessionResurrector {
+public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends BasicWebAppConfig> extends Actor<T> implements SessionResurrector {
 
     protected Scheduler[] sessionThreads;
-    protected IBasicSessionStorage sessionStorage;
+    protected ISessionStorage sessionStorage;
 
     @Local
     public void init(C config) {
@@ -23,25 +24,37 @@ public class BasicWebApp<T extends BasicWebApp,C extends BasicWebAppConfig> exte
         }
     }
 
-    public IPromise<BasicWebAppSession> login(String user, String pw) {
-        //TODO: verify user, pw ASYNC !
-        if ( "admin".equals(user)) {
-            return new Promise<>(null,"hehe");
-        }
-        String sessionId = connection.get() != null ? connection.get().getSocketRef().getConnectionIdentifier() : null;
-        BasicWebAppSession sess = createSession(user,sessionId);
-        return new Promise<>(sess);
+    public IPromise<T> login(String user, String pw, String jwt) {
+        Promise res = new Promise();
+        verifyCredentials(user,pw,jwt).then( (authres,err) -> {
+            if ( err != null ) {
+                res.reject(err);
+            } else {
+                String sessionId = connection.get() != null ? connection.get().getSocketRef().getConnectionIdentifier() : null;
+                BasicWebSessionActor sess = createSession(user,sessionId);
+                res.resolve(sess);
+            }
+        });
+        return res;
     }
 
-    protected BasicWebAppSession createSession(String user, String sessionId) {
-        BasicWebAppSession sess = Actors.AsActor(getSessionClazz(),sessionThreads[(int) (Math.random()*sessionThreads.length)]);
+    protected abstract IPromise<String> verifyCredentials(String s, String pw, String jwt);/* {
+        //TODO: verify user, pw ASYNC !
+        if ( "admin".equals(user)) {
+            return reject("authentication failed");
+        }
+        return resolve("logged in");
+    }*/
+
+    protected BasicWebSessionActor createSession(String user, String sessionId) {
+        BasicWebSessionActor sess = Actors.AsActor((Class<BasicWebSessionActor>) getSessionClazz(),sessionThreads[(int) (Math.random()*sessionThreads.length)]);
         sess.init(self(),user,sessionId);
         return sess;
     }
 
-    protected Class<BasicWebAppSession> getSessionClazz() {
-        return BasicWebAppSession.class;
-    }
+    protected abstract Class getSessionClazz(); /* {
+        return BasicWebSessionActor.class;
+    }*/
 
     /**
      * just a notification
@@ -62,7 +75,7 @@ public class BasicWebApp<T extends BasicWebApp,C extends BasicWebAppConfig> exte
      *
      * @param sessionId
      * @param remoteRefId
-     * @return resurrected BasicWebAppSession
+     * @return resurrected BasicWebSessionActor
      */
     @Override
     public IPromise<Actor> reanimate(String sessionId, long remoteRefId) {
@@ -77,4 +90,14 @@ public class BasicWebApp<T extends BasicWebApp,C extends BasicWebAppConfig> exte
         });
         return res;
     }
+
+    public void notifySessionEnd(BasicWebSessionActor session) {
+
+    }
+
+    @CallerSideMethod
+    public ISessionStorage _getSessionStorage() {
+        return getActor().sessionStorage;
+    }
+
 }

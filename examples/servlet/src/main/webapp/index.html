@@ -32,16 +32,16 @@ jsk.connect("http://localhost:8080/ep","HTLP",errCB) // use this for long poll
     server.ask("hello", "from client").then( (res,err) => {
       document.getElementById("here").innerHTML = res;
     });
-    server.tell("push", (res,err) => {
-      document.getElementById("there").innerHTML = res;
-    });
 
     var session = null;
-    server.ask("login","angela","grökaz").then( (r,e) => {
+    server.ask("login","angela","grökaz","").then( (r,e) => {
       if ( r ) {
         session = r;
         server.ask("hello", "from client after login").then( (r,e) => {
           document.getElementById("here").innerHTML = r;
+        });
+        session.tell("push", (res,err) => {
+          document.getElementById("there").innerHTML = res;
         });
         session.ask("whatsYourName").then( (r,e) => {
           if ( r )
