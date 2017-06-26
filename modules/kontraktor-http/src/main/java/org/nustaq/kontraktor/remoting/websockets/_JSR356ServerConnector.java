@@ -75,14 +75,28 @@ public class _JSR356ServerConnector extends Endpoint implements ActorServerConne
 
     @Override
     public void onOpen(Session session, EndpointConfig config) {
+        Log.Info(this,"onClose "+session+" "+config);
         MySocket objectsocket = new MySocket(session);
         ObjectSink sink = factory.apply(objectsocket);
         session.addMessageHandler(new MessageHandler.Whole<byte[]>() {
             @Override
             public void onMessage(byte msg[]) {
+                System.out.println("MESSAGE:"+new String(msg,0));
                 sink.receiveObject(msg, null, null );
             }
         });
+    }
+
+    @Override
+    public void onClose(Session session, CloseReason closeReason) {
+        Log.Info(this,"onClose "+session+" "+closeReason);
+        super.onClose(session, closeReason);
+    }
+
+    @Override
+    public void onError(Session session, Throwable thr) {
+        Log.Info(this,"onError "+session+" "+thr);
+        super.onError(session, thr);
     }
 
     static class MySocket extends WebObjectSocket {
