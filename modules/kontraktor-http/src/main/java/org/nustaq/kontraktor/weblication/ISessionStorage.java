@@ -6,6 +6,7 @@ import java.util.function.Function;
 
 /**
  * Created by ruedi on 20.06.17.
+ *
  */
 public interface ISessionStorage {
 
@@ -17,6 +18,7 @@ public interface ISessionStorage {
     class AtomicResult implements Serializable {
         Action action;
         Object record;
+        Object returnValue;
 
         public Action getAction() {
             return action;
@@ -36,14 +38,20 @@ public interface ISessionStorage {
             return this;
         }
 
+        public AtomicResult returnValue(final Object returnValue) {
+            this.returnValue = returnValue;
+            return this;
+        }
+
+        public Object getReturnValue() {
+            return returnValue;
+        }
     }
 
     IPromise<String> getUserFromSessionId(String sid);
-
-    IPromise<AtomicResult> atomic(String userId, Function<Object,Action> recordConsumer);
+    IPromise atomic(String userId, Function<Object, AtomicResult> recordConsumer);
     void storeUserRecord(String userId, Object userRecord);
     IPromise storeIfNotPresent(String userId, Object userRecord);
-
     IPromise getUserRecord(String userId);
 
 }
