@@ -16,6 +16,25 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.remoting.websockets;
 
+import java.io.IOException;
+import java.net.URI;
+import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import javax.websocket.ClientEndpointConfig;
+import javax.websocket.CloseReason;
+import javax.websocket.ContainerProvider;
+import javax.websocket.Decoder;
+import javax.websocket.Encoder;
+import javax.websocket.Endpoint;
+import javax.websocket.EndpointConfig;
+import javax.websocket.Extension;
+import javax.websocket.MessageHandler;
+import javax.websocket.Session;
+
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
@@ -25,16 +44,6 @@ import org.nustaq.kontraktor.remoting.base.ObjectSink;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.util.Log;
-
-import javax.websocket.*;
-import java.io.IOException;
-import java.net.URI;
-import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 
 /**
  * Created by ruedi on 11/05/15.
@@ -46,8 +55,10 @@ import java.util.function.Function;
 //@ServerEndpoint("ws")
 public class _JSR356ServerConnector extends Endpoint implements ActorServerConnector {
 
-    Actor facade;
-    Function<ObjectSocket, ObjectSink> factory;
+    protected Actor facade;
+    protected Function<ObjectSocket, ObjectSink> factory;
+    
+    protected ActorServer actorServer;
 
     public static IPromise<ActorServer> Publish( Actor facade, String path, Coding coding) {
         _JSR356ServerConnector connector = new _JSR356ServerConnector();
@@ -99,7 +110,7 @@ public class _JSR356ServerConnector extends Endpoint implements ActorServerConne
         super.onError(session, thr);
     }
 
-    static class MySocket extends WebObjectSocket {
+    protected static class MySocket extends WebObjectSocket {
         static AtomicInteger idCount = new AtomicInteger(0);
         int id = idCount.incrementAndGet();
 
@@ -112,7 +123,8 @@ public class _JSR356ServerConnector extends Endpoint implements ActorServerConne
         @Override
         public void sendBinary(byte[] message) {
             try {
-                session.getBasicRemote().sendBinary(ByteBuffer.wrap(message));
+//                session.getBasicRemote().sendBinary(ByteBuffer.wrap(message));
+                session.getBasicRemote().sendText(new String(message, Charset.forName("UTF-8")));
             } catch (IOException ex) {
                 Log.Warn(this, ex);
                 try {
