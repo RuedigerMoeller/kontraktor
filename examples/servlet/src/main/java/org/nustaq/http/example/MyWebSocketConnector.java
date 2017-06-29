@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -69,9 +70,17 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
                 }
             }
         );
+        // required to avoid timings during init as jee breathes sync processing
+        CountDownLatch latch = new CountDownLatch(1);
         facade.execute( () -> {
             socket.setSink(sinkFactory.apply(socket));
+            latch.countDown();
         });
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Log.Error(this,e);
+        }
     }
 
     @Override

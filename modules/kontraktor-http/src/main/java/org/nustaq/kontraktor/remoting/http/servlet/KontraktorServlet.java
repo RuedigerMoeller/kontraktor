@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.remoting.http.servlet;
 
+import io.undertow.servlet.websockets.ServletWebSocketHttpExchange;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
