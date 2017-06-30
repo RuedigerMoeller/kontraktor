@@ -28,9 +28,6 @@ public class UndertowMain {
             System.exit(-1);
         }
 
-        // link index.html and js4k.js dir to avoid copying stuff around the project
-        File jsroot = new File(root.getCanonicalPath() + "/../../../modules/kontraktor-http/src/main/javascript/js4k").getCanonicalFile();
-
         // create server actor
         ServletApp myHttpApp = AsActor(ServletApp.class);
         myHttpApp.init(new BasicWebAppConfig());
