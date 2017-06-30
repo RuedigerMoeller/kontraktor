@@ -25,7 +25,7 @@ public class JSXTranspiler implements TranspilerHook {
         FileReader babelScript = null;
         try {
             if ( engine == null ) {
-                Log.Info(this,"initializing nashorn + babel, this takes several seconds");
+                Log.Info(this,"initializing nashorn + babel, THIS TAKES SEVERAL SECONDS ONCE");
                 babelScript = new FileReader("src/main/web/bower_components/babel-standalone/babel.js");
                 engine = new ScriptEngineManager().getEngineByMimeType("text/javascript");
                 bindings = new SimpleBindings();
