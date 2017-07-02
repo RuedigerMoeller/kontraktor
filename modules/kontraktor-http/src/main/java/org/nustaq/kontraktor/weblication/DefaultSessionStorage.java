@@ -49,7 +49,7 @@ public class DefaultSessionStorage implements ISessionStorage {
     FSTAsciiStringOffheapMap sessionId2UserKey;
     FSTUTFStringOffheapMap userData;
 
-    public IPromise init(Config cfg) {
+    public synchronized IPromise init(Config cfg) {
         try {
             sessionId2UserKey = new FSTAsciiStringOffheapMap("./data/sessionid2userkey.oos", 64, cfg.getSizeSessionIdsGB(), 1_000_000);
             userData = new FSTUTFStringOffheapMap("./data/sessionid2userkey.oos", 64, cfg.getSizeUserDataGB(), 1_000_000);
@@ -61,12 +61,12 @@ public class DefaultSessionStorage implements ISessionStorage {
     }
 
     @Override
-    public IPromise<String> getUserFromSessionId(String sid) {
+    public synchronized IPromise<String> getUserFromSessionId(String sid) {
         return new Promise(sessionId2UserKey.get(sid));
     }
 
     @Override
-    public IPromise atomic(String userId, Function<Object, AtomicResult> recordConsumer) {
+    public synchronized IPromise atomic(String userId, Function<Object, AtomicResult> recordConsumer) {
         AtomicResult res = recordConsumer.apply(userData.get(userId));
         if ( res.getAction() == Action.PUT ) {
             userData.put(userId,res.getRecord());
@@ -77,12 +77,12 @@ public class DefaultSessionStorage implements ISessionStorage {
     }
 
     @Override
-    public void storeUserRecord(String userId, Object userRecord) {
+    public synchronized void storeUserRecord(String userId, Object userRecord) {
         userData.put(userId,userRecord);
     }
 
     @Override
-    public IPromise<Boolean> storeIfNotPresent(String userId, Object userRecord) {
+    public synchronized IPromise<Boolean> storeIfNotPresent(String userId, Object userRecord) {
         Object res = userData.get(userId);
         if ( res == null ) {
             userData.put(userId,userRecord);
@@ -92,7 +92,7 @@ public class DefaultSessionStorage implements ISessionStorage {
     }
 
     @Override
-    public IPromise getUserRecord(String userId) {
+    public synchronized IPromise getUserRecord(String userId) {
         return new Promise(userData.get(userId));
     }
 

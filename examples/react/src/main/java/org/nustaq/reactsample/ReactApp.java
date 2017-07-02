@@ -50,7 +50,7 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
                     "src/main/web/bower_components"
                 )
                 .allDev(true)
-                .transpile("jsx",new JSXTranspiler())
+                .transpile("jsx",new JSXTranspiler("'react'")) // "'react','es2015'" for es5 output
                 .build()
             .httpAPI("/ep", myHttpApp)
                 .serType(SerializerType.JsonNoRef)
