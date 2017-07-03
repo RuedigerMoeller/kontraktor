@@ -38,6 +38,13 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         return res;
     }
 
+    /**
+     * return successmessage or reject with an error message
+     * @param s
+     * @param pw
+     * @param jwt
+     * @return
+     */
     protected abstract IPromise<String> verifyCredentials(String s, String pw, String jwt);/* {
         //TODO: verify user, pw ASYNC !
         if ( "admin".equals(user)) {

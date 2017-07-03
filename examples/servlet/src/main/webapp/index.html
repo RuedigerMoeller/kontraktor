@@ -21,8 +21,8 @@ var server = null;
 var errCB = function( err ) { console.error(err); };
 
 
-//jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets (currently undertow only)
-jsk.connect("http://localhost:8080/ep","HTLP",errCB) // use this for long poll
+jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets (currently undertow only)
+//jsk.connect("http://localhost:8080/ep","HTLP",errCB) // use this for long poll
   .then( function( app, error ) {
     console.log("received response ",app,error);
     if ( ! app ) {
