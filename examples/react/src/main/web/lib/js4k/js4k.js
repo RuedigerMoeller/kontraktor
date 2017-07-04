@@ -202,7 +202,6 @@ window.jsk = window.jsk || (function () {
    * Note for "plain http" no push functionality via callbacks can be supported, however pure request response 'ask' and 'tell'
    * works.
    *
-   * @param wsurl - e.g. "ws://localhost:8080/ws" or "http://localhost:8080/api"
    * @param connectionMode - 'WS' | 'HTLP' | ['HTTP' is discontinued]
    * @param optErrorcallback
    * @returns {jsk.Promise}
