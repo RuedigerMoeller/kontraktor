@@ -1,8 +1,8 @@
 const browserify = require('browserify');
-const KS = require("./kontraktor-server.js");
+const kontraktor = require("./kontraktor-server.js");
 
-const KPromise = KS.KPromise;
-const DH = new KS.DecodingHelper();
+const KPromise = kontraktor.KPromise;
+const DH = new kontraktor.DecodingHelper();
 
 class Babel {
 
@@ -28,4 +28,4 @@ class Babel {
 
 }
 
-const server = new KS.KontraktorServer(new Babel(),{port:3999},DH);
+const server = new kontraktor.KontraktorServer(new Babel(),{port:3999},DH);

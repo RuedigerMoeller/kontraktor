@@ -1,3 +1,5 @@
+import React, {Component} from 'react';
+
 // facebook react tutorial app
 function Square(props) {
   return (
