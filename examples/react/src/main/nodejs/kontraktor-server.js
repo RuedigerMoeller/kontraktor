@@ -18,6 +18,7 @@ const WebSocket = require('ws');
  * @constructor
  */
 class KPromise {
+
   constructor(initialResult,error) {
     this.res = (initialResult || error) ? [initialResult ? initialResult : null, error ? error : null] : null;
     this.cb = null;

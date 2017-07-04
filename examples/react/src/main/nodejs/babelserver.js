@@ -1,4 +1,3 @@
-const bylon = require("babel-standalone");
 const browserify = require('browserify');
 const KS = require("./kontraktor-server.js");
 
@@ -7,18 +6,24 @@ const DH = new KS.DecodingHelper();
 
 class Babel {
 
-  browserify(filePath) {
-    const prom = new KPromise();
-    var res = browserify(filePath)
-      .transform("babelify", { presets: ["import-export", "react"] })
+  browserifyInternal(filePath) {
+    try {
+      const prom = new KPromise();
+      var res = browserify(filePath, {
+        // paths: ['/home/ruedi/IdeaProjects/kontraktor/examples/react/src/main/nodejs/']
+      })
+      .transform("babelify", { presets: [ "import-export", "react" ] })
       .bundle( (err,buff) => {
         if ( err ) {
           console.log(err);
-          prom.complete(DH.jobj("BabelResult",{ code: null, err: JSON.stringify(err) }),null);
+          prom.complete(DH.jobj("BabelResult",{ code: null, err: ''+err }),null);
         } else
           prom.complete(DH.jobj("BabelResult",{ code: ""+buff, err: null }),null);
       });
       return prom;
+    } catch (e) {
+      console.error(e);
+    }
   }
 
 }

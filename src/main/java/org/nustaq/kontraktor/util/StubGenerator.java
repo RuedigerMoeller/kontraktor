@@ -1,11 +1,10 @@
-package org.nustaq.babelremote;
+package org.nustaq.kontraktor.util;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.annotations.Local;
 
 import java.io.PrintStream;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
