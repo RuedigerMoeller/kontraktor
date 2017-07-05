@@ -6,13 +6,14 @@ const decodingHelper = new kontraktor.DecodingHelper();
 
 class Babel {
 
-  browserifyInternal(filePath) {
+  browserifyInternal(filePath,babelopts) {
     try {
       const prom = new KPromise();
       var res = browserify(filePath, {
+        debug: !!babelopts.debug
         // paths: ['/home/ruedi/IdeaProjects/kontraktor/examples/react/src/main/nodejs/']
       })
-      .transform("babelify", { presets: [ "import-export", "react" ] })
+      .transform("babelify", { presets: babelopts.presets })
       .bundle( (err,buff) => {
         if ( err ) {
           console.log(err);

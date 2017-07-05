@@ -1,14 +1,16 @@
 package org.nustaq.reactsample;
 
+import org.nustaq.babelremote.BabelOpts;
+import org.nustaq.babelremote.BrowseriBabelify;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.weblication.BasicWebAppActor;
 import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 
 /**
  * Created by ruedi on 30.05.17.
@@ -27,7 +29,41 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    public static boolean runNodify() {
+        try {
+            BrowseriBabelify.get();
+        } catch (Exception ex) {
+            Log.Warn(ReactApp.class,"babelserver not running .. try starting");
+            boolean isWindows = System.getProperty("os.name","linux").toLowerCase().indexOf("windows") >= 0;
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder();
+                if (isWindows) {
+                    processBuilder.command("cmd.exe", "/c", "node babelserver.js");
+                } else {
+                    processBuilder.command("/usr/bin/bash", "-c", "node babelserver.js");
+                }
+                processBuilder.directory(new File("./src/main/nodejs"));
+                processBuilder.inheritIO();
+                Process process = processBuilder.start();
+                Thread.sleep(1000);
+                BrowseriBabelify.get();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+
+        }
+        return true;
+    }
+
     public static void main(String[] args) throws IOException {
+
+        // start node babelify daemon directly, uncomment if you prefer to run it manually (avoids restarting it with each server start)
+        if ( ! runNodify() ) {
+            System.out.println("failed to connect / start babel");
+            System.exit(1);
+        }
+
         // just setup stuff manually here. Its easy to build an application specific
         // config using e.g. json or kson.
         File root = new File("./src/main/web/client");
@@ -50,7 +86,7 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
                     "src/main/web/bower_components"
                 )
                 .allDev(true)
-                .transpile("jsx",new JSXTranspiler("'react'")) // "'react','es2015'" for es5 output
+                .transpile("jsx",new JSXTranspiler().opts(new BabelOpts().debug(true))) // "'react','es2015'" for es5 output
                 .build()
             .httpAPI("/ep", myHttpApp)
                 .serType(SerializerType.JsonNoRef)
