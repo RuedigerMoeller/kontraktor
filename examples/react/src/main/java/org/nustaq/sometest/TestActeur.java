@@ -14,6 +14,23 @@ import java.util.Arrays;
  */
 public class TestActeur extends Actor<TestActeur> {
 
+    private String name;
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public IPromise<String> getName() {
+        return new Promise<>(name);
+    }
+
+    int count = 0;
+    public IPromise<TestActeur> createAnotherOne(String name) {
+        TestActeur testActeur = AsActor(TestActeur.class,getScheduler());
+        testActeur.setName(name+" "+count++);
+        return new Promise<>(testActeur);
+    }
+
     public void plain( String arg, int arg1 ) {
         System.out.println("plain "+arg+" "+arg1);
     }
@@ -57,7 +74,7 @@ public class TestActeur extends Actor<TestActeur> {
     }
 
     public static void main(String[] args) {
-        mainWS(args);
+        mainHttp(args);
     }
 
 }

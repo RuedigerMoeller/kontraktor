@@ -4,8 +4,8 @@ const KPromise = kontraktorClient.KPromise;
 const coder = new kontraktorClient.DecodingHelper;
 
 const kclient = new KClient();
-// kclient.connect("http://localhost:8888/test").then( (remote,e) => {
-kclient.connect("ws://localhost:8888/test","WS").then( (remote,e) => {
+kclient.connect("http://localhost:8888/test").then( (remote,e) => {
+// kclient.connect("ws://localhost:8888/test","WS").then( (remote,e) => {
   remote.tell("plain","Hello",1);
   remote.ask("plainPromise","Hello",1).then( (r,e) => {
     console.log("plainPromise returned ",r,e);
@@ -31,6 +31,12 @@ kclient.connect("ws://localhost:8888/test","WS").then( (remote,e) => {
     z: { text: "Halli" }
   });
 
+  remote.ask("createAnotherOne", "otherActor").then( (other,err) => {
+    if ( other )
+      other.ask("getName").then( (r,e) => console.log("othername:"+r) );
+    else
+      console.error('failed to create dynamic actor ',other,err);
+  });
 
 });
 

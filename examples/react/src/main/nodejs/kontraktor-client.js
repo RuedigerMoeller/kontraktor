@@ -6,7 +6,7 @@ const KPromise = kontraktor.KPromise;
 const coder = new kontraktor.DecodingHelper();
 const NO_RESULT = "NO_RESULT";
 
-var _kontraktor_IsNode = false;
+let _kontraktor_IsNode = false;
 
 if ( typeof module !== 'undefined' && module.exports ) {
   if ( typeof window === 'undefined')
@@ -110,7 +110,7 @@ class KClient {
           if (automaticTransformResults) {
             const transFun = obj => {
               if (obj != null && obj instanceof Array && obj.length == 2 && typeof obj[1] === 'string' && obj[1].indexOf("_ActorProxy") > 0) {
-                return new KontrActor(obj[0], obj[1]); // automatically create remote actor wrapper
+                return new KontrActor(this, obj[0], obj[1]); // automatically create remote actor wrapper
               }
               return null;
             };
@@ -198,6 +198,11 @@ class KontraktorSocket {
             this.socket.onerror.apply(this, [err]);
         }
       } else {
+        if (_kontraktor_IsNode) {
+          const response = JSON.parse(message.data);
+          this.global.processSocketResponse(-1,response, this.automaticTransformResults, eventListener.bind(this));
+          return;
+        }
         this.incomingMessages.push(message.data);
         // in order to parse binary messages, an async file reader must be used.
         // therefore its necessary to ensure proper ordering of parsed messages.

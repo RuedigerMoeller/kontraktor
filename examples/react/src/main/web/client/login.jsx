@@ -5,9 +5,11 @@ import {Table,Tr,Td} from './tablelayout.jsx';
 class Btn extends React.Component {
   render() {
     const style= { display: 'inline-block', padding: "4px", background: "#afa", border: 'solid 1px #aaa', cursor: "pointer", float: 'right' };
-    return <div style={style} onClick={this.props.onClick}>
-      {this.props.children}
-    </div>
+    return (
+      <div style={style} onClick={this.props.onClick}>
+        {this.props.children}
+      </div>
+    )
   }
 }
 
@@ -29,7 +31,8 @@ export class Login extends React.Component {
     console.log("hello", event);
   }
   render() {
-    return <Table>
+    return (
+      <Table>
         <Tr>
           <Td>User:</Td><Td><input type="text" value={this.state.user} onChange={this.handleUChange.bind(this)}></input></Td>
         </Tr>
@@ -40,6 +43,7 @@ export class Login extends React.Component {
           <Td>&nbsp;</Td><Td><Btn onClick={this.handleLogin.bind(this)}>Login</Btn></Td>
         </Tr>
       </Table>
+    )
   }
 
 }
