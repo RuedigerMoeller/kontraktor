@@ -28,6 +28,59 @@ class KClient {
     this.batchCB = [];
   }
 
+  connect(wsurl, connectionMode, optErrorcallback) {
+    const res = new KPromise();
+    if ( this.currentSocket.socket != null ) {
+      res.complete(this.remoteApp,null);
+      return res;
+    }
+    let socket = null;
+    if ( 'WS' === connectionMode ) {
+      socket = new KontraktorSocket(this,wsurl);
+    } else if ( "HTLP" === connectionMode || "HTTP" === connectionMode ) {
+      socket = new KontraktorPollSocket(this,wsurl, "HTLP" === connectionMode );
+    } else if ( connectionMode && connectionMode.uname && connectionMode.token ) { // token
+      socket = new KontraktorPollSocket(this,wsurl, true,connectionMode.token, connectionMode.uname );
+    } else {
+      console.log("unknown connectionMode, default to HTLP");
+      socket = new KontraktorPollSocket(this,wsurl, true );
+    }
+    const myHttpApp = new KontrActor(1,"RemoteApp");
+    socket.onmessage( function(message) {
+      if ( optErrorcallback ) {
+        optErrorcallback.apply(null,[message]);
+      } else if (typeof message === MessageEvent ) {
+        console.error("unexpected message:"+message.data);
+      } else {
+        console.error("unexpected message");
+        console.log(JSON.stringify(message, null, 2));
+      }
+    });
+    socket.onerror( err => {
+      if ( ! res.isCompleted() )
+        res.complete(null,err);
+      if ( optErrorcallback )
+        optErrorcallback.apply(null,[err]);
+      else
+        console.log(err);
+    });
+    socket.onclose( () => {
+      this.socket = null;
+      if ( ! res.isCompleted() )
+        res.complete(null,"closed");
+      if ( optErrorcallback )
+        optErrorcallback.apply(null,["closed"]);
+      else
+        console.log("close");
+    });
+    socket.onopen( event=> {
+      this.currentSocket.socket = socket;
+      this.remoteApp = myHttpApp;
+      res.complete(myHttpApp,null);
+    });
+    return res;
+  };
+
   processSocketResponse(lastSeenSequence, decodedResponse, automaticTransformResults, messageListener) {
     const respLen = decodedResponse.seq[0] - 1; // last one is sequence.
     const sequence = decodedResponse.seq[decodedResponse.seq.length-1];
@@ -82,12 +135,6 @@ class KClient {
     return sequence;
   }
 
-}
-
-/**
- * represents a remote proxy for a server side actor
- */
-class KontrActor {
 }
 
 /**
