@@ -1,4 +1,5 @@
-import React, {Component} from 'react';
+import React from 'react';
+import {Table,Tr,Td} from './tablelayout.jsx';
 
 export class Login extends React.Component {
 
@@ -15,13 +16,15 @@ export class Login extends React.Component {
     this.setState({pwd: event.target.value});
   }
   render() {
-    return <div>
-      <div>
-        User: <input type="text" value={this.state.user} onChange={this.handleUChange}></input>
-      </div>
-      <div>
-        Pwd: <input type="password" value={this.state.pwd} onChange={this.handlePChange}></input>
-      </div>
-    </div>
+    return <Table>
+        <Tr>
+          <Td>User:</Td><Td><input type="text" value={this.state.user} onChange={this.handleUChange.bind(this)}></input></Td>
+        </Tr>
+        <Tr>
+          <Td>Pwd:</Td><Td><input type="password" value={this.state.pwd} onChange={this.handlePChange.bind(this)}></input></Td>
+        </Tr>
+      </Table>
+
   }
+
 }

@@ -32,10 +32,6 @@ public class BrowseriBabelify extends Actor<BrowseriBabelify> {
         return singleton;
 
     }
-    // dummystub
-    public IPromise<BabelResult> transform( String input, String optionsJson ) {
-        return null;
-    }
 
     @CallerSideMethod @Local
     public IPromise<BabelResult> browserify( String filePath ) {

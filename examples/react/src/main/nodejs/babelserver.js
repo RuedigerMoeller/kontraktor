@@ -2,7 +2,7 @@ const browserify = require('browserify');
 const kontraktor = require("./kontraktor-server.js");
 
 const KPromise = kontraktor.KPromise;
-const DH = new kontraktor.DecodingHelper();
+const decodingHelper = new kontraktor.DecodingHelper();
 
 class Babel {
 
@@ -16,9 +16,9 @@ class Babel {
       .bundle( (err,buff) => {
         if ( err ) {
           console.log(err);
-          prom.complete(DH.jobj("BabelResult",{ code: null, err: ''+err }),null);
+          prom.complete(decodingHelper.jobj("BabelResult",{ code: null, err: ''+err }),null);
         } else
-          prom.complete(DH.jobj("BabelResult",{ code: ""+buff, err: null }),null);
+          prom.complete(decodingHelper.jobj("BabelResult",{ code: ""+buff, err: null }),null);
       });
       return prom;
     } catch (e) {
@@ -28,4 +28,4 @@ class Babel {
 
 }
 
-const server = new kontraktor.KontraktorServer(new Babel(),{port:3999},DH);
+const server = new kontraktor.KontraktorServer(new Babel(),{port:3999},decodingHelper);
