@@ -1,5 +1,6 @@
 package org.nustaq.reactsample;
 
+import org.nustaq.babelremote.BrowseriBabelify;
 import org.nustaq.kontraktor.remoting.http.javascript.TranspileException;
 import org.nustaq.kontraktor.remoting.http.javascript.TranspilerHook;
 import org.nustaq.kontraktor.util.Log;
@@ -43,8 +44,8 @@ public class JSXTranspiler implements TranspilerHook {
      * @return
      * @throws TranspileException
      */
-    @Override
-    public byte[] transpile(File f) throws TranspileException {
+//    @Override
+    public byte[] transpile_nashorn(File f) throws TranspileException {
         FileReader babelScript = null;
         try {
             if ( engine == null ) {
@@ -62,6 +63,21 @@ public class JSXTranspiler implements TranspilerHook {
             if (LogResult)
                 Log.Info(this,output.toString());
             return output.toString().getBytes("UTF-8");
+        } catch (Exception e) {
+            throw new TranspileException(e);
+        }
+    }
+
+    @Override
+    public byte[] transpile(File f) throws TranspileException {
+        try {
+            BrowseriBabelify.BabelResult result = BrowseriBabelify.get().browserify(f.getAbsolutePath()).await();
+            if (result.code!=null)
+                return result.code.toString().getBytes("UTF-8");
+            else {
+                System.out.println(result.err);
+                return result.err.toString().getBytes("UTF-8");
+            }
         } catch (Exception e) {
             throw new TranspileException(e);
         }

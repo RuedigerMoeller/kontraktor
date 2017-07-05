@@ -17,6 +17,21 @@ import java.io.Serializable;
  */
 public class BrowseriBabelify extends Actor<BrowseriBabelify> {
 
+    public static String url = "ws://localhost:3999/browseribabelify";
+
+    static protected BrowseriBabelify singleton;
+    public static BrowseriBabelify get() {
+        synchronized (BrowseriBabelify.class) {
+            if (singleton==null) {
+                WebSocketConnectable webSocketConnectable =
+                    new WebSocketConnectable(BrowseriBabelify.class, url)
+                        .coding(new Coding(SerializerType.JsonNoRef, BrowseriBabelify.BabelResult.class ));
+                singleton = (BrowseriBabelify) webSocketConnectable.connect( (xy, e) -> System.out.println("disconnected "+xy) ).await();
+            }
+        }
+        return singleton;
+
+    }
     // dummystub
     public IPromise<BabelResult> transform( String input, String optionsJson ) {
         return null;
@@ -45,34 +60,14 @@ public class BrowseriBabelify extends Actor<BrowseriBabelify> {
     }
 
     public static void main(String[] args) {
-        WebSocketConnectable webSocketConnectable =
-            new WebSocketConnectable(BrowseriBabelify.class, "ws://localhost:3999/ws")
-                .coding(new Coding(SerializerType.JsonNoRef, BrowseriBabelify.BabelResult.class ));
-        webSocketConnectable.connect( (xy,e) -> System.out.println("disconnected "+xy) ).then(
-            (actor,err) -> {
-                if ( actor != null ) {
-                    BrowseriBabelify b = (BrowseriBabelify) actor;
-                    try {
-                        b.browserify("./src/main/web/client/index.jsx")
-                            .then( (r,e) -> {
-                                System.out.println(r);
-                            });
-
-//                        String pathname = "/home/ruedi/projects/kontraktor/examples/react/src/main/web/client/index.jsx";
-//                        byte[] bytes = Files.readAllBytes(new File(pathname).toPath());
-////                        String options = "{ 'presets': ['react','es2015'] }".replace('\'', '\"');
-//                        String options = "{ 'presets': ['react'] }".replace('\'', '\"');
-//                        b.transform(new String(bytes,"UTF-8"), options)
-//                            .then( (r,e) -> {
-//                                System.out.println(r);
-//                            });
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    Log.Info(BrowseriBabelify.class,"could not connect service");
-                }
-            }
-        );
+        BrowseriBabelify b = BrowseriBabelify.get();
+        try {
+            b.browserify("./src/main/web/client/index.jsx").then( (r,e) -> {
+                System.out.println(r);
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
+
 }
