@@ -13,6 +13,7 @@ if ( typeof module !== 'undefined' && module.exports ) {
     window = {}; // node
   _kontraktor_IsNode = true;
   XMLHttpRequest = require("./xmlhttpdummy.js");
+  WebSocket = require('ws');
 }
 
 // a (batching) kontraktor client
@@ -45,7 +46,7 @@ class KClient {
       console.log("unknown connectionMode, default to HTLP");
       socket = new KontraktorPollSocket(this,wsurl, true );
     }
-    const myHttpApp = new KontrActor(1,"RemoteApp");
+    const myHttpApp = new KontrActor(this,1,"RemoteApp");
     socket.onmessage( function(message) {
       if ( optErrorcallback ) {
         optErrorcallback.apply(null,[message]);
@@ -113,8 +114,8 @@ class KClient {
               }
               return null;
             };
-            const res = coder.transform(resp.obj.args.seq[1], true, transFun);
-            const err = coder.transform(resp.obj.args.seq[2], transFun);
+            const res = coder.transformJavaJson(resp.obj.args.seq[1], true, transFun);
+            const err = coder.transformJavaJson(resp.obj.args.seq[2], transFun);
             if ( this.callCache ) {
               this.callCache.put(methodAndArgs,[res,err]);
             }
@@ -281,7 +282,7 @@ class KontraktorPollSocket{
   }
 
   fireOpen() {
-    this.onopenHandler.apply(self, [{event: "opened", session: this.sessionId}]);
+    this.onopenHandler.apply(this, [{event: "opened", session: this.sessionId}]);
   }
 
   // throw an error to all open callbacks and close them or reply with response of cache delegate
@@ -320,7 +321,7 @@ class KontraktorPollSocket{
   fireError() {
     this.termOpenCBs();
     if (this.onerrorHandler && this.lastError) {
-      this.onerrorHandler.apply(self, [{event: "connection failure", status: this.lastError}]);
+      this.onerrorHandler.apply(this, [{event: "connection failure", status: this.lastError}]);
     }
   }
 
@@ -473,7 +474,7 @@ class KontraktorPollSocket{
       if ( this.sendFun ) {
         const tmp = this.sendFun;
         this.sendFun = null;
-        tmp.apply(self,[]);
+        tmp.apply(this,[]);
       }
       if ( request.status !== 200 ) {
         this.lastError = request.statusText;
@@ -558,10 +559,10 @@ class KontrActor {
   /**
    * create a sequenced batch of remote calls
    */
-  static buildCallList( list, seqNo ) {
+  buildCallList( list, seqNo ) {
     const l = list.slice();
     l.push(seqNo);
-    return coder.buildJArray("array",l);
+    return coder.jarray("array",l);
   }
 
   /**
@@ -577,10 +578,10 @@ class KontrActor {
       cb = args[args.length-1];
       args[args.length-1] = null;
     }
-    return coder.buildJObject( "call", { futureKey: callbackId, queue: 0, method: methodName, receiverKey: receiverKey, serializedArgs: JSON.stringify(coder.buildJArray("array",args)), cb: cb } );
+    return coder.jobj( "call", { futureKey: callbackId, queue: 0, method: methodName, receiverKey: receiverKey, serializedArgs: JSON.stringify(coder.jarray("array",args)), cb: cb } );
   }
 
-  static buildCallback( callbackId ) {
+  buildCallback( callbackId ) {
     return { "typ" : "cbw", "obj" : [ callbackId ] };
   }
 
@@ -604,8 +605,8 @@ class KontrActor {
     const socket = this.socketHolder.socket;
     socket.triggerNextSend(() => {
       //console.log("send batched \n"+JSON.stringify(batch,null,2));
-      const data = JSON.stringify(this.buildCallList(batch, socket.lpSeqNo));
-      const prev = batchCB;
+      const data = JSON.stringify(this.buildCallList(this.global.batch, socket.lpSeqNo));
+      const prev = this.global.batchCB;
       this.global.batch = [];
       this.global.batchCB = [];
       socket.send(data).then( (r,e) => {
@@ -623,10 +624,10 @@ class KontrActor {
    *
    */
   ask( methodName, args ) {
-    if ( _jsk.callCache && _jsk.callCache.getCached ) {
-      var res = _jsk.callCache.getCached( methodName,arguments );
-      if ( res !== _jsk.NO_RESULT ) {
-        var cbr = new _jsk.Promise();
+    if ( this.global.callCache && this.global.callCache.getCached ) {
+      var res = this.global.callCache.getCached( methodName,arguments );
+      if ( res !== NO_RESULT ) {
+        var cbr = new KPromise();
         setTimeout( function() {
           cbr.complete(res[0],res[1]);
         }, 0 );
@@ -639,12 +640,12 @@ class KontrActor {
     for ( var i = 1; i < arguments.length; i++ )
       argList.push(arguments[i]);
     this.mapCBObjects(methodName,argList);
-    var futID = sbIdCount++;
-    var cb = new _jsk.Promise();
-    futureMap[futID] = cb;
-    callMap[futID] = [methodName,argList];
+    const futID = this.global.sbIdCount++;
+    const cb = new KPromise();
+    this.global.futureMap[futID] = cb;
+    this.global.callMap[futID] = [methodName,argList];
     var msg = this.buildCall( futID, this.id, methodName, argList );
-    this.sendBatched.call(this,msg,futID);
+    this.sendBatched(msg,futID);
     return cb;
   }
 
@@ -673,6 +674,7 @@ class KontrActor {
 if ( _kontraktor_IsNode ) {
   module.exports = {
     KClient : KClient,
-    KPromise : KPromise
+    KPromise : KPromise,
+    DecodingHelper : kontraktor.DecodingHelper
   };
 }
