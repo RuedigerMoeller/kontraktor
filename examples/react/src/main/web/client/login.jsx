@@ -1,6 +1,7 @@
 import React from 'react';
 import {Table,Tr,Td} from './tablelayout.jsx';
-
+import AppActions from './actions.jsx';
+import AppStore from './store.jsx';
 
 class Btn extends React.Component {
   render() {
@@ -21,15 +22,33 @@ export class Login extends React.Component {
       user: '', pwd: ''
     }
   }
+
+  componentDidMount() {
+    AppStore.addChangeListener('STORE_TRY_LOGIN', this.onTryLogin);
+    AppStore.addChangeListener('STORE_LOGIN_CHANGED', this.onLoginChange);
+  }
+
+  onTryLogin(ev) {
+    console.log(ev);
+  }
+
+  onLoginChange(ev) {
+    console.log(ev);
+  }
+
   handleUChange(event) {
     this.setState({user: event.target.value});
   }
+
   handlePChange(event) {
     this.setState({pwd: event.target.value});
   }
+
   handleLogin(event) {
     console.log("hello", event);
+    AppActions.login( this.state.user, this.state.pwd );
   }
+
   render() {
     return (
       <Table>

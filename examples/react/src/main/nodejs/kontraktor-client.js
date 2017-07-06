@@ -8,7 +8,7 @@ const NO_RESULT = "NO_RESULT";
 
 let _kontraktor_IsNode = false;
 
-if ( typeof module !== 'undefined' && module.exports ) {
+if ( typeof module !== 'undefined' && module.exports && !process.browser) {
   if ( typeof window === 'undefined')
     window = {}; // node
   _kontraktor_IsNode = true;
