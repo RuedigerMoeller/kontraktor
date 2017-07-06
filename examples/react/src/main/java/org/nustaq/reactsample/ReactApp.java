@@ -87,7 +87,8 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
                 .elements(
                     "src/main/web/client",
                     "src/main/web/lib",
-                    "src/main/web/bower_components"
+                    "src/main/web/bower_components",
+                    "src/main/nodejs"
                 )
                 .allDev(true)
                 .transpile("jsx",new JSXTranspiler().opts(new BabelOpts().debug(true))) // "'react','es2015'" for es5 output

@@ -1,5 +1,6 @@
 // ES6 Port of js4k 3.34
 // matches kontraktor 3 json-no-ref encoded remoting
+
 const kontraktor = require('./kontraktor-common.js');
 
 const KPromise = kontraktor.KPromise;
@@ -8,7 +9,7 @@ const NO_RESULT = "NO_RESULT";
 
 let _kontraktor_IsNode = false;
 
-if ( typeof module !== 'undefined' && module.exports && !process.browser) {
+if ( typeof module !== 'undefined' && module.exports ) {
   if ( typeof window === 'undefined')
     window = {}; // node
   _kontraktor_IsNode = true;

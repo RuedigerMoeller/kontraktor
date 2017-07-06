@@ -205,7 +205,9 @@ class DecodingHelper {
   }
 }
 
-module.exports = {
-  KPromise : KPromise,
-  DecodingHelper : DecodingHelper
-};
+if ( typeof module !== 'undefined' ) {
+  module.exports = {
+    KPromise : KPromise,
+    DecodingHelper : DecodingHelper
+  };
+}
