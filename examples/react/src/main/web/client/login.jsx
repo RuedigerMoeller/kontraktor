@@ -4,9 +4,9 @@ import {Table,Tr,Td} from './tablelayout.jsx';
 
 class Btn extends React.Component {
   render() {
-    const style= { display: 'inline-block', padding: "4px", background: "#afa", border: 'solid 1px #aaa', cursor: "pointer", float: 'right' };
+    const style= { display: 'inline-block', float: 'right' };
     return (
-      <div style={style} onClick={this.props.onClick}>
+      <div className="lgbtn" style={style} onClick={this.props.onClick}>
         {this.props.children}
       </div>
     )

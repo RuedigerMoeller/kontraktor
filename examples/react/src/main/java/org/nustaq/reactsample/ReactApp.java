@@ -40,7 +40,11 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
                 if (isWindows) {
                     processBuilder.command("cmd.exe", "/c", "node babelserver.js");
                 } else {
-                    processBuilder.command("/usr/bin/bash", "-c", "node babelserver.js");
+                    String bash = "/usr/bin/bash";
+                    if ( !new File(bash).exists() ) {
+                        bash = "/bin/bash";
+                    }
+                    processBuilder.command(bash, "-c", "node babelserver.js");
                 }
                 processBuilder.directory(new File("./src/main/nodejs"));
                 processBuilder.inheritIO();
