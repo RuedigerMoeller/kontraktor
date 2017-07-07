@@ -19,28 +19,30 @@ class App extends React.Component {
   onLoginChange() {
     this.setState({userData:AppStore.getUserData()});
   }
-  render() {
+  renderLoggedInApp() {
     const style = { margin: "0 auto", width: "100%"};
+    return (
+      <div style={style}>
+        <h1>Boah ey !</h1>
+        <div>You are {this.state.userData.userName}</div>
+        <ul>
+          <li><Link to="/">Home</Link></li>
+          <li><Link to="/login">Login</Link></li>
+        </ul>
+        <hr/>
+        <Switch>
+          <Route exact path="/" component={Game}/>
+          <Route path="/login" component={Login}/>
+        </Switch>
+      </div>
+    )
+  }
+
+  render() {
     const loggedIn = this.state && this.state.userData;
       return (
         <Router history={createBrowserHistory()}>
-          {loggedIn ? (
-            <div style={style}>
-              <h1>Boah ey !</h1>
-              <div>You are {this.state.userData.userName}</div>
-              <ul>
-                <li><Link to="/">Home</Link></li>
-                <li><Link to="/login">Login</Link></li>
-              </ul>
-              <hr/>
-              <Switch>
-                <Route exact path="/" component={Game}/>
-                <Route path="/login" component={Login}/>
-              </Switch>
-            </div>
-          )
-            : <Login/>
-          }
+          {loggedIn ? this.renderLoggedInApp() : <Login/> }
         </Router>
       );
   }
