@@ -1,5 +1,5 @@
 import React from 'react';
-import {Table,Tr,Td} from './tablelayout.jsx';
+import {Table,Tr,Td} from './layout.jsx';
 import AppActions from './actions.jsx';
 import AppStore from './store.jsx';
 

@@ -2,9 +2,16 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Game } from './fbreactexample.jsx';
 import { Login } from './login.jsx';
+import { HCenter } from './layout.jsx';
 import { BrowserRouter as Router, Route, Switch, Link, IndexRoute } from 'react-router-dom'
 import createBrowserHistory from 'history/createBrowserHistory';
 import AppStore from "./store.jsx";
+
+class OtherState extends React.Component {
+  render() {
+    return (<div>Some Other Component</div>)
+  }
+}
 
 class App extends React.Component {
 
@@ -16,9 +23,11 @@ class App extends React.Component {
   componentDidMount() {
     AppStore.addChangeListener('STORE_LOGIN_CHANGED', this.onLoginChange.bind(this));
   }
+
   onLoginChange() {
     this.setState({userData:AppStore.getUserData()});
   }
+
   renderLoggedInApp() {
     const style = { margin: "0 auto", width: "100%"};
     return (
@@ -27,13 +36,15 @@ class App extends React.Component {
         <div>You are {this.state.userData.userName}</div>
         <ul>
           <li><Link to="/">Home</Link></li>
-          <li><Link to="/login">Login</Link></li>
+          <li><Link to="/other">Misc</Link></li>
         </ul>
         <hr/>
-        <Switch>
-          <Route exact path="/" component={Game}/>
-          <Route path="/login" component={Login}/>
-        </Switch>
+        <HCenter>
+          <Switch>
+            <Route exact path="/" component={Game}/>
+            <Route path="/other" component={OtherState}/>
+          </Switch>
+        </HCenter>
       </div>
     )
   }
@@ -42,11 +53,10 @@ class App extends React.Component {
     const loggedIn = this.state && this.state.userData;
       return (
         <Router history={createBrowserHistory()}>
-          {loggedIn ? this.renderLoggedInApp() : <Login/> }
+          {loggedIn ? this.renderLoggedInApp() : <HCenter><Login/></HCenter> }
         </Router>
       );
   }
 }
 
 ReactDOM.render(<App/>,document.getElementById("root"));
-// ReactDOM.render(<div><Game /><br/><Login /></div>, document.getElementById("root"));

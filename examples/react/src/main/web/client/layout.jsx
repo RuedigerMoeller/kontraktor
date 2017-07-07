@@ -42,3 +42,20 @@ export class Td extends React.Component {
   }
 
 }
+
+export class HCenter extends React.Component {
+
+  render() {
+    const style = {
+      alignContent: 'center',
+      alignItems: 'center',
+      boxSizing: 'border-box',
+      display: 'flex',
+      flexDirection: 'row',
+      flexWrap: 'nowrap',
+      justifyContent: 'center',
+    };
+    return (<div style={style}>{this.props.children}</div>)
+  }
+
+}
