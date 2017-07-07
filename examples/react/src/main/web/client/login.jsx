@@ -28,8 +28,8 @@ export class Login extends React.Component {
     AppStore.addChangeListener('STORE_LOGIN_CHANGED', this.onLoginChange);
   }
 
-  onTryLogin(ev) {
-    console.log(ev);
+  onTryLogin() {
+    console.log("try login");
   }
 
   onLoginChange(ev) {

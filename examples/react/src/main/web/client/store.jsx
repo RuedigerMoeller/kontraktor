@@ -1,6 +1,6 @@
 import AppDispatcher from './dispatcher.jsx';
 import { EventEmitter } from 'events';
-import AppActions from './actions.jsx'
+import AppActions from './actions.jsx';
 
 class AppStore extends EventEmitter {
 
@@ -31,14 +31,16 @@ class AppStore extends EventEmitter {
   }
 
   login(user,password) {
-    if ( ! client.isLoggedIn() ) {
-      client.connect("http://localhost:8080/ep").then( (r,e) => {
+    if ( ! this.isLoggedIn() ) {
+      this.client.connect("http://localhost:8080/ep").then( (r,e) => {
         if ( r ) {
           this.server = r;
           AppActions.connected();
-          r.ask("login",user,password).then( (sess,err) => {
-            if ( sess ) {
-              this.session = sess;
+          r.ask("login",user,password, null).then( (arr,err) => {
+            console.log("login ",arr);
+            if ( arr && arr[0] ) {
+              this.session = arr[0];
+              this.userData = arr[1];
               this.emit("STORE_LOGIN_CHANGED");
             }
           });
@@ -54,7 +56,7 @@ class AppStore extends EventEmitter {
   dispatcherCallback(action) {
     switch (action.actionType) {
       case 'TRY_LOGIN':
-        this.login(action.value);
+        this.login(action.value.user,action.value.password);
         break;
       case 'LOGIN_CHANGED':
         // this.emit(action.value);

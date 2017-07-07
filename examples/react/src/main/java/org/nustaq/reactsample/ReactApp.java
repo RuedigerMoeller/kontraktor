@@ -4,9 +4,11 @@ import org.nustaq.babelremote.BabelOpts;
 import org.nustaq.babelremote.BrowseriBabelify;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.weblication.BasicAuthenticationResult;
 import org.nustaq.kontraktor.weblication.BasicWebAppActor;
 import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
 
@@ -18,8 +20,8 @@ import java.io.*;
 public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
 
     @Override
-    protected IPromise<String> verifyCredentials(String s, String pw, String jwt) {
-        return new Promise<>("logged in");
+    protected IPromise<BasicAuthenticationResult> getCredentials(String s, String pw, String jwt) {
+        return new Promise<>( new BasicAuthenticationResult().userName(s) );
     }
 
     @Override
@@ -81,7 +83,7 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
         ReactApp myHttpApp = AsActor(ReactApp.class);
         myHttpApp.init(new BasicWebAppConfig());
 
-        Class msgClasses[] = {};
+        Class msgClasses[] = {BasicAuthenticationResult.class};
         Http4K.Build("localhost", 8080)
             .resourcePath("/")
                 .elements(
@@ -91,16 +93,14 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
                     "src/main/nodejs"
                 )
                 .allDev(true)
-                .transpile("jsx",new JSXTranspiler().opts(new BabelOpts().debug(true))) // "'react','es2015'" for es5 output
+                .transpile("jsx",new JSXTranspiler().opts(new BabelOpts().debug(true)))
                 .build()
             .httpAPI("/ep", myHttpApp)
-                .serType(SerializerType.JsonNoRef)
+                .coding(new Coding(SerializerType.JsonNoRef,msgClasses))
                 .setSessionTimeout(30_000)
                 .build()
             .websocket("/ws", myHttpApp)
-                .serType(SerializerType.JsonNoRef)
-                // replace serType like below to provide classes which are encoded using simple names (no fqclassnames)
-    //                .coding(new Coding(SerializerType.JsonNoRef, msgClasses ))
+                .coding(new Coding(SerializerType.JsonNoRef,msgClasses))
                 .build()
             .build();
     }

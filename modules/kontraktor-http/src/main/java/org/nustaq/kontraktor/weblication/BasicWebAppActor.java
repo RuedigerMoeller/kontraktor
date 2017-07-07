@@ -24,15 +24,22 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         }
     }
 
-    public IPromise<T> login(String user, String pw, String jwt) {
+    /**
+     * returns an array of [session actorproxy, userdata]
+     * @param user
+     * @param pw
+     * @param jwt
+     * @return
+     */
+    public IPromise<Object[]> login(String user, String pw, String jwt) {
         Promise res = new Promise();
-        verifyCredentials(user,pw,jwt).then( (authres,err) -> {
+        getCredentials(user,pw,jwt).then( (authres, err) -> {
             if ( err != null ) {
                 res.reject(err);
             } else {
                 String sessionId = connection.get() != null ? connection.get().getSocketRef().getConnectionIdentifier() : null;
-                BasicWebSessionActor sess = createSession(user,sessionId);
-                res.resolve(sess);
+                BasicWebSessionActor sess = createSession(user,sessionId, authres );
+                res.resolve(new Object[]{sess,authres});
             }
         });
         return res;
@@ -45,7 +52,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
      * @param jwt
      * @return
      */
-    protected abstract IPromise<String> verifyCredentials(String s, String pw, String jwt);/* {
+    protected abstract IPromise<BasicAuthenticationResult> getCredentials(String user, String pw, String jwt);/* {
         //TODO: verify user, pw ASYNC !
         if ( "admin".equals(user)) {
             return reject("authentication failed");
@@ -53,7 +60,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         return resolve("logged in");
     }*/
 
-    protected BasicWebSessionActor createSession(String user, String sessionId) {
+    protected BasicWebSessionActor createSession(String user, String sessionId, BasicAuthenticationResult authenticationResult) {
         BasicWebSessionActor sess = Actors.AsActor((Class<BasicWebSessionActor>) getSessionClazz(),sessionThreads[(int) (Math.random()*sessionThreads.length)]);
         sess.init(self(),user,sessionId);
         return sess;
@@ -92,8 +99,9 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         sessionStorage.getUserFromSessionId(sessionId).then( (user,err) -> {
             if ( user == null )
                 res.resolve(null);
-            else
-                res.resolve(createSession((String) user, sessionId));
+            else {
+                res.resolve(createSession((String) user, sessionId, null ));
+            }
         });
         return res;
     }

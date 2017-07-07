@@ -1,10 +1,15 @@
 // ES6 Port of js4k 3.34
 // matches kontraktor 3 json-no-ref encoded remoting
 
-const kontraktor = require('./kontraktor-common.js');
+if ( typeof module !== 'undefined' ) {
+  kontraktor = require('./kontraktor-common.js');
 
-const KPromise = kontraktor.KPromise;
-const coder = new kontraktor.DecodingHelper();
+  KPromise = kontraktor.KPromise;
+  coder = new kontraktor.DecodingHelper();
+} else {
+  coder = new DecodingHelper();
+}
+
 const NO_RESULT = "NO_RESULT";
 
 let _kontraktor_IsNode = false;

@@ -1,6 +1,7 @@
 package org.nustaq.http.example;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.weblication.BasicAuthenticationResult;
 import org.nustaq.kontraktor.weblication.BasicWebAppActor;
 import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
 
@@ -17,11 +18,11 @@ public class ServletApp extends BasicWebAppActor<ServletApp,BasicWebAppConfig> {
     }
 
     @Override
-    protected IPromise<String> verifyCredentials(String user, String pw, String jwt)  {
+    protected IPromise<BasicAuthenticationResult> getCredentials(String user, String pw, String jwt)  {
         if ( "admin".equals(user)) {
             return reject("authentication failed");
         }
-        return resolve("logged in");
+        return resolve(new BasicAuthenticationResult().userName(user));
     }
 
     @Override
