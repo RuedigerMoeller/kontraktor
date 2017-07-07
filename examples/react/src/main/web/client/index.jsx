@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Game } from './fbreactexample.jsx';
-import { Login } from './login.jsx';
+import { Login, Register } from './login.jsx';
 import { HCenter } from './layout.jsx';
-import { BrowserRouter as Router, Route, Switch, Link, IndexRoute } from 'react-router-dom'
+import { HashRouter as Router, Route, Switch, Link, IndexRoute } from 'react-router-dom'
 import createBrowserHistory from 'history/createBrowserHistory';
 import AppStore from "./store.jsx";
 
@@ -49,11 +49,22 @@ class App extends React.Component {
     )
   }
 
+  renderLogin() {
+    return (
+      <HCenter>
+        <Switch>
+          <Route exact path="/" component={Login}/>
+          <Route path="/register" component={Register}/>
+        </Switch>
+      </HCenter>
+    )
+  }
+
   render() {
     const loggedIn = this.state && this.state.userData;
       return (
         <Router history={createBrowserHistory()}>
-          {loggedIn ? this.renderLoggedInApp() : <HCenter><Login/></HCenter> }
+          {loggedIn ? this.renderLoggedInApp() : this.renderLogin() }
         </Router>
       );
   }

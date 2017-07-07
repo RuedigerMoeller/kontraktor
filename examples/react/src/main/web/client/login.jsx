@@ -2,6 +2,7 @@ import React from 'react';
 import {Table,Tr,Td} from './layout.jsx';
 import AppActions from './actions.jsx';
 import AppStore from './store.jsx';
+import Link from "react-router-dom";
 
 class Btn extends React.Component {
   render() {
@@ -12,6 +13,14 @@ class Btn extends React.Component {
       </div>
     )
   }
+}
+
+export class Register extends React.Component {
+
+  render() {
+    return (<div>Register</div>)
+  }
+
 }
 
 export class Login extends React.Component {
