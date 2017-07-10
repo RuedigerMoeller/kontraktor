@@ -33,8 +33,12 @@ class KClient {
     this.sbIdCount = 1;
     this.batch = [];
     this.batchCB = [];
+    this.proxies = false;
   }
-
+  useProxies(bool) {
+    this.proxies = true;
+    return this;
+  }
   connect(wsurl, connectionMode, optErrorcallback) {
     const res = new KPromise();
     if ( this.currentSocket.socket != null ) {
@@ -83,7 +87,7 @@ class KClient {
     socket.onopen( event=> {
       this.currentSocket.socket = socket;
       this.remoteApp = myHttpApp;
-      res.complete(myHttpApp,null);
+      res.complete( this.proxies ? createActorProxy(myHttpApp) : myHttpApp ,null);
     });
     return res;
   };
@@ -116,7 +120,8 @@ class KClient {
           if (automaticTransformResults) {
             const transFun = obj => {
               if (obj != null && obj instanceof Array && obj.length == 2 && typeof obj[1] === 'string' && obj[1].indexOf("_ActorProxy") > 0) {
-                return new KontrActor(this, obj[0], obj[1]); // automatically create remote actor wrapper
+                let kontrActor = new KontrActor(this, obj[0], obj[1]);
+                return this.proxies ? createActorProxy( kontrActor ) : kontrActor; // automatically create remote actor wrapper
               }
               return null;
             };
@@ -554,6 +559,37 @@ class Callback {
     this.complete = resultsCallback;
   }
 }
+
+const createActorProxy = function(target){
+  return new Proxy(target,{
+    // apply: function(target, thisArg, argumentsList) {
+    //   console.log("funcall ",target,thisArg,argumentsList);
+    // },
+    get: function(target, property, receiver) {
+      return function () {
+        if ("target" === property)
+          return target;
+        if ( "ask" === property )
+          return target.ask.apply(target,arguments);
+        if ( "tell" === property ) {
+          target.tell.apply(target,arguments);
+          return null;
+        }
+        let args = [property];
+        for (let i = 0; i < arguments.length; i++) {
+          args.push(arguments[i]);
+        }
+        if (property.indexOf("$") === 0) {
+          args[0] = args[0].substring(1);
+          return target.ask.apply(target, args);
+        }
+        else
+          target.tell.apply(target, args);
+        return null;
+      }
+    }
+  });
+};
 
 /**
  * A wrapper for a server side Actor
