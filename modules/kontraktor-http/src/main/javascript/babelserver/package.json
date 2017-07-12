@@ -1,0 +1,26 @@
+{
+  "name": "babelserver",
+  "version": "3.34.2",
+  "description": "remote service to enable use of babel from java",
+  "main": "babelserver.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "kontraktor-server": ">=3.34.0",
+    "kontraktor-client": ">=3.34.0",
+    "browserify": "~14.4.0",
+    "babelify": "~7.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/kontraktor-http"
+  },
+  "keywords": [
+    "babel",
+    "java",
+    "javascript"
+  ],
+  "author": "ruediger moeller",
+  "license": "MIT"
+}

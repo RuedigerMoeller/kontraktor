@@ -1,0 +1,25 @@
+{
+  "name": "kontraktor-server",
+  "version": "3.34.2",
+  "description": "expose an actor implemented in javascript to java (or javascript) clients",
+  "main": "kontraktor-server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "kontraktor-common": ">=3.34.0",
+    "ws": "~3.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/kontraktor-http"
+  },
+  "keywords": [
+    "java",
+    "javascript",
+    "remoting",
+    "actors"
+  ],
+  "author": "ruediger moeller",
+  "license": "MIT"
+}

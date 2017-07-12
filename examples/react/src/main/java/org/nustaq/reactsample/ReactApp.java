@@ -30,7 +30,7 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+    public static String WebappPath = "./src/main/web/client";
     public static boolean runNodify() {
         try {
             BrowseriBabelify.get();
@@ -40,15 +40,15 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
             try {
                 ProcessBuilder processBuilder = new ProcessBuilder();
                 if (isWindows) {
-                    processBuilder.command("cmd.exe", "/c", "node babelserver.js");
+                    processBuilder.command("cmd.exe", "/c", "node ./node_modules/babelserver/babelserver.js");
                 } else {
                     String bash = "/usr/bin/bash";
                     if ( !new File(bash).exists() ) {
                         bash = "/bin/bash";
                     }
-                    processBuilder.command(bash, "-c", "node babelserver.js");
+                    processBuilder.command(bash, "-c", "node ./node_modules/babelserver/babelserver.js");
                 }
-                processBuilder.directory(new File("./src/main/nodejs"));
+                processBuilder.directory(new File(WebappPath));
                 processBuilder.inheritIO();
                 Process process = processBuilder.start();
                 Thread.sleep(1000);
@@ -88,9 +88,7 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
             .resourcePath("/")
                 .elements(
                     "src/main/web/client",
-                    "src/main/web/lib",
-                    "src/main/web/bower_components",
-                    "src/main/nodejs"
+                    "src/main/web/client/node_modules"
                 )
                 .allDev(true)
                 .transpile("jsx",new JSXTranspiler().opts(new BabelOpts().debug(true)))

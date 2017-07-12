@@ -4,7 +4,7 @@
 // Promises and Callbacks (must be last arg in method) are supported
 //
 const WebSocket = require('ws');
-const kontraktor = require('./kontraktor-common.js');
+const kontraktor = require('kontraktor-common');
 
 const KPromise = kontraktor.KPromise;
 const DecodingHelper = kontraktor.DecodingHelper;

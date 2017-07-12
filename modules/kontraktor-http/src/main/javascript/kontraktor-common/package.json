@@ -1,0 +1,21 @@
+{
+  "name": "kontraktor-common",
+  "version": "3.34.2",
+  "description": "common helpers for kontraktor-server and kontraktor-client (KPromise, DecodingHelper)",
+  "main": "kontraktor-common.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/kontraktor-http"
+  },
+  "keywords": [
+    "actors",
+    "java",
+    "javascript",
+    "interop"
+  ],
+  "author": "ruediger moeller",
+  "license": "MIT"
+}

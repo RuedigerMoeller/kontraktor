@@ -1,4 +1,4 @@
-const kontraktorClient = require("./kontraktor-client");
+const kontraktorClient = require("kontraktor-client");
 
 const KClient = kontraktorClient.KClient;
 const KPromise = kontraktorClient.KPromise;

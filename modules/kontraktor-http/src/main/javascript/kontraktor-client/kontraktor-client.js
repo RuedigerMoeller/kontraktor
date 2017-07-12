@@ -2,7 +2,7 @@
 // matches kontraktor 3 json-no-ref encoded remoting
 
 if ( typeof module !== 'undefined' ) {
-  kontraktor = require('./kontraktor-common.js');
+  kontraktor = require('kontraktor-common');
 
   KPromise = kontraktor.KPromise;
   coder = new kontraktor.DecodingHelper();
@@ -33,10 +33,10 @@ class KClient {
     this.sbIdCount = 1;
     this.batch = [];
     this.batchCB = [];
-    this.proxies = false;
+    this.proxies = true;
   }
   useProxies(bool) {
-    this.proxies = true;
+    this.proxies = bool;
     return this;
   }
   connect(wsurl, connectionMode, optErrorcallback) {

@@ -1,5 +1,5 @@
 const browserify = require('browserify');
-const kontraktor = require("./kontraktor-server.js");
+const kontraktor = require("kontraktor-server");
 
 const KPromise = kontraktor.KPromise;
 const decodingHelper = new kontraktor.DecodingHelper();
