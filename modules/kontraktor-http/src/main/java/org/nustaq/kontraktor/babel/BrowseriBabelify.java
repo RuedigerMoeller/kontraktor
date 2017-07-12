@@ -1,4 +1,4 @@
-package org.nustaq.babelremote;
+package org.nustaq.kontraktor.babel;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;

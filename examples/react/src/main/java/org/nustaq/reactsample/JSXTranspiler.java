@@ -1,13 +1,11 @@
 package org.nustaq.reactsample;
 
-import org.nustaq.babelremote.BabelOpts;
-import org.nustaq.babelremote.BabelResult;
-import org.nustaq.babelremote.BrowseriBabelify;
+import org.nustaq.kontraktor.babel.BabelOpts;
+import org.nustaq.kontraktor.babel.BabelResult;
+import org.nustaq.kontraktor.babel.BrowseriBabelify;
 import org.nustaq.kontraktor.remoting.http.javascript.TranspileException;
 import org.nustaq.kontraktor.remoting.http.javascript.TranspilerHook;
 
-import javax.script.ScriptEngine;
-import javax.script.SimpleBindings;
 import java.io.*;
 
 /**

@@ -42,7 +42,7 @@ function sampleNoProxy(remote) {
 kclient.useProxies(true).connect("http://localhost:8888/test").then( (app,e) => {
 // kclient.connect("ws://localhost:8888/test","WS").then( (app,e) => {
 
-  //return onPlainClient(app); same code without using Proxy (see flag 2 lines above)
+  //return onPlainClient(app); same code without using Proxy (see kclient.useProxies(true) lines above)
 
   app.plain( "Hello", 1);
   app.$plainPromise( "Hello", 1 ).then((r, e) => {

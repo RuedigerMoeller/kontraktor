@@ -10,7 +10,7 @@ import org.nustaq.serialization.coders.Unknown;
 import java.util.Arrays;
 
 /**
- * Created by ruedi on 05.07.17.
+ * Created by ruedi on 05.07.17. maps to testclient.js
  */
 public class TestActeur extends Actor<TestActeur> {
 
@@ -60,6 +60,8 @@ public class TestActeur extends Actor<TestActeur> {
         System.out.println(Arrays.toString(arr));
         System.out.println(Arrays.toString(iarr));
     }
+
+    ///////////////////////////////// startup /////////////////////////////////////////////////////////
 
     public static void mainHttp(String[] args) {
         new HttpPublisher(Actors.AsActor(TestActeur.class),"localhost", "/test", 8888)

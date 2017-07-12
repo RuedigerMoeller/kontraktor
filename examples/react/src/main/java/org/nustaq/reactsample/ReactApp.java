@@ -1,7 +1,7 @@
 package org.nustaq.reactsample;
 
-import org.nustaq.babelremote.BabelOpts;
-import org.nustaq.babelremote.BrowseriBabelify;
+import org.nustaq.kontraktor.babel.BabelOpts;
+import org.nustaq.kontraktor.babel.BrowseriBabelify;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
@@ -30,7 +30,9 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    public static String WebappPath = "./src/main/web/client";
+    public static String WEBAPP_DIR = "./src/main/web/client";
+    public static String BASH_EXEC = "/usr/bin/bash";
+    public static String BABEL_SERVER_JS_PATH = "./node_modules/babelserver/babelserver.js";
     public static boolean runNodify() {
         try {
             BrowseriBabelify.get();
@@ -40,15 +42,15 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
             try {
                 ProcessBuilder processBuilder = new ProcessBuilder();
                 if (isWindows) {
-                    processBuilder.command("cmd.exe", "/c", "node ./node_modules/babelserver/babelserver.js");
+                    processBuilder.command("cmd.exe", "/c", "node "+ BABEL_SERVER_JS_PATH);
                 } else {
-                    String bash = "/usr/bin/bash";
+                    String bash = BASH_EXEC;
                     if ( !new File(bash).exists() ) {
                         bash = "/bin/bash";
                     }
-                    processBuilder.command(bash, "-c", "node ./node_modules/babelserver/babelserver.js");
+                    processBuilder.command(bash, "-c", "node "+ BABEL_SERVER_JS_PATH);
                 }
-                processBuilder.directory(new File(WebappPath));
+                processBuilder.directory(new File(WEBAPP_DIR));
                 processBuilder.inheritIO();
                 Process process = processBuilder.start();
                 Thread.sleep(1000);
