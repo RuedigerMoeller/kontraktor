@@ -1,13 +1,11 @@
 package org.nustaq.reactsample;
 
 import org.nustaq.kontraktor.babel.BabelOpts;
-import org.nustaq.kontraktor.babel.BrowseriBabelify;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
-import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.weblication.BasicAuthenticationResult;
 import org.nustaq.kontraktor.weblication.BasicWebAppActor;
 import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
@@ -29,43 +27,12 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
         return ReactAppSession.class;
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    public static String WEBAPP_DIR = "./src/main/web/client";
-    public static String BASH_EXEC = "/usr/bin/bash";
-    public static String BABEL_SERVER_JS_PATH = "./node_modules/babelserver/babelserver.js";
-    public static boolean runNodify() {
-        try {
-            BrowseriBabelify.get();
-        } catch (Exception ex) {
-            Log.Warn(ReactApp.class,"babelserver not running .. try starting");
-            boolean isWindows = System.getProperty("os.name","linux").toLowerCase().indexOf("windows") >= 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                if (isWindows) {
-                    processBuilder.command("cmd.exe", "/c", "node "+ BABEL_SERVER_JS_PATH);
-                } else {
-                    String bash = BASH_EXEC;
-                    if ( !new File(bash).exists() ) {
-                        bash = "/bin/bash";
-                    }
-                    processBuilder.command(bash, "-c", "node "+ BABEL_SERVER_JS_PATH);
-                }
-                processBuilder.directory(new File(WEBAPP_DIR));
-                processBuilder.inheritIO();
-                Process process = processBuilder.start();
-                Thread.sleep(1000);
-                BrowseriBabelify.get();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            }
 
-        }
-        return true;
-    }
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
     public static void main(String[] args) throws IOException {
-        boolean DEV = false;
+        boolean DEV = true;
 
         // start node babelserver daemon directly, uncomment if you prefer to run it manually (avoids restarting it with each server start)
         if ( ! runNodify() ) {

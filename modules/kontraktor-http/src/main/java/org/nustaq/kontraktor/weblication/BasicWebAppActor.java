@@ -3,17 +3,54 @@ package org.nustaq.kontraktor.weblication;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
+import org.nustaq.kontraktor.babel.BrowseriBabelify;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.remoting.base.SessionResurrector;
 import org.nustaq.kontraktor.util.Log;
+
+import java.io.File;
 
 /**
  * Created by ruedi on 20.06.17.
  */
 public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends BasicWebAppConfig> extends Actor<T> implements SessionResurrector {
 
+    public static String WEBAPP_DIR = "./src/main/web/client";
+    public static String BASH_EXEC = "/usr/bin/bash";
+    public static String BABEL_SERVER_JS_PATH = "./node_modules/babelserver/babelserver.js";
     protected Scheduler[] sessionThreads;
     protected ISessionStorage sessionStorage;
+
+    public static boolean runNodify() {
+        try {
+            BrowseriBabelify.get();
+        } catch (Exception ex) {
+            Log.Warn(BasicWebAppActor.class,"babelserver not running .. try starting");
+            boolean isWindows = System.getProperty("os.name","linux").toLowerCase().indexOf("windows") >= 0;
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder();
+                if (isWindows) {
+                    processBuilder.command("cmd.exe", "/c", "node "+ BABEL_SERVER_JS_PATH);
+                } else {
+                    String bash = BASH_EXEC;
+                    if ( !new File(bash).exists() ) {
+                        bash = "/bin/bash";
+                    }
+                    processBuilder.command(bash, "-c", "node "+ BABEL_SERVER_JS_PATH);
+                }
+                processBuilder.directory(new File(WEBAPP_DIR));
+                processBuilder.inheritIO();
+                Process process = processBuilder.start();
+                Thread.sleep(1000);
+                BrowseriBabelify.get();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+
+        }
+        return true;
+    }
 
     @Local
     public void init(C config) {
