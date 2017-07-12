@@ -63,8 +63,9 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
     }
 
     public static void main(String[] args) throws IOException {
+        boolean DEV = false;
 
-        // start node babelify daemon directly, uncomment if you prefer to run it manually (avoids restarting it with each server start)
+        // start node babelserver daemon directly, uncomment if you prefer to run it manually (avoids restarting it with each server start)
         if ( ! runNodify() ) {
             System.out.println("failed to connect / start babel");
             System.exit(1);
@@ -90,8 +91,8 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
                     "src/main/web/client",
                     "src/main/web/client/node_modules"
                 )
-                .allDev(true)
-                .transpile("jsx",new JSXTranspiler().opts(new BabelOpts().debug(true)))
+                .allDev(DEV)
+                .transpile("jsx",new JSXTranspiler().opts(new BabelOpts().debug(DEV)))
                 .build()
             .httpAPI("/ep", myHttpApp)
                 .coding(new Coding(SerializerType.JsonNoRef,msgClasses))
