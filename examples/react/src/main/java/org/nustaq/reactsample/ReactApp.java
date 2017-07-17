@@ -9,6 +9,7 @@ import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.weblication.BasicAuthenticationResult;
 import org.nustaq.kontraktor.weblication.BasicWebAppActor;
 import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
+import org.nustaq.kontraktor.weblication.PersistedRecord;
 
 import java.io.*;
 
@@ -20,6 +21,10 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
     @Override
     protected Class getSessionClazz() {
         return ReactAppSession.class;
+    }
+
+    public void register(String nick, String pwd) {
+        sessionStorage.storeIfNotPresent(new PersistedRecord(nick).put("pwd",pwd));
     }
 
 

@@ -67,26 +67,26 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     }
 
     @Override
-    public IPromise atomic(String userId, Function<PersistedRecord, AtomicResult> recordConsumer) {
-        AtomicResult res = recordConsumer.apply((PersistedRecord) userData.get(userId));
+    public IPromise atomic(String key, Function<PersistedRecord, AtomicResult> recordConsumer) {
+        AtomicResult res = recordConsumer.apply((PersistedRecord) userData.get(key));
         if ( res.getAction() == Action.PUT ) {
-            userData.put(userId,res.getRecord());
+            userData.put(key,res.getRecord());
         } else if ( res.getAction() == Action.DELETE ) {
-            userData.remove(userId);
+            userData.remove(key);
         }
         return new Promise(res.getReturnValue());
     }
 
     @Override
-    public void storeRecord(String userId, PersistedRecord userRecord) {
-        userData.put(userId,userRecord);
+    public void storeRecord(PersistedRecord userRecord) {
+        userData.put(userRecord.getKey(),userRecord);
     }
 
     @Override
-    public IPromise<Boolean> storeIfNotPresent(String userId, PersistedRecord userRecord) {
-        Object res = userData.get(userId);
+    public IPromise<Boolean> storeIfNotPresent(PersistedRecord userRecord) {
+        Object res = userData.get(userRecord.getKey());
         if ( res == null ) {
-            userData.put(userId,userRecord);
+            userData.put(userRecord.getKey(),userRecord);
             return new Promise(true);
         }
         return new Promise(false);

@@ -64,7 +64,7 @@ public final class PersistedRecord implements Serializable {
         return ((Boolean) val).booleanValue();
     }
 
-    public void put( String key, Object value ) {
+    public PersistedRecord put( String key, Object value ) {
         if ( value != null ) {
             Class<?> clazz = value.getClass();
             String name = clazz.getName();
@@ -80,6 +80,7 @@ public final class PersistedRecord implements Serializable {
         } else {
             mp.put(key,value);
         }
+        return this;
     }
 
     private boolean isSimpleType(String name) {

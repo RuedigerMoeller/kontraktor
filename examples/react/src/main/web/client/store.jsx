@@ -30,13 +30,37 @@ class AppStore extends EventEmitter {
     return this.userData;
   }
 
+  getServer() {
+    if ( this.server ) {
+      return new KPromise(this.server);
+    }
+    return this.client.connect("http://localhost:8080/ep");
+  }
+
+  register(user,password) {
+    const res = new KPromise();
+    this.getServer().then( (serv,err) => {
+      if ( serv ) {
+        serv.$register(user,password).then( (r,e) => {
+          res.complete(r,e);
+          if (!e)
+            this.emit("STORE_REGISTERED_USER");
+        });
+      } else {
+        res.complete(null,"connection failure");
+        this.emit("STORE_CONNECTION_FAILURE");
+      }
+    });
+    return res;
+  }
+
   login(user,password) {
     if ( ! this.isLoggedIn() ) {
-      this.client.connect("http://localhost:8080/ep").then( (r,e) => {
+      this.getServer().then( (r,e) => {
         if ( r ) {
           this.server = r;
           AppActions.connected();
-          r.ask("login",user,password, null).then( (arr,err) => {
+          r.$login( user, password, null).then( (arr,err) => {
             console.log("login ",arr);
             if ( arr && arr[0] ) {
               this.session = arr[0];

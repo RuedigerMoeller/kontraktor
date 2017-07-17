@@ -50,8 +50,8 @@ public interface ISessionStorage {
 
     IPromise<String> getUserKeyFromSessionId(String sid);
     IPromise atomic(String key, Function<PersistedRecord, AtomicResult> recordConsumer);
-    void storeRecord(String key, PersistedRecord userRecord);
-    IPromise<Boolean> storeIfNotPresent(String key, PersistedRecord userRecord);
+    void storeRecord(PersistedRecord userRecord);
+    IPromise<Boolean> storeIfNotPresent(PersistedRecord userRecord);
     IPromise<PersistedRecord> getUserRecord(String userId);
 
 }
