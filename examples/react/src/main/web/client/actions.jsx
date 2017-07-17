@@ -9,6 +9,13 @@ class AppActions {
     });
   }
 
+  register(user,password) {
+    AppDispatcher.dispatch({
+      actionType: 'TRY_REGISTER',
+      value: { user: user, password: password }
+    });
+  }
+
   connected() {
     AppDispatcher.dispatch({
       actionType: 'CONNECTED',

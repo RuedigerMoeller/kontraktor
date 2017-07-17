@@ -82,6 +82,9 @@ class AppStore extends EventEmitter {
       case 'TRY_LOGIN':
         this.login(action.value.user,action.value.password);
         break;
+      case 'TRY_REGISTER':
+        this.register(action.value.user,action.value.password);
+        break;
       case 'LOGIN_CHANGED':
         // this.emit(action.value);
         break;
