@@ -75,7 +75,7 @@ input:focus {
     appearance: none;
     box-shadow: none;
     border-radius: none;
-    padding: 6px;
+    padding: 6px 8px;
     border: solid 1px #dcdcdc;
     transition: box-shadow 0.3s, border 0.3s;
     box-sizing: border-box;

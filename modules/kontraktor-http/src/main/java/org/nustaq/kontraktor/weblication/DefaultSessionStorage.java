@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.weblication;
 
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Log;
@@ -14,7 +15,7 @@ import java.util.function.Function;
  *
  * Kep async as in could be implemented by a database or a (scalable,remote) noSQL e.g. RealLive storage
  */
-public class DefaultSessionStorage implements ISessionStorage {
+public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implements ISessionStorage {
 
     public static class Config implements Serializable {
 
@@ -49,7 +50,7 @@ public class DefaultSessionStorage implements ISessionStorage {
     FSTAsciiStringOffheapMap sessionId2UserKey;
     FSTUTFStringOffheapMap userData;
 
-    public synchronized IPromise init(Config cfg) {
+    public IPromise init(Config cfg) {
         try {
             sessionId2UserKey = new FSTAsciiStringOffheapMap("./data/sessionid2userkey.oos", 64, cfg.getSizeSessionIdsGB(), 1_000_000);
             userData = new FSTUTFStringOffheapMap("./data/sessionid2userkey.oos", 64, cfg.getSizeUserDataGB(), 1_000_000);
@@ -61,13 +62,13 @@ public class DefaultSessionStorage implements ISessionStorage {
     }
 
     @Override
-    public synchronized IPromise<String> getUserFromSessionId(String sid) {
+    public IPromise<String> getUserKeyFromSessionId(String sid) {
         return new Promise(sessionId2UserKey.get(sid));
     }
 
     @Override
-    public synchronized IPromise atomic(String userId, Function<Object, AtomicResult> recordConsumer) {
-        AtomicResult res = recordConsumer.apply(userData.get(userId));
+    public IPromise atomic(String userId, Function<PersistedRecord, AtomicResult> recordConsumer) {
+        AtomicResult res = recordConsumer.apply((PersistedRecord) userData.get(userId));
         if ( res.getAction() == Action.PUT ) {
             userData.put(userId,res.getRecord());
         } else if ( res.getAction() == Action.DELETE ) {
@@ -77,12 +78,12 @@ public class DefaultSessionStorage implements ISessionStorage {
     }
 
     @Override
-    public synchronized void storeUserRecord(String userId, Object userRecord) {
+    public void storeRecord(String userId, PersistedRecord userRecord) {
         userData.put(userId,userRecord);
     }
 
     @Override
-    public synchronized IPromise<Boolean> storeIfNotPresent(String userId, Object userRecord) {
+    public IPromise<Boolean> storeIfNotPresent(String userId, PersistedRecord userRecord) {
         Object res = userData.get(userId);
         if ( res == null ) {
             userData.put(userId,userRecord);
@@ -92,7 +93,7 @@ public class DefaultSessionStorage implements ISessionStorage {
     }
 
     @Override
-    public synchronized IPromise getUserRecord(String userId) {
+    public IPromise getUserRecord(String userId) {
         return new Promise(userData.get(userId));
     }
 

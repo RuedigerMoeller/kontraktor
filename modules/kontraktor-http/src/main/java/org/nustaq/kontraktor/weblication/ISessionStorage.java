@@ -17,14 +17,14 @@ public interface ISessionStorage {
 
     class AtomicResult implements Serializable {
         Action action;
-        Object record;
+        PersistedRecord record;
         Object returnValue;
 
         public Action getAction() {
             return action;
         }
 
-        public Object getRecord() {
+        public PersistedRecord getRecord() {
             return record;
         }
 
@@ -33,7 +33,7 @@ public interface ISessionStorage {
             return this;
         }
 
-        public AtomicResult record(final Object record) {
+        public AtomicResult record(final PersistedRecord record) {
             this.record = record;
             return this;
         }
@@ -48,10 +48,10 @@ public interface ISessionStorage {
         }
     }
 
-    IPromise<String> getUserFromSessionId(String sid);
-    IPromise atomic(String userId, Function<Object, AtomicResult> recordConsumer);
-    void storeUserRecord(String userId, Object userRecord);
-    IPromise<Boolean> storeIfNotPresent(String userId, Object userRecord);
-    IPromise getUserRecord(String userId);
+    IPromise<String> getUserKeyFromSessionId(String sid);
+    IPromise atomic(String key, Function<PersistedRecord, AtomicResult> recordConsumer);
+    void storeRecord(String key, PersistedRecord userRecord);
+    IPromise<Boolean> storeIfNotPresent(String key, PersistedRecord userRecord);
+    IPromise<PersistedRecord> getUserRecord(String userId);
 
 }

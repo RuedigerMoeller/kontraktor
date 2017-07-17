@@ -18,11 +18,6 @@ import java.io.*;
 public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
 
     @Override
-    protected IPromise<BasicAuthenticationResult> getCredentials(String s, String pw, String jwt) {
-        return new Promise<>( new BasicAuthenticationResult().userName(s) );
-    }
-
-    @Override
     protected Class getSessionClazz() {
         return ReactAppSession.class;
     }

@@ -41,8 +41,19 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
                 processBuilder.directory(new File(WEBAPP_DIR));
                 processBuilder.inheritIO();
                 Process process = processBuilder.start();
-                Thread.sleep(1000);
-                BrowseriBabelify.get();
+                for ( int i = 0; i < 4; i++ ) {
+                    Thread.sleep(500);
+                    System.out.print('.');
+                    try {
+                        BrowseriBabelify.get();
+                        continue;
+                    } catch (Exception e) {
+                        if ( i==3 ) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                System.out.println();
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
@@ -59,6 +70,11 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         for (int i = 0; i < numSessionThreads; i++ ) {
             sessionThreads[i] = new SimpleScheduler(10_000, true);
         }
+        sessionStorage = createSessionStorage();
+    }
+
+    protected ISessionStorage createSessionStorage() {
+        return AsActor(DefaultSessionStorage.class);
     }
 
     /**
@@ -89,13 +105,15 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
      * @param jwt
      * @return
      */
-    protected abstract IPromise<BasicAuthenticationResult> getCredentials(String user, String pw, String jwt);/* {
-        //TODO: verify user, pw ASYNC !
-        if ( "admin".equals(user)) {
-            return reject("authentication failed");
-        }
-        return resolve("logged in");
-    }*/
+    protected IPromise<BasicAuthenticationResult> getCredentials(String user, String pw, String jwt) {
+        Promise p = new Promise();
+        sessionStorage.getUserRecord(user).then( (rec,err) -> {
+           if ( rec == null ) {
+               p.reject("unknown userkey");
+           }
+        });
+        return p;
+    }
 
     protected BasicWebSessionActor createSession(String user, String sessionId, BasicAuthenticationResult authenticationResult) {
         BasicWebSessionActor sess = Actors.AsActor((Class<BasicWebSessionActor>) getSessionClazz(),sessionThreads[(int) (Math.random()*sessionThreads.length)]);
@@ -133,7 +151,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         if ( sessionStorage == null )
             return resolve(null);
         Promise res = new Promise();
-        sessionStorage.getUserFromSessionId(sessionId).then( (user,err) -> {
+        sessionStorage.getUserKeyFromSessionId(sessionId).then( (user, err) -> {
             if ( user == null )
                 res.resolve(null);
             else {

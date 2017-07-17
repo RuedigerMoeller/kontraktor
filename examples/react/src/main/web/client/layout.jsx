@@ -59,3 +59,42 @@ export class HCenter extends React.Component {
   }
 
 }
+
+export class Caption extends React.Component {
+
+  render() {
+    const style = {
+      display: 'table-caption',
+      paddingBottom: 8,
+      fontWeight: 'bold',
+      borderBottom: 'solid 1px #000'
+    };
+    return (<div style={style}>{this.props.children}</div>)
+  }
+
+}
+
+export class EmptyLine extends React.Component {
+
+  render() {
+    return (
+      <Tr><Td>&nbsp;</Td></Tr>
+    )
+  }
+}
+
+export class VSpacer extends React.Component {
+
+  render() {
+    let siz = this.props.size;
+    if ( ! siz ) {
+      siz = 100
+    }
+    const style = {
+      height: siz
+    };
+    return (
+      <div style={style}/>
+    )
+  }
+}
