@@ -13,7 +13,7 @@ public class ReactAppSession extends BasicWebSessionActor {
 
     @Override
     protected void persistSession(String sessionId, ISessionStorage storage) {
-        storage.
+//        storage.
     }
 
     public void queryUsers(Callback<PersistedRecord> cb) {
