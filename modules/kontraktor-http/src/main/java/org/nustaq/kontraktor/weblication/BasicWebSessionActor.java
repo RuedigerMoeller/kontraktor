@@ -26,13 +26,16 @@ public abstract class BasicWebSessionActor<T extends BasicWebSessionActor> exten
     public void hasBeenUnpublished() {
         app.notifySessionEnd(self());
         ISessionStorage storage = app._getSessionStorage();
-        persistSession(storage);
+        persistSession(sessionId, storage);
     }
 
     /**
      * persist session state for resurrection later on, do nothing if resurrection should not be supported
      * @param storage
      */
-    protected abstract void persistSession(ISessionStorage storage);
+    protected abstract void persistSession(String sessionId, ISessionStorage storage);
 
+    protected ISessionStorage getSessionStorage() {
+        return app._getSessionStorage();
+    }
 }

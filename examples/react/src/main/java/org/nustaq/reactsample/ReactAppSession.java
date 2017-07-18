@@ -12,11 +12,12 @@ import org.nustaq.kontraktor.weblication.PersistedRecord;
 public class ReactAppSession extends BasicWebSessionActor {
 
     @Override
-    protected void persistSession(ISessionStorage storage) {
+    protected void persistSession(String sessionId, ISessionStorage storage) {
+        storage.
     }
 
     public void queryUsers(Callback<PersistedRecord> cb) {
-        app._getSessionStorage().forEach( cb );
+        getSessionStorage().forEach( cb );
     }
 
 }
