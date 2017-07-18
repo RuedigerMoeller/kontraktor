@@ -41,12 +41,12 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
                 processBuilder.directory(new File(WEBAPP_DIR));
                 processBuilder.inheritIO();
                 Process process = processBuilder.start();
-                for ( int i = 0; i < 4; i++ ) {
+                for ( int i = 0; i < 8; i++ ) {
                     Thread.sleep(500);
                     System.out.print('.');
                     try {
                         BrowseriBabelify.get();
-                        continue;
+                        break;
                     } catch (Exception e) {
                         if ( i==3 ) {
                             e.printStackTrace();
@@ -70,11 +70,13 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         for (int i = 0; i < numSessionThreads; i++ ) {
             sessionThreads[i] = new SimpleScheduler(10_000, true);
         }
-        sessionStorage = createSessionStorage();
+        sessionStorage = createSessionStorage(config);
     }
 
-    protected ISessionStorage createSessionStorage() {
-        return AsActor(DefaultSessionStorage.class);
+    protected ISessionStorage createSessionStorage(C config) {
+        DefaultSessionStorage defaultSessionStorage = AsActor(DefaultSessionStorage.class);
+        defaultSessionStorage.init(new DefaultSessionStorage.Config());
+        return defaultSessionStorage;
     }
 
     /**
@@ -109,7 +111,11 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         Promise p = new Promise();
         sessionStorage.getUserRecord(user).then( (rec,err) -> {
            if ( rec == null ) {
-               p.reject("unknown userkey");
+               p.reject("wrong user or password");
+           } else {
+               if ( pw.equals(rec.getString("pwd" ) ) ) {
+                   p.resolve( new BasicAuthenticationResult().userName(rec.getKey()) );
+               }
            }
         });
         return p;

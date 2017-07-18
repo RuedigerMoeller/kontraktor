@@ -3,6 +3,7 @@ package org.nustaq.reactsample;
 import org.nustaq.kontraktor.babel.BabelOpts;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.babel.JSXTranspiler;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
@@ -23,8 +24,16 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
         return ReactAppSession.class;
     }
 
-    public void register(String nick, String pwd) {
-        sessionStorage.storeIfNotPresent(new PersistedRecord(nick).put("pwd",pwd));
+    public IPromise register(String nick, String pwd) {
+        Promise p = new Promise();
+        sessionStorage.storeIfNotPresent(new PersistedRecord(nick).put("pwd",pwd)).then( (r,e) -> {
+            if ( ! r ) {
+                p.reject("user "+nick+" already exists");
+            } else {
+                p.resolve(true);
+            }
+        });
+        return p;
     }
 
 
@@ -65,7 +74,7 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
                 .build()
             .httpAPI("/ep", myHttpApp)
                 .coding(new Coding(SerializerType.JsonNoRef,msgClasses))
-                .setSessionTimeout(30_000)
+                .setSessionTimeout(300_000)
                 .build()
             .websocket("/ws", myHttpApp)
                 .coding(new Coding(SerializerType.JsonNoRef,msgClasses))

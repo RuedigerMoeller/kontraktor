@@ -1,21 +1,14 @@
-import AppDispatcher from './dispatcher.jsx';
 import { EventEmitter } from 'events';
-import AppActions from './actions.jsx';
 
-class AppStore extends EventEmitter {
+export class AppStore extends EventEmitter {
 
   constructor() {
     super();
     this.loggedIn = false;
     this.userData = {};
-    this.dispatchToken = AppDispatcher.register(this.dispatcherCallback.bind(this));
     this.client = new KClient();
     this.server = null;
     this.session = null;
-  }
-
-  getServer() {
-    return this.server;
   }
 
   getSession() {
@@ -34,7 +27,17 @@ class AppStore extends EventEmitter {
     if ( this.server ) {
       return new KPromise(this.server);
     }
-    return this.client.connect("http://localhost:8080/ep");
+    return this.client.connect("http://localhost:8080/ep").then( (r,e) => {
+      if ( r ) {
+        this.server = r;
+        this.emit("connected");
+      }
+      return [r,e];
+    });
+  }
+
+  queryUsers( cb ) {
+    this.session.queryUsers( cb );
   }
 
   register(user,password) {
@@ -44,54 +47,57 @@ class AppStore extends EventEmitter {
         serv.$register(user,password).then( (r,e) => {
           res.complete(r,e);
           if (!e)
-            this.emit("STORE_REGISTERED_USER");
+            this.emit("register");
         });
       } else {
         res.complete(null,"connection failure");
-        this.emit("STORE_CONNECTION_FAILURE");
+        this.emit("connection_failure");
       }
     });
     return res;
   }
 
   login(user,password) {
+    const res = new KPromise();
     if ( ! this.isLoggedIn() ) {
       this.getServer().then( (r,e) => {
         if ( r ) {
-          this.server = r;
-          AppActions.connected();
           r.$login( user, password, null).then( (arr,err) => {
             console.log("login ",arr);
             if ( arr && arr[0] ) {
               this.session = arr[0];
               this.userData = arr[1];
-              this.emit("STORE_LOGIN_CHANGED");
+              this.emit("login");
+              res.complete(true,null);
+            } else {
+              res.complete(null,err);
             }
           });
         }
       });
+    } else {
+      res.complete(null,'already logged in');
+      this.emit("login");
     }
+    return res;
   }
 
   addChangeListener(eventName, callback) {
     this.on(eventName, callback);
   }
 
-  dispatcherCallback(action) {
-    switch (action.actionType) {
-      case 'TRY_LOGIN':
-        this.login(action.value.user,action.value.password);
-        break;
-      case 'TRY_REGISTER':
-        this.register(action.value.user,action.value.password);
-        break;
-      case 'LOGIN_CHANGED':
-        // this.emit(action.value);
-        break;
-    }
-    this.emit('STORE_' + action.actionType);
-    return true;
-  }
 }
 
-export default new AppStore();
+export const Store = new AppStore();
+
+export const AppActions = new Proxy( {}, {
+   get: function(target, property, receiver) {
+      return function () {
+        if ("target" === property)
+          return target;
+        const res = Store[property].apply(Store,arguments);
+        return res;
+      }
+    }
+  }
+);

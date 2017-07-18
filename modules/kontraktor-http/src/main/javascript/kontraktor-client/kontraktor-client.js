@@ -346,22 +346,25 @@ class KontraktorPollSocket{
     if ( this.sessionId ) {
       this.fireOpen();
     }
-    setTimeout(this.longPoll,0);
+    setTimeout(this.longPoll.bind(this),0);
   };
 
   longPoll() {
-    if ( this.doStop || ! this.doLongPoll )
+    const sleepNoReqSent = 100;
+    if ( this.doStop || ! this.doLongPoll ) {
+      console.log("lp stopped");
       return;
+    }
     if ( ! this.isConnected ) {
-      setTimeout(this.longPoll,1000);
+      setTimeout(this.longPoll.bind(this),sleepNoReqSent);
     } else {
-      const cblen = Object.keys(futureMap).length;
-      console.log("futureMap SIZE ON LP *** ", cblen );
+      const cblen = Object.keys(this.global.futureMap).length;
       if ( cblen === 0 ) {
         // in case no pending callback or promise is present => skip LP
-        setTimeout(this.longPoll,2000);
+        setTimeout(this.longPoll.bind(this),sleepNoReqSent);
         return;
       }
+      console.log("futureMap SIZE ON LP *** ", cblen );
       const reqData = '{"styp":"array","seq":[1,'+this.lpSeqNo+']}';
       const request = new XMLHttpRequest();
       request.onreadystatechange = () => {
@@ -378,7 +381,7 @@ class KontraktorPollSocket{
           if (this.pollErrorsInRow >= this.global.maxLongpollFailures){
             this.global.handleLongpollFailureCallback();
           }
-          setTimeout(this.longPoll,3000);
+          setTimeout(this.longPoll.bind(this),3000);
           return;
         }
         this.pollErrorsInRow = 0;
@@ -393,7 +396,7 @@ class KontraktorPollSocket{
             setTimeout(this.longPoll.bind(this),0); // progress, immediately next request
           } else {
             console.log("resp is empty");
-            setTimeout(this.longPoll.bind(this),1000);
+            setTimeout(this.longPoll.bind(this),200);
           }
         } catch (err) {
           console.log(err);

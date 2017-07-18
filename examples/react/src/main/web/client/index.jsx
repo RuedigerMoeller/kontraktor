@@ -5,7 +5,8 @@ import { Login, Register } from './login.jsx';
 import { HCenter } from './layout.jsx';
 import { HashRouter as Router, Route, Switch, Link, IndexRoute } from 'react-router-dom'
 import createBrowserHistory from 'history/createBrowserHistory';
-import AppStore from "./store.jsx";
+import { Store as AppStore } from "./store.jsx";
+import { UserTable } from "./usertable.jsx";
 
 class OtherState extends React.Component {
   render() {
@@ -21,7 +22,7 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    AppStore.addChangeListener('STORE_LOGIN_CHANGED', this.onLoginChange.bind(this));
+    AppStore.addChangeListener('login', this.onLoginChange.bind(this));
   }
 
   onLoginChange() {
@@ -37,12 +38,14 @@ class App extends React.Component {
         <ul>
           <li><Link to="/">Home</Link></li>
           <li><Link to="/other">Misc</Link></li>
+          <li><Link to="/game">Game</Link></li>
         </ul>
         <hr/>
         <HCenter>
           <Switch>
-            <Route exact path="/" component={Game}/>
+            <Route exact path="/" component={UserTable}/>
             <Route path="/other" component={OtherState}/>
+            <Route path="/game" component={Game}/>
           </Switch>
         </HCenter>
       </div>

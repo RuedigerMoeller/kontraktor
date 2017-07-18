@@ -1,6 +1,6 @@
 {
   "name": "babelserver",
-  "version": "3.34.2",
+  "version": "3.34.3",
   "description": "remote service to enable use of babel from java",
   "main": "babelserver.js",
   "scripts": {

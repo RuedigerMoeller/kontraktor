@@ -1,8 +1,5 @@
-package org.nustaq.reactsample;
+package org.nustaq.kontraktor.babel;
 
-import org.nustaq.kontraktor.babel.BabelOpts;
-import org.nustaq.kontraktor.babel.BabelResult;
-import org.nustaq.kontraktor.babel.BrowseriBabelify;
 import org.nustaq.kontraktor.remoting.http.javascript.TranspileException;
 import org.nustaq.kontraktor.remoting.http.javascript.TranspilerHook;
 

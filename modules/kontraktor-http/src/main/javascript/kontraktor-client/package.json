@@ -1,6 +1,6 @@
 {
   "name": "kontraktor-client",
-  "version": "3.34.2",
+  "version": "3.34.3",
   "description": "client for remote kontraktor actors written in java or javascript, can also be used in browser",
   "main": "kontraktor-client.js",
   "scripts": {

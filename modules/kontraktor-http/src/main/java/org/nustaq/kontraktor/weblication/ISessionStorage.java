@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.weblication;
 
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import java.io.Serializable;
 import java.util.function.Function;
@@ -53,5 +54,5 @@ public interface ISessionStorage {
     void storeRecord(PersistedRecord userRecord);
     IPromise<Boolean> storeIfNotPresent(PersistedRecord userRecord);
     IPromise<PersistedRecord> getUserRecord(String userId);
-
+    void forEach(Callback<PersistedRecord> cb);
 }

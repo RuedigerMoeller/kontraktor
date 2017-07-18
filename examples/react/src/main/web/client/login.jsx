@@ -1,8 +1,6 @@
 import React from 'react';
 import { VSpacer, EmptyLine, HCenter, Caption, Table,Tr,Td} from './layout.jsx';
-import AppActions from './actions.jsx';
-import AppStore from './store.jsx';
-import { Link } from "react-router-dom";
+import { AppActions, Store as AppStore } from './store.jsx';
 
 class Btn extends React.Component {
   render() {
@@ -20,7 +18,7 @@ export class Register extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      user: '', pwd: '', confirmPwd: ''
+      user: '', pwd: '', confirmPwd: '', error: ''
     }
   }
 
@@ -37,7 +35,14 @@ export class Register extends React.Component {
   }
 
   handleSubmit() {
-
+    AppActions.register(this.state.user, this.state.pwd).then( (r,e) => {
+      if ( r ) {
+        this.setState({ error: "Registered Successfully. Logging in .." });
+        setTimeout( () => AppActions.login(this.state.user,this.state.pwd), 2000 );
+      } else {
+        this.setState({ error: e });
+      }
+    })
   }
 
   render() {
@@ -63,6 +68,8 @@ export class Register extends React.Component {
           <Td></Td><Td><Btn onClick={this.handleSubmit.bind(this)}>Submit</Btn></Td>
         </Tr>
       </Table>
+      <br/>
+      <HCenter>{this.state.error}</HCenter>
     </div>
     );
   }
@@ -74,17 +81,12 @@ export class Login extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      user: '', pwd: ''
+      user: '', pwd: '', error: ''
     }
   }
 
   componentDidMount() {
-    AppStore.addChangeListener('STORE_TRY_LOGIN', this.onTryLogin);
-    AppStore.addChangeListener('STORE_LOGIN_CHANGED', this.onLoginChange);
-  }
-
-  onTryLogin() {
-    console.log("try login");
+    AppStore.addChangeListener('login', this.onLoginChange);
   }
 
   onLoginChange(ev) {
@@ -101,7 +103,7 @@ export class Login extends React.Component {
 
   handleLogin(event) {
     console.log("hello", event);
-    AppActions.login( this.state.user, this.state.pwd );
+    AppActions.login( this.state.user, this.state.pwd ).then( (res,err) => this.setState( { error: err }));
   }
 
   handleRegister(event) {
@@ -128,6 +130,8 @@ export class Login extends React.Component {
           <Td><Btn onClick={this.handleRegister.bind(this)}>Register</Btn></Td><Td><Btn onClick={this.handleLogin.bind(this)}>Login</Btn></Td>
         </Tr>
       </Table>
+      <br/>
+      <HCenter><div style={{color: 'red'}}>{this.state.error}</div></HCenter>
 
     </div>
     )

@@ -1,13 +1,18 @@
 package org.nustaq.kontraktor.weblication;
 
 import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.offheap.FSTAsciiStringOffheapMap;
 import org.nustaq.offheap.FSTUTFStringOffheapMap;
 
+import java.io.File;
 import java.io.Serializable;
+import java.util.Iterator;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
@@ -52,6 +57,7 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
 
     public IPromise init(Config cfg) {
         try {
+            new File("./data").mkdir();
             sessionId2UserKey = new FSTAsciiStringOffheapMap("./data/sessionid2userkey.oos", 64, cfg.getSizeSessionIdsGB(), 1_000_000);
             userData = new FSTUTFStringOffheapMap("./data/sessionid2userkey.oos", 64, cfg.getSizeUserDataGB(), 1_000_000);
         } catch (Exception e) {
@@ -95,6 +101,15 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     @Override
     public IPromise getUserRecord(String userId) {
         return new Promise(userData.get(userId));
+    }
+
+    @Override
+    public void forEach(Callback<PersistedRecord> cb) {
+        for (Iterator it = userData.values(); it.hasNext(); ) {
+            PersistedRecord rec = (PersistedRecord) it.next();
+            cb.stream(rec);
+        }
+        cb.finish();
     }
 
 }
