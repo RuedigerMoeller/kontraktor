@@ -1,6 +1,7 @@
-import { VSpacer, EmptyLine, HCenter, Caption, Table,Tr,Td} from './layout.jsx';
+import { VSpacer, EmptyLine, HCenter, Caption, Table, Tr, Td } from './layout.jsx';
 import React from 'react';
 import {AppActions, Store as AppStore} from './store.jsx';
+import {Btn} from "./login.jsx";
 
 let idCount = 0;
 export class UserTable extends React.Component {
@@ -30,12 +31,15 @@ export class UserTable extends React.Component {
     });
   }
 
+  onDel(ev) {
+    console.log(ev)
+  }
   render() {
     return (
-      <Table>
+      <Table bg='#fff'>
         <Tr><Caption>Users</Caption></Tr>
         <EmptyLine/>
-        {this.state.records.map( rec => <Tr key={rec.key}><Td>{rec.key}</Td><Td>{rec.pwd}</Td></Tr>)}
+        {this.state.records.map( rec => <Tr key={rec.key}><Td>{rec.key}</Td><Td>{rec.pwd}</Td><Td>{rec.text}</Td><Td><Btn name={rec.key} onClick={this.onDel.bind(this)}>x</Btn></Td> </Tr>)}
       </Table>
     )
   }

@@ -59,7 +59,7 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
         try {
             new File("./data").mkdir();
             sessionId2UserKey = new FSTAsciiStringOffheapMap("./data/sessionid2userkey.oos", 64, cfg.getSizeSessionIdsGB(), 1_000_000);
-            userData = new FSTUTFStringOffheapMap("./data/sessionid2userkey.oos", 64, cfg.getSizeUserDataGB(), 1_000_000);
+            userData = new FSTUTFStringOffheapMap("./data/userdata.oos", 64, cfg.getSizeUserDataGB(), 1_000_000);
         } catch (Exception e) {
             Log.Warn(this,e);
             return new Promise(null,e);
@@ -70,6 +70,11 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     @Override
     public IPromise<String> getUserKeyFromSessionId(String sid) {
         return new Promise(sessionId2UserKey.get(sid));
+    }
+
+    @Override
+    public void putSessionId(String sessionId, String user) {
+        sessionId2UserKey.put(sessionId,user);
     }
 
     @Override

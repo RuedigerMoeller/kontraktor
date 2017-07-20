@@ -14,8 +14,8 @@ import java.util.Date;
 public class ServletSession extends BasicWebSessionActor<ServletSession> {
 
     public IPromise<String> whatsYourName() {
-        System.out.println("whatsYourName " + user);
-        return new Promise<>("Rüdiger "+user);
+        System.out.println("whatsYourName " + userKey);
+        return new Promise<>("Rüdiger "+ userKey);
     }
 
     public void push(Callback<String> cb) {
@@ -26,8 +26,12 @@ public class ServletSession extends BasicWebSessionActor<ServletSession> {
     }
 
     @Override
-    protected void persistSession(ISessionStorage storage) {
+    protected void persistSessionData(String sessionId, ISessionStorage storage) {
 
     }
 
+    @Override
+    protected void loadSessionData(String sessionId, ISessionStorage storage) {
+
+    }
 }

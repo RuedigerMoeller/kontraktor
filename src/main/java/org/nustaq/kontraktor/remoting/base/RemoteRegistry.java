@@ -18,6 +18,8 @@ package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
+import org.nustaq.kontraktor.annotations.Remoted;
+import org.nustaq.kontraktor.annotations.Secured;
 import org.nustaq.kontraktor.impl.CallEntry;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.impl.InternalActorStoppedException;
@@ -52,7 +54,9 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
     public static final Object OUT_OF_ORDER_SEQ = "OOOS";
     public static int MAX_BATCH_CALLS = 500;
+
     private ActorServer server;
+    private boolean secured;
 
     public static void registerDefaultClassMappings(FSTConfiguration conf) {
         conf.registerCrossPlatformClassMapping(new String[][]{
@@ -80,6 +84,12 @@ public abstract class RemoteRegistry implements RemoteConnection {
             Log.Warn(null, "no such method on "+actor.getClass().getSimpleName()+"#"+methodName);
         }
         if ( method == null || method.getAnnotation(Local.class) != null ) {
+            return false;
+        }
+        // fixme: this slows down remote call performance somewhat.
+        // checks should be done before putting methods into cache
+        if ( secured && method.getAnnotation(Remoted.class) != null ) {
+            Log.Warn(null, "method not @Remoted "+actor.getClass().getSimpleName()+"#"+methodName);
             return false;
         }
         return true;
@@ -300,8 +310,15 @@ public abstract class RemoteRegistry implements RemoteConnection {
                     if ( resp != null && ! "SP".equals(resp) ) // FIXME: hack for short polling
                         Log.Lg.error(this, null, "unexpected response:" + resp); // fixme
                     hadResp = true;
-                } else if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) resp, createdFutures, authContext))
-                    hadResp = true;
+                } else {
+                    try {
+                        if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) resp, createdFutures, authContext))
+                            hadResp = true;
+                    } catch (UnknownActorException uae) {
+                        responseChannel.writeObject("Unknown actor id "+((RemoteCallEntry) resp).getReceiverKey());
+                        hadResp = true;
+                    }
+                }
             }
             return hadResp;
         } else {
@@ -310,7 +327,12 @@ public abstract class RemoteRegistry implements RemoteConnection {
                     Log.Lg.error(this, null, "unexpected response:" + response); // fixme
                 return true;
             }
-            if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) response, createdFutures, authContext)) return true;
+            try {
+                if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) response, createdFutures, authContext)) return true;
+            } catch (UnknownActorException uae) {
+                responseChannel.writeObject("Unknown actor id "+((RemoteCallEntry) response).getReceiverKey());
+                return true;
+            }
         }
         return false;
     }
@@ -326,7 +348,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
             if (targetActor==null) {
                 if ( facadeActor instanceof SessionResurrector ) {
                     try {
-                        // note this could become a bottle neck as its synchronous
+                        // FIXME: this could become a bottle neck as its synchronous
                         // workaround would be to create a queuing proxy until actor is returned
                         targetActor = ((SessionResurrector) facadeActor.getActorRef()).reanimate(objSocket.getConnectionIdentifier(), read.getReceiverKey()).await();
                         if (targetActor != null) {
@@ -339,7 +361,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
             }
             if (targetActor==null) {
                 Log.Lg.error(this, null, "registry:"+System.identityHashCode(this)+" no actor found for key " + read);
-                return true;
+                throw new UnknownActorException("unknown actor id "+read.getReceiverKey());
             }
             targetActor.__dispatchRemoteCall(objSocket,read,this,createdFutures, authContext);
         } else if (read.getQueue() == read.CBQ) {
@@ -570,6 +592,9 @@ public abstract class RemoteRegistry implements RemoteConnection {
 
     public void setFacadeActor(Actor facadeActor) {
         this.facadeActor = facadeActor;
+        if ( facadeActor.getActor().getClass().getAnnotation(Secured.class) != null) {
+            secured = true;
+        }
     }
 
     public Actor getFacadeActor() {

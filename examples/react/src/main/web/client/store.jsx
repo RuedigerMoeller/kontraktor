@@ -4,11 +4,24 @@ export class AppStore extends EventEmitter {
 
   constructor() {
     super();
+    this.client = new KClient();
+    this.reset();
+    const self = this;
+    this.client.listener = new class extends KClientListener {
+      onInvalidResponse(resp) {
+        // assume session timeout
+        self.reset();
+        self.emit("login");
+      }
+    };
+  }
+
+  reset() {
     this.loggedIn = false;
     this.userData = {};
-    this.client = new KClient();
     this.server = null;
     this.session = null;
+    this.client.reset();
   }
 
   getSession() {
@@ -40,11 +53,11 @@ export class AppStore extends EventEmitter {
     this.session.queryUsers( cb );
   }
 
-  register(user,password) {
+  register(user,password,text) {
     const res = new KPromise();
     this.getServer().then( (serv,err) => {
       if ( serv ) {
-        serv.$register(user,password).then( (r,e) => {
+        serv.$register(user,password,text).then( (r,e) => {
           res.complete(r,e);
           if (!e)
             this.emit("register");
@@ -67,6 +80,7 @@ export class AppStore extends EventEmitter {
             if ( arr && arr[0] ) {
               this.session = arr[0];
               this.userData = arr[1];
+              this.loggedIn = true;
               this.emit("login");
               res.complete(true,null);
             } else {

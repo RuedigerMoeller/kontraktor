@@ -601,7 +601,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         }
         Method method = (Method) methodCache.get(methodName);
         if ( method == null ) {
-            Method[] methods = actor.getClass().getMethods();
+            Method[] methods = actor.getActor().getClass().getMethods();
             for (int i = 0; i < methods.length; i++) {
                 Method m = methods[i];
                 if ( m.getName().equals(methodName) ) {

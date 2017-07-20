@@ -11,6 +11,7 @@ import java.util.function.Function;
  */
 public interface ISessionStorage {
 
+
     enum Action {
         PUT,
         DELETE
@@ -50,6 +51,7 @@ public interface ISessionStorage {
     }
 
     IPromise<String> getUserKeyFromSessionId(String sid);
+    void putSessionId(String sessionId, String user);
     IPromise atomic(String key, Function<PersistedRecord, AtomicResult> recordConsumer);
     void storeRecord(PersistedRecord userRecord);
     IPromise<Boolean> storeIfNotPresent(PersistedRecord userRecord);

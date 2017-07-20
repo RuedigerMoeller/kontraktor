@@ -1,5 +1,8 @@
 package org.nustaq.reactsample;
 
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.annotations.Remoted;
+import org.nustaq.kontraktor.annotations.Secured;
 import org.nustaq.kontraktor.babel.BabelOpts;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
@@ -7,6 +10,7 @@ import org.nustaq.kontraktor.babel.JSXTranspiler;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.weblication.BasicAuthenticationResult;
 import org.nustaq.kontraktor.weblication.BasicWebAppActor;
 import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
@@ -17,6 +21,7 @@ import java.io.*;
 /**
  * Created by ruedi on 30.05.17.
  */
+@Secured
 public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
 
     @Override
@@ -24,9 +29,10 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
         return ReactAppSession.class;
     }
 
-    public IPromise register(String nick, String pwd) {
+    @Remoted
+    public IPromise register(String nick, String pwd, String text) {
         Promise p = new Promise();
-        sessionStorage.storeIfNotPresent(new PersistedRecord(nick).put("pwd",pwd)).then( (r,e) -> {
+        sessionStorage.storeIfNotPresent(new PersistedRecord(nick).put("pwd",pwd).put("text",text)).then( (r,e) -> {
             if ( ! r ) {
                 p.reject("user "+nick+" already exists");
             } else {
@@ -36,8 +42,20 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
         return p;
     }
 
+    /**
+     * return new Promise(null) in order to bypass session reanimation default implementation
+     *
+     * @param sessionId
+     * @param remoteRefId
+     * @return
+     */
+//    @Override
+//    public IPromise<Actor> reanimate(String sessionId, long remoteRefId) {
+//        Log.Info(this,"reanimate called ..");
+//        return new Promise<>(null);
+//    }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
     public static void main(String[] args) throws IOException {
@@ -74,11 +92,11 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
                 .build()
             .httpAPI("/ep", myHttpApp)
                 .coding(new Coding(SerializerType.JsonNoRef,msgClasses))
-                .setSessionTimeout(300_000)
+                .setSessionTimeout(30_000)
                 .build()
-            .websocket("/ws", myHttpApp)
-                .coding(new Coding(SerializerType.JsonNoRef,msgClasses))
-                .build()
+//            .websocket("/ws", myHttpApp)
+//                .coding(new Coding(SerializerType.JsonNoRef,msgClasses))
+//                .build()
             .build();
     }
 

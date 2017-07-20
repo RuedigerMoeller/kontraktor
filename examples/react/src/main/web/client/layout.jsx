@@ -3,7 +3,7 @@ import React from 'react';
 export class Table extends React.Component {
 
   render() {
-    const style = { display: 'table', background: '#eee', padding: '16px', border: 'solid #ddd 1px' };
+    const style = { display: 'table', background: this.props.bg ? this.props.bg:'#eee', padding: '16px', border: 'solid #ddd 1px' };
     return (
       <div style={style}>
         {this.props.children}
@@ -33,7 +33,7 @@ export class Tr extends React.Component {
 export class Td extends React.Component {
 
   render() {
-    const style = { display: 'table-cell', padding: '4px' };
+    const style = { display: 'table-cell', padding: '4px', verticalAlign: "middle" };
     return (
       <div style={style}>
         {this.props.children}
@@ -97,4 +97,18 @@ export class VSpacer extends React.Component {
       <div style={style}/>
     )
   }
+}
+
+export class Disabler extends React.Component {
+
+  constructor(props) {
+    super(props);
+  }
+  render() {
+    const style = this.props.enabled ? {} : { color:'rgba(0,0,0,.4)', pointerEvents: 'none'};
+    return (
+      <span style={style}>{this.props.children}</span>
+    )
+  }
+
 }

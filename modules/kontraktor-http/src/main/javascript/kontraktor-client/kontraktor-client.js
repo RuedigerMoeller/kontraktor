@@ -22,11 +22,32 @@ if ( typeof module !== 'undefined' && module.exports ) {
   WebSocket = require('ws');
 }
 
+class KClientListener {
+  // if server does not support resurrection this signals session timeout / connection loss
+  onInvalidResponse(response) {
+    console.error("invalid response")
+  }
+  onError(obj) {
+    console.error("connectionError",obj)
+  }
+  onClosed() {
+    console.warn("connection closed")
+  }
+  onResurrection() {
+    console.log("session resurrected")
+  }
+}
+
 // a (batching) kontraktor client
 class KClient {
 
   constructor() {
-    this.currentSocket = {socket:null};
+    this.reset();
+    this.listener = new KClientListener();
+  }
+
+  reset() {
+    this.currentSocket = {socket: null};
     this.futureMap = {}; // future id => promise
     this.callMap = {}; // future id => argumentlist to support offline caching
     this.currentSocket = { socket: null }; // use indirection to refer to a socket in order to ease reconnects
@@ -34,12 +55,15 @@ class KClient {
     this.batch = [];
     this.batchCB = [];
     this.proxies = true;
+    this.listener = new KClientListener();
   }
+  // if set to false => only tell, ask style calls are allowed, else a proxy is generated which
+  // generates tell/ask messages from methods called on the proxy. Use x.$methodname() if the method returns a promise (=ask).
   useProxies(bool) {
     this.proxies = bool;
     return this;
   }
-  connect(wsurl, connectionMode, optErrorcallback) {
+  connect(wsurl, connectionMode) {
     const res = new KPromise();
     if ( this.currentSocket.socket != null ) {
       res.complete(this.remoteApp,null);
@@ -58,31 +82,26 @@ class KClient {
     }
     const myHttpApp = new KontrActor(this,1,"RemoteApp");
     socket.onmessage( function(message) {
-      if ( optErrorcallback ) {
-        optErrorcallback.apply(null,[message]);
-      } else if (typeof message === MessageEvent ) {
+      if (typeof message === MessageEvent ) {
         console.error("unexpected message:"+message.data);
       } else {
         console.error("unexpected message");
         console.log(JSON.stringify(message, null, 2));
       }
+      this.listener.onError(message);
     });
     socket.onerror( err => {
+      this.listener.onError(err);
+      console.log(err);
       if ( ! res.isCompleted() )
         res.complete(null,err);
-      if ( optErrorcallback )
-        optErrorcallback.apply(null,[err]);
-      else
-        console.log(err);
     });
     socket.onclose( () => {
       this.socket = null;
       if ( ! res.isCompleted() )
         res.complete(null,"closed");
-      if ( optErrorcallback )
-        optErrorcallback.apply(null,["closed"]);
-      else
-        console.log("close");
+      this.listener.onClosed();
+      console.log("closed connection");
     });
     socket.onopen( event=> {
       this.currentSocket.socket = socket;
@@ -103,6 +122,10 @@ class KClient {
     //console.log("resplen:"+respLen);
     for (let i = 0; i < respLen; i++) {
       const resp = decodedResponse.seq[i + 1];
+      if ( ! resp.obj ) {
+        this.listener.onInvalidResponse(resp);
+        continue;
+      }
       if (!resp.obj.method && resp.obj.receiverKey) { // => callback
         const cb = this.futureMap[resp.obj.receiverKey];
         if (!cb) {
@@ -446,9 +469,7 @@ class KontraktorPollSocket{
       this.lpSeqNo = 0;
       console.log("session resurrection, reset sequence ");
       //this.termOpenCBs(); wrong here as resurrection is detected AFTER a valid new callback has been registered
-      if (this.global.resurrectionCallback) {
-        this.global.resurrectionCallback.call(this.global);
-      }
+      this.global.listener.onResurrection();
     }
   };
 
@@ -467,6 +488,9 @@ class KontraktorPollSocket{
           this.handleResurrection(sequence);
           if ( respObject.seq && respObject.seq.length == 3 && typeof respObject.seq[1] === 'string') { // error
             this.termOpenCBs(null,respObject.seq[1]);
+            if (respObject.seq[1].indexOf("Unknown actor") == 0) {
+              this.global.listener.onInvalidResponse(respObject.seq[1])
+            }
             return;
           }
           this.lpSeqNo = this.global.processSocketResponse(this.lpSeqNo, respObject, true, this.onmessageHandler.bind(this));
@@ -725,6 +749,7 @@ if ( _kontraktor_IsNode ) {
   module.exports = {
     KClient : KClient,
     KPromise : KPromise,
-    DecodingHelper : kontraktor.DecodingHelper
+    DecodingHelper : kontraktor.DecodingHelper,
+    KClientListener : KClientListener
   };
 }

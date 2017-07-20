@@ -7,14 +7,14 @@ import java.io.Serializable;
  */
 public class BasicAuthenticationResult implements Serializable {
 
-    protected String userName;
+    protected String userKey;
 
-    public String getUserName() {
-        return userName;
+    public String getUserKey() {
+        return userKey;
     }
 
     public BasicAuthenticationResult userName(String userName) {
-        this.userName = userName;
+        this.userKey = userName;
         return this;
     }
 }

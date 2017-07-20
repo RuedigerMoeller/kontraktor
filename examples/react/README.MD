@@ -1,9 +1,11 @@
-Kontraktor + React (in the making, 3.34 is not on maven yet)
+Kontraktor + React ( **in the making, 3.34 is not on maven yet** )
 
 Uses a nodejs service to perform browserify and babel.
 
 * if mode is set to production, transpilation will performed once on start, not with each request
-* in dev full babel + browserify is performed
+* in dev full babel + browserify is performed (+sourcemaps are generated). **do not judge performance and file size from 'dev mode'** 
+* in production mode source maps are omitted and libs are inlined and minified (once upon first request)
+* react server side rendering is not supported (and probably not worth the hassle)
 
 ### How to run
 
@@ -11,4 +13,4 @@ Uses a nodejs service to perform browserify and babel.
 * run getstuff.sh inside (workingdir matters)  [..]/react/src/main/web/client 
 * add java projects (also those from 'modules') from pom.xml in intellij or eclipse
 * run ReactApp with working dir in project root ([..]/examples/react)
-* Note: there are good plugins for IntelliJ for react .jsx file editing, set javascript version in IDE to es6 
+

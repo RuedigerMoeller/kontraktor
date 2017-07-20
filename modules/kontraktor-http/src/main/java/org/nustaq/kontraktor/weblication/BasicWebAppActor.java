@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.weblication;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
+import org.nustaq.kontraktor.annotations.Remoted;
 import org.nustaq.kontraktor.babel.BrowseriBabelify;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.remoting.base.SessionResurrector;
@@ -84,16 +85,21 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
      * @param user
      * @param pw
      * @param jwt
-     * @return
+     * @return array [session actor proxy, authenticationresult]
      */
+    @Remoted
     public IPromise<Object[]> login(String user, String pw, String jwt) {
         Promise res = new Promise();
+        RemoteConnection remoteConnection = connection.get();
         getCredentials(user,pw,jwt).then( (authres, err) -> {
             if ( err != null ) {
                 res.reject(err);
             } else {
-                String sessionId = connection.get() != null ? connection.get().getSocketRef().getConnectionIdentifier() : null;
+                String sessionId = remoteConnection != null ? remoteConnection.getSocketRef().getConnectionIdentifier() : null;
                 BasicWebSessionActor sess = createSession(user,sessionId, authres );
+                if ( sessionId != null && sessionStorage != null ) {
+                    sessionStorage.putSessionId(sessionId,user);
+                }
                 res.resolve(new Object[]{sess,authres});
             }
         });
@@ -101,8 +107,8 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     }
 
     /**
-     * return successmessage or reject with an error message
-     * @param s
+     * does a lookup for a usere record using 'user' as key. Compares pw with 'pwd' of user record if found
+     *
      * @param pw
      * @param jwt
      * @return
@@ -121,9 +127,14 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         return p;
     }
 
+    protected BasicWebSessionActor createSessionForReanimation(String user, String sessionId) {
+        BasicWebSessionActor session = createSession(user, sessionId, new BasicAuthenticationResult().userName(user));
+        return session;
+    }
+
     protected BasicWebSessionActor createSession(String user, String sessionId, BasicAuthenticationResult authenticationResult) {
         BasicWebSessionActor sess = Actors.AsActor((Class<BasicWebSessionActor>) getSessionClazz(),sessionThreads[(int) (Math.random()*sessionThreads.length)]);
-        sess.init(self(),user,sessionId);
+        sess.init(self(),authenticationResult,sessionId);
         return sess;
     }
 
@@ -135,24 +146,30 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
      * just a notification
      * @param sessionId
      */
-    @Override
+    @Override @Local
     public void restoreRemoteRefConnection(String sessionId) {
-        Log.Info(this,"reanimating "+ sessionId);
+        Log.Info(this,"try reanimating "+ sessionId);
     }
 
     /**
      * An existing spa client made a request after being inactive for a long time.
      *
      * Your mission: reconstruct a session actor and state (e.g. from persistence) so it can continue or
-     * return null and handle "session expired" correctly at client side.
+     * return null and handle "session expired" correctly at client side. Note there is a default implementation
      *
      * session resurrection is called using await => hurry up
+     *
+     * return new Promise(null) in order to bypass session reanimation default implementation
+     *
+     * @param sessionId
+     * @param remoteRefId
+     * @return
      *
      * @param sessionId
      * @param remoteRefId
      * @return resurrected BasicWebSessionActor
      */
-    @Override
+    @Override @Local
     public IPromise<Actor> reanimate(String sessionId, long remoteRefId) {
         if ( sessionStorage == null )
             return resolve(null);
@@ -161,14 +178,15 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
             if ( user == null )
                 res.resolve(null);
             else {
-                res.resolve(createSession((String) user, sessionId, null ));
+                res.resolve(createSessionForReanimation( user, sessionId ));
             }
         });
         return res;
     }
 
+    @Local
     public void notifySessionEnd(BasicWebSessionActor session) {
-
+        Log.Info(this, "session timed out "+session._getSessionId()+" "+session._getUserKey());
     }
 
     @CallerSideMethod

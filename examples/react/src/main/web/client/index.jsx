@@ -26,7 +26,8 @@ class App extends React.Component {
   }
 
   onLoginChange() {
-    this.setState({userData:AppStore.getUserData()});
+    this.setState({userData: AppStore.getUserData()});
+    this.forceUpdate();
   }
 
   renderLoggedInApp() {
@@ -64,12 +65,12 @@ class App extends React.Component {
   }
 
   render() {
-    const loggedIn = this.state && this.state.userData;
-      return (
-        <Router history={createBrowserHistory()}>
-          {loggedIn ? this.renderLoggedInApp() : this.renderLogin() }
-        </Router>
-      );
+    const loggedIn = AppStore.isLoggedIn();
+    return (
+      <Router history={createBrowserHistory()}>
+        {loggedIn ? this.renderLoggedInApp() : this.renderLogin() }
+      </Router>
+    );
   }
 }
 
