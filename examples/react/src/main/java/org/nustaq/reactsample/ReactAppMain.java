@@ -48,20 +48,17 @@ public class ReactAppMain {
         Class msgClasses[] = {BasicAuthenticationResult.class};
         Http4K.Build("localhost", 8080)
             .resourcePath("/")
-            .elements(
-                "src/main/web/client",
-                "src/main/web/client/node_modules"
-            )
-            .allDev(DEV)
-            .transpile("jsx",new JSXTranspiler().opts(new BabelOpts().debug(DEV)))
-            .build()
+                .elements(
+                    "src/main/web/client",
+                    "src/main/web/client/node_modules"
+                )
+                .allDev(DEV)
+                .transpile("jsx",new JSXTranspiler().opts(new BabelOpts().debug(DEV)))
+                .build()
             .httpAPI("/ep", myHttpApp)
-            .coding(new Coding(SerializerType.JsonNoRef,msgClasses))
-            .setSessionTimeout(30_000)
-            .build()
-//            .websocket("/ws", myHttpApp)
-//                .coding(new Coding(SerializerType.JsonNoRef,msgClasses))
-//                .build()
+                .coding(new Coding(SerializerType.JsonNoRef,msgClasses))
+                .setSessionTimeout(30_000)
+                .build()
             .build();
     }
 
