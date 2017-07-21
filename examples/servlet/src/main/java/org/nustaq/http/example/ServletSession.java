@@ -31,7 +31,7 @@ public class ServletSession extends BasicWebSessionActor<ServletSession> {
     }
 
     @Override
-    protected void loadSessionData(String sessionId, ISessionStorage storage) {
-
+    protected IPromise loadSessionData(String sessionId, ISessionStorage storage) {
+        return new Promise("OK");
     }
 }

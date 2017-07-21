@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.weblication;
 
 import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
@@ -19,11 +20,11 @@ public abstract class BasicWebSessionActor<T extends BasicWebSessionActor> exten
     protected String sessionId;
 
     @Local
-    public void init(BasicWebAppActor app, BasicAuthenticationResult user, String sessionId) {
+    public IPromise init(BasicWebAppActor app, BasicAuthenticationResult user, String sessionId) {
         this.app = app;
         this.userKey = user.getUserKey();
         this.sessionId = sessionId;
-        loadSessionData(sessionId,getSessionStorage());
+        return loadSessionData(sessionId,getSessionStorage());
     }
 
     @CallerSideMethod
@@ -52,7 +53,7 @@ public abstract class BasicWebSessionActor<T extends BasicWebSessionActor> exten
      * laod session state after resurrection
      * @param storage
      */
-    protected abstract void loadSessionData(String sessionId, ISessionStorage storage);
+    protected abstract IPromise loadSessionData(String sessionId, ISessionStorage storage);
 
     protected ISessionStorage getSessionStorage() {
         return app._getSessionStorage();

@@ -11,7 +11,6 @@ import java.util.function.Function;
  */
 public interface ISessionStorage {
 
-
     enum Action {
         PUT,
         DELETE

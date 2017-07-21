@@ -23,7 +23,7 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
     @Remoted
     public IPromise register(String nick, String pwd, String text) {
         Promise p = new Promise();
-        sessionStorage.storeIfNotPresent(new PersistedRecord(nick).put("pwd",pwd).put("text",text)).then( (r,e) -> {
+        sessionStorage.storeIfNotPresent(new PersistedRecord(nick).put("pwd",pwd).put("text",text).put("verified",true)).then( (r,e) -> {
             if ( ! r ) {
                 p.reject("user "+nick+" already exists");
             } else {

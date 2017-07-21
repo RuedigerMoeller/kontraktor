@@ -19,9 +19,10 @@ import java.io.IOException;
 import static org.nustaq.kontraktor.Actors.AsActor;
 
 /**
- * startup server. Requires working dir in project root ([..]examples/react)
+ * configure + start server. Requires working dir in project root ([..]examples/react)
  */
 public class ReactAppMain {
+
     public static void main(String[] args) throws IOException {
         boolean DEV = true;
 

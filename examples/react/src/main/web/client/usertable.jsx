@@ -39,7 +39,14 @@ export class UserTable extends React.Component {
       <Table bg='#fff'>
         <Tr><Caption>Users</Caption></Tr>
         <EmptyLine/>
-        {this.state.records.map( rec => <Tr key={rec.key}><Td>{rec.key}</Td><Td>{rec.pwd}</Td><Td>{rec.text}</Td><Td><Btn name={rec.key} onClick={this.onDel.bind(this)}>x</Btn></Td> </Tr>)}
+        {this.state.records.map( rec =>
+          <Tr key={rec.key}>
+            <Td>{rec.key}</Td>
+            <Td>{rec.pwd}</Td>
+            <Td>{rec.verified ? 'OK':'uv'}</Td>
+            <Td>{rec.text}</Td>
+            <Td><Btn name={rec.key} onClick={this.onDel.bind(this)}>x</Btn></Td>
+          </Tr>)}
       </Table>
     )
   }

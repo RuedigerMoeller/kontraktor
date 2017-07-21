@@ -10,9 +10,7 @@ import org.nustaq.kontraktor.remoting.base.SessionResurrector;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -61,11 +59,15 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
                 res.reject(err);
             } else {
                 String sessionId = remoteConnection != null ? remoteConnection.getSocketRef().getConnectionIdentifier() : null;
-                BasicWebSessionActor sess = createSession(user,sessionId, authres );
-                if ( sessionId != null && sessionStorage != null ) {
-                    sessionStorage.putSessionId(sessionId,user);
-                }
-                res.resolve(new Object[]{sess,authres});
+                getSession(user,sessionId, authres ).then( (sess,serr) -> {
+                    if ( sess != null ) {
+                        if ( sessionId != null && sessionStorage != null ) {
+                            sessionStorage.putSessionId(sessionId,user);
+                        }
+                        res.resolve(new Object[]{sess,authres});
+                    } else
+                        res.complete(sess,serr);
+                });
             }
         });
         return res;
@@ -81,27 +83,45 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     protected IPromise<BasicAuthenticationResult> getCredentials(String user, String pw, String jwt) {
         Promise p = new Promise();
         sessionStorage.getUserRecord(user).then( (rec,err) -> {
-           if ( rec == null ) {
-               p.reject("wrong user or password");
-           } else {
-               if ( pw.equals(rec.getString("pwd" ) ) ) {
-                   p.resolve( new BasicAuthenticationResult().userName(rec.getKey()) );
-               }
-           }
+            if ( rec == null ) {
+                p.reject("wrong user or password");
+            } else {
+                if ( pw.equals(rec.getString("pwd" ) ) ) {
+                    if ( ! rec.getBool("verified") ) {
+                        // e.g. email verification etc.
+                        p.reject("account not verified");
+                    } else
+                        p.resolve( new BasicAuthenticationResult().userName(rec.getKey()) );
+                }
+            }
         });
         return p;
     }
 
-    protected BasicWebSessionActor createSessionForReanimation(String user, String sessionId) {
-        BasicWebSessionActor session = createSession(user, sessionId, new BasicAuthenticationResult().userName(user));
-        return session;
+    protected IPromise<BasicWebSessionActor> getSessionForReanimation(String user, String sessionId) {
+        return getSession(user,sessionId,new BasicAuthenticationResult().userName(user));
     }
 
-    protected BasicWebSessionActor createSession(String user, String sessionId, BasicAuthenticationResult authenticationResult) {
+    protected IPromise<BasicWebSessionActor> getSession(String user, String sessionId, BasicAuthenticationResult authenticationResult) {
+        // session sharing has major implications on resurrection and callback / subscription handling
+//        BasicWebSessionActor sess = sessions.get(user);
+//        if ( sess != null && ! sess.isStopped() ) {
+//            return sess;
+//        }
+        return createSession(user,sessionId,authenticationResult);
+    }
+
+    protected IPromise<BasicWebSessionActor> createSession(String user, String sessionId, BasicAuthenticationResult authenticationResult) {
+        Promise p = new Promise();
         BasicWebSessionActor sess = Actors.AsActor((Class<BasicWebSessionActor>) getSessionClazz(),sessionThreads[(int) (Math.random()*sessionThreads.length)]);
-        sess.init(self(),authenticationResult,sessionId);
-        sessions.put(user,sess);
-        return sess;
+        sess.init(self(),authenticationResult,sessionId).then( (res,err) -> {
+            if ( err == null ) {
+                sessions.put(user,sess);
+                p.resolve(sess);
+            } else
+                p.reject(err);
+        });
+        return p;
     }
 
     protected abstract Class getSessionClazz(); /* {
@@ -144,7 +164,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
             if ( user == null )
                 res.resolve(null);
             else {
-                res.resolve(createSessionForReanimation( user, sessionId ));
+                getSessionForReanimation(user, sessionId).then( res );
             }
         });
         return res;
