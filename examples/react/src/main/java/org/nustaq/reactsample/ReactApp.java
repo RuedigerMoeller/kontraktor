@@ -21,7 +21,7 @@ import java.io.*;
 /**
  * Created by ruedi on 30.05.17.
  */
-@Secured
+@Secured // enforce explicit tagging of remoteable methods (@Remote) effects ALSO Session actors
 public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
 
     @Override
@@ -44,10 +44,6 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
 
     /**
      * return new Promise(null) in order to bypass session reanimation default implementation
-     *
-     * @param sessionId
-     * @param remoteRefId
-     * @return
      */
 //    @Override
 //    public IPromise<Actor> reanimate(String sessionId, long remoteRefId) {
@@ -56,7 +52,6 @@ public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
 //    }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
     public static void main(String[] args) throws IOException {
         boolean DEV = true;

@@ -57,6 +57,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 /**
@@ -594,20 +595,31 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     // FIXME: would be much better to do lookup at method invoke time INSIDE actor thread instead of doing it on callside (contended)
-    ConcurrentHashMap methodCache;
-    @CallerSideMethod public Method __getCachedMethod(String methodName, Actor actor) {
-        if ( methodCache == null ) {
-            methodCache = new ConcurrentHashMap(7);
+    ConcurrentHashMap methodCache,interceptedCache;
+    @CallerSideMethod public Method __getCachedMethod(String methodName, Actor actor, BiFunction<Actor, String, Boolean> callInterceptor) {
+        // FIXME: this will fail once an actor is used with different interceptor policies (remoted twice with different policies)
+        // assumption: only remote calls can be intercepted, interceptor != null => remote call
+        if (callInterceptor != null) {
+            if ( interceptedCache == null ) {
+                interceptedCache = new ConcurrentHashMap(7);
+            }
+        } else{
+            if ( methodCache == null ) {
+                methodCache = new ConcurrentHashMap(7);
+            }
         }
-        Method method = (Method) methodCache.get(methodName);
+        ConcurrentHashMap mcache = callInterceptor != null ? interceptedCache:methodCache;
+        Method method = (Method) mcache.get(methodName);
         if ( method == null ) {
             Method[] methods = actor.getActor().getClass().getMethods();
             for (int i = 0; i < methods.length; i++) {
                 Method m = methods[i];
                 if ( m.getName().equals(methodName) ) {
-                    methodCache.put(methodName, m);
-                    method = m;
-                    break;
+                    if ( callInterceptor == null || callInterceptor.apply(actor,methodName) ) {
+                        mcache.put(methodName, m);
+                        method = m;
+                        break;
+                    }
                 }
             }
         }
@@ -618,10 +630,10 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * called if a message invokation from remote is received
      * @return true if a new promise has been created
      */
-    @CallerSideMethod public boolean __dispatchRemoteCall(ObjectSocket objSocket, RemoteCallEntry rce, RemoteRegistry registry, List<IPromise> createdFutures, Object authContext) {
+    @CallerSideMethod public boolean __dispatchRemoteCall(ObjectSocket objSocket, RemoteCallEntry rce, RemoteRegistry registry, List<IPromise> createdFutures, Object authContext, BiFunction<Actor, String, Boolean> callInterceptor) {
         rce.unpackArgs(registry.getConf());
         try {
-            Object future = getScheduler().enqueueCallFromRemote(registry, null, self(), rce.getMethod(), rce.getArgs(), false, null);
+            Object future = getScheduler().enqueueCallFromRemote(registry, null, self(), rce.getMethod(), rce.getArgs(), false, null, callInterceptor);
             if ( future instanceof IPromise) {
                 Promise p = null;
                 if ( createdFutures != null ) {

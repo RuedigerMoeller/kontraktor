@@ -2,3 +2,4 @@
 OK- optional invert @Local to avoid security issues
 OK- handle session timed out in client
 - share sessions by user
+- nodify exits

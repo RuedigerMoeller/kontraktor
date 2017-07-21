@@ -20,10 +20,7 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.annotations.Remoted;
 import org.nustaq.kontraktor.annotations.Secured;
-import org.nustaq.kontraktor.impl.CallEntry;
-import org.nustaq.kontraktor.impl.CallbackWrapper;
-import org.nustaq.kontraktor.impl.InternalActorStoppedException;
-import org.nustaq.kontraktor.impl.RemoteScheduler;
+import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.remoting.encoding.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
@@ -79,16 +76,16 @@ public abstract class RemoteRegistry implements RemoteConnection {
     protected volatile boolean terminated = false;
     protected BiFunction<Actor,String,Boolean> remoteCallInterceptor =
     (actor,methodName) -> {
-        Method method = actor.__getCachedMethod(methodName, actor);
+        Method method = actor.__getCachedMethod(methodName, actor, null);
         if ( method == null ) {
             Log.Warn(null, "no such method on "+actor.getClass().getSimpleName()+"#"+methodName);
         }
-        if ( method == null || method.getAnnotation(Local.class) != null ) {
+        if ( method == null || ActorProxyFactory.getInheritedAnnotation(Local.class,method) != null ) {
             return false;
         }
         // fixme: this slows down remote call performance somewhat.
         // checks should be done before putting methods into cache
-        if ( secured && method.getAnnotation(Remoted.class) != null ) {
+        if ( secured && ActorProxyFactory.getInheritedAnnotation(Remoted.class,method) == null ) {
             Log.Warn(null, "method not @Remoted "+actor.getClass().getSimpleName()+"#"+methodName);
             return false;
         }
@@ -115,9 +112,10 @@ public abstract class RemoteRegistry implements RemoteConnection {
         return remoteCallInterceptor;
     }
 
-    public void setRemoteCallInterceptor(BiFunction<Actor, String, Boolean> remoteCallInterceptor) {
-        this.remoteCallInterceptor = remoteCallInterceptor;
-    }
+//    not applicable see actor.dispatchCall
+//    public void setRemoteCallInterceptor(BiFunction<Actor, String, Boolean> remoteCallInterceptor) {
+//        this.remoteCallInterceptor = remoteCallInterceptor;
+//    }
 
     protected void configureSerialization(Coding code) {
 		conf.registerSerializer(Actor.class,new ActorRefSerializer(this),true);
@@ -350,7 +348,8 @@ public abstract class RemoteRegistry implements RemoteConnection {
                     try {
                         // FIXME: this could become a bottle neck as its synchronous
                         // workaround would be to create a queuing proxy until actor is returned
-                        targetActor = ((SessionResurrector) facadeActor.getActorRef()).reanimate(objSocket.getConnectionIdentifier(), read.getReceiverKey()).await();
+                        SessionResurrector actorRef = (SessionResurrector) facadeActor.getActorRef();
+                        targetActor = actorRef.reanimate(objSocket.getConnectionIdentifier(), read.getReceiverKey()).await();
                         if (targetActor != null) {
                             publishActorDirect(read.getReceiverKey(), targetActor);
                         }
@@ -363,7 +362,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                 Log.Lg.error(this, null, "registry:"+System.identityHashCode(this)+" no actor found for key " + read);
                 throw new UnknownActorException("unknown actor id "+read.getReceiverKey());
             }
-            targetActor.__dispatchRemoteCall(objSocket,read,this,createdFutures, authContext);
+            targetActor.__dispatchRemoteCall(objSocket,read,this,createdFutures, authContext, remoteCallInterceptor);
         } else if (read.getQueue() == read.CBQ) {
             if ( remoteCallMapper != null ) {
                 read = (RemoteCallEntry) remoteCallMapper.apply(this,read);

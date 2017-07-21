@@ -114,14 +114,6 @@ export class Login extends React.Component {
     }
   }
 
-  componentDidMount() {
-    AppStore.addChangeListener('login', this.onLoginChange);
-  }
-
-  onLoginChange(ev) {
-    console.log(ev);
-  }
-
   handleUChange(event) {
     this.setState({user: event.target.value}, () => this.validate() );
   }
@@ -146,7 +138,7 @@ export class Login extends React.Component {
   }
 
   handleLogin(event) {
-    AppActions.login( this.state.user, this.state.pwd ).then( (res,err) => this.setState( { error: err }));
+    AppActions.login( this.state.user, this.state.pwd ).then( (res,err) => err ? this.setState( { error: err }) : null);
   }
 
   handleRegister(event) {
