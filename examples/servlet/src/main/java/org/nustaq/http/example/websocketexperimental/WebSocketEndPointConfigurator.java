@@ -1,4 +1,6 @@
-package org.nustaq.http.example;
+package org.nustaq.http.example.websocketexperimental;
+
+import org.nustaq.http.example.websocketexperimental.MyWebSocketConnector;
 
 import javax.websocket.server.ServerEndpointConfig;
 

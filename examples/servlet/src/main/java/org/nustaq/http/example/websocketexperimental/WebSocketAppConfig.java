@@ -1,4 +1,4 @@
-package org.nustaq.http.example;
+package org.nustaq.http.example.websocketexperimental;
 
 
 import java.util.Collections;

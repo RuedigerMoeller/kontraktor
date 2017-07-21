@@ -21,8 +21,8 @@ var server = null;
 var errCB = function( err ) { console.error(err); };
 
 
-jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets (currently undertow only)
-//jsk.connect("http://localhost:8080/ep","HTLP",errCB) // use this for long poll
+//jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets (currently undertow only)
+jsk.connect("http://localhost:8080/ep","HTLP",errCB) // use this for long poll
   .then( function( app, error ) {
     console.log("received response ",app,error);
     if ( ! app ) {
@@ -37,7 +37,7 @@ jsk.connect("ws://localhost:8080/ws","WS",errCB) // use this for websockets (cur
     var session = null;
     server.ask("login","angela","grökaz","").then( (r,e) => {
       if ( r ) {
-        session = r;
+        session = r[0];
         server.ask("hello", "from client after login").then( (r,e) => {
           document.getElementById("here").innerHTML = r;
         });

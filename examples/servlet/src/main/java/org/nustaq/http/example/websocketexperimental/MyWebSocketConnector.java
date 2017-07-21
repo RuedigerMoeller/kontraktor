@@ -1,4 +1,4 @@
-package org.nustaq.http.example;
+package org.nustaq.http.example.websocketexperimental;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -11,6 +11,7 @@ import java.util.function.Function;
 import javax.websocket.*;
 
 import io.undertow.websockets.spi.WebSocketHttpExchange;
+import org.nustaq.http.example.ServletApp;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
