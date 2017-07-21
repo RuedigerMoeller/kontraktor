@@ -9,7 +9,7 @@ export class UserTable extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      records: [ { key: "hello", pwd:"1234"} ]
+      records: []
     };
     this.idCount = idCount++;
     console.log("created "+this.idCount)

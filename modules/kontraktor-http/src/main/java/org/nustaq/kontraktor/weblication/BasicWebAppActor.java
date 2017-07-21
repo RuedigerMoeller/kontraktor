@@ -10,6 +10,10 @@ import org.nustaq.kontraktor.remoting.base.SessionResurrector;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by ruedi on 20.06.17.
@@ -19,50 +23,10 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     public static String WEBAPP_DIR = "./src/main/web/client";
     public static String BASH_EXEC = "/usr/bin/bash";
     public static String BABEL_SERVER_JS_PATH = "./node_modules/babelserver/babelserver.js";
+
     protected Scheduler[] sessionThreads;
     protected ISessionStorage sessionStorage;
-
-    public static boolean runNodify() {
-        try {
-            BrowseriBabelify.get();
-        } catch (Exception ex) {
-            Log.Warn(BasicWebAppActor.class,"babelserver not running .. try starting");
-            boolean isWindows = System.getProperty("os.name","linux").toLowerCase().indexOf("windows") >= 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                if (isWindows) {
-                    processBuilder.command("cmd.exe", "/c", "node "+ BABEL_SERVER_JS_PATH);
-                } else {
-                    String bash = BASH_EXEC;
-                    if ( !new File(bash).exists() ) {
-                        bash = "/bin/bash";
-                    }
-                    processBuilder.command(bash, "-c", "node "+ BABEL_SERVER_JS_PATH);
-                }
-                processBuilder.directory(new File(WEBAPP_DIR));
-                processBuilder.inheritIO();
-                Process process = processBuilder.start();
-                for ( int i = 0; i < 8; i++ ) {
-                    Thread.sleep(500);
-                    System.out.print('.');
-                    try {
-                        BrowseriBabelify.get();
-                        break;
-                    } catch (Exception e) {
-                        if ( i==3 ) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-                System.out.println();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            }
-
-        }
-        return true;
-    }
+    protected Map<String,BasicWebSessionActor> sessions;
 
     @Local
     public void init(C config) {
@@ -72,6 +36,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
             sessionThreads[i] = new SimpleScheduler(10_000, true);
         }
         sessionStorage = createSessionStorage(config);
+        sessions = new HashMap<>();
     }
 
     protected ISessionStorage createSessionStorage(C config) {
@@ -135,6 +100,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     protected BasicWebSessionActor createSession(String user, String sessionId, BasicAuthenticationResult authenticationResult) {
         BasicWebSessionActor sess = Actors.AsActor((Class<BasicWebSessionActor>) getSessionClazz(),sessionThreads[(int) (Math.random()*sessionThreads.length)]);
         sess.init(self(),authenticationResult,sessionId);
+        sessions.put(user,sess);
         return sess;
     }
 
@@ -186,12 +152,59 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
 
     @Local
     public void notifySessionEnd(BasicWebSessionActor session) {
-        Log.Info(this, "session timed out "+session._getSessionId()+" "+session._getUserKey());
+        sessions.remove(session._getUserKey());
+        Log.Info(this, "session timed out "+session._getSessionId()+" "+session._getUserKey()+" sessions:"+sessions.size());
     }
 
     @CallerSideMethod
     public ISessionStorage _getSessionStorage() {
         return getActor().sessionStorage;
+    }
+
+    /**
+     * util to startup babel/browserify daemon
+     * @return true if successful
+     */
+    public static boolean runNodify() {
+        try {
+            BrowseriBabelify.get();
+        } catch (Exception ex) {
+            Log.Warn(BasicWebAppActor.class,"babelserver not running .. try starting");
+            boolean isWindows = System.getProperty("os.name","linux").toLowerCase().indexOf("windows") >= 0;
+            try {
+                ProcessBuilder processBuilder = new ProcessBuilder();
+                if (isWindows) {
+                    processBuilder.command("cmd.exe", "/c", "node "+ BABEL_SERVER_JS_PATH);
+                } else {
+                    String bash = BASH_EXEC;
+                    if ( !new File(bash).exists() ) {
+                        bash = "/bin/bash";
+                    }
+                    processBuilder.command(bash, "-c", "node "+ BABEL_SERVER_JS_PATH);
+                }
+                processBuilder.directory(new File(WEBAPP_DIR));
+                processBuilder.inheritIO();
+                Process process = processBuilder.start();
+                for ( int i = 0; i < 8; i++ ) {
+                    Thread.sleep(500);
+                    System.out.print('.');
+                    try {
+                        BrowseriBabelify.get();
+                        break;
+                    } catch (Exception e) {
+                        if ( i==3 ) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+                System.out.println();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+
+        }
+        return true;
     }
 
 }
