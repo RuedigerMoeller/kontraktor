@@ -13,6 +13,10 @@ export class Btn extends React.Component {
   }
 }
 
+function Error(props) {
+  return (<HCenter><div style={{fontSize: 11, color: 'darkred', background: "rgba(255,255,255,.5)", padding: 2 }}>{props.children}</div></HCenter>);
+}
+
 export class Register extends React.Component {
 
   constructor(props) {
@@ -97,7 +101,7 @@ export class Register extends React.Component {
         </Tr>
       </Table>
       <br/>
-      <HCenter><div style={{fontSize: 11, color: 'red' }}>{this.state.error}</div></HCenter>
+      <Error>{this.state.error}</Error>
     </div>
     );
   }
@@ -171,7 +175,7 @@ export class Login extends React.Component {
         </Tr>
       </Table>
       <br/>
-      <HCenter><div style={{color: 'red'}}>{this.state.error}</div></HCenter>
+      <Error>{this.state.error}</Error>
 
     </div>
     )

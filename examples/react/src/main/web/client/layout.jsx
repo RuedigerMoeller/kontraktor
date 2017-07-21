@@ -55,6 +55,7 @@ export class HCenter extends React.Component {
       flexDirection: 'row',
       flexWrap: 'nowrap',
       justifyContent: 'center',
+      ...this.props.style
     };
     return (<div style={style}>{this.props.children}</div>)
   }

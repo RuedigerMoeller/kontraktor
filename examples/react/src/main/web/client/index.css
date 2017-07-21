@@ -1,10 +1,18 @@
 body {
     font: 14px "Century Gothic", Futura, sans-serif;
-    margin: 20px;
 }
 
 ol, ul {
     padding-left: 30px;
+}
+
+a {
+  color: black;
+  text-decoration: none; /* no underline */
+}
+
+a:hover {
+  text-decoration: underline; /* no underline */
 }
 
 .board-row:after {
@@ -86,4 +94,13 @@ input:focus {
     outline: none;
     border: solid 1px #707070;
     box-shadow: 0 0 5px 1px #969696;
+}
+
+.gradientbg {
+/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#499bea+0,207ce5+100;Blue+3d+%237 */
+    background: #499bea; /* Old browsers */
+    background: -moz-linear-gradient(top,  #499bea 0%, #207ce5 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(top,  #499bea 0%,#207ce5 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(to bottom,  #499bea 0%,#207ce5 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#499bea', endColorstr='#207ce5',GradientType=0 ); /* IE6-9 */
 }

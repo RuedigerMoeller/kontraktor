@@ -12,6 +12,7 @@ import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.weblication.BasicAuthenticationResult;
 import org.nustaq.kontraktor.weblication.BasicWebAppActor;
 import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
+import org.nustaq.kontraktor.weblication.PersistedRecord;
 
 import java.io.File;
 import java.io.IOException;
@@ -45,7 +46,7 @@ public class ReactAppMain {
         ReactApp myHttpApp = AsActor(ReactApp.class);
         myHttpApp.init(new BasicWebAppConfig());
 
-        Class msgClasses[] = {BasicAuthenticationResult.class};
+        Class msgClasses[] = { BasicAuthenticationResult.class, PersistedRecord.class }; // these classes are encoded with Simple Name in JSon
         Http4K.Build("localhost", 8080)
             .resourcePath("/")
                 .elements(

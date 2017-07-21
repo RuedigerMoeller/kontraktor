@@ -32,12 +32,17 @@ public class ReactAppSession extends BasicWebSessionActor {
         storage.getUserRecord(_getUserKey()).then( (user,err) -> {
             if ( user != null) {
                 userRecord = user;
-                res.resolve();
+                res.resolve(userRecord);
             } else {
                 res.reject(err);
             }
         });
         return res;
+    }
+
+    @Remoted
+    public void delUser(String key) {
+        getSessionStorage().delRecord(key);
     }
 
     @Remoted

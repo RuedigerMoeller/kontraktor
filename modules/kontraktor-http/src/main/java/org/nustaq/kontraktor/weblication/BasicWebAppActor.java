@@ -117,6 +117,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         sess.init(self(),authenticationResult,sessionId).then( (res,err) -> {
             if ( err == null ) {
                 sessions.put(user,sess);
+                authenticationResult.initialData(res);
                 p.resolve(sess);
             } else
                 p.reject(err);

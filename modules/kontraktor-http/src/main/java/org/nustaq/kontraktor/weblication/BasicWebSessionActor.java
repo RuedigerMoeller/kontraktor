@@ -50,7 +50,9 @@ public abstract class BasicWebSessionActor<T extends BasicWebSessionActor> exten
      */
     protected abstract void persistSessionData(String sessionId, ISessionStorage storage);
     /**
-     * laod session state after resurrection
+     * laod session state after resurrection. the object returned is sent along the login response to the client
+     * so an extra intialization call round trip can be omitted.
+     *
      * @param storage
      */
     protected abstract IPromise loadSessionData(String sessionId, ISessionStorage storage);

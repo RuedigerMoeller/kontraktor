@@ -94,6 +94,11 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     }
 
     @Override
+    public void delRecord(String userkey) {
+        userData.remove(userkey);
+    }
+
+    @Override
     public IPromise<Boolean> storeIfNotPresent(PersistedRecord userRecord) {
         Object res = userData.get(userRecord.getKey());
         if ( res == null ) {

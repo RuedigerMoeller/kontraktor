@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Game } from './fbreactexample.jsx';
 import { Login, Register } from './login.jsx';
 import { HCenter } from './layout.jsx';
-import { HashRouter as Router, Route, Switch, Link, IndexRoute } from 'react-router-dom'
+import { HashRouter as Router, Route, Switch, Link, NavLink } from 'react-router-dom'
 import createBrowserHistory from 'history/createBrowserHistory';
 import { Store as AppStore } from "./store.jsx";
 import { UserTable } from "./usertable.jsx";
@@ -14,6 +14,13 @@ class OtherState extends React.Component {
   }
 }
 
+class Nav extends React.Component {
+  render() {
+    return (
+      <div style={{ display: "inline-block", margin: 1, padding: 6, background: "#398bda", color: "white", _height: 25, width: 100 }}><HCenter>{this.props.children}</HCenter></div>
+    );
+  }
+}
 class App extends React.Component {
 
   constructor(props) {
@@ -32,16 +39,14 @@ class App extends React.Component {
 
   renderLoggedInApp() {
     const style = { margin: "0 auto", width: "100%"};
+    const actStyle = {fontWeight: 'bold', fontSize: 18, background: '#499bea'};
     return (
       <div style={style}>
-        <h1>Boah ey !</h1>
-        <div>You are {this.state.userData.userName}</div>
-        <ul>
-          <li><Link to="/">Home</Link></li>
-          <li><Link to="/other">Misc</Link></li>
-          <li><Link to="/game">Game</Link></li>
-        </ul>
-        <hr/>
+        <NavLink exact={true} to="/" activeStyle={actStyle}><Nav>Home</Nav></NavLink>
+        <NavLink to="/other" activeStyle={actStyle}><Nav>Misc</Nav></NavLink>
+        <NavLink to="/game" activeStyle={actStyle}><Nav>Game</Nav></NavLink>
+        <span>&nbsp;You are <b>'{this.state.userData.userKey}'</b></span>
+        <br/><br/><br/><br/>
         <HCenter>
           <Switch>
             <Route exact path="/" component={UserTable}/>
@@ -67,9 +72,13 @@ class App extends React.Component {
   render() {
     const loggedIn = AppStore.isLoggedIn();
     return (
-      <Router history={createBrowserHistory()}>
-        {loggedIn ? this.renderLoggedInApp() : this.renderLogin() }
-      </Router>
+      <HCenter style={{ height: "100%" }} >
+        <div style={{maxWidth: 1300, width: '100%', height: "100%" }} className="gradientbg">
+          <Router history={createBrowserHistory()}>
+            {loggedIn ? this.renderLoggedInApp() : this.renderLogin() }
+          </Router>
+        </div>
+      </HCenter>
     );
   }
 }

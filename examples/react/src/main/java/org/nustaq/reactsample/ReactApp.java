@@ -10,7 +10,8 @@ import org.nustaq.kontraktor.weblication.PersistedRecord;
 
 
 /**
- * Created by ruedi on 30.05.17.
+ * Created by ruedi on 30.05.17. This is the singleton Actor representing your App.
+ * remote calls can be done without authentication, so take care
  */
 @Secured // enforce explicit tagging of remoteable methods (@Remote) effects ALSO Session actors
 public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {

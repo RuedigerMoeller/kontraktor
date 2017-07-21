@@ -53,6 +53,7 @@ public interface ISessionStorage {
     void putSessionId(String sessionId, String user);
     IPromise atomic(String key, Function<PersistedRecord, AtomicResult> recordConsumer);
     void storeRecord(PersistedRecord userRecord);
+    void delRecord(String userkey);
     IPromise<Boolean> storeIfNotPresent(PersistedRecord userRecord);
     IPromise<PersistedRecord> getUserRecord(String userId);
     void forEach(Callback<PersistedRecord> cb);
