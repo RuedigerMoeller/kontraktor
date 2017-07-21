@@ -8,7 +8,7 @@ import java.io.Serializable;
 public class BabelOpts implements Serializable {
 
     boolean debug = true;
-    String[] presets = { "import-export", "react" };
+    String[] presets = { "import-export", "react", "transform-object-rest-spread" };
 
     public BabelOpts debug(final boolean debug) {
         this.debug = debug;

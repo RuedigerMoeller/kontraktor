@@ -33,7 +33,8 @@ export class Tr extends React.Component {
 export class Td extends React.Component {
 
   render() {
-    const style = { display: 'table-cell', padding: '4px', verticalAlign: "middle" };
+    const pst = this.props.style;
+    const style = { display: 'table-cell', padding: '4px', verticalAlign: "middle", ...pst };
     return (
       <div style={style}>
         {this.props.children}
