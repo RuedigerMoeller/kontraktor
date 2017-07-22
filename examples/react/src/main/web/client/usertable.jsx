@@ -55,8 +55,8 @@ export class UserTable extends React.Component {
     const grey = { background: "#eee" };
     const none = {};
     return (
-      <Table bg='#fff'>
-        <Tr><Caption>Users</Caption></Tr>
+      <Table bg='#fff' style={{ minWidth: "50%"}}>
+        <Tr><Caption>User</Caption></Tr>
         <EmptyLine/>
         {this.state.records.map( (rec,index) =>
           <Tr key={rec.key}>

@@ -21,6 +21,7 @@ class Nav extends React.Component {
     );
   }
 }
+
 class App extends React.Component {
 
   constructor(props) {
@@ -45,7 +46,7 @@ class App extends React.Component {
         <NavLink exact={true} to="/" activeStyle={actStyle}><Nav>Home</Nav></NavLink>
         <NavLink to="/other" activeStyle={actStyle}><Nav>Misc</Nav></NavLink>
         <NavLink to="/game" activeStyle={actStyle}><Nav>Game</Nav></NavLink>
-        <span>&nbsp;You are <b>'{this.state.userData.userKey}'</b></span>
+        <span style={{float: "right", margin: 4, color: 'white'}}>&nbsp;You are <b>'{this.state.userData.userKey}'</b></span>
         <br/><br/><br/><br/>
         <HCenter>
           <Switch>

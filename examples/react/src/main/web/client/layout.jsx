@@ -3,7 +3,7 @@ import React from 'react';
 export class Table extends React.Component {
 
   render() {
-    const style = { display: 'table', background: this.props.bg ? this.props.bg:'#eee', padding: '16px', border: 'solid #ddd 1px' };
+    const style = { ...this.props.style, display: 'table', background: this.props.bg ? this.props.bg:'#eee', padding: '16px', border: 'solid #ddd 1px' };
     return (
       <div style={style}>
         {this.props.children}
