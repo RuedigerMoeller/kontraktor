@@ -14,14 +14,6 @@ class OtherState extends React.Component {
   }
 }
 
-class Nav extends React.Component {
-  render() {
-    return (
-      <div style={{ display: "inline-block", margin: 1, padding: 6, background: "#398bda", color: "white", _height: 25, width: 100 }}><HCenter>{this.props.children}</HCenter></div>
-    );
-  }
-}
-
 class App extends React.Component {
 
   constructor(props) {
@@ -40,12 +32,13 @@ class App extends React.Component {
 
   renderLoggedInApp() {
     const style = { margin: "0 auto", width: "100%"};
-    const actStyle = {fontWeight: 'bold', fontSize: 18, background: '#499bea'};
+    const actStyle = { fontWeight: 'bold', fontSize: 18, background: '#499bea'};
+    const inactStyle = { background: "#398bda", display: "inline-block", margin: 1, padding: 6, color: "white", _height: 25, width: 100 };
     return (
       <div style={style}>
-        <NavLink exact={true} to="/" activeStyle={actStyle}><Nav>Home</Nav></NavLink>
-        <NavLink to="/other" activeStyle={actStyle}><Nav>Misc</Nav></NavLink>
-        <NavLink to="/game" activeStyle={actStyle}><Nav>Game</Nav></NavLink>
+        <NavLink style={inactStyle} exact={true} to="/" activeStyle={actStyle}>Home</NavLink>
+        <NavLink style={inactStyle} to="/other" activeStyle={actStyle}>Misc</NavLink>
+        <NavLink style={inactStyle} to="/game" activeStyle={actStyle}>Game</NavLink>
         <span style={{float: "right", margin: 4, color: 'white'}}>&nbsp;You are <b>'{this.state.userData.userKey}'</b></span>
         <br/><br/><br/><br/>
         <HCenter>
@@ -74,7 +67,7 @@ class App extends React.Component {
     const loggedIn = AppStore.isLoggedIn();
     return (
       <HCenter style={{ height: "100%" }} >
-        <div style={{maxWidth: 1300, width: '100%', height: "100%" }} className="gradientbg">
+        <div style={{maxWidth: 1000, width: '100%', height: "100%" }} className="gradientbg">
           <Router history={createBrowserHistory()}>
             {loggedIn ? this.renderLoggedInApp() : this.renderLogin() }
           </Router>
