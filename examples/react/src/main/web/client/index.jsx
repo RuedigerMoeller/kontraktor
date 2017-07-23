@@ -34,18 +34,19 @@ class App extends React.Component {
     const style = { margin: "0 auto", width: "100%"};
     const actStyle = {
       fontWeight: 'bold',
-      fontSize: 18,
-      background: '#499bea'
+      background: '#499bea',
+      color: "#fff",
     };
     const inactStyle = {
+      fontSize: 18,
       background: "#398bda",
       transition: "all .3s",
       margin: 1,
-      padding: 6,
+      padding: 8,
       height: 22,
       width: 100,
       display: "inline-block",
-      color: "white",
+      color: "#acf",
     };
     return (
       <div style={style}>
