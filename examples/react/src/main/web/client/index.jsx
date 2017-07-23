@@ -32,8 +32,8 @@ class App extends React.Component {
 
   renderLoggedInApp() {
     const style = { margin: "0 auto", width: "100%"};
-    const actStyle = { fontWeight: 'bold', fontSize: 18, background: '#499bea'};
-    const inactStyle = { background: "#398bda", display: "inline-block", margin: 1, padding: 6, color: "white", _height: 25, width: 100 };
+    const actStyle = { fontWeight: 'bold', fontSize: 18, background: '#499bea', transition: "all .3s", margin: 1, padding: 6, _height: 25, width: 100 };
+    const inactStyle = { transition: "all .3s", background: "#398bda", display: "inline-block", margin: 1, padding: 6, color: "white", _height: 20, width: 100 };
     return (
       <div style={style}>
         <NavLink style={inactStyle} exact={true} to="/" activeStyle={actStyle}>Home</NavLink>
