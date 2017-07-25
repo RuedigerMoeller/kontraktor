@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Game } from './fbreactexample.jsx';
 import { Login, Register } from './login.jsx';
 import { HCenter } from './layout.jsx';
-import { HashRouter as Router, Route, Switch, Link, NavLink } from 'react-router-dom'
+import { HashRouter as Router, Route, Switch, Link, NavLink, Redirect } from 'react-router-dom'
 import createBrowserHistory from 'history/createBrowserHistory';
 import { Store as AppStore } from "./store.jsx";
 import { UserTable } from "./usertable.jsx";
@@ -11,6 +11,12 @@ import { UserTable } from "./usertable.jsx";
 class OtherState extends React.Component {
   render() {
     return (<div>Some Other Component</div>)
+  }
+}
+
+class ToLogin extends React.Component {
+  render() {
+    return (<Redirect to='/'/>);
   }
 }
 
@@ -72,6 +78,7 @@ class App extends React.Component {
         <Switch>
           <Route exact path="/" component={Login}/>
           <Route path="/register" component={Register}/>
+          <Route component={ToLogin}/>
         </Switch>
       </HCenter>
     )

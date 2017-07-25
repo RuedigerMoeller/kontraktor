@@ -92,12 +92,12 @@ export class Register extends React.Component {
         <Tr>
           <Td>Confirm Pwd:</Td><Td><input type="password" value={this.state.confirmPwd} onChange={this.handleCPChange.bind(this)}></input></Td>
         </Tr>
+        <Tr>
+          <Td>Freetext:</Td><Td><input type="text" cols="60" rows="3" value={this.state.text} onChange={this.handleTChange.bind(this)}></input></Td>
+        </Tr>
         <EmptyLine/>
         <Tr>
           <Td></Td><Td><Disabler enabled={this.state.valid}><Btn onClick={this.handleSubmit.bind(this)}>Submit</Btn></Disabler></Td>
-        </Tr>
-        <Tr>
-          <Td>Freetext:</Td><Td><input type="text" cols="60" rows="3" value={this.state.text} onChange={this.handleTChange.bind(this)}></input></Td>
         </Tr>
       </Table>
       <br/>
