@@ -33,10 +33,10 @@ public class Basic {
         ts.createOrLoadTable(new TableDescription("blogs").numEntries(500_000).sizeMB(500));
         ts.createOrLoadTable(new TableDescription("articles").numEntries(500_000 * 10).sizeMB(500 * 10));
 
-        RealLiveTable blogs = ts.getTable("blogs").await();
+        RealLiveTable blogs = ts.getTableAsync("blogs").await();
         Mutation blogMutation = blogs.getMutation();
 
-        RealLiveTable articles = ts.getTable("articles").await();
+        RealLiveTable articles = ts.getTableAsync("articles").await();
         Mutation artMutation = articles.getMutation();
 
         int numBP = 30_000;

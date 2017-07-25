@@ -8,7 +8,6 @@ import org.nustaq.kontraktor.IPromise;
 public interface Mutation {
 
     /**
-     * FIXME: does not trigger a change notification !
      * @param casCondition
      * @param key
      * @param keyVals

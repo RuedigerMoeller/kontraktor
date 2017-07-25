@@ -110,11 +110,11 @@ public class TableSpaceTest {
 
     protected int runSimpleTest(TableSpace ts, Supplier<TableDescription> fac) {
         AtomicInteger resultCount = new AtomicInteger(0);
-        if ( ts.getTable("Test").await() == null ) {
+        if ( ts.getTableAsync("Test").await() == null ) {
             TableDescription test = fac.get();
             ts.createOrLoadTable(test).await();
         }
-        RealLiveTable test = ts.getTable("Test").await();
+        RealLiveTable test = ts.getTableAsync("Test").await();
 
         test.filter(rec -> true, (r, e) -> System.out.println("filter:" + r + " " + resultCount.incrementAndGet()));
 

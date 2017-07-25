@@ -56,12 +56,12 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
     }
 
     @CallerSideMethod
-    public RealLiveTable getTableSync(String name ) {
+    public RealLiveTable getTable(String name ) {
         return (RealLiveTable) getActor().syncTableAccess.get(name);
     }
 
     /**
-     * shorthand for getTableSync
+     * shorthand for getTable
      * @param name
      * @return
      */
@@ -93,7 +93,7 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
                         TableSpaceActor shard = shards[i];
                         Log.Info( this, "exporting shard "+i+" table "+desc.getName() );
                         try {
-                            RealLiveTable table = shard.getTable(desc.getName()).await(60_000);
+                            RealLiveTable table = shard.getTableAsync(desc.getName()).await(60_000);
                             table.filter( rec -> true, (rec,err) -> {
                                 if ( rec != null ) {
                                     try {
@@ -148,7 +148,7 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
 
     public void processSharded(String tableName, RLPredicate<Record> predicate, int shardNo, Callback<Record> cb  ) {
         TableSpaceActor shard = shards[shardNo];
-        shard.getTable(tableName).then( t -> {
+        shard.getTableAsync(tableName).then(t -> {
             RealLiveTable table = t;
             table.filter(predicate, cb);
         });

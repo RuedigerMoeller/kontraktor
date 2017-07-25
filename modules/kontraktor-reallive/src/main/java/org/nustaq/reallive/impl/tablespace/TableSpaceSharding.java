@@ -112,7 +112,7 @@ public class TableSpaceSharding implements TableSpace {
     }
 
     @Override
-    public IPromise<RealLiveTable> getTable(String name) {
+    public IPromise<RealLiveTable> getTableAsync(String name) {
         return Actors.resolve(tableMap.get(name));
     }
 

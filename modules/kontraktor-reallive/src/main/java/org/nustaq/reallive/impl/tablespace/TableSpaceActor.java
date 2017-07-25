@@ -126,7 +126,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
     }
 
     @Override
-    public IPromise<RealLiveTable> getTable(String name) {
+    public IPromise<RealLiveTable> getTableAsync(String name) {
         return resolve(tables.get(name));
     }
 
