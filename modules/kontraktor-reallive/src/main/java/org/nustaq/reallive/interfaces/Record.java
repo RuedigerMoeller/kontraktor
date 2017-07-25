@@ -10,15 +10,15 @@ import java.io.Serializable;
 /**
  * Created by moelrue on 03.08.2015.
  */
-public interface Record<K> extends Serializable, EvalContext {
+public interface Record extends Serializable, EvalContext {
 
-    K getKey();
+    String getKey();
 
     /**
      * take care, kind of dangerous
      * @param key
      */
-    void key(K key);
+    void key(String key);
     String[] getFields();
     Record put( String field, Object value );
 
@@ -74,7 +74,7 @@ public interface Record<K> extends Serializable, EvalContext {
         return ((Boolean) val).booleanValue();
     }
 
-    default Record<K> reduced(String[] reducedFields) {
+    default Record reduced(String[] reducedFields) {
         MapRecord rec = MapRecord.New(getKey());
         for (int i = 0; i < reducedFields.length; i++) {
             String reducedField = reducedFields[i];
@@ -86,7 +86,7 @@ public interface Record<K> extends Serializable, EvalContext {
         return rec;
     }
 
-    default Record<K> copied() {
+    default Record copied() {
         throw new RuntimeException("copy not implemented");
     }
 

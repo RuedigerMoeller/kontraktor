@@ -11,28 +11,28 @@ import org.nustaq.reallive.records.RecordWrapper;
 /**
  * Created by ruedi on 08.08.2015.
  */
-public class Mutator<K> implements Mutation<K> {
-    ChangeReceiver<K> receiver;
+public class Mutator implements Mutation {
+    ChangeReceiver receiver;
 
-    public Mutator(ChangeReceiver<K> receiver) {
+    public Mutator(ChangeReceiver receiver) {
         this.receiver = receiver;
     }
 
     @Override
-    public IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object... keyVals) {
+    public IPromise<Boolean> putCAS(RLPredicate<Record> casCondition, String key, Object... keyVals) {
         if ( receiver instanceof RealLiveTable) {
             return ((RealLiveTable) receiver).putCAS(casCondition,key,keyVals);
         }
-        return new Promise<>(null, "unsupported operation");
+        return new Promise(null, "unsupported operation");
     }
 
     @Override
-    public void put(K key, Object ... keyVals) {
+    public void put(String key, Object ... keyVals) {
         receiver.receive(RLUtil.get().put(key, keyVals));
     }
 
     @Override
-    public void atomic(K key, RLConsumer action) {
+    public void atomic(String key, RLConsumer action) {
         if ( receiver instanceof RealLiveTable) {
             ((RealLiveTable) receiver).atomic(key, action);
             return;
@@ -41,15 +41,15 @@ public class Mutator<K> implements Mutation<K> {
     }
 
     @Override
-    public IPromise atomicQuery(K key, RLFunction<Record<K>,Object> action) {
+    public IPromise atomicQuery(String key, RLFunction<Record,Object> action) {
         if ( receiver instanceof RealLiveTable) {
             return ((RealLiveTable) receiver).atomicQuery(key, action);
         }
-        return new Promise<>(null, "unsupported operation");
+        return new Promise(null, "unsupported operation");
     }
 
     @Override
-    public void atomicUpdate(RLPredicate<Record<K>> filter, RLFunction<Record<K>, Boolean> action) {
+    public void atomicUpdate(RLPredicate<Record> filter, RLFunction<Record, Boolean> action) {
         if ( receiver instanceof RealLiveTable) {
             ((RealLiveTable) receiver).atomicUpdate(filter, action);
         }
@@ -57,45 +57,45 @@ public class Mutator<K> implements Mutation<K> {
     }
 
     @Override
-    public void addOrUpdate(K key, Object... keyVals) {
-        if ( key instanceof Record )
+    public void addOrUpdate(String key, Object... keyVals) {
+        if ( ((Object)key) instanceof Record )
             throw new RuntimeException("probably accidental method resolution fail. Use addOrUpdateRec instead");
         receiver.receive(RLUtil.get().addOrUpdate(key, keyVals));
     }
 
     @Override
-    public void add(K key, Object... keyVals) {
+    public void add(String key, Object... keyVals) {
         receiver.receive(RLUtil.get().add(key, keyVals));
     }
 
     @Override
-    public void add(Record<K> rec) {
+    public void add(Record rec) {
         if ( rec instanceof RecordWrapper)
             rec = ((RecordWrapper) rec).getRecord();
-        receiver.receive((ChangeMessage<K>) new AddMessage<>(rec));
+        receiver.receive((ChangeMessage) new AddMessage(rec));
     }
 
     @Override
-    public void addOrUpdateRec(Record<K> rec) {
+    public void addOrUpdateRec(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        receiver.receive(new AddMessage<K>(true,rec));
+        receiver.receive(new AddMessage(true,rec));
     }
 
     @Override
-    public void put(Record<K> rec) {
+    public void put(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        receiver.receive(new PutMessage<K>(rec));
+        receiver.receive(new PutMessage(rec));
     }
 
     @Override
-    public void update(K key, Object... keyVals) {
+    public void update(String key, Object... keyVals) {
         receiver.receive(RLUtil.get().update(key, keyVals));
     }
 
     @Override
-    public void remove(K key) {
+    public void remove(String key) {
         RemoveMessage remove = RLUtil.get().remove(key);
         receiver.receive(remove);
     }

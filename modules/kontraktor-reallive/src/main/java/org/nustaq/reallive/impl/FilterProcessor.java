@@ -19,35 +19,35 @@ import java.util.List;
  * if ( filter matches old && new ) => send Update
  * if ( filter ! matches old && new ) => send Add
  */
-public class FilterProcessor<K> implements ChangeReceiver<K> {
+public class FilterProcessor implements ChangeReceiver {
 
-    List<Subscriber<K>> filterList = new ArrayList<>();
-    RealLiveTableActor<K> table;
+    List<Subscriber> filterList = new ArrayList();
+    RealLiveTableActor table;
 
-    public FilterProcessor(RealLiveTableActor<K> table) {
+    public FilterProcessor(RealLiveTableActor table) {
         this.table = table;
     }
 
-    public void startListening(Subscriber<K> subs) {
+    public void startListening(Subscriber subs) {
         filterList.add(subs);
     }
 
-    public void unsubscribe( Subscriber<K> subs ) {
+    public void unsubscribe( Subscriber subs ) {
         filterList.remove(subs);
     }
 
-    public void receive(ChangeMessage<K> change) {
+    public void receive(ChangeMessage change) {
         switch (change.getType()) {
             case ChangeMessage.QUERYDONE:
                 break;
             case ChangeMessage.PUT:
-                processPut((PutMessage<K>) change);
+                processPut((PutMessage) change);
                 break;
             case ChangeMessage.ADD:
-                processAdd((AddMessage<K>) change);
+                processAdd((AddMessage) change);
                 break;
             case ChangeMessage.UPDATE:
-                processUpdate((UpdateMessage<K>) change);
+                processUpdate((UpdateMessage) change);
                 break;
             case ChangeMessage.REMOVE:
                 processRemove((RemoveMessage) change);
@@ -55,17 +55,17 @@ public class FilterProcessor<K> implements ChangeReceiver<K> {
         }
     }
 
-    protected void processPut(PutMessage<K> change) {
-        Record<K> record = change.getRecord();
-        for ( Subscriber<K> subscriber : filterList ) {
+    protected void processPut(PutMessage change) {
+        Record record = change.getRecord();
+        for ( Subscriber subscriber : filterList ) {
             if ( subscriber.getFilter().test(record) ) {
                 subscriber.getReceiver().receive(change);
             }
         }
     }
 
-    protected void processUpdate(UpdateMessage<K> change) {
-        Record<K> newRecord = change.getNewRecord();
+    protected void processUpdate(UpdateMessage change) {
+        Record newRecord = change.getNewRecord();
         String[] changedFields = change.getDiff().getChangedFields();
         Object[] oldValues = change.getDiff().getOldValues();
         Record oldRec = new PatchingRecord(newRecord);
@@ -73,8 +73,8 @@ public class FilterProcessor<K> implements ChangeReceiver<K> {
             String changedField = changedFields[i];
             oldRec.put(changedField, oldValues[i]);
         }
-        for ( Subscriber<K> subscriber : filterList ) {
-            boolean matchesOld = subscriber.getPrePatchFilter().test((Record<K>) oldRec);
+        for ( Subscriber subscriber : filterList ) {
+            boolean matchesOld = subscriber.getPrePatchFilter().test((Record) oldRec);
             boolean matchesNew = subscriber.getPrePatchFilter().test(newRecord);
 
             if ( matchesNew ) {
@@ -95,33 +95,33 @@ public class FilterProcessor<K> implements ChangeReceiver<K> {
             if ( matchesOld && matchesNew) {
                 subscriber.getReceiver().receive(change);
             } else if ( matchesOld /*&& ! matchesNew*/ ) {
-                subscriber.getReceiver().receive(new RemoveMessage<>((Record)newRecord));
+                subscriber.getReceiver().receive(new RemoveMessage((Record)newRecord));
             } else if ( /*! matchesOld &&*/ matchesNew ) {
-                subscriber.getReceiver().receive(new AddMessage<>(newRecord));
+                subscriber.getReceiver().receive(new AddMessage(newRecord));
             }
         }
     }
 
-    protected void processAdd(AddMessage<K> add) {
-        Record<K> record = add.getRecord();
-        for ( Subscriber<K> subscriber : filterList ) {
+    protected void processAdd(AddMessage add) {
+        Record record = add.getRecord();
+        for ( Subscriber subscriber : filterList ) {
             if ( subscriber.getPrePatchFilter().test(record) ) {
                 final PatchingRecord patchingRecord = FilterSpore.rec.get();
                 patchingRecord.reset(record);
                 if ( subscriber.getFilter().test(patchingRecord))
-                    subscriber.getReceiver().receive(new AddMessage<K>(add.isUpdateIfExisting(),patchingRecord.unwrapOrCopy()));
+                    subscriber.getReceiver().receive(new AddMessage(add.isUpdateIfExisting(),patchingRecord.unwrapOrCopy()));
             }
         }
     }
 
     protected void processRemove(RemoveMessage remove) {
         Record record = remove.getRecord();
-        for ( Subscriber<K> subscriber : filterList ) {
+        for ( Subscriber subscriber : filterList ) {
             if ( subscriber.getPrePatchFilter().test(record) ) {
                 final PatchingRecord patchingRecord = FilterSpore.rec.get();
                 patchingRecord.reset(record);
                 if ( subscriber.getFilter().test(patchingRecord))
-                    subscriber.getReceiver().receive((ChangeMessage<K>)remove);
+                    subscriber.getReceiver().receive((ChangeMessage)remove);
             }
         }
     }

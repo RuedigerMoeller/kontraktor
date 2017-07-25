@@ -33,15 +33,15 @@ public class Basic {
         ts.createOrLoadTable(new TableDescription("blogs").numEntries(500_000).sizeMB(500));
         ts.createOrLoadTable(new TableDescription("articles").numEntries(500_000 * 10).sizeMB(500 * 10));
 
-        RealLiveTable<String> blogs = ts.getTable("blogs").await();
-        Mutation<String> blogMutation = blogs.getMutation();
+        RealLiveTable blogs = ts.getTable("blogs").await();
+        Mutation blogMutation = blogs.getMutation();
 
-        RealLiveTable<String> articles = ts.getTable("articles").await();
-        Mutation<String> artMutation = articles.getMutation();
+        RealLiveTable articles = ts.getTable("articles").await();
+        Mutation artMutation = articles.getMutation();
 
         int numBP = 30_000;
         for ( int i = 0; i < numBP; i++ ) {
-            MapRecord<String> blogEntry = MapRecord.New("blog"+i);
+            MapRecord blogEntry = MapRecord.New("blog"+i);
             blogEntry
                 .put("title", "Java is beautiful")
                 .put("description", "High performance Java, realtime distributed computing, other stuff")
@@ -56,7 +56,7 @@ public class Basic {
         System.out.println("finished blogs");
 
         for ( int i = 0; i < numBP *10; i++ ) {
-            MapRecord<String> article = MapRecord.New("art"+i);
+            MapRecord article = MapRecord.New("art"+i);
 //            article
 //                .put("title", "WebComponents BLabla")
 //                .put("description", "High performance Java, realtime distributed computing, other stuff")
@@ -173,7 +173,7 @@ public class Basic {
         long tim = System.currentTimeMillis();
         for ( int ii = 0; ii < 100; ii++) {
             RLUtil cb = RLUtil.get();
-            StorageDriver stream = new StorageDriver(new HeapRecordStorage<>());
+            StorageDriver stream = new StorageDriver(new HeapRecordStorage());
             stream.setListener(change -> {
                 //System.out.println(change);
             });
@@ -212,11 +212,11 @@ public class Basic {
     public static class TA extends Actor<TA> {
 
 
-        public IPromise randomTest(RealLiveTable<String> rls) throws InterruptedException {
-            HeapRecordStorage<Object> hstore = new HeapRecordStorage<>();
-            StorageDriver<String> copy = new StorageDriver(hstore);
-            rls.subscribe(new Subscriber<>(null,r -> true,copy));
-            Mutation<String> mut = rls.getMutation();
+        public IPromise randomTest(RealLiveTable rls) throws InterruptedException {
+            HeapRecordStorage hstore = new HeapRecordStorage();
+            StorageDriver copy = new StorageDriver(hstore);
+            rls.subscribe(new Subscriber(null,r -> true,copy));
+            Mutation mut = rls.getMutation();
 
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
@@ -273,7 +273,7 @@ public class Basic {
                 yield();
                 if ( count.incrementAndGet() % 100_000 == 0 )
                     System.out.println("compared "+count.get());
-                rl.get(next.getKey()).then(rlRec -> {
+                rl.get((String) next.getKey()).then(rlRec -> {
                     if (pl.isComplete())
                         return;
                     checkThread();
@@ -293,12 +293,12 @@ public class Basic {
             return pl.getPromise();
         }
 
-        public IPromise runTest(RealLiveTable<String> rls) throws InterruptedException {
+        public IPromise runTest(RealLiveTable rls) throws InterruptedException {
 
             boolean inActor = Actor.inside();
 
-            Subscriber<String> subs =
-                new Subscriber<>( null,
+            Subscriber subs =
+                new Subscriber( null,
                     record -> "one13".equals(record.getKey()),
                     change -> {
                         if ( self() != null )
@@ -346,7 +346,7 @@ public class Basic {
 
     @Test
     public void testActor() throws InterruptedException {
-        RealLiveTableActor<String> rls = Actors.AsActor(RealLiveTableActor.class,100_000);
+        RealLiveTableActor rls = Actors.AsActor(RealLiveTableActor.class,100_000);
         rls.init( () -> new OffHeapRecordStorage(32, 500, 500_000), null);
 
         TA ta = Actors.AsActor(TA.class);
@@ -357,13 +357,13 @@ public class Basic {
 
     @Test
     public void testActorShard() throws InterruptedException {
-        RealLiveTableActor<String> rls[] = new RealLiveTableActor[8];
+        RealLiveTableActor rls[] = new RealLiveTableActor[8];
         for (int i = 0; i < rls.length; i++) {
             rls[i] = Actors.AsActor(RealLiveTableActor.class);
             rls[i].init(() -> new OffHeapRecordStorage(32, 500 / rls.length, 700_000 / rls.length), null);
         }
-        ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
-        TableSharding<String> sharding = new TableSharding<>(sfunc, rls, null);
+        ShardFunc sfunc = key -> Math.abs(key.hashCode()) % rls.length;
+        TableSharding sharding = new TableSharding(sfunc, rls, null);
 
         TA ta = Actors.AsActor(TA.class);
         while( System.currentTimeMillis() != 0) {
@@ -377,13 +377,13 @@ public class Basic {
     public void randomTestActorShard() throws InterruptedException {
 //        while( System.currentTimeMillis() != 0)
         {
-            RealLiveTableActor<String> rls[] = new RealLiveTableActor[8];
+            RealLiveTableActor rls[] = new RealLiveTableActor[8];
             for (int i = 0; i < rls.length; i++) {
                 rls[i] = Actors.AsActor(RealLiveTableActor.class);
                 rls[i].init( () -> new OffHeapRecordStorage(32, 1500/rls.length, 1_500_000/rls.length), null);
             }
-            ShardFunc<String> sfunc = key -> Math.abs(key.hashCode()) % rls.length;
-            TableSharding<String> sharding = new TableSharding<>(sfunc, rls, null);
+            ShardFunc sfunc = key -> Math.abs(key.hashCode()) % rls.length;
+            TableSharding sharding = new TableSharding(sfunc, rls, null);
 
             TA ta = Actors.AsActor(TA.class);
             ta.randomTest(sharding).await(500000);
@@ -394,7 +394,7 @@ public class Basic {
 
     @Test
     public void testActorOutside() throws InterruptedException {
-        RealLiveTableActor<String> rls = Actors.AsActor(RealLiveTableActor.class);
+        RealLiveTableActor rls = Actors.AsActor(RealLiveTableActor.class);
         rls.init(() -> new OffHeapRecordStorage(32, 500,500_000),null);
 
         TA ta = new TA();

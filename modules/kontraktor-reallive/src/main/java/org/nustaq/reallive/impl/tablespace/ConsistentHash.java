@@ -11,10 +11,10 @@ public class ConsistentHash<T> {
 
     Object primary[] = new Object[SEGMENTS];
 
-    ArrayList<T> servers = new ArrayList<>();
+    ArrayList<T> servers = new ArrayList();
 
     public ArrayList<MoveEntry<T>> addServer( T serverId ) {
-        ArrayList<MoveEntry<T>> res = new ArrayList<>();
+        ArrayList<MoveEntry<T>> res = new ArrayList();
         if ( !servers.contains(serverId) )
             servers.add(serverId);
         else

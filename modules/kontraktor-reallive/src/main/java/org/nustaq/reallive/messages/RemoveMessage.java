@@ -5,10 +5,10 @@ import org.nustaq.reallive.interfaces.*;
 /**
  * Created by moelrue on 03.08.2015.
  */
-public class RemoveMessage<K> implements ChangeMessage<K> {
-    Record<K> deletedRow;
+public class RemoveMessage implements ChangeMessage {
+    Record deletedRow;
 
-    public RemoveMessage(Record<K> rec) {
+    public RemoveMessage(Record rec) {
         this.deletedRow = rec;
     }
 
@@ -18,13 +18,13 @@ public class RemoveMessage<K> implements ChangeMessage<K> {
     }
 
     @Override
-    public K getKey() {
+    public String getKey() {
         return deletedRow.getKey();
     }
 
     @Override
     public ChangeMessage reduced(String[] reducedFields) {
-        return new RemoveMessage<>(deletedRow.reduced(reducedFields));
+        return new RemoveMessage(deletedRow.reduced(reducedFields));
     }
 
     @Override
@@ -34,7 +34,7 @@ public class RemoveMessage<K> implements ChangeMessage<K> {
                 '}';
     }
 
-    public Record<K> getRecord() {
+    public Record getRecord() {
         return deletedRow;
     }
 }

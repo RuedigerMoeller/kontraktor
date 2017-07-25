@@ -5,21 +5,21 @@ import org.nustaq.reallive.interfaces.*;
 /**
  * Created by moelrue on 03.08.2015.
  */
-public class AddMessage<K> implements ChangeMessage<K> {
+public class AddMessage implements ChangeMessage {
 
     boolean updateIfExisting = false;
-    private Record<K> record;
+    private Record record;
 
-    public AddMessage(Record<K> record) {
+    public AddMessage(Record record) {
         this.record = record;
     }
 
-    public AddMessage(boolean updateIfExisting, Record<K> record) {
+    public AddMessage(boolean updateIfExisting, Record record) {
         this.updateIfExisting = updateIfExisting;
         this.record = record;
     }
 
-    public Record<K> getRecord() {
+    public Record getRecord() {
         return record;
     }
 
@@ -33,13 +33,13 @@ public class AddMessage<K> implements ChangeMessage<K> {
     }
 
     @Override
-    public K getKey() {
+    public String getKey() {
         return record.getKey();
     }
 
     @Override
     public ChangeMessage reduced(String[] reducedFields) {
-        return new AddMessage<K>(updateIfExisting,record.reduced(reducedFields));
+        return new AddMessage(updateIfExisting,record.reduced(reducedFields));
     }
 
     @Override

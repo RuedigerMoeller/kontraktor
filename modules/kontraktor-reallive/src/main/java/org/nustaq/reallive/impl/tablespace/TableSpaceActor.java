@@ -29,9 +29,9 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
 
     @Local
     public void init( int numScanThreads, int numFilterThreads ) {
-        tables = new HashMap<>();
-        stateListeners = new ArrayList<>();
-        tableDesc = new HashMap<>();
+        tables = new HashMap();
+        stateListeners = new ArrayList();
+        tableDesc = new HashMap();
     }
 
     /**
@@ -59,14 +59,14 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
                 case CACHED:
                     memFactory = () -> new CachedOffHeapStorage(
                         new OffHeapRecordStorage( desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries() ),
-                        new HeapRecordStorage<>() );
+                        new HeapRecordStorage() );
                 break;
                 default:
                 case PERSIST:
                     memFactory = () -> new OffHeapRecordStorage( desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries() );
                 break;
                 case TEMP:
-                    memFactory = () -> new HeapRecordStorage<>();
+                    memFactory = () -> new HeapRecordStorage();
                 break;
             }
         } else {
@@ -82,7 +82,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
                             desc.getSizeMB(),
                             desc.getNumEntries()
                         ),
-                        new HeapRecordStorage<>()
+                        new HeapRecordStorage()
                     );
                 break;
                 default:
@@ -96,7 +96,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
                         );
                 break;
                 case TEMP:
-                    memFactory = () -> new HeapRecordStorage<>();
+                    memFactory = () -> new HeapRecordStorage();
                 break;
             }
         }
@@ -117,12 +117,12 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
 
     @Override
     public IPromise<List<TableDescription>> getTableDescriptions() {
-        return resolve( new ArrayList<>(tableDesc.values()) );
+        return resolve( new ArrayList(tableDesc.values()) );
     }
 
     @Override
     public IPromise<List<RealLiveTable>> getTables() {
-        return resolve( new ArrayList<>(tables.values()));
+        return resolve( new ArrayList(tables.values()));
     }
 
     @Override

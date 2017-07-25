@@ -10,14 +10,13 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 /**
  * Created by ruedi on 04/08/15.
  */
-public interface RealLiveStreamActor<K> {
+public interface RealLiveStreamActor {
 
-    <T> void forEach(Spore<Record<K>,T> spore);
+    <T> void forEach(Spore<Record,T> spore);
 
     /**
      *
@@ -25,22 +24,22 @@ public interface RealLiveStreamActor<K> {
      * @param predicate - a filter which gets a private copy (patching allowed)
      * @param cb
      */
-    @CallerSideMethod default void filterPP( RLPredicate<Record<K>> prePatch, RLPredicate<Record<K>> predicate, Callback<Record<K>> cb ) {
-        forEach(new FilterSpore<>(predicate,null).setForEach(cb).onFinish( () -> cb.finish() ));
+    @CallerSideMethod default void filterPP(RLPredicate<Record> prePatch, RLPredicate<Record> predicate, Callback<Record> cb ) {
+        forEach(new FilterSpore(predicate,null).setForEach(cb).onFinish( () -> cb.finish() ));
     }
-    @CallerSideMethod default void filter( RLPredicate<Record<K>> predicate, Callback<Record<K>> cb ) {
-        forEach(new FilterSpore<>(predicate,null).setForEach(cb).onFinish( () -> cb.finish() ));
-    }
-
-    @CallerSideMethod default <R> void map( RLPredicate<Record<K>> predicate, RLFunction<Record<K>,R> mapFun, Callback<R> cb ) {
-        forEach(new MapSpore<>(predicate,mapFun).setForEach(cb).onFinish( () -> cb.finish() ));
+    @CallerSideMethod default void filter(RLPredicate<Record> predicate, Callback<Record> cb ) {
+        forEach(new FilterSpore(predicate,null).setForEach(cb).onFinish( () -> cb.finish() ));
     }
 
-    @CallerSideMethod default void query(String query, Callback<Record<K>> cb) throws ParseException {
-        this.filter(new QueryPredicate<Record<K>>(query), cb);
+    @CallerSideMethod default <R> void map(RLPredicate<Record> predicate, RLFunction<Record,R> mapFun, Callback<R> cb ) {
+        forEach(new MapSpore(predicate,mapFun).setForEach(cb).onFinish( () -> cb.finish() ));
     }
 
-    @CallerSideMethod default <REC> IPromise<List<REC>> collect(RLPredicate<Record<K>> predicate, Function<Record,REC> map) {
+    @CallerSideMethod default void query(String query, Callback<Record> cb) throws ParseException {
+        this.filter(new QueryPredicate<Record>(query), cb);
+    }
+
+    @CallerSideMethod default <REC> IPromise<List<REC>> collect(RLPredicate<Record> predicate, Function<Record,REC> map) {
         Promise res = new Promise();
         ArrayList resl = new ArrayList();
         filter( predicate, (r,e) -> {

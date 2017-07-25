@@ -8,15 +8,15 @@ import org.nustaq.reallive.records.PatchingRecord;
 /**
  * Created by ruedi on 13/08/15.
  */
-public class FilterSpore<K> extends Spore<Record<K>,Record<K>> {
+public class FilterSpore<K> extends Spore<Record,Record> {
 
-    RLPredicate<Record<K>> filter; // may modify record (gets patchable private copy
-    RLPredicate<Record<K>> prePatchFilter; // gets original record (no modification)
+    RLPredicate<Record> filter; // may modify record (gets patchable private copy
+    RLPredicate<Record> prePatchFilter; // gets original record (no modification)
 
-    public FilterSpore(RLPredicate<Record<K>> filter) {
+    public FilterSpore(RLPredicate<Record> filter) {
         this(filter,null);
     }
-    public FilterSpore(RLPredicate<Record<K>> filter,RLPredicate<Record<K>> prePatchFilter) {
+    public FilterSpore(RLPredicate<Record> filter, RLPredicate<Record> prePatchFilter) {
         this.filter = filter;
         this.prePatchFilter = prePatchFilter;
     }
@@ -29,7 +29,7 @@ public class FilterSpore<K> extends Spore<Record<K>,Record<K>> {
     };
 
     @Override
-    public void remote(Record<K> input) {
+    public void remote(Record input) {
         if ( prePatchFilter != null && ! prePatchFilter.test(input) ) {
             return;
         }

@@ -14,25 +14,25 @@ import java.util.concurrent.ConcurrentHashMap;
  * Synchronized local replication of a subscriütion
  *
  */
-public class SubscribedSet<K> {
+public class SubscribedSet {
 
-    RealLiveTable<K> source;
-    StorageDriver<K> storage;
-    Subscriber<K> subs;
+    RealLiveTable source;
+    StorageDriver storage;
+    Subscriber subs;
 
-    public SubscribedSet(RealLiveTable<K> source) {
+    public SubscribedSet(RealLiveTable source) {
         this(source,false);
     }
 
-    public SubscribedSet(RealLiveTable<K> source, boolean usConc) {
+    public SubscribedSet(RealLiveTable source, boolean usConc) {
         this.source = source;
-        storage = new StorageDriver<>(new HeapRecordStorage<>( usConc ? new ConcurrentHashMap<>() : new HashMap<>() ) );
+        storage = new StorageDriver(new HeapRecordStorage( usConc ? new ConcurrentHashMap() : new HashMap() ) );
     }
 
-    public void subscribe(RLPredicate<Record<K>> filter) {
+    public void subscribe(RLPredicate<Record> filter) {
         synchronized (this) {
             unsubscribe();
-            subs = new Subscriber<>(null,filter,change -> {
+            subs = new Subscriber(null,filter,change -> {
                 synchronized (this) {
                     storage.receive(change);
                 }
@@ -50,13 +50,13 @@ public class SubscribedSet<K> {
         }
     }
 
-    public Record<K> get(K key) {
+    public Record get(String key) {
         synchronized (this) {
             return storage.getStore().get(key);
         }
     }
 
-    public Map<K,Record<K>> cloneMap() {
+    public Map<Object,Record> cloneMap() {
         HashMap res = new HashMap();
         synchronized (this) {
             storage.getStore().stream()
@@ -69,7 +69,7 @@ public class SubscribedSet<K> {
      * should be used only if this is a HeapRecordStorage, accessed single threaded or this has been initialized using a concurrent map
      * @return
      */
-    public Map<K,Record<K>> getMap() {
+    public Map<Object,Record> getMap() {
         return ((HeapRecordStorage)storage.getStore()).getMap();
     }
 

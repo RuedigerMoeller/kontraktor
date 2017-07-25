@@ -10,18 +10,18 @@ import org.nustaq.reallive.interfaces.Record;
  *
  * should be option of filterspore, but cannot because of fixed types ..
  */
-public class MapSpore<K,V> extends Spore<Record<K>,V> {
+public class MapSpore<K,V> extends Spore<Record,V> {
 
-    private final RLFunction<Record<K>, V> mapFun;
-    private final RLPredicate<Record<K>> filter; // may modify record (gets patchable private copy
+    private final RLFunction<Record, V> mapFun;
+    private final RLPredicate<Record> filter; // may modify record (gets patchable private copy
 
-    public MapSpore(RLPredicate<Record<K>> filter, RLFunction<Record<K>,V> mapFun ) {
+    public MapSpore(RLPredicate<Record> filter, RLFunction<Record,V> mapFun ) {
         this.filter = filter;
         this.mapFun = mapFun;
     }
 
     @Override
-    public void remote(Record<K> input) {
+    public void remote(Record input) {
         if ( filter != null && ! filter.test(input) ) {
             return;
         }

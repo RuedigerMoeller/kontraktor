@@ -32,8 +32,8 @@ public class ChangeUtils {
     }
 
     public static Diff mayCopyAndDiff(Record from, Record to, String[] fields, boolean copy, HashSet<String> forced) {
-        ArrayList<String> changedFields = new ArrayList<>();
-        ArrayList<Object> changedValues = new ArrayList<>();
+        ArrayList<String> changedFields = new ArrayList();
+        ArrayList<Object> changedValues = new ArrayList();
         for (int i = 0; i < fields.length; i++) {
             String field = fields[i];
             Object oldValue = to.get(field);
@@ -80,7 +80,7 @@ public class ChangeUtils {
         return res;
     }
 
-    public static <K> Diff diff(Record<K> record, Record<K> prevRecord) {
+    public static <K> Diff diff(Record record, Record prevRecord) {
         String[] fields = merge(record.getFields(), prevRecord.getFields());
         return mayCopyAndDiff(record,prevRecord,fields,false, null);
     }

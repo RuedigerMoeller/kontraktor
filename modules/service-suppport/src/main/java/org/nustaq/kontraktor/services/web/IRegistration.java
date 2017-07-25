@@ -4,8 +4,6 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import io.undertow.util.StatusCodes;
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.annotations.CallerSideMethod;
-import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.templateapp.WebServer;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.interfaces.RealLiveTable;
@@ -44,7 +42,7 @@ public interface IRegistration extends IDataConnected {
         userTable.get(email).then((result, error) -> {
             if( result == null )
             {
-                MapRecord<String> user = MapRecord.New(email);
+                MapRecord user = MapRecord.New(email);
                 String confId = UUID.randomUUID().toString();
                 user
                     .put("email",email)

@@ -17,42 +17,42 @@ import java.util.concurrent.atomic.*;
 /**
  * Created by moelrue on 06.08.2015.
  */
-public class TableSharding<K> implements RealLiveTable<K> {
+public class TableSharding implements RealLiveTable {
 
-    ShardFunc<K> func;
-    RealLiveTable<K> shards[];
-    final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap<>();
+    ShardFunc func;
+    RealLiveTable shards[];
+    final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap();
     private TableDescription description;
 
-    public TableSharding(ShardFunc<K> func, RealLiveTable<K>[] shards, TableDescription desc) {
+    public TableSharding(ShardFunc func, RealLiveTable[] shards, TableDescription desc) {
         this.func = func;
         this.shards = shards;
         this.description = desc;
     }
 
     @Override
-    public void receive(ChangeMessage<K> change) {
+    public void receive(ChangeMessage change) {
         if ( change.getType() != ChangeMessage.QUERYDONE )
             shards[func.apply(change.getKey())].receive(change);
     }
 
     public IPromise resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes) {
-        List<IPromise<Object>> futs = new ArrayList<>();
+        List<IPromise<Object>> futs = new ArrayList();
         for (int i = 0; i < shards.length; i++) {
-            RealLiveTable<K> shard = shards[i];
+            RealLiveTable shard = shards[i];
             futs.add(shard.resizeIfLoadFactorLarger(loadFactor,maxGrowBytes));
         }
         return Actors.all(futs);
     }
 
     @Override
-    public void subscribe(Subscriber<K> subs) {
+    public void subscribe(Subscriber subs) {
         AtomicInteger doneCount = new AtomicInteger(shards.length);
-        ChangeReceiver<K> receiver = subs.getReceiver();
-        ArrayList<Subscriber> subsList = new ArrayList<>();
+        ChangeReceiver receiver = subs.getReceiver();
+        ArrayList<Subscriber> subsList = new ArrayList();
         for (int i = 0; i < shards.length; i++) {
-            RealLiveTable<K> shard = shards[i];
-            Subscriber<K> shardSubs = new Subscriber<>(subs.getPrePatchFilter(),subs.getFilter(), change -> {
+            RealLiveTable shard = shards[i];
+            Subscriber shardSubs = new Subscriber(subs.getPrePatchFilter(),subs.getFilter(), change -> {
                 if (change.getType() == ChangeMessage.QUERYDONE) {
                     int count = doneCount.decrementAndGet();
                     if (count == 0) {
@@ -69,7 +69,7 @@ public class TableSharding<K> implements RealLiveTable<K> {
     }
 
     @Override
-    public void unsubscribe(Subscriber<K> subs) {
+    public void unsubscribe(Subscriber subs) {
         if ( subs == null ) {
             Log.Warn(this,"unsubscribed is null");
             return;
@@ -87,115 +87,115 @@ public class TableSharding<K> implements RealLiveTable<K> {
     }
 
     @Override
-    public IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object... keyVals) {
+    public IPromise<Boolean> putCAS(RLPredicate<Record> casCondition, String key, Object... keyVals) {
         return shards[func.apply(key)].getMutation().putCAS(casCondition,key, keyVals);
     }
 
     @Override
-    public void atomic(K key, RLConsumer<Record<K>> action) {
+    public void atomic(String key, RLConsumer<Record> action) {
         shards[func.apply(key)].getMutation().atomic(key, action);
     }
 
     @Override
-    public IPromise atomicQuery(K key, RLFunction<Record<K>, Object> action) {
+    public IPromise atomicQuery(String key, RLFunction<Record, Object> action) {
         return shards[func.apply(key)].getMutation().atomicQuery(key, action);
     }
 
     @Override
-    public void atomicUpdate(RLPredicate<Record<K>> filter, RLFunction<Record<K>, Boolean> action) {
+    public void atomicUpdate(RLPredicate<Record> filter, RLFunction<Record, Boolean> action) {
         for (int i = 0; i < shards.length; i++) {
             shards[i].atomicUpdate(filter,action);
         }
     }
 
-    protected class ShardMutation implements Mutation<K> {
+    protected class ShardMutation implements Mutation {
 
         @Override
-        public IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object... keyVals) {
+        public IPromise<Boolean> putCAS(RLPredicate<Record> casCondition, String key, Object... keyVals) {
             return shards[func.apply(key)].getMutation().putCAS(casCondition, key, keyVals);
         }
 
         @Override
-        public void put(K key, Object... keyVals) {
-            shards[func.apply(key)].receive(new PutMessage<K>(RLUtil.get().record(key,keyVals)));
+        public void put(String key, Object... keyVals) {
+            shards[func.apply(key)].receive(new PutMessage(RLUtil.get().record(key,keyVals)));
         }
 
         @Override
-        public void atomic(K key, RLConsumer action) {
+        public void atomic(String key, RLConsumer action) {
             shards[func.apply(key)].getMutation().atomic(key, action);
         }
 
         @Override
-        public IPromise atomicQuery(K key, RLFunction<Record<K>,Object> action) {
+        public IPromise atomicQuery(String key, RLFunction<Record,Object> action) {
             return shards[func.apply(key)].getMutation().atomicQuery(key, action);
         }
 
         @Override
-        public void atomicUpdate(RLPredicate<Record<K>> filter, RLFunction<Record<K>, Boolean> action) {
+        public void atomicUpdate(RLPredicate<Record> filter, RLFunction<Record, Boolean> action) {
             TableSharding.this.atomicUpdate(filter,action);
         }
 
         @Override
-        public void addOrUpdate(K key, Object... keyVals) {
+        public void addOrUpdate(String key, Object... keyVals) {
             shards[func.apply(key)].receive(RLUtil.get().addOrUpdate(key, keyVals));
         }
 
         @Override
-        public void add(K key, Object... keyVals) {
+        public void add(String key, Object... keyVals) {
             shards[func.apply(key)].receive(RLUtil.get().add(key, keyVals));
         }
 
         @Override
-        public void add(Record<K> rec) {
+        public void add(Record rec) {
             if ( rec instanceof RecordWrapper )
                 rec = ((RecordWrapper) rec).getRecord();
-            shards[func.apply(rec.getKey())].receive((ChangeMessage<K>)new AddMessage<>(rec));
+            shards[func.apply(rec.getKey())].receive((ChangeMessage)new AddMessage(rec));
         }
 
         @Override
-        public void addOrUpdateRec(Record<K> rec) {
+        public void addOrUpdateRec(Record rec) {
             if ( rec instanceof RecordWrapper )
                 rec = ((RecordWrapper) rec).getRecord();
-            shards[func.apply(rec.getKey())].receive(new AddMessage<K>(true,rec));
+            shards[func.apply(rec.getKey())].receive(new AddMessage(true,rec));
         }
 
         @Override
-        public void put(Record<K> rec) {
+        public void put(Record rec) {
             if ( rec instanceof RecordWrapper )
                 rec = ((RecordWrapper) rec).getRecord();
-            shards[func.apply(rec.getKey())].receive(new PutMessage<K>(rec));
+            shards[func.apply(rec.getKey())].receive(new PutMessage(rec));
         }
 
         @Override
-        public void update(K key, Object... keyVals) {
+        public void update(String key, Object... keyVals) {
             shards[func.apply(key)].receive(RLUtil.get().update(key, keyVals));
         }
 
         @Override
-        public void remove(K key) {
+        public void remove(String key) {
             RemoveMessage remove = RLUtil.get().remove(key);
             shards[func.apply(key)].receive(remove);
         }
     }
 
-    public Mutation<K> getMutation() {
+    public Mutation getMutation() {
         return new ShardMutation();
     }
 
     @Override
-    public <T> void forEach(Spore<Record<K>, T> spore) {
+    public <T> void forEach(Spore<Record, T> spore) {
         spore.setExpectedFinishCount(shards.length);
         for (int i = 0; i < shards.length; i++) {
-            RealLiveTable<K> shard = shards[i];
+            RealLiveTable shard = shards[i];
             shard.forEach(spore);
         }
     }
 
     @Override
     public IPromise ping() {
-        List<IPromise<Object>> futs = new ArrayList<>();
+        List<IPromise<Object>> futs = new ArrayList();
         for (int i = 0; i < shards.length; i++) {
-            RealLiveTable<K> shard = shards[i];
+            RealLiveTable shard = shards[i];
             futs.add(shard.ping());
         }
         return Actors.all(futs);
@@ -236,7 +236,7 @@ public class TableSharding<K> implements RealLiveTable<K> {
     }
 
     @Override
-    public IPromise<Record<K>> get(K key) {
+    public IPromise<Record> get(String key) {
         if ( key == null )
             return null;
         return shards[func.apply(key)].get(key);
@@ -245,9 +245,9 @@ public class TableSharding<K> implements RealLiveTable<K> {
     @Override
     public IPromise<Long> size() {
         Promise result = new Promise();
-        List<IPromise<Long>> futs = new ArrayList<>();
+        List<IPromise<Long>> futs = new ArrayList();
         for (int i = 0; i < shards.length; i++) {
-            RealLiveTable<K> shard = shards[i];
+            RealLiveTable shard = shards[i];
             futs.add(shard.size());
         }
         Actors.all(futs).then( longPromisList -> {
