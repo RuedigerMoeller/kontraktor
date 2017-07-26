@@ -29,6 +29,7 @@ public class ReactAppSession extends BasicWebSessionActor {
     protected IPromise loadSessionData(String sessionId, ISessionStorage storage) {
         Promise res = new Promise();
         Log.Info(this,"loadSessionData " + sessionId);
+        // lets cache the record of current user
         storage.getUserRecord(_getUserKey()).then( (user,err) -> {
             if ( user != null) {
                 userRecord = user;

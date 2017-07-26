@@ -21,13 +21,6 @@ import static org.nustaq.kontraktor.Actors.AsActor;
  */
 public class ReactAppMain extends UndertowWebServerMain {
 
-    public Class[] getMessageClasses() {
-        return new Class[] {
-            BasicAuthenticationResult.class,
-            PersistedRecord.class
-        };
-    }
-
     public static void main(String[] args) throws IOException {
 
 //        BasicWebAppConfig cfg = BasicWebAppConfig.read();

@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 public class BasicWebAppConfig implements Serializable {
 
     public static BasicWebAppConfig read(Class ... mapped) {
-        return read("./etc/app.kson", mapped);
+        return read("./run/etc/app.kson", mapped);
     }
 
     public static BasicWebAppConfig read() {
@@ -44,8 +44,8 @@ public class BasicWebAppConfig implements Serializable {
     }
 
 
-    protected String staticUrlPrefix="/static/";
-    protected String staticFileRoot="./src/main/web/static";
+    protected String staticUrlPrefix="/filez/";
+    protected String staticFileRoot="./run/filez";
     protected int numSessionThreads = 4;
     protected boolean dev=true;
     protected int port = 8080;

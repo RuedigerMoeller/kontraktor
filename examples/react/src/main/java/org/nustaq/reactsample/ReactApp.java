@@ -18,10 +18,10 @@ import java.util.Arrays;
  * remote calls can be done without authentication, so take care
  */
 @Secured // enforce explicit tagging of remoteable methods (@Remote) effects ALSO Session actors
-public class ReactApp extends BasicWebAppActor<ReactApp,BasicWebAppConfig> {
+public class ReactApp extends BasicWebAppActor<ReactApp,ReactAppConfig> {
 
     @Override
-    public void init(BasicWebAppConfig config) {
+    public void init(ReactAppConfig config) {
         super.init(config);
         // fill in some predefined accounts from our config
         ReactAppConfig cfg = (ReactAppConfig) config;

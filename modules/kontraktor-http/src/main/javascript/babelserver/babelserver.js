@@ -13,7 +13,7 @@ class Babel {
         debug: !!babelopts.debug
         // paths: ['/home/ruedi/IdeaProjects/kontraktor/examples/react/src/main/nodejs/']
       })
-      .transform("babelify", { presets: babelopts.presets })
+      .transform("babelify", { presets: babelopts.presets, extensions: [".tsx", ".ts", ".js", ".jsx"] })
       .bundle( (err,buff) => {
         if ( err ) {
           console.log(err);

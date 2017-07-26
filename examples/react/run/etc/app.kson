@@ -1,7 +1,7 @@
 ReactAppConfig {
 
-  staticUrlPrefix: "/static/"
-  staticFileRoot: "./src/main/web/static"
+  staticUrlPrefix: "/filez/"
+  staticFileRoot: "./run/filez"
   clientRoot: "./src/main/web/client"
 
   numSessionThreads: 4

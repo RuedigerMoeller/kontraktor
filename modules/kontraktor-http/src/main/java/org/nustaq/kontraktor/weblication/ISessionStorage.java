@@ -8,6 +8,10 @@ import java.util.function.Function;
 /**
  * Created by ruedi on 20.06.17.
  *
+ * Defines Persistance requirements. There is a default implementation based on memory mapped
+ * files which should be sufficient for small to medium sized apps (<0.5 million user).
+ *
+ * The interface could be implemented backed by your favourite data base or data grid.
  */
 public interface ISessionStorage {
 

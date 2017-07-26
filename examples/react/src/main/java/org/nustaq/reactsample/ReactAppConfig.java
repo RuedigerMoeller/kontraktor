@@ -7,7 +7,7 @@ public class ReactAppConfig extends BasicWebAppConfig {
         return (ReactAppConfig) BasicWebAppConfig.read(ReactAppConfig.class);
     }
 
-    String initialUsers[] = {"username","password"};
+    String initialUsers[] = {"username","password","text"};
 
     public String[] getInitialUsers() {
         return initialUsers;

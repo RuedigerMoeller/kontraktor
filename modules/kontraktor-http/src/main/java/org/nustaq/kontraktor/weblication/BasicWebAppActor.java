@@ -76,7 +76,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     }
 
     /**
-     * does a lookup for a usere record using 'user' as key. Compares pw with 'pwd' of user record if found
+     * does a lookup for a user record using 'user' as key. Compares pw with 'pwd' of user record if found
      *
      * @param pw
      * @param jwt
@@ -143,7 +143,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     /**
      * An existing spa client made a request after being inactive for a long time.
      *
-     * Your mission: reconstruct a session actor and state (e.g. from persistence) so it can continue or
+     * mission: reconstruct a session actor and load its state (e.g. from persistence) so it can continue or
      * return null and handle "session expired" correctly at client side. Note there is a default implementation
      *
      * session resurrection is called using await => hurry up
@@ -198,6 +198,11 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         });
     }
 
+    /**
+     * simplified, override handleDirectRequest() for full control+access to http header and response type
+     * @param path
+     * @return
+     */
     protected IPromise<String> getDirectRequestResponse(String path) {
         return new Promise("Hey there "+path);
     }
