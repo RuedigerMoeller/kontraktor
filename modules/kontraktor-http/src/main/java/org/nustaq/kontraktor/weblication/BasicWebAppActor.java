@@ -1,5 +1,7 @@
 package org.nustaq.kontraktor.weblication;
 
+import io.undertow.server.HttpServerExchange;
+import io.undertow.util.Headers;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
@@ -228,4 +230,21 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         return true;
     }
 
+    /**
+     * reply a request catched by interceptor, note this is server dependent and bound to undertow.
+     * for servlet containers, just override KontraktorServlet methods
+     * @param exchange
+     */
+    public void handleDirectRequest(HttpServerExchange exchange) {
+        Log.Info(this,"direct request received "+exchange);
+        getDirectRequestResponse(exchange.getRequestPath()).then( (s,err) -> {
+            exchange.setResponseCode(200);
+            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/html; charset=utf-8");
+            exchange.getResponseSender().send(s == null  ? ""+err : s );
+        });
+    }
+
+    protected IPromise<String> getDirectRequestResponse(String path) {
+        return new Promise("Hey there "+path);
+    }
 }

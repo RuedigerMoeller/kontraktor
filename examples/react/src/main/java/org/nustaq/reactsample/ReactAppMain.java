@@ -46,8 +46,10 @@ public class ReactAppMain {
         ReactApp myHttpApp = AsActor(ReactApp.class);
         myHttpApp.init(new BasicWebAppConfig());
 
-        Class msgClasses[] = { BasicAuthenticationResult.class, PersistedRecord.class }; // these classes are encoded with Simple Name in JSon
+        // these classes are encoded with Simple Name in JSon
+        Class msgClasses[] = { BasicAuthenticationResult.class, PersistedRecord.class };
         Http4K.Build("localhost", 8080)
+            .fileRoot("static", "src/main/web/static")
             .resourcePath("/")
                 .elements(
                     "src/main/web/client",
@@ -55,6 +57,16 @@ public class ReactAppMain {
                 )
                 .allDev(DEV)
                 .transpile("jsx",new JSXTranspiler().opts(new BabelOpts().debug(DEV)))
+                .handlerInterceptor( exchange -> {
+                    // can be used to intercept (e.g. redirect or raw response) all requests coming in on this resourcepath
+                    String requestPath = exchange.getRequestPath();
+                    if ( requestPath == null || !requestPath.startsWith("/direct/") ) {
+                        return false;
+                    }
+                    exchange.dispatch();
+                    myHttpApp.handleDirectRequest(exchange);
+                    return true;
+                })
                 .build()
             .httpAPI("/ep", myHttpApp)
                 .coding(new Coding(SerializerType.JsonNoRef,msgClasses))
