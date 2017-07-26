@@ -78,8 +78,8 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     }
 
     @Override
-    public IPromise atomic(String key, Function<PersistedRecord, AtomicResult> recordConsumer) {
-        AtomicResult res = recordConsumer.apply((PersistedRecord) userData.get(key));
+    public IPromise atomic(String key, Function<PersistedRecord, AtomicResult> fun) {
+        AtomicResult res = fun.apply((PersistedRecord) userData.get(key));
         if ( res.getAction() == Action.PUT ) {
             userData.put(key,res.getRecord());
         } else if ( res.getAction() == Action.DELETE ) {

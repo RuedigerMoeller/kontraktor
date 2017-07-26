@@ -51,10 +51,19 @@ public interface ISessionStorage {
 
     IPromise<String> getUserKeyFromSessionId(String sid);
     void putSessionId(String sessionId, String user);
-    IPromise atomic(String key, Function<PersistedRecord, AtomicResult> recordConsumer);
+
+    /**
+     * fixme: too complicated
+     */
+    IPromise atomic(String key, Function<PersistedRecord, AtomicResult> fun);
     void storeRecord(PersistedRecord userRecord);
     void delRecord(String userkey);
     IPromise<Boolean> storeIfNotPresent(PersistedRecord userRecord);
     IPromise<PersistedRecord> getUserRecord(String userId);
+
+    /**
+     * stream all user records to the given callback and close it calling cb.finish()
+     * @param cb
+     */
     void forEach(Callback<PersistedRecord> cb);
 }
