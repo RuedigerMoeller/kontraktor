@@ -11,51 +11,9 @@ import java.util.function.Function;
  */
 public interface ISessionStorage {
 
-    enum Action {
-        PUT,
-        DELETE
-    }
+    IPromise<String> getUserFromSessionId(String sid);
+    void putUserAtSessionId(String sessionId, String userKey);
 
-    class AtomicResult implements Serializable {
-        Action action;
-        PersistedRecord record;
-        Object returnValue;
-
-        public Action getAction() {
-            return action;
-        }
-
-        public PersistedRecord getRecord() {
-            return record;
-        }
-
-        public AtomicResult action(final Action action) {
-            this.action = action;
-            return this;
-        }
-
-        public AtomicResult record(final PersistedRecord record) {
-            this.record = record;
-            return this;
-        }
-
-        public AtomicResult returnValue(final Object returnValue) {
-            this.returnValue = returnValue;
-            return this;
-        }
-
-        public Object getReturnValue() {
-            return returnValue;
-        }
-    }
-
-    IPromise<String> getUserKeyFromSessionId(String sid);
-    void putSessionId(String sessionId, String user);
-
-    /**
-     * fixme: too complicated
-     */
-    IPromise atomic(String key, Function<PersistedRecord, AtomicResult> fun);
     void storeRecord(PersistedRecord userRecord);
     void delRecord(String userkey);
     IPromise<Boolean> storeIfNotPresent(PersistedRecord userRecord);
@@ -65,5 +23,5 @@ public interface ISessionStorage {
      * stream all user records to the given callback and close it calling cb.finish()
      * @param cb
      */
-    void forEach(Callback<PersistedRecord> cb);
+    void forEachUser(Callback<PersistedRecord> cb);
 }

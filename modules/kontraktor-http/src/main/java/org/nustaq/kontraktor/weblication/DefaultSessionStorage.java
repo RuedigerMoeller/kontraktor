@@ -68,24 +68,13 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     }
 
     @Override
-    public IPromise<String> getUserKeyFromSessionId(String sid) {
+    public IPromise<String> getUserFromSessionId(String sid) {
         return new Promise(sessionId2UserKey.get(sid));
     }
 
     @Override
-    public void putSessionId(String sessionId, String user) {
-        sessionId2UserKey.put(sessionId,user);
-    }
-
-    @Override
-    public IPromise atomic(String key, Function<PersistedRecord, AtomicResult> fun) {
-        AtomicResult res = fun.apply((PersistedRecord) userData.get(key));
-        if ( res.getAction() == Action.PUT ) {
-            userData.put(key,res.getRecord());
-        } else if ( res.getAction() == Action.DELETE ) {
-            userData.remove(key);
-        }
-        return new Promise(res.getReturnValue());
+    public void putUserAtSessionId(String sessionId, String userKey) {
+        sessionId2UserKey.put(sessionId, userKey);
     }
 
     @Override
@@ -114,7 +103,7 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     }
 
     @Override
-    public void forEach(Callback<PersistedRecord> cb) {
+    public void forEachUser(Callback<PersistedRecord> cb) {
         for (Iterator it = userData.values(); it.hasNext(); ) {
             PersistedRecord rec = (PersistedRecord) it.next();
             cb.stream(rec);

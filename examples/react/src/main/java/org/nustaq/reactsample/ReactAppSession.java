@@ -47,7 +47,7 @@ public class ReactAppSession extends BasicWebSessionActor {
 
     @Remoted
     public void queryUsers(Callback<PersistedRecord> cb) {
-        getSessionStorage().forEach( cb );
+        getSessionStorage().forEachUser( cb );
     }
 
 }

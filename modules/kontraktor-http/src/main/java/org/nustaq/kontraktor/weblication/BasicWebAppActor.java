@@ -62,7 +62,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
                 getSession(user,sessionId, authres ).then( (sess,serr) -> {
                     if ( sess != null ) {
                         if ( sessionId != null && sessionStorage != null ) {
-                            sessionStorage.putSessionId(sessionId,user);
+                            sessionStorage.putUserAtSessionId(sessionId,user);
                         }
                         res.resolve(new Object[]{sess,authres});
                     } else
@@ -161,7 +161,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         if ( sessionStorage == null )
             return resolve(null);
         Promise res = new Promise();
-        sessionStorage.getUserKeyFromSessionId(sessionId).then( (user, err) -> {
+        sessionStorage.getUserFromSessionId(sessionId).then( (user, err) -> {
             if ( user == null )
                 res.resolve(null);
             else {
