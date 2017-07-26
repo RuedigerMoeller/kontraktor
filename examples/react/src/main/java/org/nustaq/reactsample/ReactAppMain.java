@@ -27,7 +27,7 @@ public class ReactAppMain {
     public static void main(String[] args) throws IOException {
         boolean DEV = true;
 
-        // start node babelserver daemon directly, uncomment if you prefer to run it manually (avoids restarting it with each server start)
+        // check/start node babelserver daemon (if this fails run babeldaemon manually, e.g. windoze
         if ( !BasicWebAppActor.runNodify() ) {
             System.out.println("failed to connect / start babel");
             System.exit(1);
