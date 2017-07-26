@@ -185,52 +185,6 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     }
 
     /**
-     * util to startup babel/browserify daemon
-     * @return true if successful
-     */
-    public static boolean runNodify() {
-        try {
-            BrowseriBabelify.get();
-        } catch (Exception ex) {
-            Log.Warn(BasicWebAppActor.class,"babelserver not running .. try starting");
-            boolean isWindows = System.getProperty("os.name","linux").toLowerCase().indexOf("windows") >= 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                if (isWindows) {
-                    processBuilder.command("cmd.exe", "/c", "node "+ BABEL_SERVER_JS_PATH);
-                } else {
-                    String bash = BASH_EXEC;
-                    if ( !new File(bash).exists() ) {
-                        bash = "/bin/bash";
-                    }
-                    processBuilder.command(bash, "-c", "node "+ BABEL_SERVER_JS_PATH);
-                }
-                processBuilder.directory(new File(WEBAPP_DIR));
-                processBuilder.inheritIO();
-                Process process = processBuilder.start();
-                for ( int i = 0; i < 8; i++ ) {
-                    Thread.sleep(500);
-                    System.out.print('.');
-                    try {
-                        BrowseriBabelify.get();
-                        break;
-                    } catch (Exception e) {
-                        if ( i==3 ) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-                System.out.println();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            }
-
-        }
-        return true;
-    }
-
-    /**
      * reply a request catched by interceptor, note this is server dependent and bound to undertow.
      * for servlet containers, just override KontraktorServlet methods
      * @param exchange
