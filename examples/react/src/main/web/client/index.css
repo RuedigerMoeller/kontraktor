@@ -77,7 +77,7 @@ input:focus {
     box-shadow: 0 0 5px 1px #969696;
 }
 
-.lgbtn {
+.defbtn {
     font-family: sans-serif;
     font-size: 14px;
     appearance: none;
@@ -90,10 +90,27 @@ input:focus {
     cursor: pointer;
     background: #fff;
 }
-.lgbtn:hover {
+.defbtn:hover {
     outline: none;
     border: solid 1px #707070;
-    box-shadow: 0 0 5px 1px #969696;
+    box-shadow: 0 0 2px 1px #969696;
+}
+
+.lightbtn {
+    font-family: sans-serif;
+    font-size: 12px;
+    appearance: none;
+    box-shadow: none;
+    border-radius: none;
+    padding: 8px 8px;
+    border: none;
+    transition: box-shadow 0.3s, border 0.3s;
+    box-sizing: border-box;
+    cursor: pointer;
+    /*background: #fff;*/
+}
+.lightbtn:hover {
+    text-decoration: underline;
 }
 
 .gradientbg {
