@@ -149,7 +149,7 @@ class DecodingHelper {
   }
 
   /**
-   * transforms a java hashmap to a JS map, assumes keys are strings
+   * transforms a java hashmap to a JS object, assumes keys are strings
    * @param jmap
    */
   jsmap(jmap) {
@@ -174,7 +174,7 @@ class DecodingHelper {
   }
 
   /**
-   * builds a java hashmap from array like '[ key, val, key, val ]'
+   * builds a java hashmap from array like '[ key, val, key, val ]' or a js object
    *
    * if list is an object, build a hashmap from the properties of that object
    *

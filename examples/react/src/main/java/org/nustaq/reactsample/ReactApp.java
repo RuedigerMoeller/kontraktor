@@ -21,10 +21,9 @@ import java.util.Arrays;
 public class ReactApp extends BasicWebAppActor<ReactApp,ReactAppConfig> {
 
     @Override
-    public void init(ReactAppConfig config) {
-        super.init(config);
+    public void init(ReactAppConfig cfg) {
+        super.init(cfg);
         // fill in some predefined accounts from our config
-        ReactAppConfig cfg = (ReactAppConfig) config;
         String[] initialUsers = cfg.getInitialUsers();
         if ( initialUsers != null ) {
             for (int i = 0; i < initialUsers.length; i+=3) {
@@ -61,13 +60,19 @@ public class ReactApp extends BasicWebAppActor<ReactApp,ReactAppConfig> {
         return p;
     }
 
-    /**
-     * return new Promise(null) in order to bypass session reanimation default implementation
-     */
-//    @Override
-//    public IPromise<Actor> reanimate(String sessionId, long remoteRefId) {
-//        Log.Info(this,"reanimate called ..");
-//        return new Promise<>(null);
-//    }
+    @Override
+    protected IPromise<String> getDirectRequestResponse(String path) {
+        String[] split = path.split("/");
+        if ( split.length == 0 )
+            return resolve("<html>Invalid Link</html>");
+        Promise res = new Promise();
+        sessionStorage.takeToken( split[split.length-1], false).then( (token,err) -> {
+            if ( token != null ) {
+                res.resolve("<html>User confirmed: '"+token.getUserId()+"' data:"+token.getData()+"</html>");
+            } else
+                res.reject("<html>Expired or invalid Link</html>");
+        });
+        return res;
+    }
 
 }

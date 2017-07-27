@@ -51,4 +51,17 @@ public class ReactAppSession extends BasicWebSessionActor {
         getSessionStorage().forEachUser( cb );
     }
 
+    @Remoted public IPromise<String> createTokenLink() {
+        Promise res = new Promise();
+        getSessionStorage().createToken(
+            new ISessionStorage.Token(userKey,"hello",60_000l)
+        ).then( (s,err) -> {
+            if ( s != null )
+                res.resolve("direct/"+s);
+            else
+                res.reject(err);
+        });
+        return res;
+    }
+
 }
