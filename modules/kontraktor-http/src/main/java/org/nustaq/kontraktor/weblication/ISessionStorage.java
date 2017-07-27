@@ -15,6 +15,44 @@ import java.util.function.Function;
  */
 public interface ISessionStorage {
 
+    class Token implements Serializable {
+        String userId;
+        String data;
+        long lifeTime;
+
+        public Token(String userId, String data, long lifeTime) {
+            this.userId = userId;
+            this.data = data;
+            this.lifeTime = lifeTime;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+
+        public String getData() {
+            return data;
+        }
+
+        public long getLifeTime() {
+            return lifeTime;
+        }
+    }
+
+    /**
+     * creates a persisted token associated with the user and data. (e.g. a pending confirmation email)
+     *
+     * @return a unique string identifier
+     */
+    IPromise<String> createToken(Token t);
+
+    /**
+     * retrieves the token if it is present and valid (not timed out)
+     *
+     * @return
+     */
+    IPromise<Token> takeToken(String tokenId, boolean delete);
+
     IPromise<String> getUserFromSessionId(String sid);
     void putUserAtSessionId(String sessionId, String userKey);
 

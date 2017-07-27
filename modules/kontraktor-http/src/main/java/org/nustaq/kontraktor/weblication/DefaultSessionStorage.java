@@ -12,6 +12,7 @@ import org.nustaq.offheap.FSTUTFStringOffheapMap;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Iterator;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -68,13 +69,46 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     }
 
     @Override
+    public IPromise<String> createToken(Token t) {
+        String key = UUID.randomUUID().toString();
+        sessionId2UserKey.put(key,
+            new PersistedRecord(key)
+                .put("lifeTime", System.currentTimeMillis()+t.getLifeTime())
+                .put("data",t.getData())
+        );
+        return resolve(key);
+    }
+
+    @Override
+    public IPromise<Token> takeToken(String tokenId, boolean delete) {
+        Object o = sessionId2UserKey.get(tokenId);
+        if ( o instanceof PersistedRecord ) {
+            PersistedRecord r = (PersistedRecord) o;
+            // still valid ?
+            if ( r.getLong("lifeTime") > System.currentTimeMillis() ) {
+                if ( delete ) {
+                    sessionId2UserKey.remove(tokenId);
+                }
+                return resolve(new Token(r.getKey(),r.getString("data"),r.getLong("lifeTime")));
+            } else {
+                sessionId2UserKey.remove(tokenId); // delete outdated token
+            }
+        }
+        return resolve(null);
+    }
+
+    @Override
     public IPromise<String> getUserFromSessionId(String sid) {
-        return new Promise(sessionId2UserKey.get(sid));
+        Object o = sessionId2UserKey.get(sid);
+        if ( o instanceof Object[] ) { // backward
+            o = ((Object[]) o)[0];
+        }
+        return new Promise(o);
     }
 
     @Override
     public void putUserAtSessionId(String sessionId, String userKey) {
-        sessionId2UserKey.put(sessionId, userKey);
+        sessionId2UserKey.put(sessionId, new Object[]{userKey,System.currentTimeMillis()});
     }
 
     @Override

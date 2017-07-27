@@ -36,6 +36,7 @@ public class BrowseriBabelify extends Actor<BrowseriBabelify> {
         return browserifyInternal(new File(filePath).getAbsolutePath(), opts);
     }
 
+    // dummy prototype, implementation is on js server side
     public IPromise<BabelResult> browserifyInternal(String filePath, BabelOpts opts) {
         return null;
     }

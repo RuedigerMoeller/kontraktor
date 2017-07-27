@@ -5,3 +5,4 @@ NOPE - share sessions by user
 - nodify exits
 - cleanup users
 - direct link handling
+- upgrade fst
