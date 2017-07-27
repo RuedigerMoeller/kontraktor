@@ -1,4 +1,4 @@
-package org.nustaq.reallive.interfaces;
+package org.nustaq.reallive.api;
 
 import java.io.Serializable;
 
@@ -14,13 +14,12 @@ public class TableDescription implements Serializable, Cloneable {
     }
 
     String name;
-    int sizeMB = 10;
+    int sizeMB = 1000;
     String filePath = TableSpace.USE_BASE_DIR;
     int numEntries=100_000;
     int shardNo;
     int keyLen = 48;
     StorageType st = StorageType.CACHED;
-    boolean parallelFiltering = false;
 
     public TableDescription() {}
 
@@ -30,15 +29,6 @@ public class TableDescription implements Serializable, Cloneable {
 
     public TableDescription name(final String name) {
         this.name = name;
-        return this;
-    }
-
-    public boolean isParallelFiltering() {
-        return parallelFiltering;
-    }
-
-    public TableDescription parallelFiltering(final boolean parallelFiltering) {
-        this.parallelFiltering = parallelFiltering;
         return this;
     }
 

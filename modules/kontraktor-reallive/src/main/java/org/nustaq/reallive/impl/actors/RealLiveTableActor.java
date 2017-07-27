@@ -8,8 +8,11 @@ import org.nustaq.kontraktor.remoting.encoding.CallbackRefSerializer;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.impl.*;
 import org.nustaq.reallive.impl.storage.StorageStats;
-import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.messages.AddMessage;
+import org.nustaq.reallive.messages.PutMessage;
+import org.nustaq.reallive.messages.RemoveMessage;
+import org.nustaq.reallive.records.RecordWrapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,13 +38,14 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     int taCount = 0;
 
     @Local
-    public void init(Supplier<RecordStorage> storeFactory, TableDescription desc) {
+    public IPromise init(Supplier<RecordStorage> storeFactory, TableDescription desc) {
         this.description = desc;
-        Thread.currentThread().setName("Table "+desc.getName()+" main");
+        Thread.currentThread().setName("Table "+(desc==null?"NULL":desc.getName())+" main");
         RecordStorage store = storeFactory.get();
         storageDriver = new StorageDriver(store);
         filterProcessor = new FilterProcessor(this);
         storageDriver.setListener( filterProcessor );
+        return resolve();
     }
 
     @Override
@@ -57,14 +61,14 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     public <T> void forEachDirect(Spore<Record, T> spore) {
         checkThread();
         try {
-            storageDriver.getStore().forEach(spore);
+            storageDriver.getStore().forEachWithSpore(spore);
         } catch (Exception ex) {
             spore.complete(null,ex);
         }
     }
 
     @Override
-    public <T> void forEach(Spore<Record, T> spore) {
+    public <T> void forEachWithSpore(Spore<Record, T> spore) {
         forEachQueued(spore, () -> {});
     }
 
@@ -84,18 +88,18 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
             if (Actors.isResult(e))
                 subs.getReceiver().receive((ChangeMessage) r);
         };
-        _subscribe(subs.getPrePatchFilter(),subs.getFilter(), callback, subs.getId());
+        _subscribe(subs.getFilter(), callback, subs.getId());
     }
 
-    public void _subscribe(RLPredicate<Record> prePatchFilter, RLPredicate pred, Callback cb, int id) {
+    public void _subscribe(RLPredicate pred, Callback cb, int id) {
         checkThread();
-        Subscriber localSubs = new Subscriber(prePatchFilter,pred, change -> {
+        Subscriber localSubs = new Subscriber(pred, change -> {
             cb.stream(change);
         }).serverSideCB(cb);
         String sid = addChannelIdIfPresent(cb, ""+id);
         receiverSideSubsMap.put(sid,localSubs);
 
-        FilterSpore spore = new FilterSpore(localSubs.getFilter(),localSubs.getPrePatchFilter());
+        FilterSpore spore = new FilterSpore(localSubs.getFilter()).modifiesResult(false);
         spore.onFinish( () -> localSubs.getReceiver().receive(RLUtil.get().done()) );
         spore.setForEach((r, e) -> {
             if (Actors.isResult(e)) {
@@ -121,12 +125,12 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
         }
     }
 
-    void forEachQueued( Spore s, Runnable r ) {
+    private void forEachQueued( Spore s, Runnable r ) {
         queuedSpores.add(new QueryQEntry(s,r));
-        self().execQueriesOrDelay(queuedSpores.size(),taCount);
+        self()._execQueriesOrDelay(queuedSpores.size(),taCount);
     }
 
-    public void execQueriesOrDelay(int size, int taCount) {
+    public void _execQueriesOrDelay(int size, int taCount) {
         if ( (queuedSpores.size() == size && this.taCount == taCount) || queuedSpores.size() > MAX_QUERY_BATCH_SIZE) {
             long tim = System.currentTimeMillis();
             Consumer<Record> recordConsumer = rec -> {
@@ -142,11 +146,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
                     }
                 }
             };
-            if ( description.isParallelFiltering() ) {
-                storageDriver.getStore().stream().parallel().forEach(recordConsumer);
-            } else {
-                storageDriver.getStore().stream().forEach(recordConsumer);
-            }
+            storageDriver.getStore().stream().forEach(recordConsumer);
             queuedSpores.forEach( qqentry -> {
                 qqentry.spore.finish();
                 qqentry.onFin.run();
@@ -156,7 +156,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
             queuedSpores.clear();
             return;
         }
-        execQueriesOrDelay(queuedSpores.size(),this.taCount);
+        _execQueriesOrDelay(queuedSpores.size(),this.taCount);
     }
 
     protected String addChannelIdIfPresent(Callback cb, String sid) {
@@ -212,18 +212,6 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     @Override
-    public IPromise<Boolean> putCAS(RLPredicate<Record> casCondition, String key, Object[] keyVals) {
-        taCount++;
-        return storageDriver.putCAS(casCondition,key,keyVals);
-    }
-
-    @Override
-    public void atomic(String key, RLConsumer<Record> action) {
-        taCount++;
-        storageDriver.atomic(key,action);
-    }
-
-    @Override
     public IPromise atomicQuery(String key, RLFunction<Record, Object> action) {
         taCount++;
         return storageDriver.atomicQuery(key,action);
@@ -242,6 +230,68 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
         storageDriver.resizeIfLoadFactorLarger(loadFactor,maxGrowBytes);
         Log.Info(this,"resizing duration"+(System.currentTimeMillis()-now));
         return resolve();
+    }
+
+    @Override
+    public void put(String key, Object ... keyVals) {
+        receive(RLUtil.get().put(key, keyVals));
+    }
+
+    @Override
+    public void merge(String key, Object... keyVals) {
+        if ( ((Object)key) instanceof Record )
+            throw new RuntimeException("probably accidental method resolution fail. Use merge instead");
+        receive(RLUtil.get().addOrUpdate(key, keyVals));
+    }
+
+    @Override
+    public IPromise<Boolean> add(String key, Object... keyVals) {
+        if ( storageDriver.getStore().get(key) != null )
+            return resolve(false);
+        receive(RLUtil.get().add(key, keyVals));
+        return resolve(true);
+    }
+
+    @Override
+    public IPromise<Boolean> addRecord(Record rec) {
+        if ( rec instanceof RecordWrapper)
+            rec = ((RecordWrapper) rec).getRecord();
+        if ( storageDriver.getStore().get(rec.getKey()) != null )
+            return resolve(false);
+        receive((ChangeMessage) new AddMessage(rec));
+        return resolve(true);
+    }
+
+    @Override
+    public void mergeRecord(Record rec) {
+        if ( rec instanceof RecordWrapper )
+            rec = ((RecordWrapper) rec).getRecord();
+        receive(new AddMessage(true,rec));
+    }
+
+    @Override
+    public void putRecord(Record rec) {
+        if ( rec instanceof RecordWrapper )
+            rec = ((RecordWrapper) rec).getRecord();
+        receive(new PutMessage(rec));
+    }
+
+    @Override
+    public void update(String key, Object... keyVals) {
+        receive(RLUtil.get().update(key, keyVals));
+    }
+
+    @Override
+    public IPromise<Record> take(String key) {
+        Record record = storageDriver.getStore().get(key);
+        receive(RLUtil.get().remove(key));
+        return resolve(record);
+    }
+
+    @Override
+    public void remove(String key) {
+        RemoveMessage remove = RLUtil.get().remove(key);
+        receive(remove);
     }
 
 }

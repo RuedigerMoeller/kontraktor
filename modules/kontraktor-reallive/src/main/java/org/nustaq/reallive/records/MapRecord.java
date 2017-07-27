@@ -1,6 +1,6 @@
 package org.nustaq.reallive.records;
 
-import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.impl.RLUtil;
 
 import java.util.HashMap;
@@ -19,7 +19,7 @@ public class MapRecord implements Record {
     public static Class<? extends MapRecord> recordClass = MapRecord.class;
     public static Function<MapRecord,MapRecord> conversion;
 
-    public static <K> MapRecord New() {
+    public static MapRecord New() {
         try {
             return recordClass.newInstance();
         } catch (InstantiationException e) {
@@ -44,8 +44,8 @@ public class MapRecord implements Record {
         return mapRecord;
     }
 
-    public static <K> MapRecord New(K key, Object ... values) {
-        MapRecord mapRecord = New();
+    public static MapRecord New(String key, Object ... values) {
+        MapRecord mapRecord = New(key);
         RLUtil.get().buildRecord(mapRecord,values);
         return mapRecord;
     }

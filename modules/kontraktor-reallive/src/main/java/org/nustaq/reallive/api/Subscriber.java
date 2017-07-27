@@ -1,4 +1,4 @@
-package org.nustaq.reallive.interfaces;
+package org.nustaq.reallive.api;
 
 import org.nustaq.kontraktor.Callback;
 
@@ -13,21 +13,15 @@ public class Subscriber implements Serializable {
     static AtomicInteger idCount = new AtomicInteger(0);
 
     final RLPredicate<Record> filter;
-    final RLPredicate<Record> prePatchFilter;
 
     ChangeReceiver receiver;
     int id;
     transient Callback serverSideCB;
 
-    public Subscriber(RLPredicate<Record> prepatch, RLPredicate<Record> filter, ChangeReceiver receiver) {
+    public Subscriber(RLPredicate<Record> filter, ChangeReceiver receiver) {
         this.filter = filter == null ? rec -> true : filter;
         this.receiver = receiver;
-        this.prePatchFilter = prepatch == null ? rec -> true : prepatch;
         id = idCount.incrementAndGet();
-    }
-
-    public RLPredicate<Record> getPrePatchFilter() {
-        return prePatchFilter;
     }
 
     public int getId() {

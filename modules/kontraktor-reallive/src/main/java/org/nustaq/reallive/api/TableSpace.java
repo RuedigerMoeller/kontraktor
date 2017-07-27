@@ -1,4 +1,4 @@
-package org.nustaq.reallive.interfaces;
+package org.nustaq.reallive.api;
 
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;

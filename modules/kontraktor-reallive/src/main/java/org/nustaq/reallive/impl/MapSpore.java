@@ -1,9 +1,9 @@
 package org.nustaq.reallive.impl;
 
 import org.nustaq.kontraktor.Spore;
-import org.nustaq.reallive.interfaces.RLFunction;
-import org.nustaq.reallive.interfaces.RLPredicate;
-import org.nustaq.reallive.interfaces.Record;
+import org.nustaq.reallive.api.RLFunction;
+import org.nustaq.reallive.api.RLPredicate;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by ruedi on 06.03.17.

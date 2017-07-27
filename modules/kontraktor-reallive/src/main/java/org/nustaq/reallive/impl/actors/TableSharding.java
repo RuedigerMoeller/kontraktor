@@ -3,7 +3,7 @@ package org.nustaq.reallive.impl.actors;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.impl.storage.StorageStats;
-import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.impl.RLUtil;
 import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.PutMessage;
@@ -52,7 +52,7 @@ public class TableSharding implements RealLiveTable {
         ArrayList<Subscriber> subsList = new ArrayList();
         for (int i = 0; i < shards.length; i++) {
             RealLiveTable shard = shards[i];
-            Subscriber shardSubs = new Subscriber(subs.getPrePatchFilter(),subs.getFilter(), change -> {
+            Subscriber shardSubs = new Subscriber(subs.getFilter(), change -> {
                 if (change.getType() == ChangeMessage.QUERYDONE) {
                     int count = doneCount.decrementAndGet();
                     if (count == 0) {
@@ -87,16 +87,6 @@ public class TableSharding implements RealLiveTable {
     }
 
     @Override
-    public IPromise<Boolean> putCAS(RLPredicate<Record> casCondition, String key, Object... keyVals) {
-        return shards[func.apply(key)].putCAS(casCondition,key, keyVals);
-    }
-
-    @Override
-    public void atomic(String key, RLConsumer<Record> action) {
-        shards[func.apply(key)].atomic(key, action);
-    }
-
-    @Override
     public IPromise atomicQuery(String key, RLFunction<Record, Object> action) {
         return shards[func.apply(key)].atomicQuery(key, action);
     }
@@ -112,27 +102,27 @@ public class TableSharding implements RealLiveTable {
         shards[func.apply(key)].receive(new PutMessage(RLUtil.get().record(key,keyVals)));
     }
 
-    public void addOrUpdate(String key, Object... keyVals) {
+    public void merge(String key, Object... keyVals) {
         shards[func.apply(key)].receive(RLUtil.get().addOrUpdate(key, keyVals));
     }
 
-    public void add(String key, Object... keyVals) {
-        shards[func.apply(key)].receive(RLUtil.get().add(key, keyVals));
+    public IPromise<Boolean> add(String key, Object... keyVals) {
+        return shards[func.apply(key)].add(key, keyVals);
     }
 
-    public void add(Record rec) {
+    public IPromise<Boolean> addRecord(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        shards[func.apply(rec.getKey())].receive((ChangeMessage)new AddMessage(rec));
+        return shards[func.apply(rec.getKey())].addRecord(rec);
     }
 
-    public void addOrUpdateRec(Record rec) {
+    public void mergeRecord(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         shards[func.apply(rec.getKey())].receive(new AddMessage(true,rec));
     }
 
-    public void put(Record rec) {
+    public void putRecord(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         shards[func.apply(rec.getKey())].receive(new PutMessage(rec));
@@ -142,17 +132,22 @@ public class TableSharding implements RealLiveTable {
         shards[func.apply(key)].receive(RLUtil.get().update(key, keyVals));
     }
 
+    @Override
+    public IPromise<Record> take(String key) {
+        return shards[func.apply(key)].take(key);
+    }
+
     public void remove(String key) {
         RemoveMessage remove = RLUtil.get().remove(key);
         shards[func.apply(key)].receive(remove);
     }
 
     @Override
-    public <T> void forEach(Spore<Record, T> spore) {
+    public <T> void forEachWithSpore(Spore<Record, T> spore) {
         spore.setExpectedFinishCount(shards.length);
         for (int i = 0; i < shards.length; i++) {
             RealLiveTable shard = shards[i];
-            shard.forEach(spore);
+            shard.forEachWithSpore(spore);
         }
     }
 

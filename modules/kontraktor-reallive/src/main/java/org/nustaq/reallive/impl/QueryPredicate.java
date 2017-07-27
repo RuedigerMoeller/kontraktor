@@ -1,8 +1,6 @@
 package org.nustaq.reallive.impl;
 
-import org.nustaq.reallive.interfaces.RLPredicate;
-import org.nustaq.reallive.interfaces.Record;
-import org.nustaq.reallive.interfaces.Subscriber;
+import org.nustaq.reallive.api.RLPredicate;
 import org.nustaq.reallive.query.CompiledQuery;
 import org.nustaq.reallive.query.EvalContext;
 import org.nustaq.reallive.query.Query;

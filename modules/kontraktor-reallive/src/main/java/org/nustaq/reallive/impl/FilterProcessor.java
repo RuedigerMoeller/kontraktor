@@ -1,7 +1,7 @@
 package org.nustaq.reallive.impl;
 
 import org.nustaq.reallive.impl.actors.RealLiveTableActor;
-import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.records.*;
 
@@ -74,8 +74,8 @@ public class FilterProcessor implements ChangeReceiver {
             oldRec.put(changedField, oldValues[i]);
         }
         for ( Subscriber subscriber : filterList ) {
-            boolean matchesOld = subscriber.getPrePatchFilter().test((Record) oldRec);
-            boolean matchesNew = subscriber.getPrePatchFilter().test(newRecord);
+            boolean matchesOld = subscriber.getFilter().test(oldRec);
+            boolean matchesNew = subscriber.getFilter().test(newRecord);
 
             if ( matchesNew ) {
                 final PatchingRecord patchingRecord = FilterSpore.rec.get();
@@ -105,7 +105,7 @@ public class FilterProcessor implements ChangeReceiver {
     protected void processAdd(AddMessage add) {
         Record record = add.getRecord();
         for ( Subscriber subscriber : filterList ) {
-            if ( subscriber.getPrePatchFilter().test(record) ) {
+            if ( subscriber.getFilter().test(record) ) {
                 final PatchingRecord patchingRecord = FilterSpore.rec.get();
                 patchingRecord.reset(record);
                 if ( subscriber.getFilter().test(patchingRecord))
@@ -117,7 +117,7 @@ public class FilterProcessor implements ChangeReceiver {
     protected void processRemove(RemoveMessage remove) {
         Record record = remove.getRecord();
         for ( Subscriber subscriber : filterList ) {
-            if ( subscriber.getPrePatchFilter().test(record) ) {
+            if ( subscriber.getFilter().test(record) ) {
                 final PatchingRecord patchingRecord = FilterSpore.rec.get();
                 patchingRecord.reset(record);
                 if ( subscriber.getFilter().test(patchingRecord))

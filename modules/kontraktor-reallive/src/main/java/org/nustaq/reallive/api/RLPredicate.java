@@ -1,4 +1,4 @@
-package org.nustaq.reallive.interfaces;
+package org.nustaq.reallive.api;
 
 import java.io.Serializable;
 import java.util.Objects;

@@ -5,13 +5,12 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.kontraktor.util.PromiseLatch;
 import org.nustaq.reallive.impl.actors.ShardFunc;
 import org.nustaq.reallive.impl.actors.TableSharding;
 import org.nustaq.reallive.impl.storage.StorageStats;
-import org.nustaq.reallive.interfaces.RealLiveTable;
-import org.nustaq.reallive.interfaces.TableDescription;
-import org.nustaq.reallive.interfaces.TableSpace;
+import org.nustaq.reallive.api.RealLiveTable;
+import org.nustaq.reallive.api.TableDescription;
+import org.nustaq.reallive.api.TableSpace;
 import org.nustaq.reallive.messages.StateMessage;
 
 import java.util.ArrayList;

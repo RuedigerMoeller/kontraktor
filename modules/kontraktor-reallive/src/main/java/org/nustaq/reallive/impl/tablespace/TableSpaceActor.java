@@ -3,11 +3,12 @@ package org.nustaq.reallive.impl.tablespace;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
+import org.nustaq.reallive.client.EmbeddedRealLive;
 import org.nustaq.reallive.impl.actors.RealLiveTableActor;
 import org.nustaq.reallive.impl.storage.CachedOffHeapStorage;
 import org.nustaq.reallive.impl.storage.HeapRecordStorage;
 import org.nustaq.reallive.impl.storage.OffHeapRecordStorage;
-import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.messages.StateMessage;
 
 import java.io.File;
@@ -28,7 +29,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
     String baseDir;
 
     @Local
-    public void init( int numScanThreads, int numFilterThreads ) {
+    public void init() {
         tables = new HashMap();
         stateListeners = new ArrayList();
         tableDesc = new HashMap();
@@ -51,58 +52,13 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
         if ( tables.containsKey( desc.getName()) ) {
             return resolve(tables.get(desc.getName()));
         }
-        RealLiveTableActor table = Actors.AsActor(RealLiveTableActor.class);
-
-        Supplier<RecordStorage> memFactory;
-        if ( desc.getFilePath() == null ) {
-            switch( desc.getType() ) {
-                case CACHED:
-                    memFactory = () -> new CachedOffHeapStorage(
-                        new OffHeapRecordStorage( desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries() ),
-                        new HeapRecordStorage() );
-                break;
-                default:
-                case PERSIST:
-                    memFactory = () -> new OffHeapRecordStorage( desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries() );
-                break;
-                case TEMP:
-                    memFactory = () -> new HeapRecordStorage();
-                break;
-            }
-        } else {
-            String bp = getBaseDir() == null ? desc.getFilePath() : getBaseDir();
-            desc.filePath(bp);
-            new File(bp).mkdirs();
-            switch( desc.getType() ) {
-                case CACHED:
-                    memFactory = () -> new CachedOffHeapStorage(
-                        new OffHeapRecordStorage(
-                            bp+"/"+desc.getName()+"_"+desc.getShardNo()+".bin",
-                            desc.getKeyLen(),
-                            desc.getSizeMB(),
-                            desc.getNumEntries()
-                        ),
-                        new HeapRecordStorage()
-                    );
-                break;
-                default:
-                case PERSIST:
-                    memFactory = () ->
-                        new OffHeapRecordStorage(
-                            bp+"/"+desc.getName()+"_"+desc.getShardNo()+".bin",
-                            desc.getKeyLen(),
-                            desc.getSizeMB(),
-                            desc.getNumEntries()
-                        );
-                break;
-                case TEMP:
-                    memFactory = () -> new HeapRecordStorage();
-                break;
-            }
-        }
-        table.init( memFactory, desc );
+        RealLiveTableActor table = createTableActor(desc);
         tables.put(desc.getName(),table);
         return resolve(table);
+    }
+
+    private RealLiveTableActor createTableActor(TableDescription desc) {
+        return (RealLiveTableActor) EmbeddedRealLive.get().createTable(desc,getBaseDir());
     }
 
     @Override

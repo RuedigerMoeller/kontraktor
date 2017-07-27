@@ -1,13 +1,14 @@
 package org.nustaq.reallive.records;
+
 import org.nustaq.reallive.impl.RLUtil;
-import org.nustaq.reallive.interfaces.Record;
+import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.messages.UpdateMessage;
 
 import java.util.*;
 
 /**
  * Created by ruedi on 10.01.16.
- *
+ * <p>
  * overrides on write. Used to enable queries to patch result records (e.g. in order
  * to submit results of cpu intensive computations)
  */
@@ -17,7 +18,7 @@ public class PatchingRecord extends RecordWrapper {
 
     public PatchingRecord(Record record) {
         super(record);
-        if ( record instanceof RecordWrapper ) {
+        if (record instanceof RecordWrapper) {
             int debug = 1;
         }
     }
@@ -28,7 +29,7 @@ public class PatchingRecord extends RecordWrapper {
 
     @Override
     public String[] getFields() {
-        if ( override != null ) {
+        if (override != null) {
             HashSet hs = new HashSet();
             hs.addAll(Arrays.asList(override.getFields()));
             hs.addAll(Arrays.asList(super.getFields()));
@@ -41,9 +42,9 @@ public class PatchingRecord extends RecordWrapper {
 
     @Override
     public Object get(String field) {
-        if (override!= null) {
+        if (override != null) {
             final Object r = override.get(field);
-            if ( r != null ) {
+            if (r != null) {
                 return r;
             }
         }
@@ -52,7 +53,7 @@ public class PatchingRecord extends RecordWrapper {
 
     @Override
     public Record put(String field, Object value) {
-        if ( override == null )
+        if (override == null)
             override = MapRecord.New(getKey());
         return override.put(field, value);
     }
@@ -75,44 +76,44 @@ public class PatchingRecord extends RecordWrapper {
         return super.equals(obj);
     }
 
-    public <K> void reset(Record input) {
+    public void reset(Record input) {
         record = input;
         override = null;
         forcedUpdate = null;
     }
 
     public void forceUpdate(String name) {
-        if ( forcedUpdate == null ) {
+        if (forcedUpdate == null) {
             forcedUpdate = new HashSet();
         }
         forcedUpdate.add(name);
     }
 
-    public Set<String> getForcedUpdates(){
+    public Set<String> getForcedUpdates() {
         return forcedUpdate;
     }
 
-    public <K> UpdateMessage getUpdates() {
-        if ( override == null )
+    public UpdateMessage getUpdates() {
+        if (override == null)
             return null;
-        Object update[] = new Object[override.size()*2];
+        Object update[] = new Object[override.size() * 2];
         int idx = 0;
         for (Iterator iterator = override.map.entrySet().iterator(); iterator.hasNext(); ) {
             Map.Entry next = (Map.Entry) iterator.next();
             update[idx++] = next.getKey();
             update[idx++] = next.getValue();
         }
-        return RLUtil.get().updateWithForced((K) getKey(),forcedUpdate,update);
+        return RLUtil.get().updateWithForced(getKey(), forcedUpdate, update);
     }
 
-    public <K> Record unwrapOrCopy() {
-        if ( override == null )
+    public Record unwrapOrCopy() {
+        if (override == null)
             return record;
         MapRecord res = MapRecord.New(getKey());
         final String[] fields = getFields();
         for (int i = 0; i < fields.length; i++) {
             String field = fields[i];
-            res.put(field,get(field));
+            res.put(field, get(field));
         }
         return res;
     }
