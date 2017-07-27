@@ -4,13 +4,11 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import javax.websocket.*;
 
-import io.undertow.websockets.spi.WebSocketHttpExchange;
 import org.nustaq.http.example.ServletApp;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
@@ -32,6 +30,8 @@ import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
 //@ServerEndpoint("/ws")
 public class MyWebSocketConnector extends Endpoint implements ActorServerConnector {
 
+    private static volatile MyWebSocketConnector _instance;
+    
     ServletApp facade;
     Function<ObjectSocket, ObjectSink> sinkFactory;
 
@@ -51,6 +51,19 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
         }
     }
 
+    public static MyWebSocketConnector getInstance() {
+        MyWebSocketConnector localInstance = _instance;
+        if (localInstance == null) {
+            synchronized (MyWebSocketConnector.class) {
+                localInstance = _instance;
+                if (localInstance == null) {
+                    _instance  = localInstance = new MyWebSocketConnector();
+                }
+            }
+        }
+        return localInstance;
+    }
+
     @Override
     public void onOpen(Session session, EndpointConfig config) {
         System.out.println(session.getId() + " has opened a connection");
@@ -61,27 +74,18 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
 //            }
 //        );
         ServletWebObjectSocket socket = new ServletWebObjectSocket(session);
-        session.addMessageHandler(String.class, message -> {
-                System.out.println("msg String "+message);
-                try {
-                    Object o = socket.getConf().asObject(message.getBytes("UTF-8"));
-                    socket.getSink().receiveObject(o, null, null );
-                } catch (UnsupportedEncodingException e) {
-                    Log.Warn(this,e);
-                }
-            }
-        );
-        // required to avoid timings during init as jee breathes sync processing
-        CountDownLatch latch = new CountDownLatch(1);
-        facade.execute( () -> {
-            socket.setSink(sinkFactory.apply(socket));
-            latch.countDown();
+        facade.execute(() -> {
+            ObjectSink sink = sinkFactory.apply(socket);
+            session.addMessageHandler(String.class, message -> {
+                    System.out.println("msg String "+message);
+                    try {
+                        Object o = socket.getConf().asObject(message.getBytes("UTF-8"));
+                        socket.getSink().receiveObject(o, null, null );
+                    } catch (UnsupportedEncodingException e) {
+                        Log.Warn(this,e);
+                    }
+            });
         });
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Log.Error(this,e);
-        }
     }
 
     @Override
