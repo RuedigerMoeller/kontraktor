@@ -26,7 +26,7 @@ import java.util.function.*;
  *
  *
  */
-public class RealLiveTableActor extends Actor<RealLiveTableActor> implements RealLiveTable, Mutatable<Object> {
+public class RealLiveTableActor extends Actor<RealLiveTableActor> implements RealLiveTable {
 
     public static int MAX_QUERY_BATCH_SIZE = 10;
     public static boolean DUMP_QUERY_TIME = false;
@@ -198,11 +198,6 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     @Override
     public IPromise<Long> size() {
         return resolve(storageDriver.getStore().size());
-    }
-
-    @Override @CallerSideMethod
-    public Mutation getMutation() {
-        return new Mutator(self());
     }
 
     @Override

@@ -118,10 +118,9 @@ public class TableSpaceTest {
 
         test.filter(rec -> true, (r, e) -> System.out.println("filter:" + r + " " + resultCount.incrementAndGet()));
 
-        Mutation mutation = test.getMutation();
         IntStream.range(0,100).forEach(i -> {
-            mutation.addOrUpdate("emöil" + i, "age", 9, "name", "Emil");
-            mutation.addOrUpdate("fölix" + i, "age", 17, "name", "Felix");
+            test.addOrUpdate("emöil" + i, "age", 9, "name", "Emil");
+            test.addOrUpdate("fölix" + i, "age", 17, "name", "Felix");
         });
 
         System.out.println(test.get("emil0").await());

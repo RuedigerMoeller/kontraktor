@@ -88,17 +88,17 @@ public class TableSharding implements RealLiveTable {
 
     @Override
     public IPromise<Boolean> putCAS(RLPredicate<Record> casCondition, String key, Object... keyVals) {
-        return shards[func.apply(key)].getMutation().putCAS(casCondition,key, keyVals);
+        return shards[func.apply(key)].putCAS(casCondition,key, keyVals);
     }
 
     @Override
     public void atomic(String key, RLConsumer<Record> action) {
-        shards[func.apply(key)].getMutation().atomic(key, action);
+        shards[func.apply(key)].atomic(key, action);
     }
 
     @Override
     public IPromise atomicQuery(String key, RLFunction<Record, Object> action) {
-        return shards[func.apply(key)].getMutation().atomicQuery(key, action);
+        return shards[func.apply(key)].atomicQuery(key, action);
     }
 
     @Override
@@ -108,78 +108,43 @@ public class TableSharding implements RealLiveTable {
         }
     }
 
-    protected class ShardMutation implements Mutation {
-
-        @Override
-        public IPromise<Boolean> putCAS(RLPredicate<Record> casCondition, String key, Object... keyVals) {
-            return shards[func.apply(key)].getMutation().putCAS(casCondition, key, keyVals);
-        }
-
-        @Override
-        public void put(String key, Object... keyVals) {
-            shards[func.apply(key)].receive(new PutMessage(RLUtil.get().record(key,keyVals)));
-        }
-
-        @Override
-        public void atomic(String key, RLConsumer action) {
-            shards[func.apply(key)].getMutation().atomic(key, action);
-        }
-
-        @Override
-        public IPromise atomicQuery(String key, RLFunction<Record,Object> action) {
-            return shards[func.apply(key)].getMutation().atomicQuery(key, action);
-        }
-
-        @Override
-        public void atomicUpdate(RLPredicate<Record> filter, RLFunction<Record, Boolean> action) {
-            TableSharding.this.atomicUpdate(filter,action);
-        }
-
-        @Override
-        public void addOrUpdate(String key, Object... keyVals) {
-            shards[func.apply(key)].receive(RLUtil.get().addOrUpdate(key, keyVals));
-        }
-
-        @Override
-        public void add(String key, Object... keyVals) {
-            shards[func.apply(key)].receive(RLUtil.get().add(key, keyVals));
-        }
-
-        @Override
-        public void add(Record rec) {
-            if ( rec instanceof RecordWrapper )
-                rec = ((RecordWrapper) rec).getRecord();
-            shards[func.apply(rec.getKey())].receive((ChangeMessage)new AddMessage(rec));
-        }
-
-        @Override
-        public void addOrUpdateRec(Record rec) {
-            if ( rec instanceof RecordWrapper )
-                rec = ((RecordWrapper) rec).getRecord();
-            shards[func.apply(rec.getKey())].receive(new AddMessage(true,rec));
-        }
-
-        @Override
-        public void put(Record rec) {
-            if ( rec instanceof RecordWrapper )
-                rec = ((RecordWrapper) rec).getRecord();
-            shards[func.apply(rec.getKey())].receive(new PutMessage(rec));
-        }
-
-        @Override
-        public void update(String key, Object... keyVals) {
-            shards[func.apply(key)].receive(RLUtil.get().update(key, keyVals));
-        }
-
-        @Override
-        public void remove(String key) {
-            RemoveMessage remove = RLUtil.get().remove(key);
-            shards[func.apply(key)].receive(remove);
-        }
+    public void put(String key, Object... keyVals) {
+        shards[func.apply(key)].receive(new PutMessage(RLUtil.get().record(key,keyVals)));
     }
 
-    public Mutation getMutation() {
-        return new ShardMutation();
+    public void addOrUpdate(String key, Object... keyVals) {
+        shards[func.apply(key)].receive(RLUtil.get().addOrUpdate(key, keyVals));
+    }
+
+    public void add(String key, Object... keyVals) {
+        shards[func.apply(key)].receive(RLUtil.get().add(key, keyVals));
+    }
+
+    public void add(Record rec) {
+        if ( rec instanceof RecordWrapper )
+            rec = ((RecordWrapper) rec).getRecord();
+        shards[func.apply(rec.getKey())].receive((ChangeMessage)new AddMessage(rec));
+    }
+
+    public void addOrUpdateRec(Record rec) {
+        if ( rec instanceof RecordWrapper )
+            rec = ((RecordWrapper) rec).getRecord();
+        shards[func.apply(rec.getKey())].receive(new AddMessage(true,rec));
+    }
+
+    public void put(Record rec) {
+        if ( rec instanceof RecordWrapper )
+            rec = ((RecordWrapper) rec).getRecord();
+        shards[func.apply(rec.getKey())].receive(new PutMessage(rec));
+    }
+
+    public void update(String key, Object... keyVals) {
+        shards[func.apply(key)].receive(RLUtil.get().update(key, keyVals));
+    }
+
+    public void remove(String key) {
+        RemoveMessage remove = RLUtil.get().remove(key);
+        shards[func.apply(key)].receive(remove);
     }
 
     @Override

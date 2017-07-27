@@ -34,10 +34,8 @@ public class Basic {
         ts.createOrLoadTable(new TableDescription("articles").numEntries(500_000 * 10).sizeMB(500 * 10));
 
         RealLiveTable blogs = ts.getTableAsync("blogs").await();
-        Mutation blogMutation = blogs.getMutation();
 
         RealLiveTable articles = ts.getTableAsync("articles").await();
-        Mutation artMutation = articles.getMutation();
 
         int numBP = 30_000;
         for ( int i = 0; i < numBP; i++ ) {
@@ -50,7 +48,7 @@ public class Basic {
                 .put("likes", 199)
                 .put("reads", 3485)
                 .put("sequence", i );
-            blogMutation.add(blogEntry);
+            blogs.add(blogEntry);
         }
 
         System.out.println("finished blogs");

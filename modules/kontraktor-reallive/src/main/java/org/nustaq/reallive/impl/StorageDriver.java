@@ -14,7 +14,7 @@ import org.nustaq.reallive.records.RecordWrapper;
  * implements transaction processing on top of a physical storage
  *
  */
-public class StorageDriver implements ChangeReceiver, Mutation {
+public class StorageDriver implements ChangeReceiver {
 
     RecordStorage store;
     ChangeReceiver listener = change -> {};
@@ -145,7 +145,6 @@ public class StorageDriver implements ChangeReceiver, Mutation {
         store.resizeIfLoadFactorLarger(loadFactor, maxGrowBytes);
     }
 
-    @Override
     public IPromise<Boolean> putCAS(RLPredicate<Record> casCondition, String key, Object... keyVals) {
         Record kRecord = getStore().get(key);
         if ( casCondition == null || casCondition.test(kRecord) ) {
@@ -155,12 +154,10 @@ public class StorageDriver implements ChangeReceiver, Mutation {
         return new Promise(false);
     }
 
-    @Override
     public void put(String key, Object ... keyVals) {
         receive(RLUtil.get().put(key,keyVals));
     }
 
-    @Override
     public void atomic(String key, RLConsumer action) {
         Record rec = getStore().get(key);
         if ( rec == null ) {
@@ -188,7 +185,6 @@ public class StorageDriver implements ChangeReceiver, Mutation {
      * @param action
      * @return the result of function.
      */
-    @Override
     public IPromise atomicQuery(String key, RLFunction<Record,Object> action) {
         Record rec = getStore().get(key);
         if ( rec == null ) {
@@ -214,7 +210,6 @@ public class StorageDriver implements ChangeReceiver, Mutation {
         }
     }
 
-    @Override
     public void atomicUpdate(RLPredicate<Record> filter, RLFunction<Record, Boolean> action) {
         store.filter(filter, (r,e) -> {
             if ( r != null ) {
@@ -232,37 +227,30 @@ public class StorageDriver implements ChangeReceiver, Mutation {
         });
     }
 
-    @Override
     public void addOrUpdate(String key, Object... keyVals) {
         receive(RLUtil.get().addOrUpdate(key, keyVals));
     }
 
-    @Override
     public void add(String key, Object... keyVals) {
         receive(RLUtil.get().add(key, keyVals));
     }
 
-    @Override
     public void add(Record rec) {
         receive(new AddMessage(rec));
     }
 
-    @Override
     public void addOrUpdateRec(Record rec) {
         receive(new AddMessage(true,rec));
     }
 
-    @Override
     public void put(Record rec) {
         receive( new PutMessage(rec) );
     }
 
-    @Override
     public void update(String key, Object... keyVals) {
         receive(RLUtil.get().update(key, keyVals));
     }
 
-    @Override
     public void remove(String key) {
         RemoveMessage remove = RLUtil.get().remove(key);
         receive(remove);
