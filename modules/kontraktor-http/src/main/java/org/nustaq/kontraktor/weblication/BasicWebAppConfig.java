@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.weblication;
 
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.weblication.model.PersistedRecord;
 import org.nustaq.kson.Kson;
 
 import java.io.File;

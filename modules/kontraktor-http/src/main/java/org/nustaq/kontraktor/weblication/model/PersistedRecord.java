@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.weblication;
+package org.nustaq.kontraktor.weblication.model;
 
 import java.io.Serializable;
 import java.util.HashMap;

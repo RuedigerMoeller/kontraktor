@@ -1,11 +1,11 @@
-package org.nustaq.kontraktor.weblication;
+package org.nustaq.kontraktor.weblication.model;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.kontraktor.util.Pair;
+import org.nustaq.kontraktor.weblication.ISessionStorage;
 import org.nustaq.offheap.FSTAsciiStringOffheapMap;
 import org.nustaq.offheap.FSTUTFStringOffheapMap;
 
@@ -13,7 +13,6 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.UUID;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
@@ -113,17 +112,31 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     }
 
     @Override
-    public void storeRecord(PersistedRecord userRecord) {
+    public void putUser(PersistedRecord userRecord) {
         userData.put(userRecord.getKey(),userRecord);
     }
 
     @Override
-    public void delRecord(String userkey) {
+    public IPromise atomicUpdate(String key, Function<PersistedRecord, Object> operation) {
+        try {
+            Object ur = userData.get(key);
+            Object result = operation.apply((PersistedRecord) ur);
+            if (ur != null) {
+                userData.put(key, ur);
+            }
+            return resolve(result);
+        } catch (Exception ex) {
+            return reject(ex);
+        }
+    }
+
+    @Override
+    public void delUser(String userkey) {
         userData.remove(userkey);
     }
 
     @Override
-    public IPromise<Boolean> storeIfNotPresent(PersistedRecord userRecord) {
+    public IPromise<Boolean> putUserIfNotPresent(PersistedRecord userRecord) {
         Object res = userData.get(userRecord.getKey());
         if ( res == null ) {
             userData.put(userRecord.getKey(),userRecord);
@@ -133,7 +146,7 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     }
 
     @Override
-    public IPromise getUserRecord(String userId) {
+    public IPromise getUser(String userId) {
         return new Promise(userData.get(userId));
     }
 

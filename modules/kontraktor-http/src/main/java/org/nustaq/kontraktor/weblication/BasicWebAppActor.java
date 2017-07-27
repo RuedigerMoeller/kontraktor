@@ -6,12 +6,11 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.annotations.Remoted;
-import org.nustaq.kontraktor.babel.BrowseriBabelify;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.remoting.base.SessionResurrector;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.weblication.model.DefaultSessionStorage;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -84,7 +83,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
      */
     protected IPromise<BasicAuthenticationResult> getCredentials(String user, String pw, String jwt) {
         Promise p = new Promise();
-        sessionStorage.getUserRecord(user).then( (rec,err) -> {
+        sessionStorage.getUser(user).then( (rec, err) -> {
             if ( rec == null ) {
                 p.reject("wrong user or password");
             } else {

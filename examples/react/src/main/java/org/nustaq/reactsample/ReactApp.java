@@ -5,10 +5,7 @@ import org.nustaq.kontraktor.annotations.Secured;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.weblication.BasicWebAppActor;
-import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
-import org.nustaq.kontraktor.weblication.PersistedRecord;
-
-import java.util.Arrays;
+import org.nustaq.kontraktor.weblication.model.PersistedRecord;
 
 
 /**
@@ -27,7 +24,7 @@ public class ReactApp extends BasicWebAppActor<ReactApp,ReactAppConfig> {
         String[] initialUsers = cfg.getInitialUsers();
         if ( initialUsers != null ) {
             for (int i = 0; i < initialUsers.length; i+=3) {
-                sessionStorage.storeIfNotPresent(
+                sessionStorage.putUserIfNotPresent(
                     new PersistedRecord(initialUsers[i])
                         .put("pwd",initialUsers[i+1])
                         .put("text",initialUsers[i+2])
@@ -45,7 +42,7 @@ public class ReactApp extends BasicWebAppActor<ReactApp,ReactAppConfig> {
     @Remoted
     public IPromise register(String nick, String pwd, String text) {
         Promise p = new Promise();
-        sessionStorage.storeIfNotPresent(
+        sessionStorage.putUserIfNotPresent(
             new PersistedRecord(nick)
                 .put("pwd",pwd)
                 .put("text",text)
@@ -69,6 +66,11 @@ public class ReactApp extends BasicWebAppActor<ReactApp,ReactAppConfig> {
         sessionStorage.takeToken( split[split.length-1], false).then( (token,err) -> {
             if ( token != null ) {
                 res.resolve("<html>User confirmed: '"+token.getUserId()+"' data:"+token.getData()+"</html>");
+                // lets increment a count for that
+                sessionStorage.atomicUpdate(token.getUserId(),record -> {
+                    record.put("count",record.getInt("count")+1);
+                    return null;
+                });
             } else
                 res.reject("<html>Expired or invalid Link</html>");
         });

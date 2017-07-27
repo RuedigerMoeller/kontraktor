@@ -2,6 +2,8 @@ package org.nustaq.kontraktor.weblication;
 
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.weblication.model.PersistedRecord;
+
 import java.io.Serializable;
 import java.util.function.Function;
 
@@ -56,10 +58,11 @@ public interface ISessionStorage {
     IPromise<String> getUserFromSessionId(String sid);
     void putUserAtSessionId(String sessionId, String userKey);
 
-    void storeRecord(PersistedRecord userRecord);
-    void delRecord(String userkey);
-    IPromise<Boolean> storeIfNotPresent(PersistedRecord userRecord);
-    IPromise<PersistedRecord> getUserRecord(String userId);
+    void delUser(String userkey);
+    IPromise<PersistedRecord> getUser(String userId);
+    void putUser(PersistedRecord userRecord);
+    IPromise atomicUpdate(String key, Function<PersistedRecord,Object> operation);
+    IPromise<Boolean> putUserIfNotPresent(PersistedRecord userRecord);
 
     /**
      * stream all user records to the given callback and close it calling cb.finish()
