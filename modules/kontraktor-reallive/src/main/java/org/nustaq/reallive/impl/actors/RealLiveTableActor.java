@@ -20,11 +20,6 @@ import java.util.function.*;
  *
  * core implementation of a table
  *
- * FIXME: missing
- * - CAS/updateActions
- * - originator
- *
- *
  */
 public class RealLiveTableActor extends Actor<RealLiveTableActor> implements RealLiveTable {
 
