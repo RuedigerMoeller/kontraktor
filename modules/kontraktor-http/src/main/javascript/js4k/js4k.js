@@ -696,13 +696,13 @@ window.jsk = window.jsk || (function () {
       if ( self.doStop || ! self.doLongPoll )
         return;
       if ( ! self.isConnected ) {
-        setTimeout(self.longPoll,1000);
+        setTimeout(self.longPoll,200);
       } else {
         var cblen = Object.keys(futureMap).length;
         console.log("futureMap SIZE ON LP *** ", cblen );
         if ( cblen === 0 ) {
           // in case no pending callback or promise is present => skip LP
-          setTimeout(self.longPoll,2000);
+          setTimeout(self.longPoll,200);
           return;
         }
         var reqData = '{"styp":"array","seq":[1,'+self.lpSeqNo+']}';

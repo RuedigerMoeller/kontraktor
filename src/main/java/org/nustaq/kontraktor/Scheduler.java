@@ -24,6 +24,7 @@ import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import java.lang.reflect.InvocationHandler;
 import java.util.Queue;
 import java.util.concurrent.Callable;
+import java.util.function.BiFunction;
 
 /**
  * Scheduler manages scheduling of actors to threads. As kontraktor 3.0 simplyfies
@@ -42,7 +43,7 @@ public interface Scheduler extends Monitorable{
 
     Object enqueueCall(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB);
 
-    Object enqueueCallFromRemote(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object args[], boolean isCB, Object securityContext);
+    Object enqueueCallFromRemote(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB, Object securityContext, BiFunction<Actor, String, Boolean> callInterceptor);
 
     void threadStopped(DispatcherThread th);
 

@@ -37,7 +37,7 @@ jsk.connect("http://localhost:8080/ep","HTLP",errCB) // use this for long poll
     var session = null;
     server.ask("login","angela","grökaz","").then( (r,e) => {
       if ( r ) {
-        session = r;
+        session = r[0];
         server.ask("hello", "from client after login").then( (r,e) => {
           document.getElementById("here").innerHTML = r;
         });

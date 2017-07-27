@@ -26,6 +26,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.function.BiFunction;
 
 /**
  * Created by ruedi on 02/04/15.
@@ -162,20 +163,20 @@ public class SimpleScheduler implements Scheduler {
 
     @Override
     public Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
-        return enqueueCallFromRemote((RemoteRegistry) receiver.__clientConnection,sendingActor,receiver,methodName,args,isCB, null);
+        return enqueueCallFromRemote((RemoteRegistry) receiver.__clientConnection,sendingActor,receiver,methodName,args,isCB, null, null);
     }
 
     @Override
     public Object enqueueCall(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
-        return enqueueCallFromRemote( reg,sendingActor,receiver,methodName,args,isCB, null);
+        return enqueueCallFromRemote( reg,sendingActor,receiver,methodName,args,isCB, null, null);
     }
 
     @Override
-    public Object enqueueCallFromRemote(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB, Object securityContext) {
+    public Object enqueueCallFromRemote(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB, Object securityContext, BiFunction<Actor, String, Boolean> callInterceptor) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
         Actor actor = receiver.getActor();
-        Method method = actor.__getCachedMethod(methodName, actor);
+        Method method = actor.__getCachedMethod(methodName, actor, callInterceptor);
 
         if ( method == null )
             throw new RuntimeException("unknown method "+methodName+" on "+actor);

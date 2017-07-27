@@ -1,0 +1,29 @@
+{
+  "name": "kontraktor-client",
+  "version": "3.34.4",
+  "description": "client for remote kontraktor actors written in java or javascript, can also be used in browser",
+  "main": "kontraktor-client.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "kontraktor-common": ">=3.34.0",
+    "ws": "~3.0.0",
+    "filereader": "~0.10.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RuedigerMoeller/kontraktor/tree/trunk/modules/kontraktor-http"
+  },
+  "keywords": [
+    "java",
+    "javascript",
+    "interop",
+    "actors",
+    "browser",
+    "remoting",
+    "rpc"
+  ],
+  "author": "ruediger moeller",
+  "license": "MIT"
+}
