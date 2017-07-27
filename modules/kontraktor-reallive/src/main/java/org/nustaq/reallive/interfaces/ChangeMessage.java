@@ -6,7 +6,7 @@ import java.util.*;
 /**
  * Created by moelrue on 03.08.2015.
  */
-public interface ChangeMessage<K> extends Serializable {
+public interface ChangeMessage extends Serializable {
 
     int ADD = 0;
     int REMOVE = 1;
@@ -16,7 +16,7 @@ public interface ChangeMessage<K> extends Serializable {
 
     int getType();
 
-    K getKey();
+    String getKey();
     ChangeMessage reduced(String[] reducedFields);
 
     default Set<String> getForcedUpdateFields() {
@@ -24,6 +24,6 @@ public interface ChangeMessage<K> extends Serializable {
     }
     default boolean isDoneMsg() { return getType() == QUERYDONE; }
     default boolean isAdd() { return getType() == ADD; }
-    default Record<K> getRecord() { return null; }
+    default Record getRecord() { return null; }
 
 }

@@ -1,45 +1,44 @@
 package org.nustaq.reallive.records;
 
 import org.nustaq.reallive.interfaces.Record;
-import org.nustaq.reallive.records.MapRecord;
 
 /**
  * Created by ruedi on 22/08/15.
  *
  * base for app specific typed wrappers. Wrappers submitted/stored to reallive will be automatically unwrapped
  */
-public class RecordWrapper<K> implements Record<K> {
+public class RecordWrapper implements Record {
 
-    protected Record<K> record;
+    protected Record record;
 
-    public static <T> RecordWrapper<T> Wrap(Record<T> rec) {
+    public static <T> RecordWrapper Wrap(Record rec) {
         if ( rec instanceof RecordWrapper ) {
-            return (RecordWrapper<T>) rec;
+            return (RecordWrapper) rec;
         }
-        return new RecordWrapper<T>(rec);
+        return new RecordWrapper(rec);
     }
 
-    protected RecordWrapper(Record<K> record) {
+    protected RecordWrapper(Record record) {
         this.record = record;
         if ( record instanceof RecordWrapper && record instanceof PatchingRecord == false) {
             int debug = 1;
         }
     }
 
-    public RecordWrapper(K key) {
+    public RecordWrapper(String key) {
         this.record = MapRecord.New(key);
     }
 
-    public Record<K> getRecord() {
+    public Record getRecord() {
         return record;
     }
 
-    public K getKey() {
+    public String getKey() {
         return record.getKey();
     }
 
     @Override
-    public void key(K key) {
+    public void key(String key) {
         record.key(key);
     }
 

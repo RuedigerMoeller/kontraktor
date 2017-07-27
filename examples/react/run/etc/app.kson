@@ -1,0 +1,26 @@
+ReactAppConfig {
+
+  staticUrlPrefix: "/filez/"
+  staticFileRoot: "./run/filez"
+  clientRoot: "./src/main/web/client"
+
+  numSessionThreads: 4
+
+  dev: true
+
+  port: 8080
+  host: localhost
+
+  sessionTimeoutMS: 300_000
+
+  initialUsers: [
+    herbert qweqwe  "sometimes uses stupid passwords"
+    moru0011 qweqwe "never uses stupid passwords Ü"
+    qweqwe qweqwe   "so what"
+    werwer werwer   "wat?"
+    janine "123456"  yolo
+    escape escape    pokpok
+    blabla üüüüüü    äh
+  ]
+
+}

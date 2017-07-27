@@ -138,6 +138,9 @@ public class DynamicResourceManager extends FileResourceManager {
                             TranspilerHook transpilerHook = transpilerMap.get(ext);
                             if ( transpilerHook != null ) {
                                 byte[] transpiled = transpilerHook.transpile(file);
+                                if (minify) {
+                                    transpiled = JSMin.minify(transpiled);
+                                }
                                 if ( transpiled != null ) {
                                     return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, transpiled, "text/javascript", !isDevMode()? lastStartup : null ));
                                 }

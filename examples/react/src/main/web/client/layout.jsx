@@ -3,7 +3,12 @@ import React from 'react';
 export class Table extends React.Component {
 
   render() {
-    const style = { display: 'table', background: this.props.bg ? this.props.bg:'#eee', padding: '16px', border: 'solid #ddd 1px' };
+    const style = {
+      display: 'table',
+      background: this.props.bg ? this.props.bg:'#eee',
+      padding: '16px',
+      border: 'solid #ddd 1px', ...this.props.style
+    };
     return (
       <div style={style}>
         {this.props.children}
@@ -11,6 +16,35 @@ export class Table extends React.Component {
     )
   }
 
+}
+
+export class Fader extends React.Component {
+  constructor(p) {
+    super(p);
+    this.state={op:0};
+  }
+
+  componentDidMount() {
+    setTimeout( () => this.setState({op:1}), 100)
+  }
+  render() {
+    const style = {
+      opacity: this.state.op,
+      transition: "opacity .5s"
+    };
+    return (<div style={style}>{this.props.children}</div>)
+  }
+}
+
+export class Icon extends React.Component {
+  render() {
+    const st = "fa "+this.props.icon;
+    const style = {
+      color:'#aaa',
+      fontSize: this.props.small ? 14: 20
+    };
+    return(<i className={st} style={{...style,...this.props.style}} aria-hidden="true"></i>)
+  }
 }
 
 export class Tr extends React.Component {
@@ -55,6 +89,7 @@ export class HCenter extends React.Component {
       flexDirection: 'row',
       flexWrap: 'nowrap',
       justifyContent: 'center',
+      ...this.props.style
     };
     return (<div style={style}>{this.props.children}</div>)
   }
@@ -106,7 +141,7 @@ export class Disabler extends React.Component {
     super(props);
   }
   render() {
-    const style = this.props.enabled ? {} : { color:'rgba(0,0,0,.4)', pointerEvents: 'none'};
+    const style = this.props.enabled ? {} : { color:'rgba(0,0,0,.6)', pointerEvents: 'none'};
     return (
       <span style={style}>{this.props.children}</span>
     )

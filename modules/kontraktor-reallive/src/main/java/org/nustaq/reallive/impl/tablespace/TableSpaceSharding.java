@@ -25,8 +25,8 @@ import java.util.stream.Collectors;
 public class TableSpaceSharding implements TableSpace {
 
     TableSpaceActor shards[];
-    HashMap<String,RealLiveTable> tableMap = new HashMap<>();
-    HashMap<String,TableDescription> tableDescriptionMap = new HashMap<>();
+    HashMap<String,RealLiveTable> tableMap = new HashMap();
+    HashMap<String,TableDescription> tableDescriptionMap = new HashMap();
     ShardFunc func;
 
     public TableSpaceSharding(TableSpaceActor[] shards, ShardFunc func) {
@@ -40,7 +40,7 @@ public class TableSpaceSharding implements TableSpace {
 
     @Override
     public IPromise<RealLiveTable> createOrLoadTable(TableDescription desc) {
-        Promise<RealLiveTable> res = new Promise<>();
+        Promise<RealLiveTable> res = new Promise();
         ArrayList<IPromise<RealLiveTable>> results = new ArrayList();
         for (int i = 0; i < shards.length; i++) {
             TableSpaceActor shard = shards[i];
@@ -86,7 +86,7 @@ public class TableSpaceSharding implements TableSpace {
 
     @Override
     public IPromise dropTable(String name) {
-        ArrayList<IPromise<Object>> results = new ArrayList<>();
+        ArrayList<IPromise<Object>> results = new ArrayList();
         for (int i = 0; i < shards.length; i++) {
             TableSpaceActor shard = shards[i];
             results.add(shard.dropTable(name));
@@ -108,17 +108,17 @@ public class TableSpaceSharding implements TableSpace {
 
     @Override
     public IPromise<List<RealLiveTable>> getTables() {
-        return new Promise<>(new ArrayList(tableMap.values()));
+        return new Promise(new ArrayList(tableMap.values()));
     }
 
     @Override
-    public IPromise<RealLiveTable> getTable(String name) {
+    public IPromise<RealLiveTable> getTableAsync(String name) {
         return Actors.resolve(tableMap.get(name));
     }
 
     @Override
     public IPromise shutDown() {
-        return new Promise<>("void");
+        return new Promise("void");
     }
 
     @Override

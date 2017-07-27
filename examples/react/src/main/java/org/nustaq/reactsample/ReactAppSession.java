@@ -29,10 +29,11 @@ public class ReactAppSession extends BasicWebSessionActor {
     protected IPromise loadSessionData(String sessionId, ISessionStorage storage) {
         Promise res = new Promise();
         Log.Info(this,"loadSessionData " + sessionId);
+        // lets cache the record of current user
         storage.getUserRecord(_getUserKey()).then( (user,err) -> {
             if ( user != null) {
                 userRecord = user;
-                res.resolve();
+                res.resolve(userRecord);
             } else {
                 res.reject(err);
             }
@@ -41,8 +42,13 @@ public class ReactAppSession extends BasicWebSessionActor {
     }
 
     @Remoted
+    public void delUser(String key) {
+        getSessionStorage().delRecord(key);
+    }
+
+    @Remoted
     public void queryUsers(Callback<PersistedRecord> cb) {
-        getSessionStorage().forEach( cb );
+        getSessionStorage().forEachUser( cb );
     }
 
 }

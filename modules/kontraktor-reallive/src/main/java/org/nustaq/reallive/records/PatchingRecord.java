@@ -75,7 +75,7 @@ public class PatchingRecord extends RecordWrapper {
         return super.equals(obj);
     }
 
-    public <K> void reset(Record<K> input) {
+    public <K> void reset(Record input) {
         record = input;
         override = null;
         forcedUpdate = null;
@@ -83,7 +83,7 @@ public class PatchingRecord extends RecordWrapper {
 
     public void forceUpdate(String name) {
         if ( forcedUpdate == null ) {
-            forcedUpdate = new HashSet<>();
+            forcedUpdate = new HashSet();
         }
         forcedUpdate.add(name);
     }
@@ -92,7 +92,7 @@ public class PatchingRecord extends RecordWrapper {
         return forcedUpdate;
     }
 
-    public <K> UpdateMessage<K> getUpdates() {
+    public <K> UpdateMessage getUpdates() {
         if ( override == null )
             return null;
         Object update[] = new Object[override.size()*2];
@@ -105,7 +105,7 @@ public class PatchingRecord extends RecordWrapper {
         return RLUtil.get().updateWithForced((K) getKey(),forcedUpdate,update);
     }
 
-    public <K> Record<K> unwrapOrCopy() {
+    public <K> Record unwrapOrCopy() {
         if ( override == null )
             return record;
         MapRecord res = MapRecord.New(getKey());

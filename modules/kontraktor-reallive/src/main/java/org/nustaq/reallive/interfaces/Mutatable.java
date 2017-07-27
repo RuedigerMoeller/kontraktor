@@ -5,6 +5,6 @@ package org.nustaq.reallive.interfaces;
  */
 public interface Mutatable<K> {
 
-    Mutation<K> getMutation();
+    Mutation getMutation();
 
 }

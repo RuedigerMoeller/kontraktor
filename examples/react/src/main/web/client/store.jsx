@@ -100,6 +100,9 @@ export class AppStore extends EventEmitter {
     this.on(eventName, callback);
   }
 
+  deleteUser(key) {
+    this.getSession().delUser(key);
+  }
 }
 
 export const Store = new AppStore();

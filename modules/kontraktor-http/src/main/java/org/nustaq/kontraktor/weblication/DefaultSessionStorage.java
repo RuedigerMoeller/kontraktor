@@ -12,6 +12,7 @@ import org.nustaq.offheap.FSTUTFStringOffheapMap;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Iterator;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -57,9 +58,9 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
 
     public IPromise init(Config cfg) {
         try {
-            new File("./data").mkdir();
-            sessionId2UserKey = new FSTAsciiStringOffheapMap("./data/sessionid2userkey.oos", 64, cfg.getSizeSessionIdsGB(), 1_000_000);
-            userData = new FSTUTFStringOffheapMap("./data/userdata.oos", 64, cfg.getSizeUserDataGB(), 1_000_000);
+            new File("./run/data").mkdirs();
+            sessionId2UserKey = new FSTAsciiStringOffheapMap("./run/data/sessionid2userkey.oos", 64, cfg.getSizeSessionIdsGB(), 1_000_000);
+            userData = new FSTUTFStringOffheapMap("./run/data/userdata.oos", 64, cfg.getSizeUserDataGB(), 1_000_000);
         } catch (Exception e) {
             Log.Warn(this,e);
             return new Promise(null,e);
@@ -68,29 +69,56 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     }
 
     @Override
-    public IPromise<String> getUserKeyFromSessionId(String sid) {
-        return new Promise(sessionId2UserKey.get(sid));
+    public IPromise<String> createToken(Token t) {
+        String key = UUID.randomUUID().toString();
+        sessionId2UserKey.put(key,
+            new PersistedRecord(key)
+                .put("lifeTime", System.currentTimeMillis()+t.getLifeTime())
+                .put("data",t.getData())
+        );
+        return resolve(key);
     }
 
     @Override
-    public void putSessionId(String sessionId, String user) {
-        sessionId2UserKey.put(sessionId,user);
-    }
-
-    @Override
-    public IPromise atomic(String key, Function<PersistedRecord, AtomicResult> recordConsumer) {
-        AtomicResult res = recordConsumer.apply((PersistedRecord) userData.get(key));
-        if ( res.getAction() == Action.PUT ) {
-            userData.put(key,res.getRecord());
-        } else if ( res.getAction() == Action.DELETE ) {
-            userData.remove(key);
+    public IPromise<Token> takeToken(String tokenId, boolean delete) {
+        Object o = sessionId2UserKey.get(tokenId);
+        if ( o instanceof PersistedRecord ) {
+            PersistedRecord r = (PersistedRecord) o;
+            // still valid ?
+            if ( r.getLong("lifeTime") > System.currentTimeMillis() ) {
+                if ( delete ) {
+                    sessionId2UserKey.remove(tokenId);
+                }
+                return resolve(new Token(r.getKey(),r.getString("data"),r.getLong("lifeTime")));
+            } else {
+                sessionId2UserKey.remove(tokenId); // delete outdated token
+            }
         }
-        return new Promise(res.getReturnValue());
+        return resolve(null);
+    }
+
+    @Override
+    public IPromise<String> getUserFromSessionId(String sid) {
+        Object o = sessionId2UserKey.get(sid);
+        if ( o instanceof Object[] ) { // backward
+            o = ((Object[]) o)[0];
+        }
+        return new Promise(o);
+    }
+
+    @Override
+    public void putUserAtSessionId(String sessionId, String userKey) {
+        sessionId2UserKey.put(sessionId, new Object[]{userKey,System.currentTimeMillis()});
     }
 
     @Override
     public void storeRecord(PersistedRecord userRecord) {
         userData.put(userRecord.getKey(),userRecord);
+    }
+
+    @Override
+    public void delRecord(String userkey) {
+        userData.remove(userkey);
     }
 
     @Override
@@ -109,7 +137,7 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     }
 
     @Override
-    public void forEach(Callback<PersistedRecord> cb) {
+    public void forEachUser(Callback<PersistedRecord> cb) {
         for (Iterator it = userData.values(); it.hasNext(); ) {
             PersistedRecord rec = (PersistedRecord) it.next();
             cb.stream(rec);

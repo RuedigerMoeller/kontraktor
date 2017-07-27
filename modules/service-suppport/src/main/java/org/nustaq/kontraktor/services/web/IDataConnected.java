@@ -13,8 +13,8 @@ public interface IDataConnected {
     DataClient getDataClient();
 
     @CallerSideMethod
-    default RealLiveTable<String> getTable(String name) {
-        return getDataClient().getTableSync(name);
+    default RealLiveTable getTable(String name) {
+        return getDataClient().getTable(name);
     }
 
     @CallerSideMethod

@@ -1,5 +1,7 @@
 package org.nustaq.kontraktor.weblication;
 
+import io.undertow.server.HttpServerExchange;
+import io.undertow.util.Headers;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
@@ -62,7 +64,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
                 getSession(user,sessionId, authres ).then( (sess,serr) -> {
                     if ( sess != null ) {
                         if ( sessionId != null && sessionStorage != null ) {
-                            sessionStorage.putSessionId(sessionId,user);
+                            sessionStorage.putUserAtSessionId(sessionId,user);
                         }
                         res.resolve(new Object[]{sess,authres});
                     } else
@@ -74,7 +76,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     }
 
     /**
-     * does a lookup for a usere record using 'user' as key. Compares pw with 'pwd' of user record if found
+     * does a lookup for a user record using 'user' as key. Compares pw with 'pwd' of user record if found
      *
      * @param pw
      * @param jwt
@@ -117,6 +119,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         sess.init(self(),authenticationResult,sessionId).then( (res,err) -> {
             if ( err == null ) {
                 sessions.put(user,sess);
+                authenticationResult.initialData(res);
                 p.resolve(sess);
             } else
                 p.reject(err);
@@ -140,7 +143,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     /**
      * An existing spa client made a request after being inactive for a long time.
      *
-     * Your mission: reconstruct a session actor and state (e.g. from persistence) so it can continue or
+     * mission: reconstruct a session actor and load its state (e.g. from persistence) so it can continue or
      * return null and handle "session expired" correctly at client side. Note there is a default implementation
      *
      * session resurrection is called using await => hurry up
@@ -160,7 +163,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
         if ( sessionStorage == null )
             return resolve(null);
         Promise res = new Promise();
-        sessionStorage.getUserKeyFromSessionId(sessionId).then( (user, err) -> {
+        sessionStorage.getUserFromSessionId(sessionId).then( (user, err) -> {
             if ( user == null )
                 res.resolve(null);
             else {
@@ -182,49 +185,25 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     }
 
     /**
-     * util to startup babel/browserify daemon
-     * @return true if successful
+     * reply a request catched by interceptor, note this is server dependent and bound to undertow.
+     * for servlet containers, just override KontraktorServlet methods
+     * @param exchange
      */
-    public static boolean runNodify() {
-        try {
-            BrowseriBabelify.get();
-        } catch (Exception ex) {
-            Log.Warn(BasicWebAppActor.class,"babelserver not running .. try starting");
-            boolean isWindows = System.getProperty("os.name","linux").toLowerCase().indexOf("windows") >= 0;
-            try {
-                ProcessBuilder processBuilder = new ProcessBuilder();
-                if (isWindows) {
-                    processBuilder.command("cmd.exe", "/c", "node "+ BABEL_SERVER_JS_PATH);
-                } else {
-                    String bash = BASH_EXEC;
-                    if ( !new File(bash).exists() ) {
-                        bash = "/bin/bash";
-                    }
-                    processBuilder.command(bash, "-c", "node "+ BABEL_SERVER_JS_PATH);
-                }
-                processBuilder.directory(new File(WEBAPP_DIR));
-                processBuilder.inheritIO();
-                Process process = processBuilder.start();
-                for ( int i = 0; i < 8; i++ ) {
-                    Thread.sleep(500);
-                    System.out.print('.');
-                    try {
-                        BrowseriBabelify.get();
-                        break;
-                    } catch (Exception e) {
-                        if ( i==3 ) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-                System.out.println();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return false;
-            }
-
-        }
-        return true;
+    public void handleDirectRequest(HttpServerExchange exchange) {
+        Log.Info(this,"direct request received "+exchange);
+        getDirectRequestResponse(exchange.getRequestPath()).then( (s,err) -> {
+            exchange.setResponseCode(200);
+            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/html; charset=utf-8");
+            exchange.getResponseSender().send(s == null  ? ""+err : s );
+        });
     }
 
+    /**
+     * simplified, override handleDirectRequest() for full control+access to http header and response type
+     * @param path
+     * @return
+     */
+    protected IPromise<String> getDirectRequestResponse(String path) {
+        return new Promise("Hey there "+path);
+    }
 }

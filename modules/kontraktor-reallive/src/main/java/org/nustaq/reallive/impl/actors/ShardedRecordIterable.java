@@ -10,24 +10,24 @@ import java.util.List;
 /**
  * Created by ruedi on 05.08.2015.
  */
-public class ShardedRecordIterable<K> implements RealLiveStreamActor<K> {
+public class ShardedRecordIterable<K> implements RealLiveStreamActor {
 
-    List<RealLiveStreamActor<K>> shards = new ArrayList<>();
+    List<RealLiveStreamActor> shards = new ArrayList();
 
     @Override
-    public <T> void forEach(Spore<Record<K>, T> spore) {
+    public <T> void forEach(Spore<Record, T> spore) {
         for (int i = 0; i < shards.size(); i++) {
-            RealLiveStreamActor<K> kvRecordIterable = shards.get(i);
+            RealLiveStreamActor kvRecordIterable = shards.get(i);
             kvRecordIterable.forEach(spore);
         }
     }
 
-    public ShardedRecordIterable<K> addShard(RealLiveStreamActor<K> ri) {
+    public ShardedRecordIterable<K> addShard(RealLiveStreamActor ri) {
         shards.add(ri);
         return this;
     }
 
-    public void removeShard(RealLiveStreamActor<K> ri) {
+    public void removeShard(RealLiveStreamActor ri) {
         shards.add(ri);
     }
 

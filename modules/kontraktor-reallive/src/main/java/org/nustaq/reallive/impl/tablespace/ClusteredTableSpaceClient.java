@@ -3,7 +3,6 @@ package org.nustaq.reallive.impl.tablespace;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
 import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.interfaces.RealLiveTable;
 import org.nustaq.reallive.interfaces.TableDescription;
@@ -44,8 +43,8 @@ public class ClusteredTableSpaceClient<T extends ClusteredTableSpaceClient> exte
     }
 
     @Override
-    public IPromise<RealLiveTable> getTable(String name) {
-        return tableSharding.getTable(name);
+    public IPromise<RealLiveTable> getTableAsync(String name) {
+        return tableSharding.getTableAsync(name);
     }
 
     @Override

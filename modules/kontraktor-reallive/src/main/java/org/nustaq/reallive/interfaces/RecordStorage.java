@@ -8,14 +8,14 @@ import java.util.stream.Stream;
 /**
  * Created by moelrue on 03.08.2015.
  */
-public interface RecordStorage<K> extends RealLiveStreamActor<K> {
+public interface RecordStorage extends RealLiveStreamActor {
 
-    RecordStorage put( K key, Record<K> value );
-    Record<K> get( K key );
-    Record<K> remove( K key );
+    RecordStorage put(String key, Record value );
+    Record get(String key );
+    Record remove(String key );
     long size();
     StorageStats getStats();
-    Stream<Record<K>> stream();
+    Stream<Record> stream();
     // administration level method
     void resizeIfLoadFactorLarger( double loadFactor, long maxGrow );
 }

@@ -1,4 +1,4 @@
-package org.nustaq.sometest;
+package kontraktor.sometest;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.encoding.Coding;

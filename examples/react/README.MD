@@ -11,6 +11,6 @@ Uses a nodejs service to perform browserify and babel.
 
 * install nodejs 6+, npm
 * run getstuff.sh inside (workingdir matters)  [..]/react/src/main/web/client 
-* add java projects (also those from 'modules') from pom.xml in intellij or eclipse
+* add java projects (also those from 'modules') from pom.xml in intellij or eclipse as kontraqktor 3.34 is not on maven yet
 * run ReactApp with working dir in project root ([..]/examples/react)
 

@@ -56,18 +56,18 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
     }
 
     @CallerSideMethod
-    public RealLiveTable<String> getTableSync( String name ) {
-        return (RealLiveTable<String>) getActor().syncTableAccess.get(name);
+    public RealLiveTable getTable(String name ) {
+        return (RealLiveTable) getActor().syncTableAccess.get(name);
     }
 
     /**
-     * shorthand for getTableSync
+     * shorthand for getTable
      * @param name
      * @return
      */
     @CallerSideMethod
-    public RealLiveTable<String> ts( String name ) {
-        return (RealLiveTable<String>) getActor().syncTableAccess.get(name);
+    public RealLiveTable ts(String name ) {
+        return (RealLiveTable) getActor().syncTableAccess.get(name);
     }
 
     /**
@@ -93,7 +93,7 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
                         TableSpaceActor shard = shards[i];
                         Log.Info( this, "exporting shard "+i+" table "+desc.getName() );
                         try {
-                            RealLiveTable table = shard.getTable(desc.getName()).await(60_000);
+                            RealLiveTable table = shard.getTableAsync(desc.getName()).await(60_000);
                             table.filter( rec -> true, (rec,err) -> {
                                 if ( rec != null ) {
                                     try {
@@ -146,9 +146,9 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         return resolve(shards.length);
     }
 
-    public void processSharded( String tableName, RLPredicate<Record<String>> predicate, int shardNo, Callback<Record> cb  ) {
+    public void processSharded(String tableName, RLPredicate<Record> predicate, int shardNo, Callback<Record> cb  ) {
         TableSpaceActor shard = shards[shardNo];
-        shard.getTable(tableName).then( t -> {
+        shard.getTableAsync(tableName).then(t -> {
             RealLiveTable table = t;
             table.filter(predicate, cb);
         });

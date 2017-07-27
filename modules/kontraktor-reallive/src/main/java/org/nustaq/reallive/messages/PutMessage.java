@@ -6,15 +6,15 @@ import org.nustaq.reallive.interfaces.Record;
 /**
  * Created by ruedi on 07/08/15.
  */
-public class PutMessage<K> implements ChangeMessage<K> {
+public class PutMessage implements ChangeMessage {
 
-    public PutMessage(Record<K> record) {
+    public PutMessage(Record record) {
         this.record = record;
     }
 
-    private Record<K> record;
+    private Record record;
 
-    public Record<K> getRecord() {
+    public Record getRecord() {
         return record;
     }
 
@@ -24,13 +24,13 @@ public class PutMessage<K> implements ChangeMessage<K> {
     }
 
     @Override
-    public K getKey() {
+    public String getKey() {
         return record.getKey();
     }
 
     @Override
     public ChangeMessage reduced(String[] reducedFields) {
-        return new PutMessage<>(record.reduced(reducedFields));
+        return new PutMessage(record.reduced(reducedFields));
     }
 
     @Override

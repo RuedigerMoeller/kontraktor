@@ -3,13 +3,13 @@ import React from 'react';
 import {AppActions, Store as AppStore} from './store.jsx';
 import {Btn} from "./login.jsx";
 
-function Verified() {
+function Unverified() {
   return (
     <div style={{ width: 16, background: "tomato", color: 'white', padding: 4, border: '1px solid #eee'}}><HCenter>!</HCenter></div>
   )
 }
 
-function Unverified() {
+function Verified() {
   return (
     <div style={{ width: 16, color: "white", background: 'green', padding: 4, border: '1px solid #eee'}}><HCenter>Ok</HCenter></div>
   )
@@ -43,24 +43,28 @@ export class UserTable extends React.Component {
     });
   }
 
-  onDel(ev) {
-    console.log(ev)
+  onDel(key,index) {
+    AppActions.deleteUser(key);
+    const copy = this.state.records.slice();
+    copy.splice(index,1);
+    this.setState({ records: copy });
   }
+
   render() {
     let count = 0;
     const grey = { background: "#eee" };
     const none = {};
     return (
-      <Table bg='#fff'>
-        <Tr><Caption>Users</Caption></Tr>
+      <Table bg='#fff' style={{ minWidth: "50%"}}>
+        <Tr><Caption>User</Caption></Tr>
         <EmptyLine/>
-        {this.state.records.map( rec =>
+        {this.state.records.map( (rec,index) =>
           <Tr key={rec.key}>
             <Td style={ ((++count%2) == 1) ? grey : none }>{rec.key}</Td>
             <Td style={ ((count%2) == 1) ? grey : none }>{rec.pwd}</Td>
             <Td style={ ((count%2) == 1) ? grey : none }>{rec.verified ? <Verified/>: <Unverified/>}</Td>
             <Td style={ ((count%2) == 1) ? grey : none }>{rec.text}</Td>
-            <Td style={ ((count%2) == 1) ? grey : none }><Btn name={rec.key} onClick={this.onDel.bind(this)}>x</Btn></Td>
+            <Td style={ ((count%2) == 1) ? grey : none }><Btn name={rec.key} onClick={() => this.onDel(rec.key,index)}>x</Btn></Td>
           </Tr>)}
       </Table>
     )

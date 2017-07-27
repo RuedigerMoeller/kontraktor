@@ -13,18 +13,18 @@ import java.util.stream.Stream;
 /**
  * Created by ruedi on 08/12/15.
  */
-public class CachedOffHeapStorage implements RecordStorage<String> {
+public class CachedOffHeapStorage implements RecordStorage {
 
     OffHeapRecordStorage offheap;
-    HeapRecordStorage<String> onHeap;
+    HeapRecordStorage onHeap;
 
-    public CachedOffHeapStorage(OffHeapRecordStorage offheap, HeapRecordStorage<String> onHeap) {
+    public CachedOffHeapStorage(OffHeapRecordStorage offheap, HeapRecordStorage onHeap) {
         this.offheap = offheap;
         this.onHeap = onHeap;
-        List<Record> reput = new ArrayList<>();
-        offheap.forEach(new Spore<Record<String>, Object>() {
+        List<Record> reput = new ArrayList();
+        offheap.forEach(new Spore<Record, Object>() {
             @Override
-            public void remote(Record<String> input) {
+            public void remote(Record input) {
                 Record unwrap = StorageDriver.unwrap(input);
                 if ( unwrap != input ) {
                     reput.add(unwrap);
@@ -43,20 +43,20 @@ public class CachedOffHeapStorage implements RecordStorage<String> {
     }
 
     @Override
-    public RecordStorage put(String key, Record<String> value) {
+    public RecordStorage put(String key, Record value) {
         offheap.put(key,value);
         onHeap.put(key,value);
         return this;
     }
 
     @Override
-    public Record<String> get(String key) {
+    public Record get(String key) {
         return onHeap.get(key);
     }
 
     @Override
-    public Record<String> remove(String key) {
-        Record<String> res = offheap.remove(key);
+    public Record remove(String key) {
+        Record res = offheap.remove(key);
         onHeap.remove(key);
         return res;
     }
@@ -72,7 +72,7 @@ public class CachedOffHeapStorage implements RecordStorage<String> {
     }
 
     @Override
-    public Stream<Record<String>> stream() {
+    public Stream<Record> stream() {
         return onHeap.stream();
     }
 
@@ -82,7 +82,7 @@ public class CachedOffHeapStorage implements RecordStorage<String> {
     }
 
     @Override
-    public <T> void forEach(Spore<Record<String>, T> spore) {
+    public <T> void forEach(Spore<Record, T> spore) {
         onHeap.forEach(spore);
     }
 

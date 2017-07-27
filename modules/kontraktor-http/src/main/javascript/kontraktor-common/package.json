@@ -1,6 +1,6 @@
 {
   "name": "kontraktor-common",
-  "version": "3.34.4",
+  "version": "3.34.5",
   "description": "common helpers for kontraktor-server and kontraktor-client (KPromise, DecodingHelper)",
   "main": "kontraktor-common.js",
   "scripts": {

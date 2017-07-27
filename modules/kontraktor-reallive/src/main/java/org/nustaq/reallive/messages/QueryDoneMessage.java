@@ -13,7 +13,7 @@ public class QueryDoneMessage implements ChangeMessage {
     }
 
     @Override
-    public Object getKey() {
+    public String getKey() {
         return null;
     }
 

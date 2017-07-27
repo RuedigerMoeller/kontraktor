@@ -20,7 +20,7 @@ public interface TableSpace {
     IPromise dropTable( String name );
     IPromise<List<TableDescription>> getTableDescriptions();
     IPromise<List<RealLiveTable>> getTables();
-    IPromise<RealLiveTable> getTable(String name);
+    IPromise<RealLiveTable> getTableAsync(String name);
     IPromise shutDown();
     void stateListener( Callback<StateMessage> stateListener );
 

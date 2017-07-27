@@ -17,10 +17,10 @@ public class Query {
 
     protected static Parser newParser() {
 
-        HashMap<String,FuncOperand> functions = new HashMap<>();
+        HashMap<String,FuncOperand> functions = new HashMap();
         defaultFun(functions);
 
-        HashMap<String,Operator> operators = new HashMap<>();
+        HashMap<String,Operator> operators = new HashMap();
         defaultOps(operators);
 
         return new Parser(functions,operators);

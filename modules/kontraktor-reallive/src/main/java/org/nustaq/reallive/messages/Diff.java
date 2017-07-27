@@ -37,13 +37,13 @@ public class Diff implements Serializable {
     }
 
     public Diff reduced(String[] reducedFields) {
-        ArrayList<Pair<String,Object>> newDiff = new ArrayList<>();
+        ArrayList<Pair<String,Object>> newDiff = new ArrayList();
         for (int i = 0; i < changedFields.length; i++) {
             String changedField = changedFields[i];
             for (int j = 0; j < reducedFields.length; j++) {
                 String reducedField = reducedFields[j];
                 if ( changedField.equals(reducedField) ) {
-                    newDiff.add(new Pair<>(reducedField,oldValues[i]));
+                    newDiff.add(new Pair(reducedField,oldValues[i]));
                 }
             }
         }

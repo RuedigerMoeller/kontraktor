@@ -8,25 +8,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Created by ruedi on 04/08/15.
  */
-public class Subscriber<K> implements Serializable {
+public class Subscriber implements Serializable {
 
     static AtomicInteger idCount = new AtomicInteger(0);
 
-    final RLPredicate<Record<K>> filter;
-    final RLPredicate<Record<K>> prePatchFilter;
+    final RLPredicate<Record> filter;
+    final RLPredicate<Record> prePatchFilter;
 
-    ChangeReceiver<K> receiver;
+    ChangeReceiver receiver;
     int id;
     transient Callback serverSideCB;
 
-    public Subscriber(RLPredicate<Record<K>> prepatch, RLPredicate<Record<K>> filter, ChangeReceiver<K> receiver) {
+    public Subscriber(RLPredicate<Record> prepatch, RLPredicate<Record> filter, ChangeReceiver receiver) {
         this.filter = filter == null ? rec -> true : filter;
         this.receiver = receiver;
         this.prePatchFilter = prepatch == null ? rec -> true : prepatch;
         id = idCount.incrementAndGet();
     }
 
-    public RLPredicate<Record<K>> getPrePatchFilter() {
+    public RLPredicate<Record> getPrePatchFilter() {
         return prePatchFilter;
     }
 
@@ -34,11 +34,11 @@ public class Subscriber<K> implements Serializable {
         return id;
     }
 
-    public RLPredicate<Record<K>> getFilter() {
+    public RLPredicate<Record> getFilter() {
         return filter;
     }
 
-    public ChangeReceiver<K> getReceiver() {
+    public ChangeReceiver getReceiver() {
         return receiver;
     }
 

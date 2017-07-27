@@ -26,13 +26,13 @@ import java.util.function.*;
  *
  *
  */
-public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implements RealLiveTable<K>, Mutatable<K> {
+public class RealLiveTableActor extends Actor<RealLiveTableActor> implements RealLiveTable, Mutatable<Object> {
 
     public static int MAX_QUERY_BATCH_SIZE = 10;
     public static boolean DUMP_QUERY_TIME = false;
 
-    StorageDriver<K> storageDriver;
-    FilterProcessor<K> filterProcessor;
+    StorageDriver storageDriver;
+    FilterProcessor filterProcessor;
     HashMap<String,Subscriber> receiverSideSubsMap = new HashMap();
     TableDescription description;
     ArrayList<QueryQEntry> queuedSpores = new ArrayList();
@@ -40,17 +40,17 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
     int taCount = 0;
 
     @Local
-    public void init( Supplier<RecordStorage<K>> storeFactory, TableDescription desc) {
+    public void init(Supplier<RecordStorage> storeFactory, TableDescription desc) {
         this.description = desc;
         Thread.currentThread().setName("Table "+desc.getName()+" main");
-        RecordStorage<K> store = storeFactory.get();
-        storageDriver = new StorageDriver<>(store);
-        filterProcessor = new FilterProcessor<>(this);
+        RecordStorage store = storeFactory.get();
+        storageDriver = new StorageDriver(store);
+        filterProcessor = new FilterProcessor(this);
         storageDriver.setListener( filterProcessor );
     }
 
     @Override
-    public void receive(ChangeMessage<K> change) {
+    public void receive(ChangeMessage change) {
         checkThread();
         try {
             storageDriver.receive(change);
@@ -59,7 +59,7 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
         }
     }
 
-    public <T> void forEachDirect(Spore<Record<K>, T> spore) {
+    public <T> void forEachDirect(Spore<Record, T> spore) {
         checkThread();
         try {
             storageDriver.getStore().forEach(spore);
@@ -69,7 +69,7 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
     }
 
     @Override
-    public <T> void forEach(Spore<Record<K>, T> spore) {
+    public <T> void forEach(Spore<Record, T> spore) {
         forEachQueued(spore, () -> {});
     }
 
@@ -83,16 +83,16 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
     // remote receiver then builds a unique id by concatening localid#connectionId
 
     @Override
-    @CallerSideMethod public void subscribe(Subscriber<K> subs) {
+    @CallerSideMethod public void subscribe(Subscriber subs) {
         // need callerside to transform to Callback
         Callback callback = (r, e) -> {
             if (Actors.isResult(e))
-                subs.getReceiver().receive((ChangeMessage<K>) r);
+                subs.getReceiver().receive((ChangeMessage) r);
         };
         _subscribe(subs.getPrePatchFilter(),subs.getFilter(), callback, subs.getId());
     }
 
-    public void _subscribe(RLPredicate<Record<K>> prePatchFilter, RLPredicate pred, Callback cb, int id) {
+    public void _subscribe(RLPredicate<Record> prePatchFilter, RLPredicate pred, Callback cb, int id) {
         checkThread();
         Subscriber localSubs = new Subscriber(prePatchFilter,pred, change -> {
             cb.stream(change);
@@ -134,7 +134,7 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
     public void execQueriesOrDelay(int size, int taCount) {
         if ( (queuedSpores.size() == size && this.taCount == taCount) || queuedSpores.size() > MAX_QUERY_BATCH_SIZE) {
             long tim = System.currentTimeMillis();
-            Consumer<Record<K>> recordConsumer = rec -> {
+            Consumer<Record> recordConsumer = rec -> {
                 for (int i = 0; i < queuedSpores.size(); i++) {
                     QueryQEntry qqentry = queuedSpores.get(i);
                     Spore spore = qqentry.spore;
@@ -175,14 +175,14 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
     }
 
     @CallerSideMethod @Override
-    public void unsubscribe(Subscriber<K> subs) {
+    public void unsubscribe(Subscriber subs) {
         _unsubscribe( (r,e) -> {}, subs.getId() );
     }
 
     public void _unsubscribe( Callback cb /*dummy required to find sending connection*/, int id ) {
         checkThread();
         String sid = addChannelIdIfPresent(cb, ""+id);
-        Subscriber<K> subs = (Subscriber<K>) receiverSideSubsMap.get(sid);
+        Subscriber subs = (Subscriber) receiverSideSubsMap.get(sid);
         filterProcessor.unsubscribe(subs);
         receiverSideSubsMap.remove(sid);
         cb.finish();
@@ -190,7 +190,7 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
     }
 
     @Override
-    public IPromise<Record<K>> get(K key) {
+    public IPromise<Record> get(String key) {
         taCount++;
         return resolve(storageDriver.getStore().get(key));
     }
@@ -201,8 +201,8 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
     }
 
     @Override @CallerSideMethod
-    public Mutation<K> getMutation() {
-        return new Mutator<>(self());
+    public Mutation getMutation() {
+        return new Mutator(self());
     }
 
     @Override
@@ -222,25 +222,25 @@ public class RealLiveTableActor<K> extends Actor<RealLiveTableActor<K>> implemen
     }
 
     @Override
-    public IPromise<Boolean> putCAS(RLPredicate<Record<K>> casCondition, K key, Object[] keyVals) {
+    public IPromise<Boolean> putCAS(RLPredicate<Record> casCondition, String key, Object[] keyVals) {
         taCount++;
         return storageDriver.putCAS(casCondition,key,keyVals);
     }
 
     @Override
-    public void atomic(K key, RLConsumer<Record<K>> action) {
+    public void atomic(String key, RLConsumer<Record> action) {
         taCount++;
         storageDriver.atomic(key,action);
     }
 
     @Override
-    public IPromise atomicQuery(K key, RLFunction<Record<K>, Object> action) {
+    public IPromise atomicQuery(String key, RLFunction<Record, Object> action) {
         taCount++;
         return storageDriver.atomicQuery(key,action);
     }
 
     @Override
-    public void atomicUpdate(RLPredicate<Record<K>> filter, RLFunction<Record<K>, Boolean> action) {
+    public void atomicUpdate(RLPredicate<Record> filter, RLFunction<Record, Boolean> action) {
         taCount++;
         storageDriver.atomicUpdate(filter, action);
     }
