@@ -5,12 +5,27 @@ import { Login, Register } from './login.jsx';
 import { HCenter } from './layout.jsx';
 import { HashRouter as Router, Route, Switch, Link, NavLink, Redirect } from 'react-router-dom'
 import createBrowserHistory from 'history/createBrowserHistory';
-import { Store as AppStore } from "./store.jsx";
+import { AppActions,Store as AppStore } from "./store.jsx";
 import { UserTable } from "./usertable.jsx";
 
 class OtherState extends React.Component {
+
+  constructor(p) {
+    super(p);
+    this.state = {link:'direct/none'};
+  }
+  componentDidMount() {
+    AppActions.getTokenLink().then( (r,e) => {
+      this.setState({link:r});
+    });
+  }
   render() {
-    return (<div>Some Other Component</div>)
+    return (
+      <HCenter style={{ background: 'white', fontWeight: 'bold', padding: 8 }}>
+        Click the token link: <br/>
+        <a target="_blank" href={this.state.link}>{this.state.link}</a>
+      </HCenter>
+    )
   }
 }
 

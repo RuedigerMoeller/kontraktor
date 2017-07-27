@@ -49,6 +49,10 @@ export class AppStore extends EventEmitter {
     });
   }
 
+  getTokenLink() {
+    return this.session.$createTokenLink();
+  }
+
   queryUsers( cb ) {
     this.session.queryUsers( cb );
   }

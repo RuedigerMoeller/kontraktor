@@ -74,6 +74,7 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
         sessionId2UserKey.put(key,
             new PersistedRecord(key)
                 .put("lifeTime", System.currentTimeMillis()+t.getLifeTime())
+                .put("userId",t.getUserId())
                 .put("data",t.getData())
         );
         return resolve(key);
@@ -89,7 +90,7 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
                 if ( delete ) {
                     sessionId2UserKey.remove(tokenId);
                 }
-                return resolve(new Token(r.getKey(),r.getString("data"),r.getLong("lifeTime")));
+                return resolve(new Token(r.getString("userId"),r.getString("data"),r.getLong("lifeTime")));
             } else {
                 sessionId2UserKey.remove(tokenId); // delete outdated token
             }
