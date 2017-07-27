@@ -23,7 +23,6 @@ public class ReactAppMain extends UndertowWebServerMain {
 
     public static void main(String[] args) throws IOException {
 
-//        BasicWebAppConfig cfg = BasicWebAppConfig.read();
         ReactAppConfig cfg = ReactAppConfig.read();
         new ReactAppMain().reactMainHelper(ReactApp.class,cfg);
 

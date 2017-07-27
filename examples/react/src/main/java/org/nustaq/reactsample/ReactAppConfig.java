@@ -1,6 +1,7 @@
 package org.nustaq.reactsample;
 
 import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
+
 public class ReactAppConfig extends BasicWebAppConfig {
 
     public static ReactAppConfig read() {
@@ -13,4 +14,8 @@ public class ReactAppConfig extends BasicWebAppConfig {
         return initialUsers;
     }
 
+    public ReactAppConfig initialUsers(String[] initialUsers) {
+        this.initialUsers = initialUsers;
+        return this;
+    }
 }

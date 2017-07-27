@@ -7,7 +7,7 @@ import org.nustaq.kontraktor.annotations.Remoted;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.weblication.BasicWebSessionActor;
 import org.nustaq.kontraktor.weblication.ISessionStorage;
-import org.nustaq.kontraktor.weblication.PersistedRecord;
+import org.nustaq.kontraktor.weblication.model.PersistedRecord;
 
 /**
  * Created by ruedi on 01.07.17.
@@ -29,8 +29,8 @@ public class ReactAppSession extends BasicWebSessionActor {
     protected IPromise loadSessionData(String sessionId, ISessionStorage storage) {
         Promise res = new Promise();
         Log.Info(this,"loadSessionData " + sessionId);
-        // lets cache the record of current user
-        storage.getUserRecord(_getUserKey()).then( (user,err) -> {
+        // let's cache the record of current user (take care => stale state in case of multiple clients from same user)
+        storage.getUser(_getUserKey()).then( (user, err) -> {
             if ( user != null) {
                 userRecord = user;
                 res.resolve(userRecord);
@@ -43,7 +43,7 @@ public class ReactAppSession extends BasicWebSessionActor {
 
     @Remoted
     public void delUser(String key) {
-        getSessionStorage().delRecord(key);
+        getSessionStorage().delUser(key);
     }
 
     @Remoted
@@ -51,7 +51,8 @@ public class ReactAppSession extends BasicWebSessionActor {
         getSessionStorage().forEachUser( cb );
     }
 
-    @Remoted public IPromise<String> createTokenLink() {
+    @Remoted
+    public IPromise<String> createTokenLink() {
         Promise res = new Promise();
         getSessionStorage().createToken(
             new ISessionStorage.Token(userKey,"hello",60_000l)
