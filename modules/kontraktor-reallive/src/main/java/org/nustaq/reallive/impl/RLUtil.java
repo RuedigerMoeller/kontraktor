@@ -17,6 +17,22 @@ public class RLUtil {
         return instance;
     }
 
+    public static boolean isAllowedClazz(Class<?> clazz) {
+        String name = clazz.getName();
+        return isValidClazzName(name) ||
+            (clazz.isArray() &&
+                (clazz.getComponentType().isPrimitive() ||
+                 isValidClazzName(clazz.getComponentType().getName())) || isValidClazz(clazz) );
+    }
+
+    private static boolean isValidClazz(Class clazz) {
+        return (MapRecord.class.isAssignableFrom(clazz));
+    }
+
+    private static boolean isValidClazzName(String name) {
+        return name.startsWith("java.") || name.startsWith("javax.");
+    }
+
     public AddMessage add(String key, Object... keyVals) {
         Object record = record(key, keyVals);
         return new AddMessage((Record) record);
@@ -54,6 +70,11 @@ public class RLUtil {
     }
 
     public Record buildRecord(Record res, Object[] keyVals) {
+        if ( keyVals.length % 2 != 0) {
+            if ( keyVals.length == 1 && keyVals[0] instanceof Record)
+                throw new RuntimeException("invalid length of keyval array, try 'setRecord' method ");
+            throw new RuntimeException("invalid length of keyval array");
+        }
         for (int i = 0; i < keyVals.length; i += 2) {
             Object k = keyVals[i];
             Object v = keyVals[i + 1];

@@ -212,7 +212,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     @Override
-    public IPromise atomicQuery(String key, RLFunction<Record, Object> action) {
+    public IPromise atomic(String key, RLFunction<Record, Object> action) {
         taCount++;
         return storageDriver.atomicQuery(key,action);
     }
@@ -270,7 +270,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     @Override
-    public void putRecord(Record rec) {
+    public void setRecord(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         receive(new PutMessage(rec));

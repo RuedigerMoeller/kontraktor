@@ -20,7 +20,7 @@ public interface RealLiveTable extends SafeRealLiveTable, ChangeStream, RealLive
      * @param action
      * @return the result of function.
      */
-    IPromise atomicQuery(String key, RLFunction<Record,Object> action);
+    IPromise atomic(String key, RLFunction<Record,Object> action);
 
     /**
      * mass update.

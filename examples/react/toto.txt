@@ -4,5 +4,7 @@ OK- handle session timed out in client
 NOPE - share sessions by user
 - nodify exits
 - cleanup users
-- direct link handling
+OK - direct link handling
 - upgrade fst
+- add non-lambda calcs to rl (or cas on record version)
+- self spawning single point access standalone rl cluster

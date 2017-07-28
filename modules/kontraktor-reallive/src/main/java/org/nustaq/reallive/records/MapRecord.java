@@ -19,7 +19,7 @@ public class MapRecord implements Record {
     public static Class<? extends MapRecord> recordClass = MapRecord.class;
     public static Function<MapRecord,MapRecord> conversion;
 
-    public static MapRecord New() {
+    static MapRecord New() {
         try {
             return recordClass.newInstance();
         } catch (InstantiationException e) {
@@ -32,7 +32,7 @@ public class MapRecord implements Record {
 
     protected Map<String,Object> map = new HashMap();
 
-    protected String fields[];
+    protected transient String fields[];
     protected String key;
 
     protected MapRecord() {

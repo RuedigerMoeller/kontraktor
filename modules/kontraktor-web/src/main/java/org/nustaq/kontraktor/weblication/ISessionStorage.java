@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.weblication;
 
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.weblication.model.PersistedRecord;
+import org.nustaq.reallive.api.Record;
 
 import java.io.Serializable;
 import java.util.function.Function;
@@ -59,14 +59,13 @@ public interface ISessionStorage {
     void putUserAtSessionId(String sessionId, String userKey);
 
     void delUser(String userkey);
-    IPromise<PersistedRecord> getUser(String userId);
-    void putUser(PersistedRecord userRecord);
-    IPromise atomicUpdate(String key, Function<PersistedRecord,Object> operation);
-    IPromise<Boolean> putUserIfNotPresent(PersistedRecord userRecord);
+    IPromise<Record> getUser(String userId);
+    void putUser(Record userRecord);
+    IPromise<Boolean> putUserIfNotPresent(Record userRecord);
 
     /**
      * stream all user records to the given callback and close it calling cb.finish()
      * @param cb
      */
-    void forEachUser(Callback<PersistedRecord> cb);
+    void forEachUser(Callback<Record> cb);
 }

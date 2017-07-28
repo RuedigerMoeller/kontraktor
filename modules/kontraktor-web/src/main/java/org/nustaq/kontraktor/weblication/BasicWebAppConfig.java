@@ -1,8 +1,8 @@
 package org.nustaq.kontraktor.weblication;
 
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.kontraktor.weblication.model.PersistedRecord;
 import org.nustaq.kson.Kson;
+import org.nustaq.reallive.api.Record;
 
 import java.io.File;
 import java.io.Serializable;
@@ -13,29 +13,30 @@ import java.util.concurrent.TimeUnit;
  */
 public class BasicWebAppConfig implements Serializable {
 
-    public static BasicWebAppConfig read(Class ... mapped) {
-        return read("./run/etc/app.kson", mapped);
+    public static BasicWebAppConfig read(Class<? extends BasicWebAppConfig> target,Class ... mapped) {
+        return read("./run/etc/app.kson", mapped,target);
     }
 
     public static BasicWebAppConfig read() {
-        return read(null);
+        return read(BasicWebAppConfig.class);
     }
 
-    public static BasicWebAppConfig read(String pathname, Class[] mappedClasses) {
-        Kson kson = new Kson().map(BasicWebAppConfig.class);
+    public static BasicWebAppConfig read(String pathname, Class[] mappedClasses, Class<? extends BasicWebAppConfig> target) {
+        Kson kson = new Kson().map(target);
         if ( mappedClasses != null ) {
             kson.map(mappedClasses);
         }
         try {
-            BasicWebAppConfig juptrCfg = (BasicWebAppConfig) kson.readObject(new File(pathname));
-            String confString = kson.writeObject(juptrCfg);
+            Object raw = kson.readObject(new File(pathname));
+            BasicWebAppConfig cfg = (BasicWebAppConfig) raw;
+            String confString = kson.writeObject(cfg);
             System.out.println("run with config from "+ new File(pathname).getCanonicalPath());
             System.out.println(confString);
-            return juptrCfg;
+            return cfg;
         } catch (Exception e) {
             Log.Warn(null, pathname + " not found or parse error. " + e.getClass().getSimpleName() + ":" + e.getMessage());
             try {
-                String sampleconf = kson.writeObject(new BasicWebAppConfig());
+                String sampleconf = kson.writeObject(target.newInstance());
                 System.out.println("Defaulting to:\n"+sampleconf);
             } catch (Exception e1) {
                 e1.printStackTrace();
@@ -70,7 +71,7 @@ public class BasicWebAppConfig implements Serializable {
     public Class[] getMessageClasses() {
         return new Class[] {
             BasicAuthenticationResult.class,
-            PersistedRecord.class
+            Record.class
         };
     }
 

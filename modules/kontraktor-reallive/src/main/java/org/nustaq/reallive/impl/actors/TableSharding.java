@@ -87,8 +87,8 @@ public class TableSharding implements RealLiveTable {
     }
 
     @Override
-    public IPromise atomicQuery(String key, RLFunction<Record, Object> action) {
-        return shards[func.apply(key)].atomicQuery(key, action);
+    public IPromise atomic(String key, RLFunction<Record, Object> action) {
+        return shards[func.apply(key)].atomic(key, action);
     }
 
     @Override
@@ -122,7 +122,7 @@ public class TableSharding implements RealLiveTable {
         shards[func.apply(rec.getKey())].receive(new AddMessage(true,rec));
     }
 
-    public void putRecord(Record rec) {
+    public void setRecord(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         shards[func.apply(rec.getKey())].receive(new PutMessage(rec));

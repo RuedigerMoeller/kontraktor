@@ -10,7 +10,6 @@ import java.util.function.Function;
 
 import javax.websocket.*;
 
-import io.undertow.websockets.spi.WebSocketHttpExchange;
 import org.nustaq.http.example.ServletApp;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;

@@ -9,7 +9,7 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
-import org.nustaq.reallive.interfaces.Record;
+import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.QueryDoneMessage;
 import org.nustaq.reallive.messages.RemoveMessage;

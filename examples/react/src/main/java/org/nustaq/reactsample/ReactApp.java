@@ -5,14 +5,14 @@ import org.nustaq.kontraktor.annotations.Secured;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.weblication.BasicWebAppActor;
-import org.nustaq.kontraktor.weblication.model.PersistedRecord;
+import org.nustaq.reallive.records.MapRecord;
 
 
 /**
  * Created by ruedi on 30.05.17. This is the singleton Actor representing your App.
  * Single Instance Main Application Actor
  *
- * remote calls can be done without authentication, so take care
+ * remote calls on the main App can be done without authentication, so take care
  */
 @Secured // enforce explicit tagging of remoteable methods (@Remote) effects ALSO Session actors
 public class ReactApp extends BasicWebAppActor<ReactApp,ReactAppConfig> {
@@ -25,7 +25,7 @@ public class ReactApp extends BasicWebAppActor<ReactApp,ReactAppConfig> {
         if ( initialUsers != null ) {
             for (int i = 0; i < initialUsers.length; i+=3) {
                 sessionStorage.putUserIfNotPresent(
-                    new PersistedRecord(initialUsers[i])
+                    MapRecord.New(initialUsers[i])
                         .put("pwd",initialUsers[i+1])
                         .put("text",initialUsers[i+2])
                         .put("verified",true)
@@ -43,7 +43,7 @@ public class ReactApp extends BasicWebAppActor<ReactApp,ReactAppConfig> {
     public IPromise register(String nick, String pwd, String text) {
         Promise p = new Promise();
         sessionStorage.putUserIfNotPresent(
-            new PersistedRecord(nick)
+            MapRecord.New(nick)
                 .put("pwd",pwd)
                 .put("text",text)
                 .put("verified",true)
@@ -67,9 +67,18 @@ public class ReactApp extends BasicWebAppActor<ReactApp,ReactAppConfig> {
             if ( token != null ) {
                 res.resolve("<html>User confirmed: '"+token.getUserId()+"' data:"+token.getData()+"</html>");
                 // lets increment a count for that
-                sessionStorage.atomicUpdate(token.getUserId(),record -> {
+                // note: not atomic
+                sessionStorage.getUser(token.getUserId()).then( record -> {
+                    // increment
                     record.put("count",record.getInt("count")+1);
-                    return null;
+                    // save
+                    sessionStorage.putUser(record);
+                    // session cached record is stale now => update
+                    // this is a bad example, should use events instead and ofc
+                    // default session storage is not a database replacement
+                    sessions.values().stream()
+                        .filter( sess -> sess.getUserKey().equals(token.getUserId()))
+                        .forEach(sess -> ((ReactAppSession)sess).updateUserRecord(record));
                 });
             } else
                 res.reject("<html>Expired or invalid Link</html>");

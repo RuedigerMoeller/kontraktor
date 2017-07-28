@@ -48,7 +48,7 @@ public class DataShard extends ServiceActor<DataShard> {
         String dir = dataCfg.getDataDir()[getCmdline().getShardNo()];
         new File(dir).mkdirs();
         tableSpace.setBaseDataDir(dir);
-        tableSpace.init(dataCfg.getThreadsPerShard(),0);
+        tableSpace.init();
         tableSpace.ping().await();
         Log.Info(this, "init tablespace in "+
             dataCfg.getDataDir()[getCmdline().getShardNo()]+

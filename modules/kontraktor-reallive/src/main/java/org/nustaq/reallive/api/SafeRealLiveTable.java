@@ -27,8 +27,9 @@ public interface SafeRealLiveTable extends ChangeReceiver, SafeChangeStream, Saf
     IPromise<Record> take(String key);
     void remove(String key);
 
-    IPromise<Boolean> addRecord(Record rec );
     void mergeRecord(Record rec);
-    void putRecord(Record rec);
+    void setRecord(Record rec);
+    // named 'set' to avoid calling put(key,Record) actualle invoking put(key, ...keyval) accidentally
+    IPromise<Boolean> addRecord(Record rec );
 
 }

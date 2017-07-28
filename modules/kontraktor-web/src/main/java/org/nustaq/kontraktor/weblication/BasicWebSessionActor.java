@@ -28,19 +28,19 @@ public abstract class BasicWebSessionActor<T extends BasicWebSessionActor> exten
     }
 
     @CallerSideMethod
-    public String _getSessionId() {
+    public String getSessionId() {
         return getActor().sessionId;
     }
 
     @CallerSideMethod
-    public String _getUserKey() {
+    public String getUserKey() {
         return getActor().userKey;
     }
 
     @Override
     public void hasBeenUnpublished() {
         app.notifySessionEnd(self());
-        ISessionStorage storage = app._getSessionStorage();
+        ISessionStorage storage = app.getSessionStorage();
         persistSessionData(sessionId, storage);
     }
 
@@ -58,6 +58,6 @@ public abstract class BasicWebSessionActor<T extends BasicWebSessionActor> exten
     protected abstract IPromise loadSessionData(String sessionId, ISessionStorage storage);
 
     protected ISessionStorage getSessionStorage() {
-        return app._getSessionStorage();
+        return app.getSessionStorage();
     }
 }

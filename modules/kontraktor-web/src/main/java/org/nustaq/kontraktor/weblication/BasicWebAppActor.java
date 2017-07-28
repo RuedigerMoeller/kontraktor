@@ -40,7 +40,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
 
     protected ISessionStorage createSessionStorage(C config) {
         DefaultSessionStorage defaultSessionStorage = AsActor(DefaultSessionStorage.class);
-        defaultSessionStorage.init(new DefaultSessionStorage.Config());
+        defaultSessionStorage.init(new DefaultSessionStorage.Config()).await();
         return defaultSessionStorage;
     }
 
@@ -114,10 +114,10 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
 
     protected IPromise<BasicWebSessionActor> createSession(String user, String sessionId, BasicAuthenticationResult authenticationResult) {
         Promise p = new Promise();
-        BasicWebSessionActor sess = Actors.AsActor((Class<BasicWebSessionActor>) getSessionClazz(),sessionThreads[(int) (Math.random()*sessionThreads.length)]);
+        BasicWebSessionActor sess = AsActor((Class<BasicWebSessionActor>) getSessionClazz(),sessionThreads[(int) (Math.random()*sessionThreads.length)]);
         sess.init(self(),authenticationResult,sessionId).then( (res,err) -> {
             if ( err == null ) {
-                sessions.put(user,sess);
+                sessions.put(sessionId,sess);
                 authenticationResult.initialData(res);
                 p.resolve(sess);
             } else
@@ -174,12 +174,12 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
 
     @Local
     public void notifySessionEnd(BasicWebSessionActor session) {
-        sessions.remove(session._getUserKey());
-        Log.Info(this, "session timed out "+session._getSessionId()+" "+session._getUserKey()+" sessions:"+sessions.size());
+        sessions.remove(session.getSessionId());
+        Log.Info(this, "session timed out "+session.getSessionId()+" "+session.getUserKey()+" sessions:"+sessions.size());
     }
 
     @CallerSideMethod
-    public ISessionStorage _getSessionStorage() {
+    public ISessionStorage getSessionStorage() {
         return getActor().sessionStorage;
     }
 
@@ -205,4 +205,5 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     protected IPromise<String> getDirectRequestResponse(String path) {
         return new Promise("Hey there "+path);
     }
+
 }

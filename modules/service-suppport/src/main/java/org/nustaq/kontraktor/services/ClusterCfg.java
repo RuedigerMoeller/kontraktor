@@ -3,12 +3,10 @@ package org.nustaq.kontraktor.services;
 import org.nustaq.kontraktor.services.rlclient.DataCfg;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
-import org.nustaq.reallive.interfaces.TableDescription;
+import org.nustaq.reallive.api.TableDescription;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Created by ruedi on 26.12.16.

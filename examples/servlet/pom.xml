@@ -53,7 +53,7 @@
       </dependency>
       <dependency>
           <groupId>de.ruedigermoeller</groupId>
-          <artifactId>kontraktor-http</artifactId>
+          <artifactId>kontraktor-web</artifactId>
           <version>3.34</version>
       </dependency>
   </dependencies>

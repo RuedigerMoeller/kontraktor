@@ -32,7 +32,7 @@ export class UserTable extends React.Component {
     AppActions.queryUsers( (r,e) => {
       console.log("reply ",this.idCount);
       if ( r ) {
-        let jsmap = decoder.jsmap(r.mp);
+        let jsmap = decoder.jsmap(r.map);
         jsmap["key"] = r.key;
         const copy = this.state.records.slice();
         copy.push(jsmap);
@@ -64,6 +64,7 @@ export class UserTable extends React.Component {
             <Td style={ ((count%2) == 1) ? grey : none }>{rec.pwd}</Td>
             <Td style={ ((count%2) == 1) ? grey : none }>{rec.verified ? <Verified/>: <Unverified/>}</Td>
             <Td style={ ((count%2) == 1) ? grey : none }>{rec.text}</Td>
+            <Td style={ ((count%2) == 1) ? grey : none }>{rec.count}</Td>
             <Td style={ ((count%2) == 1) ? grey : none }><Btn name={rec.key} onClick={() => this.onDel(rec.key,index)}>x</Btn></Td>
           </Tr>)}
       </Table>
