@@ -5,10 +5,9 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.http.Http4K;
-import org.nustaq.kontraktor.remoting.http.HttpPublisher;
+import org.nustaq.kontraktor.remoting.http.undertow.HttpPublisher;
+import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
-import org.nustaq.kontraktor.remoting.websockets.WebSocketPublisher;
 
 /**
  * Created by ruedi on 07/06/15.
@@ -27,7 +26,7 @@ public class HelloActor extends Actor<HelloActor> {
     }
 
     public void streamMyName( Callback<Character> channel ) {
-        myName.chars().forEach( ch -> channel.stream( (char) ch) );
+        myName.chars().forEach( ch -> channel.pipe( (char) ch) );
         channel.finish();
     }
 
