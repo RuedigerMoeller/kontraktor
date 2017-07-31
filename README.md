@@ -12,13 +12,13 @@ single Java process.
 * fully asynchronous
 * high performance
 
-**things you can do using kontraktor**
+## Things you can do using kontraktor
 
 * Create **nodejs-style Java Backends** for javascript written Single Page / Progressive WebApps using the advanced interop (java<=>javascript) mechanics of kontraktor
 * Slice your backend into several independent **(micro-)services**/processes without much effort. Because of the actor abstraction, one still can choose to run a
  cluster inside a single process if wanted. (Physical deployment is not hard-wired into your app)
-* write a service in nodejs/**javascript** and **connect** it **from** a **java** process
-* **connect** a **java** service **from** a **nodejs**-app
+* write a service in nodejs/**javascript** and **connect** it from a **java** process
+* **connect** a **java** service from a **nodejs**-app
 * replace Java's synchronous, shared-memory concurrency model by a **shared-nothing asynchronous concurrency model** (actors instead threads). 
 
 ## Modules
@@ -27,7 +27,7 @@ Kontraktor consists of several modules. For sake of simplicity all module versio
 
 ### Kontraktor Core 
 
-Actors + TCP Remoting), requires Java 8, LGPL
+Actors + TCP Remoting), requires Java 8
 
 * transform regular java code (satisfying some conventions) into remoteable actors.
 * no boilerplate like message classes etc. required
@@ -43,7 +43,7 @@ Actors + TCP Remoting), requires Java 8, LGPL
 
 ### Kontraktor Http 
 
-Ads WebSockets, Http LongPoll for actor-remoting, JavaScript interop, requires Java 8, LGPL. Uses Undertow as underlying webserver
+Ads WebSockets, Http LongPoll for actor-remoting, JavaScript interop, requires Java 8. Uses Undertow as underlying webserver
 
 * npm modules to **(a)** implement a kontraktor actor (=service) using nodejs and **(b)** to connect a kontraktor service from nodejs 
 * server push via adaptive longpolling (polling automatically turns off if no open callback / future is present) 
@@ -130,7 +130,7 @@ Simple peer-2-peer network of "Process Controlling" nodes. Enables to start/stop
 
 **[Untested] Kontraktor-Reactive Streams** 
 
-(Implements Reactive Streams Spec 1.0), LGPL
+(Implements Reactive Streams Spec 1.0)
 
 ```xml
 <dependency>
