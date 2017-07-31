@@ -1,7 +1,7 @@
 # kontraktor 4
 
 
-##What is kontraktor ?
+## What is kontraktor ?
 
 kontraktor is 
 
@@ -23,11 +23,11 @@ things you can do using kontraktor
 * connect a java service from a nodejs-app
 * replace Java's synchronous, shared state concurrency model by a shared-nothing asynchronous model (actors instead threads). 
 
-##Modules
+## Modules
 
 Kontraktor consists of several modules. For sake of simplicity all module versions are kept in sync with kontraktor core.
 
-###Kontraktor Core 
+### Kontraktor Core 
 
 Actors + TCP Remoting), requires Java 8, LGPL
 
@@ -43,7 +43,7 @@ Actors + TCP Remoting), requires Java 8, LGPL
 </dependency>
 ```
 
-###Kontraktor Http 
+### Kontraktor Http 
 
 Ads WebSockets, Http LongPoll for actor-remoting, JavaScript interop, requires Java 8, LGPL. Uses Undertow as underlying webserver
 
@@ -64,7 +64,7 @@ into a single http request/response.
 </dependency>
 ```
 
-####npm (kontraktor-http)
+#### npm (kontraktor-http)
 
 **kontraktor-common**
 
@@ -83,7 +83,7 @@ write an ES6 class and make it accessible to other (kontraktor) processes using 
 
 old (es6 free) implementation of kontraktor-client. somewhat messy, but production-proven
  
-###kontraktor-web
+### kontraktor-web
 
 A lightweight framework on top of kontraktor to serve JavaScript Single Page Application clients (e.g. Polymer.js, React.js) from a Java Server.
 
@@ -154,10 +154,10 @@ Simple peer-2-peer network of "Process Controlling" nodes. Enables to start/stop
 </dependency>
 ```
 
-###Examples:
+### Examples:
 https://github.com/RuedigerMoeller/kontraktor/tree/trunk/examples
 
-
+### Misc
 Older Blogposts (samples are of *OLD* 2.0, 3.0 version, might need rewrite/changes (mostly `Future` => `IPromise`):
 
 * http://java-is-the-new-c.blogspot.de/2015/07/polymer-webcomponents-served-with-java.html
