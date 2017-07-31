@@ -20,7 +20,7 @@ public class ServletSession extends BasicWebSessionActor<ServletSession> {
 
     public void push(Callback<String> cb) {
         if ( ! isStopped() ) {
-            cb.stream(""+new Date());
+            cb.pipe(""+new Date());
             delayed(1000, () -> push(cb) );
         }
     }

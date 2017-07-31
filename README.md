@@ -112,7 +112,7 @@ A clusterable NoSQL data base.
 
 Currently undocumented
 
-**[Undocumented, in-progress] service-support**
+**[Undocumented] service-support**
 
 * framework/tools to control and configure a cluster of reallive + webserver(s) + (micro-)services
 

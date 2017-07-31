@@ -47,7 +47,7 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
     public void streamToDo( String filter, Callback cb ) {
         toDo.forEach( item -> {
             if ( item.indexOf(filter) >= 0 ) {
-                cb.stream(item);
+                cb.pipe(item);
             }
         });
         cb.finish();
@@ -73,7 +73,7 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
         if ( ! isStopped() ) {
             if ( subscription != null ) {
                 app.getNumSessions().then( sessions -> {
-                    subscription.stream(new Date().toString()+", "+sessions+" Session Actors");
+                    subscription.pipe(new Date().toString()+", "+sessions+" Session Actors");
                 });
             }
             delayed( 2000, () -> pushEventLoop() );

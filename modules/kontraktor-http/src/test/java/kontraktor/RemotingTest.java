@@ -47,9 +47,9 @@ public class RemotingTest {
         }
 
         public void callback( Callback<String> cb ) {
-            cb.stream("A");
-            cb.stream("B");
-            cb.stream("C");
+            cb.pipe("A");
+            cb.pipe("B");
+            cb.pipe("C");
             cb.finish();
         }
 

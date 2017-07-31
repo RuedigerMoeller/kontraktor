@@ -67,12 +67,12 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
                 Log.Info(this, "------");
 
                 listeners.forEach( cb -> {
-                    cb.stream(new Pair(SERVICEDUMP, services));
+                    cb.pipe(new Pair(SERVICEDUMP, services));
                 });
 
                 if ( ClusterCfg.isDirty() ) {
                     config = ClusterCfg.read();
-                    listeners.forEach(cb -> cb.stream(new Pair(CONFIGUPDATE, config)));
+                    listeners.forEach(cb -> cb.pipe(new Pair(CONFIGUPDATE, config)));
                 }
             } catch (Exception e) {
                 Log.Error(this,e);
@@ -106,7 +106,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         Pair msg = new Pair(AVAILABLE,desc);
         listeners.forEach(cb -> {
             try {
-                cb.stream(msg);
+                cb.pipe(msg);
             } catch (Throwable th) {
                 Log.Info(this, th);
             }
@@ -118,7 +118,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         for (int i = 0; i < listeners.size(); i++) {
             Callback cb = listeners.get(i);
             try {
-                cb.stream(msg);
+                cb.pipe(msg);
             } catch (Throwable th) {
                 Log.Info(this, th);
                 listeners.remove(i);

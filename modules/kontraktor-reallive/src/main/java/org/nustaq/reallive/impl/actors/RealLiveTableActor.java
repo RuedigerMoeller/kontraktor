@@ -94,7 +94,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     public void _subscribe(RLPredicate pred, Callback cb, int id) {
         checkThread();
         Subscriber localSubs = new Subscriber(pred, change -> {
-            cb.stream(change);
+            cb.pipe(change);
         }).serverSideCB(cb);
         String sid = addChannelIdIfPresent(cb, ""+id);
         receiverSideSubsMap.put(sid,localSubs);

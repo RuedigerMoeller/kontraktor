@@ -102,7 +102,7 @@ public interface Callback<T> extends Serializable
      *
      * @param result
      */
-    default Callback stream(T result) {
+    default Callback pipe(T result) {
         complete(result, CONT);
         return this;
     }

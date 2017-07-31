@@ -26,9 +26,9 @@ open class TestActor : Actor<TestActor>() {
     }
 
     fun regCB( cb: Callback<Any?> ) {
-        cb.stream(1)
-        cb.stream(2)
-        cb.stream(test)
+        cb.pipe(1)
+        cb.pipe(2)
+        cb.pipe(test)
         cb.finish()
     }
 
@@ -44,8 +44,8 @@ open class TestActor : Actor<TestActor>() {
     }
 
     fun regCB1( cb: Callback<Int?> ) {
-        cb.stream(1)
-        cb.stream(2)
+        cb.pipe(1)
+        cb.pipe(2)
         cb.finish()
     }
 

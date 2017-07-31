@@ -17,7 +17,7 @@ public class GeneratorTest {
         public void generate( long interval, Callback<int[]> iterator ) {
             for ( int i = 0; i < 5; i++ ) {
                 for ( int ii = 0; ii < 5; ii++ ) {
-                    iterator.stream(new int[] {i,ii});
+                    iterator.pipe(new int[] {i,ii});
                     yield(interval);
                 }
             }
