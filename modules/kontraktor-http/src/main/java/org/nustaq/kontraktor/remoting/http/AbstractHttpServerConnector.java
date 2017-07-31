@@ -26,7 +26,7 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
     protected Actor facade;
     protected HashMap<String,HttpObjectSocket> sessions = new HashMap<>(); // use only from facade thread
 
-    protected FSTConfiguration conf = FSTConfiguration.createJsonConfiguration(); // used for authdata
+    protected FSTConfiguration conf = FSTConfiguration.createJsonConfiguration(false,false); // used for authdata
     protected Function<ObjectSocket, ObjectSink> factory;
     protected long sessionTimeout = SESSION_TIMEOUT_MS;
     protected volatile boolean isClosed = false;

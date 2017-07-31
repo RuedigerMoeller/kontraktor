@@ -12,7 +12,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>3.34</version>
+    <version>4.00</version>
 
     <description>a light weight, efficient actor lib</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -116,7 +116,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>fst</artifactId>
-            <version>2.44.5</version>
+            <version>2.52</version>
         </dependency>
 
         <dependency>
