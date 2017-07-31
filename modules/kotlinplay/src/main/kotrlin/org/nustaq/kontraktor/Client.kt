@@ -39,6 +39,7 @@ import java.util.function.Consumer
 
 
     }.onError {
-        println("connection failed $it")
+        println("client connection failed $it")
+
     }
 }
