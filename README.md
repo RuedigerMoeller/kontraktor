@@ -3,18 +3,18 @@
 
 ## What is kontraktor ?
 
-* an implementation of the **actor-model** using a **nodejs**'ish single thread event loop approach to implement actors for Java. Ofc its possible to run many Actors (utilizing more than one core) in a
+* an implementation of the **actor-model** using a **nodejs'ish single thread event loop** approach to implement actors for Java. Ofc its possible to run many Actors (utilizing more than one core) in a
 single Java process.
 * main focus is boilerplate free '**distributed actor systems**'. A system consist of a set of services (=actors) talking over-the-wire to each other.
 * **Pluggable transport/encoding**. Kontraktor's remote-invocation can be used using Http(s) / WebSockets / TCP, messages are encoded using binary serialization or json.
 * switching the network protocol or encoding can be done dynamically, no need to change actual application code
-* kontraktor implements a sophisticated cross language javascript<=>java communication using a general approach. E.g. Transparent Callbacks/Promises, automatic conversion of objects and remote calls. 
-* fully asynchronous
-* high performance
+* kontraktor implements a sophisticated **cross language javascript/java communication** using a general approach. E.g. Transparent Callbacks/Promises, automatic conversion of objects and remote calls. 
+* fully **asynchronous**
+* high **performance**
 
 ## Things you can do using kontraktor
 
-* Create **nodejs-style Java Backends** for javascript written Single Page / Progressive WebApps using the advanced interop (java<=>javascript) mechanics of kontraktor
+* Create **nodejs-style Java Backends** for Single Page / Progressive WebApps using the advanced interop (java/javascript) mechanics of kontraktor (e.g. **React.js** + java, **Polymer.js** +java).
 * Slice your backend into several independent **(micro-)services**/processes without much effort. Because of the actor abstraction, one still can choose to run a
  cluster inside a single process if wanted. (Physical deployment is not hard-wired into your app)
 * write a service in nodejs/**javascript** and **connect** it from a **java** process
@@ -112,13 +112,18 @@ A clusterable NoSQL data base.
 
 Currently undocumented
 
-**[Undocumented] service-support**
-
-* framework/tools to control and configure a cluster of reallive + webserver(s) + (micro-)services
-
 **[Undocumented] cluster-troll**
 
 Simple peer-2-peer network of "Process Controlling" nodes. Enables to start/stop clusters in a distributed setup (several machines).
+
+**[Unreleased] kontraktor-wapi**
+
+kontraktor based API-gateway/proxy/message-router. Manages JWT-based API tokens. 
+
+**[Unreleased] service-support**
+
+* framework/tools to control and configure a cluster of reallive + webserver(s) + (micro-)services
+
 
 ```xml
 <dependency>
