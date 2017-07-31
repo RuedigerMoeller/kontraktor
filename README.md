@@ -62,7 +62,7 @@ into a single http request/response.
 </dependency>
 ```
 
-#### npm (kontraktor-http)
+### npm (kontraktor-http)
 
 **kontraktor-common**
 
