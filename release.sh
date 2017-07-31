@@ -41,6 +41,15 @@ rm -r */
 jar -cf bundle.jar *
 cd ..
 
+cd ../kontraktor-reallive
+mvn clean package -Dmaven.test.skip=true gpg:sign  -Dgpg.passphrase=$PW
+cd target
+rm *-jar-with*
+rm -r */
+jar -cf bundle.jar *
+cd ..
+mvn package install -Dmaven.test.skip=true # rebuild fat jars
+
 cd ../kontraktor-web
 mvn clean package -Dmaven.test.skip=true gpg:sign  -Dgpg.passphrase=$PW
 cd target
@@ -49,10 +58,3 @@ rm -r */
 jar -cf bundle.jar *
 cd ..
 
-cd ../kontraktor-reallive
-
-mvn clean package -Dmaven.test.skip=true gpg:sign  -Dgpg.passphrase=$PW
-cd target
-rm *-jar-with*
-rm -r */
-jar -cf bundle.jar *
