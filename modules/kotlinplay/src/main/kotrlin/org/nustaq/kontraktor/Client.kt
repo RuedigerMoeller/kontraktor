@@ -12,27 +12,28 @@ import java.util.function.Consumer
     TCPConnectable(TestActor::class.java, "localhost", 7654).connect<TestActor> {
         x, y -> println("$x $y")
     }.onResult { client ->
-        client.tell("init"); // works
-        client.init();       // DOES NOT WORK !!!!!!!!!!!!!
+        client.init();
 
-        client.ask("xy", 17 ).then { x,y -> println("remote result $x" ) } // works
+        client.ask("xy", 17 ).then { x,y -> println("client remote result $x" ) }
 
-        client.xy( 17 ).then { x,y -> println("remote result $x" ) }  // does not work !!!!!
+        client.xy( 17 ).then { x,y -> println("client remote result $x" ) }
         client.regCB( Callback { x, any -> println(x) } )
 
         client.xy( -17 ).onResult {
-            println("remote result $it" )
+            println("client remote result $it" )
         }.onError {
-            println("error $it")
+            println("client error $it")
         }
 
         client.regCB1( Callback { x, any -> println( x ) } )
         client.workAround {
-            x,y -> println("work res $x $y")
+            x,y -> println("client work res $x $y")
         }
         client.testArr( intArrayOf(55,44,33,22))
 
-        client.cons(Consumer { x -> println(x) })
+        // note: kotlin lambdas cannot be serialized as they apparently
+        // still contain an outer "this" reference. In java 8 a pure lambda does not refer to outer 'this'
+//        client.cons(Consumer { x -> println(x) })
 
         intArrayOf(55,44,33,22).map {  }
 

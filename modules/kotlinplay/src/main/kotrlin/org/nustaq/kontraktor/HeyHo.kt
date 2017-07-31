@@ -14,19 +14,20 @@ open class TestActor : Actor<TestActor>() {
 
     private var test : Int? = 77;
 
-    fun init() {
+    open fun init() {
         println("init called");
         test = 77;
     }
 
-    fun xy( x:Int ) : IPromise<Int> {
-        println("Server: Hello $x")
+    open fun xy( x:Int ) : IPromise<Int> {
+        println("Server: xy $x")
         if ( x < 0 )
             return reject("BUG")
         return resolve(x+13)
     }
 
-    fun regCB( cb: Callback<Any?> ) {
+    open fun regCB( cb: Callback<Any?> ) {
+        println("Server: regCB")
         cb.pipe(1)
         cb.pipe(2)
         cb.pipe(test)
@@ -36,21 +37,24 @@ open class TestActor : Actor<TestActor>() {
     private fun helper(x:Int) : Int = 2*x
 
     @CallerSideMethod
-    fun workAround( cb: (res:Any?,err:Any?) -> Unit) {
+    open fun workAround( cb: (res:Any?,err:Any?) -> Unit) {
+        println("Server: workAround")
         regCB( Callback { x,y -> cb(x,y) } )
     }
 
-    fun testArr( arr: IntArray ) {
+    open fun testArr( arr: IntArray ) {
+        println("Server: testArr")
         arr.forEach { println(it) }
     }
 
-    fun regCB1( cb: Callback<Int?> ) {
+    open fun regCB1( cb: Callback<Int?> ) {
+        println("Server: regCB1")
         cb.pipe(1)
         cb.pipe(2)
         cb.finish()
     }
 
-    fun cons( cs: Consumer<Any?>) {
+    open fun cons( cs: Consumer<Any?>) {
 
     }
 }
