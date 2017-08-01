@@ -112,7 +112,7 @@ Currently undocumented
 
 **[Undocumented] cluster-troll**
 
-Simple peer-2-peer network of "Process Controlling" nodes. Enables to start/stop clusters in a distributed setup (several machines).
+Simple peer-2-peer network of "Process Controlling" nodes. Enables to start/stop clusters in a distributed setup (multiple machines).
 
 **[Unreleased] kontraktor-wapi**
 
