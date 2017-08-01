@@ -42,7 +42,7 @@ Actors + TCP Remoting
 
 ### Kontraktor Http 
 
-Ads WebSockets, Http LongPoll for actor-remoting, JavaScript interop, requires Java 8. Uses Undertow as underlying webserver
+Adds WebSockets, Http LongPoll for actor-remoting, JavaScript interop, requires Java 8. Uses Undertow as underlying webserver
 
 * npm modules to **(a)** implement a kontraktor actor (=service) using nodejs and **(b)** to connect a kontraktor service from nodejs 
 * server push via adaptive longpolling (polling automatically turns off if no open callback / future is present) 
