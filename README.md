@@ -14,8 +14,8 @@
 ## Things you can do using kontraktor
 
 * Create **nodejs-style Java Backends** for Single Page / Progressive WebApps using the advanced interop (java/javascript) mechanics of kontraktor (e.g. **React.js** + java, **Polymer.js** +java).
-* Slice your backend into several independent **(micro-)services**/processes without much effort. Because of the actor abstraction, one still can choose to run a
- cluster inside a single process if wanted. (Physical deployment is not hard-wired into your app)
+* Asynchronous **(micro-)service** architectures without much effort. Because of the actor abstraction, one still can choose to run a
+ cluster inside a single process if wanted. Physical deployment is not hard-wired into your app.
 * write a service in nodejs/**javascript** and **connect** it from a **java** process
 * **connect** a **java** service from a **nodejs**-app
 * replace Java's synchronous, shared-memory concurrency model by a **shared-nothing asynchronous concurrency model** (actors instead threads). 
