@@ -8,6 +8,7 @@
 * **cross language javascript/java interoperation** using a generic approach. E.g. transparent Callbacks/Promises, automatic conversion of objects and remote calls. 
 * fully **asynchronous**
 * high **performance**
+* production proven
 
 ## Things you can do using kontraktor
 
