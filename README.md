@@ -59,7 +59,7 @@ into a single http request/response.
 </dependency>
 ```
 
-### npm (kontraktor-http)
+### kontraktor-http 4 nodejs. npm modules
 
 **kontraktor-common**
 
