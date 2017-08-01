@@ -27,10 +27,10 @@ Kontraktor consists of several modules. For sake of simplicity all module versio
 
 ### Kontraktor Core 
 
-Actors + TCP Remoting), requires Java 8
+Actors + TCP Remoting
 
 * transform regular java code (satisfying some conventions) into remoteable actors.
-* no boilerplate like message classes etc. required
+* no boilerplate required
 * TCP remoting included (2 implementations: SyncIO and AsyncIO) 
 
 ```xml
