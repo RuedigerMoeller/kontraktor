@@ -3,7 +3,7 @@
 
 ## What is kontraktor ?
 
-* amplementation of the **actor-model** using a **nodejs'ish single threaded event loop**. Ofc its possible to run many Actors (utilizing more than one thread).
+* implementation of the **actor-model** using a **nodejs'ish single threaded event loop**. Ofc its possible to run many Actors (utilizing more than one thread).
 * main focus is boilerplate free '**distributed actor systems**'. A system consist of a set of services (=actors) talking over-the-wire to each other.
 * **Pluggable transport/encoding**. Kontraktor's remote-invocation can be used using Http(s) / WebSockets / TCP, messages are encoded using binary serialization or json.
 * switching the network protocol or encoding can be done dynamically, no need to change actual application code
