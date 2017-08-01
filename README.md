@@ -121,15 +121,6 @@ kontraktor based API-gateway/proxy/message-router. Manages JWT-based API tokens.
 
 * framework/tools to control and configure a cluster of reallive + webserver(s) + (micro-)services
 
-
-```xml
-<dependency>
-    <groupId>de.ruedigermoeller</groupId>
-    <artifactId>kontraktor-http</artifactId>
-    <version>4.00</version>
-</dependency>
-```
-
 **[Untested] Kontraktor-Reactive Streams** 
 
 (Implements Reactive Streams Spec 1.0)
