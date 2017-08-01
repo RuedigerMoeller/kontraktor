@@ -124,7 +124,7 @@ kontraktor based API-gateway/proxy/message-router. Manages JWT-based API tokens.
 
 **[Untested] Kontraktor-Reactive Streams** 
 
-(Implements Reactive Streams Spec 1.0)
+(Implements Reactive Streams Spec 1.0, remoteable)
 
 ```xml
 <dependency>
