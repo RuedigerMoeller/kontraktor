@@ -31,7 +31,7 @@ Actors + TCP Remoting
 * no boilerplate required
 * TCP remoting included (2 implementations: SyncIO and AsyncIO) 
 
-[Core Documentation](wiki/Kontraktor-4-Core)
+**[Core Documentation](/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-Core)**
 
 ```xml
 <dependency>
