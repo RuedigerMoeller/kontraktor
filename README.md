@@ -58,7 +58,7 @@ into a single http request/response.
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-http</artifactId>
-    <version>4.00</version>
+    <version>4.01</version>
 </dependency>
 ```
 
@@ -94,7 +94,7 @@ A lightweight framework on top of kontraktor to serve JavaScript Single Page App
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-http</artifactId>
-    <version>4.00</version>
+    <version>4.01</version>
 </dependency>
 ```
 
@@ -132,7 +132,7 @@ kontraktor based API-gateway/proxy/message-router. Manages JWT-based API tokens.
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-reactive-streams</artifactId>
-    <version>4.00</version>
+    <version>4.01</version>
 </dependency>
 ```
 
@@ -144,7 +144,7 @@ kontraktor based API-gateway/proxy/message-router. Manages JWT-based API tokens.
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-bare</artifactId>
-    <version>4.00</version>
+    <version>4.01</version>
 </dependency>
 ```
 
