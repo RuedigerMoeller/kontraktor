@@ -5,7 +5,7 @@ const KPromise = kontraktorClient.KPromise;
 const coder = new kontraktorClient.DecodingHelper;
 
 const kclient = new KClient();
-
+// connects class TestActeur (java tests)
 function sampleNoProxy(remote) {
   remote.tell("plain", "Hello", 1);
   remote.ask("plainPromise", "Hello", 1).then((r, e) => {

@@ -115,7 +115,7 @@ class KClient {
     const respLen = decodedResponse.seq[0] - 1; // last one is sequence.
     const sequence = decodedResponse.seq[decodedResponse.seq.length-1];
     //console.log("GOT SEQUENCE:"+sequence);
-    if ( sequence <= lastSeenSequence ) {
+    if ( sequence > 0 && sequence <= lastSeenSequence ) {
       console.log("old data received:"+sequence+" last:"+lastSeenSequence);
       // return lastSeenSequence;
     }
@@ -648,7 +648,7 @@ class KontrActor {
    */
   buildCall( callbackId, receiverKey, methodName, args ) {
     let cb = null;
-    if ( args && args.lengt > 0 && args[args.length-1].typ === 'cbw' ) {
+    if ( args && args.length > 0 && args[args.length-1].typ === 'cbw' ) {
       cb = args[args.length-1];
       args[args.length-1] = null;
     }

@@ -116,4 +116,13 @@ public interface Callback<T> extends Serializable
         complete(null, null);
     }
 
+    /**
+     * relevant for remoted callback's
+     *
+     * @return true if the client owning this remote callback proxy has disconnected
+     */
+    default boolean isTerminated() {
+        return false;
+    }
+
 }
