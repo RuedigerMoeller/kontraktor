@@ -3,21 +3,14 @@
 
 ## What is kontraktor ?
 
-* implementation of the **actor-model** using a **nodejs'ish single threaded event loop**. Ofc its possible to run many Actors concurrently utilizing more than one thread.
-* Mostly transparent, boilerplate free remoting. Create '**distributed actor systems**' [(Micro-)Services] using a pluggable network transport (TCP,HTTP,WebSockets) and encoding (Binary, Json). 
-* **cross language javascript/java interoperation** using a generic approach. E.g. transparent Callbacks/Promises, automatic conversion of objects and remote calls. 
+* A boilerplate free and consistent abstraction for remote communication powered by a **distributed actor-model**
+* eases polyglott (java, nodejs, browser) (micro-)service oriented distributed systems
+* separates transport and message encoding from application code. 
+* A browser communicating with a webserver via HTTP/json uses the same API/mechanics as backend services talking to each other using TCP/Binary.
+* webapp support (transpilation, packaging, optimization)
 * fully **asynchronous**
 * high **performance**
 * production proven
-
-## Things you can do using kontraktor
-
-* Create **Java Backends** for **Single Page Apps** using the advanced interop (java/javascript) mechanics of kontraktor (e.g. **React.js** + java, **Polymer.js** +java).
-* Asynchronous **(micro-)service** architectures without much effort. Because of the actor abstraction, one still can choose to run a
- cluster inside a single process if wanted. Physical deployment is not hard-wired into your app.
-* write a service in nodejs/**javascript** and **connect** it from a **java** process
-* **connect** a **java** service from a **nodejs**-app
-* replace Java's synchronous, shared-memory concurrency model by a **shared-nothing asynchronous concurrency model** (actors instead threads). 
 
 ## Modules
 
@@ -30,6 +23,7 @@ Actors + TCP Remoting
 * transform regular java code (satisfying some conventions) into remoteable actors.
 * no boilerplate required
 * TCP remoting included (2 implementations: SyncIO and AsyncIO) 
+* general messaging optimizations: batching, binary queues (reduce GC load + save heap by queuing raw bytes instead of object's).
 
 **[Core Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-Core)** [in progress]
 
@@ -47,12 +41,11 @@ Adds WebSockets, Http LongPoll for actor-remoting, JavaScript interop. Uses Unde
 
 * npm modules to **(a)** implement a kontraktor actor (=service) using nodejs and **(b)** to connect a kontraktor service from nodejs 
 * server push via adaptive longpolling (polling automatically turns off if no pending callback / promise is present) 
-* alternatively use websockets
-* transparent batching of client requests. If a client uses many remote calls concurrently, kontraktor automatically batches those calls and their repsonses
-into a single http request/response.
-* advanced bundling and inlining of ressources (js, css, html) webpack style. Instead of introducing a build step, kontraktor bundles
- your stuff dynamically upon first request to your server (when in production mode). This reduces file clutter and allows to tweak/hotfix your app
- in-place deployed.
+* support for websockets
+* advanced bundling and inlining of resources (js, css, html) webpack style. Instead of introducing a build step, kontraktor bundles and caches your stuff dynamically upon first request (production mode). 
+* session handling fundamentals
+
+**[Http-Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-Http)** [in progress]
 
 ```xml
 <dependency>
@@ -79,7 +72,7 @@ write an ES6 class and make it accessible to other (kontraktor) processes using 
 
 **js4k**
 
-old (es6 free) implementation of kontraktor-client. somewhat messy, but production-proven
+old (es5) implementation of kontraktor-client. somewhat messy, but production-proven
  
 ### kontraktor-web
 
@@ -87,7 +80,7 @@ A lightweight framework on top of kontraktor to serve JavaScript Single Page App
 
 * session handling: for each client an actor instance is created server side. No need to manually juggle Id's
 * session invalidation
-* session resurrection (=wake up / re-establish a session from a Client which has been away for some time). No more "your session has expired")
+* session resurrection (=wake up / re-establish a session of a client which has been away for some time). No more "your session has expired")
 * built in support for Polymer.js and React.js (incl. jsx, babel+browserify) 
 
 ```xml
