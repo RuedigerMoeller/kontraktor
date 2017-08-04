@@ -1,7 +1,7 @@
-module.paths.push('/home/ruedi/projects/kontraktor/modules/kontraktor-http/src/main/javascript/js4k');
+// module.paths.push('/home/ruedi/projects/kontraktor/modules/kontraktor-http/src/main/javascript/js4k');
 //module.paths.push('C:\\work\\GitHub\\kontraktor\\modules\\kontraktor-http\\src\\main\\javascript\\js4k');
 
-var jsk = require("js4k.js");
+var jsk = require("js4k");
 
 // replace some browser API
 WebSocket = require('websocket').w3cwebsocket;

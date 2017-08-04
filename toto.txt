@@ -2,9 +2,9 @@ OK- init + reanimation completely async
 OK- optional invert @Local to avoid security issues
 OK- handle session timed out in client
 NOPE - share sessions by user
-- nodify exits
+OK - nodify exits
 - cleanup users
 OK - direct link handling
-- upgrade fst
+OK - upgrade fst
 - add non-lambda calcs to rl (or cas on record version)
 - self spawning single point access standalone rl cluster

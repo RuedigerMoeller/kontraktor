@@ -1,3 +1,7 @@
+##Deprecated. 
+
+Uses old js4k client lib. Anyway useful to illustrate type mapping.
+
 
 #  Connect a java actor from node.js
 
@@ -22,4 +26,8 @@ int array, double array (result in primitive arrays on java side)
 ["double", 2.3, 3.5 ] // double needs tag
 ```
 
-see also https://github.com/RuedigerMoeller/kontraktor-polymer-example on how to connect from a browser
+### run
+
+run Service4Node
+run src/main/javascript/getstuff.sh (npms js4k)
+run src/main/javascript/client.js
