@@ -248,7 +248,7 @@ public class HttpClientConnector implements ActorClientConnector {
         public MyHttpWS(String url) {
             this.url = url;
             if ( ! cfg.shortPollMode ) {
-//                lpHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).build() ).build();
+//                lpHttpClient = HttpAsyncClients.custom().setDefaultIOReactorConfig( IOReactorConfig.custom().setIoThreadCount(1).setSoKeepAlive(true).buildResourcePath() ).buildResourcePath();
 //                lpHttpClient.start();
                 lpHttpClient = getClient();
             }

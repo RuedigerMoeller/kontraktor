@@ -78,7 +78,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
     /**
      * usable in context of Http4k builder
      */
-    public BldFourK build() {
+    public BldFourK buildHttpApi() {
         return cfg;
     }
 

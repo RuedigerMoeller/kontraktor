@@ -124,7 +124,7 @@ public class BldResPath {
         return this;
     }
 
-    public BldFourK build() {
+    public BldFourK buildResourcePath() {
         return cfg4k;
     }
 
