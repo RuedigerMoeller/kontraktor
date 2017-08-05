@@ -37,7 +37,7 @@ public class PromiseSampleService<T extends PromiseSampleService> extends Actor<
     ////////////////////////////////////////////////////
 
 
-    public IPromise<String> getDataFromLongOperation() {
+    public IPromise<String> getDataAsync() {
         Promise p = new Promise();
         // simulate async long running op
         delayed(3000,() -> p.resolve("Data"));

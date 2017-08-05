@@ -63,9 +63,14 @@ class DecodingHelper {
     this.postObjectDecodingMap[javatype] = mapfunction;
   }
 
+  /**
+   * a function obj => obj applied on raw incoming messages
+   * @param transformerfunction
+   */
   setTransformer(transformerfunction) {
     this.optionalTransformer = transformerfunction;
   }
+
   /**
    * makes a fst json serialized object more js-friendly
    * @param obj
