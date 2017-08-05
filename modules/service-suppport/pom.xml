@@ -11,7 +11,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>service-support</artifactId>
-    <version>4.01</version>
+    <version>4.02</version>
 
     <description>service registry</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -98,7 +98,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>reallive</artifactId>
-            <version>4.01</version>
+            <version>4.02</version>
         </dependency>
 
         <!-- commandline parsing -->
@@ -117,7 +117,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor-http</artifactId>
-            <version>4.01</version>
+            <version>4.02</version>
         </dependency>
 
     </dependencies>
