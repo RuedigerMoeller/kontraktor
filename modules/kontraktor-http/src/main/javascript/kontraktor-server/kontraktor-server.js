@@ -82,8 +82,8 @@ class KontraktorServer {
                   const undef = typeof res == 'undefined';
                   if ( undef && call.futureKey > 0 ) {
                     // handle call to ask on a void method
-                    // send a void result send to avoid memory leaks
-                    res == "void";
+                    // send a void result to avoid memory leaks
+                    res = "void";
                     console.warn("prepend '$' on void calls (method:"+call.method+")");
                   }
                   if ( res ) {

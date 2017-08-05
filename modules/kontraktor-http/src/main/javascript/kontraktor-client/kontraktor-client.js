@@ -608,10 +608,11 @@ const createActorProxy = function(target){
         }
         if (property.indexOf("$") === 0) {
           args[0] = args[0].substring(1);
+          target.tell.apply(target, args);
+        }
+        else {
           return target.ask.apply(target, args);
         }
-        else
-          target.tell.apply(target, args);
         return null;
       }
     }
