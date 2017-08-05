@@ -72,7 +72,7 @@ public class UndertowWebServerMain {
         // check/start node babelserver daemon (if this fails run babeldaemon manually, e.g. windoze
         checkBabelService();
 
-        // just setup stuff manually here. Its easy to build an application specific
+        // just setup stuff manually here. Its easy to buildResourcePath an application specific
         // config using e.g. json or kson.
         File root = new File(cfg.getClientRoot());
 
@@ -107,11 +107,11 @@ public class UndertowWebServerMain {
                     myHttpApp.handleDirectRequest(exchange);
                     return true;
                 })
-                .build()
+                .buildResourcePath()
             .httpAPI(getApiEndpointUrlPath(), myHttpApp)
                 .coding(new Coding(SerializerType.JsonNoRef,msgClasses))
                 .setSessionTimeout(cfg.getSessionTimeoutMS())
-                .build()
+                .buildHttpApi()
             .build();
     }
 

@@ -44,11 +44,11 @@ kclient.useProxies(true).connect("http://localhost:8888/test").then( (app,e) => 
 
   //return onPlainClient(app); same code without using Proxy (see kclient.useProxies(true) lines above)
 
-  app.plain( "Hello", 1);
-  app.$plainPromise( "Hello", 1 ).then((r, e) => {
+  app.$plain( "Hello", 1);
+  app.plainPromise( "Hello", 1 ).then((r, e) => {
     console.log("plainPromise returned ", r, e);
   });
-  app.$plainCallback( "hello", 1, (r, e) => {
+  app.plainCallback( "hello", 1, (r, e) => {
     console.log("plainCallback returned ", r, e);
   });
   let pojo = coder.jobj(
@@ -58,20 +58,20 @@ kclient.useProxies(true).connect("http://localhost:8888/test").then( (app,e) => 
       strings: coder.jcoll("list", ['1', '2', '3'])
     }
   );
-  app.$plainPojo( pojo ).then( (r, e) => {
+  app.plainPojo( pojo ).then( (r, e) => {
     console.log("plainPojo returned ", r, e);
   });
 
-  app.simpleTypes(["A", "B", "C"], [1, 2, 3, -5]);
-  app.plainUnknown({
+  app.$simpleTypes(["A", "B", "C"], [1, 2, 3, -5]);
+  app.$plainUnknown({
     x: "pasd",
     yyy: [1, 23, 1123, 123, 123, -1123],
     z: {text: "Halli"}
   });
 
-  app.$createAnotherOne("otherActor").then((other, err) => {
+  app.createAnotherOne("otherActor").then((other, err) => {
     if (other)
-      other.$getName().then((r, e) => console.log("othername:" + r));
+      other.getName().then((r, e) => console.log("othername:" + r));
     else
       console.error('failed to create dynamic actor ', other, err);
   });

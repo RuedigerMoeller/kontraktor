@@ -11,6 +11,13 @@ class KServer {
     callback.complete(null,null);
   }
 
+  voidFun() {
+    console.log("void")
+  }
+
+  automaticPromised(aString) {
+    return aString;
+  }
 }
 
 const server = new kontraktor.KontraktorServer(new KServer(),{port:3998},decodingHelper);

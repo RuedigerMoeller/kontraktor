@@ -17,7 +17,7 @@ import static org.nustaq.kontraktor.Actors.AsActor;
 public class MyHttpAppMain {
 
     public static void main(String[] args) throws IOException {
-        // just setup stuff manually here. Its easy to build an application specific
+        // just setup stuff manually here. Its easy to buildResourcePath an application specific
         // config using e.g. json or kson.
         File root = new File("./web");
 
@@ -40,7 +40,7 @@ public class MyHttpAppMain {
             .httpAPI("/api", myHttpApp)
                 .serType(SerializerType.JsonNoRef)
                 .setSessionTimeout(30_000)
-                .build()
+                .buildHttpApi()
             .websocket("/ws", myHttpApp)
                 .serType(SerializerType.JsonNoRef)
                 // replace serType like below to provide classes which are encoded using simple names (no fqclassnames)
