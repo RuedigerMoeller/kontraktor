@@ -1,4 +1,4 @@
-package docsamples.jsinterop.typedclient;
+package docsamples.jsinterop.jsserves.typedclient;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;

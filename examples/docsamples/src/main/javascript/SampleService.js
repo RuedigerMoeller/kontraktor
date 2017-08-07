@@ -63,7 +63,7 @@ class KServer {
    */
   getSingletonSubserviceTyped(credentials) {
     if ( "lol" == credentials ) {
-      return new KRemotableProxy(this,this.singletonSubservice,"docsamples.jsinterop.typedclient.ISampleSubService");
+      return new KRemotableProxy(this,this.singletonSubservice,"docsamples.jsinterop.jsserves.typedclient.ISampleSubService");
     }
     throw new Error("invalid credentials");
   }
@@ -73,7 +73,7 @@ class KServer {
    */
   getDynamicSubservice(credential) {
     if ( "privatelol" == credentials ) {
-      return new KRemotableProxy(this,new Subservice(),"docsamples.jsinterop.typedclient.ISampleSubService");
+      return new KRemotableProxy(this,new Subservice(),"docsamples.jsinterop.jsserves.typedclient.ISampleSubService");
     }
     throw new Error("invalid credentials");
   }

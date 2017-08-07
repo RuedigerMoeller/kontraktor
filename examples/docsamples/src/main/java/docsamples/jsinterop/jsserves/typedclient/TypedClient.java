@@ -1,7 +1,6 @@
-package docsamples.jsinterop.typedclient;
+package docsamples.jsinterop.jsserves.typedclient;
 
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.websockets.JSR356ClientConnector;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
 
 /**

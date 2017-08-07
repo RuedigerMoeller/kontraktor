@@ -81,13 +81,9 @@ class KClient {
       socket = new KontraktorPollSocket(this,wsurl, true );
     }
     const myHttpApp = new KontrActor(this,1,"RemoteApp");
-    socket.onmessage( function(message) {
-      if (typeof message === MessageEvent ) {
-        console.error("unexpected message:"+message.data);
-      } else {
-        console.error("unexpected message");
-        console.log(JSON.stringify(message, null, 2));
-      }
+    socket.onmessage( message => {
+      console.error("unexpected message");
+      console.log(JSON.stringify(message, null, 2));
       this.listener.onError(message);
     });
     socket.onerror( err => {
