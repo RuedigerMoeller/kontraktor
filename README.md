@@ -31,7 +31,7 @@ Actors + TCP Remoting
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>4.00</version>
+    <version>4.03</version>
 </dependency>
 ```
 
@@ -51,7 +51,7 @@ Adds WebSockets, Http LongPoll for actor-remoting, JavaScript interop. Uses Unde
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-http</artifactId>
-    <version>4.02</version>
+    <version>4.03</version>
 </dependency>
 ```
 
@@ -74,7 +74,7 @@ write an ES6 class and make it accessible to other (kontraktor) processes using 
 
 old (es5) implementation of kontraktor-client. somewhat messy, but production-proven
  
-### kontraktor-web
+### [Undocumented] kontraktor-web
 
 A lightweight framework on top of kontraktor to serve JavaScript Single Page Application clients (e.g. Polymer.js, React.js) from a Java Server.
 
@@ -86,8 +86,8 @@ A lightweight framework on top of kontraktor to serve JavaScript Single Page App
 ```xml
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
-    <artifactId>kontraktor-http</artifactId>
-    <version>4.02</version>
+    <artifactId>kontraktor-web</artifactId>
+    <version>4.03</version>
 </dependency>
 ```
 
@@ -125,7 +125,7 @@ kontraktor based API-gateway/proxy/message-router. Manages JWT-based API tokens.
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-reactive-streams</artifactId>
-    <version>4.02</version>
+    <version>4.03</version>
 </dependency>
 ```
 
@@ -137,7 +137,7 @@ kontraktor based API-gateway/proxy/message-router. Manages JWT-based API tokens.
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-bare</artifactId>
-    <version>4.02</version>
+    <version>4.03</version>
 </dependency>
 ```
 
