@@ -217,11 +217,15 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      */
     @CallerSideMethod
     public IPromise ask(String messageId, Object ... args ) {
+        boolean isCB = args != null && args.length > 0 && args[args.length-1] instanceof Callback;
         if ( isRemote() && __clientConnection instanceof RemoteRegistry ) {
-            Object[] newArgs = new Object[] { messageId,args};
-            return (IPromise) getScheduler().enqueueCall((RemoteRegistry) __clientConnection,Actor.sender.get(),getActor(),"ask",newArgs,false);
+            Actor sendingActor = Actor.sender.get();
+            Object[] newArgs = new Object[args.length+1];
+            System.arraycopy(args,0,newArgs,1,args.length);
+            newArgs[0] = messageId;
+            return (IPromise) getScheduler().enqueueCall((RemoteRegistry) __clientConnection,sendingActor,getActor(),"ask",newArgs,isCB);
         }
-        return (IPromise) getScheduler().enqueueCall(Actor.sender.get(),getActor(),messageId,args,false);
+        return (IPromise) getScheduler().enqueueCall(Actor.sender.get(),getActor(),messageId,args,isCB);
     }
 
     /**
@@ -232,12 +236,16 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      */
     @CallerSideMethod
     public void tell(String messageId, Object ... args ) {
+        boolean isCB = args != null && args.length > 0 && args[args.length-1] instanceof Callback;
         if ( isRemote() && __clientConnection instanceof RemoteRegistry ) {
-            Object[] newArgs = new Object[] { messageId,args};
-            getScheduler().enqueueCall((RemoteRegistry) __clientConnection,Actor.sender.get(),getActor(),"tell",newArgs,false);
+            Actor sendingActor = Actor.sender.get();
+            Object[] newArgs = new Object[args.length+1];
+            System.arraycopy(args,0,newArgs,1,args.length);
+            newArgs[0] = messageId;
+            getScheduler().enqueueCall((RemoteRegistry) __clientConnection, sendingActor,getActor(),"tell",newArgs,isCB);
             return;
         }
-        getScheduler().enqueueCall(Actor.sender.get(),getActor(),messageId,args,false);
+        getScheduler().enqueueCall(Actor.sender.get(),getActor(),messageId,args,isCB);
     }
 
     /**

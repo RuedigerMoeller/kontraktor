@@ -649,7 +649,7 @@ class KontrActor {
    */
   buildCall( callbackId, receiverKey, methodName, args ) {
     let cb = null;
-    if ( args && args.length > 0 && args[args.length-1].typ === 'cbw' ) {
+    if ( args && args.length > 0 && args[args.length-1] && args[args.length-1].typ === 'cbw' ) {
       cb = args[args.length-1];
       args[args.length-1] = null;
     }

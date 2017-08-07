@@ -9,6 +9,16 @@ const kontraktor = require('kontraktor-common');
 const KPromise = kontraktor.KPromise;
 const DecodingHelper = kontraktor.DecodingHelper;
 
+class RemotableProxy {
+  constructor(targetInstance) {
+    this.target=targetInstance;
+  }
+
+  toJson() {
+
+  }
+}
+
 class KontraktorServer {
 
   constructor(facade, serverOpts, decodinghelper /*opt*/) {
@@ -44,6 +54,7 @@ class KontraktorServer {
       }.bind(this));
 
       ws.on('message', function incoming(message) {
+        // FIXME: Split function
         try {
           const msg = JSON.parse(message);
           if ( this.debug )
@@ -61,7 +72,12 @@ class KontraktorServer {
                   } else {
                     call.args = self.decodingHelper.transformJavaJson(call.args,true);
                   }
-                  if ( this.debug ) console.log("remote call:", call);
+                  if ( this.debug )
+                    console.log("remote call:", call);
+                  if ( 'ask' == call.method || 'tell' == call.method ) {
+                    call.method = call.args[0];
+                    call.args.splice(0,1);
+                  }
                   if ( call.cb ) {
                     call.args[call.args.length-1] = {
                       complete: (res,err) => {
@@ -78,30 +94,48 @@ class KontraktorServer {
                     };
                   }
                   let target = self.actormap[call.receiverKey];
-                  var res = target[call.method].apply(target,call.args);
-                  const undef = typeof res == 'undefined';
-                  if ( undef && call.futureKey > 0 ) {
-                    // handle call to ask on a void method
-                    // send a void result to avoid memory leaks
-                    res = "void";
-                    console.warn("prepend '$' on void calls (method:"+call.method+")");
-                  }
-                  if ( res ) {
-                    if ( res instanceof KPromise == false ) {
-                      res = new KPromise(res);
+                  try {
+
+                    var res = target[call.method].apply(target,call.args);
+                    const undef = typeof res == 'undefined';
+                    if ( undef && call.futureKey > 0 ) {
+                      // handle call to ask on a void method
+                      // send a void result to avoid memory leaks
+                      res = "void";
+                      console.warn("prepend '$' on void calls (method:"+call.method+")");
                     }
-                    res.then( (pres,perr) => {
-                      this.send( JSON.stringify(
+                    if ( res ) {
+                      if ( res instanceof KPromise == false ) {
+                        res = new KPromise(res);
+                      }
+                      res.then( (pres,perr) => {
+                        this.send( JSON.stringify(
+                          self._constructCall(
+                            {
+                              queue: 1,
+                              futureKey: call.futureKey,
+                              receiverKey: call.futureKey,
+                              args: { styp: 'array', seq: [2, pres, perr ] }
+                            }
+                          )
+                          )
+                        )});
+                    }
+                  } catch (e) {
+                    if (call.futureKey > 0) {
+                      this.send(JSON.stringify(
                         self._constructCall(
                           {
                             queue: 1,
                             futureKey: call.futureKey,
                             receiverKey: call.futureKey,
-                            args: { styp: 'array', seq: [2, pres, perr ] }
+                            args: {styp: 'array', seq: [2, null, call.method+":"+e ]}
                           }
                         )
                         )
-                      )});
+                      )
+                    }
+                    console.error(e);
                   }
                 }
               }

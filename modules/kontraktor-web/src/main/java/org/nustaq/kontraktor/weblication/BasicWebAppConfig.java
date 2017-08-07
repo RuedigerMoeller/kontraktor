@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.weblication;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
 import org.nustaq.reallive.api.Record;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.File;
 import java.io.Serializable;
@@ -42,7 +43,12 @@ public class BasicWebAppConfig implements Serializable {
                 e1.printStackTrace();
             }
         }
-        return new BasicWebAppConfig();
+        try {
+            return target.newInstance();
+        } catch (Exception e) {
+            FSTUtil.rethrow(e);
+        }
+        return null;
     }
 
 
