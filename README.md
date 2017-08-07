@@ -4,7 +4,7 @@
 ## What is kontraktor ?
 
 * A boilerplate free and consistent abstraction for remote communication powered by a **distributed actor-model**
-* eases polyglott (java, nodejs, browser) (micro-)service oriented distributed systems
+* eases polyglott (**java, javascript** nodejs + browser) (micro-)service oriented distributed systems
 * separates transport and message encoding from application code. 
 * A browser communicating with a webserver via HTTP/json uses the same API/mechanics as backend services talking to each other using TCP/Binary.
 * webapp support (transpilation, packaging, optimization)
@@ -45,7 +45,7 @@ Adds WebSockets, Http LongPoll for actor-remoting, JavaScript interop. Uses Unde
 * advanced bundling and inlining of resources (js, css, html) webpack style. Instead of introducing a build step, kontraktor bundles and caches your stuff dynamically upon first request (production mode). 
 * session handling fundamentals
 
-**[Http-Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-Http)** [in progress]
+**[JavaScript,Http-Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-Http)** [in progress]
 
 ```xml
 <dependency>
