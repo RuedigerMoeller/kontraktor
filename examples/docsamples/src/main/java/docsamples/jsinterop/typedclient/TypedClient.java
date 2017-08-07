@@ -13,7 +13,7 @@ import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
  */
 public class TypedClient {
     public static void main(String[] args) {
-        JSR356ClientConnector.DumpProtocol = true;
+//        JSR356ClientConnector.DumpProtocol = true;
         ISampleService remote = (ISampleService) new WebSocketConnectable()
             .actorClass(ISampleService.class)
             .url("ws://localhost:3998")

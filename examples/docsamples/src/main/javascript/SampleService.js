@@ -48,6 +48,9 @@ class KServer {
     return aString+" was received";
   }
 
+  /**
+   * example on how to hide a sub-api (once perserver) behind credentials. Typed for a java client
+   */
   getSingletonSubservice(credentials) {
     if ( "lol" == credentials ) {
       return new KRemotableProxy(this,this.singletonSubservice);
@@ -55,6 +58,9 @@ class KServer {
     throw new Error("invalid credentials");
   }
 
+  /**
+   * same as above. Typed for a java client
+   */
   getSingletonSubserviceTyped(credentials) {
     if ( "lol" == credentials ) {
       return new KRemotableProxy(this,this.singletonSubservice,"docsamples.jsinterop.typedclient.ISampleSubService");
@@ -62,8 +68,18 @@ class KServer {
     throw new Error("invalid credentials");
   }
 
-  clientClosed(id) {
-    console.log('client closed',id);
+  /**
+   * example on how to create a per-client sub-actor (subservice)
+   */
+  getDynamicSubservice(credential) {
+    if ( "privatelol" == credentials ) {
+      return new KRemotableProxy(this,new Subservice(),"docsamples.jsinterop.typedclient.ISampleSubService");
+    }
+    throw new Error("invalid credentials");
+  }
+
+  clientClosed(actormap,id) {
+    console.log('client closed',actormap);
   }
 }
 

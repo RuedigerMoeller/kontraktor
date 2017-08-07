@@ -9,13 +9,17 @@ const kontraktor = require('kontraktor-common');
 const KPromise = kontraktor.KPromise;
 const DecodingHelper = kontraktor.DecodingHelper;
 
-class RemotableProxy {
-  constructor(targetInstance) {
+class KRemotableProxy {
+
+  constructor(remotedInstance,targetInstance,javaclazznameOpt) {
     this.target=targetInstance;
+    this.javaclazzname = javaclazznameOpt ? javaclazznameOpt : 'org.nustaq.kontraktor.Actor';
+    this.javaclazzname += "_ActorProxy";
   }
 
-  toJson() {
-
+  register(kserver,actormap) {
+    this.kid = kserver.registerRef(this,actormap);
+    this.actorMap = actormap; // per connection map of id => remoted actor
   }
 }
 
@@ -27,13 +31,60 @@ class KontraktorServer {
       this.decodingHelper = new DecodingHelper();
     else
       this.decodingHelper = decodinghelper;
-    this.actormap = { 1: facade };
     this.serverOpts = serverOpts;
     this._constructCall.bind(this);
     this.startServer();
+    this.actorRefIdCount = 2;
+    this.facade = facade;
+    facade.__kserver = this;
   }
 
-  _constructCall( calljsobj ) {
+  registerRef(remotableProxy,actormap) {
+    if ( remotableProxy.target == this.facade )
+      throw "cannot register facade";
+    let id = 0;
+    Object.keys(actormap).forEach(key => {
+      if (actormap[key] === remotableProxy.target)
+        id = actormap[key].__proxy.kid;
+    });
+    if (id === 0) {
+      id = this.actorRefIdCount++;
+      actormap[id] = remotableProxy.target;
+      remotableProxy.__kserver = this;
+      remotableProxy.kid = id;
+      remotableProxy.target.__proxy = remotableProxy;
+      remotableProxy.target.__kserver = this;
+    }
+    return id;
+  }
+
+  unregisterRef(proxyOrInstance,actormap) {
+    if ( proxyOrInstance == this.facade )
+      throw "cannot unregister facade. close connection instead";
+    let proxy = proxyOrInstance;
+    if ( proxy instanceof KRemotableProxy == false) {
+      proxy = proxyOrInstance.__proxy;
+    }
+    if ( ! proxy.target.kid ) {
+      console.warn("proxy unregistered twice ",proxy);
+      return;
+    }
+    if ( proxy.target.notifyDisconnect )
+      proxy.target.notifyDisconnect(this);
+    delete actormap[proxy.kid];
+    proxy.target.__proxy = null;
+    proxy.target.__kserver = null;
+    proxy.kid = 0; // disconnected
+  }
+
+  _constructCall( actormap, calljsobj ) {
+    if ( calljsobj.args.seq && calljsobj.args.seq.length === 3 && calljsobj.args.seq[1] instanceof KRemotableProxy) {
+      // actor proxy
+      const proxy = calljsobj.args.seq[1];
+      proxy.register(this,actormap);
+      calljsobj.args.seq[1] = { typ:proxy.javaclazzname, obj: [ proxy.kid, proxy.javaclazzname] };
+
+    }
     return {
       styp: 'array',
       seq: [
@@ -45,14 +96,15 @@ class KontraktorServer {
 
   startServer() {
     const self = this;
+    let test = 1;
     this.wss = new WebSocket.Server(this.serverOpts ? this.serverOpts : { port: 8080 });
     this.wss.on('connection', function connection(ws) {
-
-      ws.on('connect', function incoming(message) {
-        const msg = JSON.parse(message);
-        if ( this.debug ) console.log('connect:', msg);
-      }.bind(this));
-
+      ws.__kactormap = { 1: self.facade };
+      ws.on("close", (id) => {
+        if (self.facade.clientClosed) {
+          self.facade.clientClosed(ws.__kactormap,id);
+        }
+      });
       ws.on('message', function incoming(message) {
         // FIXME: Split function
         try {
@@ -82,6 +134,7 @@ class KontraktorServer {
                     call.args[call.args.length-1] = {
                       complete: (res,err) => {
                         this.send( JSON.stringify( self._constructCall(
+                          ws.__kactormap,
                           {
                             queue: 1,
                             futureKey: call.cb.obj[0],
@@ -93,7 +146,7 @@ class KontraktorServer {
                       }
                     };
                   }
-                  let target = self.actormap[call.receiverKey];
+                  let target = ws.__kactormap[call.receiverKey];
                   try {
 
                     var res = target[call.method].apply(target,call.args);
@@ -111,6 +164,7 @@ class KontraktorServer {
                       res.then( (pres,perr) => {
                         this.send( JSON.stringify(
                           self._constructCall(
+                            ws.__kactormap,
                             {
                               queue: 1,
                               futureKey: call.futureKey,
@@ -125,6 +179,7 @@ class KontraktorServer {
                     if (call.futureKey > 0) {
                       this.send(JSON.stringify(
                         self._constructCall(
+                          ws.__kactormap,
                           {
                             queue: 1,
                             futureKey: call.futureKey,
@@ -151,6 +206,7 @@ class KontraktorServer {
 }
 
 module.exports = {
+  KRemotableProxy : KRemotableProxy,
   KPromise : KPromise,
   KontraktorServer : KontraktorServer,
   DecodingHelper : DecodingHelper
