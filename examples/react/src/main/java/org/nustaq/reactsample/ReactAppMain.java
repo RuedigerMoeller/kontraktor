@@ -6,6 +6,7 @@ package org.nustaq.reactsample;
 
 import org.nustaq.kontraktor.weblication.*;
 
+import java.io.File;
 import java.io.IOException;
 
 import static org.nustaq.kontraktor.Actors.AsActor;
@@ -16,6 +17,11 @@ import static org.nustaq.kontraktor.Actors.AsActor;
 public class ReactAppMain extends UndertowWebServerMain {
 
     public static void main(String[] args) throws IOException {
+
+        if ( !new File("./run/etc/app.kson").exists() ) {
+            System.out.println("please run with working dir set to project root (react-sample)");
+            System.exit(1);
+        }
 
         ReactAppConfig cfg = ReactAppConfig.read();
         new ReactAppMain().reactMainHelper(ReactApp.class,cfg);
