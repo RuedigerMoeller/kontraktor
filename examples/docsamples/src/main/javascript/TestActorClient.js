@@ -26,9 +26,11 @@ kclient.useProxies(true).connect("http://localhost:8888/test").then( (app,e) => 
     "docsamples.jsinterop.javaserves.TestPojo",
     {
       aMap: coder.jmap({"A": 1, "B": 2}),
-      strings: coder.jcoll("list", ['1', '2', '3'])
+      strings: coder.jcoll("list", ['1', '2', '3']),
+      someString: 'Blabla'
     }
   );
+  console.log('outgoing: ', JSON.stringify(pojo,2));
   app.plainPojo( pojo ).then( (r, e) => {
     console.log("plainPojo returned ", r, e);
   });

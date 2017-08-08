@@ -9,6 +9,7 @@ import java.util.Map;
 public class TestPojo implements Serializable {
     Map aMap = new HashMap();
     List<String> strings = new ArrayList<>();
+    String someString;
 
     public TestPojo() {
         aMap.put("A",1);
@@ -16,5 +17,17 @@ public class TestPojo implements Serializable {
         strings.add("1");
         strings.add("2");
         strings.add("3");strings.add("4");
+    }
+
+    public Map getMap() {
+        return aMap;
+    }
+
+    public List<String> getStrings() {
+        return strings;
+    }
+
+    public String getSomeString() {
+        return someString;
     }
 }
