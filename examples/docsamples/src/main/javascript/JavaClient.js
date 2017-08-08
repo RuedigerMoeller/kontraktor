@@ -18,7 +18,7 @@ kclient.useProxies(true).connect("http://localhost:8888/test").then( (app,e) => 
     console.log("plainPromise returned ", r, e);
   });
 
-  app.$plainCallback( "hello", 1, (r, e) => {
+  app.plainCallback( "hello", 1, (r, e) => {
     console.log("plainCallback returned ", r, e);
   });
   // construct java deserializable Pojo (see below)
