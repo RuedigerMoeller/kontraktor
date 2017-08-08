@@ -8,7 +8,7 @@ This is a low magic approach leaving many choices open and can be used with any 
 * server push
 * packaging feature (set DEV to false in AppMain [ be warned: js code changes will not be reflected then, caching ] )
 check out the index.html in chrome when in prod mode.
-* how to handle backlinks e.g. from a confirmation mail or generate documents
+* how to handle backlinks e.g. from a confirmation mail or dynamically generate documents, send redirects, whatever
 
 **how to run**
 
