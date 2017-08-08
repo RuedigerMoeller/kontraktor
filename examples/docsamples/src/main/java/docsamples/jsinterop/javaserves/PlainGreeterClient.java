@@ -1,14 +1,12 @@
-package docsamples.jsinterop.jsserves.typedclient;
+package docsamples.jsinterop.javaserves;
 
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
 
-// connect to a javascript service using a dummy actor providing types
-public class TypedGreeterClient {
-
+public class PlainGreeterClient {
     public static void main(String[] args) {
-        IGreeter remote = (IGreeter) new WebSocketConnectable()
-            .actorClass(IGreeter.class)
+        Greeter remote = (Greeter) new WebSocketConnectable()
+            .actorClass(Greeter.class)
             .url("ws://localhost:3999")
             .serType(SerializerType.JsonNoRef)
             .connect( (x,y) -> System.out.println("disconnect " + x+" "+y)).await();
