@@ -10,7 +10,7 @@ import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
  * typesafe fashion.
  *
  */
-public class TypedClient {
+public class TypedSampleServiceClient {
     public static void main(String[] args) {
 //        JSR356ClientConnector.DumpProtocol = true;
         ISampleService remote = (ISampleService) new WebSocketConnectable()

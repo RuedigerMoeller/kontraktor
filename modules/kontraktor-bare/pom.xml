@@ -11,7 +11,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-bare</artifactId>
-    <version>4.03</version>
+    <version>4.04</version>
 
     <description>minimalistic http client to kontraktor apps</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>

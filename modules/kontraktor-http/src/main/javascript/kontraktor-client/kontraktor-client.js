@@ -414,7 +414,7 @@ class KontraktorPollSocket{
             this.lpSeqNo = this.global.processSocketResponse(this.lpSeqNo, respObject, true, this.onmessageHandler.bind(this));
             setTimeout(this.longPoll.bind(this),0); // progress, immediately next request
           } else {
-            console.log("resp is empty");
+            // console.log("resp is empty");
             setTimeout(this.longPoll.bind(this),200);
           }
         } catch (err) {

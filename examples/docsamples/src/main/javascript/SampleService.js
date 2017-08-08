@@ -28,7 +28,7 @@ class KServer {
   }
 
   /**
-   * KPromise works differently than es6 promises .. sorry folks ;)
+   * KPromise works different than es6 promises ..
    * @param aString
    */
   withPromise(aString) {

@@ -9,9 +9,9 @@ import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
  * assumes SampleService.js is running
  *
  * Shows how to talk "untyped" to a remote javascript service
- * see TypedClient for a typesafe variant.
+ * see TypedSampleServiceClient for a typesafe variant.
  */
-public class SimpleClient {
+public class UntypedSampleServiceClient {
     public static void main(String[] args) {
         Actor remote = (Actor)new WebSocketConnectable()
             .actorClass(Actor.class)
