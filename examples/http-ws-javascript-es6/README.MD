@@ -14,6 +14,7 @@ check out the index.html in chrome when in prod mode.
 
 * add as maven project
 * run MyHttpAppMain with working dir [..]/kontraktor/examples/http-ws-javascript-es6
+* goto localhost:8080
 
 run ./web/getstuff.sh in order to update libs (requires npm)
 
