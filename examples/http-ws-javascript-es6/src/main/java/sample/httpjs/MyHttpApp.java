@@ -23,18 +23,22 @@ import java.util.List;
  */
 public class MyHttpApp extends Actor<MyHttpApp> {
 
-    public static final int CLIENT_QSIZE = 1000;
+    public static final int CLIENT_QSIZE = 1000; // == preallocate a queue of CLIENT_QSIZE/10 for each session
 
-    Scheduler clientThreads[];
-    int sessionCount = 0;
+    private Scheduler clientThreads[];
+    private int sessionCount = 0;
 
     public IPromise<String> getServerTime() {
         return new Promise<>(new Date().toString());
     }
 
+    @Local
     public void init() {
+        // you won't need many threads. If there is heavy computing or you do blocking operations (hint: don't)
+        // inside a session actor, increase this. It will still work with hundreds of threads (but then you get jee ;) )
         clientThreads = new Scheduler[]{
-            new SimpleScheduler(CLIENT_QSIZE,true), // only one session processor thread should be sufficient for most apps.
+            new SimpleScheduler(CLIENT_QSIZE,true), // only two session processor threads should be sufficient for small apps.
+            new SimpleScheduler(CLIENT_QSIZE,true),
         };
         Thread.currentThread().setName("MyHttpApp Dispatcher");
     }
@@ -46,7 +50,6 @@ public class MyHttpApp extends Actor<MyHttpApp> {
             result.reject("Access denied");
         } else {
             // create new session and assign it a random scheduler (~thread). Note that with async nonblocking style
-            // one thread will be sufficient most of the time. For very computing intensive apps increase clientThreads to like 2-4
             MyHttpAppSession sess = AsActor(MyHttpAppSession.class,clientThreads[((int) (Math.random() * clientThreads.length))]);
             sess.setThrowExWhenBlocked(true);
             sess.init( self(), Arrays.asList("procrastinize", "drink coffee", "code", "play the piano", "ignore *") );
@@ -58,12 +61,6 @@ public class MyHttpApp extends Actor<MyHttpApp> {
 
     public IPromise<Integer> getNumSessions() {
         return resolve(sessionCount);
-    }
-
-    public void voidMethodForBenchmark() {}
-
-    public IPromise promiseMethodForBenchmark(int num) {
-        return new Promise<>(num);
     }
 
     @Local
