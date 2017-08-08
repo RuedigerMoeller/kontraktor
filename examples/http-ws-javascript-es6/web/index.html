@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>JS Test</title>
+</head>
+<body>
+<p>
+
+<h1>Kontraktor LongPoll / WebSocket Sample</h1>
+
+    Server Time: <span id="time"></span> <br><br>
+    ToDo:<br>
+    <div id="todo"></div><br>
+    ToDo filtered indexof('p'):<br><br>
+    <div id="filtered"></div>
+
+<script src="kontraktor-common/kontraktor-common.js"></script>
+<script src="kontraktor-client/kontraktor-client.js"></script>
+
+<script>
+var server = null;
+var kclient = new KClient();
+
+const useWS = true;
+var connector = useWS ?
+  kclient.connect("ws://localhost:8080/ws","WS") :
+  kclient.connect("http://localhost:8080/api");
+
+connector.then( (app,error) => {
+    if ( ! app ) {
+      console.log("connection failure");
+      console.error(error);
+    }
+    server = app;
+
+    server.login( "clientuser", "clientpwd")
+      .then( (mySession,err) => {
+        if ( err )
+          console.log(err);
+        else {
+          console.log("send getToDo");
+          mySession.ask("getToDo").then( function( res,err ) {
+            console.log("received getToDo");
+            var li = "<ul>";
+            for ( var i=0; i < res.length; i++ )
+              li += "<li>"+res[i]+"</li>";
+            li += "</ul>";
+            document.getElementById("todo").innerHTML=li;
+          });
+          console.log("send getTime");
+          server.ask("getServerTime").then( function( res,err ) {
+            console.log("received getTime");
+            document.getElementById("time").innerHTML=res;
+          });
+          mySession.tell( "streamToDo", "p", function( res, err ) {
+            if ('FIN' !== err )
+              document.getElementById("filtered").innerHTML += "'"+res+"',&nbsp;";
+          });
+          // subscribe to server time stream (push)
+          mySession.tell( "subscribe", function(e,r) {
+            var tim = document.getElementById("time");
+            tim.innerHTML=e;
+            var bright = 1.0;
+            // fadeout bgcolor with each event
+            var fun = function () {
+              tim.style.backgroundColor = "rgba(255,200,100," + bright + ")";
+              bright -= .03;
+              if (bright >= 0.0) {
+                setTimeout(fun,50);
+              }
+            };
+            fun.apply();
+          })
+        }
+    })
+});
+</script>
+</body>
+</html>
