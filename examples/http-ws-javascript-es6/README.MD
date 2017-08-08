@@ -1,12 +1,19 @@
+## Raw WebApp example
 
-Plain js frontend demonstrating communication with server side actors and Http4k.
+Plain js frontend demonstrating communication with server side actors and webapp setup with Http4k.
+This is a low magic approach leaving many choices open and can be used with any front-end framework.
 
 * shows how to dynamically switch between websockets or http long-poll
 * how to configure http4k and pathes
 * server push
-* packaging feature (set DEV to false in AppMain [be warned: code changes will not be reflected then] )
+* packaging feature (set DEV to false in AppMain [ be warned: js code changes will not be reflected then, caching ] )
 check out the index.html in chrome when in prod mode.
 * how to handle backlinks e.g. from a confirmation mail or generate documents
+
+**how to run**
+
+* add as maven project
+* run MyHttpAppMain with working dir [..]/kontraktor/examples/http-ws-javascript-es6
 
 run ./web/getstuff.sh in order to update libs (requires npm)
 
