@@ -22,6 +22,7 @@ public class UntypedSampleServiceClient {
         remote.ask("withPromise",
             "Hello"
         ).then( (r,e) -> System.out.println(r+" "+e));
+
         remote.tell("withCallback",
             "Hi",
             (Callback) (r, e) -> System.out.println("callback:"+r+" "+e)

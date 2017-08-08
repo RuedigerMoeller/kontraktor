@@ -42,6 +42,14 @@ class KPromise {
     return this.nextPromise;
   };
 
+  resolve(result) {
+    this.complete(result,null);
+  }
+
+  reject(err) {
+    this.complete(null,err);
+  }
+
   complete(r,e) {
     if ( this.res )
       throw "double completion on promise";
