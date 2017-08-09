@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Kontraktor html import sample</title>
+
+    <link rel="import" href="imports/kontraktor-client.html">
+
+</head>
+
+<body>
+<h1>html import sample</h1>
+
+<p id="target"></p>
+
+<script>
+    const kclient = new KClient();
+    kclient.connect("http://localhost:8081/api").then( (server,err) => {
+        if ( server ) {
+          server.greet("World").then( r => {
+            document.getElementById("target").textContent = r;
+          });
+        } else {
+          document.getElementById("target").textContent = ""+err;
+        }
+      }
+    )
+</script>
+
+</body>
+</html>
