@@ -41,7 +41,7 @@ connector.then( (app,error) => {
           console.log(err);
         else {
           console.log("send getToDo");
-          mySession.ask("getToDo").then( function( res,err ) {
+          mySession.getToDo().then( function( res,err ) {
             console.log("received getToDo");
             var li = "<ul>";
             for ( var i=0; i < res.length; i++ )
@@ -50,16 +50,17 @@ connector.then( (app,error) => {
             document.getElementById("todo").innerHTML=li;
           });
           console.log("send getTime");
-          server.ask("getServerTime").then( function( res,err ) {
+          server.getServerTime().then( function( res,err ) {
             console.log("received getTime");
             document.getElementById("time").innerHTML=res;
           });
-          mySession.tell( "streamToDo", "p", function( res, err ) {
+          // '$' prepended for void methods
+          mySession.$streamToDo("p", function( res, err ) {
             if ('FIN' !== err )
               document.getElementById("filtered").innerHTML += "'"+res+"',&nbsp;";
           });
           // subscribe to server time stream (push)
-          mySession.tell( "subscribe", function(e,r) {
+          mySession.$subscribe( function(e,r) {
             var tim = document.getElementById("time");
             tim.innerHTML=e;
             var bright = 1.0;
