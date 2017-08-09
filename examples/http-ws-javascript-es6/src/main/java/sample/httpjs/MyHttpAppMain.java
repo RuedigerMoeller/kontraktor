@@ -17,7 +17,7 @@ import static org.nustaq.kontraktor.Actors.AsActor;
 public class MyHttpAppMain {
 
     public static void main(String[] args) throws IOException {
-        boolean DEVMODE = false;
+        boolean DEVMODE = true;
 
         // just setup stuff manually here. Its easy to buildResourcePath an application specific
         // config using e.g. json or kson.
