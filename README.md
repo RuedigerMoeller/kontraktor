@@ -7,7 +7,7 @@
 * A **WebApp platform** supporting a Java backend for modern SPA javascript client frameworks like Polymer.js, vue.js and React.js (transpilation, packaging, optimization).
 * eases polyglott (**java, javascript** nodejs + browser) (micro-)service oriented distributed systems
 * separates transport and message encoding from application code. 
-* **asynchronous**
+* **asynchronous, non-blocking**
 * **high performance**
 * production proven
 
