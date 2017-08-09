@@ -12,6 +12,8 @@
 * high **performance**
 * production proven
 
+[Checkout examples here](https://github.com/RuedigerMoeller/kontraktor/tree/trunk/examples)
+
 ## Modules
 
 Kontraktor consists of several modules. For sake of simplicity all module versions are kept in sync with kontraktor core.
