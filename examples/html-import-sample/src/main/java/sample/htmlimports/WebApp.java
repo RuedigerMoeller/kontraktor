@@ -22,7 +22,7 @@ public class WebApp extends Actor<WebApp> {
     public static void main(String[] args) {
         boolean DEVMODE = true;
 
-        // just setup stuff manually here. Its easy to buildResourcePath an application specific
+        // just setup stuff manually here. Its easy to build an application specific
         // config using e.g. json or kson.
         File root = new File("./src/main/web");
 
