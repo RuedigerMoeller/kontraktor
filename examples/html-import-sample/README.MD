@@ -10,7 +10,7 @@ development (or fifox with flag turned on)
 
 [more on html imports](https://www.html5rocks.com/en/tutorials/webcomponents/imports/)
 
-** how to run **
+**how to run**
 
 * add pom.xml to your IDE
 * run "WebApp" with working dir [..]/examples/html-import-sample
