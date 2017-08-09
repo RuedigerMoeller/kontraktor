@@ -1,4 +1,4 @@
-# Html Import with Http4k
+# WebApp using Html Import Shim of kontraktor-Http4k
 
 Html imports are an emerging standard currently only implemented in chrome (firefox via flag).
 As Html-imports enable a structured dependency management fo the front-end without requiring
