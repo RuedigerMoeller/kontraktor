@@ -19,7 +19,7 @@ public class ReactAppMain extends UndertowWebServerMain {
     public static void main(String[] args) throws IOException {
 
         if ( !new File("./run/etc/app.kson").exists() ) {
-            System.out.println("please run with working dir set to project root (react-sample)");
+            System.out.println("please run with working dir set to project root (react-no-babel)");
             System.exit(1);
         }
 
