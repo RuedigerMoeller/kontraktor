@@ -24,7 +24,7 @@ public class ReactAppMain extends UndertowWebServerMain {
         }
 
         ReactAppConfig cfg = ReactAppConfig.read();
-        new ReactAppMain().reactMainHelper(ReactApp.class,cfg);
+        new ReactAppMain().reactMainHelper(true, ReactApp.class, cfg);
 
     }
 

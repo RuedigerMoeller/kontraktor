@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.weblication;
 
 import org.nustaq.kontraktor.babel.BabelOpts;
 import org.nustaq.kontraktor.babel.BrowseriBabelify;
-import org.nustaq.kontraktor.babel.JSXTranspiler;
+import org.nustaq.kontraktor.babel.JSXWithBabelTranspiler;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
@@ -65,12 +65,14 @@ public class UndertowWebServerMain {
         return true;
     }
 
-    public BasicWebAppActor reactMainHelper(Class<? extends BasicWebAppActor> myHttpAppClass, BasicWebAppConfig cfg) throws IOException {
+    public BasicWebAppActor reactMainHelper(boolean intrinsicJSX, Class<? extends BasicWebAppActor> myHttpAppClass, BasicWebAppConfig cfg) throws IOException {
 
         boolean DEV = cfg.getDev();
 
-        // check/start node babelserver daemon (if this fails run babeldaemon manually, e.g. windoze
-        checkBabelService();
+        if ( ! intrinsicJSX ) {
+            // check/start node babelserver daemon (if this fails run babeldaemon manually, e.g. windoze
+            checkBabelService();
+        }
 
         // just setup stuff manually here. Its easy to buildResourcePath an application specific
         // config using e.g. json or kson.
@@ -81,11 +83,11 @@ public class UndertowWebServerMain {
         // create server actor
         BasicWebAppActor myHttpApp = setupAppActor(myHttpAppClass, cfg);
 
-        setupUndertow4K_React(cfg, DEV, myHttpApp);
+        setupUndertow4K_React(intrinsicJSX,cfg, myHttpApp);
         return myHttpApp;
     }
 
-    protected void setupUndertow4K_React(BasicWebAppConfig cfg, boolean DEV, BasicWebAppActor myHttpApp) {
+    protected void setupUndertow4K_React(boolean intrinsicJSX, BasicWebAppConfig cfg, BasicWebAppActor myHttpApp) {
         // these classes are encoded with Simple Name in JSon
         Class msgClasses[] = cfg.getMessageClasses();
         Http4K.Build(cfg.getHost(), cfg.getPort())
@@ -95,8 +97,8 @@ public class UndertowWebServerMain {
                     cfg.getClientRoot(),
                     cfg.getClientRoot()+"/node_modules"
                 )
-                .allDev(DEV)
-                .transpile("jsx",new JSXTranspiler().opts(new BabelOpts().debug(DEV)))
+                .allDev(cfg.dev)
+                .transpile("jsx", createJSXTranspiler(intrinsicJSX,cfg))
                 .handlerInterceptor( exchange -> {
                     // can be used to intercept (e.g. redirect or raw response) all requests coming in on this resourcepath
                     String requestPath = exchange.getRequestPath();
@@ -113,6 +115,10 @@ public class UndertowWebServerMain {
                 .setSessionTimeout(cfg.getSessionTimeoutMS())
                 .buildHttpApi()
             .build();
+    }
+
+    protected JSXWithBabelTranspiler createJSXTranspiler(boolean intrinsicJSX, BasicWebAppConfig cfg) {
+        return new JSXWithBabelTranspiler().opts(new BabelOpts().debug(cfg.dev));
     }
 
     /**

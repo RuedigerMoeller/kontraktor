@@ -8,11 +8,11 @@ import java.io.*;
 /**
  * Created by ruedi on 30.06.17.
  */
-public class JSXTranspiler implements TranspilerHook {
+public class JSXWithBabelTranspiler implements TranspilerHook {
 
     BabelOpts opts = new BabelOpts();
 
-    public JSXTranspiler opts(final BabelOpts opts) {
+    public JSXWithBabelTranspiler opts(final BabelOpts opts) {
         this.opts = opts;
         return this;
     }
