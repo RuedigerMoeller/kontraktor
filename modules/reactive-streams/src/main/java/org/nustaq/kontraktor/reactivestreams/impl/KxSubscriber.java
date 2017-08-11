@@ -111,7 +111,7 @@ public class KxSubscriber<T> implements Subscriber<T>, Serializable, Iterator<T>
 
     protected void nextAction(T t) {
         try {
-            cb.stream(t);
+            cb.pipe(t);
         } catch (CancelException c) {
             subs.cancel();
         }

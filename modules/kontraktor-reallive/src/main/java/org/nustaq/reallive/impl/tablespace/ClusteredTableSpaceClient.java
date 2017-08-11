@@ -4,9 +4,9 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.reallive.impl.storage.StorageStats;
-import org.nustaq.reallive.interfaces.RealLiveTable;
-import org.nustaq.reallive.interfaces.TableDescription;
-import org.nustaq.reallive.interfaces.TableSpace;
+import org.nustaq.reallive.api.RealLiveTable;
+import org.nustaq.reallive.api.TableDescription;
+import org.nustaq.reallive.api.TableSpace;
 import org.nustaq.reallive.messages.StateMessage;
 
 import java.util.List;

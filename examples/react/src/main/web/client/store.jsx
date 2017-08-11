@@ -50,7 +50,7 @@ export class AppStore extends EventEmitter {
   }
 
   getTokenLink() {
-    return this.session.$createTokenLink();
+    return this.session.createTokenLink();
   }
 
   queryUsers( cb ) {
@@ -61,7 +61,7 @@ export class AppStore extends EventEmitter {
     const res = new KPromise();
     this.getServer().then( (serv,err) => {
       if ( serv ) {
-        serv.$register(user,password,text).then( (r,e) => {
+        serv.register(user,password,text).then( (r,e) => {
           res.complete(r,e);
           if (!e)
             this.emit("register");
@@ -79,7 +79,7 @@ export class AppStore extends EventEmitter {
     if ( ! this.isLoggedIn() ) {
       this.getServer().then( (r,e) => {
         if ( r ) {
-          r.$login( user, password, null).then( (arr,err) => {
+          r.login( user, password, null).then( (arr,err) => {
             console.log("login ",arr);
             if ( arr && arr[0] ) {
               this.session = arr[0];

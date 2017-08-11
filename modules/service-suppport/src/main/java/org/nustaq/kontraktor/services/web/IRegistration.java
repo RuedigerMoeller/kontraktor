@@ -6,8 +6,8 @@ import io.undertow.util.StatusCodes;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.templateapp.WebServer;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.reallive.interfaces.RealLiveTable;
-import org.nustaq.reallive.interfaces.Record;
+import org.nustaq.reallive.api.RealLiveTable;
+import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.records.MapRecord;
 
 import java.util.UUID;
@@ -53,8 +53,8 @@ public interface IRegistration extends IDataConnected {
                     .put("confirmationId", confId)
                     .put("verified", 0);
 
-                userTable.getMutation().add(user);
-                getTable(getConfirmationTableName()).getMutation().put(confId, "uid", email);
+                userTable.addRecord(user);
+                getTable(getConfirmationTableName()).put(confId, "uid", email);
                 sendConfirmationMail("uid",email,confId);
                 res.complete("done",  null);
             } else {
@@ -68,7 +68,7 @@ public interface IRegistration extends IDataConnected {
     default void handleRegistrationConfirmation(String[] tokens, HttpServerExchange exchange) {
         getTable( getConfirmationTableName() ).get(tokens[2]).then( (r,e) -> {
             if ( r != null ) {
-                getTable(getUserTableName()).getMutation().atomic(((Record)r).getString("uid"),
+                getTable(getUserTableName()).atomic(r.getString("uid"),
                 user -> {
                     if ( user != null ) {
                         int verified = ((Record) user).getInt("verified");
@@ -81,6 +81,7 @@ public interface IRegistration extends IDataConnected {
                         exchange.setResponseCode(404);
                         exchange.endExchange();
                     }
+                    return null;
                 });
             }
         });

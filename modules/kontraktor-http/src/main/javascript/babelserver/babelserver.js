@@ -7,11 +7,10 @@ const decodingHelper = new kontraktor.DecodingHelper();
 class Babel {
 
   browserifyInternal(filePath,babelopts) {
+    const prom = new KPromise();
     try {
-      const prom = new KPromise();
       var res = browserify(filePath, {
         debug: !!babelopts.debug
-        // paths: ['/home/ruedi/IdeaProjects/kontraktor/examples/react/src/main/nodejs/']
       })
       .transform("babelify", { presets: babelopts.presets, extensions: [".tsx", ".ts", ".js", ".jsx"] })
       .bundle( (err,buff) => {
@@ -21,10 +20,11 @@ class Babel {
         } else
           prom.complete(decodingHelper.jobj("BabelResult",{ code: ""+buff, err: null }),null);
       });
-      return prom;
     } catch (e) {
       console.error(e);
+      prom.complete(null,e)
     }
+    return prom;
   }
 
 }

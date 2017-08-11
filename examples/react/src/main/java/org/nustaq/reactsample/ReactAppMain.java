@@ -4,11 +4,6 @@ package org.nustaq.reactsample;
  * Created by ruedi on 21.07.17.
  */
 
-import org.nustaq.kontraktor.babel.BabelOpts;
-import org.nustaq.kontraktor.babel.JSXTranspiler;
-import org.nustaq.kontraktor.remoting.encoding.Coding;
-import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.weblication.*;
 
 import java.io.File;
@@ -22,6 +17,11 @@ import static org.nustaq.kontraktor.Actors.AsActor;
 public class ReactAppMain extends UndertowWebServerMain {
 
     public static void main(String[] args) throws IOException {
+
+        if ( !new File("./run/etc/app.kson").exists() ) {
+            System.out.println("please run with working dir set to project root (react-sample)");
+            System.exit(1);
+        }
 
         ReactAppConfig cfg = ReactAppConfig.read();
         new ReactAppMain().reactMainHelper(ReactApp.class,cfg);

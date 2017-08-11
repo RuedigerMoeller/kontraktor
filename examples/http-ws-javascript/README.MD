@@ -1,1 +1,0 @@
-Plain js frontend demonstrating communication with server side actors.

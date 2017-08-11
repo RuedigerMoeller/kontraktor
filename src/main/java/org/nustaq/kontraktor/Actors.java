@@ -398,6 +398,15 @@ public class Actors {
     }
 
     /**
+     * shorthand constructor
+     * @param <T>
+     * @return
+     */
+    public static <T> Promise<T> promise() {
+        return new Promise<>();
+    }
+
+    /**
      * abbreviation for Promise creation to make code more concise
      *
      */

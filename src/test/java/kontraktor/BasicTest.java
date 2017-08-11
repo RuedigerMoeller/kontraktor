@@ -396,7 +396,7 @@ public class BasicTest {
         }
 
         public void testCB( Callback s ) {
-            s.stream("X");
+            s.pipe("X");
             s.finish();
         }
 

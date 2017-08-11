@@ -7,14 +7,18 @@ import org.nustaq.kontraktor.annotations.Remoted;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.weblication.BasicWebSessionActor;
 import org.nustaq.kontraktor.weblication.ISessionStorage;
-import org.nustaq.kontraktor.weblication.model.PersistedRecord;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by ruedi on 01.07.17.
  */
 public class ReactAppSession extends BasicWebSessionActor {
 
-    PersistedRecord userRecord;
+    Record userRecord;
+
+    public void updateUserRecord(Record record) {
+        userRecord = record;
+    }
 
     @Override
     protected void persistSessionData(String sessionId, ISessionStorage storage) {
@@ -30,7 +34,7 @@ public class ReactAppSession extends BasicWebSessionActor {
         Promise res = new Promise();
         Log.Info(this,"loadSessionData " + sessionId);
         // let's cache the record of current user (take care => stale state in case of multiple clients from same user)
-        storage.getUser(_getUserKey()).then( (user, err) -> {
+        storage.getUser(getUserKey()).then( (user, err) -> {
             if ( user != null) {
                 userRecord = user;
                 res.resolve(userRecord);
@@ -47,7 +51,7 @@ public class ReactAppSession extends BasicWebSessionActor {
     }
 
     @Remoted
-    public void queryUsers(Callback<PersistedRecord> cb) {
+    public void queryUsers(Callback<Record> cb) {
         getSessionStorage().forEachUser( cb );
     }
 
@@ -64,5 +68,4 @@ public class ReactAppSession extends BasicWebSessionActor {
         });
         return res;
     }
-
 }

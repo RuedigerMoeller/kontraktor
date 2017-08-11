@@ -1,13 +1,14 @@
 package newimpl;
 
 import junit.framework.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
 import org.nustaq.reallive.impl.tablespace.TableSpaceSharding;
-import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.api.*;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -15,7 +16,10 @@ import java.util.stream.IntStream;
 
 /**
  * Created by ruedi on 14.08.2015.
+ *
+ * NOTE: this is not intended to be run automatically (needs manual server start)
  */
+@Ignore
 public class TableSpaceTest {
 
     public static final int EXPECT_SIMPLECOUNT = 603;
@@ -23,7 +27,7 @@ public class TableSpaceTest {
     @Test
     public void simple() {
         TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
-        ts.init(4, 0);
+        ts.init();
         Assert.assertTrue( runSimpleTest(ts, () -> createTableDescription() ) == EXPECT_SIMPLECOUNT );
         ts.shutDown().await();
     }
@@ -36,7 +40,7 @@ public class TableSpaceTest {
         };
         for (int i = 0; i < spaces.length; i++) {
             TableSpaceActor space = spaces[i];
-            space.init(2,0);
+            space.init();
         }
         TableSpaceSharding ts = new TableSpaceSharding( spaces, key -> Math.abs(key.hashCode())%spaces.length );
         Assert.assertTrue(runSimpleTest(ts, () -> createShardedTableDescription()) == EXPECT_SIMPLECOUNT);
@@ -59,7 +63,7 @@ public class TableSpaceTest {
             .await();
        for (int i = 0; i < spaces.length; i++) {
             TableSpaceActor space = spaces[i];
-            space.init(2,0);
+            space.init();
         }
         TableSpaceSharding ts = new TableSpaceSharding( spaces, key -> Math.abs(key.hashCode())%spaces.length );
         Assert.assertTrue(runSimpleTest(ts, () -> createShardedTableDescription()) == EXPECT_SIMPLECOUNT);
@@ -94,7 +98,7 @@ public class TableSpaceTest {
 
     public TableSpaceActor startServer() {
         TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
-        ts.init(4, 0);
+        ts.init();
         new TCPNIOPublisher(ts,5432).publish(actor -> System.out.println("sidconnected: " + actor));
         return ts;
     }
@@ -103,7 +107,7 @@ public class TableSpaceTest {
     public void startShardServer() throws InterruptedException {
         startServer();
         TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
-        ts.init(4, 0);
+        ts.init();
         new TCPNIOPublisher(ts,5433).publish(actor -> System.out.println("sidconnected: " + actor));
         Thread.sleep(1000000);
     }
@@ -116,21 +120,20 @@ public class TableSpaceTest {
         }
         RealLiveTable test = ts.getTableAsync("Test").await();
 
-        test.filter(rec -> true, (r, e) -> System.out.println("filter:" + r + " " + resultCount.incrementAndGet()));
+        test.forEach(rec -> true, (r, e) -> System.out.println("filter:" + r + " " + resultCount.incrementAndGet()));
 
-        Mutation mutation = test.getMutation();
         IntStream.range(0,100).forEach(i -> {
-            mutation.addOrUpdate("emöil" + i, "age", 9, "name", "Emil");
-            mutation.addOrUpdate("fölix" + i, "age", 17, "name", "Felix");
+            test.merge("emöil" + i, "age", 9, "name", "Emil");
+            test.merge("fölix" + i, "age", 17, "name", "Felix");
         });
 
         System.out.println(test.get("emil0").await());
 
-        test.atomicQuery("emöil0", rec -> ((Record)rec).getInt("age")).then( i -> System.out.println("atomicQuery age "+i));
+        test.atomic("emöil0", rec -> ((Record)rec).getInt("age")).then(i -> System.out.println("atomicQuery age "+i));
 
-        test.filter(rec -> true, (r, e) -> System.out.println("filter1:" + r + " " + resultCount.incrementAndGet()));
+        test.forEach(rec -> true, (r, e) -> System.out.println("filter1:" + r + " " + resultCount.incrementAndGet()));
         Subscriber subs[] = {null};
-        subs[0] = new Subscriber(null, record -> true, change -> {
+        subs[0] = new Subscriber(record -> true, change -> {
             System.out.println("stream: " + change + " " + resultCount.incrementAndGet());
             if (change.isDoneMsg()) {
                 test.unsubscribe(subs[0]);

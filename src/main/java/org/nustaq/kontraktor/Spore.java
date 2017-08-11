@@ -92,7 +92,7 @@ public abstract class Spore<I,O> implements Serializable, Cloneable {
      * results are expected.
      */
     public void finish() {
-        if ( finished )
+        if ( finSignal == null && finished )
             return;
         // signal finish of execution, so remoting can clean up callback id mappings
         // override if always single result or finish can be emitted by the remote method

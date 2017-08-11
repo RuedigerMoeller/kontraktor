@@ -48,7 +48,7 @@ public class MyServiceServerImpl extends MyServiceInterface<MyServiceServerImpl>
                  ( age <= 0 || age == person.getAge() ) &&
                  ( name == null || name.equals(person.getName() ) )
              ) {
-                result.stream(person);
+                result.pipe(person);
             }
         });
         result.finish();

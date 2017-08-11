@@ -10,7 +10,7 @@ import org.nustaq.reallive.impl.actors.RealLiveTableActor;
 import org.nustaq.reallive.impl.actors.ShardFunc;
 import org.nustaq.reallive.impl.actors.TableSharding;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
-import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.impl.*;
 import org.nustaq.reallive.impl.storage.*;
 import org.nustaq.reallive.records.MapRecord;
@@ -28,16 +28,13 @@ public class Basic {
     @Test
     public void testTableSpace() {
         TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
-        ts.init(4, 0);
+        ts.init();
 
-        ts.createOrLoadTable(new TableDescription("blogs").numEntries(500_000).sizeMB(500));
-        ts.createOrLoadTable(new TableDescription("articles").numEntries(500_000 * 10).sizeMB(500 * 10));
+        ts.createOrLoadTable(new TableDescription("blogs").numEntries(500_000).type(TableDescription.StorageType.TEMP).sizeMB(500)).await();
+        ts.createOrLoadTable(new TableDescription("articles").numEntries(500_000 * 10).type(TableDescription.StorageType.TEMP).sizeMB(500 * 10)).await();
 
         RealLiveTable blogs = ts.getTableAsync("blogs").await();
-        Mutation blogMutation = blogs.getMutation();
-
         RealLiveTable articles = ts.getTableAsync("articles").await();
-        Mutation artMutation = articles.getMutation();
 
         int numBP = 30_000;
         for ( int i = 0; i < numBP; i++ ) {
@@ -50,7 +47,7 @@ public class Basic {
                 .put("likes", 199)
                 .put("reads", 3485)
                 .put("sequence", i );
-            blogMutation.add(blogEntry);
+            blogs.addRecord(blogEntry);
         }
 
         System.out.println("finished blogs");
@@ -58,32 +55,33 @@ public class Basic {
         for ( int i = 0; i < numBP *10; i++ ) {
             MapRecord article = MapRecord.New("art"+i);
 //            article
-//                .put("title", "WebComponents BLabla")
-//                .put("description", "High performance Java, realtime distributed computing, other stuff")
-//                .put("tags", "#tech #java #distributed #actors #concurrency #webcomponents #realtime")
-//                .put("author", "R.Moeller")
-//                .put("likes", 199)
-//                .put("reads", 3485)
-//                .put("blog", "blog"+i)
-//                .put("date", new Date() );
+//                .putRecord("title", "WebComponents BLabla")
+//                .putRecord("description", "High performance Java, realtime distributed computing, other stuff")
+//                .putRecord("tags", "#tech #java #distributed #actors #concurrency #webcomponents #realtime")
+//                .putRecord("author", "R.Moeller")
+//                .putRecord("likes", 199)
+//                .putRecord("reads", 3485)
+//                .putRecord("blog", "blog"+i)
+//                .putRecord("date", new Date() );
             article
                 .put("tags", new String[] {"#tech", "#java2", "#distributed", "#actors", "#concurrency", "#webcomponents", "#realtime"})
                 .put("likes", 199)
                 .put("reads", 3485)
                 .put("blog", "blog"+i)
                 .put("date", System.currentTimeMillis() );
-            artMutation.add(article);
+            articles.addRecord(article);
         }
 
         System.out.println("finished articles");
 
-        while( true ) {
+//        while( true )
+        {
             long tim = System.currentTimeMillis();
 
             AtomicInteger counter = new AtomicInteger(0);
 
-            blogs.forEach(
-                new FilterSpore<String>(record -> record.getKey().indexOf("99") >= 0).setForEach((r, e) -> {
+            blogs.forEachWithSpore(
+                new FilterSpore(record -> record.getKey().indexOf("99") >= 0).setForEach((r, e) -> {
 
                 })
             );
@@ -93,8 +91,8 @@ public class Basic {
             counter.set(0);
 
             tim = System.currentTimeMillis();
-            articles.forEach(
-                new FilterSpore<String>(record -> record.getKey().indexOf("999") >= 0).setForEach((r, e) -> {
+            articles.forEachWithSpore(
+                new FilterSpore(record -> record.getKey().indexOf("999") >= 0).setForEach((r, e) -> {
 
                 })
             );
@@ -215,13 +213,12 @@ public class Basic {
         public IPromise randomTest(RealLiveTable rls) throws InterruptedException {
             HeapRecordStorage hstore = new HeapRecordStorage();
             StorageDriver copy = new StorageDriver(hstore);
-            rls.subscribe(new Subscriber(null,r -> true,copy));
-            Mutation mut = rls.getMutation();
+            rls.subscribe(new Subscriber(r -> true,copy));
 
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
                 yield();
-                mut.add("k" + i,
+                rls.add("k" + i,
                         "name", "rm",
                         "age", rand,
                         "arr", new int[]{1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5,}
@@ -233,7 +230,7 @@ public class Basic {
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
                 yield();
-                mut.update("k" + i,
+                rls.update("k" + i,
                    "name", "rm"+(int)(Math.random()*i),
                    "age", rand,
                    "arr", new int[]{ 3, 4, 5, 1, 2, 3, 4, (int) rand}
@@ -244,7 +241,7 @@ public class Basic {
 
             for ( int i = 0; i < 500_000; i++ ) {
                 yield();
-                mut.remove("k" + (int) (Math.random() * 1_000_000));
+                rls.remove("k" + (int) (Math.random() * 1_000_000));
             }
             rls.ping().await();
             System.out.println("REM SIZE" + rls.size().await());
@@ -252,7 +249,7 @@ public class Basic {
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
                 yield();
-                mut.addOrUpdate("k" + i,
+                rls.merge("k" + i,
                         "name", "rm",
                         "age", rand
                         );
@@ -298,7 +295,7 @@ public class Basic {
             boolean inActor = Actor.inside();
 
             Subscriber subs =
-                new Subscriber( null,
+                new Subscriber(
                     record -> "one13".equals(record.getKey()),
                     change -> {
                         if ( self() != null )
@@ -308,7 +305,6 @@ public class Basic {
                 );
             rls.subscribe(subs);
 
-            Mutation mut = rls.getMutation();
 
             long tim = 0;
 
@@ -316,11 +312,13 @@ public class Basic {
                 if ( inActor )
                     checkThread();
                 long tim1 = System.currentTimeMillis();
-                for (int i = 0; i < 500_000; i++) {
-                    mut.addOrUpdate("one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
+                int i1 = 500_000;
+//                int i1 = 50;
+                for (int i = 0; i < i1; i++) {
+                    rls.merge("one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
                 }
-                mut.update("one13", "age", 10);
-                mut.remove("one13");
+                rls.update("one13", "age", 10);
+                rls.remove("one13");
                 rls.ping().await();
                 System.out.println("add " + (System.currentTimeMillis() - tim1));
             });
@@ -329,11 +327,13 @@ public class Basic {
             tim = System.currentTimeMillis();
             int count[] = {0};
             final long finalTim = tim;
-            rls.filter(rec -> true, (r, e) -> {
+            rls.forEach(rec -> true, (r, e) -> {
                 if ( inActor )
                     checkThread();
-                if (isResult(e))
+                if (isResult(e)) {
                     count[0]++;
+//                    System.out.println(count[0]);
+                }
                 else {
                     System.out.println("count:"+count[0]+" tim:"+(System.currentTimeMillis()-finalTim));
                     res.resolve();
@@ -366,8 +366,9 @@ public class Basic {
         TableSharding sharding = new TableSharding(sfunc, rls, null);
 
         TA ta = Actors.AsActor(TA.class);
-        while( System.currentTimeMillis() != 0) {
-            ta.runTest(sharding).await(500000);
+//        while( System.currentTimeMillis() != 0)
+        {
+            ta.runTest(sharding).await(50009);
         }
         ta.stop();
         sharding.stop();
@@ -402,6 +403,5 @@ public class Basic {
         ta.stop();
         rls.stop();
     }
-
 
 }

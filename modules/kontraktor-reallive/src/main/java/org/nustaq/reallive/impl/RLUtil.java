@@ -1,6 +1,6 @@
 package org.nustaq.reallive.impl;
 
-import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.records.*;
 
@@ -17,68 +17,89 @@ public class RLUtil {
         return instance;
     }
 
-    public <K> AddMessage add(K key, Object ... keyVals) {
+    public static boolean isAllowedClazz(Class<?> clazz) {
+        String name = clazz.getName();
+        return isValidClazzName(name) ||
+            (clazz.isArray() &&
+                (clazz.getComponentType().isPrimitive() ||
+                 isValidClazzName(clazz.getComponentType().getName())) || isValidClazz(clazz) );
+    }
+
+    private static boolean isValidClazz(Class clazz) {
+        return (MapRecord.class.isAssignableFrom(clazz));
+    }
+
+    private static boolean isValidClazzName(String name) {
+        return name.startsWith("java.") || name.startsWith("javax.");
+    }
+
+    public AddMessage add(String key, Object... keyVals) {
         Object record = record(key, keyVals);
         return new AddMessage((Record) record);
     }
 
-    public <K> PutMessage put(K key, Object ... keyVals) {
+    public PutMessage put(String key, Object... keyVals) {
         Object record = record(key, keyVals);
-        return new PutMessage((Record)record);
+        return new PutMessage((Record) record);
     }
 
-    public <K> AddMessage addOrUpdate(K key, Object ... keyVals) {
+    public AddMessage addOrUpdate(String key, Object... keyVals) {
         Object record = record(key, keyVals);
-        return new AddMessage(true,(Record) record);
+        return new AddMessage(true, (Record) record);
     }
 
-    public <K> UpdateMessage updateWithForced(K key, Set<String> forced, Object ... keyVals) {
+    public UpdateMessage updateWithForced(String key, Set forced, Object... keyVals) {
         UpdateMessage update = update(key, keyVals);
         update.setForcedUpdateFields(forced);
         return update;
     }
 
-    public <K> UpdateMessage update(K key, Object ... keyVals) {
-        String fi[] = new String[keyVals.length/2];
+    public UpdateMessage update(String key, Object... keyVals) {
+        String fi[] = new String[keyVals.length / 2];
         for (int i = 0; i < fi.length; i++) {
-            fi[i] = (String) keyVals[i*2];
+            fi[i] = (String) keyVals[i * 2];
         }
-        Diff d = new Diff(fi,null);
+        Diff d = new Diff(fi, null);
         Object record = record(key, keyVals);
         return new UpdateMessage(d, (Record) record, null);
     }
 
-    public <K> Record record(K key, Object ... keyVals) {
+    public Record record(String key, Object... keyVals) {
         MapRecord res = MapRecord.New(key);
         return buildRecord(res, keyVals);
     }
 
-    public <K> Record buildRecord(Record res, Object[] keyVals) {
-        for (int i = 0; i < keyVals.length; i+=2) {
+    public Record buildRecord(Record res, Object[] keyVals) {
+        if ( keyVals.length % 2 != 0) {
+            if ( keyVals.length == 1 && keyVals[0] instanceof Record)
+                throw new RuntimeException("invalid length of keyval array, try 'setRecord' method ");
+            throw new RuntimeException("invalid length of keyval array");
+        }
+        for (int i = 0; i < keyVals.length; i += 2) {
             Object k = keyVals[i];
-            Object v = keyVals[i+1];
-            res.put((String) k,v);
+            Object v = keyVals[i + 1];
+            res.put((String) k, v);
         }
         return res;
     }
 
-    public <K> RemoveMessage remove(K key) {
+    public RemoveMessage remove(String key) {
         return new RemoveMessage(MapRecord.New(key));
     }
 
-    public <K> ChangeMessage done() {
+    public ChangeMessage done() {
         return new QueryDoneMessage();
     }
 
     public boolean isEqual(Record rlRec, Record copy) {
         String[] fields = rlRec.getFields();
-        if ( fields.length != copy.getFields().length )
+        if (fields.length != copy.getFields().length)
             return false;
         for (int i = 0; i < fields.length; i++) {
             String field = fields[i];
             Object a = rlRec.get(field);
             Object b = copy.get(field);
-            if ( ! Objects.deepEquals(a,b) ) {
+            if (!Objects.deepEquals(a, b)) {
                 return false;
             }
         }

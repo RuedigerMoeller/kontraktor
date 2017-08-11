@@ -356,10 +356,11 @@ public class DispatcherThread extends Thread implements Monitorable {
     private Object invoke(CallEntry poll) throws IllegalAccessException, InvocationTargetException {
         final Object target = poll.getTarget();
         Object invoke = null;
+        Method method = poll.getMethod();
         try {
-            invoke = poll.getMethod().invoke(target, poll.getArgs());
+            invoke = method.invoke(target, poll.getArgs());
         } catch (IllegalArgumentException iea) {
-            System.err.println("method:"+poll.getMethod().toString());
+            System.err.println("method:"+ method.toString());
             System.err.println("arguments given:"+Arrays.toString(poll.getArgs()));
             FSTUtil.rethrow(iea);
         }

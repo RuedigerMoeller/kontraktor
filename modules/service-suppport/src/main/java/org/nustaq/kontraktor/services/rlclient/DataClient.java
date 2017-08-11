@@ -10,10 +10,10 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.impl.tablespace.ClusteredTableSpaceClient;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
 import org.nustaq.reallive.impl.tablespace.TableSpaceSharding;
-import org.nustaq.reallive.interfaces.RLPredicate;
-import org.nustaq.reallive.interfaces.RealLiveTable;
-import org.nustaq.reallive.interfaces.Record;
-import org.nustaq.reallive.interfaces.TableDescription;
+import org.nustaq.reallive.api.RLPredicate;
+import org.nustaq.reallive.api.RealLiveTable;
+import org.nustaq.reallive.api.Record;
+import org.nustaq.reallive.api.TableDescription;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.*;
@@ -94,7 +94,7 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
                         Log.Info( this, "exporting shard "+i+" table "+desc.getName() );
                         try {
                             RealLiveTable table = shard.getTableAsync(desc.getName()).await(60_000);
-                            table.filter( rec -> true, (rec,err) -> {
+                            table.forEach( rec -> true, (rec,err) -> {
                                 if ( rec != null ) {
                                     try {
                                         // write marker to enable recovery in case of corruption
@@ -150,7 +150,7 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         TableSpaceActor shard = shards[shardNo];
         shard.getTableAsync(tableName).then(t -> {
             RealLiveTable table = t;
-            table.filter(predicate, cb);
+            table.forEach(predicate, cb);
         });
     }
 

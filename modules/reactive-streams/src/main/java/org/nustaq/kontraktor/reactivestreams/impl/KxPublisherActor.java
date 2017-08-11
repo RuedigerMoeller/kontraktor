@@ -540,7 +540,7 @@ public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> 
         }
 
         public void onNext(Object msg) {
-            subscriber.stream(msg);
+            subscriber.pipe(msg);
             credits--;
         }
 

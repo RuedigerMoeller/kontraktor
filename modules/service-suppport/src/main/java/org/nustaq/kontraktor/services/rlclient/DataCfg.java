@@ -1,6 +1,6 @@
 package org.nustaq.kontraktor.services.rlclient;
 
-import org.nustaq.reallive.interfaces.TableDescription;
+import org.nustaq.reallive.api.TableDescription;
 
 import java.io.Serializable;
 
@@ -15,15 +15,10 @@ public class DataCfg implements Serializable {
 
     TableDescription schema[] = { new TableDescription("dummy") };
 
-    int threadsPerShard = 2;
     int shardQSize = 64_000;
 
     public int getNumberOfShards() {
         return dataDir.length;
-    }
-
-    public int getThreadsPerShard() {
-        return threadsPerShard;
     }
 
     public int getShardQSize() {
@@ -32,11 +27,6 @@ public class DataCfg implements Serializable {
 
     public String[] getDataDir() {
         return dataDir;
-    }
-
-    public DataCfg threadsPerShard(final int threadsPerShard) {
-        this.threadsPerShard = threadsPerShard;
-        return this;
     }
 
     public DataCfg shardQSize(final int shardQSize) {

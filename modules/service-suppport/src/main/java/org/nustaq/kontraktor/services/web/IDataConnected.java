@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.services.web;
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
-import org.nustaq.reallive.interfaces.RealLiveTable;
+import org.nustaq.reallive.api.RealLiveTable;
 
 /**
  * Created by ruedi on 29.05.17.

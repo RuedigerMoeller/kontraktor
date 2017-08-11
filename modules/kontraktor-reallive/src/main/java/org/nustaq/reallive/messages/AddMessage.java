@@ -1,6 +1,6 @@
 package org.nustaq.reallive.messages;
 
-import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.api.*;
 
 /**
  * Created by moelrue on 03.08.2015.

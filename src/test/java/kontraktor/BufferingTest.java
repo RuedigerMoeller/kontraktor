@@ -26,7 +26,7 @@ public class BufferingTest {
         }
 
         public void cbTest(int count, Callback cb) {
-            cb.stream(count);
+            cb.pipe(count);
             cb.finish();
         }
     }

@@ -47,9 +47,9 @@ public class RemotingTest {
         }
 
         public void callback( Callback<String> cb ) {
-            cb.stream("A");
-            cb.stream("B");
-            cb.stream("C");
+            cb.pipe("A");
+            cb.pipe("B");
+            cb.pipe("C");
             cb.finish();
         }
 
@@ -121,7 +121,7 @@ public class RemotingTest {
 
     @Test
     public void testHttpJson() throws Exception {
-        Coding coding = new Coding(SerializerType.Json);
+        Coding coding = new Coding(SerializerType.JsonNoRef);
         runtHttp(coding);
     }
 
@@ -237,7 +237,7 @@ public class RemotingTest {
 
     @Test
     public void testNIOJSon() throws Exception {
-        Coding coding = new Coding(SerializerType.Json);
+        Coding coding = new Coding(SerializerType.JsonNoRef);
         runNio(coding);
     }
 

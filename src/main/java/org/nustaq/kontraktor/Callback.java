@@ -102,7 +102,7 @@ public interface Callback<T> extends Serializable
      *
      * @param result
      */
-    default Callback stream(T result) {
+    default Callback pipe(T result) {
         complete(result, CONT);
         return this;
     }
@@ -114,6 +114,15 @@ public interface Callback<T> extends Serializable
      */
     default void finish() {
         complete(null, null);
+    }
+
+    /**
+     * relevant for remoted callback's
+     *
+     * @return true if the client owning this remote callback proxy has disconnected
+     */
+    default boolean isTerminated() {
+        return false;
     }
 
 }

@@ -44,7 +44,7 @@ public class TestActeur extends Actor<TestActeur> {
     public IPromise<String> plainCallback(String arg, int arg1, Callback cb ) {
         String x = "plainCallback " + arg + " " + arg1;
         System.out.println(x);
-        cb.stream(arg).stream(arg1).finish();
+        cb.pipe(arg).pipe(arg1).finish();
         return new Promise<>(x);
     }
 

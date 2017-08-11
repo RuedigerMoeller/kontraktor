@@ -1,24 +1,20 @@
 package org.nustaq.reallive.impl;
 
 import org.nustaq.kontraktor.Spore;
-import org.nustaq.reallive.interfaces.RLPredicate;
-import org.nustaq.reallive.interfaces.Record;
+import org.nustaq.reallive.api.RLPredicate;
+import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.records.PatchingRecord;
 
 /**
  * Created by ruedi on 13/08/15.
  */
-public class FilterSpore<K> extends Spore<Record,Record> {
+public class FilterSpore extends Spore<Record,Record> {
 
     RLPredicate<Record> filter; // may modify record (gets patchable private copy
-    RLPredicate<Record> prePatchFilter; // gets original record (no modification)
+    boolean modifiesResult;
 
     public FilterSpore(RLPredicate<Record> filter) {
-        this(filter,null);
-    }
-    public FilterSpore(RLPredicate<Record> filter, RLPredicate<Record> prePatchFilter) {
         this.filter = filter;
-        this.prePatchFilter = prePatchFilter;
     }
 
     public transient static ThreadLocal<PatchingRecord> rec = new ThreadLocal<PatchingRecord>() {
@@ -30,15 +26,22 @@ public class FilterSpore<K> extends Spore<Record,Record> {
 
     @Override
     public void remote(Record input) {
-        if ( prePatchFilter != null && ! prePatchFilter.test(input) ) {
-            return;
+        if (modifiesResult) {
+            final PatchingRecord patchingRecord = rec.get();
+            patchingRecord.reset(input);
+            if (filter.test(patchingRecord)) {
+                stream(patchingRecord.unwrapOrCopy());
+            }
+        } else {
+            if (filter.test(input)) {
+                stream(input);
+            }
         }
+    }
 
-        final PatchingRecord patchingRecord = rec.get();
-        patchingRecord.reset(input);
-        if ( filter.test(patchingRecord) ) {
-            stream(patchingRecord.unwrapOrCopy());
-        }
+    public FilterSpore modifiesResult(boolean modifiesResult) {
+        this.modifiesResult = modifiesResult;
+        return this;
     }
 
 }

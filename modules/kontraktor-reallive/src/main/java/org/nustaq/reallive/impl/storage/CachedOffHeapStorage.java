@@ -2,8 +2,8 @@ package org.nustaq.reallive.impl.storage;
 
 import org.nustaq.kontraktor.Spore;
 import org.nustaq.reallive.impl.StorageDriver;
-import org.nustaq.reallive.interfaces.Record;
-import org.nustaq.reallive.interfaces.RecordStorage;
+import org.nustaq.reallive.api.Record;
+import org.nustaq.reallive.api.RecordStorage;
 import org.nustaq.reallive.records.MapRecord;
 
 import java.util.ArrayList;
@@ -22,7 +22,7 @@ public class CachedOffHeapStorage implements RecordStorage {
         this.offheap = offheap;
         this.onHeap = onHeap;
         List<Record> reput = new ArrayList();
-        offheap.forEach(new Spore<Record, Object>() {
+        offheap.forEachWithSpore(new Spore<Record, Object>() {
             @Override
             public void remote(Record input) {
                 Record unwrap = StorageDriver.unwrap(input);
@@ -82,8 +82,8 @@ public class CachedOffHeapStorage implements RecordStorage {
     }
 
     @Override
-    public <T> void forEach(Spore<Record, T> spore) {
-        onHeap.forEach(spore);
+    public <T> void forEachWithSpore(Spore<Record, T> spore) {
+        onHeap.forEachWithSpore(spore);
     }
 
 }

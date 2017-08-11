@@ -1,8 +1,0 @@
-OK- init + reanimation completely async
-OK- optional invert @Local to avoid security issues
-OK- handle session timed out in client
-NOPE - share sessions by user
-- nodify exits
-- cleanup users
-- direct link handling
-- upgrade fst

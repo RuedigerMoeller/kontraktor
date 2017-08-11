@@ -90,7 +90,7 @@ public class MediatorActor extends Actor<MediatorActor> {
                 // timeout goes here
                 Log.Info(this, "timeout in broadcast");
             }
-            results.forEach( promise -> cb.stream(promise.get()));
+            results.forEach( promise -> cb.pipe(promise.get()));
             cb.finish(); // important to release callback mapping in remoting !
         }
     }

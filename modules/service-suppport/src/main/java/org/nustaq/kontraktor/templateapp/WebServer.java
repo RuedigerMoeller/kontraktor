@@ -122,11 +122,11 @@ public class WebServer<T extends WebServer> extends Actor<T> implements IWebServ
                     serv.handleDirectRequest(exchange);
                     return true;
                 })
-                .build()
+                .buildResourcePath()
             .httpAPI("/ep", serv)
                 .coding(new Coding(SerializerType.JsonNoRef, ServiceRegistry.JSONCLASSES))
                 .setSessionTimeout(5*60_000)
-                .build();
+                .buildHttpApi();
 
         builder.build();
     }

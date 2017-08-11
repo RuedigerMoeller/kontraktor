@@ -142,6 +142,18 @@ public class RemoteCallEntry implements Serializable {
             }
             setSerializedArgs(null);
         }
+        if (method!=null && method.length() <= 4) {
+            if ("tell".equals(getMethod()) || "ask".equals(getMethod())) {
+                if (args.length != 1 || args[1] instanceof Object[] == false) {
+                    method = (String) args[0];
+                    Object[] newArgs = new Object[args.length - 1];
+                    for (int i = 0; i < newArgs.length; i++) {
+                        newArgs[i] = args[i + 1];
+                    }
+                    args = newArgs;
+                }
+            }
+        }
     }
 
     public Callback getCB() {

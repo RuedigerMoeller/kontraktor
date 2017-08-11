@@ -2,7 +2,7 @@ package org.nustaq.reallive.client;
 
 import org.nustaq.reallive.impl.StorageDriver;
 import org.nustaq.reallive.impl.storage.HeapRecordStorage;
-import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.api.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +32,7 @@ public class SubscribedSet {
     public void subscribe(RLPredicate<Record> filter) {
         synchronized (this) {
             unsubscribe();
-            subs = new Subscriber(null,filter,change -> {
+            subs = new Subscriber(filter,change -> {
                 synchronized (this) {
                     storage.receive(change);
                 }

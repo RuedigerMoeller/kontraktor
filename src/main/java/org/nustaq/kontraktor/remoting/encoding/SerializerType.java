@@ -25,7 +25,7 @@ package org.nustaq.kontraktor.remoting.encoding;
 public enum SerializerType {
     FSTSer,
     MinBin,
-    Json,
+//    Json,
     JsonNoRef,
     JsonNoRefPretty,
     UnsafeBinary

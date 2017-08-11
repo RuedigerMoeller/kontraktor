@@ -1,7 +1,7 @@
 package org.nustaq.reallive.messages;
 
-import org.nustaq.reallive.interfaces.ChangeMessage;
-import org.nustaq.reallive.interfaces.Record;
+import org.nustaq.reallive.api.ChangeMessage;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by ruedi on 07/08/15.

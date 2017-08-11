@@ -1,7 +1,7 @@
 package org.nustaq.reallive.impl.storage;
 
 import org.nustaq.kontraktor.Spore;
-import org.nustaq.reallive.interfaces.*;
+import org.nustaq.reallive.api.*;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -46,7 +46,7 @@ public class HeapRecordStorage implements RecordStorage {
 
 
     @Override
-    public <T> void forEach(Spore<Record, T> spore) {
+    public <T> void forEachWithSpore(Spore<Record, T> spore) {
         long now = System.currentTimeMillis();
         for (Iterator<Map.Entry<Object, Record>> iterator = map.entrySet().iterator(); iterator.hasNext(); ) {
             Map.Entry<Object, Record> next = iterator.next();
