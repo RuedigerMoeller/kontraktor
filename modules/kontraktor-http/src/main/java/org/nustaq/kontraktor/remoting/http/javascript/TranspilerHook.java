@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.remoting.http.javascript;
 
 import java.io.File;
+import java.util.Set;
 
 /**
  * Created by ruedi on 21.05.16.
@@ -25,4 +26,8 @@ public interface TranspilerHook {
      * Should throw an exception in case an error occured during transpile.
      */
     byte[] transpile(File f) throws TranspileException;
+
+    default byte[] transpile(File f, FileResolver resolver, Set<String> alreadyResolved) {
+        return transpile(f);
+    }
 }

@@ -1,4 +1,4 @@
-package org.nustaq.reactsample;
+package org.nustaq.intrinsicreact;
 
 import org.nustaq.kontraktor.annotations.Remoted;
 import org.nustaq.kontraktor.annotations.Secured;

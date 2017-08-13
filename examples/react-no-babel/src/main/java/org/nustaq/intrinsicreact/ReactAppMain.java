@@ -1,4 +1,4 @@
-package org.nustaq.reactsample;
+package org.nustaq.intrinsicreact;
 
 /**
  * Created by ruedi on 21.07.17.

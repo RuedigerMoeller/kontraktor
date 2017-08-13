@@ -4,7 +4,7 @@ import { Game } from './fbreactexample.jsx';
 import { Login, Register } from './login.jsx';
 import { HCenter } from './layout.jsx';
 import { HashRouter as Router, Route, Switch, Link, NavLink, Redirect } from 'react-router-dom'
-import createBrowserHistory from 'history/createBrowserHistory';
+import { createBrowserHistory } from 'history';
 import { AppActions,Store as AppStore } from "./store.jsx";
 import { UserTable } from "./usertable.jsx";
 

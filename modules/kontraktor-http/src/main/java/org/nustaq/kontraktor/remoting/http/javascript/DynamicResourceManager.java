@@ -32,16 +32,14 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * adapts kontraktors js + html snippets dependency management to undertow
  *
  */
-public class DynamicResourceManager extends FileResourceManager {
+public class DynamicResourceManager extends FileResourceManager implements FileResolver {
 
     boolean devMode = false;
     DependencyResolver dependencyResolver;
@@ -137,7 +135,7 @@ public class DynamicResourceManager extends FileResourceManager {
                             String ext = fname.substring(idx+1).toLowerCase();
                             TranspilerHook transpilerHook = transpilerMap.get(ext);
                             if ( transpilerHook != null ) {
-                                byte[] transpiled = transpilerHook.transpile(file);
+                                byte[] transpiled = transpilerHook.transpile(file, this, new HashSet<>());
                                 if (minify) {
                                     transpiled = JSMin.minify(transpiled);
                                 }
@@ -202,6 +200,47 @@ public class DynamicResourceManager extends FileResourceManager {
 
     public Map<String, TranspilerHook> getTranspilerMap() {
         return transpilerMap;
+    }
+
+    @Override
+    public byte[] resolve(File baseDir, String name, Set<String> alreadyProcessed) {
+        if ( alreadyProcessed.contains(name) ) {
+            return new byte[0];
+        }
+        alreadyProcessed.add(name);
+        try {
+            File file = dependencyResolver.locateResource(name);
+            if ( file == null )
+                return null;
+            byte bytes[] = null;
+            // fixme: doubles logic of getResource
+            if ( file != null ) {
+                final String fname = file.getName();
+                if ( transpilerMap != null && transpilerMap.size() > 0 ) {
+                    try {
+                        int idx = fname.lastIndexOf('.');
+                        if ( idx > 0 ) {
+                            String ext = fname.substring(idx+1).toLowerCase();
+                            TranspilerHook transpilerHook = transpilerMap.get(ext);
+                            if ( transpilerHook != null ) {
+                                bytes = transpilerHook.transpile(file, this, alreadyProcessed);
+                            }
+                        }
+                    } catch (Exception ex) {
+                        Log.Error(this, ex);
+                    }
+                }
+                if ( bytes == null )
+                    bytes = Files.readAllBytes(file.toPath());
+                if ( fname.endsWith(".js") && minify ) {
+                    bytes = JSMin.minify(bytes);
+                }
+            }
+            return bytes;
+        } catch (Exception e) {
+            FSTUtil.rethrow(e);
+        }
+        return null;
     }
 
     protected static class MyResource implements Resource {

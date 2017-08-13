@@ -5,11 +5,19 @@ import org.nustaq.kontraktor.babel.BrowseriBabelify;
 import org.nustaq.kontraktor.babel.JSXWithBabelTranspiler;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.http.javascript.FileResolver;
+import org.nustaq.kontraktor.remoting.http.javascript.TranspileException;
+import org.nustaq.kontraktor.remoting.http.javascript.TranspilerHook;
+import org.nustaq.kontraktor.remoting.http.javascript.jsx.JSXGenerator;
+import org.nustaq.kontraktor.remoting.http.javascript.jsx.JSXParser;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.util.Pair;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import static org.nustaq.kontraktor.Actors.AsActor;
 
@@ -94,8 +102,7 @@ public class UndertowWebServerMain {
             .fileRoot(cfg.getStaticUrlPrefix(), cfg.getStaticFileRoot())
             .resourcePath("/")
                 .elements(
-                    cfg.getClientRoot(),
-                    cfg.getClientRoot()+"/node_modules"
+                    getResourcePathElements(cfg)
                 )
                 .allDev(cfg.dev)
                 .transpile("jsx", createJSXTranspiler(intrinsicJSX,cfg))
@@ -117,8 +124,100 @@ public class UndertowWebServerMain {
             .build();
     }
 
-    protected JSXWithBabelTranspiler createJSXTranspiler(boolean intrinsicJSX, BasicWebAppConfig cfg) {
-        return new JSXWithBabelTranspiler().opts(new BabelOpts().debug(cfg.dev));
+    protected String[] getResourcePathElements(BasicWebAppConfig cfg) {
+        return new String[]{
+            cfg.getClientRoot(),
+            cfg.getClientRoot() + "/../lib",
+            cfg.getClientRoot() + "/node_modules"};
+    }
+
+    protected TranspilerHook createJSXTranspiler(boolean intrinsicJSX, BasicWebAppConfig cfg) {
+        if ( intrinsicJSX ) {
+            return new TranspilerHook() {
+                @Override
+                public byte[] transpile(File f) throws TranspileException {
+                    throw new RuntimeException("should not be called");
+                }
+
+                @Override
+                public byte[] transpile(File f, FileResolver resolver, Set<String> alreadyResolved) {
+                    return processJSX(f,resolver, alreadyResolved);
+                }
+            };
+        } else {
+            return new JSXWithBabelTranspiler().opts(new BabelOpts().debug(cfg.dev));
+        }
+    }
+
+    protected byte[] processJSX(File f, FileResolver resolver, Set<String> alreadyResolved) {
+        try {
+            JSXGenerator.ParseResult result = JSXGenerator.process(f);
+            List<JSXParser.ImportSpec> specs = result.getImports();
+            byte[] res = result.getFiledata();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(20_000);
+            for (int i = 0; i < specs.size(); i++) {
+                JSXParser.ImportSpec importSpec = specs.get(i);
+                String from = importSpec.getFrom();
+                if ( ! from.endsWith(".js") && ! from.endsWith(".jsx") ) {
+                    from += ".js";
+                }
+                byte[] resolved = resolver.resolve(f.getParentFile(), from, alreadyResolved);
+                if ( resolved != null )
+                    baos.write(resolved);
+                else
+                    Log.Warn(this,from+" not found");
+            }
+            baos.write(generateImportPrologue(f.getName(),result).getBytes("UTF-8"));
+            baos.write(res);
+            baos.write(generateImportEnd(f.getName(),result).getBytes("UTF-8"));
+            return baos.toByteArray();
+        } catch (Exception e) {
+            Log.Error(this,e);
+            StringWriter out = new StringWriter();
+            e.printStackTrace(new PrintWriter(out));
+            try {
+                return out.getBuffer().toString().getBytes("UTF-8");
+            } catch (UnsupportedEncodingException e1) {
+                e1.printStackTrace();
+            }
+        }
+        return new byte[0];
+    }
+
+    protected String generateImportEnd(String name, JSXGenerator.ParseResult result) {
+        String s = "\n";
+        String exportObject = "window.kimports." + constructLibName(name);
+        s += exportObject+" = {};\n";
+        for (int i = 0; i < result.getGlobals().size(); i++) {
+            String gl = result.getGlobals().get(i);
+            s+=exportObject+"."+gl+" = "+gl+";\n";
+        }
+        return s+"});";
+    }
+
+    protected String generateImportPrologue(String name, JSXGenerator.ParseResult result) {
+        String s = "window.klibmap = window.klibmap || {};\nwindow.kimports = window.kimports || {};\n";
+        s += "(new function() {\n";
+        List<JSXParser.ImportSpec> imports = result.getImports();
+        for (int i = 0; i < imports.size(); i++) {
+            JSXParser.ImportSpec spec = imports.get(i);
+            String libname = constructLibName(spec.getFrom());
+            String exportObject = "window.kimports." + libname;
+            if ( spec.getAlias() != null ) {
+                s+="const "+spec.getAlias()+" = "+exportObject+"."+spec.getComponent()+";\n";
+            }
+            for (int j = 0; j < spec.getAliases().size(); j++) {
+                String alias = spec.getAliases().get(j);
+                s+="const "+alias+" = klibmap."+libname+"? klibmap."+libname+"()"+"."+spec.getComponents().get(j)
+                    +":"+exportObject+"."+spec.getComponents().get(j)+";\n";
+            }
+        }
+        return s;
+    }
+
+    protected String constructLibName(String name) {
+        name = JSXGenerator.camelCase(new File(name).getName());
+        return name.replace(".jsx","").replace(".js","");
     }
 
     /**
