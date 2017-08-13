@@ -5,6 +5,8 @@ import java.util.*;
 
 public class JSXParser {
 
+    public static boolean SHIM_OBJ_SPREAD = true;
+
     public static class ImportSpec {
         List<String> components = new ArrayList();
         List<String> aliases = new ArrayList();;
@@ -313,6 +315,22 @@ public class JSXParser {
                     return false;
             return true;
         }
+
+        public int index() {
+            return index;
+        }
+
+        public String substring(int lastBracePo, int index) {
+            return new String(file,lastBracePo,index-lastBracePo);
+        }
+
+        public char at(int lastBracePo) {
+            if (lastBracePo<0)
+                return 0;
+            if (lastBracePo>=file.length)
+                return 0;
+            return file[lastBracePo];
+        }
     }
 
     List<ImportSpec> imports = new ArrayList();
@@ -329,6 +347,10 @@ public class JSXParser {
         boolean trackNextIdentifier = false;
         StringBuilder global = new StringBuilder();
         boolean returnOnLastMatchingBrace = in.ch() == '{';
+        int lastBracePos[] = new int[200];
+        int lastBracePosCur[] = new int[200];
+        String braceInsert[] = new String[200];
+        int rcnt = 0;
         while (in.ch() > 0)
         {
             char ch = in.ch(0);
@@ -358,10 +380,27 @@ public class JSXParser {
                 cur.add(readStarComment(in));
             } else
             {
-                if (ch == '{')
+                if ( SHIM_OBJ_SPREAD && in.match("...") && in.at(lastBracePos[depth]) == '{' ) {
+                    System.out.println(in.substring(lastBracePos[depth],in.index()));
+                    System.out.println(cur.chars.toString().substring(lastBracePosCur[depth]));
+                    if ( braceInsert[depth] == null ) {
+                        cur.chars.insert(lastBracePosCur[depth], "_sprd(");
+                        // fixme: correct indices ?
+                        System.out.println(cur.chars.toString().substring(lastBracePosCur[depth]));
+                        braceInsert[depth] = ")";
+                    }
+                    cur.add("'..."+(rcnt++)+"':");
+                    in.advance(3);
+                    continue;
+                }
+                if (ch == '{' || ch == '[' || ch == '(') {
                     depth++;
-                if (ch == '}')
+                    lastBracePos[depth] = in.index();
+                    lastBracePosCur[depth] = cur.chars.length();
+                }
+                if (ch == '}' || ch == ']' || ch == ')' ) {
                     depth--;
+                }
                 if ( returnOnLastMatchingBrace ) {
                     if (ch == '{')
                         braceCount++;
@@ -419,6 +458,12 @@ public class JSXParser {
                     }
                 }
                 cur.add(ch);
+                if (ch == '}') {
+                    if ( braceInsert[depth+1] != null ) {
+                        cur.chars.append(braceInsert[depth+1]);
+                        braceInsert[depth+1] = null;
+                    }
+                }
                 in.advance(1);
             }
         }

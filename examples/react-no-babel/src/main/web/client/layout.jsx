@@ -7,7 +7,8 @@ export class Table extends React.Component {
       display: 'table',
       background: this.props.bg ? this.props.bg:'#eee',
       padding: '16px',
-      border: 'solid #ddd 1px', ...this.props.style
+      border: 'solid #ddd 1px',
+      ...this.props.style
     };
     return (
       <div style={style}>

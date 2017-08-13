@@ -19,6 +19,26 @@
   <script src="kontraktor-client.js"></script>
 
   <script>
+    window._sprd = function (obj) {
+      const copy = Object.assign({},obj);
+      Object.keys(obj).forEach( key => {
+        if ( key.indexOf("...") == 0 ) {
+          const ins = obj[key];
+          if ( typeof ins != 'undefined') {
+            Object.keys(ins).forEach( ikey => {
+              if ( typeof ins[ikey] != 'undefined')
+              {
+                obj[ikey] = ins[ikey];
+              }
+            });
+            delete obj[key];
+          }
+        } else {
+          obj[key] = copy[key]; // overwrite original value
+        }
+      });
+      return obj;
+    };
     window.module = {}; // fake nodejs. this can be problematic if libs detect node by checking for module === undefined
     window.klibmap = {  // in order to make umd builds work with 'import' we need a map of library filename to library Object
       react: () => React,
