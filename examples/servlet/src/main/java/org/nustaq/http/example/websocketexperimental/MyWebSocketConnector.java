@@ -3,8 +3,8 @@ package org.nustaq.http.example.websocketexperimental;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import javax.websocket.CloseReason;
@@ -35,7 +35,7 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
 
     private static volatile MyWebSocketConnector _instance;
     
-    private Map<String, ServletWebObjectSocket> sessions = new HashMap<>();
+    private Map<String, ServletWebObjectSocket> sessions = new ConcurrentHashMap<>();
     
     ServletApp facade;
     Function<ObjectSocket, ObjectSink> sinkFactory;
@@ -78,11 +78,11 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
 //                System.out.println("msg byte[] "+new String(message,0));
 //            }
 //        );
-        ServletWebObjectSocket socket = new ServletWebObjectSocket(session);
-        sessions.put(session.getId(), socket);
         facade.execute(() -> {
+            ServletWebObjectSocket socket = new ServletWebObjectSocket(session);
             ObjectSink sink = sinkFactory.apply(socket);
             socket.setSink(sink);
+            sessions.put(session.getId(), socket);
             session.addMessageHandler(String.class, message -> {
                     System.out.println("msg String "+message);
                     try {
@@ -147,12 +147,9 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
         @Override
         public void close() throws IOException {
 //            session.getReceiveSetter().set(null);
-            session.close();
-            ObjectSink objectSink = sink;
-            if (objectSink != null )
-                objectSink.sinkClosed();
-            conf = null;
-            session = null;
+//            session.close(); // we don't need to close it manually
+            if (sink != null )
+                sink.sinkClosed();
         }
 
         static AtomicInteger idCount = new AtomicInteger(0);
