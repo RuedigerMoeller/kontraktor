@@ -54,7 +54,7 @@ export class AppStore extends EventEmitter {
   }
 
   queryUsers( cb ) {
-    this.session.queryUsers( cb );
+    this.session.$queryUsers( cb );
   }
 
   register(user,password,text) {
@@ -105,7 +105,7 @@ export class AppStore extends EventEmitter {
   }
 
   deleteUser(key) {
-    this.getSession().delUser(key);
+    this.getSession().$delUser(key); // is void ($)
   }
 }
 

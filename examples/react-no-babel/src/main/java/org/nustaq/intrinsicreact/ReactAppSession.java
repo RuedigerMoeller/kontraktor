@@ -3,6 +3,7 @@ package org.nustaq.intrinsicreact;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.annotations.Remoted;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.weblication.BasicWebSessionActor;
@@ -16,6 +17,7 @@ public class ReactAppSession extends BasicWebSessionActor {
 
     Record userRecord;
 
+    @Local
     public void updateUserRecord(Record record) {
         userRecord = record;
     }

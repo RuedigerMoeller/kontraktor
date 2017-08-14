@@ -19,13 +19,13 @@
   <script src="kontraktor-client.js"></script>
 
   <script>
-    // in order to make umd builds work with 'import' we need a map of library filename to library Object,
+    // in order to make UMD builds work with 'import' we need a map of library filename to library Object,
     // as libs arent loaded yet, provide lambdas
-    window.klibmap = {
+    klibmap = {
       react: () => React,
       history: () => History,
       reactRouterDom: () => ReactRouterDOM,
-      events: () => { return {  // events exposes global objects, so need to construct a virtual lib object
+      events: () => { return {  // events exposes global objects, so we need to construct a virtual lib object
         EventEmitter: EventEmitter,
       }}
     };
