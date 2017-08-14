@@ -96,7 +96,6 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 }
                 byte[] resolved = resolver.resolve(f.getParentFile(), from, alreadyResolved);
                 if ( resolved != null ) {
-                    System.out.println(""+from+" length:"+resolved.length);
                     if ( resolved.length > 0 ) {
                         String name = constructLibName(from)+".js";
                         if ( from.endsWith(".jsx") ) {
