@@ -147,7 +147,7 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
         @Override
         public void close() throws IOException {
 //            session.getReceiveSetter().set(null);
-//            session.close(); // we don't need to close it manually
+//            session.close(); // we don't need close it manually
             if (sink != null )
                 sink.sinkClosed();
         }
