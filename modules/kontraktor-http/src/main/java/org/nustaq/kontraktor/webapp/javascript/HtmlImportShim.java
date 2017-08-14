@@ -1,11 +1,12 @@
-package org.nustaq.kontraktor.remoting.http.javascript;
+package org.nustaq.kontraktor.webapp.javascript;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.*;
 import org.jsoup.parser.Tag;
 import org.jsoup.select.Elements;
-import org.nustaq.kontraktor.remoting.http.javascript.jsmin.JSMin;
+import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -32,6 +33,15 @@ public class HtmlImportShim {
 
     public interface ResourceLocator {
         File locateResource( String urlPath );
+
+        default byte[] retrieveBytes(File impFi) {
+            try {
+                return Files.readAllBytes(impFi.toPath());
+            } catch (IOException e) {
+                FSTUtil.rethrow(e);
+            }
+            return null;
+        }
     }
 
     boolean inline = true;
@@ -68,7 +78,7 @@ public class HtmlImportShim {
         return file;
     }
 
-    public void setLocator(DependencyResolver locator) {
+    public void setLocator(ResourceLocator locator) {
         this.locator = locator;
     }
 
@@ -286,7 +296,7 @@ public class HtmlImportShim {
                                 Log.Info(this, "inlining script " + href);
                                 visited.add(url);
                                 Element newScript = new Element(Tag.valueOf("script"), "" );
-                                byte[] bytes = Files.readAllBytes(impFi.toPath());
+                                byte[] bytes = locator.retrieveBytes(impFi);
                                 if ( minify && url.getExtension().equals("js") )
                                     bytes = JSMin.minify(bytes);
                                 String scriptSource = new String(bytes, "UTF-8");

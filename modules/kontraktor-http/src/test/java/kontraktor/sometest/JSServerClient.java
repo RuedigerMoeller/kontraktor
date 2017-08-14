@@ -2,10 +2,7 @@ package kontraktor.sometest;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.babel.BabelOpts;
-import org.nustaq.kontraktor.babel.BabelResult;
-import org.nustaq.kontraktor.babel.BrowseriBabelify;
-import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.kontraktor.webapp.babel.BrowseriBabelify;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
 

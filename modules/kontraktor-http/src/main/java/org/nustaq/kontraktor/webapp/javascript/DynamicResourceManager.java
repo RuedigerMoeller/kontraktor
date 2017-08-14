@@ -14,7 +14,7 @@ Lesser General Public License for more details.
 See https://www.gnu.org/licenses/lgpl.txt
 */
 
-package org.nustaq.kontraktor.remoting.http.javascript;
+package org.nustaq.kontraktor.webapp.javascript;
 
 import io.undertow.io.IoCallback;
 import io.undertow.io.Sender;
@@ -24,8 +24,9 @@ import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.server.handlers.resource.Resource;
 import io.undertow.util.*;
 import org.jsoup.nodes.Element;
-import org.nustaq.kontraktor.remoting.http.javascript.jsmin.JSMin;
+import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.webapp.transpiler.TranspilerHook;
 import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.File;
@@ -39,7 +40,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * adapts kontraktors js + html snippets dependency management to undertow
  *
  */
-public class DynamicResourceManager extends FileResourceManager implements FileResolver {
+public class DynamicResourceManager extends FileResourceManager implements FileResolver, HtmlImportShim.ResourceLocator {
 
     boolean devMode = false;
     DependencyResolver dependencyResolver;
@@ -54,6 +55,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
     ConcurrentHashMap<String,Resource> lookupCache = new ConcurrentHashMap<>();
     boolean minify;
     private Map<String, TranspilerHook> transpilerMap;
+    private Map<String,byte[]> debugInstalls = new ConcurrentHashMap<>();
 
     public DynamicResourceManager(boolean devMode, String prefix, boolean minify, String resPathBase, String ... resourcePath) {
         super(new File("."), 100);
@@ -61,7 +63,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
         this.minify = minify;
         this.lastStartup = new Date();
         setPrefix(prefix);
-        dependencyResolver = new DependencyResolver(resPathBase,resourcePath);
+        dependencyResolver = new DependencyResolver(resPathBase,resourcePath,this);
         if ( devMode )
             Log.Warn(this, "Dependency resolving is running in *DEVELOPMENT MODE*. Turn off development mode to cache aggregated resources");
         else
@@ -87,6 +89,12 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
     @Override
     public Resource getResource(String initialPath) {
         String normalizedPath;
+        byte[] debugLib = debugInstalls.get(initialPath);
+        if (debugLib!= null) {
+            return new MyResource(
+                initialPath, initialPath.substring(1), debugLib, "" +
+                "text/javascript", null );
+        }
         if (initialPath.startsWith("/")) {
             normalizedPath = initialPath.substring(1);
         } else {
@@ -239,6 +247,41 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
             return bytes;
         } catch (Exception e) {
             FSTUtil.rethrow(e);
+        }
+        return null;
+    }
+
+    /**
+     * a transpiler generates files which need to be mapped temporary
+     *
+     * @param path
+     * @param resolved
+     */
+    @Override
+    public void install(String path, byte[] resolved) {
+        debugInstalls.put(path,resolved);
+    }
+
+    @Override
+    public File locateResource(String urlPath) {
+        return dependencyResolver.locateResource(urlPath);
+    }
+
+    /**
+     * invoke transpilers during prodmode inlining
+     * @param impFi
+     * @return
+     */
+    @Override
+    public byte[] retrieveBytes(File impFi) {
+        String fname = impFi.getName();
+        int idx = fname.indexOf('.');
+        if ( idx >= 0 ) {
+            String ext = fname.substring(idx+1).toLowerCase();
+            TranspilerHook transpilerHook = transpilerMap.get(ext);
+            if ( transpilerHook != null ) {
+                return transpilerHook.transpile(impFi, this, new HashSet());
+            }
         }
         return null;
     }

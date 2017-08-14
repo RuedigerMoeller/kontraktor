@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.babel;
+package org.nustaq.kontraktor.webapp.babel;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;

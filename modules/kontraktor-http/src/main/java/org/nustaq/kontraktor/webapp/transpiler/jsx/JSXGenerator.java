@@ -1,14 +1,12 @@
-package org.nustaq.kontraktor.remoting.http.javascript.jsx;
+package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.kontraktor.util.Pair;
 
 import java.io.*;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 
-import static org.nustaq.kontraktor.remoting.http.javascript.jsx.JSXParser.*;
+import static org.nustaq.kontraktor.webapp.transpiler.jsx.JSXParser.*;
 
 public class JSXGenerator {
 
@@ -59,7 +57,7 @@ public class JSXGenerator {
                         if (ae.getValue() != null ){
                             out.print(ae.getValue());
                         } else
-                            out.println("true");
+                            out.print("true");
                     }
                     if ( j < te.getAttributes().size()-1 )
                         out.println(",");
@@ -135,7 +133,9 @@ public class JSXGenerator {
 
     }
 
-    public static ParseResult process(File f) throws IOException {
+    public static ParseResult process(File f, boolean pretty) throws IOException {
+        // this is really inefficient, there are loads of optimization opportunities,
+        // however this code runs in devmode only ..
         JSXParser jsx = new JSXParser();
         JSEntry root = new JSEntry();
         byte[] bytes = Files.readAllBytes(f.toPath());
@@ -149,8 +149,17 @@ public class JSXGenerator {
         PrintStream ps = new PrintStream(out);
         JSXGenerator gen = new JSXGenerator();
         gen.generateJS(root,ps);
-        ps.flush();
-        ps.close();
-        return new ParseResult(out.toByteArray(),jsx.getImports(),jsx.getTopLevelObjects());
+        ps.flush();ps.close();
+        byte[] filedata = out.toByteArray();
+        if (pretty) {
+            ByteArrayOutputStream outpretty = new ByteArrayOutputStream(filedata.length + filedata.length / 5);
+            PrintStream pspretty = new PrintStream(outpretty);
+            JSBeautifier beautifier = new JSBeautifier();
+            beautifier.parseJS(new GenOut(pspretty), new Inp(new String(filedata, "UTF-8")));
+            pspretty.flush();
+            pspretty.close();
+            filedata = outpretty.toByteArray();
+        }
+        return new ParseResult(filedata,jsx.getImports(),jsx.getTopLevelObjects());
     }
 }

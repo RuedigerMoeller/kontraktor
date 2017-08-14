@@ -13,7 +13,7 @@ Lesser General Public License for more details.
 
 See https://www.gnu.org/licenses/lgpl.txt
 */
-package org.nustaq.kontraktor.remoting.http.javascript.minbingen;
+package org.nustaq.kontraktor.webapp.javascript.minbingen;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;

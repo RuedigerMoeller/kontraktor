@@ -14,15 +14,9 @@ Lesser General Public License for more details.
 See https://www.gnu.org/licenses/lgpl.txt
 */
 
-package org.nustaq.kontraktor.remoting.http.javascript;
-
-import org.nustaq.kontraktor.remoting.http.javascript.jsmin.JSMin;
-import org.nustaq.kontraktor.util.Log;
-import org.nustaq.kson.Kson;
+package org.nustaq.kontraktor.webapp.javascript;
 
 import java.io.*;
-import java.util.*;
-import java.util.function.BiFunction;
 
 /**
  * Created by ruedi on 06.04.2015.
@@ -33,12 +27,14 @@ import java.util.function.BiFunction;
  */
 public class DependencyResolver implements HtmlImportShim.ResourceLocator{
 
+    private final HtmlImportShim.ResourceLocator resourceLocator;
     protected File resourcePath[];
     protected String baseDir = ".";
 
-    public DependencyResolver(String baseDir, String[] resourcePath) {
+    public DependencyResolver(String baseDir, String[] resourcePath, HtmlImportShim.ResourceLocator rl) {
         this.baseDir = baseDir;
         setResourcePath(resourcePath);
+        this.resourceLocator = rl;
     }
 
     public String getBaseDir() {
@@ -79,6 +75,7 @@ public class DependencyResolver implements HtmlImportShim.ResourceLocator{
      * @param name
      * @return
      */
+    @Override
     public File locateResource( String name ) {
         // search for explicit includes along resource path (e.g. lookup/dir/lib.js) to allow for exclusion
         // of libs from sripts.js
@@ -90,4 +87,21 @@ public class DependencyResolver implements HtmlImportShim.ResourceLocator{
         return null;
     }
 
+    /**
+     * this part of locator interface is only implemented if another
+     * resourcelocator is set.
+     *
+     * @param impFi
+     * @return
+     */
+    @Override
+    public byte[] retrieveBytes(File impFi) {
+        if ( resourceLocator != null ) {
+            // does only return a result if a transpiler is registered
+            byte[] bytes = resourceLocator.retrieveBytes(impFi);
+            if ( bytes != null )
+                return bytes;
+        }
+        return HtmlImportShim.ResourceLocator.super.retrieveBytes(impFi);
+    }
 }

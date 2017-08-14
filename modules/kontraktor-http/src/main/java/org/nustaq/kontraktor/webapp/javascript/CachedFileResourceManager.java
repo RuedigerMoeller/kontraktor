@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.javascript;
+package org.nustaq.kontraktor.webapp.javascript;
 
 import io.undertow.server.handlers.resource.*;
 import io.undertow.util.*;

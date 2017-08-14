@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'subdir/events';
 
 export class AppStore extends EventEmitter {
 

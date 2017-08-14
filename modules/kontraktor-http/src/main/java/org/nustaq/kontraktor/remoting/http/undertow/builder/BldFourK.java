@@ -19,7 +19,7 @@ import io.undertow.server.HttpHandler;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.remoting.http.undertow.HttpPublisher;
-import org.nustaq.kontraktor.remoting.http.javascript.*;
+import org.nustaq.kontraktor.webapp.javascript.*;
 import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;
 
 import javax.net.ssl.SSLContext;

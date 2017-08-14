@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.javascript;
+package org.nustaq.kontraktor.webapp.transpiler;
 
 /**
  * Created by ruedi on 21.05.16.

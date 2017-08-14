@@ -16,7 +16,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.http.undertow.builder;
 
 import io.undertow.server.HttpServerExchange;
-import org.nustaq.kontraktor.remoting.http.javascript.TranspilerHook;
+import org.nustaq.kontraktor.webapp.transpiler.TranspilerHook;
 
 import java.util.HashMap;
 import java.util.Map;

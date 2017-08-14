@@ -4,7 +4,8 @@ Uses a nodejs service to perform browserify and babel.
 
 * if mode is set to production, transpilation will performed once on start, not with each request
 * in dev full babel + browserify is performed (+sourcemaps are generated). **do not judge performance and file size from 'dev mode'** 
-* in production mode source maps are omitted and libs are inlined and minified (once upon first request)
+* in production mode source maps are omitted and libs are inlined and minified (once upon first request).
+see ./run/etc/app.kson .
 * react server side rendering is not supported (and probably not worth the hassle)
 
 ### How to run

@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.babel;
+package org.nustaq.kontraktor.webapp.babel;
 
 import java.io.Serializable;
 

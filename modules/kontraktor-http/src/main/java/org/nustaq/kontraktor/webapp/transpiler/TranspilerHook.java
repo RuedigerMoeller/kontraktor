@@ -1,4 +1,6 @@
-package org.nustaq.kontraktor.remoting.http.javascript;
+package org.nustaq.kontraktor.webapp.transpiler;
+
+import org.nustaq.kontraktor.webapp.javascript.FileResolver;
 
 import java.io.File;
 import java.util.Set;

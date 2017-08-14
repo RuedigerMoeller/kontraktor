@@ -1,9 +1,10 @@
-package org.nustaq.kontraktor.remoting.http.javascript;
+package org.nustaq.kontraktor.webapp.transpiler;
 
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.webapp.transpiler.TranspileException;
+import org.nustaq.kontraktor.webapp.transpiler.TranspilerHook;
 
 import java.io.*;
-import java.util.List;
 
 /**
  * Created by ruedi on 21.05.16.

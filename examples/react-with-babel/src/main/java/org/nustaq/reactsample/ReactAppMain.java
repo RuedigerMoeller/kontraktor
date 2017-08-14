@@ -16,6 +16,16 @@ import static org.nustaq.kontraktor.Actors.AsActor;
  */
 public class ReactAppMain extends UndertowWebServerMain {
 
+    // need to patch resourcepath as browserify expects node modules at same level as local imports
+    @Override
+    protected String[] getResourcePathElements(BasicWebAppConfig cfg) {
+        return new String[]{
+            cfg.getClientRoot(),
+            cfg.getClientRoot() + "/node_modules",
+//            cfg.getClientRoot() + "/bower_components"
+        };
+    }
+
     public static void main(String[] args) throws IOException {
 
         if ( !new File("./run/etc/app.kson").exists() ) {

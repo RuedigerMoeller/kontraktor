@@ -26,7 +26,7 @@ import io.undertow.server.handlers.resource.ResourceHandler;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.http.undertow.builder.BldFourK;
-import org.nustaq.kontraktor.remoting.http.javascript.DynamicResourceManager;
+import org.nustaq.kontraktor.webapp.javascript.DynamicResourceManager;
 import org.nustaq.kontraktor.util.Pair;
 
 import javax.net.ssl.SSLContext;

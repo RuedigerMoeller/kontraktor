@@ -1,7 +1,8 @@
-package org.nustaq.kontraktor.babel;
+package org.nustaq.kontraktor.webapp.transpiler;
 
-import org.nustaq.kontraktor.remoting.http.javascript.TranspileException;
-import org.nustaq.kontraktor.remoting.http.javascript.TranspilerHook;
+import org.nustaq.kontraktor.webapp.babel.BabelOpts;
+import org.nustaq.kontraktor.webapp.babel.BabelResult;
+import org.nustaq.kontraktor.webapp.babel.BrowseriBabelify;
 
 import java.io.*;
 

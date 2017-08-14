@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.remoting.http.javascript.jsx;
+package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
 import java.io.PrintStream;
 import java.util.*;
@@ -272,67 +272,6 @@ public class JSXParser {
         }
     }
 
-    public static class Inp {
-        char[] file;
-        int index;
-        int failcount =0;
-        public Inp(String s) {
-            index = 0;
-            file = s.toCharArray();
-        }
-        public char ch(int off) {
-            if (index+off >= file.length) {
-                failcount++;
-                if ( failcount > 100 )
-                    throw new RuntimeException("prevent endlessloop, check for missing braces, tags or similar balanced chars");
-                return 0;
-            }
-            if (index+off < 0)
-                return 0;
-            return file[index+off];
-        }
-
-        public void advance(int amount) {
-            index+=amount;
-        }
-
-        public char ch() {
-            return ch(0);
-        }
-
-        public void inc() {
-            index++;
-        }
-
-        public String toString() {
-            int start = Math.max(0, index - 50);
-            return new String(file, start,index-start);
-        }
-
-        public boolean match(String str) {
-            for ( int i=0; i < str.length(); i++)
-                if ( ch(i) != str.charAt(i))
-                    return false;
-            return true;
-        }
-
-        public int index() {
-            return index;
-        }
-
-        public String substring(int lastBracePo, int index) {
-            return new String(file,lastBracePo,index-lastBracePo);
-        }
-
-        public char at(int lastBracePo) {
-            if (lastBracePo<0)
-                return 0;
-            if (lastBracePo>=file.length)
-                return 0;
-            return file[lastBracePo];
-        }
-    }
-
     List<ImportSpec> imports = new ArrayList();
     List<String> topLevelObjects = new ArrayList();
 
@@ -356,7 +295,7 @@ public class JSXParser {
             char ch = in.ch(0);
             if ( in.match("export") && in.ch(-1) <= 32 ) {
                 in.advance("export".length());
-                skipWS(in);
+                in.skipWS();
                 continue;
             }
             if ( in.match("import ") && in.ch(-1) <= 32 ) {
@@ -381,12 +320,12 @@ public class JSXParser {
             } else
             {
                 if ( SHIM_OBJ_SPREAD && in.match("...") && in.at(lastBracePos[depth]) == '{' ) {
-                    System.out.println(in.substring(lastBracePos[depth],in.index()));
-                    System.out.println(cur.chars.toString().substring(lastBracePosCur[depth]));
+//                    System.out.println(in.substring(lastBracePos[depth],in.index()));
+//                    System.out.println(cur.chars.toString().substring(lastBracePosCur[depth]));
                     if ( braceInsert[depth] == null ) {
                         cur.chars.insert(lastBracePosCur[depth], "_sprd(");
                         // fixme: correct indices ?
-                        System.out.println(cur.chars.toString().substring(lastBracePosCur[depth]));
+//                        System.out.println(cur.chars.toString().substring(lastBracePosCur[depth]));
                         braceInsert[depth] = ")";
                     }
                     cur.add("'..."+(rcnt++)+"':");
@@ -451,7 +390,6 @@ public class JSXParser {
                     } else {
                         if ( global.length() > 0 ) {
                             topLevelObjects.add(global.toString());
-                            System.out.println("GLOBAL: "+global);
                             global.setLength(0);
                             trackNextIdentifier = false;
                         }
@@ -473,7 +411,7 @@ public class JSXParser {
         in.advance("import ".length());
         ImportSpec spec = new ImportSpec();
         while (in.ch()>0) {
-            skipWS(in);
+            in.skipWS();
             if (in.ch() == '{') {
                 in.inc();
                 // list
@@ -505,10 +443,10 @@ public class JSXParser {
                     sb.append(in.ch());
                     in.inc();
                 }
-                skipWS(in);
+                in.skipWS();
                 if (in.match("as ")) { // as
                     in.advance(2);
-                    skipWS(in);
+                    in.skipWS();
                     spec.component(sb.toString());
                     StringBuilder al = new StringBuilder();
                     while (!Character.isWhitespace(in.ch())) {
@@ -518,20 +456,20 @@ public class JSXParser {
                     spec.alias(al.toString());
                 }
             }
-            skipWS(in);
+            in.skipWS();
             if ( in.ch() == ',' )
             {
                 in.inc();
-                skipWS(in);
+                in.skipWS();
             } else {
                 break;
             }
         }
-        skipWS(in);
+        in.skipWS();
         if ( ! in.match("from") )
             throw new RuntimeException("expected from >"+in+"<");
         in.advance(4);
-        skipWS(in);
+        in.skipWS();
         StringBuilder src = readJSString(in);
         src.delete(0,1);
         src.setLength(src.length()-1);
@@ -541,7 +479,6 @@ public class JSXParser {
         }
         while( in.ch() < 32 ) in.inc();
 
-        System.out.println("IMPORT:"+spec);
         imports.add(spec);
     }
 
@@ -616,7 +553,7 @@ public class JSXParser {
 
     boolean parseAttributesOrTEnd(TagEntry tokenEntry, Inp in) {
         while( in.ch(0) > 0 ) {
-            skipWS(in);
+            in.skipWS();
             if (in.ch() == '/' && in.ch(1) == '>') // autoclose, no attrs
             {
                 in.advance(2);
@@ -627,7 +564,7 @@ public class JSXParser {
                 return false;
             }
             StringBuilder name = readAttrName(in);
-            skipWS(in);
+            in.skipWS();
             AttributeEntry attr = new AttributeEntry().name(name);
             tokenEntry.addAttribute(attr);
             if (in.ch() == '/' && in.ch(1) == '>') // autoclose, no value
@@ -635,7 +572,7 @@ public class JSXParser {
                 in.advance(2);
                 return true;
             }
-            skipWS(in);
+            in.skipWS();
             if (in.ch() == '=') {
                 in.inc();
                 readAttrValue(attr, in);
@@ -644,12 +581,6 @@ public class JSXParser {
                 throw new RuntimeException("parsing error:"+in);
         }
         return false;
-    }
-
-    private void skipWS(Inp in) {
-        while ( Character.isWhitespace(in.ch()) ) {
-            in.inc();
-        }
     }
 
     private void readAttrValue(AttributeEntry attr, Inp in) {

@@ -1,7 +1,6 @@
-package org.nustaq.kontraktor.remoting.http.javascript;
+package org.nustaq.kontraktor.webapp.transpiler;
 
 import java.io.File;
-import java.util.List;
 
 /**
  * Created by ruedi on 22.05.16.

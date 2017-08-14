@@ -13,7 +13,7 @@ Lesser General Public License for more details.
 
 See https://www.gnu.org/licenses/lgpl.txt
 */
-package org.nustaq.kontraktor.remoting.http.javascript.jsmin;
+package org.nustaq.kontraktor.webapp.javascript.jsmin;
 // original package ch.simschla.minify.js;
 
 import java.io.*;
