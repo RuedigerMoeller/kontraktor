@@ -2,13 +2,15 @@ package org.nustaq.http.example.websocketexperimental;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
-import java.util.concurrent.CountDownLatch;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
-
-import javax.websocket.*;
+import javax.websocket.CloseReason;
+import javax.websocket.Endpoint;
+import javax.websocket.EndpointConfig;
+import javax.websocket.Session;
 
 import org.nustaq.http.example.ServletApp;
 import org.nustaq.kontraktor.Actor;
@@ -31,6 +33,10 @@ import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
 //@ServerEndpoint("/ws")
 public class MyWebSocketConnector extends Endpoint implements ActorServerConnector {
 
+    private static volatile MyWebSocketConnector _instance;
+    
+    private Map<String, ServletWebObjectSocket> sessions = new ConcurrentHashMap<>();
+    
     ServletApp facade;
     Function<ObjectSocket, ObjectSink> sinkFactory;
 
@@ -50,6 +56,19 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
         }
     }
 
+    public static MyWebSocketConnector getInstance() {
+        MyWebSocketConnector localInstance = _instance;
+        if (localInstance == null) {
+            synchronized (MyWebSocketConnector.class) {
+                localInstance = _instance;
+                if (localInstance == null) {
+                    _instance  = localInstance = new MyWebSocketConnector();
+                }
+            }
+        }
+        return localInstance;
+    }
+
     @Override
     public void onOpen(Session session, EndpointConfig config) {
         System.out.println(session.getId() + " has opened a connection");
@@ -59,38 +78,44 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
 //                System.out.println("msg byte[] "+new String(message,0));
 //            }
 //        );
-        ServletWebObjectSocket socket = new ServletWebObjectSocket(session);
-        session.addMessageHandler(String.class, message -> {
-                System.out.println("msg String "+message);
-                try {
-                    Object o = socket.getConf().asObject(message.getBytes("UTF-8"));
-                    socket.getSink().receiveObject(o, null, null );
-                } catch (UnsupportedEncodingException e) {
-                    Log.Warn(this,e);
-                }
-            }
-        );
-        // required to avoid timings during init as jee breathes sync processing
-        CountDownLatch latch = new CountDownLatch(1);
-        facade.execute( () -> {
-            socket.setSink(sinkFactory.apply(socket));
-            latch.countDown();
+        facade.execute(() -> {
+            ServletWebObjectSocket socket = new ServletWebObjectSocket(session);
+            ObjectSink sink = sinkFactory.apply(socket);
+            socket.setSink(sink);
+            sessions.put(session.getId(), socket);
+            session.addMessageHandler(String.class, message -> {
+                    System.out.println("msg String "+message);
+                    try {
+                        Object o = socket.getConf().asObject(message.getBytes("UTF-8"));
+                        socket.getSink().receiveObject(o, null, null );
+                    } catch (UnsupportedEncodingException e) {
+                        Log.Warn(this,e);
+                    }
+            });
         });
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Log.Error(this,e);
-        }
     }
 
     @Override
     public void onClose(Session session, CloseReason closeReason) {
         super.onClose(session, closeReason);
+        closeSession(session);
     }
 
     @Override
     public void onError(Session session, Throwable throwable) {
         super.onError(session, throwable);
+        closeSession(session);
+    }
+    
+    private void closeSession(Session session) {
+        try {
+            ServletWebObjectSocket socket = sessions.remove(session.getId());
+            if (socket != null) {
+                socket.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -107,9 +132,10 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
     protected static class ServletWebObjectSocket extends WebObjectSocket {
 
         protected Session session;
-        protected WeakReference<ObjectSink> sink;
+        protected ObjectSink sink;
 
         public ServletWebObjectSocket(Session channel) {
+            super();
             this.session = channel;
         }
 
@@ -121,12 +147,9 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
         @Override
         public void close() throws IOException {
 //            session.getReceiveSetter().set(null);
-            session.close();
-            ObjectSink objectSink = sink.get();
-            if (objectSink != null )
-                objectSink.sinkClosed();
-            conf = null;
-            session = null;
+//            session.close(); // we don't need close it manually
+            if (sink != null )
+                sink.sinkClosed();
         }
 
         static AtomicInteger idCount = new AtomicInteger(0);
@@ -137,11 +160,11 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
         }
 
         public void setSink(ObjectSink sink) {
-            this.sink = new WeakReference<ObjectSink>(sink);
+            this.sink = sink;
         }
 
         public ObjectSink getSink() {
-            return sink.get();
+            return sink;
         }
     }
 
