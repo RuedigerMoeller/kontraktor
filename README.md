@@ -5,7 +5,7 @@
 
 * A boilerplate free and consistent abstraction for remote communication powered by a **distributed actor-model**
 * A **WebApp platform** supporting a Java backend for modern SPA javascript client frameworks like Polymer.js, vue.js and React.js (transpilation, packaging, optimization).
-* eases polyglott (**java, javascript** nodejs + browser) (micro-)service oriented distributed systems
+* eases polyglot (**java, javascript** nodejs + browser) (micro-)service oriented distributed systems
 * separates transport and message encoding from application code. 
 * **asynchronous, non-blocking**
 * **high performance**
@@ -32,7 +32,7 @@ Actors + TCP Remoting
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>4.07</version>
+    <version>4.08</version>
 </dependency>
 ```
 
