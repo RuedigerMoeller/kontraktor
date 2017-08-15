@@ -14,3 +14,5 @@ Proxy usage can be turned off (KClient).
 * run ReactAppMain with working Dir [..]/react-no-babel
 * goto localhost:8080
 * login with 'qweqwe' 'qweqwe' (or register)
+
+check [documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-React-JSX) for details
