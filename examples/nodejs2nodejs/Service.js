@@ -4,7 +4,7 @@ const ks = require('kontraktor-server');
 class MyService {
 
   greet( whom ) {
-    return new ks.KPromise("Hello "+JSON.stringify(whom,2));
+    return "Hello "+JSON.stringify(whom,2);
   }
 
   timeService( callback ) {

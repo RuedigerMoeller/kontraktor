@@ -1,4 +1,3 @@
-
 const kc = require('kontraktor-client');
 
 new kc.KClient()
