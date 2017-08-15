@@ -1,4 +1,5 @@
 import {Component} from 'react';
+import {global} from "./global";
 import {Fader} from "./util";
 
 class Greeter extends Component {
@@ -19,7 +20,7 @@ class Greeter extends Component {
   }
 
   render() {
-    // enforce component creation to trigger fading
+    /*enforce component creation to trigger fading*/
     return (
       <Fader>
         { this.state.greeting == '...' ?
@@ -30,4 +31,5 @@ class Greeter extends Component {
       </Fader>
     );
   }
+
 }

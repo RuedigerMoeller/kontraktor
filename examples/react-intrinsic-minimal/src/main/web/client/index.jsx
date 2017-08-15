@@ -1,14 +1,8 @@
 import React, {Component}  from 'react'
 import ReactDOM from 'react-dom';
-import {HCenter,Fader} from './util.jsx';
-import {Greeter} from './greeter.jsx';
-
-// let's make these global
-window.global = {
-  kclient: new KClient(),
-  server: null,
-  session: null
-};
+import {HCenter,Fader} from 'util';
+import {Greeter} from 'greeter';
+import {global} from "./global"
 
 class App extends Component {
 
@@ -97,6 +91,6 @@ class App extends Component {
 
 }
 
-const app = <App/>;
+global.app = <App/>;
 
-ReactDOM.render(app,document.getElementById("root"));
+ReactDOM.render(global.app,document.getElementById("root"));
