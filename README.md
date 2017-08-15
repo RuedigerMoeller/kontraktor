@@ -47,7 +47,8 @@ Adds WebSockets, Http LongPoll for actor-remoting, JavaScript interop. Uses Unde
 * session handling fundamentals
 
 **[JavaScript, Http-Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-Http)** [in progress]
-**[Instrinsic React/JSX support](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-React-JSX)** [in progress]
+
+**[Instrinsic React/JSX Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-React-JSX)** [in progress]
 
 ```xml
 <dependency>
