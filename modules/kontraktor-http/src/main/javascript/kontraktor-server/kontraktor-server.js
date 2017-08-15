@@ -131,20 +131,30 @@ class KontraktorServer {
                     call.args.splice(0,1);
                   }
                   if ( call.cb ) {
-                    call.args[call.args.length-1] = {
+                    const cb = {
+                      closed: false,
                       complete: (res,err) => {
-                        this.send( JSON.stringify( self._constructCall(
-                          ws.__kactormap,
-                          {
-                            queue: 1,
-                            futureKey: call.cb.obj[0],
-                            receiverKey: call.cb.obj[0],
-                            args: { styp: 'array', seq: [2, res, err ] },
-                            isContinue: err === 'CNT'
+                        try {
+                          this.send(JSON.stringify(self._constructCall(
+                            ws.__kactormap,
+                            {
+                              queue: 1,
+                              futureKey: call.cb.obj[0],
+                              receiverKey: call.cb.obj[0],
+                              args: {styp: 'array', seq: [2, res, err]},
+                              isContinue: err === 'CNT'
+                            }
+                          )));
+                        } catch (e) {
+                          if ( 'not opened' == e.message ) {
+                            cb.closed = true;
                           }
-                        )));
+                        }
+                        if (err !== 'CNT' )
+                          cb.closed = true;
                       }
                     };
+                    call.args[call.args.length-1] = cb;
                   }
                   let target = ws.__kactormap[call.receiverKey];
                   try {
@@ -162,21 +172,25 @@ class KontraktorServer {
                         res = new KPromise(res);
                       }
                       res.then( (pres,perr) => {
-                        this.send( JSON.stringify(
-                          self._constructCall(
-                            ws.__kactormap,
-                            {
-                              queue: 1,
-                              futureKey: call.futureKey,
-                              receiverKey: call.futureKey,
-                              args: { styp: 'array', seq: [2, pres, perr ] }
-                            }
-                          )
-                          )
-                        )});
+                        try {
+                          this.send( JSON.stringify(
+                            self._constructCall(
+                              ws.__kactormap,
+                              {
+                                queue: 1,
+                                futureKey: call.futureKey,
+                                receiverKey: call.futureKey,
+                                args: { styp: 'array', seq: [2, pres, perr ] }
+                              }
+                            )
+                            )
+                          )} catch (e) {
+                          console.log(e);
+                        }
+                      });
                     }
                   } catch (e) {
-                    if (call.futureKey > 0) {
+                    if (call.futureKey > 0 && 'not opened' != e.message ) {
                       this.send(JSON.stringify(
                         self._constructCall(
                           ws.__kactormap,
