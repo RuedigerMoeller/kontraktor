@@ -15,3 +15,7 @@ see ./run/etc/app.kson .
 * run ReactApp with working dir in project root ([..]/examples/react)
 * note: this was tested under Linux, it might be required to run babelserver manually if kontraktor fails to start it:
 `~/IdeaProjects/kontraktor/examples/react/src/main/web$ node client/node_modules/babelserver/babelserver.js`
+* build or add to ide using mvn pom.xml
+* run ReactAppMain with working Dir [..]/react-no-babel
+* goto localhost:8080
+* login with 'qweqwe' 'qweqwe' (or register)

@@ -10,6 +10,7 @@ This examples uses proxies and does not transpile to es5.
 Works in newer chrome, firefox, edge, safari browsers.
 Proxy usage can be turned off (KClient).
 
-shims (only applied to .jsx):
-* import
-* object spread operator (can be turned off in JSXParser static)
+* build or add to ide using mvn pom.xml
+* run ReactAppMain with working Dir [..]/react-no-babel
+* goto localhost:8080
+* login with 'qweqwe' 'qweqwe' (or register)

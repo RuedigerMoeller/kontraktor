@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
 public interface ParseUtils {
+
     default StringBuilder readStarComment(Inp in) {
         StringBuilder res = new StringBuilder(100);
         while( !(in.ch(-2) == '*' && in.ch(-1)=='/') && in.ch() != 0)
@@ -21,6 +22,7 @@ public interface ParseUtils {
             in.advance(1);
             if (in.ch() == endChar && in.ch(-1)=='\\') {
                 in.advance(1);
+                res.append(in.ch());
             }
         }
         res.append(endChar);
