@@ -27,7 +27,7 @@ import static org.nustaq.kontraktor.Actors.AsActor;
 public class UndertowWebServerMain {
 
     /**
-     * util to startup babel/browserify daemon
+     * util to startup babel/browserify daemon. (only required for {@link JSXWithBabelTranspiler}
      * @return true if successful
      */
     public boolean runNodify() {

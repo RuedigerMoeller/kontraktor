@@ -32,7 +32,7 @@ Actors + TCP Remoting
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>4.06</version>
+    <version>4.07</version>
 </dependency>
 ```
 
@@ -52,7 +52,7 @@ Adds WebSockets, Http LongPoll for actor-remoting, JavaScript interop. Uses Unde
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-http</artifactId>
-    <version>4.06</version>
+    <version>4.07</version>
 </dependency>
 ```
 
@@ -88,7 +88,7 @@ A lightweight framework on top of kontraktor to serve JavaScript Single Page App
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-web</artifactId>
-    <version>4.06</version>
+    <version>4.07</version>
 </dependency>
 ```
 

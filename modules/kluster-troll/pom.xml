@@ -11,7 +11,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kluster-troll</artifactId>
-    <version>4.06</version>
+    <version>4.07</version>
 
     <description>clustering tools</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -98,7 +98,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor</artifactId>
-            <version>4.06</version>
+            <version>4.07</version>
         </dependency>
 
         <!-- commandline parsing -->
