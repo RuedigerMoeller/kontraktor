@@ -4,12 +4,11 @@
 ## What is kontraktor ?
 
 * A boilerplate free and consistent abstraction for remote communication powered by a **distributed actor-model**
+* A **WebApp platform** supporting a Java backend for modern SPA javascript client frameworks like Polymer.js, vue.js and React.js (transpilation, packaging, optimization).
 * eases polyglott (**java, javascript** nodejs + browser) (micro-)service oriented distributed systems
 * separates transport and message encoding from application code. 
-* A browser communicating with a webserver via HTTP/json uses the same API/mechanics as backend services talking to each other using TCP/Binary.
-* webapp support (transpilation, packaging, optimization)
-* fully **asynchronous**
-* high **performance**
+* **asynchronous, non-blocking**
+* **high performance**
 * production proven
 
 [Checkout examples here](https://github.com/RuedigerMoeller/kontraktor/tree/trunk/examples)
