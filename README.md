@@ -46,7 +46,8 @@ Adds WebSockets, Http LongPoll for actor-remoting, JavaScript interop. Uses Unde
 * advanced bundling and inlining of resources (js, css, html) webpack style. Instead of introducing a build step, kontraktor bundles and caches your stuff dynamically upon first request (production mode). 
 * session handling fundamentals
 
-**[JavaScript,Http-Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-Http)** [in progress]
+**[JavaScript, Http-Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-Http)** [in progress]
+**[Instrinsic React/JSX support](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-React-JSX)** [in progress]
 
 ```xml
 <dependency>
