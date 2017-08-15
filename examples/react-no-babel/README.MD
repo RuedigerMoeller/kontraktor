@@ -1,5 +1,7 @@
 # Kontraktor **without** babel/node (**intrinsic** react/jsx support) 
 
+This example uses kontraktor-web, see [here](https://github.com/RuedigerMoeller/kontraktor/tree/trunk/examples/react-intrinsic-minimal) for a minimalistic kontraktor-http based example. 
+
 Uses a java-implemented jsx transpiler (+ light es6 import+object spread shim)
 
 * if mode is set to production, transpilation will performed once on start, not with each request 
