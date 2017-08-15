@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="" style="height: 100%;">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>react minimal sample</title>
+    <link rel="stylesheet" type="text/css" href="css/index.css">
+</head>
+
+<body style="min-height: 100%; display: flex;">
+
+<div id="root" style="width: 80%;margin: 0 auto;"></div>
+
+<!--
+manual import as kontraktor-client has no bundled UMD build currently.
+kontraktor classes are available globally and need no 'import' inside jsx
+-->
+<script src="kontraktor-common.js"></script>
+<script src="kontraktor-client.js"></script>
+
+<script>
+  // in order to make UMD builds work with 'import' we need a map of library filename to library Object,
+  // as libs arent loaded yet, provide lambdas.
+  // its also possible to construct 'virtual' library object in case lib exposes its stuff globally
+  // like 'libFilenameWithoutExtension': () => { return { fancyFunc: fancyFunc,.. } }
+  klibmap = {
+    react: () => React
+  };
+</script>
+
+<script src="index.jsx"></script>
+
+<!-- take care: in dev mode index.jsx is loaded deferred (side effect of document.write -->
+
+</body>
+
+</html>

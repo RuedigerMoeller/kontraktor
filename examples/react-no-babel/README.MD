@@ -1,4 +1,4 @@
-Kontraktor **without** babel/node (intrinsic react/jsx support) 
+# Kontraktor **without** babel/node (**intrinsic** react/jsx support) 
 
 Uses a java-implemented jsx transpiler (+ light es6 import+object spread shim)
 
