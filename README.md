@@ -32,7 +32,7 @@ Actors + TCP Remoting
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>4.07</version>
+    <version>4.08</version>
 </dependency>
 ```
 
