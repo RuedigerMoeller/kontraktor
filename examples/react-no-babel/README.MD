@@ -15,3 +15,5 @@ Proxy usage can be turned off (KClient).
 shims (only applied to .jsx):
 * import
 * object spread operator (can be turned off in JSXParser static)
+
+check [documentation](https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-React-JSX) for details
