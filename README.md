@@ -13,6 +13,8 @@
 
 [Checkout examples here](https://github.com/RuedigerMoeller/kontraktor/tree/trunk/examples)
 
+[related blogpost's](https://juptr.io/@kontraktor)
+
 ## Modules
 
 Kontraktor consists of several modules. For sake of simplicity all module versions are kept in sync with kontraktor core.
