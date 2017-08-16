@@ -11,7 +11,8 @@
 * **high performance**
 * production proven
 
-<a href="https://github.com/RuedigerMoeller/kontraktor/tree/trunk/examples">Code Examples</a>, [Related Blogpost's](https://juptr.io/@kontraktor)
+<a href="https://github.com/RuedigerMoeller/kontraktor/tree/trunk/examples" target="_blank">Code Examples</a>, 
+<a href="https://juptr.io/@kontraktor" target="_blank">Related Blogpost's: https://juptr.io/@kontraktor</a> 
 
 ## Modules
 
