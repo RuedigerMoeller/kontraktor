@@ -1,0 +1,45 @@
+{
+  "styp": "array",
+  "seq": [
+    4,
+    {
+      "typ": "call",
+      "obj": {
+        "futureKey": 3,
+        "queue": 0,
+        "method": "hello",
+        "receiverKey": 1,
+        "serializedArgs": "{\"styp\":\"array\",\"seq\":[1,\"from client after login\"]}",
+        "cb": null
+      }
+    },
+    {
+      "typ": "call",
+      "obj": {
+        "futureKey": 0,
+        "queue": 0,
+        "method": "push",
+        "receiverKey": 2,
+        "serializedArgs": "{\"styp\":\"array\",\"seq\":[1,null]}",
+        "cb": {
+          "typ": "cbw",
+          "obj": [
+            4
+          ]
+        }
+      }
+    },
+    {
+      "typ": "call",
+      "obj": {
+        "futureKey": 5,
+        "queue": 0,
+        "method": "whatsYourName",
+        "receiverKey": 2,
+        "serializedArgs": "{\"styp\":\"array\",\"seq\":[0]}",
+        "cb": null
+      }
+    },
+    2
+  ]
+}

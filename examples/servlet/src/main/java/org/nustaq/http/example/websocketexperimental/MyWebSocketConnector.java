@@ -24,7 +24,6 @@ import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.websockets.WebObjectSocket;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
 
 /**
  * Created by ruedi on 26.06.17.
@@ -45,7 +44,7 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
         System.out.println("init ws");
         ActorServer actorServer = null;
         facade = Actors.AsActor(ServletApp.class);
-        facade.init(new BasicWebAppConfig());
+        facade.init(4);
 
         try {
             actorServer = new ActorServer( this, facade, new Coding(SerializerType.JsonNoRef) );

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Kontraktor Servlet Test</title>
+  <style>
+    #error {
+      background: tomato;
+      color: white;
+    }
+  </style>
+
+</head>
+
+<body>
+
+<!--old ES5 client-->
+
+<!-- <script src="jsk/js4k.js"></script>-->
+<!--<script>-->
+<!--var server = null;-->
+<!--var errCB = function( err ) { console.error(err); };-->
+
+<!--jsk.connect("http://localhost:8080/ep","HTLP",errCB) // use this for long poll-->
+  <!--.then( function( app, error ) {-->
+    <!--console.log("received response ",app,error);-->
+    <!--if ( ! app ) {-->
+      <!--console.log("connection failure");-->
+      <!--console.error(error);-->
+    <!--}-->
+    <!--server = app;-->
+    <!--server.ask("hello", "from client").then( (res,err) => {-->
+      <!--document.getElementById("here").innerHTML = res;-->
+    <!--});-->
+
+    <!--var session = null;-->
+    <!--server.ask("login","angela","grökaz").then( (r,e) => {-->
+      <!--if ( r ) {-->
+        <!--session = r[0];-->
+        <!--server.ask("hello", "from client after login").then( (r,e) => {-->
+          <!--document.getElementById("here").innerHTML = r;-->
+        <!--});-->
+        <!--session.tell("push", (res,err) => {-->
+          <!--document.getElementById("there").innerHTML = res;-->
+        <!--});-->
+        <!--session.ask("whatsYourName").then( (r,e) => {-->
+          <!--if ( r )-->
+            <!--document.getElementById("name").innerHTML = r;-->
+          <!--else-->
+            <!--document.getElementById("error").innerHTML = r;-->
+        <!--});-->
+      <!--}-->
+      <!--else-->
+        <!--document.getElementById("error").innerHTML = e;-->
+    <!--});-->
+  <!--});-->
+<!--</script>-->
+
+<!-- new es6 client, no need to bundle and minifiy, server does this on the fly -->
+<script src="kontraktor-common.js"></script>
+<script src="kontraktor-client.js"></script>
+
+<script>
+
+  var server = null;
+  var session = null;
+
+  new KClient().connect("http://localhost:8080/ep","HTLP") // use this for long poll
+  .then( ( app, error ) => {
+
+    if ( ! app ) {
+      console.log("connection failure");
+      console.error(error);
+      return;
+    }
+
+    server = app;
+
+    server.hello( "from client" ).then( (res,err) => {
+      document.getElementById("here").innerHTML = res;
+    });
+
+    server.login("angela","grökaz").then( (r,e) => {
+      if ( r ) {
+        session = r[0];
+
+        server.hello( "from client after login").then( (r,e) => {
+          document.getElementById("here").innerHTML = r;
+        });
+
+        session.$push( (res,err) => {
+          let tim = document.getElementById("there");
+          tim.textContent = res;
+
+          var bright = 1.0;
+          // fadeout bgcolor with each event
+          var fun = function () {
+            tim.style.backgroundColor = "rgba(255,200,100," + bright + ")";
+            bright -= .08;
+            if (bright >= 0.0) {
+              setTimeout(fun,50);
+            }
+          };
+          fun.apply();
+        });
+
+        session.whatsYourName().then( (r,e) => {
+          if ( r )
+            document.getElementById("name").innerHTML = r;
+          else
+            document.getElementById("error").innerHTML = r;
+        });
+      }
+      else
+        document.getElementById("error").innerHTML = e;
+    });
+  });
+</script>
+
+<h1>
+  Kontraktor Servlet Test
+</h1>
+
+  <div id="here"></div>
+
+  <span id="there"></span>
+
+  <div id="name"></div>
+
+  <div id="error"></div>
+</body>
+</html>

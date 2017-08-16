@@ -3,7 +3,6 @@ package org.nustaq.http.undertow;
 import org.nustaq.http.example.ServletApp;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
-import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,10 +17,12 @@ import static org.nustaq.kontraktor.Actors.AsActor;
  */
 public class UndertowMain {
 
+    private static final boolean DEV = true;
+
     public static void main(String[] args) throws IOException {
         // just setup stuff manually here. Its easy to buildResourcePath an application specific
         // config using e.g. json or kson.
-        File root = new File("./src/main/webapp");
+        File root = new File("./src/main/webapp/client");
 
         if ( ! new File(root,"index.html").exists() ) {
             System.out.println("Please run with working dir: '[..]examples/servlet");
@@ -30,11 +31,14 @@ public class UndertowMain {
 
         // create server actor
         ServletApp myHttpApp = AsActor(ServletApp.class);
-        myHttpApp.init(new BasicWebAppConfig());
+        myHttpApp.init(4);
 
         Class msgClasses[] = {};
         Http4K.Build("localhost", 8080)
-            .fileRoot("/", root)
+            .resourcePath("/")
+                .elements(root.getPath(),root.getPath()+"/../lib")
+                .allDev(DEV)
+                .buildResourcePath()
             .httpAPI("/ep", myHttpApp)
                 .serType(SerializerType.JsonNoRef)
                 .setSessionTimeout(30_000)

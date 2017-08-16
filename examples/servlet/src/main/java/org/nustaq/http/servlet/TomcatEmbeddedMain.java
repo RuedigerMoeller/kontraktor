@@ -21,7 +21,7 @@ public class TomcatEmbeddedMain {
         String webappDirLocation = "src/main/webapp/";
         Tomcat tomcat = new Tomcat();
 
-        if ( ! new File(webappDirLocation+"index.html").exists() ) {
+        if ( ! new File(webappDirLocation+"client/index.html").exists() ) {
             System.out.println("Please run with working dir: '[..]examples/servlet");
             System.exit(-1);
         }

@@ -32,6 +32,7 @@ import org.nustaq.serialization.util.FSTUtil;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -286,7 +287,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
         return null;
     }
 
-    protected static class MyResource implements Resource {
+    public static class MyResource implements Resource {
         protected String p0;
         protected String finalP;
         protected byte[] bytes;
@@ -342,12 +343,13 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
 
         @Override
         public void serve(Sender sender, HttpServerExchange exchange, IoCallback completionCallback) {
-            exchange.startBlocking(); // rarely called (once per login) also served from mem in production mode
-            try {
-                exchange.getOutputStream().write(bytes);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            exchange.getResponseSender().send(ByteBuffer.wrap(bytes));
+//            exchange.startBlocking(); // rarely called (once per login) also served from mem in production mode
+//            try {
+//                exchange.getOutputStream().write(bytes);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
 //            completionCallback.onComplete(exchange, sender);
         }
 
@@ -376,6 +378,9 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
             return null;
         }
 
+        public byte[] getBytes() {
+            return bytes;
+        }
     }
 
 }

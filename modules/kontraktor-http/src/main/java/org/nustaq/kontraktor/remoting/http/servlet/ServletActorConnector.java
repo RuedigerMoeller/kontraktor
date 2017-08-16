@@ -47,11 +47,19 @@ public class ServletActorConnector extends AbstractHttpServerConnector {
         }
     }
 
-    protected void requestReceived(AsyncContext aCtx, byte[] postData) {
-        Object o = conf.asObject(postData);
+    protected void requestReceived(String endpointPrefix, AsyncContext aCtx, byte[] postData) {
+//        try {
+//            System.out.println("REQ:"+new String(postData,"UTF-8")+"<");
+//            System.out.println(Thread.currentThread().getName());
+//            System.out.println();
+//        } catch (UnsupportedEncodingException e) {
+//            e.printStackTrace();
+//        }
         String path = ((HttpServletRequest)aCtx.getRequest()).getPathInfo();
         if ( path == null )
             path = "";
+        if ( endpointPrefix != null ) // assume has been matched prior
+            path = path.substring(endpointPrefix.length());
         // already executed in facade thread
         while ( path.startsWith("/") )
             path = path.substring(1);
@@ -96,31 +104,6 @@ public class ServletActorConnector extends AbstractHttpServerConnector {
             return;
         }
 
-        //FIXME: sequence handling / reordering is currently not supported
-        // long poll request
-        // parse sequence
-//        int lastClientSeq = -1;
-//        if ( lastSeenSequence!=null ) {
-//            try {
-//                lastClientSeq = Integer.parseInt(lastSeenSequence);
-//            } catch (Throwable t) {
-//                Log.Warn(this,t);
-//            }
-//        }
-
-//        // check if can be served from history
-//        if (lastClientSeq > 0 ) { // if lp response message has been sent, take it from history
-//            byte[] msg = (byte[]) httpObjectSocket.takeStoredLPMessage(lastClientSeq + 1);
-//            if (msg!=null) {
-////                Log.Warn(this, "serve lp from history " + (lastClientSeq + 1) + " cur " + httpObjectSocket.getSendSequence());
-//                replyFromHistory(exchange, sinkchannel, msg);
-//                return;
-//            }
-//        }
-//
-        // new longpoll request ..
-
-//        sinkchannel.resumeWrites();
         // read next batch of pending messages from binary queue and send them
         Pair<Runnable,KHttpExchange> lpTask = createLongPollTask( new ServletKHttpExchangeImpl(servlet,aCtx), httpObjectSocket );
 
@@ -162,7 +145,6 @@ public class ServletActorConnector extends AbstractHttpServerConnector {
             Actors.all((List) futures).timeoutIn(REQUEST_RESULTING_FUTURE_TIMEOUT).then( () -> {
                 reply.run();
             }).onTimeout( () -> reply.run() );
-//            sinkchannel.resumeWrites();
         }
     }
 
