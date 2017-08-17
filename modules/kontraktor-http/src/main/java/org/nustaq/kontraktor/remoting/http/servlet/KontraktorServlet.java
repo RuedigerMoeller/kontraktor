@@ -1,48 +1,116 @@
 package org.nustaq.kontraktor.remoting.http.servlet;
 
-import io.undertow.servlet.websockets.ServletWebSocketHttpExchange;
+import io.undertow.server.handlers.resource.Resource;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.http.undertow.builder.BldResPath;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.webapp.javascript.DynamicResourceManager;
+import org.nustaq.kontraktor.webapp.javascript.HtmlImportShim;
+import org.nustaq.kontraktor.webapp.transpiler.JSXIntrinsicTranspiler;
 
 import javax.servlet.*;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.file.Files;
 
 /**
  * Created by ruedi on 19.06.17.
  */
-@WebServlet(
-    name = "KontraktorServler",
-    urlPatterns = {"/ep/*"},
-    asyncSupported = true
-)
 public abstract class KontraktorServlet extends HttpServlet {
 
     protected Actor facade;
     protected ServletActorConnector connector;
+    protected DynamicResourceManager dynamicResourceManager;
+    protected String realRoot;
+    protected long deployTime = System.currentTimeMillis();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
-        createAndInitFacadeApp(config);
-        createAndInitConnector();
         super.init(config);
-
+        realRoot = findAppRoot();
+        facade = createAndInitFacadeApp(config);
+        connector = createAndInitConnector();
+        dynamicResourceManager = createDependencyResolver(getResourcePathConfig());
     }
 
-    protected void createAndInitConnector() {
-        connector = new ServletActorConnector(facade,this, new Coding(SerializerType.JsonNoRef), fail -> handleDisconnect(fail) );
+    protected String[] getResourcePathElementsAbsolute() {
+        String[] rpe = getResourcePathElements();
+        String res[] = new String[rpe.length];
+        for (int i = 0; i < rpe.length; i++) {
+            res[i] = realRoot+File.separator+rpe[i];
+        }
+        return res;
+    }
+
+    protected String findAppRoot() {
+        String realPath = getServletContext().getRealPath("/");
+        return realPath;
+    }
+
+    @Override
+    protected long getLastModified(HttpServletRequest req) {
+        if ( isDevMode() )
+            return super.getLastModified(req);
+        return deployTime;
+    }
+
+    protected BldResPath getResourcePathConfig() {
+        return new BldResPath(null, "/")
+            .elements(getResourcePathElementsAbsolute())
+            .transpile("jsx", new JSXIntrinsicTranspiler(isDevMode(),!isDevMode()))
+            .allDev(isDevMode());
+    }
+
+    protected boolean isDevMode() {
+        return true;
+    }
+
+    protected String[] getResourcePathElements() {
+        return new String[]{"src/main/webapp/client/", "src/main/webapp/lib/"};
+    }
+
+    protected DynamicResourceManager createDependencyResolver(BldResPath dr) {
+        DynamicResourceManager drm = new DynamicResourceManager(
+            new File(realRoot),
+            !dr.isCacheAggregates(),
+            dr.getUrlPath(),
+            dr.isMinify(),
+            dr.getBaseDir(),
+            dr.getResourcePath()
+        );
+        HtmlImportShim shim = new HtmlImportShim(dr.getUrlPath());
+        shim
+            .minify(dr.isMinify())
+            .inline(dr.isInline())
+            .stripComments(dr.isStripComments());
+        drm.setImportShim(shim);
+        drm.setTranspilerMap(dr.getTranspilers());
+        return drm;
+    }
+
+    protected String getApiPath() {
+        return "/api";
+    }
+
+    protected ServletActorConnector createAndInitConnector() {
+        if ( facade  != null )
+            return new ServletActorConnector(facade,this, new Coding(SerializerType.JsonNoRef), fail -> handleDisconnect(fail) );
+        return null;
     }
 
     protected void handleDisconnect(Actor fail) {
         Log.Warn(this,"");
     }
 
-    protected abstract void createAndInitFacadeApp(ServletConfig config); /** {
+    protected abstract Actor createAndInitFacadeApp(ServletConfig config); /** {
         facade = Actors.AsActor(ServletApp.class);
         ((ServletApp) facade).init();
     }**/
@@ -50,14 +118,57 @@ public abstract class KontraktorServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        ServletOutputStream out = resp.getOutputStream();
-        out.write("hello kontraktor".getBytes());
-        out.flush();
-        out.close();
+        String pathInfo = req.getPathInfo();
+        if ( pathInfo == null ) {
+            String dbg = req.getRequestURI();
+            resp.sendRedirect(dbg +"/");
+            return;
+        }
+        Resource resource = null;
+        if ( "".equals(pathInfo) || "/".equals(pathInfo) ) {
+            resource = dynamicResourceManager.getResource(pathInfo + "index.html");
+        } else {
+            resource = dynamicResourceManager.getResource(pathInfo);
+        }
+        if ( resource != null) {
+            Long contentLength = resource.getContentLength();
+            if ( contentLength != null ) {
+                resp.setContentLength((int)contentLength.longValue());
+            }
+            byte bytes[] = null;
+            if ( resource instanceof DynamicResourceManager.MyResource) {
+                bytes = ((DynamicResourceManager.MyResource) resource).getBytes();
+            } else if ( resource.getFile() != null ) {
+                bytes = Files.readAllBytes(resource.getFile().toPath());
+            }
+            // FIXME: mimetype, lastModified / 304
+            if ( bytes != null ) {
+                ServletOutputStream out = resp.getOutputStream();
+                out.write(bytes);
+                out.flush();
+                out.close();
+                return;
+            }
+        }
+        Log.Error(this,"Unhandled resource");
+        unhandledGet(req,resp);
+    }
+
+    protected void unhandledGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        super.doGet(req,resp);
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        if ( facade == null ) {
+            nonAPIPost(req,resp);
+            return;
+        }
+        String pathInfo = req.getPathInfo();
+        if ( !pathInfo.startsWith(getApiPath()+"/") && ! pathInfo.equals(getApiPath()) ) {
+            nonAPIPost(req, resp);
+            return;
+        }
         AsyncContext aCtx = req.startAsync(req, resp);
         ServletRequest contextRequest = aCtx.getRequest();
         ServletInputStream inputStream = contextRequest.getInputStream();
@@ -77,7 +188,7 @@ public abstract class KontraktorServlet extends HttpServlet {
                 }
                 if ( index == buffer.length ) {
                     facade.execute( () -> {
-                        connector.requestReceived(aCtx,buffer);
+                        connector.requestReceived(getApiPath(),aCtx,buffer);
                     });
                 }
             }
@@ -92,6 +203,11 @@ public abstract class KontraktorServlet extends HttpServlet {
                 Log.Error(KontraktorServlet.this,throwable);
             }
         });
+    }
+
+    protected void nonAPIPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        Log.Warn(this,"unhandled post "+req.getPathInfo());
+        super.doPost(req,resp);
     }
 
 }
