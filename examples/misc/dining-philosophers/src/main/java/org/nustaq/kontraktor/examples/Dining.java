@@ -9,6 +9,7 @@ import org.nustaq.kontraktor.remoting.tcp.TCPServerConnector;
 import org.nustaq.kontraktor.util.Hoarde;
 
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 /**
@@ -123,7 +124,7 @@ public class Dining {
         // start a thread reporting state each second
         new Thread(() -> {
             while( true ) {
-                LockSupport.parkNanos(1000 * 1000l * 1000);
+                LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(1));
                 Actors.all(phils.map((phil, index) -> phil.getState())).then( (futs, e) -> {
                     for (int i = 0; i < futs.length; i++)
                         System.out.print(futs[i].get() + ", ");
