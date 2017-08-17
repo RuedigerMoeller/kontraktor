@@ -15,7 +15,7 @@ import javax.servlet.annotation.WebServlet;
 public class MyKontraktorServlet extends KontraktorServlet {
 
     protected String[] getResourcePathElements() {
-        return new String[]{"src/main/webapp/client/", "src/main/webapp/lib/"};
+        return new String[]{"client/", "lib/"};
     }
 
     @Override
