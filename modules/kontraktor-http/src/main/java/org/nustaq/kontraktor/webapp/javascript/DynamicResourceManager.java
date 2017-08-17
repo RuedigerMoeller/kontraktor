@@ -59,7 +59,11 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
     private Map<String,byte[]> debugInstalls = new ConcurrentHashMap<>();
 
     public DynamicResourceManager(boolean devMode, String prefix, boolean minify, String resPathBase, String ... resourcePath) {
-        super(new File("."), 100);
+        this(new File("."),devMode,prefix,minify,resPathBase,resourcePath);
+    }
+
+    public DynamicResourceManager(File base, boolean devMode, String prefix, boolean minify, String resPathBase, String ... resourcePath) {
+        super(base, 100);
         this.devMode = devMode;
         this.minify = minify;
         this.lastStartup = new Date();

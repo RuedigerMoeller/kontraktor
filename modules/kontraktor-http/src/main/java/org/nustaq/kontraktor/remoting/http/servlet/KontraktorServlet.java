@@ -15,34 +15,56 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.nio.file.Files;
 
 /**
  * Created by ruedi on 19.06.17.
  */
-@WebServlet(
-    name = "KontraktorServler",
-    urlPatterns = {"/*"},
-    asyncSupported = true
-)
 public abstract class KontraktorServlet extends HttpServlet {
 
     protected Actor facade;
     protected ServletActorConnector connector;
     protected DynamicResourceManager dynamicResourceManager;
+    protected String realRoot;
+    protected long deployTime = System.currentTimeMillis();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
+        super.init(config);
+        realRoot = findAppRoot();
         facade = createAndInitFacadeApp(config);
         connector = createAndInitConnector();
         dynamicResourceManager = createDependencyResolver(getResourcePathConfig());
-        super.init(config);
+    }
+
+    protected String[] getResourcePathElementsAbsolute() {
+        String[] rpe = getResourcePathElements();
+        String res[] = new String[rpe.length];
+        for (int i = 0; i < rpe.length; i++) {
+            res[i] = realRoot+File.separator+rpe[i];
+        }
+        return res;
+    }
+
+    protected String findAppRoot() {
+        String realPath = getServletContext().getRealPath("/");
+        return realPath;
+    }
+
+    @Override
+    protected long getLastModified(HttpServletRequest req) {
+        if ( isDevMode() )
+            return super.getLastModified(req);
+        return deployTime;
     }
 
     protected BldResPath getResourcePathConfig() {
         return new BldResPath(null, "/")
-            .elements(getResourcePathElements())
+            .elements(getResourcePathElementsAbsolute())
             .transpile("jsx", new JSXIntrinsicTranspiler(isDevMode(),!isDevMode()))
             .allDev(isDevMode());
     }
@@ -57,6 +79,7 @@ public abstract class KontraktorServlet extends HttpServlet {
 
     protected DynamicResourceManager createDependencyResolver(BldResPath dr) {
         DynamicResourceManager drm = new DynamicResourceManager(
+            new File(realRoot),
             !dr.isCacheAggregates(),
             dr.getUrlPath(),
             dr.isMinify(),
@@ -74,11 +97,13 @@ public abstract class KontraktorServlet extends HttpServlet {
     }
 
     protected String getApiPath() {
-        return "/ep";
+        return "/api";
     }
 
     protected ServletActorConnector createAndInitConnector() {
-        return new ServletActorConnector(facade,this, new Coding(SerializerType.JsonNoRef), fail -> handleDisconnect(fail) );
+        if ( facade  != null )
+            return new ServletActorConnector(facade,this, new Coding(SerializerType.JsonNoRef), fail -> handleDisconnect(fail) );
+        return null;
     }
 
     protected void handleDisconnect(Actor fail) {
@@ -94,9 +119,13 @@ public abstract class KontraktorServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         String pathInfo = req.getPathInfo();
-        System.out.println("GET "+ pathInfo);
+        if ( pathInfo == null ) {
+            String dbg = req.getRequestURI();
+            resp.sendRedirect(dbg +"/");
+            return;
+        }
         Resource resource = null;
-        if ( pathInfo.endsWith("/") ) {
+        if ( "".equals(pathInfo) || "/".equals(pathInfo) ) {
             resource = dynamicResourceManager.getResource(pathInfo + "index.html");
         } else {
             resource = dynamicResourceManager.getResource(pathInfo);
@@ -131,7 +160,12 @@ public abstract class KontraktorServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        if ( !req.getPathInfo().startsWith(getApiPath()+"/") && ! req.getPathInfo().equals(getApiPath()) ) {
+        if ( facade == null ) {
+            nonAPIPost(req,resp);
+            return;
+        }
+        String pathInfo = req.getPathInfo();
+        if ( !pathInfo.startsWith(getApiPath()+"/") && ! pathInfo.equals(getApiPath()) ) {
             nonAPIPost(req, resp);
             return;
         }
