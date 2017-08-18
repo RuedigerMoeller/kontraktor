@@ -1,9 +1,6 @@
 package org.nustaq.kontraktor.weblication.model;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.weblication.ISessionStorage;
 import org.nustaq.reallive.api.RealLiveTable;
@@ -25,8 +22,8 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
 
     public static class Config implements Serializable {
 
-        int sizeSessionIdsMB = 1024;
-        int sizeUserDataMB = 1024;
+        int sizeSessionIdsMB = 500;
+        int sizeUserDataMB = 500;
         String dataDir = "./run/data/";
 
         public int getSizeSessionIdsMB() {
@@ -67,10 +64,12 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     RealLiveTable userData;
 
     public IPromise init(Config cfg) {
+        Promise p = new Promise();
+        // FIXME: fireasync and await both
         try {
             String dataDir = cfg.getDataDir();
             new File(dataDir).mkdirs();
-            sessionId2UserKey = EmbeddedRealLive.get().createTable(
+            IPromise _sessionId2UserKey = EmbeddedRealLive.get().createTable(
                 new TableDescription()
                     .keyLen(64)
                     .sizeMB(cfg.getSizeSessionIdsMB())
@@ -78,7 +77,7 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
                     .type(TableDescription.StorageType.PERSIST),
                 dataDir
             );
-            userData = EmbeddedRealLive.get().createTable(
+            IPromise _userData = EmbeddedRealLive.get().createTable(
                 new TableDescription()
                     .keyLen(64)
                     .sizeMB(cfg.getSizeSessionIdsMB())
@@ -86,11 +85,16 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
                     .type(TableDescription.StorageType.PERSIST),
                 dataDir
             );
+            Actors.all(_sessionId2UserKey,_userData).then( () -> {
+               sessionId2UserKey = (RealLiveTable) _sessionId2UserKey.get();
+               userData = (RealLiveTable) _userData.get();
+               p.resolve();
+            });
         } catch (Exception e) {
             Log.Warn(this,e);
             return new Promise(null,e);
         }
-        return new Promise(true);
+        return p;
     }
 
     @Override

@@ -91,6 +91,10 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
         return devMode;
     }
 
+    public Resource getCacheEntry(String normalizedPath) {
+        return lookupCache.get(normalizedPath);
+    }
+
     @Override
     public Resource getResource(String initialPath) {
         String normalizedPath;
@@ -217,17 +221,20 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
 
     @Override
     public byte[] resolve(File baseDir, String name, Set<String> alreadyProcessed) {
-        if ( alreadyProcessed.contains(name) ) {
-            return new byte[0];
-        }
-        alreadyProcessed.add(name);
         try {
-            File file = dependencyResolver.locateResource(name);
+            File file = new File(baseDir,name); // check relative to current dir
+            if ( ! file.exists() )
+                file = null;
             if ( file == null )
-                return null;
+                file = dependencyResolver.locateResource(name);
             byte bytes[] = null;
             // fixme: doubles logic of getResource
             if ( file != null ) {
+                String normalizedPath = file.getCanonicalPath();
+                if ( alreadyProcessed.contains(normalizedPath) ) {
+                    return new byte[0];
+                }
+                alreadyProcessed.add(normalizedPath);
                 final String fname = file.getName();
                 if ( transpilerMap != null && transpilerMap.size() > 0 ) {
                     try {

@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
 /**
- * Created by ruedi on 24.09.14.
+ * Created by ruedi on 24.10.14.
  *
  * (Distributed) Solution of the Dining Philosopher Problem using actors. (no attempt is made on being fair)
  */

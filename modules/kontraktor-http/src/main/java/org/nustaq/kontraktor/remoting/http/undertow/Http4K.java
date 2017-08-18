@@ -17,12 +17,19 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.http.undertow;
 
 import io.undertow.Undertow;
+import io.undertow.io.Sender;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.PathHandler;
+import io.undertow.server.handlers.cache.CacheHandler;
+import io.undertow.server.handlers.cache.DirectBufferCache;
 import io.undertow.server.handlers.encoding.EncodingHandler;
 import io.undertow.server.handlers.resource.FileResourceManager;
+import io.undertow.server.handlers.resource.Resource;
 import io.undertow.server.handlers.resource.ResourceHandler;
+import io.undertow.util.HeaderMap;
+import io.undertow.util.Headers;
+import io.undertow.util.HttpString;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.http.undertow.builder.BldFourK;
@@ -30,10 +37,14 @@ import org.nustaq.kontraktor.webapp.javascript.DynamicResourceManager;
 import org.nustaq.kontraktor.util.Pair;
 
 import javax.net.ssl.SSLContext;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Created by ruedi on 25/05/15.
@@ -148,11 +159,55 @@ public class Http4K {
         return publishResourcePath(hostName,urlPath,port,man,compress,null);
     }
 
+    // only called once in case, no need for optimization
+    static byte[] gzip(byte[] val) throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream(val.length);
+        GZIPOutputStream gos = null;
+        try {
+            gos = new GZIPOutputStream(bos);
+            gos.write(val, 0, val.length);
+            gos.finish();
+            gos.flush();
+            bos.flush();
+            val = bos.toByteArray();
+        } finally {
+            if (gos != null)
+                gos.close();
+            if (bos != null)
+                bos.close();
+        }
+        return val;
+    }
+
     public Http4K publishResourcePath(String hostName, String urlPath, int port, DynamicResourceManager man, boolean compress, Function<HttpServerExchange,Boolean> interceptor ) {
         Pair<PathHandler, Undertow> server = getServer(port, hostName);
         ResourceHandler handler = new ResourceHandler(man);
         if ( compress ) {
-            HttpHandler httpHandler = new EncodingHandler.Builder().build(new HashMap<>()).wrap(handler);
+            HttpHandler compressHandler = new EncodingHandler.Builder().build(new HashMap<>()).wrap(handler);
+            HttpHandler httpHandler = new HttpHandler() {
+                volatile byte[] zippedAggregate;
+                @Override
+                public void handleRequest(HttpServerExchange exchange) throws Exception {
+                    String requestPath = exchange.getRequestPath();
+                    if (requestPath.equals("/") || requestPath.equals("") || requestPath.equals("/index.html") ) {
+                        Resource cacheEntry = man.getCacheEntry("index.html");
+                        if ( cacheEntry instanceof DynamicResourceManager.MyResource ) {
+                            if ( zippedAggregate == null ) {
+                                zippedAggregate = gzip(((DynamicResourceManager.MyResource) cacheEntry).getBytes());
+                            }
+                            exchange.setResponseCode(200);
+                            exchange.getResponseHeaders().put(Headers.CONTENT_ENCODING,"gzip");
+                            Sender responseSender = exchange.getResponseSender();
+                            responseSender.send(ByteBuffer.wrap(zippedAggregate));
+                        } else {
+                            zippedAggregate = null;
+                            compressHandler.handleRequest(exchange);
+                        }
+                    } else {
+                        handler.handleRequest(exchange);
+                    }
+                }
+            };
             if ( interceptor != null ) {
                 server.car().addPrefixPath( urlPath, httpExchange -> {
                     boolean apply = interceptor.apply(httpExchange);

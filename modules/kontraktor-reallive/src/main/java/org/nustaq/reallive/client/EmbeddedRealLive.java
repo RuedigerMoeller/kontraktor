@@ -1,6 +1,8 @@
 package org.nustaq.reallive.client;
 
 import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
 import org.nustaq.reallive.api.RealLiveTable;
 import org.nustaq.reallive.api.RecordStorage;
 import org.nustaq.reallive.api.TableDescription;
@@ -30,7 +32,7 @@ public class EmbeddedRealLive {
      * @param dataDir
      * @return a thread save actor reference to a newly loaded or created table
      */
-    public RealLiveTable createTable(TableDescription desc, String dataDir) {
+    public IPromise<RealLiveTable> createTable(TableDescription desc, String dataDir) {
         RealLiveTableActor table = Actors.AsActor(RealLiveTableActor.class);
 
         Supplier<RecordStorage> memFactory;
@@ -80,8 +82,8 @@ public class EmbeddedRealLive {
                     break;
             }
         }
-        table.init(memFactory, desc).await();
-        return table;
+        table.init(memFactory, desc).await(30_000);
+        return new Promise(table);
     }
 
 }

@@ -615,11 +615,15 @@ public class JSXParser implements ParseUtils {
     StringBuilder parseTagName(Inp in) {
         in.advance(1);
         StringBuilder res = new StringBuilder(10);
-        while( isAttrNamePart(in.ch(0)) ) {
+        while( isTagNamePart(in.ch(0)) ) {
             res.append(in.ch(0));
             in.advance(1);
         }
         return res;
+    }
+
+    private boolean isTagNamePart(char ch) {
+        return Character.isJavaIdentifierPart(ch) || ch == '-' || ch=='.' || ch==':';
     }
 
     static Object entities[] = {

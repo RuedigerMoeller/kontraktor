@@ -73,6 +73,10 @@ public class BldResPath {
         return this;
     }
 
+    public BldResPath modify( Function<BldResPath,BldResPath> modificator ) {
+        return modificator.apply(this);
+    }
+
     public BldResPath baseDir(final String baseDir) {
         this.baseDir = baseDir;
         return this;

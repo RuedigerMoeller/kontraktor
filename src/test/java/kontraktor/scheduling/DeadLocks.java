@@ -6,7 +6,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 
 /**
- * Created by ruedi on 24.09.14.
+ * Created by ruedi on 24.10.14.
  */
 public class DeadLocks {
 
