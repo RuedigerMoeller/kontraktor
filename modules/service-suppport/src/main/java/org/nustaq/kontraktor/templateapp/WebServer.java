@@ -2,7 +2,6 @@ package org.nustaq.kontraktor.templateapp;
 
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
-import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
@@ -18,9 +17,10 @@ import org.nustaq.kontraktor.services.ServiceArgs;
 import org.nustaq.kontraktor.services.ServiceRegistry;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.services.rlclient.DataShard;
-import org.nustaq.kontraktor.services.web.IRegistration;
-import org.nustaq.kontraktor.services.web.IWebServer;
+import org.nustaq.kontraktor.services.rlclient.IDataConnected;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.weblication.BasicWebAppActor;
+import org.nustaq.kontraktor.weblication.BasicWebAppConfig;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -29,7 +29,7 @@ import java.net.URLDecoder;
  * Created by ruedi on 29.05.17.
  * Currently bound to Undertow server
  */
-public class WebServer<T extends WebServer> extends Actor<T> implements IWebServer, IRegistration {
+public abstract class WebServer<T extends WebServer,C extends BasicWebAppConfig> extends BasicWebAppActor<T,C> implements IDataConnected {
 
     protected PlainService service;
     protected DataClient dclient;
@@ -64,7 +64,8 @@ public class WebServer<T extends WebServer> extends Actor<T> implements IWebServ
      *
      * @param exchange
      */
-    @Override public void handleDirectRequest(HttpServerExchange exchange) {
+    @Override
+    public void handleDirectRequest(HttpServerExchange exchange) {
         Log.Info(this,"direct request received "+exchange);
         String requestPath = null;
         try {
@@ -74,18 +75,18 @@ public class WebServer<T extends WebServer> extends Actor<T> implements IWebServ
         }
         String[] tokens = requestPath.split("/");
         if ( tokens.length > 3 && "register".equals(tokens[1]) ) {
-            handleRegistrationConfirmation(tokens,exchange);
+//            handleRegistrationConfirmation(tokens,exchange);
             return;
         }
         exchange.setResponseCode(200);
         exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, "text/html; charset=utf-8");
-        exchange.getResponseSender().send(getResponse(exchange));
+//        exchange.getResponseSender().send(getResponse(exchange));
         exchange.endExchange();
     }
 
     ///////////////////////////////// registration /////////////////////////////
 
-    @Override @Local
+    @Local
     public void sendConfirmationMail(String wapp, String email, String confId) {
         Log.Info(this,"sending mail to "+email+" confimation: "+confId);
     }

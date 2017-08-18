@@ -1,4 +1,4 @@
-package org.nustaq.kontraktor.services.web;
+package org.nustaq.kontraktor.services.rlclient;
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.services.rlclient.DataClient;

@@ -119,6 +119,11 @@
             <artifactId>kontraktor-http</artifactId>
             <version>4.09</version>
         </dependency>
+        <dependency>
+            <groupId>de.ruedigermoeller</groupId>
+            <artifactId>kontraktor-web</artifactId>
+            <version>4.09</version>
+        </dependency>
 
     </dependencies>
 
