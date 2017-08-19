@@ -60,6 +60,7 @@ class BootPlay extends Component {
   render() {
     return (
       <div style={{margin:16, display: 'block'}}>
+        <h1>react-bootstrap</h1>
         <p> BootStrap Buttons </p>
         <div style={{margin:16}}>
           <Button bsStyle="primary">Primary</Button> &nbsp;

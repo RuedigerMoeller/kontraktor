@@ -4,6 +4,8 @@ import {HCenter,Fader} from 'subtest/util';
 import {Greeter} from 'subtest/greeter';
 import {global} from "global"
 import {BootPlay} from 'boostrapplay/bootplay';
+import {BluePlay} from './blueprint/blueplay';
+import {SemanticPlay} from './semantic/semanticplay';
 
 class App extends Component {
 
@@ -84,6 +86,8 @@ class App extends Component {
           )
         }
         <BootPlay/>
+        <SemanticPlay/>
+        <BluePlay/>
         <div>
           {this.state.error ? <div><b>error</b></div> : ""}
         </div>
