@@ -27,9 +27,7 @@ import io.undertow.server.handlers.encoding.EncodingHandler;
 import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.server.handlers.resource.Resource;
 import io.undertow.server.handlers.resource.ResourceHandler;
-import io.undertow.util.HeaderMap;
-import io.undertow.util.Headers;
-import io.undertow.util.HttpString;
+import io.undertow.util.*;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.http.undertow.builder.BldFourK;
@@ -41,6 +39,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -189,7 +188,19 @@ public class Http4K {
                 @Override
                 public void handleRequest(HttpServerExchange exchange) throws Exception {
                     String requestPath = exchange.getRequestPath();
-                    if (requestPath.equals("/") || requestPath.equals("") || requestPath.equals("/index.html") ) {
+                    if ( exchange.getRequestMethod() == Methods.GET && !man.isDevMode() &&
+                        ( requestPath.equals("/") || requestPath.equals("") || requestPath.equals("/index.html") )
+                    ) {
+                        HeaderMap requestHeaders = exchange.getRequestHeaders();
+                        String lastMod = requestHeaders.get(Headers.IF_MODIFIED_SINCE,0);
+                        if ( lastMod != null ) {
+                            Date date = DateUtils.parseDate(lastMod);
+                            if ( date != null && date.getTime() >= man.getLastModified()-60_000) {
+                                exchange.setResponseCode(304);
+                                exchange.endExchange();
+                                return;
+                            }
+                        }
                         Resource cacheEntry = man.getCacheEntry("index.html");
                         if ( cacheEntry instanceof DynamicResourceManager.MyResource ) {
                             if ( zippedAggregate == null ) {
@@ -197,6 +208,7 @@ public class Http4K {
                             }
                             exchange.setResponseCode(200);
                             exchange.getResponseHeaders().put(Headers.CONTENT_ENCODING,"gzip");
+                            exchange.getResponseHeaders().put(Headers.LAST_MODIFIED,DateUtils.toDateString(man.getLastModifiedDate()));
                             Sender responseSender = exchange.getResponseSender();
                             responseSender.send(ByteBuffer.wrap(zippedAggregate));
                         } else {

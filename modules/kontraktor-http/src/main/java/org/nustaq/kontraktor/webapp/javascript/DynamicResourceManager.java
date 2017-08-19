@@ -298,6 +298,16 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
         return null;
     }
 
+    public long getLastModified() {
+        if ( lastStartup != null )
+            return lastStartup.getTime();
+        return 0;
+    }
+
+    public Date getLastModifiedDate() {
+        return lastStartup;
+    }
+
     public static class MyResource implements Resource {
         protected String p0;
         protected String finalP;
