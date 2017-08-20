@@ -1,5 +1,8 @@
 package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
+import org.nustaq.kontraktor.util.Log;
+
+import java.io.File;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -13,6 +16,7 @@ public class JSXParser implements ParseUtils {
         String component;
         String alias;
         String from;
+        boolean isRequire;
 
         public List<String> getComponents() {
             return components;
@@ -38,6 +42,10 @@ public class JSXParser implements ParseUtils {
         public ImportSpec components(List<String> components) {
             this.components = components;
             return this;
+        }
+
+        public boolean isRequire() {
+            return isRequire;
         }
 
         public ImportSpec aliases(List<String> aliases) {
@@ -68,6 +76,7 @@ public class JSXParser implements ParseUtils {
                 ", component='" + component + '\'' +
                 ", alias='" + alias + '\'' +
                 ", from='" + from + '\'' +
+                ", isRequire=" + isRequire +
                 '}';
         }
     }
@@ -275,6 +284,11 @@ public class JSXParser implements ParseUtils {
     List<ImportSpec> imports = new ArrayList();
     List<String> topLevelObjects = new ArrayList();
 
+    File file;
+    public JSXParser(File f) {
+        this.file = f;
+    }
+
     public List<String> getTopLevelObjects() {
         return topLevelObjects;
     }
@@ -293,15 +307,26 @@ public class JSXParser implements ParseUtils {
         while (in.ch() > 0)
         {
             char ch = in.ch(0);
-            if ( in.match("export") && in.ch(-1) <= 32 ) {
+            if (in.match("export") && isCommandContext(in,"export")) {
                 in.advance("export".length());
                 in.skipWS();
                 continue;
             }
-            if ( in.match("import ") && in.ch(-1) <= 32 ) {
+            if ( in.match("require") && isFunContext(in,"require") ) {
+                if ( isNodeModule() ) {
+                    ImportSpec spec = parseRequire(in);
+                    if ( spec == null ) {
+                        cur.add("undefined");
+                    } else {
+                        cur.add("krequire('"+spec.from+"')");
+                    }
+                    continue;
+                }
+            }
+            if ( in.match("import") && isCommandContext(in, "import")) {
                 parseImport(in);
             } else
-            if (in.ch(0) == '<' && Character.isLetter(in.ch(1))) {
+            if (in.ch() == '<' && isTagLeft(in) && Character.isLetter(in.ch(1))) {
                 cur.closeCont();
                 TagEntry tokenEntry = new TagEntry();
                 cur.addChild(tokenEntry);
@@ -407,6 +432,76 @@ public class JSXParser implements ParseUtils {
         }
     }
 
+    Boolean isNodeModule;
+    private boolean isNodeModule() {
+        if ( isNodeModule == null )
+            isNodeModule = file.getAbsolutePath().contains("/node_modules/");
+        return isNodeModule;
+    }
+
+    private boolean isCommandContext(Inp in,String command) {
+        return isCCChar(in.ch(-1)) && isCCChar(in.ch(command.length()));
+    }
+
+    private boolean isFunContext(Inp in,String command) {
+        return isCCChar(in.ch(-1)) && nextNonWS(in, command.length()) == '(';
+    }
+
+    private char nextNonWS(Inp in,int off) {
+        char c = 0;
+        int i=off;
+        while ( in.ch(i) <= 32 )
+            i++;
+        return in.ch(i);
+    }
+
+    private boolean isCCChar(char ch) {
+        boolean b = !Character.isJavaIdentifierPart(ch) || ch <= 32;
+        return b;
+    }
+
+    private boolean isTagLeft(Inp in) {
+        int pos = in.index;
+        in.advance(-1);
+        while ( in.ch() <= 32 && in.index >= 0 )
+            in.advance(-1);
+        char ch = in.ch();
+        if ( ch == 0 )
+            ch = ';';
+        in.index = pos;
+        if ( "/>;:{(}?=".indexOf(ch) >= 0 )
+            return true;
+        return false;
+    }
+
+    private ImportSpec parseRequire(Inp in) {
+        int i = in.index();
+        in.advance("require".length());
+        in.skipWS();
+        if ( in.ch() != '(' ) {
+            Log.Warn(this, "fake require:" + in + " " + file.getAbsolutePath());
+            in.index = i;
+            return null;
+        }
+        in.advance(1);
+        in.skipWS();
+        StringBuilder reqString = readJSString(in);
+        in.skipWS();
+        if ( in.ch() != ')' ) {
+            Log.Warn(this, "unparseable require:" + in + " " + file.getAbsolutePath());
+            in.index = i;
+            return null;
+        }
+        ImportSpec spec = new ImportSpec();
+        spec.from = reqString.substring(1,reqString.length()-1);
+        spec.isRequire = true;
+        imports.add(spec);
+        System.out.println("REQUIRE:"+in+" from "+ file.getPath());
+        System.out.println("  "+spec);
+        in.inc();
+        return spec;
+    }
+
     void parseImport(Inp in) {
         in.advance("import ".length());
         ImportSpec spec = new ImportSpec();
@@ -427,7 +522,7 @@ public class JSXParser implements ParseUtils {
                     if (s.indexOf(" as ") > 0) {
                         String[] as = s.split(" as ");
                         if (as.length != 2) {
-                            throw new RuntimeException("expected: 'X as Y':" + in);
+                            throw new RuntimeException("expected: 'X as Y':" + in+" "+ file.getAbsolutePath());
                         }
                         spec.getComponents().add(as[0]);
                         spec.getAliases().add(as[1]);

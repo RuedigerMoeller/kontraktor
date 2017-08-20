@@ -44,6 +44,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             ByteArrayOutputStream baos = new ByteArrayOutputStream(1_000_000);
             if ( "index.jsx".equals(f.getName()) ) {
                 baos.write((getInitialShims()+"\n").getBytes("UTF-8"));
+                alreadyResolved.add("JSXIndex");
             }
             for (int i = 0; i < specs.size(); i++) {
                 JSXParser.ImportSpec importSpec = specs.get(i);
@@ -62,12 +63,13 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 else
                     Log.Warn(this,from+" not found");
             }
-            baos.write(generateImportPrologue(f.getName(),result).getBytes("UTF-8"));
-            if ( minifyjsx ) {
+            if (result.generateFunWrap())
+                baos.write(generateImportPrologue(f.getName(),result).getBytes("UTF-8"));
+            if ( minifyjsx )
                 res = JSMin.minify(res);
-            }
             baos.write(res);
-            baos.write(generateImportEnd(f.getName(),result).getBytes("UTF-8"));
+            if ( result.generateFunWrap() )
+                baos.write(generateImportEnd(f.getName(),result).getBytes("UTF-8"));
             return baos.toByteArray();
         } catch (Exception e) {
             Log.Error(this,e);
@@ -91,6 +93,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
             if ( "index.jsx".equals(f.getName()) ) {
                 baos.write((getInitialShims()+"\n").getBytes("UTF-8"));
+                alreadyResolved.add("JSXIndex");
             }
 
             for (int i = 0; i < specs.size(); i++) {
@@ -98,6 +101,10 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 String from = importSpec.getFrom();
                 if ( ! from.endsWith(".js") && ! from.endsWith(".jsx") ) {
                     from += ".js";
+                }
+                if ( from.indexOf("prom") >= 0)
+                {
+                    int debug=1;
                 }
                 byte[] resolved = resolver.resolve(f.getParentFile(), from, alreadyResolved);
                 if ( resolved == null && from.endsWith(".js") ) {
@@ -108,7 +115,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 if ( resolved != null ) {
                     if ( resolved.length > 0 ) {
                         String name = constructLibName(from)+".js";
-                        if ( from.endsWith(".jsx") ) {
+//                        if ( from.endsWith(".jsx") )
+                        {
                             name = "dummy/"+name;
                         }
                         resolver.install("/debug/" + name, resolved);
@@ -119,12 +127,14 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     }
                 }
                 else
-                    Log.Warn(this,from+" not found");
+                    Log.Warn(this,importSpec.getFrom()+" not found");
             }
             ByteArrayOutputStream mainBao = new ByteArrayOutputStream(10_000);
-            mainBao.write(generateImportPrologue(f.getName(),result).getBytes("UTF-8"));
+            if (result.generateFunWrap())
+                mainBao.write(generateImportPrologue(f.getName(),result).getBytes("UTF-8"));
             mainBao.write(res);
-            mainBao.write(generateImportEnd(f.getName(),result).getBytes("UTF-8"));
+            if (result.generateFunWrap())
+                mainBao.write(generateImportEnd(f.getName(),result).getBytes("UTF-8"));
 
             String name = constructLibName(f.getName())+".jsx_transpiled";
             resolver.install("/debug/" + name, mainBao.toByteArray());

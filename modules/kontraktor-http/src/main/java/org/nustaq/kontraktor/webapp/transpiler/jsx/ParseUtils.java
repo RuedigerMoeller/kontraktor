@@ -20,7 +20,7 @@ public interface ParseUtils {
         {
             res.append(in.ch());
             in.advance(1);
-            if (in.ch() == endChar && in.ch(-1)=='\\') {
+            if (in.ch() == endChar && in.ch(-1)=='\\' && in.ch(-2)!='\\') {
                 in.advance(1);
                 res.append(in.ch());
             }

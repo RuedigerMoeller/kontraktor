@@ -112,11 +112,13 @@ public class JSXGenerator {
         byte[] filedata;
         List<ImportSpec> imports;
         List<String> globals;
+        String extension;
 
-        public ParseResult(byte[] filedata, List<ImportSpec> imports, List<String> globals) {
+        public ParseResult(byte[] filedata, String extension, List<ImportSpec> imports, List<String> globals) {
             this.filedata = filedata;
             this.imports = imports;
             this.globals = globals;
+            this.extension = extension;
         }
 
         public byte[] getFiledata() {
@@ -131,21 +133,26 @@ public class JSXGenerator {
             return globals;
         }
 
+        public boolean generateFunWrap() {
+            // detect es imports, will not be suffiecient, need export check also
+            return "jsx".equals(extension) || imports.size() > 0;
+        }
     }
 
     public static ParseResult process(File f, boolean pretty) throws IOException {
         // this is really inefficient, there are loads of optimization opportunities,
         // however this code runs in devmode only ..
-        JSXParser jsx = new JSXParser();
+        JSXParser jsx = new JSXParser(f);
         JSEntry root = new JSEntry();
         byte[] bytes = Files.readAllBytes(f.toPath());
 
-        jsx.parseJS(root,new Inp(new String(bytes,"UTF-8")));
+        String cont = new String(bytes, "UTF-8");
+        jsx.parseJS(root,new Inp(cont));
         if ( jsx.depth != 0 ) {
             Log.Warn(JSXGenerator.class,"probably parse issues non-matching braces in "+f.getAbsolutePath());
+            return new ParseResult(bytes,f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),jsx.getTopLevelObjects());
         }
-
-        ByteArrayOutputStream out = new ByteArrayOutputStream(2048);
+        ByteArrayOutputStream out = new ByteArrayOutputStream(bytes.length);
         PrintStream ps = new PrintStream(out);
         JSXGenerator gen = new JSXGenerator();
         gen.generateJS(root,ps);
@@ -160,6 +167,6 @@ public class JSXGenerator {
             pspretty.close();
             filedata = outpretty.toByteArray();
         }
-        return new ParseResult(filedata,jsx.getImports(),jsx.getTopLevelObjects());
+        return new ParseResult(filedata,f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),jsx.getTopLevelObjects());
     }
 }

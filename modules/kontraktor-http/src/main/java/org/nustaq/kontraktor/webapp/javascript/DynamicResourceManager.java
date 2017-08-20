@@ -241,7 +241,12 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
                         int idx = fname.lastIndexOf('.');
                         if ( idx > 0 ) {
                             String ext = fname.substring(idx+1).toLowerCase();
+                            // if a js file is resolved from index.jsx, treat it like jsx
+                            // to support es6 imports.
                             TranspilerHook transpilerHook = transpilerMap.get(ext);
+                            if ( transpilerHook == null && alreadyProcessed.contains("JSXIndex") && "js".equals(ext) ) {
+                                transpilerHook = transpilerMap.get("jsx");
+                            }
                             if ( transpilerHook != null ) {
                                 bytes = transpilerHook.transpile(file, this, alreadyProcessed);
                             }
