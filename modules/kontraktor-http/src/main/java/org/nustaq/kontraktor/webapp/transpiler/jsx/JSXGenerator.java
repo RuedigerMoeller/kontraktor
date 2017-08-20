@@ -10,34 +10,34 @@ import static org.nustaq.kontraktor.webapp.transpiler.jsx.JSXParser.*;
 
 public class JSXGenerator {
 
-    public void generateJS( TokenEntry root, PrintStream out ) {
+    public void generateJS(TokenNode root, PrintStream out ) {
         for (int i = 0; i < root.getChildren().size(); i++) {
-            TokenEntry tokenEntry = root.getChildren().get(i);
-            renderSingleNode(tokenEntry, out);
+            TokenNode tokenNode = root.getChildren().get(i);
+            renderSingleNode(tokenNode, out);
         }
     }
-    protected void renderSingleNode(TokenEntry tokenEntry, PrintStream out) {
-        renderSingleNode(tokenEntry,out,false);
+    protected void renderSingleNode(TokenNode tokenNode, PrintStream out) {
+        renderSingleNode(tokenNode,out,false);
     }
-    protected void renderSingleNode(TokenEntry tokenEntry, PrintStream out, boolean quote) {
-        if ( tokenEntry instanceof JSEntry) {
-            List<TokenEntry> chs = tokenEntry.getChildren();
+    protected void renderSingleNode(TokenNode tokenNode, PrintStream out, boolean quote) {
+        if ( tokenNode instanceof JSNode) {
+            List<TokenNode> chs = tokenNode.getChildren();
             if ( chs.size() > 0 ) {
-                if ( chs.get(0) instanceof ContentEntry )
-                    ((ContentEntry) chs.get(0)).getChars().setCharAt(0,' ');
-                if ( chs.get(chs.size() - 1) instanceof ContentEntry ) {
-                    StringBuilder chars = ((ContentEntry) chs.get(chs.size() - 1)).getChars();
+                if ( chs.get(0) instanceof ContentNode)
+                    ((ContentNode) chs.get(0)).getChars().setCharAt(0,' ');
+                if ( chs.get(chs.size() - 1) instanceof ContentNode) {
+                    StringBuilder chars = ((ContentNode) chs.get(chs.size() - 1)).getChars();
                     chars.setCharAt(chars.length() - 1, ' ');
                 }
             }
-            generateJS(tokenEntry,out);
-        } else if ( tokenEntry instanceof ContentEntry) {
+            generateJS(tokenNode,out);
+        } else if ( tokenNode instanceof ContentNode) {
             if (quote)
-                out.print(quoteJSString(tokenEntry.getChars()));
+                out.print(quoteJSString(tokenNode.getChars()));
             else
-                out.print(tokenEntry.getChars());
-        } else if ( tokenEntry instanceof TagEntry) {
-            TagEntry te = (TagEntry) tokenEntry;
+                out.print(tokenNode.getChars());
+        } else if ( tokenNode instanceof TagNode) {
+            TagNode te = (TagNode) tokenNode;
             out.println("React.createElement(");
             if ( te.isReactComponent() ) {
                 out.println("  "+te.getTagName()+",");
@@ -49,7 +49,7 @@ public class JSXGenerator {
             } else {
                 out.println( "  {");
                 for (int j = 0; j < te.getAttributes().size(); j++) {
-                    AttributeEntry ae = te.getAttributes().get(j);
+                    AttributeNode ae = te.getAttributes().get(j);
                     out.print("    '"+ae.getName().toString()+"':");
                     if ( ae.isJSValue() ) {
                         generateJS(ae,out);
@@ -68,9 +68,9 @@ public class JSXGenerator {
             }
             boolean nonEmptyWasThere = false;
             for (int j = 0; j < te.getChildren().size(); j++) {
-                TokenEntry entry = te.getChildren().get(j);
-                if ( entry instanceof ContentEntry ) {
-                    ContentEntry ce = (ContentEntry) entry;
+                TokenNode entry = te.getChildren().get(j);
+                if ( entry instanceof ContentNode) {
+                    ContentNode ce = (ContentNode) entry;
                     ce.trim();
                     if ( ! ce.isEmpty() ) {
                         if ( nonEmptyWasThere )
@@ -89,7 +89,7 @@ public class JSXGenerator {
             }
             out.print(")");
         } else {
-            System.out.println("UNKNOWN NODE "+tokenEntry);
+            System.out.println("UNKNOWN NODE "+ tokenNode);
         }
     }
 
@@ -109,16 +109,18 @@ public class JSXGenerator {
     }
 
     public static class ParseResult {
+        File f;
         byte[] filedata;
         List<ImportSpec> imports;
         List<String> globals;
         String extension;
 
-        public ParseResult(byte[] filedata, String extension, List<ImportSpec> imports, List<String> globals) {
+        public ParseResult(File f, byte[] filedata, String extension, List<ImportSpec> imports, List<String> globals) {
             this.filedata = filedata;
             this.imports = imports;
             this.globals = globals;
             this.extension = extension;
+            this.f = f;
         }
 
         public byte[] getFiledata() {
@@ -133,9 +135,25 @@ public class JSXGenerator {
             return globals;
         }
 
-        public boolean generateFunWrap() {
+        public boolean generateESWrap() {
             // detect es imports, will not be suffiecient, need export check also
-            return "jsx".equals(extension) || imports.size() > 0;
+            return ! generateCommonJSWrap() && ("jsx".equals(extension) || imports.size() > 0);
+        }
+
+        public boolean generateCommonJSWrap() {
+            return f.getAbsolutePath().indexOf("/node_modules/") >= 0;
+        }
+
+        public String getFilePath() {
+            return f.getAbsolutePath();
+        }
+
+        public String getDir() {
+            return f.getParentFile().getAbsolutePath();
+        }
+
+        public File getFile() {
+            return f;
         }
     }
 
@@ -143,14 +161,14 @@ public class JSXGenerator {
         // this is really inefficient, there are loads of optimization opportunities,
         // however this code runs in devmode only ..
         JSXParser jsx = new JSXParser(f);
-        JSEntry root = new JSEntry();
+        JSNode root = new JSNode();
         byte[] bytes = Files.readAllBytes(f.toPath());
 
         String cont = new String(bytes, "UTF-8");
         jsx.parseJS(root,new Inp(cont));
         if ( jsx.depth != 0 ) {
             Log.Warn(JSXGenerator.class,"probably parse issues non-matching braces in "+f.getAbsolutePath());
-            return new ParseResult(bytes,f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),jsx.getTopLevelObjects());
+            return new ParseResult(f,bytes,f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),jsx.getTopLevelObjects());
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream(bytes.length);
         PrintStream ps = new PrintStream(out);
@@ -167,6 +185,6 @@ public class JSXGenerator {
             pspretty.close();
             filedata = outpretty.toByteArray();
         }
-        return new ParseResult(filedata,f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),jsx.getTopLevelObjects());
+        return new ParseResult(f,filedata,f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),jsx.getTopLevelObjects());
     }
 }

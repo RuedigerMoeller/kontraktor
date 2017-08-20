@@ -222,11 +222,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
     @Override
     public byte[] resolve(File baseDir, String name, Set<String> alreadyProcessed) {
         try {
-            File file = new File(baseDir,name); // check relative to current dir
-            if ( ! file.exists() )
-                file = null;
-            if ( file == null )
-                file = dependencyResolver.locateResource(name);
+            File file = resolveFile(baseDir,name); // check relative to current dir
             byte bytes[] = null;
             // fixme: doubles logic of getResource
             if ( file != null ) {
@@ -268,6 +264,16 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
         return null;
     }
 
+    @Override
+    public File resolveFile(File baseDir, String name) {
+        File file = new File(baseDir,name); // check relative to current dir
+        if ( ! file.exists() )
+            file = null;
+        if ( file == null )
+            file = dependencyResolver.locateResource(name);
+        return file;
+    }
+
     /**
      * a transpiler generates files which need to be mapped temporary
      *
@@ -277,6 +283,11 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
     @Override
     public void install(String path, byte[] resolved) {
         debugInstalls.put(path,resolved);
+    }
+
+    @Override
+    public String resolveUniquePath(File file) {
+        return dependencyResolver.resolveUniquePath(file);
     }
 
     @Override

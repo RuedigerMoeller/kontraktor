@@ -14,6 +14,8 @@ public interface FileResolver {
      * @return
      */
     byte[] resolve(File baseDir, String name, Set<String> alreadyProcessed);
-
+    File resolveFile(File baseDir, String name);
     void install(String path, byte[] resolved);
+    String resolveUniquePath(File file);
+
 }

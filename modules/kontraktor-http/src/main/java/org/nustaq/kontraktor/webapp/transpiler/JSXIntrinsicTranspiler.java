@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXGenerator;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXParser;
 
 import java.io.*;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -63,13 +64,13 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 else
                     Log.Warn(this,from+" not found");
             }
-            if (result.generateFunWrap())
-                baos.write(generateImportPrologue(f.getName(),result).getBytes("UTF-8"));
+            if (result.generateESWrap())
+                baos.write(generateImportPrologue(result, resolver).getBytes("UTF-8"));
             if ( minifyjsx )
                 res = JSMin.minify(res);
             baos.write(res);
-            if ( result.generateFunWrap() )
-                baos.write(generateImportEnd(f.getName(),result).getBytes("UTF-8"));
+            if ( result.generateESWrap() )
+                baos.write(generateImportEnd(result, resolver).getBytes("UTF-8"));
             return baos.toByteArray();
         } catch (Exception e) {
             Log.Error(this,e);
@@ -102,10 +103,6 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 if ( ! from.endsWith(".js") && ! from.endsWith(".jsx") ) {
                     from += ".js";
                 }
-                if ( from.indexOf("prom") >= 0)
-                {
-                    int debug=1;
-                }
                 byte[] resolved = resolver.resolve(f.getParentFile(), from, alreadyResolved);
                 if ( resolved == null && from.endsWith(".js") ) {
                     // try jsx
@@ -114,7 +111,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 }
                 if ( resolved != null ) {
                     if ( resolved.length > 0 ) {
-                        String name = constructLibName(from)+".js";
+                        File resolvedFile = resolver.resolveFile(f.getParentFile(),from);
+                        String name = constructLibName(resolvedFile, resolver)+".js";
 //                        if ( from.endsWith(".jsx") )
                         {
                             name = "dummy/"+name;
@@ -129,14 +127,22 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 else
                     Log.Warn(this,importSpec.getFrom()+" not found");
             }
+            if ( f.getAbsolutePath().indexOf("promise") >= 0)
+            {
+                int debug=1;
+            }
             ByteArrayOutputStream mainBao = new ByteArrayOutputStream(10_000);
-            if (result.generateFunWrap())
-                mainBao.write(generateImportPrologue(f.getName(),result).getBytes("UTF-8"));
+            if (result.generateESWrap())
+                mainBao.write(generateImportPrologue(result, resolver).getBytes("UTF-8"));
+            if (result.generateCommonJSWrap())
+                mainBao.write(generateCommonJSPrologue(f.getName(),result, resolver).getBytes("UTF-8"));
             mainBao.write(res);
-            if (result.generateFunWrap())
-                mainBao.write(generateImportEnd(f.getName(),result).getBytes("UTF-8"));
+            if (result.generateESWrap())
+                mainBao.write(generateImportEnd(result, resolver).getBytes("UTF-8"));
+            if (result.generateCommonJSWrap())
+                mainBao.write(generateCommonJSEnd(f.getName(),result, resolver).getBytes("UTF-8"));
 
-            String name = constructLibName(f.getName())+".jsx_transpiled";
+            String name = constructLibName(f, resolver)+".jsx_transpiled";
             resolver.install("/debug/" + name, mainBao.toByteArray());
             baos.write(
                 ("document.write( '<script src=\"debug/" + name + "\"></script>');\n")
@@ -156,9 +162,17 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         return new byte[0];
     }
 
-    protected String generateImportEnd(String name, JSXGenerator.ParseResult result) {
+    protected String generateCommonJSPrologue(String name, JSXGenerator.ParseResult result, FileResolver resolver ) {
+        return "(function(exports, require, module, __filename, __dirname) {\n";
+    }
+
+    protected String generateCommonJSEnd(String name, JSXGenerator.ParseResult result, FileResolver resolver) {
+        return "})( kgetModule('"+name+"').exports, krequire, kgetModule('"+name+"'), '', '' );";
+    }
+
+    protected String generateImportEnd(JSXGenerator.ParseResult result, FileResolver resolver) {
         String s = "\n";
-        String exportObject = "kimports." + constructLibName(name);
+        String exportObject = "kimports['" + constructLibName(result.getFile(), resolver)+"']";
         s += "  "+exportObject+" = {};\n";
         for (int i = 0; i < result.getGlobals().size(); i++) {
             String gl = result.getGlobals().get(i);
@@ -167,35 +181,48 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         return s+"});";
     }
 
-    protected String generateImportPrologue(String name, JSXGenerator.ParseResult result) {
-        String s = "window.klibmap = window.klibmap || {};\nwindow.kimports = window.kimports || {};\n";
+    protected String generateImportPrologue(JSXGenerator.ParseResult result, FileResolver resolver) {
+        String s = "";
         s += "(new function() {\n";
         List<JSXParser.ImportSpec> imports = result.getImports();
+        File basedir = result.getFile().getParentFile();
         for (int i = 0; i < imports.size(); i++) {
             JSXParser.ImportSpec spec = imports.get(i);
-            String libname = constructLibName(spec.getFrom());
-            String exportObject = "kimports." + libname;
+            File libFile = resolver.resolveFile(basedir, spec.getFrom());
+            if ( libFile == null )
+                libFile = resolver.resolveFile(basedir, spec.getFrom()+".jsx");
+            if ( libFile == null )
+                libFile = resolver.resolveFile(basedir, spec.getFrom()+".js");
+            if ( libFile == null ) {
+                Log.Error(this,"unable to resolve import '"+spec.getFrom()+"' in file "+result.getFile());
+            }
+            String libname = constructLibName(libFile,resolver);
+            String exportObject = "kimports['" + libname+"']";
             if ( spec.getAlias() != null ) {
                 s+="  const "+spec.getAlias()+" = "+exportObject+"."+spec.getComponent()+";\n";
             }
             for (int j = 0; j < spec.getAliases().size(); j++) {
                 String alias = spec.getAliases().get(j);
                 s+="  const "+alias+" = _kresolve('"+libname+"', '"+spec.getComponents().get(j)+"');\n";
-//                s+="  const "+alias+" = klibmap."+libname+"? klibmap."+libname+"()"+"."+spec.getComponents().get(j)
-//                    +":"+exportObject+"."+spec.getComponents().get(j)+";\n";
             }
         }
         s += "\n";
         return s;
     }
 
-    protected String constructLibName(String name) {
-        name = JSXGenerator.camelCase(new File(name).getName());
+    protected String constructLibName(File f, FileResolver resolver) {
+        String unique = resolver.resolveUniquePath(f);
+        if (unique.startsWith("/"))
+            unique = unique.substring(1);
+        System.out.println("unique:"+unique);
+        String name = JSXGenerator.camelCase(unique);
         return name.replace(".jsx","").replace(".js","");
     }
 
     protected String getInitialShims() {
-        return "window._sprd = function (obj) {\n" +
+        return
+            "window.klibmap = window.klibmap || {};\nwindow.kimports = window.kimports || {};\n"+
+            "window._sprd = function (obj) {\n" +
             "  const copy = Object.assign({},obj);\n" +
             "  Object.keys(obj).forEach( key => {\n" +
             "    if ( key.indexOf(\"...\") == 0 ) {\n" +
@@ -216,9 +243,9 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "  return obj;\n" +
             "};\n" +
             "window._kresolve = function (libname,identifier) {\n" +
-            "  const res = klibmap[libname] ? klibmap[libname]()[identifier] : window.kimports[libname][identifier];\n" +
+            "  const res = klibmap[libname] ? klibmap[libname]()[identifier] : (window.kimports[libname] ? window.kimports[libname][identifier] : null);\n" +
             "  if ( ! res ) {\n" +
-            "    console.error(\"unable to resolve \"+identifier+\" in klibmap.\"+libname+\" .\")\n" +
+            "    console.error(\"unable to resolve \"+identifier+\" in klibmap['\"+libname+\"'] \")\n" +
             "  }\n" +
             "  return res;\n" +
             "};\n" +

@@ -82,14 +82,14 @@ public class JSXParser implements ParseUtils {
     }
 
     //fixme: cleanup and proper subclassing for parse nodes
-    public static abstract class TokenEntry {
+    public static abstract class TokenNode {
         protected StringBuilder chars = new StringBuilder(100); // content chars or js chars
-        protected List<TokenEntry> children = new ArrayList(); // tags
+        protected List<TokenNode> children = new ArrayList(); // tags
 
         public void add(char c) {
             if ( c > 0) {
                 if ( chars.length() == 0 ) {
-                    ContentEntry co = new ContentEntry();
+                    ContentNode co = new ContentNode();
                     addChild(co);
                     co.chars = chars;
                 }
@@ -97,13 +97,13 @@ public class JSXParser implements ParseUtils {
             }
         }
 
-        public void addChild(TokenEntry o) {
+        public void addChild(TokenNode o) {
             children.add(o);
         }
 
         public void add(StringBuilder stringBuilder) {
             if ( chars.length() == 0 ) {
-                ContentEntry co = new ContentEntry();
+                ContentNode co = new ContentNode();
                 addChild(co);
                 co.chars = chars;
             }
@@ -112,7 +112,7 @@ public class JSXParser implements ParseUtils {
 
         public void add(String string) {
             if ( chars.length() == 0 ) {
-                ContentEntry co = new ContentEntry();
+                ContentNode co = new ContentNode();
                 addChild(co);
                 co.chars = chars;
             }
@@ -133,24 +133,24 @@ public class JSXParser implements ParseUtils {
             return chars;
         }
 
-        public List<TokenEntry> getChildren() {
+        public List<TokenNode> getChildren() {
             return children;
         }
 
     }
 
-    public static class JSEntry extends TokenEntry {
+    public static class JSNode extends TokenNode {
 
         public void dump(PrintStream p, String indent) {
             p.println(indent+"JS");
             for (int i = 0; i < children.size(); i++) {
-                TokenEntry tokenEntry = children.get(i);
-                tokenEntry.dump(p,indent+"  ");
+                TokenNode tokenNode = children.get(i);
+                tokenNode.dump(p,indent+"  ");
             }
         }
     }
 
-    public static class ContentEntry extends TokenEntry {
+    public static class ContentNode extends TokenNode {
 
         @Override
         public void dump(PrintStream p, String indent) {
@@ -171,7 +171,7 @@ public class JSXParser implements ParseUtils {
         }
 
         @Override
-        public void addChild(TokenEntry o) {
+        public void addChild(TokenNode o) {
             throw new RuntimeException("just text allowed");
         }
 
@@ -200,10 +200,10 @@ public class JSXParser implements ParseUtils {
         }
     }
 
-    public static class TagEntry extends TokenEntry {
+    public static class TagNode extends TokenNode {
 
         protected StringBuilder tagName = new StringBuilder(100);
-        List<AttributeEntry> attributes = new ArrayList(); // attrs if this is tag
+        List<AttributeNode> attributes = new ArrayList(); // attrs if this is tag
 
         public void addTagName(char c) {
             if ( tagName == null )
@@ -220,41 +220,41 @@ public class JSXParser implements ParseUtils {
             return tagName;
         }
 
-        public List<AttributeEntry> getAttributes() {
+        public List<AttributeNode> getAttributes() {
             return attributes;
         }
 
-        public void addAttribute(AttributeEntry currentAttribute) {
+        public void addAttribute(AttributeNode currentAttribute) {
             attributes.add(currentAttribute);
         }
 
         public void dump(PrintStream p, String indent) {
             p.println(indent+"_"+tagName+(children.size()==0?"/_":"_"));
             for (int i = 0; i < attributes.size(); i++) {
-                AttributeEntry attributeEntry = attributes.get(i);
+                AttributeNode attributeEntry = attributes.get(i);
                 attributeEntry.dump(p,indent+"  ");
             }
             for (int i = 0; i < children.size(); i++) {
-                TokenEntry tokenEntry = children.get(i);
-                tokenEntry.dump(p,indent+"  ");
+                TokenNode tokenNode = children.get(i);
+                tokenNode.dump(p,indent+"  ");
             }
         }
 
     }
 
-    public static class AttributeEntry extends TokenEntry {
+    public static class AttributeNode extends TokenNode {
         StringBuilder name;
         StringBuilder value;
 
-        public AttributeEntry() {
+        public AttributeNode() {
         }
 
-        public AttributeEntry name(StringBuilder name) {
+        public AttributeNode name(StringBuilder name) {
             this.name = name;
             return this;
         }
 
-        public AttributeEntry value(StringBuilder value) {
+        public AttributeNode value(StringBuilder value) {
             this.value = value;
             return this;
         }
@@ -263,8 +263,8 @@ public class JSXParser implements ParseUtils {
             p.println(s+"att:"+name+" val:"+value);
             if (children==null) return;
             for (int i = 0; i < children.size(); i++) {
-                TokenEntry tokenEntry = children.get(i);
-                tokenEntry.dump(p,"  "+s);
+                TokenNode tokenNode = children.get(i);
+                tokenNode.dump(p,"  "+s);
             }
         }
 
@@ -277,7 +277,7 @@ public class JSXParser implements ParseUtils {
         }
 
         public boolean isJSValue() {
-            return value == null && children.size() > 0 && children.get(0) instanceof JSEntry;
+            return value == null && children.size() > 0 && children.get(0) instanceof JSNode;
         }
     }
 
@@ -294,7 +294,7 @@ public class JSXParser implements ParseUtils {
     }
 
     int depth = 0;
-    public void parseJS(TokenEntry cur, Inp in) {
+    public void parseJS(TokenNode cur, Inp in) {
         //FIXME; JS regexp
         int braceCount = 0;
         boolean trackNextIdentifier = false;
@@ -316,11 +316,11 @@ public class JSXParser implements ParseUtils {
                 if ( isNodeModule() ) {
                     ImportSpec spec = parseRequire(in);
                     if ( spec == null ) {
-                        cur.add("undefined");
+                        cur.add("/*could not parse name*/");
                     } else {
-                        cur.add("krequire('"+spec.from+"')");
+                        cur.add("require('"+spec.from+"')");
+                        continue;
                     }
-                    continue;
                 }
             }
             if ( in.match("import") && isCommandContext(in, "import")) {
@@ -328,7 +328,7 @@ public class JSXParser implements ParseUtils {
             } else
             if (in.ch() == '<' && isTagLeft(in) && Character.isLetter(in.ch(1))) {
                 cur.closeCont();
-                TagEntry tokenEntry = new TagEntry();
+                TagNode tokenEntry = new TagNode();
                 cur.addChild(tokenEntry);
                 depth++;
                 parseJSX(tokenEntry,in);
@@ -581,7 +581,7 @@ public class JSXParser implements ParseUtils {
         return imports;
     }
 
-    void parseJSX(TagEntry tokenEntry, Inp in) {
+    void parseJSX(TagNode tokenEntry, Inp in) {
         StringBuilder tag = parseTagName(in);
         tokenEntry.tagName = tag;
         boolean autoclosed = parseAttributesOrTEnd(tokenEntry, in);
@@ -590,7 +590,7 @@ public class JSXParser implements ParseUtils {
         }
     }
 
-    void parseJSXContent(TagEntry tag, Inp in) {
+    void parseJSXContent(TagNode tag, Inp in) {
         while ( in.ch() > 0 ) {
             if ( in.ch() == '<' && in.ch(1) == '/' ) {
                 // end tag
@@ -603,7 +603,7 @@ public class JSXParser implements ParseUtils {
             } else
             if ( in.ch() == '<' && Character.isLetter(in.ch(1)) ) {
                 tag.closeCont();
-                TagEntry te = new TagEntry();
+                TagNode te = new TagNode();
                 parseJSX(te,in);
                 tag.addChild(te);
             } else
@@ -636,7 +636,7 @@ public class JSXParser implements ParseUtils {
             } else
             if (in.ch() == '{' ) {
                 tag.closeCont();
-                JSEntry js = new JSEntry();
+                JSNode js = new JSNode();
                 tag.addChild(js);
                 parseJS(js,in);
             } else {
@@ -646,7 +646,7 @@ public class JSXParser implements ParseUtils {
         }
     }
 
-    boolean parseAttributesOrTEnd(TagEntry tokenEntry, Inp in) {
+    boolean parseAttributesOrTEnd(TagNode tokenEntry, Inp in) {
         while( in.ch(0) > 0 ) {
             in.skipWS();
             if (in.ch() == '/' && in.ch(1) == '>') // autoclose, no attrs
@@ -660,7 +660,7 @@ public class JSXParser implements ParseUtils {
             }
             StringBuilder name = readAttrName(in);
             in.skipWS();
-            AttributeEntry attr = new AttributeEntry().name(name);
+            AttributeNode attr = new AttributeNode().name(name);
             tokenEntry.addAttribute(attr);
             if (in.ch() == '/' && in.ch(1) == '>') // autoclose, no value
             {
@@ -678,14 +678,14 @@ public class JSXParser implements ParseUtils {
         return false;
     }
 
-    private void readAttrValue(AttributeEntry attr, Inp in) {
+    private void readAttrValue(AttributeNode attr, Inp in) {
         switch (in.ch()) {
             case '"':
             case '\'':
                 attr.value(readJSString(in));
                 break;
             case '{':
-                JSEntry cur = new JSEntry();
+                JSNode cur = new JSNode();
                 attr.addChild(cur);
                 parseJS(cur,in);
                 break;

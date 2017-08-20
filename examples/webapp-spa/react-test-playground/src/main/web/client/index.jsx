@@ -6,7 +6,7 @@ import {global} from "global"
 import {BootPlay} from 'boostrapplay/bootplay';
 import {BluePlay} from './blueprint/blueplay';
 import {SemanticPlay} from './semantic/semanticplay';
-import Promise from 'promise/lib/index.js';
+import Encoding from 'encoding/lib/encoding.js';
 
 class App extends Component {
 

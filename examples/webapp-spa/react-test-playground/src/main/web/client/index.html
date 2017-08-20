@@ -46,9 +46,26 @@ kontraktor classes are available globally and need no 'import' inside jsx
   klibmap = {
     react: () => React,
     reactBootstrap: () => ReactBootstrap,
-    blueprintjs: () => Blueprint,
-    'semanticUiReact.min': () => semanticUIReact
+    'blueprintjs/blueprintjs': () => Blueprint,
+    'semanticUi/semanticUiReact.min': () => semanticUIReact
   };
+
+  window.kmodules = {};
+
+  function kgetModule(name) {
+    const res = kmodules[name];
+    if ( res == null ) {
+      kmodules[name] = { exports: {} };
+      return kgetModule(name);
+    } else {
+      return res;
+    }
+  }
+
+  function krequire(name) {
+    return kgetModule(name).exports;
+  }
+
 </script>
 
 <script src="index.jsx"></script>

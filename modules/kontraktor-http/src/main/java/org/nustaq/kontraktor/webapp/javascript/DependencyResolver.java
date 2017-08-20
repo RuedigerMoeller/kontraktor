@@ -77,8 +77,6 @@ public class DependencyResolver implements HtmlImportShim.ResourceLocator{
      */
     @Override
     public File locateResource( String name ) {
-        // search for explicit includes along resource path (e.g. lookup/dir/lib.js) to allow for exclusion
-        // of libs from sripts.js
         for (int i = 0; i < resourcePath.length; i++) {
             File fi = new File(resourcePath[i].getAbsolutePath()+File.separator+name);
             if ( fi.exists() )
@@ -104,4 +102,21 @@ public class DependencyResolver implements HtmlImportShim.ResourceLocator{
         }
         return HtmlImportShim.ResourceLocator.super.retrieveBytes(impFi);
     }
+
+    public String resolveUniquePath(File fi) {
+        String longestMatch = "";
+        try {
+            String fp = fi.getCanonicalPath();
+            for (int i = 0; i < resourcePath.length; i++) {
+                String p = resourcePath[i].getCanonicalPath();
+                if ( fp.startsWith(p) && p.length() > longestMatch.length() )
+                    longestMatch = p;
+            }
+            return fp.substring(longestMatch.length());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
 }
