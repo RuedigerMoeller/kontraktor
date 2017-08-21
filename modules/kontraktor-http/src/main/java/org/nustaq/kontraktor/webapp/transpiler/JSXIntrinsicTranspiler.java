@@ -1,5 +1,7 @@
 package org.nustaq.kontraktor.webapp.transpiler;
 
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonObject;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.javascript.FileResolver;
 import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMin;
@@ -7,8 +9,8 @@ import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXGenerator;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXParser;
 
 import java.io.*;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -30,14 +32,14 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     }
 
     @Override
-    public byte[] transpile(File f, FileResolver resolver, Set<String> alreadyResolved) {
+    public byte[] transpile(File f, FileResolver resolver, Map<String,Object> alreadyResolved) {
         if ( dev )
             return processJSX_Dev(f,resolver, alreadyResolved);
         else
             return processJSX_Prod(f,resolver,alreadyResolved);
     }
 
-    protected byte[] processJSX_Prod(File f, FileResolver resolver, Set<String> alreadyResolved) {
+    protected byte[] processJSX_Prod(File f, FileResolver resolver, Map<String, Object> alreadyResolved) {
         try {
             JSXGenerator.ParseResult result = JSXGenerator.process(f,false);
             List<JSXParser.ImportSpec> specs = result.getImports();
@@ -45,7 +47,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             ByteArrayOutputStream baos = new ByteArrayOutputStream(1_000_000);
             if ( "index.jsx".equals(f.getName()) ) {
                 baos.write((getInitialShims()+"\n").getBytes("UTF-8"));
-                alreadyResolved.add("JSXIndex");
+                alreadyResolved.put("JSXIndex",Boolean.TRUE);
             }
             for (int i = 0; i < specs.size(); i++) {
                 JSXParser.ImportSpec importSpec = specs.get(i);
@@ -85,7 +87,28 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         return new byte[0];
     }
 
-    protected byte[] processJSX_Dev(File f, FileResolver resolver, Set<String> alreadyResolved) {
+    private File processNodeDir(File file, FileResolver resolver, Map<String, Object> alreadyResolved) {
+        File jfi = new File(file, "package.json");
+        if ( jfi.exists() ) {
+            try {
+                JsonObject pkg = Json.parse(new FileReader(jfi)).asObject();
+                String main = pkg.getString("main", null);
+                if ( main != null ) {
+                    File newF = new File(file, main);
+                    return newF;
+                }
+                File indexf = new File(file, "index.js");
+                if ( indexf.exists() ) {
+                    return indexf;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
+    }
+
+    protected byte[] processJSX_Dev(File f, FileResolver resolver, Map<String, Object> alreadyResolved) {
         try {
             JSXGenerator.ParseResult result = JSXGenerator.process(f,true);
             List<JSXParser.ImportSpec> specs = result.getImports();
@@ -94,16 +117,39 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
             if ( "index.jsx".equals(f.getName()) ) {
                 baos.write((getInitialShims()+"\n").getBytes("UTF-8"));
-                alreadyResolved.add("JSXIndex");
+                alreadyResolved.put("JSXIndex",Boolean.TRUE);
             }
+            if ( alreadyResolved.get("_Ignored") == null ) {
+                alreadyResolved.put("_Ignored",result.getIgnoredRequires());
+            }
+            Set ignoredRequires = (Set) alreadyResolved.get("_Ignored");
+            ignoredRequires.addAll(result.getIgnoredRequires());
 
             for (int i = 0; i < specs.size(); i++) {
                 JSXParser.ImportSpec importSpec = specs.get(i);
                 String from = importSpec.getFrom();
+                if ( importSpec.isRequire() && ignoredRequires.contains(importSpec.getFrom()) )
+                    continue;
+                if (from.indexOf("iconv-lite")>=0) {
+                    int debug = 1;
+                }
+                File resolvedFile = resolver.resolveFile(f.getParentFile(), from);
+                if ( resolvedFile != null && resolvedFile.isDirectory() ) {
+                    File indexFile = processNodeDir(resolvedFile, resolver, alreadyResolved);
+                    if ( indexFile == null )
+                    {
+                        Log.Warn(this,"node directory could not be resolved to a resource :"+resolvedFile.getCanonicalPath());
+                        continue;
+                    } else {
+                        f = indexFile;
+                        resolvedFile = indexFile;
+                        from = indexFile.getName();
+                    }
+                }
                 if ( ! from.endsWith(".js") && ! from.endsWith(".jsx") ) {
                     from += ".js";
                 }
-                byte[] resolved = resolver.resolve(f.getParentFile(), from, alreadyResolved);
+                byte resolved[] = resolver.resolve(f.getParentFile(), from, alreadyResolved);
                 if ( resolved == null && from.endsWith(".js") ) {
                     // try jsx
                     from = from.substring(0,from.length()-3)+".jsx";
@@ -111,11 +157,12 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 }
                 if ( resolved != null ) {
                     if ( resolved.length > 0 ) {
-                        File resolvedFile = resolver.resolveFile(f.getParentFile(),from);
+                        // need re-resolve as extension might have changed
+                        resolvedFile = resolver.resolveFile(f.getParentFile(),from);
                         String name = constructLibName(resolvedFile, resolver)+".js";
 //                        if ( from.endsWith(".jsx") )
                         {
-                            name = "dummy/"+name;
+                            name = "dependencies/"+name;
                         }
                         resolver.install("/debug/" + name, resolved);
                         baos.write(
@@ -135,12 +182,12 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             if (result.generateESWrap())
                 mainBao.write(generateImportPrologue(result, resolver).getBytes("UTF-8"));
             if (result.generateCommonJSWrap())
-                mainBao.write(generateCommonJSPrologue(f.getName(),result, resolver).getBytes("UTF-8"));
+                mainBao.write(generateCommonJSPrologue(f,result, resolver).getBytes("UTF-8"));
             mainBao.write(res);
             if (result.generateESWrap())
                 mainBao.write(generateImportEnd(result, resolver).getBytes("UTF-8"));
             if (result.generateCommonJSWrap())
-                mainBao.write(generateCommonJSEnd(f.getName(),result, resolver).getBytes("UTF-8"));
+                mainBao.write(generateCommonJSEnd(f,result, resolver).getBytes("UTF-8"));
 
             String name = constructLibName(f, resolver)+".jsx_transpiled";
             resolver.install("/debug/" + name, mainBao.toByteArray());
@@ -162,12 +209,13 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         return new byte[0];
     }
 
-    protected String generateCommonJSPrologue(String name, JSXGenerator.ParseResult result, FileResolver resolver ) {
+    protected String generateCommonJSPrologue(File f, JSXGenerator.ParseResult result, FileResolver resolver ) {
         return "(function(exports, require, module, __filename, __dirname) {\n";
     }
 
-    protected String generateCommonJSEnd(String name, JSXGenerator.ParseResult result, FileResolver resolver) {
-        return "})( kgetModule('"+name+"').exports, krequire, kgetModule('"+name+"'), '', '' );";
+    protected String generateCommonJSEnd(File f, JSXGenerator.ParseResult result, FileResolver resolver) {
+        String s = constructLibName(f, resolver);
+        return "})( kgetModule('"+s+"').exports, krequire, kgetModule('"+s+"'), '', '' );";
     }
 
     protected String generateImportEnd(JSXGenerator.ParseResult result, FileResolver resolver) {
@@ -214,9 +262,15 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         String unique = resolver.resolveUniquePath(f);
         if (unique.startsWith("/"))
             unique = unique.substring(1);
-        System.out.println("unique:"+unique);
+//        System.out.println("unique:"+unique);
         String name = JSXGenerator.camelCase(unique);
-        return name.replace(".jsx","").replace(".js","");
+        if ( name.endsWith(".js") )
+            name = name.substring(0,name.length()-3);
+        if ( name.endsWith(".jsx") )
+            name = name.substring(0,name.length()-4);
+        if ( name.endsWith(".json") )
+            name = name.substring(0,name.length()-5);
+        return name.replace('\\','/');
     }
 
     protected String getInitialShims() {

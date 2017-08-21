@@ -152,7 +152,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
                             String ext = fname.substring(idx+1).toLowerCase();
                             TranspilerHook transpilerHook = transpilerMap.get(ext);
                             if ( transpilerHook != null ) {
-                                byte[] transpiled = transpilerHook.transpile(file, this, new HashSet<>());
+                                byte[] transpiled = transpilerHook.transpile(file, this, new HashMap());
                                 if (minify) {
                                     transpiled = JSMin.minify(transpiled);
                                 }
@@ -220,17 +220,17 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
     }
 
     @Override
-    public byte[] resolve(File baseDir, String name, Set<String> alreadyProcessed) {
+    public byte[] resolve(File baseDir, String name, Map<String, Object> alreadyProcessed) {
         try {
             File file = resolveFile(baseDir,name); // check relative to current dir
             byte bytes[] = null;
             // fixme: doubles logic of getResource
             if ( file != null ) {
                 String normalizedPath = file.getCanonicalPath();
-                if ( alreadyProcessed.contains(normalizedPath) ) {
+                if ( alreadyProcessed.containsKey(normalizedPath) ) {
                     return new byte[0];
                 }
-                alreadyProcessed.add(normalizedPath);
+                alreadyProcessed.put(normalizedPath,1);
                 final String fname = file.getName();
                 if ( transpilerMap != null && transpilerMap.size() > 0 ) {
                     try {
@@ -240,7 +240,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
                             // if a js file is resolved from index.jsx, treat it like jsx
                             // to support es6 imports.
                             TranspilerHook transpilerHook = transpilerMap.get(ext);
-                            if ( transpilerHook == null && alreadyProcessed.contains("JSXIndex") && "js".equals(ext) ) {
+                            if ( transpilerHook == null && alreadyProcessed.containsKey("JSXIndex") && "js".equals(ext) ) {
                                 transpilerHook = transpilerMap.get("jsx");
                             }
                             if ( transpilerHook != null ) {
@@ -308,7 +308,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
             String ext = fname.substring(idx+1).toLowerCase();
             TranspilerHook transpilerHook = transpilerMap.get(ext);
             if ( transpilerHook != null ) {
-                return transpilerHook.transpile(impFi, this, new HashSet());
+                return transpilerHook.transpile(impFi, this, new HashMap());
             }
         }
         return null;

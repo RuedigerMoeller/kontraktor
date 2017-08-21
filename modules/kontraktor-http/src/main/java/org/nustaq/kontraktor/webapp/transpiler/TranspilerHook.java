@@ -3,7 +3,7 @@ package org.nustaq.kontraktor.webapp.transpiler;
 import org.nustaq.kontraktor.webapp.javascript.FileResolver;
 
 import java.io.File;
-import java.util.Set;
+import java.util.Map;
 
 /**
  * Created by ruedi on 21.05.16.
@@ -29,7 +29,7 @@ public interface TranspilerHook {
      */
     byte[] transpile(File f) throws TranspileException;
 
-    default byte[] transpile(File f, FileResolver resolver, Set<String> alreadyResolved) {
+    default byte[] transpile(File f, FileResolver resolver, Map<String,Object> alreadyResolved) {
         return transpile(f);
     }
 }

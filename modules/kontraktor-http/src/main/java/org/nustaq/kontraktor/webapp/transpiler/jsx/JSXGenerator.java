@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.util.Log;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Set;
 
 import static org.nustaq.kontraktor.webapp.transpiler.jsx.JSXParser.*;
 
@@ -113,14 +114,24 @@ public class JSXGenerator {
         byte[] filedata;
         List<ImportSpec> imports;
         List<String> globals;
+        Set<String> ignoredRequires;
         String extension;
 
-        public ParseResult(File f, byte[] filedata, String extension, List<ImportSpec> imports, List<String> globals) {
+        public ParseResult(File f, byte[] filedata, String extension, List<ImportSpec> imports, List<String> globals, Set<String> ignoredReq) {
             this.filedata = filedata;
             this.imports = imports;
             this.globals = globals;
             this.extension = extension;
             this.f = f;
+            this.ignoredRequires = ignoredReq;
+        }
+
+        public Set<String> getIgnoredRequires() {
+            return ignoredRequires;
+        }
+
+        public String getExtension() {
+            return extension;
         }
 
         public byte[] getFiledata() {
@@ -168,7 +179,7 @@ public class JSXGenerator {
         jsx.parseJS(root,new Inp(cont));
         if ( jsx.depth != 0 ) {
             Log.Warn(JSXGenerator.class,"probably parse issues non-matching braces in "+f.getAbsolutePath());
-            return new ParseResult(f,bytes,f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),jsx.getTopLevelObjects());
+            return new ParseResult(f,bytes,f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),jsx.getTopLevelObjects(),jsx.getIgnoredRequires());
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream(bytes.length);
         PrintStream ps = new PrintStream(out);
@@ -185,6 +196,6 @@ public class JSXGenerator {
             pspretty.close();
             filedata = outpretty.toByteArray();
         }
-        return new ParseResult(f,filedata,f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),jsx.getTopLevelObjects());
+        return new ParseResult(f,filedata,f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),jsx.getTopLevelObjects(),jsx.getIgnoredRequires());
     }
 }

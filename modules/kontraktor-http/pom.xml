@@ -156,7 +156,11 @@
             <artifactId>junit</artifactId>
             <version>4.12</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.eclipsesource.minimal-json</groupId>
+            <artifactId>minimal-json</artifactId>
+            <version>0.9.4</version>
+        </dependency>
 
     </dependencies>
 

@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.webapp.transpiler.jsx;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -16,7 +17,12 @@ public class JSXParser implements ParseUtils {
         String component;
         String alias;
         String from;
+        File requiredin;
         boolean isRequire;
+
+        public File getRequiredin() {
+            return requiredin;
+        }
 
         public List<String> getComponents() {
             return components;
@@ -76,8 +82,18 @@ public class JSXParser implements ParseUtils {
                 ", component='" + component + '\'' +
                 ", alias='" + alias + '\'' +
                 ", from='" + from + '\'' +
+                ", requiredin=" +
+                requiredin.getParentFile().getParentFile().getParentFile().getName() + "/" +
+                requiredin.getParentFile().getParentFile().getName() + "/" +
+                requiredin.getParentFile().getName()+"/"+
+                requiredin.getName()+
                 ", isRequire=" + isRequire +
                 '}';
+        }
+
+        public ImportSpec requiredin(File requiredin) {
+            this.requiredin = requiredin;
+            return this;
         }
     }
 
@@ -283,8 +299,10 @@ public class JSXParser implements ParseUtils {
 
     List<ImportSpec> imports = new ArrayList();
     List<String> topLevelObjects = new ArrayList();
+    HashSet<String> ignoredRequires = new HashSet<>();
 
     File file;
+
     public JSXParser(File f) {
         this.file = f;
     }
@@ -292,7 +310,6 @@ public class JSXParser implements ParseUtils {
     public List<String> getTopLevelObjects() {
         return topLevelObjects;
     }
-
     int depth = 0;
     public void parseJS(TokenNode cur, Inp in) {
         //FIXME; JS regexp
@@ -311,6 +328,19 @@ public class JSXParser implements ParseUtils {
                 in.advance("export".length());
                 in.skipWS();
                 continue;
+            }
+            if ( in.match("//@") ) {
+                if ( in.match("//@ignore:") ) {
+                    in.advance("//@ignore:".length());
+                    StringBuilder ig = new StringBuilder();
+                    while( !Character.isWhitespace(in.ch()) )
+                    {
+                        ig.append(in.ch());
+                        in.inc();
+                    }
+                    ignoredRequires.add(ig.toString());
+                    continue;
+                }
             }
             if ( in.match("require") && isFunContext(in,"require") ) {
                 if ( isNodeModule() ) {
@@ -492,11 +522,11 @@ public class JSXParser implements ParseUtils {
             in.index = i;
             return null;
         }
-        ImportSpec spec = new ImportSpec();
+        ImportSpec spec = new ImportSpec().requiredin(file);
         spec.from = reqString.substring(1,reqString.length()-1);
         spec.isRequire = true;
         imports.add(spec);
-        System.out.println("REQUIRE:"+in+" from "+ file.getPath());
+//        System.out.println("REQUIRE:"+in+" from "+ file.getPath());
         System.out.println("  "+spec);
         in.inc();
         return spec;
@@ -504,7 +534,7 @@ public class JSXParser implements ParseUtils {
 
     void parseImport(Inp in) {
         in.advance("import ".length());
-        ImportSpec spec = new ImportSpec();
+        ImportSpec spec = new ImportSpec().requiredin(file);
         while (in.ch()>0) {
             in.skipWS();
             if (in.ch() == '{') {
@@ -692,6 +722,10 @@ public class JSXParser implements ParseUtils {
             default:
                 throw new RuntimeException("expect attribute value:"+in);
         }
+    }
+
+    public HashSet<String> getIgnoredRequires() {
+        return ignoredRequires;
     }
 
     private StringBuilder readAttrName(Inp in) {

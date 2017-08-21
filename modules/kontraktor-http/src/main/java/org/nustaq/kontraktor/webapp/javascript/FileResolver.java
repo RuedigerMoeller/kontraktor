@@ -1,7 +1,7 @@
 package org.nustaq.kontraktor.webapp.javascript;
 
 import java.io.File;
-import java.util.Set;
+import java.util.Map;
 
 public interface FileResolver {
 
@@ -13,7 +13,7 @@ public interface FileResolver {
      * @param alreadyProcessed
      * @return
      */
-    byte[] resolve(File baseDir, String name, Set<String> alreadyProcessed);
+    byte[] resolve(File baseDir, String name, Map<String, Object> alreadyProcessed);
     File resolveFile(File baseDir, String name);
     void install(String path, byte[] resolved);
     String resolveUniquePath(File file);

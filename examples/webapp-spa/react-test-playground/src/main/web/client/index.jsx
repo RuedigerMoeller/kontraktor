@@ -6,7 +6,8 @@ import {global} from "global"
 import {BootPlay} from 'boostrapplay/bootplay';
 import {BluePlay} from './blueprint/blueplay';
 import {SemanticPlay} from './semantic/semanticplay';
-import Encoding from 'encoding/lib/encoding.js';
+//@ignore:./iconv-loader
+import Encoding from 'encoding';
 
 class App extends Component {
 
