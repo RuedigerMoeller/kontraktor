@@ -2,13 +2,16 @@ package org.nustaq.kontraktor.webapp.transpiler;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.javascript.FileResolver;
 import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXGenerator;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXParser;
+import org.nustaq.kontraktor.webapp.transpiler.jsx.NodeLibNameResolver;
 
 import java.io.*;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,7 +44,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
     protected byte[] processJSX_Prod(File f, FileResolver resolver, Map<String, Object> alreadyResolved) {
         try {
-            JSXGenerator.ParseResult result = JSXGenerator.process(f,false);
+            JSXGenerator.ParseResult result = JSXGenerator.process(f,false,createNodeLibNameResolver(resolver));
             List<JSXParser.ImportSpec> specs = result.getImports();
             byte[] res = result.getFiledata();
             ByteArrayOutputStream baos = new ByteArrayOutputStream(1_000_000);
@@ -87,11 +90,83 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         return new byte[0];
     }
 
+    private NodeLibNameResolver createNodeLibNameResolver(FileResolver resolver) {
+        return new NodeLibNameResolver() {
+            @Override
+            public String getFinalLibName(File requiredIn, FileResolver res, String requireText) {
+                File file = resolver.resolveFile(requiredIn.getParentFile(), requireText);
+                if ( file == null )
+                    file = resolver.resolveFile(requiredIn.getParentFile(), requireText+".js");
+                if ( file == null )
+                    file = resolver.resolveFile(requiredIn.getParentFile(), requireText+".jsx");
+                if ( file.isDirectory() )
+                    file = processNodeDir(file,resolver,new HashMap());
+                if ( file == null )
+                    return requireText;
+                return constructLibName(file,resolver);
+            }
+
+            @Override
+            public byte[] resolve(File baseDir, String name, Map<String, Object> alreadyProcessed) {
+                return resolver.resolve(baseDir,name,alreadyProcessed);
+            }
+
+            @Override
+            public File resolveFile(File baseDir, String name) {
+                return resolver.resolveFile(baseDir,name);
+            }
+
+            @Override
+            public void install(String path, byte[] resolved) {
+                resolver.install(path,resolved);
+            }
+
+            @Override
+            public String resolveUniquePath(File file) {
+                return resolver.resolveUniquePath(file);
+            }
+        };
+    }
+
+    static File falseFile = new File("false");
+    String findNodeSubDir(File file) throws IOException {
+        if ( file == null )
+            return null;
+        if ( file.getParentFile() != null && file.getParentFile().getName().equals("node_modules") )
+            return file.getCanonicalPath();
+        else
+            return findNodeSubDir(file.getParentFile());
+    }
+
     private File processNodeDir(File file, FileResolver resolver, Map<String, Object> alreadyResolved) {
         File jfi = new File(file, "package.json");
         if ( jfi.exists() ) {
             try {
                 JsonObject pkg = Json.parse(new FileReader(jfi)).asObject();
+                JsonValue browser = pkg.get("browser");
+                if ( browser != null ) {
+                    if (browser.isBoolean() && !browser.asBoolean() ) {
+                        return falseFile;
+                    }
+                    if ( browser.isString() ) {
+                        Log.Info(this,"package.json browser entry map to "+browser.asString());
+                        return new File(file,browser.asString());
+                    }
+                    if ( browser.isObject() ) {
+                        String nodeModuleDir = file.getCanonicalPath();
+                        JsonObject members = browser.asObject();
+                        members.forEach( member -> {
+                            String key = "browser_" + nodeModuleDir + "_" + member.getName();
+                            alreadyResolved.put(key, member.getValue());
+//                            System.out.println("put browser:"+key);
+//                            System.out.println("  val:"+member.getValue());
+                        });
+                    } else {
+                        Log.Warn(this, "unrecognized 'browser' entry in package.json, " + file.getCanonicalPath());
+                        return null;
+                    }
+                }
+
                 String main = pkg.getString("main", null);
                 if ( main != null ) {
                     File newF = new File(file, main);
@@ -104,17 +179,18 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        } else if ( new File(file,"index.js").exists() ) {
+            return new File(file,"index.js");
         }
         return null;
     }
 
     protected byte[] processJSX_Dev(File f, FileResolver resolver, Map<String, Object> alreadyResolved) {
         try {
-            JSXGenerator.ParseResult result = JSXGenerator.process(f,true);
+            JSXGenerator.ParseResult result = JSXGenerator.process(f,true,createNodeLibNameResolver(resolver));
             List<JSXParser.ImportSpec> specs = result.getImports();
             byte[] res = result.getFiledata();
             ByteArrayOutputStream baos = new ByteArrayOutputStream(10_000);
-
             if ( "index.jsx".equals(f.getName()) ) {
                 baos.write((getInitialShims()+"\n").getBytes("UTF-8"));
                 alreadyResolved.put("JSXIndex",Boolean.TRUE);
@@ -127,56 +203,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
             for (int i = 0; i < specs.size(); i++) {
                 JSXParser.ImportSpec importSpec = specs.get(i);
-                String from = importSpec.getFrom();
-                if ( importSpec.isRequire() && ignoredRequires.contains(importSpec.getFrom()) )
-                    continue;
-                if (from.indexOf("iconv-lite")>=0) {
-                    int debug = 1;
-                }
-                File resolvedFile = resolver.resolveFile(f.getParentFile(), from);
-                if ( resolvedFile != null && resolvedFile.isDirectory() ) {
-                    File indexFile = processNodeDir(resolvedFile, resolver, alreadyResolved);
-                    if ( indexFile == null )
-                    {
-                        Log.Warn(this,"node directory could not be resolved to a resource :"+resolvedFile.getCanonicalPath());
-                        continue;
-                    } else {
-                        f = indexFile;
-                        resolvedFile = indexFile;
-                        from = indexFile.getName();
-                    }
-                }
-                if ( ! from.endsWith(".js") && ! from.endsWith(".jsx") ) {
-                    from += ".js";
-                }
-                byte resolved[] = resolver.resolve(f.getParentFile(), from, alreadyResolved);
-                if ( resolved == null && from.endsWith(".js") ) {
-                    // try jsx
-                    from = from.substring(0,from.length()-3)+".jsx";
-                    resolved = resolver.resolve(f.getParentFile(), from, alreadyResolved);
-                }
-                if ( resolved != null ) {
-                    if ( resolved.length > 0 ) {
-                        // need re-resolve as extension might have changed
-                        resolvedFile = resolver.resolveFile(f.getParentFile(),from);
-                        String name = constructLibName(resolvedFile, resolver)+".js";
-//                        if ( from.endsWith(".jsx") )
-                        {
-                            name = "dependencies/"+name;
-                        }
-                        resolver.install("/debug/" + name, resolved);
-                        baos.write(
-                            ("document.write( '<script src=\"debug/" + name + "\"></script>');\n")
-                                .getBytes("UTF-8")
-                        );
-                    }
-                }
-                else
-                    Log.Warn(this,importSpec.getFrom()+" not found");
-            }
-            if ( f.getAbsolutePath().indexOf("promise") >= 0)
-            {
-                int debug=1;
+                File redirected = resolveImportSpec(f, importSpec, baos, resolver, alreadyResolved, ignoredRequires);
+                if (redirected == null) continue;
             }
             ByteArrayOutputStream mainBao = new ByteArrayOutputStream(10_000);
             if (result.generateESWrap())
@@ -189,7 +217,11 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             if (result.generateCommonJSWrap())
                 mainBao.write(generateCommonJSEnd(f,result, resolver).getBytes("UTF-8"));
 
-            String name = constructLibName(f, resolver)+".jsx_transpiled";
+            String name = constructLibName(f, resolver)+".transpiled";
+            if ( name.indexOf("object-assign") >= 0 )
+            {
+                int debug = 1;
+            }
             resolver.install("/debug/" + name, mainBao.toByteArray());
             baos.write(
                 ("document.write( '<script src=\"debug/" + name + "\"></script>');\n")
@@ -207,6 +239,111 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             }
         }
         return new byte[0];
+    }
+
+    private File resolveImportSpec(File requiringFile, JSXParser.ImportSpec importSpec, ByteArrayOutputStream hostingBaos, FileResolver resolver, Map<String, Object> alreadyResolved, Set ignoredRequires) throws IOException {
+        String from = importSpec.getFrom();
+        File toReadFrom = requiringFile;
+        String toReadFromName = null; // node package entry processing
+        if ( importSpec.isRequire() ) {
+            if (ignoredRequires.contains(importSpec.getFrom()) )
+                return null;
+            String canonicalF = findNodeSubDir(requiringFile);
+            if ( canonicalF != null ) {
+                String key = "browser_" + canonicalF + "_" + from;
+                JsonValue o = (JsonValue) alreadyResolved.get(key);
+                if (o != null) {
+                    if (o.isString()) {
+                        String oldFrom = from;
+                        from = o.asString();
+                        Log.Info(this,"mapping package.json/browser:"+oldFrom+" to "+from);
+                    } else if (o.isBoolean()) {
+                        if (!o.asBoolean()) {
+                            Log.Info(this,"ignoring because of package.json/browser:"+from);
+                            return null;
+                        }
+                    } else
+                        Log.Warn(this, "unrecognized browser entry in package.json:" + o + ". file:" + requiringFile.getAbsolutePath());
+                } else {
+//                            System.out.println("key lookup == null for browser setting :"+key);
+                }
+            } else {
+                Log.Warn(this,"node module dir could not be resolved "+ requiringFile.getAbsolutePath());
+                return null;
+            }
+        }
+        if (from.indexOf("DropdownButton")>=0) {
+            int debug = 1;
+        }
+        File resolvedFile = resolver.resolveFile(requiringFile.getParentFile(), from);
+        File resolvedNodeDir = null;
+        if ( resolvedFile != null && resolvedFile.isDirectory() ) {
+            resolvedNodeDir = resolvedFile;
+            if (from.indexOf("warning") == 0) {
+                int debug = 1;
+            }
+            File indexFile = processNodeDir(resolvedFile, resolver, alreadyResolved);
+            if ( indexFile == falseFile ) {
+                return null;
+            }
+            if ( indexFile == null )
+            {
+                Log.Warn(this,"node directory could not be resolved to a resource :"+resolvedFile.getCanonicalPath());
+                return null;
+            } else {
+                toReadFrom = indexFile;
+                toReadFromName = indexFile.getName();
+            }
+        } else {
+            // fixme: hasExtension
+            if (!from.endsWith(".js") && !from.endsWith(".jsx") && !from.endsWith(".json")) {
+                from += ".js";
+            }
+        }
+        byte resolved[] = resolver.resolve(toReadFrom.getParentFile(), toReadFromName != null ? toReadFromName : from, alreadyResolved);
+        if ( resolved == null && from.endsWith(".js") ) {
+            // try jsx
+            from = from.substring(0,from.length()-3)+".jsx";
+            resolved = resolver.resolve(requiringFile.getParentFile(), from, alreadyResolved);
+        }
+        if ( resolved != null ) {
+            if ( resolved.length > 0 ) {
+                // need re-resolve as extension might have changed
+                resolvedFile = resolver.resolveFile(toReadFrom.getParentFile(),toReadFromName != null ? toReadFromName : from);
+                if ( resolvedFile.getAbsolutePath().indexOf("object-assign")>=0)
+                {
+                    int debug = 1;
+                }
+                String name = null;
+                if ( resolvedFile.getName().endsWith(".json") ) {
+                    name = constructLibName(resolvedFile, resolver) + ".json";
+                    name = "dependencies/"+name;
+                    ByteArrayOutputStream jsonBao = new ByteArrayOutputStream(resolved.length+100);
+                    jsonBao.write("(function(exports, require, module, __filename, __dirname) { module.exports = \n".getBytes("UTF-8"));
+                    jsonBao.write(resolved);
+                    String s = constructLibName(requiringFile, resolver);
+                    jsonBao.write(
+                        ("})( kgetModule('"+s+"').exports, krequire, kgetModule('"+s+"'), '', '' );").getBytes("UTF-8"));
+                    resolver.install("/debug/" + name, jsonBao.toByteArray());
+                } else {
+//                    if ( resolvedNodeDir != null ) {
+//                        name = constructLibName(resolvedNodeDir, resolver);
+//                    } else
+                    {
+                        name = constructLibName(resolvedFile, resolver) + ".js";
+                    }
+                    name = "dependencies/"+name;
+                    resolver.install("/debug/" + name, resolved);
+                }
+                hostingBaos.write(
+                    ("document.write( '<script src=\"debug/" + name + "\"></script>');\n")
+                        .getBytes("UTF-8")
+                );
+            }
+        }
+        else
+            Log.Warn(this,importSpec.getFrom()+" not found. requiredBy:"+ requiringFile.getCanonicalPath());
+        return requiringFile;
     }
 
     protected String generateCommonJSPrologue(File f, JSXGenerator.ParseResult result, FileResolver resolver ) {
@@ -233,21 +370,12 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         String s = "";
         s += "(new function() {\n";
         List<JSXParser.ImportSpec> imports = result.getImports();
-        File basedir = result.getFile().getParentFile();
         for (int i = 0; i < imports.size(); i++) {
             JSXParser.ImportSpec spec = imports.get(i);
-            File libFile = resolver.resolveFile(basedir, spec.getFrom());
-            if ( libFile == null )
-                libFile = resolver.resolveFile(basedir, spec.getFrom()+".jsx");
-            if ( libFile == null )
-                libFile = resolver.resolveFile(basedir, spec.getFrom()+".js");
-            if ( libFile == null ) {
-                Log.Error(this,"unable to resolve import '"+spec.getFrom()+"' in file "+result.getFile());
-            }
-            String libname = constructLibName(libFile,resolver);
-            String exportObject = "kimports['" + libname+"']";
+            String libname = createNodeLibNameResolver(resolver).getFinalLibName(result.getFile(),resolver,spec.getFrom());
+            String exportObject = "_kresolve('" + libname+"')";
             if ( spec.getAlias() != null ) {
-                s+="  const "+spec.getAlias()+" = "+exportObject+"."+spec.getComponent()+";\n";
+                s+="  const "+spec.getAlias()+" = "+exportObject+";\n";
             }
             for (int j = 0; j < spec.getAliases().size(); j++) {
                 String alias = spec.getAliases().get(j);
@@ -263,7 +391,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         if (unique.startsWith("/"))
             unique = unique.substring(1);
 //        System.out.println("unique:"+unique);
-        String name = JSXGenerator.camelCase(unique);
+        String name = unique;
         if ( name.endsWith(".js") )
             name = name.substring(0,name.length()-3);
         if ( name.endsWith(".jsx") )
@@ -275,6 +403,22 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
     protected String getInitialShims() {
         return
+            "window.kmodules = {};\n" +
+            "\n" +
+            "  function kgetModule(name) {\n" +
+            "    const res = kmodules[name];\n" +
+            "    if ( res == null ) {\n" +
+            "      kmodules[name] = { exports: {} };\n" +
+            "      return kgetModule(name);\n" +
+            "    } else {\n" +
+            "      return res;\n" +
+            "    }\n" +
+            "  }\n" +
+            "\n" +
+            "  function krequire(name) {\n" +
+            "    return kgetModule(name).exports;\n" +
+            "  }\n" +
+            "\n"+
             "window.klibmap = window.klibmap || {};\nwindow.kimports = window.kimports || {};\n"+
             "window._sprd = function (obj) {\n" +
             "  const copy = Object.assign({},obj);\n" +
@@ -297,14 +441,21 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "  return obj;\n" +
             "};\n" +
             "window._kresolve = function (libname,identifier) {\n" +
-            "  const res = klibmap[libname] ? klibmap[libname]()[identifier] : (window.kimports[libname] ? window.kimports[libname][identifier] : null);\n" +
+            "  var res = klibmap[libname] ? klibmap[libname]()[identifier] : (window.kimports[libname] ? window.kimports[libname][identifier] : null);\n" +
+            "  if ( ! res ) {\n" +
+            "    if ( !identifier)\n"+
+            "        res = kmodules[libname] ? kmodules[libname].exports : null;\n" +
+            "    else\n"+
+            "        res = kmodules[libname] ? kmodules[libname].exports[identifier] : null;\n" +
+            "  }\n" +
             "  if ( ! res ) {\n" +
             "    console.error(\"unable to resolve \"+identifier+\" in klibmap['\"+libname+\"'] \")\n" +
             "  }\n" +
             "  return res;\n" +
             "};\n" +
-            "window.module = {}; // fake nodejs. this can be problematic if libs detect node by checking for module === undefined\n" +
-            "\n";
+            "window.module = {}; \n" +
+            "window.process = { env: {} };"+
+        "\n";
     }
 
 }

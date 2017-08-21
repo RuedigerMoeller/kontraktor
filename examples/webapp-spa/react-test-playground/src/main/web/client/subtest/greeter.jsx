@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import React,{Component} from 'react';
 import {global} from "../global";
 import {Fader} from "./util";
 

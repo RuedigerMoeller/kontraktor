@@ -1,6 +1,6 @@
-import {Component}  from 'react'
+import {Component}, React from 'react'
 
-export class HCenter extends React.Component {
+export class HCenter extends Component {
 
   render() {
     const style = {
@@ -18,7 +18,7 @@ export class HCenter extends React.Component {
 
 }
 
-export class Fader extends React.Component {
+export class Fader extends Component {
   constructor(p) {
     super(p);
     this.state={op:0};

@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.webapp.javascript.FileResolver;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -168,10 +169,10 @@ public class JSXGenerator {
         }
     }
 
-    public static ParseResult process(File f, boolean pretty) throws IOException {
+    public static ParseResult process(File f, boolean pretty, NodeLibNameResolver nlib) throws IOException {
         // this is really inefficient, there are loads of optimization opportunities,
         // however this code runs in devmode only ..
-        JSXParser jsx = new JSXParser(f);
+        JSXParser jsx = new JSXParser(f,nlib);
         JSNode root = new JSNode();
         byte[] bytes = Files.readAllBytes(f.toPath());
 

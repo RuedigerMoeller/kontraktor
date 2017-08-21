@@ -301,10 +301,12 @@ public class JSXParser implements ParseUtils {
     List<String> topLevelObjects = new ArrayList();
     HashSet<String> ignoredRequires = new HashSet<>();
 
-    File file;
+    protected File file;
+    protected NodeLibNameResolver libNameResolver;
 
-    public JSXParser(File f) {
+    public JSXParser(File f,NodeLibNameResolver libNameResolver) {
         this.file = f;
+        this.libNameResolver = libNameResolver;
     }
 
     public List<String> getTopLevelObjects() {
@@ -348,7 +350,12 @@ public class JSXParser implements ParseUtils {
                     if ( spec == null ) {
                         cur.add("/*could not parse name*/");
                     } else {
-                        cur.add("require('"+spec.from+"')");
+                        if ( libNameResolver != null ) {
+                            String finalLibName = libNameResolver.getFinalLibName(file, libNameResolver, spec.from);
+                            cur.add("require('"+ finalLibName +"')");
+                        }
+                        else
+                            cur.add("require('"+spec.from+"')");
                         continue;
                     }
                 }
@@ -389,8 +396,11 @@ public class JSXParser implements ParseUtils {
                 }
                 if (ch == '{' || ch == '[' || ch == '(') {
                     depth++;
-                    lastBracePos[depth] = in.index();
-                    lastBracePosCur[depth] = cur.chars.length();
+                    if (depth >= 0) {
+                        lastBracePos[depth] = in.index();
+                        lastBracePosCur[depth] = cur.chars.length();
+
+                    }
                 }
                 if (ch == '}' || ch == ']' || ch == ')' ) {
                     depth--;
@@ -452,10 +462,13 @@ public class JSXParser implements ParseUtils {
                 }
                 cur.add(ch);
                 if (ch == '}') {
-                    if ( braceInsert[depth+1] != null ) {
-                        cur.chars.append(braceInsert[depth+1]);
-                        braceInsert[depth+1] = null;
-                    }
+                    if (depth+1 >= 0) {
+                        if (braceInsert[depth + 1] != null) {
+                            cur.chars.append(braceInsert[depth + 1]);
+                            braceInsert[depth + 1] = null;
+                        }
+                    } else
+                        Log.Warn(this,"imbalanced braces. "+file.getAbsolutePath());
                 }
                 in.advance(1);
             }
@@ -527,7 +540,7 @@ public class JSXParser implements ParseUtils {
         spec.isRequire = true;
         imports.add(spec);
 //        System.out.println("REQUIRE:"+in+" from "+ file.getPath());
-        System.out.println("  "+spec);
+//        System.out.println("  "+spec);
         in.inc();
         return spec;
     }
@@ -579,6 +592,9 @@ public class JSXParser implements ParseUtils {
                         in.inc();
                     }
                     spec.alias(al.toString());
+                } else {
+                    spec.component(sb.toString());
+                    spec.alias = sb.toString();
                 }
             }
             in.skipWS();

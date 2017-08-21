@@ -5,7 +5,7 @@ import {
   Carousel, ProgressBar
 } from 'react-bootstrap';
 
-import { Component } from 'react';
+import React, { Component } from 'react';
 
 const tooltip = (
   <Tooltip id="tooltip"><strong>Holy guacamole!</strong> Check this info.</Tooltip>

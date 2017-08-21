@@ -228,8 +228,10 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
             if ( file != null ) {
                 String normalizedPath = file.getCanonicalPath();
                 if ( alreadyProcessed.containsKey(normalizedPath) ) {
+//                    System.out.println("REJECT:"+normalizedPath);
                     return new byte[0];
                 }
+                System.out.println("LOAD:"+normalizedPath);
                 alreadyProcessed.put(normalizedPath,1);
                 final String fname = file.getName();
                 if ( transpilerMap != null && transpilerMap.size() > 0 ) {

@@ -44,27 +44,11 @@ kontraktor classes are available globally and need no 'import' inside jsx
   // its also possible to construct 'virtual' library object in case lib exposes its stuff globally
   // like 'libFilenameWithoutExtension': () => { return { fancyFunc: fancyFunc,.. } }
   klibmap = {
-    react: () => React,
-    reactBootstrap: () => ReactBootstrap,
-    'blueprintjs/blueprintjs': () => Blueprint,
-    'semanticUi/semanticUiReact.min': () => semanticUIReact
+//    react: () => React,
+//    reactBootstrap: () => ReactBootstrap,
+//    'blueprintjs/blueprintjs': () => Blueprint,
+//    'semanticUi/semanticUiReact.min': () => semanticUIReact
   };
-
-  window.kmodules = {};
-
-  function kgetModule(name) {
-    const res = kmodules[name];
-    if ( res == null ) {
-      kmodules[name] = { exports: {} };
-      return kgetModule(name);
-    } else {
-      return res;
-    }
-  }
-
-  function krequire(name) {
-    return kgetModule(name).exports;
-  }
 
 </script>
 

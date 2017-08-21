@@ -1,13 +1,15 @@
-import React, {Component}  from 'react'
+import React from 'react'
+import {Component}  from 'react'
 import ReactDOM from 'react-dom';
 import {HCenter,Fader} from 'subtest/util';
 import {Greeter} from 'subtest/greeter';
 import {global} from "global"
 import {BootPlay} from 'boostrapplay/bootplay';
-import {BluePlay} from './blueprint/blueplay';
-import {SemanticPlay} from './semantic/semanticplay';
+// import {BluePlay} from './blueprint/blueplay';
+// import {SemanticPlay} from './semantic/semanticplay';
 //@ignore:./iconv-loader
-import Encoding from 'encoding';
+// import Encoding from 'encoding';
+// import {Button} from 'material-ui'
 
 class App extends Component {
 
@@ -87,9 +89,10 @@ class App extends Component {
             </Fader>
           )
         }
-        <BootPlay/>
-        <SemanticPlay/>
-        <BluePlay/>
+        { <BootPlay/>
+          /**
+            <SemanticPlay/>
+            <BluePlay/> **/}
         <div>
           {this.state.error ? <div><b>error</b></div> : ""}
         </div>
