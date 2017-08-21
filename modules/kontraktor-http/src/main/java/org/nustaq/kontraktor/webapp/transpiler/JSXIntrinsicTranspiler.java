@@ -149,7 +149,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                         return falseFile;
                     }
                     if ( browser.isString() ) {
-                        Log.Info(this,"package.json browser entry map to "+browser.asString());
+//                        Log.Info(this,"package.json browser entry map to "+browser.asString());
                         return new File(file,browser.asString());
                     }
                     if ( browser.isObject() ) {
@@ -190,11 +190,14 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             JSXGenerator.ParseResult result = JSXGenerator.process(f,true,createNodeLibNameResolver(resolver));
             List<JSXParser.ImportSpec> specs = result.getImports();
             byte[] res = result.getFiledata();
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(10_000);
-            if ( "index.jsx".equals(f.getName()) ) {
+            boolean isInitialIndexJSX = "index.jsx".equals(f.getName());
+            if (isInitialIndexJSX) {
+                alreadyResolved.put("JSXIndexStart", System.currentTimeMillis());
+                ByteArrayOutputStream baos = new ByteArrayOutputStream(1_000_000);
                 baos.write((getInitialShims()+"\n").getBytes("UTF-8"));
-                alreadyResolved.put("JSXIndex",Boolean.TRUE);
+                alreadyResolved.put("JSXIndex", baos);
             }
+            ByteArrayOutputStream baos = (ByteArrayOutputStream) alreadyResolved.get("JSXIndex");
             if ( alreadyResolved.get("_Ignored") == null ) {
                 alreadyResolved.put("_Ignored",result.getIgnoredRequires());
             }
@@ -218,16 +221,17 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 mainBao.write(generateCommonJSEnd(f,result, resolver).getBytes("UTF-8"));
 
             String name = constructLibName(f, resolver)+".transpiled";
-            if ( name.indexOf("object-assign") >= 0 )
-            {
-                int debug = 1;
-            }
             resolver.install("/debug/" + name, mainBao.toByteArray());
             baos.write(
                 ("document.write( '<script src=\"debug/" + name + "\"></script>');\n")
                     .getBytes("UTF-8")
             );
-            return baos.toByteArray();
+            if (isInitialIndexJSX) {
+                Long tim = (Long) alreadyResolved.get("JSXIndexStart");
+                Log.Info(this, "Transpilation time:"+(System.currentTimeMillis()-tim)/1000.0);
+                return baos.toByteArray();
+            }
+            return mainBao.toByteArray();
         } catch (Exception e) {
             Log.Error(this,e);
             StringWriter out = new StringWriter();
@@ -272,9 +276,6 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 return null;
             }
         }
-        if (from.indexOf("DropdownButton")>=0) {
-            int debug = 1;
-        }
         File resolvedFile = resolver.resolveFile(requiringFile.getParentFile(), from);
         File resolvedNodeDir = null;
         if ( resolvedFile != null && resolvedFile.isDirectory() ) {
@@ -310,14 +311,9 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             if ( resolved.length > 0 ) {
                 // need re-resolve as extension might have changed
                 resolvedFile = resolver.resolveFile(toReadFrom.getParentFile(),toReadFromName != null ? toReadFromName : from);
-                if ( resolvedFile.getAbsolutePath().indexOf("object-assign")>=0)
-                {
-                    int debug = 1;
-                }
                 String name = null;
                 if ( resolvedFile.getName().endsWith(".json") ) {
                     name = constructLibName(resolvedFile, resolver) + ".json";
-                    name = "dependencies/"+name;
                     ByteArrayOutputStream jsonBao = new ByteArrayOutputStream(resolved.length+100);
                     jsonBao.write("(function(exports, require, module, __filename, __dirname) { module.exports = \n".getBytes("UTF-8"));
                     jsonBao.write(resolved);
@@ -325,20 +321,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     jsonBao.write(
                         ("})( kgetModule('"+s+"').exports, krequire, kgetModule('"+s+"'), '', '' );").getBytes("UTF-8"));
                     resolver.install("/debug/" + name, jsonBao.toByteArray());
-                } else {
-//                    if ( resolvedNodeDir != null ) {
-//                        name = constructLibName(resolvedNodeDir, resolver);
-//                    } else
-                    {
-                        name = constructLibName(resolvedFile, resolver) + ".js";
-                    }
-                    name = "dependencies/"+name;
-                    resolver.install("/debug/" + name, resolved);
                 }
-                hostingBaos.write(
-                    ("document.write( '<script src=\"debug/" + name + "\"></script>');\n")
-                        .getBytes("UTF-8")
-                );
             }
         }
         else
