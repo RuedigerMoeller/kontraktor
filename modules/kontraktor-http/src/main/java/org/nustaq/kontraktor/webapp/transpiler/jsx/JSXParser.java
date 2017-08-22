@@ -3,299 +3,11 @@ package org.nustaq.kontraktor.webapp.transpiler.jsx;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
 import java.util.*;
 
 public class JSXParser implements ParseUtils {
 
     public static boolean SHIM_OBJ_SPREAD = true;
-
-    public static class ImportSpec {
-        List<String> components = new ArrayList();
-        List<String> aliases = new ArrayList();;
-        String component;
-        String alias;
-        String from;
-        File requiredin;
-        boolean isRequire;
-
-        public File getRequiredin() {
-            return requiredin;
-        }
-
-        public List<String> getComponents() {
-            return components;
-        }
-
-        public List<String> getAliases() {
-            return aliases;
-        }
-
-        public String getComponent() {
-            return component;
-        }
-
-        public String getAlias() {
-            return alias;
-        }
-
-        public String getFrom() {
-            return from;
-        }
-
-
-        public ImportSpec components(List<String> components) {
-            this.components = components;
-            return this;
-        }
-
-        public boolean isRequire() {
-            return isRequire;
-        }
-
-        public ImportSpec aliases(List<String> aliases) {
-            this.aliases = aliases;
-            return this;
-        }
-
-        public ImportSpec component(String component) {
-            this.component = component;
-            return this;
-        }
-
-        public ImportSpec alias(String alias) {
-            this.alias = alias;
-            return this;
-        }
-
-        public ImportSpec from(String from) {
-            this.from = from;
-            return this;
-        }
-
-        @Override
-        public String toString() {
-            return "ImportSpec{" +
-                "components=" + components +
-                ", aliases=" + aliases +
-                ", component='" + component + '\'' +
-                ", alias='" + alias + '\'' +
-                ", from='" + from + '\'' +
-                ", requiredin=" +
-                requiredin.getParentFile().getParentFile().getParentFile().getName() + "/" +
-                requiredin.getParentFile().getParentFile().getName() + "/" +
-                requiredin.getParentFile().getName()+"/"+
-                requiredin.getName()+
-                ", isRequire=" + isRequire +
-                '}';
-        }
-
-        public ImportSpec requiredin(File requiredin) {
-            this.requiredin = requiredin;
-            return this;
-        }
-    }
-
-    //fixme: cleanup and proper subclassing for parse nodes
-    public static abstract class TokenNode {
-        protected StringBuilder chars = new StringBuilder(100); // content chars or js chars
-        protected List<TokenNode> children = new ArrayList(); // tags
-
-        public void add(char c) {
-            if ( c > 0) {
-                if ( chars.length() == 0 ) {
-                    ContentNode co = new ContentNode();
-                    addChild(co);
-                    co.chars = chars;
-                }
-                chars.append(c);
-            }
-        }
-
-        public void addChild(TokenNode o) {
-            children.add(o);
-        }
-
-        public void add(StringBuilder stringBuilder) {
-            if ( chars.length() == 0 ) {
-                ContentNode co = new ContentNode();
-                addChild(co);
-                co.chars = chars;
-            }
-            chars.append(stringBuilder);
-        }
-
-        public void add(String string) {
-            if ( chars.length() == 0 ) {
-                ContentNode co = new ContentNode();
-                addChild(co);
-                co.chars = chars;
-            }
-            chars.append(string);
-        }
-
-        public abstract void dump(PrintStream p, String indent);
-
-        public void closeCont() {
-            if ( chars.toString().startsWith("/>"))
-            {
-                int debug =1;
-            }
-            chars = new StringBuilder();
-        }
-
-        public StringBuilder getChars() {
-            return chars;
-        }
-
-        public List<TokenNode> getChildren() {
-            return children;
-        }
-
-    }
-
-    public static class JSNode extends TokenNode {
-
-        public void dump(PrintStream p, String indent) {
-            p.println(indent+"JS");
-            for (int i = 0; i < children.size(); i++) {
-                TokenNode tokenNode = children.get(i);
-                tokenNode.dump(p,indent+"  ");
-            }
-        }
-    }
-
-    public static class ContentNode extends TokenNode {
-
-        @Override
-        public void dump(PrintStream p, String indent) {
-            p.println(indent+"CNT:"+chars);
-        }
-
-        @Override
-        public void add(char c) {
-            chars.append(c);
-        }
-
-        public void add(StringBuilder stringBuilder) {
-            chars.append(stringBuilder);
-        }
-
-        @Override
-        public void closeCont() {
-        }
-
-        @Override
-        public void addChild(TokenNode o) {
-            throw new RuntimeException("just text allowed");
-        }
-
-        public void trim() {
-            StringBuilder newChars = new StringBuilder(chars.length());
-            boolean inWS = false;
-            for (int i=0; i < chars.length(); i++ ) {
-                char c = chars.charAt(i);
-                if ( Character.isWhitespace(c) ) {
-                    if ( inWS ) {
-
-                    } else {
-                        newChars.append(" ");
-                        inWS = true;
-                    }
-                } else {
-                    inWS = false;
-                    newChars.append(c);
-                }
-            }
-            chars = newChars;
-        }
-
-        public boolean isEmpty() {
-            return chars == null || chars.length() == 0 || ( chars.length() == 1 && Character.isWhitespace(chars.charAt(0)));
-        }
-    }
-
-    public static class TagNode extends TokenNode {
-
-        protected StringBuilder tagName = new StringBuilder(100);
-        List<AttributeNode> attributes = new ArrayList(); // attrs if this is tag
-
-        public void addTagName(char c) {
-            if ( tagName == null )
-                tagName = new StringBuilder(10);
-            if ( c > 0)
-                tagName.append(c);
-        }
-
-        public boolean isReactComponent() {
-            return tagName != null && tagName.length() > 0 && Character.isUpperCase(tagName.charAt(0));
-        }
-
-        public StringBuilder getTagName() {
-            return tagName;
-        }
-
-        public List<AttributeNode> getAttributes() {
-            return attributes;
-        }
-
-        public void addAttribute(AttributeNode currentAttribute) {
-            attributes.add(currentAttribute);
-        }
-
-        public void dump(PrintStream p, String indent) {
-            p.println(indent+"_"+tagName+(children.size()==0?"/_":"_"));
-            for (int i = 0; i < attributes.size(); i++) {
-                AttributeNode attributeEntry = attributes.get(i);
-                attributeEntry.dump(p,indent+"  ");
-            }
-            for (int i = 0; i < children.size(); i++) {
-                TokenNode tokenNode = children.get(i);
-                tokenNode.dump(p,indent+"  ");
-            }
-        }
-
-    }
-
-    public static class AttributeNode extends TokenNode {
-        StringBuilder name;
-        StringBuilder value;
-
-        public AttributeNode() {
-        }
-
-        public AttributeNode name(StringBuilder name) {
-            this.name = name;
-            return this;
-        }
-
-        public AttributeNode value(StringBuilder value) {
-            this.value = value;
-            return this;
-        }
-
-        public void dump(PrintStream p, String s) {
-            p.println(s+"att:"+name+" val:"+value);
-            if (children==null) return;
-            for (int i = 0; i < children.size(); i++) {
-                TokenNode tokenNode = children.get(i);
-                tokenNode.dump(p,"  "+s);
-            }
-        }
-
-        public StringBuilder getName() {
-            return name;
-        }
-
-        public StringBuilder getValue() {
-            return value;
-        }
-
-        public boolean isJSValue() {
-            return value == null && children.size() > 0 && children.get(0) instanceof JSNode;
-        }
-    }
 
     List<ImportSpec> imports = new ArrayList();
     List<String> topLevelObjects = new ArrayList();
@@ -323,47 +35,46 @@ public class JSXParser implements ParseUtils {
         int lastBracePosCur[] = new int[200];
         String braceInsert[] = new String[200];
         int rcnt = 0;
-        while (in.ch() > 0)
+        char ch = in.ch();
+        while ( (ch=in.ch()) > 0)
         {
-            char ch = in.ch(0);
-            if (in.match("export") && isCommandContext(in,"export")) {
-                in.advance("export".length());
-                in.skipWS();
-                continue;
-            }
-            if ( in.match("//@") ) {
-                if ( in.match("//@ignore:") ) {
+            if ( ch == 'e' || ch == '/' || ch == 'r') { // faster Interpretation (executed on startup)
+                if (in.match("export") && isCommandContext(in, "export")) {
+                    in.advance("export".length());
+                    in.skipWS();
+                    continue;
+                }
+                if (in.match("//@ignore:")) {
                     in.advance("//@ignore:".length());
                     StringBuilder ig = new StringBuilder();
-                    while( !Character.isWhitespace(in.ch()) )
-                    {
+                    while (!Character.isWhitespace(in.ch())) {
                         ig.append(in.ch());
                         in.inc();
                     }
                     ignoredRequires.add(ig.toString());
                     continue;
                 }
-            }
-            if ( in.match("require") && isFunContext(in,"require") ) {
-                if ( isNodeModule() ) {
-                    ImportSpec spec = parseRequire(in);
-                    if ( spec == null ) {
-                        cur.add("/*could not parse name*/");
-                    } else {
-                        if ( libNameResolver != null ) {
-                            String finalLibName = libNameResolver.getFinalLibName(file, libNameResolver, spec.from);
-                            cur.add("require('"+ finalLibName +"')");
+                if (in.match("require") && isFunContext(in, "require")) {
+                    if (isNodeModule()) {
+                        ImportSpec spec = parseRequire(in);
+                        if (spec == null) {
+                            cur.add("/*could not parse name*/");
+                        } else {
+                            if (libNameResolver != null) {
+                                String finalLibName = libNameResolver.getFinalLibName(file, libNameResolver, spec.from);
+                                cur.add("require('" + finalLibName + "')");
+                            } else
+                                cur.add("require('" + spec.from + "')");
+                            continue;
                         }
-                        else
-                            cur.add("require('"+spec.from+"')");
-                        continue;
+                        ch = in.ch(); // might have changed
                     }
                 }
             }
-            if ( in.match("import") && isCommandContext(in, "import")) {
+            if ( ch == 'i' && in.match("import") && isCommandContext(in, "import")) {
                 parseImport(in);
             } else
-            if (in.ch() == '<' && isTagLeft(in) && Character.isLetter(in.ch(1))) {
+            if (ch == '<' && isTagLeft(in) && Character.isLetter(in.ch(1))) {
                 cur.closeCont();
                 TagNode tokenEntry = new TagNode();
                 cur.addChild(tokenEntry);
@@ -381,9 +92,7 @@ public class JSXParser implements ParseUtils {
                 cur.add(readStarComment(in));
             } else
             {
-                if ( SHIM_OBJ_SPREAD && in.match("...") && in.at(lastBracePos[depth]) == '{' ) {
-//                    System.out.println(in.substring(lastBracePos[depth],in.index()));
-//                    System.out.println(cur.chars.toString().substring(lastBracePosCur[depth]));
+                if ( SHIM_OBJ_SPREAD && ch == '.' && in.match("...") && in.at(lastBracePos[depth]) == '{' ) {
                     if ( braceInsert[depth] == null ) {
                         cur.chars.insert(lastBracePosCur[depth], "_sprd(");
                         // fixme: correct indices ?
@@ -399,10 +108,8 @@ public class JSXParser implements ParseUtils {
                     if (depth >= 0) {
                         lastBracePos[depth] = in.index();
                         lastBracePosCur[depth] = cur.chars.length();
-
                     }
-                }
-                if (ch == '}' || ch == ']' || ch == ')' ) {
+                } else if (ch == '}' || ch == ']' || ch == ')' ) {
                     depth--;
                 }
                 if ( returnOnLastMatchingBrace ) {
@@ -416,37 +123,37 @@ public class JSXParser implements ParseUtils {
                             cur.add(ch);
                             in.advance(1);
                             cur.closeCont();
-//                        if ( in.ch(1) == '}') // remove outer braces
-//                            in.inc();
                             return;
                         }
                     }
                 }
                 if ( depth == 0 && !Character.isLetterOrDigit(in.ch(-1)) ) {
-                    if ( in.match("var ") || in.match("let ") ) {
-                        for (int i=0; i < 4; i++ ) {
-                            cur.add(in.ch());
-                            in.inc();
+                    if ( ch == 'v' || ch == 'l' || ch == 'f' || ch == 'c' ) { // interpreter speed
+                        if (in.match("var ") || in.match("let ")) {
+                            for (int i = 0; i < 4; i++) {
+                                cur.add(in.ch());
+                                in.inc();
+                            }
+                            trackNextIdentifier = true;
+                            continue;
                         }
-                        trackNextIdentifier = true;
-                        continue;
-                    }
-                    if ( in.match("function ") ) {
-                        int length = "function ".length();
-                        for (int i = 0; i < length; i++ ) {
-                            cur.add(in.ch());
-                            in.inc();
+                        if (in.match("function ")) {
+                            int length = "function ".length();
+                            for (int i = 0; i < length; i++) {
+                                cur.add(in.ch());
+                                in.inc();
+                            }
+                            trackNextIdentifier = true;
+                            continue;
                         }
-                        trackNextIdentifier = true;
-                        continue;
-                    }
-                    if ( in.match("const ") || in.match("class ") ) {
-                        for (int i=0; i < 5; i++ ) {
-                            cur.add(in.ch());
-                            in.inc();
+                        if (in.match("const ") || in.match("class ")) {
+                            for (int i = 0; i < 5; i++) {
+                                cur.add(in.ch());
+                                in.inc();
+                            }
+                            trackNextIdentifier = true;
+                            continue;
                         }
-                        trackNextIdentifier = true;
-                        continue;
                     }
                 }
                 if ( trackNextIdentifier ) {
@@ -470,7 +177,7 @@ public class JSXParser implements ParseUtils {
                     } else
                         Log.Warn(this,"imbalanced braces. "+file.getAbsolutePath());
                 }
-                in.advance(1);
+                in.index++; // speed interpretere
             }
         }
     }

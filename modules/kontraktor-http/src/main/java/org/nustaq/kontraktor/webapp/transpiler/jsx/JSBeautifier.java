@@ -4,10 +4,9 @@ public class JSBeautifier implements ParseUtils {
 
     public void parseJS(GenOut cur, Inp in) {
         //FIXME; JS regexp
-        boolean returnOnLastMatchingBrace = in.ch() == '{';
-        while (in.ch() > 0)
+        char ch;
+        while ( (ch=in.ch()) > 0)
         {
-            char ch = in.ch(0);
             if ( ch == '/' && in.ch(1) == '/' ) {
                 cur.print(readSlashComment(in));
             } else
@@ -18,14 +17,23 @@ public class JSBeautifier implements ParseUtils {
                 cur.print(readStarComment(in));
             } else
             {
-                if (ch == '}' || ch == ']' || ch == ')' ) {
-                    cur.unindent();
+                switch (ch) {
+                    case '}':
+                    case ']':
+                    case ')':
+                        cur.unindent();
+                        cur.print(ch);
+                        break;
+                    case '{':
+                    case '[':
+                    case '(':
+                        cur.print(ch);
+                        cur.indent();
+                        break;
+                    default:
+                        cur.print(ch);
                 }
-                cur.print(ch);
-                if (ch == '{' || ch == '[' || ch == '(') {
-                    cur.indent();
-                }
-                in.inc();
+                in.index++;
             }
         }
     }

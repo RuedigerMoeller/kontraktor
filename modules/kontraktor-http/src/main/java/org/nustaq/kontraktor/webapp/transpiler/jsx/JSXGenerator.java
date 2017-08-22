@@ -1,14 +1,11 @@
 package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.kontraktor.webapp.javascript.FileResolver;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Set;
-
-import static org.nustaq.kontraktor.webapp.transpiler.jsx.JSXParser.*;
 
 public class JSXGenerator {
 
@@ -172,6 +169,8 @@ public class JSXGenerator {
     public static ParseResult process(File f, boolean pretty, NodeLibNameResolver nlib) throws IOException {
         // this is really inefficient, there are loads of optimization opportunities,
         // however this code runs in devmode only ..
+
+        String canonicalPath = f.getCanonicalPath();
         JSXParser jsx = new JSXParser(f,nlib);
         JSNode root = new JSNode();
         byte[] bytes = Files.readAllBytes(f.toPath());
@@ -180,7 +179,8 @@ public class JSXGenerator {
         jsx.parseJS(root,new Inp(cont));
         if ( jsx.depth != 0 ) {
             Log.Warn(JSXGenerator.class,"probably parse issues non-matching braces in "+f.getAbsolutePath());
-            return new ParseResult(f,bytes,f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),jsx.getTopLevelObjects(),jsx.getIgnoredRequires());
+            ParseResult parseResult = new ParseResult(f, bytes, f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(), jsx.getTopLevelObjects(), jsx.getIgnoredRequires());
+            return parseResult;
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream(bytes.length);
         PrintStream ps = new PrintStream(out);
@@ -197,6 +197,7 @@ public class JSXGenerator {
             pspretty.close();
             filedata = outpretty.toByteArray();
         }
-        return new ParseResult(f,filedata,f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),jsx.getTopLevelObjects(),jsx.getIgnoredRequires());
+        ParseResult parseResult = new ParseResult(f, filedata, f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(), jsx.getTopLevelObjects(), jsx.getIgnoredRequires());
+        return parseResult;
     }
 }

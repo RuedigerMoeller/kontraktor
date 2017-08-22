@@ -9,15 +9,14 @@ public class Inp {
         file = s.toCharArray();
     }
     public char ch(int off) {
-        if (index+off >= file.length) {
+        try {
+            return file[index + off];
+        } catch (Exception e) {
             failcount++;
             if ( failcount > 100 )
                 throw new RuntimeException("prevent endlessloop, check for missing braces, tags or similar balanced chars");
             return 0;
         }
-        if (index+off < 0)
-            return 0;
-        return file[index+off];
     }
 
     public void advance(int amount) {
@@ -25,7 +24,14 @@ public class Inp {
     }
 
     public char ch() {
-        return ch(0);
+        try {
+            return file[index];
+        } catch (Exception e) {
+            failcount++;
+            if ( failcount > 100 )
+                throw new RuntimeException("prevent endlessloop, check for missing braces, tags or similar balanced chars");
+            return 0;
+        }
     }
 
     public void inc() {

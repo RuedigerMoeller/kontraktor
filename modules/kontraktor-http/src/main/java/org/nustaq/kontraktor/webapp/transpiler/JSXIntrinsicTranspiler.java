@@ -5,9 +5,8 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.javascript.FileResolver;
-import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMin;
+import org.nustaq.kontraktor.webapp.transpiler.jsx.ImportSpec;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXGenerator;
-import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXParser;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.NodeLibNameResolver;
 
 import java.io.*;
@@ -36,58 +35,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
     @Override
     public byte[] transpile(File f, FileResolver resolver, Map<String,Object> alreadyResolved) {
-        if ( dev )
-            return processJSX_Dev(f,resolver, alreadyResolved);
-        else
-            return processJSX_Prod(f,resolver,alreadyResolved);
-    }
-
-    protected byte[] processJSX_Prod(File f, FileResolver resolver, Map<String, Object> alreadyResolved) {
-        try {
-            JSXGenerator.ParseResult result = JSXGenerator.process(f,false,createNodeLibNameResolver(resolver));
-            List<JSXParser.ImportSpec> specs = result.getImports();
-            byte[] res = result.getFiledata();
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(1_000_000);
-            if ( "index.jsx".equals(f.getName()) ) {
-                baos.write((getInitialShims()+"\n").getBytes("UTF-8"));
-                alreadyResolved.put("JSXIndex",Boolean.TRUE);
-            }
-            for (int i = 0; i < specs.size(); i++) {
-                JSXParser.ImportSpec importSpec = specs.get(i);
-                String from = importSpec.getFrom();
-                if ( ! from.endsWith(".js") && ! from.endsWith(".jsx") ) {
-                    from += ".js";
-                }
-                byte[] resolved = resolver.resolve(f.getParentFile(), from, alreadyResolved);
-                if ( resolved == null && from.endsWith(".js") ) {
-                    // try jsx
-                    from = from.substring(0,from.length()-3)+".jsx";
-                    resolved = resolver.resolve(f.getParentFile(), from, alreadyResolved);
-                }
-                if ( resolved != null )
-                    baos.write(resolved);
-                else
-                    Log.Warn(this,from+" not found");
-            }
-            if (result.generateESWrap())
-                baos.write(generateImportPrologue(result, resolver).getBytes("UTF-8"));
-            if ( minifyjsx )
-                res = JSMin.minify(res);
-            baos.write(res);
-            if ( result.generateESWrap() )
-                baos.write(generateImportEnd(result, resolver).getBytes("UTF-8"));
-            return baos.toByteArray();
-        } catch (Exception e) {
-            Log.Error(this,e);
-            StringWriter out = new StringWriter();
-            e.printStackTrace(new PrintWriter(out));
-            try {
-                return out.getBuffer().toString().getBytes("UTF-8");
-            } catch (UnsupportedEncodingException e1) {
-                e1.printStackTrace();
-            }
-        }
-        return new byte[0];
+        return processJSX(dev,f,resolver, alreadyResolved);
     }
 
     private NodeLibNameResolver createNodeLibNameResolver(FileResolver resolver) {
@@ -185,19 +133,19 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         return null;
     }
 
-    protected byte[] processJSX_Dev(File f, FileResolver resolver, Map<String, Object> alreadyResolved) {
+    protected byte[] processJSX(boolean dev, File f, FileResolver resolver, Map<String, Object> alreadyResolved) {
         try {
-            JSXGenerator.ParseResult result = JSXGenerator.process(f,true,createNodeLibNameResolver(resolver));
-            List<JSXParser.ImportSpec> specs = result.getImports();
-            byte[] res = result.getFiledata();
             boolean isInitialIndexJSX = "index.jsx".equals(f.getName());
+            JSXGenerator.ParseResult result = JSXGenerator.process(f,true,createNodeLibNameResolver(resolver));
+            List<ImportSpec> specs = result.getImports();
+            byte[] res = result.getFiledata();
             if (isInitialIndexJSX) {
                 alreadyResolved.put("JSXIndexStart", System.currentTimeMillis());
                 ByteArrayOutputStream baos = new ByteArrayOutputStream(1_000_000);
                 baos.write((getInitialShims()+"\n").getBytes("UTF-8"));
                 alreadyResolved.put("JSXIndex", baos);
             }
-            ByteArrayOutputStream baos = (ByteArrayOutputStream) alreadyResolved.get("JSXIndex");
+            ByteArrayOutputStream indexBaos = (ByteArrayOutputStream) alreadyResolved.get("JSXIndex");
             if ( alreadyResolved.get("_Ignored") == null ) {
                 alreadyResolved.put("_Ignored",result.getIgnoredRequires());
             }
@@ -205,11 +153,11 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             ignoredRequires.addAll(result.getIgnoredRequires());
 
             for (int i = 0; i < specs.size(); i++) {
-                JSXParser.ImportSpec importSpec = specs.get(i);
-                File redirected = resolveImportSpec(f, importSpec, baos, resolver, alreadyResolved, ignoredRequires);
+                ImportSpec importSpec = specs.get(i);
+                File redirected = resolveImportSpec(f, importSpec, indexBaos, resolver, alreadyResolved, ignoredRequires);
                 if (redirected == null) continue;
             }
-            ByteArrayOutputStream mainBao = new ByteArrayOutputStream(10_000);
+            ByteArrayOutputStream mainBao = dev ? new ByteArrayOutputStream(20_000) : indexBaos;
             if (result.generateESWrap())
                 mainBao.write(generateImportPrologue(result, resolver).getBytes("UTF-8"));
             if (result.generateCommonJSWrap())
@@ -220,16 +168,18 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             if (result.generateCommonJSWrap())
                 mainBao.write(generateCommonJSEnd(f,result, resolver).getBytes("UTF-8"));
 
-            String name = constructLibName(f, resolver)+".transpiled";
-            resolver.install("/debug/" + name, mainBao.toByteArray());
-            baos.write(
-                ("document.write( '<script src=\"debug/" + name + "\"></script>');\n")
-                    .getBytes("UTF-8")
-            );
+            if ( dev ) {
+                String name = constructLibName(f, resolver) + ".transpiled";
+                resolver.install("/debug/" + name, mainBao.toByteArray());
+                indexBaos.write(
+                    ("document.write( '<script src=\"debug/" + name + "\"></script>');\n")
+                        .getBytes("UTF-8")
+                );
+            }
             if (isInitialIndexJSX) {
                 Long tim = (Long) alreadyResolved.get("JSXIndexStart");
                 Log.Info(this, "Transpilation time:"+(System.currentTimeMillis()-tim)/1000.0);
-                return baos.toByteArray();
+                return indexBaos.toByteArray();
             }
             return mainBao.toByteArray();
         } catch (Exception e) {
@@ -245,7 +195,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         return new byte[0];
     }
 
-    private File resolveImportSpec(File requiringFile, JSXParser.ImportSpec importSpec, ByteArrayOutputStream hostingBaos, FileResolver resolver, Map<String, Object> alreadyResolved, Set ignoredRequires) throws IOException {
+    private File resolveImportSpec(File requiringFile, ImportSpec importSpec, ByteArrayOutputStream hostingBaos, FileResolver resolver, Map<String, Object> alreadyResolved, Set ignoredRequires) throws IOException {
         String from = importSpec.getFrom();
         File toReadFrom = requiringFile;
         String toReadFromName = null; // node package entry processing
@@ -352,9 +302,9 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     protected String generateImportPrologue(JSXGenerator.ParseResult result, FileResolver resolver) {
         String s = "";
         s += "(new function() {\n";
-        List<JSXParser.ImportSpec> imports = result.getImports();
+        List<ImportSpec> imports = result.getImports();
         for (int i = 0; i < imports.size(); i++) {
-            JSXParser.ImportSpec spec = imports.get(i);
+            ImportSpec spec = imports.get(i);
             String libname = createNodeLibNameResolver(resolver).getFinalLibName(result.getFile(),resolver,spec.getFrom());
             String exportObject = "_kresolve('" + libname+"')";
             if ( spec.getAlias() != null ) {

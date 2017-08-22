@@ -297,7 +297,7 @@ public class HtmlImportShim {
                                 visited.add(url);
                                 Element newScript = new Element(Tag.valueOf("script"), "" );
                                 byte[] bytes = locator.retrieveBytes(impFi);
-                                if ( minify && url.getExtension().equals("js") )
+                                if ( minify && (url.getExtension().equals("js") || url.getName().endsWith("index.jsx")) )
                                     bytes = JSMin.minify(bytes);
                                 String scriptSource = new String(bytes, "UTF-8");
                                 newScript.appendChild(new DataNode(scriptSource, ""));

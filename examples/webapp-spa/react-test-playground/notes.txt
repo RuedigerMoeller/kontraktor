@@ -1,0 +1,5 @@
+* define process.env.NODE_ENV in prod
+* separate user source from node source
+* rename /debug/
+* test require(x.json)
+* add regex to parser

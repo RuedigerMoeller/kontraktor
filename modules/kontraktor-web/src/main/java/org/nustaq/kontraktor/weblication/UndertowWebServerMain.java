@@ -6,17 +6,14 @@ import org.nustaq.kontraktor.webapp.transpiler.JSXIntrinsicTranspiler;
 import org.nustaq.kontraktor.webapp.transpiler.JSXWithBabelTranspiler;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.webapp.javascript.FileResolver;
-import org.nustaq.kontraktor.webapp.transpiler.TranspileException;
 import org.nustaq.kontraktor.webapp.transpiler.TranspilerHook;
+import org.nustaq.kontraktor.webapp.transpiler.jsx.ImportSpec;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXGenerator;
-import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXParser;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.*;
 import java.util.List;
-import java.util.Set;
 
 import static org.nustaq.kontraktor.Actors.AsActor;
 
@@ -191,9 +188,9 @@ public class UndertowWebServerMain {
     protected String generateImportPrologue(String name, JSXGenerator.ParseResult result) {
         String s = "window.klibmap = window.klibmap || {};\nwindow.kimports = window.kimports || {};\n";
         s += "(new function() {\n";
-        List<JSXParser.ImportSpec> imports = result.getImports();
+        List<ImportSpec> imports = result.getImports();
         for (int i = 0; i < imports.size(); i++) {
-            JSXParser.ImportSpec spec = imports.get(i);
+            ImportSpec spec = imports.get(i);
             String libname = constructLibName(spec.getFrom());
             String exportObject = "kimports." + libname;
             if ( spec.getAlias() != null ) {
