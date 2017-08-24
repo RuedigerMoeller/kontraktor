@@ -5,8 +5,8 @@ import {HCenter,Fader} from 'subtest/util';
 import {Greeter} from 'subtest/greeter';
 import {global} from "global"
 import {BootPlay} from 'boostrapplay/bootplay';
-// import {BluePlay} from './blueprint/blueplay';
-// import {SemanticPlay} from './semantic/semanticplay';
+import {SemanticPlay} from './semantic/semanticplay';
+
 //@ignore:./iconv-loader
 // import Encoding from 'encoding';
 // import {Button} from 'material-ui'
@@ -89,10 +89,13 @@ class App extends Component {
             </Fader>
           )
         }
-        { <BootPlay/>
+        <BootPlay/>
+        <SemanticPlay/>
+        {
           /**
             <SemanticPlay/>
-            <BluePlay/> **/}
+            <BluePlay/> **/""
+        }
         <div>
           {this.state.error ? <div><b>error</b></div> : ""}
         </div>

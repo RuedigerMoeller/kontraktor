@@ -255,9 +255,6 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
                 }
                 if ( bytes == null )
                     bytes = Files.readAllBytes(file.toPath());
-                if ( fname.endsWith(".js") && minify ) {
-                    bytes = JSMin.minify(bytes);
-                }
             }
             return bytes;
         } catch (Exception e) {

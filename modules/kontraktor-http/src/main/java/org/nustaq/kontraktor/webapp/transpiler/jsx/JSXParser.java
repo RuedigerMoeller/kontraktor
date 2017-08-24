@@ -61,6 +61,9 @@ public class JSXParser implements ParseUtils {
                             cur.add("/*could not parse name*/");
                         } else {
                             if (libNameResolver != null) {
+                                if ( spec.from.indexOf("_memoizeCapped") >= 0) {
+                                    int debug =1;
+                                }
                                 String finalLibName = libNameResolver.getFinalLibName(file, libNameResolver, spec.from);
                                 cur.add("require('" + finalLibName + "')");
                             } else
@@ -90,6 +93,9 @@ public class JSXParser implements ParseUtils {
             } else
             if ( ch == '/' && in.ch(1) == '*' ) {
                 cur.add(readStarComment(in));
+            } else
+            if ( ch == '/' && "(,=:[!&|?{};".indexOf(in.scanLastNWS()) >= 0 ) {
+                cur.add(readRegexp(in));
             } else
             {
                 if ( SHIM_OBJ_SPREAD && ch == '.' && in.match("...") && in.at(lastBracePos[depth]) == '{' ) {

@@ -5,6 +5,7 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.javascript.FileResolver;
+import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.ImportSpec;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXGenerator;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.NodeLibNameResolver;
@@ -21,11 +22,11 @@ import java.util.Set;
 public class JSXIntrinsicTranspiler implements TranspilerHook {
 
     protected final boolean dev;
-    private final boolean minifyjsx;
+    private final boolean minify;
 
-    public JSXIntrinsicTranspiler(boolean dev, boolean minifyjsx) {
+    public JSXIntrinsicTranspiler(boolean dev, boolean minify) {
         this.dev = dev;
-        this.minifyjsx = minifyjsx;
+        this.minify = minify;
     }
 
     @Override
@@ -35,23 +36,40 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
     @Override
     public byte[] transpile(File f, FileResolver resolver, Map<String,Object> alreadyResolved) {
-        return processJSX(dev,f,resolver, alreadyResolved);
+        byte[] bytes = processJSX(dev, f, resolver, alreadyResolved);
+//        if (minify && f.getName().endsWith("index.jsx")) {
+//            bytes = JSMin.minify(bytes);
+//        }
+        return bytes;
     }
 
     private NodeLibNameResolver createNodeLibNameResolver(FileResolver resolver) {
         return new NodeLibNameResolver() {
             @Override
             public String getFinalLibName(File requiredIn, FileResolver res, String requireText) {
-                File file = resolver.resolveFile(requiredIn.getParentFile(), requireText);
-                if ( file == null )
-                    file = resolver.resolveFile(requiredIn.getParentFile(), requireText+".js");
-                if ( file == null )
-                    file = resolver.resolveFile(requiredIn.getParentFile(), requireText+".jsx");
-                if ( file.isDirectory() )
-                    file = processNodeDir(file,resolver,new HashMap());
-                if ( file == null )
-                    return requireText;
-                return constructLibName(file,resolver);
+                if (requireText.indexOf("memoizedCap") >= 0 ) {
+                    int debug = 1;
+                }
+                File file = null;
+                try {
+                    file = findNodeModulesNearestMatch(requiredIn,requireText);
+                    if ( file == null )
+                        file = resolver.resolveFile(requiredIn.getParentFile(), requireText);
+                    if ( file == null )
+                        file = resolver.resolveFile(requiredIn.getParentFile(), requireText+".js");
+                    if ( file == null )
+                        file = resolver.resolveFile(requiredIn.getParentFile(), requireText+".jsx");
+                    if ( file == null ) {
+                        Log.Warn(this,"unable to find finalLibName for:"+requireText+" in "+requiredIn.getAbsolutePath());
+                        return requireText;
+                    }
+                    if ( file.isDirectory() )
+                        file = processNodeDir(file,resolver,new HashMap());
+                    return constructLibName(file,resolver);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return null;
             }
 
             @Override
@@ -77,13 +95,42 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     }
 
     static File falseFile = new File("false");
-    String findNodeSubDir(File file) throws IOException {
-        if ( file == null )
+
+    /**
+     * return first subdirectory of nearest node path. e.. ../node_modules/react for ../node_modules/dist/lib/index.js
+     * @param requiringFile
+     * @param requireText
+     * @return
+     * @throws IOException
+     */
+    File findNodeModulesNearestMatch(File requiringFile, String requireText) throws IOException {
+        if ( requiringFile == null )
             return null;
-        if ( file.getParentFile() != null && file.getParentFile().getName().equals("node_modules") )
-            return file.getCanonicalPath();
+        if ( !requireText.startsWith(".") ) {
+            File f = new File(requiringFile, "node_modules/" + requireText);
+            if (f.exists())
+                return new File(f.getCanonicalPath());
+            f = new File(requiringFile, "node_modules/" + requireText + ".js");
+            if (f.exists())
+                return new File(f.getCanonicalPath());
+            return findNodeModulesNearestMatch(requiringFile.getParentFile(), requireText);
+        } else {
+            File f = new File(requiringFile.getParentFile(),requireText);
+            if ( ! f.exists() )
+                f =  new File(requiringFile.getParentFile(),requireText+".js");
+            if ( f.exists() )
+                return new File(f.getCanonicalPath());
+        }
+        return null;
+    }
+
+    String findNodeSubDir(File requiringFile) throws IOException {
+        if ( requiringFile == null )
+            return null;
+        if ( requiringFile.getParentFile() != null && requiringFile.getParentFile().getName().equals("node_modules") )
+            return requiringFile.getCanonicalPath();
         else
-            return findNodeSubDir(file.getParentFile());
+            return findNodeSubDir(requiringFile.getParentFile());
     }
 
     private File processNodeDir(File file, FileResolver resolver, Map<String, Object> alreadyResolved) {
@@ -117,6 +164,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
                 String main = pkg.getString("main", null);
                 if ( main != null ) {
+                    if ( ! main.endsWith(".js") )
+                        main = main+".js"; // omg
                     File newF = new File(file, main);
                     return newF;
                 }
@@ -129,6 +178,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             }
         } else if ( new File(file,"index.js").exists() ) {
             return new File(file,"index.js");
+        } else if ( new File(file.getParentFile(),file.getName()+".js").exists() ) {
+            return new File(file.getParentFile(),file.getName()+".js");
         }
         return null;
     }
@@ -154,7 +205,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
             for (int i = 0; i < specs.size(); i++) {
                 ImportSpec importSpec = specs.get(i);
-                File redirected = resolveImportSpec(f, importSpec, indexBaos, resolver, alreadyResolved, ignoredRequires);
+                File redirected = resolveImportSpec(f, importSpec, resolver, alreadyResolved, ignoredRequires);
                 if (redirected == null) continue;
             }
             ByteArrayOutputStream mainBao = dev ? new ByteArrayOutputStream(20_000) : indexBaos;
@@ -195,15 +246,20 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         return new byte[0];
     }
 
-    private File resolveImportSpec(File requiringFile, ImportSpec importSpec, ByteArrayOutputStream hostingBaos, FileResolver resolver, Map<String, Object> alreadyResolved, Set ignoredRequires) throws IOException {
+    private File resolveImportSpec(File requiringFile, ImportSpec importSpec, FileResolver resolver, Map<String, Object> alreadyResolved, Set ignoredRequires) throws IOException {
         String from = importSpec.getFrom();
         File toReadFrom = requiringFile;
         String toReadFromName = null; // node package entry processing
         if ( importSpec.isRequire() ) {
             if (ignoredRequires.contains(importSpec.getFrom()) )
                 return null;
+            if (from.equals("ms") ) {
+                int debug = 1;
+            }
+
             String canonicalF = findNodeSubDir(requiringFile);
             if ( canonicalF != null ) {
+                // check for ignored requires in browser entry of package.json
                 String key = "browser_" + canonicalF + "_" + from;
                 JsonValue o = (JsonValue) alreadyResolved.get(key);
                 if (o != null) {
@@ -222,14 +278,19 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 //                            System.out.println("key lookup == null for browser setting :"+key);
                 }
             } else {
-                Log.Warn(this,"node module dir could not be resolved "+ requiringFile.getAbsolutePath());
+                Log.Warn(this, "node module dir could not be resolved " + requiringFile.getAbsolutePath());
                 return null;
             }
         }
-        File resolvedFile = resolver.resolveFile(requiringFile.getParentFile(), from);
-        File resolvedNodeDir = null;
+        File resolvedFile;
+        if (importSpec.isRequire() ) {
+            resolvedFile = findNodeModulesNearestMatch(requiringFile,from);
+            toReadFromName = resolvedFile.getName();
+            toReadFrom = resolvedFile;
+        } else {
+            resolvedFile = resolver.resolveFile(requiringFile.getParentFile(), from);
+        }
         if ( resolvedFile != null && resolvedFile.isDirectory() ) {
-            resolvedNodeDir = resolvedFile;
             if (from.indexOf("warning") == 0) {
                 int debug = 1;
             }
@@ -308,7 +369,9 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             String libname = createNodeLibNameResolver(resolver).getFinalLibName(result.getFile(),resolver,spec.getFrom());
             String exportObject = "_kresolve('" + libname+"')";
             if ( spec.getAlias() != null ) {
-                s+="  const "+spec.getAlias()+" = "+exportObject+";\n";
+                String alias1 = spec.getAlias()+"1";
+                s+="  const "+ alias1 +" = "+exportObject+".__esModule ? "+exportObject+".default:"+exportObject+";\n";
+                s+="  const "+spec.getAlias()+" = "+alias1+";\n";
             }
             for (int j = 0; j < spec.getAliases().size(); j++) {
                 String alias = spec.getAliases().get(j);
@@ -323,7 +386,6 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         String unique = resolver.resolveUniquePath(f);
         if (unique.startsWith("/"))
             unique = unique.substring(1);
-//        System.out.println("unique:"+unique);
         String name = unique;
         if ( name.endsWith(".js") )
             name = name.substring(0,name.length()-3);
@@ -339,7 +401,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "window.kmodules = {};\n" +
             "\n" +
             "  function kgetModule(name) {\n" +
-            "    const res = kmodules[name];\n" +
+            "    var res = kmodules[name];\n" +
             "    if ( res == null ) {\n" +
             "      kmodules[name] = { exports: {} };\n" +
             "      return kgetModule(name);\n" +
@@ -349,7 +411,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "  }\n" +
             "\n" +
             "  function krequire(name) {\n" +
-            "    return kgetModule(name).exports;\n" +
+            "    const res = kgetModule(name).exports;\n" +
+            "    return res;\n" +
             "  }\n" +
             "\n"+
             "window.klibmap = window.klibmap || {};\nwindow.kimports = window.kimports || {};\n"+

@@ -72,4 +72,12 @@ public class Inp {
         }
     }
 
+    public char scanLastNWS() {
+        int off = -1;
+        while ( Character.isWhitespace(ch(off)) && off + index >= 0 )
+        {
+            off--;
+        }
+        return ch(off);
+    }
 }

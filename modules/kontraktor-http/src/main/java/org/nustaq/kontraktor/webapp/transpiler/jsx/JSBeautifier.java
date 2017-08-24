@@ -16,6 +16,9 @@ public class JSBeautifier implements ParseUtils {
             if ( ch == '/' && in.ch(1) == '*' ) {
                 cur.print(readStarComment(in));
             } else
+            if ( ch == '/' && "(,=:[!&|?{};".indexOf(in.scanLastNWS()) >= 0 ) {
+                cur.print(readRegexp(in));
+            } else
             {
                 switch (ch) {
                     case '}':

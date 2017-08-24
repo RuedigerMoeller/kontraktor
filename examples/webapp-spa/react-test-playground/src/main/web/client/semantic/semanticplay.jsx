@@ -1,5 +1,6 @@
-import {Component} from 'react';
-import {Button,Dropdown,Label,Input,Step,Icon,Form} from 'semantic-ui/semantic-ui-react.min.js';
+import React, {Component} from 'react';
+import StepGroup from 'semantic-ui-react/dist/commonjs/elements/Step/StepGroup.js' // workaround cyclic import issue
+import {Button,Dropdown,Label,Input,Step,Icon,Form} from 'semantic-ui-react';
 
 const steps = [
   { icon: 'truck', title: 'Shipping', description: 'Choose your shipping options' },
@@ -119,7 +120,7 @@ class SemanticPlay extends Component {
         <br/><br/>
 
         <div>
-          <Step.Group>
+          <StepGroup>
             <Step>
               <Icon name='truck' />
               <Step.Content>
@@ -134,11 +135,11 @@ class SemanticPlay extends Component {
             </Step>
 
             <Step disabled icon='info' title='Confirm Order' />
-          </Step.Group>
+          </StepGroup>
 
           <br />
 
-          <Step.Group items={steps} />
+          <StepGroup items={steps} />
         </div>
 
         <br/><br/>

@@ -43,7 +43,7 @@ public class ReactTestApp extends Actor<ReactTestApp> {
     }
 
     public static void main(String[] args) {
-        boolean DEVMODE = true;
+        boolean DEVMODE = false;
 
         if ( ! new File("./src/main/web/client/index.html").exists() ) {
             System.out.println("Please run with working dir: '[..]/react-test-playground");
