@@ -195,7 +195,7 @@ public class Http4K {
                         String lastMod = requestHeaders.get(Headers.IF_MODIFIED_SINCE,0);
                         if ( lastMod != null ) {
                             Date date = DateUtils.parseDate(lastMod);
-                            if ( date != null && date.getTime() >= man.getLastModified()-60_000) {
+                            if ( date != null && date.getTime() >= man.getLastModified()-2_000) {
                                 exchange.setResponseCode(304);
                                 exchange.endExchange();
                                 return;

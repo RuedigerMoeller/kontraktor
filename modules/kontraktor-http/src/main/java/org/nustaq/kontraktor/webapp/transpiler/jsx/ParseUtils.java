@@ -47,10 +47,18 @@ public interface ParseUtils {
         in.index++;
         StringBuilder res = new StringBuilder(100);
         res.append('/');
-        while( (c=in.ch()) != '/' || (in.ch(-1) == '\\' && (in.ch(-2) != '\\')) )
+        while( (c=in.ch()) != '/' )
         {
             res.append(c);
             in.index++;
+            if ( c == '\\' ) {
+                res.append(in.ch());
+                in.index++;
+            }
+        }
+        if ( in.ch(-1) == '/' ) // fix JSMin bug on regexp like '/tablet\//i'
+        {
+            res.append("_?");
         }
         in.index++;
         res.append('/');

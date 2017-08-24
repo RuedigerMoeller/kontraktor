@@ -44,10 +44,6 @@ public abstract class TokenNode {
     public abstract void dump(PrintStream p, String indent);
 
     public void closeCont() {
-        if ( chars.toString().startsWith("/>"))
-        {
-            int debug =1;
-        }
         chars = new StringBuilder();
     }
 

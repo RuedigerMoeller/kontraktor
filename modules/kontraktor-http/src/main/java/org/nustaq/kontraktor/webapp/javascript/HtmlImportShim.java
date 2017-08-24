@@ -137,9 +137,6 @@ public class HtmlImportShim {
                         String src = element.attr("src");
                         KUrl linkUrl = new KUrl(src);
                         boolean symbolic =  src.startsWith("{{");
-                        if ( symbolic ) {
-                            int debug = 1;
-                        }
                         if ( linkUrl.isRelative() && !symbolic ) {
                             linkUrl = linkUrl.prepend( containingFileUrl.getParentURL().getName() );
                             element.attr("src", linkUrl.toUrlString());
@@ -199,9 +196,6 @@ public class HtmlImportShim {
                     type = href.substring(href.lastIndexOf('.')+1);
                 }
             }
-        }
-        if ( link.attr("href").indexOf("skeleton") >= 0 ) {
-            int debug = 1;
         }
         if ( inline && type.indexOf("html") >= 0 && "import".equals(rel)) {
             String href = link.attr("href");

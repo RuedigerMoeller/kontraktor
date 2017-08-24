@@ -15,16 +15,22 @@ public class JSXParser implements ParseUtils {
 
     protected File file;
     protected NodeLibNameResolver libNameResolver;
+    protected String defaultExport;
 
     public JSXParser(File f,NodeLibNameResolver libNameResolver) {
         this.file = f;
         this.libNameResolver = libNameResolver;
     }
 
+    public String getDefaultExport() {
+        return defaultExport;
+    }
+
     public List<String> getTopLevelObjects() {
         return topLevelObjects;
     }
     int depth = 0;
+    boolean exportDefault = false;
     public void parseJS(TokenNode cur, Inp in) {
         //FIXME; JS regexp
         int braceCount = 0;
@@ -42,6 +48,11 @@ public class JSXParser implements ParseUtils {
                 if (in.match("export") && isCommandContext(in, "export")) {
                     in.advance("export".length());
                     in.skipWS();
+                    if ( in.match("default") ) {
+                        in.advance("default".length());
+                        in.skipWS();
+                        exportDefault = true;
+                    }
                     continue;
                 }
                 if (in.match("//@ignore:")) {
@@ -61,9 +72,6 @@ public class JSXParser implements ParseUtils {
                             cur.add("/*could not parse name*/");
                         } else {
                             if (libNameResolver != null) {
-                                if ( spec.from.indexOf("_memoizeCapped") >= 0) {
-                                    int debug =1;
-                                }
                                 String finalLibName = libNameResolver.getFinalLibName(file, libNameResolver, spec.from);
                                 cur.add("require('" + finalLibName + "')");
                             } else
@@ -167,9 +175,12 @@ public class JSXParser implements ParseUtils {
                         global.append(ch);
                     } else {
                         if ( global.length() > 0 ) {
-                            topLevelObjects.add(global.toString());
+                            String ex = global.toString();
+                            topLevelObjects.add(ex);
+                            this.defaultExport = ex;
                             global.setLength(0);
                             trackNextIdentifier = false;
+                            exportDefault = false;
                         }
                     }
                 }
@@ -282,7 +293,7 @@ public class JSXParser implements ParseUtils {
                         }
                         spec.getComponents().add(as[0]);
                         spec.getAliases().add(as[1]);
-                    } else {
+                    } else if (s.length() > 0) {
                         spec.getComponents().add(s);
                         spec.getAliases().add(s);
                     }

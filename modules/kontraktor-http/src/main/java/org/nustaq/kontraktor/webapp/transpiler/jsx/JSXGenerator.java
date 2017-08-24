@@ -114,14 +114,20 @@ public class JSXGenerator {
         List<String> globals;
         Set<String> ignoredRequires;
         String extension;
+        String defaultExport;
 
-        public ParseResult(File f, byte[] filedata, String extension, List<ImportSpec> imports, List<String> globals, Set<String> ignoredReq) {
+        public ParseResult(File f, byte[] filedata, String extension, List<ImportSpec> imports, List<String> globals, Set<String> ignoredReq, String defaultExport) {
             this.filedata = filedata;
             this.imports = imports;
             this.globals = globals;
             this.extension = extension;
             this.f = f;
             this.ignoredRequires = ignoredReq;
+            this.defaultExport = defaultExport;
+        }
+
+        public String getDefaultExport() {
+            return defaultExport;
         }
 
         public Set<String> getIgnoredRequires() {
@@ -197,7 +203,9 @@ public class JSXGenerator {
             pspretty.close();
             filedata = outpretty.toByteArray();
         }
-        ParseResult parseResult = new ParseResult(f, filedata, f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(), jsx.getTopLevelObjects(), jsx.getIgnoredRequires());
+        ParseResult parseResult = new ParseResult(
+            f, filedata, f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),
+            jsx.getTopLevelObjects(), jsx.getIgnoredRequires(), jsx.getDefaultExport() );
         return parseResult;
     }
 }

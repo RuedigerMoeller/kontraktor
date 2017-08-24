@@ -1,11 +1,14 @@
 import React from 'react'
 import {Component}  from 'react'
 import ReactDOM from 'react-dom';
-import {HCenter,Fader} from 'subtest/util';
-import {Greeter} from 'subtest/greeter';
-import {global} from "global"
-import {BootPlay} from 'boostrapplay/bootplay';
+import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+
+import {HCenter,Fader} from './subtest/util';
+import {Greeter} from './subtest/greeter';
+import {global} from "./global"
+import {BootPlay} from './boostrapplay/bootplay';
 import {SemanticPlay} from './semantic/semanticplay';
+import {MaterialPlay} from './materialui/materialplay';
 
 //@ignore:./iconv-loader
 // import Encoding from 'encoding';
@@ -63,46 +66,48 @@ class App extends Component {
 
   render() {
     return (
-      <HCenter>
-        <br/>
-        <div style={{fontWeight: 'bold', fontSize: 18}}>
-          Hello World !
-        </div>
-        <br/>
-        { this.state.loggedIn ?
-          <Fader><Greeter/></Fader>
-          : (
-            <Fader>
-              <HCenter>
-                <input type="text" value={this.state.user}
-                       onChange={ ev => this.handleUChange(ev) }></input>
-              </HCenter>
-              <br/>
-              <HCenter>
-                <button
-                  disabled={!this.state.loginEnabled}
-                  className='defbtn'
-                  onClick={ ev => this.login(ev) }>
-                  Login
-                </button>
-              </HCenter>
-            </Fader>
-          )
-        }
-        <BootPlay/>
-        <SemanticPlay/>
-        {
-          /**
-            <SemanticPlay/>
-            <BluePlay/> **/""
-        }
-        <div>
-          {this.state.error ? <div><b>error</b></div> : ""}
-        </div>
+      <MuiThemeProvider>
+        <HCenter>
+          <br/>
+          <div style={{fontWeight: 'bold', fontSize: 18}}>
+            Hello World !
+          </div>
+          <br/>
+          { this.state.loggedIn ?
+            <Fader><Greeter/></Fader>
+            : (
+              <Fader>
+                <HCenter>
+                  <input type="text" value={this.state.user}
+                         onChange={ ev => this.handleUChange(ev) }></input>
+                </HCenter>
+                <br/>
+                <HCenter>
+                  <button
+                    disabled={!this.state.loginEnabled}
+                    className='defbtn'
+                    onClick={ ev => this.login(ev) }>
+                    Login
+                  </button>
+                </HCenter>
+              </Fader>
+            )
+          }
+          <BootPlay/>
+          <SemanticPlay/>
+          <MaterialPlay/>
+          {
+            /**
+             <SemanticPlay/>
+             <BluePlay/> **/""
+          }
+          <div>
+            {this.state.error ? <div><b>error</b></div> : ""}
+          </div>i
 
-      </HCenter>
-    )
-  }
+        </HCenter>
+      </MuiThemeProvider>
+  )}
 
 }
 

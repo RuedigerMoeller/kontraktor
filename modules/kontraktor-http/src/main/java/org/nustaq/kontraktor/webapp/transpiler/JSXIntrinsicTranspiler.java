@@ -37,9 +37,6 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     @Override
     public byte[] transpile(File f, FileResolver resolver, Map<String,Object> alreadyResolved) {
         byte[] bytes = processJSX(dev, f, resolver, alreadyResolved);
-//        if (minify && f.getName().endsWith("index.jsx")) {
-//            bytes = JSMin.minify(bytes);
-//        }
         return bytes;
     }
 
@@ -47,9 +44,6 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         return new NodeLibNameResolver() {
             @Override
             public String getFinalLibName(File requiredIn, FileResolver res, String requireText) {
-                if (requireText.indexOf("memoizedCap") >= 0 ) {
-                    int debug = 1;
-                }
                 File file = null;
                 try {
                     file = findNodeModulesNearestMatch(requiredIn,requireText);
@@ -187,7 +181,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     protected byte[] processJSX(boolean dev, File f, FileResolver resolver, Map<String, Object> alreadyResolved) {
         try {
             boolean isInitialIndexJSX = "index.jsx".equals(f.getName());
-            JSXGenerator.ParseResult result = JSXGenerator.process(f,true,createNodeLibNameResolver(resolver));
+            JSXGenerator.ParseResult result = JSXGenerator.process(f,dev,createNodeLibNameResolver(resolver));
             List<ImportSpec> specs = result.getImports();
             byte[] res = result.getFiledata();
             if (isInitialIndexJSX) {
@@ -220,10 +214,14 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 mainBao.write(generateCommonJSEnd(f,result, resolver).getBytes("UTF-8"));
 
             if ( dev ) {
+                String dirName = "_node_modules";
+                if (f.getAbsolutePath().indexOf("/node_modules/") < 0 ) {
+                    dirName = "_appsrc";
+                }
                 String name = constructLibName(f, resolver) + ".transpiled";
-                resolver.install("/debug/" + name, mainBao.toByteArray());
+                resolver.install("/"+dirName+"/" + name, mainBao.toByteArray());
                 indexBaos.write(
-                    ("document.write( '<script src=\"debug/" + name + "\"></script>');\n")
+                    ("document.write( '<script src=\""+dirName+"/" + name + "\"></script>');\n")
                         .getBytes("UTF-8")
                 );
             }
@@ -253,9 +251,6 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         if ( importSpec.isRequire() ) {
             if (ignoredRequires.contains(importSpec.getFrom()) )
                 return null;
-            if (from.equals("ms") ) {
-                int debug = 1;
-            }
 
             String canonicalF = findNodeSubDir(requiringFile);
             if ( canonicalF != null ) {
@@ -291,9 +286,6 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             resolvedFile = resolver.resolveFile(requiringFile.getParentFile(), from);
         }
         if ( resolvedFile != null && resolvedFile.isDirectory() ) {
-            if (from.indexOf("warning") == 0) {
-                int debug = 1;
-            }
             File indexFile = processNodeDir(resolvedFile, resolver, alreadyResolved);
             if ( indexFile == falseFile ) {
                 return null;
@@ -356,6 +348,9 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         for (int i = 0; i < result.getGlobals().size(); i++) {
             String gl = result.getGlobals().get(i);
             s+="  "+exportObject+"."+gl+" = "+gl+";\n";
+            if ( gl.equals(result.getDefaultExport())) {
+                s+="  "+exportObject+".__kdefault__ = "+gl+";\n";
+            }
         }
         return s+"});";
     }
@@ -370,7 +365,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             String exportObject = "_kresolve('" + libname+"')";
             if ( spec.getAlias() != null ) {
                 String alias1 = spec.getAlias()+"1";
-                s+="  const "+ alias1 +" = "+exportObject+".__esModule ? "+exportObject+".default:"+exportObject+";\n";
+                s+="  var "+ alias1 +" = "+exportObject+".__esModule ? "+exportObject+".default:"+exportObject+";\n";
+                s+="  "+alias1+" = "+alias1+".__kdefault__ ? "+alias1+".__kdefault__ : "+alias1+";\n";
                 s+="  const "+spec.getAlias()+" = "+alias1+";\n";
             }
             for (int j = 0; j < spec.getAliases().size(); j++) {
@@ -437,7 +433,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "  return obj;\n" +
             "};\n" +
             "window._kresolve = function (libname,identifier) {\n" +
-            "  var res = klibmap[libname] ? klibmap[libname]()[identifier] : (window.kimports[libname] ? window.kimports[libname][identifier] : null);\n" +
+            "  var res = klibmap[libname] ? klibmap[libname]() : (window.kimports[libname] ? window.kimports[libname] : null);\n" +
+            "  if ( identifier && res) res = res[identifier];\n"+
             "  if ( ! res ) {\n" +
             "    if ( !identifier)\n"+
             "        res = kmodules[libname] ? kmodules[libname].exports : null;\n" +
@@ -450,7 +447,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "  return res;\n" +
             "};\n" +
             "window.module = {}; \n" +
-            "window.process = { env: {} };"+
+            (dev ? "window.process = { env: {} };" : "window.process = { env: { 'NODE_ENV' : 'production' } };")+
         "\n";
     }
 

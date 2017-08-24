@@ -44,6 +44,8 @@ public class JSMin {
     }
 
     public static byte[] minify( byte bytes[] ) {
+//        if ( 1 != 0 )
+//            return bytes;
         ByteArrayInputStream bin = new ByteArrayInputStream(bytes);
         ByteArrayOutputStream bout = new ByteArrayOutputStream(bytes.length);
         builder().inputStream(bin).outputStream(bout).build().minify();

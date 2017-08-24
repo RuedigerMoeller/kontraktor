@@ -1,5 +1,7 @@
-* define process.env.NODE_ENV in prod
-* separate user source from node source
-* rename /debug/
+* DONE define process.env.NODE_ENV in prod
+* DONE separate user source from node source
+* DONE rename /debug/
 * test require(x.json)
-* add regex to parser
+* DONE add regex to parser
+* DONE implement jsx default export (currently syntax error)
+* DONE trailing ',' in import
