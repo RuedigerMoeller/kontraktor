@@ -131,7 +131,7 @@ public class UndertowWebServerMain {
 
     protected TranspilerHook createJSXTranspiler(boolean intrinsicJSX, BasicWebAppConfig cfg) {
         if ( intrinsicJSX ) {
-            return new JSXIntrinsicTranspiler(cfg.dev, !cfg.dev);
+            return new JSXIntrinsicTranspiler(cfg.dev);
         } else {
             return new JSXWithBabelTranspiler().opts(new BabelOpts().debug(cfg.dev));
         }

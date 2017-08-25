@@ -3,9 +3,12 @@ package org.nustaq.kontraktor.webapp.transpiler;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import org.nustaq.kontraktor.KTimeoutException;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.javascript.FileResolver;
 import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMin;
+import org.nustaq.kontraktor.webapp.npm.JNPM;
+import org.nustaq.kontraktor.webapp.npm.JNPMConfig;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.ImportSpec;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXGenerator;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.NodeLibNameResolver;
@@ -21,12 +24,15 @@ import java.util.Set;
  */
 public class JSXIntrinsicTranspiler implements TranspilerHook {
 
-    protected final boolean dev;
-    private final boolean minify;
+    protected boolean dev;
+    protected File jnpmNodeModulesDir;
+    protected boolean autoJNPM;
+    protected JNPMConfig jnpmConfig;
+    protected String jnpmConfigFile;
 
-    public JSXIntrinsicTranspiler(boolean dev, boolean minify) {
+    public JSXIntrinsicTranspiler(boolean dev) {
         this.dev = dev;
-        this.minify = minify;
+        this.autoJNPM = dev; // use fluent setter to turn off also for dev
     }
 
     @Override
@@ -280,8 +286,12 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         File resolvedFile;
         if (importSpec.isRequire() ) {
             resolvedFile = findNodeModulesNearestMatch(requiringFile,from);
-            toReadFromName = resolvedFile.getName();
-            toReadFrom = resolvedFile;
+            if ( resolvedFile != null ) {
+                toReadFromName = resolvedFile.getName();
+                toReadFrom = resolvedFile;
+            } else {
+                int debug = 1;
+            }
         } else {
             resolvedFile = resolver.resolveFile(requiringFile.getParentFile(), from);
         }
@@ -327,8 +337,33 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 }
             }
         }
-        else
-            Log.Warn(this,importSpec.getFrom()+" not found. requiredBy:"+ requiringFile.getCanonicalPath());
+        else {
+            if ( autoJNPM && jnpmNodeModulesDir != null ) {
+                String required = importSpec.getFrom();
+                int i = required.indexOf("/");
+                if ( i >= 0 ) {
+                    required = required.substring(0,i);
+                }
+                // single file can't be a node module
+                if ( required.indexOf(".") < 0 ) {
+                    JNPMConfig config =
+                        jnpmConfig != null ?
+                            jnpmConfig
+                            : (jnpmConfigFile != null ?
+                            JNPMConfig.read(jnpmConfigFile)
+                            : new JNPMConfig()
+                        );
+                    Log.Info(this, importSpec.getFrom() + " not found. installing .. '" + required+"'");
+                    try {
+                        JNPM.Install(required, null, jnpmNodeModulesDir, config).await(30_000);
+                        return resolveImportSpec(requiringFile, importSpec, resolver, alreadyResolved, ignoredRequires);
+                    } catch (Exception kt) {
+                        Log.Error(this,"jnpm install timed out. Check Proxy JVM settings, internet connectivity or just retry");
+                    }
+                }
+            }
+            Log.Warn(this, importSpec.getFrom() + " not found. requiredBy:" + requiringFile.getCanonicalPath());
+        }
         return requiringFile;
     }
 
@@ -449,6 +484,28 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "window.module = {}; \n" +
             (dev ? "window.process = { env: {} };" : "window.process = { env: { 'NODE_ENV' : 'production' } };")+
         "\n";
+    }
+
+    public JSXIntrinsicTranspiler nodeModulesDir(File jnpmNodeModulesDir) {
+        this.jnpmNodeModulesDir = jnpmNodeModulesDir;
+        return this;
+    }
+
+    public JSXIntrinsicTranspiler configureJNPM(String nodeModulesDir, String pathToJNPMConfigKsonFile) {
+        this.jnpmNodeModulesDir = new File(nodeModulesDir);
+        this.jnpmConfigFile = pathToJNPMConfigKsonFile;
+        return this;
+    }
+
+    public JSXIntrinsicTranspiler configureJNPM(String nodeModulesDir, JNPMConfig config) {
+        this.jnpmNodeModulesDir = new File(nodeModulesDir);
+        this.jnpmConfig = config;
+        return this;
+    }
+
+    public JSXIntrinsicTranspiler autoJNPM(boolean b) {
+        this.autoJNPM = b;
+        return this;
     }
 
 }

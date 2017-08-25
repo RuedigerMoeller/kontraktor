@@ -65,7 +65,7 @@ public abstract class KontraktorServlet extends HttpServlet {
     protected BldResPath getResourcePathConfig() {
         return new BldResPath(null, "/")
             .elements(getResourcePathElementsAbsolute())
-            .transpile("jsx", new JSXIntrinsicTranspiler(isDevMode(),!isDevMode()))
+            .transpile("jsx", new JSXIntrinsicTranspiler(isDevMode()))
             .allDev(isDevMode());
     }
 

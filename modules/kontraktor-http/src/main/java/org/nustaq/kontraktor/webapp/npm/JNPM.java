@@ -18,9 +18,8 @@ import org.nustaq.utils.AsyncHttpActor;
 import java.io.*;
 import java.util.*;
 
-public class NPMCrawler extends Actor<NPMCrawler> {
+public class JNPM extends Actor<JNPM> {
 
-    public static String repo = "http://registry.npmjs.org/";
     public static enum InstallResult {
         EXISTS,
         INSTALLED,
@@ -137,7 +136,7 @@ public class NPMCrawler extends Actor<NPMCrawler> {
                     return;
                 }
                 String resolvedVersion = getVersion(module, finalVersionSpec, versions, finalDist);
-                http.getContent(repo+module+"/"+ resolvedVersion).then( (cont, err) -> {
+                http.getContent(config.getRepo()+"/"+module+"/"+ resolvedVersion).then( (cont, err) -> {
                     if ( cont != null ) {
                         JsonObject pkg = Json.parse(cont).asObject();
 
@@ -173,7 +172,7 @@ public class NPMCrawler extends Actor<NPMCrawler> {
 
     protected IPromise<List<String>> getVersions(String module) {
         Promise res = new Promise();
-        http.getContent(repo+module).then( (cont,err) -> {
+        http.getContent(config.getRepo()+"/"+module).then( (cont,err) -> {
             if ( cont != null ) {
                 JsonObject parse = Json.parse(cont).asObject().get("versions").asObject();
                 List<String> versions = new ArrayList<>();
@@ -190,7 +189,7 @@ public class NPMCrawler extends Actor<NPMCrawler> {
     protected IPromise<JsonObject> getDistributions(String module) {
         Promise res = new Promise();
 //        http://registry.npmjs.org/-/package/react/dist-tags
-        http.getContent(repo+"-/package/"+module+"/dist-tags").then( (cont,err) -> {
+        http.getContent(config.getRepo()+"/-/package/"+module+"/dist-tags").then( (cont,err) -> {
             if ( cont != null ) {
                 JsonObject parse = Json.parse(cont).asObject();
                 res.resolve(parse);
@@ -260,18 +259,26 @@ public class NPMCrawler extends Actor<NPMCrawler> {
         return untaredFiles;
     }
 
-    public static void main(String[] args) {
-        NPMCrawler unpkgCrawler = AsActor(NPMCrawler.class,AsyncHttpActor.getSingleton().getScheduler());
-        File nodeModules = new File("./modules/kontraktor-http/src/test/node_modules");
-        System.out.println(nodeModules.getAbsolutePath());
-        unpkgCrawler.init(
-            nodeModules,
-            JNPMConfig.read("./modules/kontraktor-http/src/test/jnpm.kson") );
-        unpkgCrawler.npmInstall("semantic-ui-react", null).then( (r,e) -> {
-            Log.Info(NPMCrawler.class,"DONE "+r+" "+e);
+    public static IPromise Install(String module, String versionSpec, File modulesDir, JNPMConfig config) {
+        Promise p = new Promise();
+        JNPM unpkgCrawler = AsActor(JNPM.class,AsyncHttpActor.getSingleton().getScheduler());
+        unpkgCrawler.init( modulesDir, config);
+        unpkgCrawler.npmInstall(module, versionSpec).then( (r,e) -> {
+//            Log.Info(JNPM.class,"DONE "+r+" "+e);
             unpkgCrawler.stop();
+            p.resolve();
         });
-
-        //http://registry.npmjs.org/-/package/react/dist-tags
+        return p;
     }
+
+    public static void main(String[] args) {
+        Install(
+            "semantic-ui-react",
+            null,
+            new File("./modules/kontraktor-http/src/test/node_modules"),
+            JNPMConfig.read("./modules/kontraktor-http/src/test/jnpm.kson")
+        );
+    }
+    //http://registry.npmjs.org/-/package/react/dist-tags
+
 }

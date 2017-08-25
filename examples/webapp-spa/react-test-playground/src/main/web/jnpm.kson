@@ -1,0 +1,7 @@
+JNPMConfig {
+  versionMap:
+    {
+      module-name :  "^1.2.3"
+    }
+  repo: "http://registry.npmjs.org/"
+}

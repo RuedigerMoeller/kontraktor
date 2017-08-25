@@ -56,7 +56,7 @@ public class ReactMiniApp extends Actor<ReactMiniApp> {
         Http4K.Build("localhost", 8080)
             .resourcePath("/")
                 .elements("./src/main/web/client","./src/main/web/lib")
-                .transpile("jsx", new JSXIntrinsicTranspiler(DEVMODE,!DEVMODE))
+                .transpile("jsx", new JSXIntrinsicTranspiler(DEVMODE))
                 .allDev(DEVMODE)
                 .buildResourcePath()
             .httpAPI("/api", app)

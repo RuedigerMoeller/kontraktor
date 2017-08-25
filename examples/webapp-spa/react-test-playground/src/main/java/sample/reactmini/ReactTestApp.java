@@ -56,7 +56,11 @@ public class ReactTestApp extends Actor<ReactTestApp> {
         Http4K.Build("localhost", 8080)
             .resourcePath("/")
                 .elements("./src/main/web/client","./src/main/web/lib","./src/main/web/node_modules")
-                .transpile("jsx", new JSXIntrinsicTranspiler(DEVMODE,!DEVMODE))
+                .transpile("jsx",
+                    new JSXIntrinsicTranspiler(DEVMODE)
+                        .configureJNPM("./src/main/web/node_modules","./src/main/web/jnpm.kson")
+                        .autoJNPM(DEVMODE)
+                )
                 .allDev(DEVMODE)
                 .buildResourcePath()
             .httpAPI("/api", app)
