@@ -3,7 +3,7 @@ package org.nustaq.kontraktor.webapp.npm;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
-import com.github.zafarkhaja.semver.Version;
+import com.github.yuchi.semver.Range;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -52,7 +52,7 @@ public class JNPM extends Actor<JNPM> {
         String bestMatch[] = {"latest"};
         try {
             String finalSpec = spec;
-            versions.forEach(vers -> {
+            versions.forEach( vers -> {
                 try {
                     if (matches(vers, finalSpec))
                         bestMatch[0] = vers;
@@ -70,36 +70,9 @@ public class JNPM extends Actor<JNPM> {
     }
 
     private static boolean matches(String version, String condition) {
-        try {
-            condition = condition.replace("||","|");
-            condition = condition.replace("&&","&");
-            int i = version.indexOf("-");
-            if (i > 0) {
-                version = version.substring(0, i);
-            }
-            i = condition.indexOf("-");
-            if (i > 0) {
-                condition = condition.substring(0, i);
-            }
-            Version sem = Version.valueOf(version);
-            return sem.satisfies(patchVSpec(condition));
-        } catch (Exception e) {
-            // FIXME: insert '&' to '>14.0.0 <= 15'
-            Log.Warn(JNPM.class, "cannot parse version condition:'" + condition + "' matching against "+version);
-//            e.printStackTrace();
-            return false;
-        }
-    }
-
-    private static String patchVSpec(String spec) {
-//        if ( spec.startsWith("^") ) {
-//            String oldspec = spec;
-//            String rawversion = oldspec.substring(1);
-//            String[] split = rawversion.split("\\.");
-//            int major = Integer.parseInt(split[0]);
-//            spec = ">="+ rawversion +" <"+(major+1)+".0.0";
-//        }
-        return spec; // FIXME: suboptimal, workaround semver bug
+        Range r = Range.from(condition,false);
+        com.github.yuchi.semver.Version v = com.github.yuchi.semver.Version.from(version,false);
+        return r.test(v);
     }
 
     public IPromise<InstallResult> npmInstall( String module, String versionSpec, File importingModuleDir ) {
@@ -110,6 +83,21 @@ public class JNPM extends Actor<JNPM> {
         File nodeModule = new File(nodeModulesDir, module);
         boolean installPrivate = false;
         if (nodeModule.exists() ) {
+            File targetDir = importingModuleDir.getName().equals("node_modules") ? nodeModulesDir:new File(importingModuleDir,"node_modules");
+            String moduleKey = createModuleKey(module, targetDir);
+            List<Promise> promises = packagesUnderway.get(moduleKey);
+            if ( promises != null )
+            {
+                int debug = 1;
+            }
+            String finalVersionSpec1 = versionSpec;
+            if ( promises!=null && promises.size() > 0 ) // timing: not unpacked
+            {
+                Log.Warn(this, "Delaying because in transfer:"+module+" "+targetDir.getAbsolutePath());
+                Promise p = new Promise();
+                delayed(500, ()-> npmInstall(module, finalVersionSpec1, importingModuleDir).then(p) );
+                return p;
+            }
             File pack = new File(nodeModule,"package.json");
             if ( pack.exists() && versionSpec.indexOf(".") > 0 ) {
                 String version = null;
@@ -120,12 +108,18 @@ public class JNPM extends Actor<JNPM> {
                     vspec = versionSpec;
                     if (!matches(version,vspec)) {
                         Log.Warn(this,"version mismatch for module '"+module+"'. requested:"+versionSpec+" from '"+importingModuleDir.getName()+"' installed:"+version+". (delete module dir for update)");
-                        installPrivate = true;
+                        if ( config.getVersion(module) == null ) {
+                            installPrivate = true;
+                            Log.Warn(this,"   installing private "+module);
+                        } else {
+                            Log.Warn(this,"   stick with mismatch because of jnpm.kson config entry for "+module);
+                        }
                     }
                 } catch (Exception e) {
-                    System.out.println("VERSION:"+version+" SPEC:"+vspec+" module:"+module);
-                    e.printStackTrace();
-                    return resolve(InstallResult.FAILED);
+                    Log.Error(this, "can't parse package.json in "+module+" "+importingModuleDir.getAbsolutePath()+". Retry");
+                    Promise p = new Promise();
+                    delayed(500, ()-> npmInstall(module, finalVersionSpec1, importingModuleDir).then(p) );
+                    return p;
                 }
             } else
                 return resolve(InstallResult.EXISTS);
@@ -311,7 +305,12 @@ public class JNPM extends Actor<JNPM> {
     }
 
     public static void main(String[] args) {
-        System.out.println(matches("16.0.0",">=0.14.0 <=15"));
+        boolean matches = matches("15.6.1", ">=0.14.0 <= 15");
+        matches = matches("15.6.1", ">=0.14.0 <=15");
+        matches = matches("16.0.0-beta.5", "^15.6.1");
+        System.out.println(matches("15.6.2","^0.14.9 || >=15.3.0"));
+        if ( 1 != 0 )
+            return;
         InstallResult res = Install(
             "react-dom",
             null,
