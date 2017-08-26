@@ -72,6 +72,7 @@ public class JNPM extends Actor<JNPM> {
     private static boolean matches(String version, String condition) {
         try {
             condition = condition.replace("||","|");
+            condition = condition.replace("&&","&");
             int i = version.indexOf("-");
             if (i > 0) {
                 version = version.substring(0, i);
@@ -83,7 +84,9 @@ public class JNPM extends Actor<JNPM> {
             Version sem = Version.valueOf(version);
             return sem.satisfies(patchVSpec(condition));
         } catch (Exception e) {
-            e.printStackTrace();
+            // FIXME: insert '&' to '>14.0.0 <= 15'
+            Log.Warn(JNPM.class, "cannot parse version condition:'" + condition + "' matching against "+version);
+//            e.printStackTrace();
             return false;
         }
     }
@@ -308,7 +311,7 @@ public class JNPM extends Actor<JNPM> {
     }
 
     public static void main(String[] args) {
-        System.out.println(matches("16.0.0-beta.5","^15.0.0"));
+        System.out.println(matches("16.0.0",">=0.14.0 <=15"));
         InstallResult res = Install(
             "react-dom",
             null,
