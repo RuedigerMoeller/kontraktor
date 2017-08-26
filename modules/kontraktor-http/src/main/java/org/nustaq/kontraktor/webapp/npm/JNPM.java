@@ -3,7 +3,7 @@ package org.nustaq.kontraktor.webapp.npm;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
-import com.github.jknack.semver.Semver;
+import com.github.zafarkhaja.semver.Version;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -20,11 +20,12 @@ import java.util.*;
 
 public class JNPM extends Actor<JNPM> {
 
-    public static enum InstallResult {
+    public enum InstallResult {
         EXISTS,
         INSTALLED,
         NOT_FOUND,
-        FAILED
+        FAILED,
+        VERSION_MISMATCH,
     }
 
     File nodeModulesDir;
@@ -49,12 +50,11 @@ public class JNPM extends Actor<JNPM> {
         if ( dist != null )
             return dist;
         String bestMatch[] = {"latest"};
-        spec = patchVSpec(spec);
         try {
-            Semver semverMatcher = Semver.create(spec);
+            String finalSpec = spec;
             versions.forEach(vers -> {
                 try {
-                    if (matches(semverMatcher,vers))
+                    if (matches(vers, finalSpec))
                         bestMatch[0] = vers;
                 } catch (Exception e) {
                     Log.Warn(this, "cannot parse version tag:'" + vers + "'. Default to latest.");
@@ -69,34 +69,43 @@ public class JNPM extends Actor<JNPM> {
         return bestMatch[0];
     }
 
-    private boolean matches(Semver sem, String version) {
-        int i = version.indexOf("-");
-        if ( i > 0 ) {
-            version = version.substring(0,i);
+    private static boolean matches(String version, String condition) {
+        try {
+            condition = condition.replace("||","|");
+            int i = version.indexOf("-");
+            if (i > 0) {
+                version = version.substring(0, i);
+            }
+            i = condition.indexOf("-");
+            if (i > 0) {
+                condition = condition.substring(0, i);
+            }
+            Version sem = Version.valueOf(version);
+            return sem.satisfies(patchVSpec(condition));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         }
-        return sem.matches(version);
     }
 
-    private String patchVSpec(String spec) {
-        if ( spec.startsWith("^") ) {
-            String oldspec = spec;
-            String rawversion = oldspec.substring(1);
-            String[] split = rawversion.split("\\.");
-            int major = Integer.parseInt(split[0]);
-            spec = ">="+ rawversion +" < "+(major+1)+".0.0";
-        }
-        return spec.replace('^','~'); // FIXME: suboptimal, workaround semver bug
+    private static String patchVSpec(String spec) {
+//        if ( spec.startsWith("^") ) {
+//            String oldspec = spec;
+//            String rawversion = oldspec.substring(1);
+//            String[] split = rawversion.split("\\.");
+//            int major = Integer.parseInt(split[0]);
+//            spec = ">="+ rawversion +" <"+(major+1)+".0.0";
+//        }
+        return spec; // FIXME: suboptimal, workaround semver bug
     }
 
-    public IPromise<InstallResult> npmInstall( String module, String versionSpec ) {
+    public IPromise<InstallResult> npmInstall( String module, String versionSpec, File importingModuleDir ) {
         if (versionSpec == null) {
             versionSpec = "latest";
         }
-        if (packagesUnderway.containsKey(module) ) {
-            return resolve(InstallResult.INSTALLED);
-        }
 
         File nodeModule = new File(nodeModulesDir, module);
+        boolean installPrivate = false;
         if (nodeModule.exists() ) {
             File pack = new File(nodeModule,"package.json");
             if ( pack.exists() && versionSpec.indexOf(".") > 0 ) {
@@ -105,16 +114,18 @@ public class JNPM extends Actor<JNPM> {
                 try {
                     JsonObject pjson = Json.parse(new FileReader(pack)).asObject();
                     version = pjson.getString("version", null);
-                    vspec = patchVSpec(versionSpec);
-                    if (!matches(Semver.create(vspec),version)) {
-                        Log.Warn(this,"version mismatch for module '"+module+"'. requested:"+versionSpec+" installed:"+version+". (delete module dir for update)");
+                    vspec = versionSpec;
+                    if (!matches(version,vspec)) {
+                        Log.Warn(this,"version mismatch for module '"+module+"'. requested:"+versionSpec+" from '"+importingModuleDir.getName()+"' installed:"+version+". (delete module dir for update)");
+                        installPrivate = true;
                     }
                 } catch (Exception e) {
                     System.out.println("VERSION:"+version+" SPEC:"+vspec+" module:"+module);
                     e.printStackTrace();
+                    return resolve(InstallResult.FAILED);
                 }
-            }
-            return resolve(InstallResult.EXISTS);
+            } else
+                return resolve(InstallResult.EXISTS);
         }
         Promise p = new Promise();
 
@@ -123,6 +134,7 @@ public class JNPM extends Actor<JNPM> {
         IPromise<JsonObject> distributionsProm = getDistributions(module);
 
         String finalVersionSpec = versionSpec == null ? "latest" : versionSpec;
+        boolean finalInstallPrivate = installPrivate;
         distributionsProm.then( (dist, derr) -> {
             if ( dist == null ) {
                 dist = new JsonObject();
@@ -153,10 +165,15 @@ public class JNPM extends Actor<JNPM> {
                             ((JsonObject) dependencies).merge(peerdependencies.asObject());
                         }
 
-                        downLoadAndInstall(tarUrl,module,resolvedVersion);
+                        File targetDir = finalInstallPrivate ? new File(importingModuleDir,"node_modules"):nodeModulesDir;
+                        if ( finalInstallPrivate )
+                            targetDir.mkdirs();
+                        IPromise depP = downLoadAndInstall(tarUrl,module,resolvedVersion,targetDir);
                         List deps = new ArrayList<>();
+                        deps.add(depP);
+                        File importingDir = new File(nodeModulesDir,module);
                         ((JsonObject) dependencies).forEach( member -> {
-                            deps.add(npmInstall(member.getName(),member.getValue().asString()));
+                            deps.add(npmInstall(member.getName(),member.getValue().asString(),importingDir));
                         });
                         all(deps).then( (r,e) -> {
                             p.resolve(InstallResult.INSTALLED);
@@ -201,36 +218,55 @@ public class JNPM extends Actor<JNPM> {
     }
 
     Map<String,List<Promise>> packagesUnderway = new HashMap<>();
-    private IPromise downLoadAndInstall(String tarUrl, String moduleName, String resolvedVersion) {
+    private IPromise downLoadAndInstall(String tarUrl, String moduleName, String resolvedVersion, File targetDir) {
         Promise p = new Promise();
-        if ( packagesUnderway.containsKey(moduleName) ) {
-            // FIXME: trigger but no finished yet
-            packagesUnderway.get(moduleName).add(p);
+        String moduleKey = createModuleKey(moduleName,targetDir);
+        List<Promise> promlist = packagesUnderway.get(moduleKey);
+        if (promlist!=null) {
+            if ( promlist.size() == 0 ) {
+                // timing: has already arrived and proms resolved
+                p.resolve(true);
+            } else {
+                packagesUnderway.get(moduleKey).add(p);
+            }
             return p;
         }
-        Log.Info(this,String.format("installing '%s' in %s.", moduleName+"@"+ resolvedVersion, nodeModulesDir.getAbsolutePath()));
+        Log.Info(this,String.format("installing '%s' in %s.", moduleName +"@"+ resolvedVersion, targetDir.getAbsolutePath()));
         ArrayList list = new ArrayList();
-        packagesUnderway.put(moduleName, list);
+        packagesUnderway.put(moduleKey, list);
         list.add(p);
+        checkThread();
         http.getContentBytes(tarUrl).then( (resp,err) -> {
             exec( () -> { // multithread unpacking (java io blocks, so lets mass multithread)
                 byte b[] = resp;
                 try {
                     b = AsyncHttpActor.unGZip(b,b.length*10);
-                    File outputDir = new File(nodeModulesDir, moduleName);
+                    File outputDir = new File(targetDir, moduleName);
                     unTar(new ByteArrayInputStream(b), outputDir);
                 } catch (IOException e) {
                     e.printStackTrace();
+                    return false;
                 } catch (ArchiveException e) {
                     e.printStackTrace();
+                    return false;
                 }
-                return "dummy";
+                return true;
             }).then( () -> {
-                packagesUnderway.get(moduleName).forEach( prom -> prom.resolve(true) );
-                packagesUnderway.get(moduleName).clear();
+                checkThread();
+//                Log.Info(this,String.format("installed '%s' in %s.", moduleName+"@"+ resolvedVersion, nodeModulesDir.getAbsolutePath()));
+                packagesUnderway.get(moduleKey).forEach(prom -> prom.resolve(true) );
+                packagesUnderway.get(moduleKey).clear();
             });
         });
         return p;
+    }
+
+    private String createModuleKey(String moduleName, File targetDir) {
+        try {
+            return moduleName+"#"+targetDir.getCanonicalPath();
+        } catch (IOException e) {
+            return moduleName+"#"+targetDir.getAbsolutePath();
+        }
     }
 
     private static List<File> unTar(final InputStream is, final File outputDir) throws FileNotFoundException, IOException, ArchiveException {
@@ -259,25 +295,27 @@ public class JNPM extends Actor<JNPM> {
         return untaredFiles;
     }
 
-    public static IPromise Install(String module, String versionSpec, File modulesDir, JNPMConfig config) {
+    public static IPromise<InstallResult> Install(String module, String versionSpec, File modulesDir, JNPMConfig config) {
         Promise p = new Promise();
         JNPM unpkgCrawler = AsActor(JNPM.class,AsyncHttpActor.getSingleton().getScheduler());
         unpkgCrawler.init( modulesDir, config);
-        unpkgCrawler.npmInstall(module, versionSpec).then( (r,e) -> {
+        unpkgCrawler.npmInstall(module, versionSpec,modulesDir).then( (r,e) -> {
 //            Log.Info(JNPM.class,"DONE "+r+" "+e);
             unpkgCrawler.stop();
-            p.resolve();
+            p.complete(r,e);
         });
         return p;
     }
 
     public static void main(String[] args) {
-        Install(
-            "semantic-ui-react",
+        System.out.println(matches("16.0.0-beta.5","^15.0.0"));
+        InstallResult res = Install(
+            "react-dom",
             null,
             new File("./modules/kontraktor-http/src/test/node_modules"),
             JNPMConfig.read("./modules/kontraktor-http/src/test/jnpm.kson")
-        );
+        ).await();
+        System.out.println("DONE "+res);
     }
     //http://registry.npmjs.org/-/package/react/dist-tags
 

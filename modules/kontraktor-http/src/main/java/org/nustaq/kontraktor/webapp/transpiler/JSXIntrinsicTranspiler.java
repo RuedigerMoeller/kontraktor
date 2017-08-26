@@ -355,9 +355,11 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                         );
                     Log.Info(this, importSpec.getFrom() + " not found. installing .. '" + required+"'");
                     try {
-                        JNPM.Install(required, null, jnpmNodeModulesDir, config).await(30_000);
-                        return resolveImportSpec(requiringFile, importSpec, resolver, alreadyResolved, ignoredRequires);
-                    } catch (Exception kt) {
+                        JNPM.InstallResult await = JNPM.Install(required, null, jnpmNodeModulesDir, config).await(60_000);
+                        if ( await == JNPM.InstallResult.INSTALLED )
+                            return resolveImportSpec(requiringFile, importSpec, resolver, alreadyResolved, ignoredRequires);
+                    } catch (Throwable kt) {
+                        kt.printStackTrace();
                         Log.Error(this,"jnpm install timed out. Check Proxy JVM settings, internet connectivity or just retry");
                     }
                 }

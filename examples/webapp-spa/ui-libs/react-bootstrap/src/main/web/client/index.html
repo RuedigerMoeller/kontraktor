@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="" style="height: 100%;">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>react playground sample</title>
+    <link rel="stylesheet" type="text/css" href="css/index.css">
+
+    <!-- required for react bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css">
+
+</head>
+
+<body style="min-height: 100%; display: flex;">
+
+<div id="root" style="width: 80%;margin: 0 auto;"></div>
+
+<!--
+manual import as kontraktor-client has no browserable npm build currently.
+-->
+<script src="kontraktor-common.js"></script>
+<script src="kontraktor-client.js"></script>
+
+<script>
+  // in order to make UMD builds work with 'import' we need a map of library filename to library Object,
+  // as libs arent loaded yet, provide lambdas.
+  klibmap = {
+    // import 'react-bootstrap' resolves to klibmap['reactBootstrap']
+//    reactBootstrap: () => ReactBootstrap,
+  };
+</script>
+
+<script src="index.jsx"></script>
+
+<!-- take care: in dev mode index.jsx is loaded deferred (side effect of document.write -->
+
+</body>
+
+</html>

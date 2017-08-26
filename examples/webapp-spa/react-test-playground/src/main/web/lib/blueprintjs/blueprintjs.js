@@ -1119,6 +1119,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    "iconName",
 	    "inputRef",
 	    "intent",
+	    "inline",
 	    "loading",
 	    "leftIconName",
 	    "onChildrenMount",
@@ -4937,7 +4938,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	    // optional inputRef in case the component needs reference for itself (don't forget to invoke the prop!).
 	    Control.prototype.renderControl = function (type, typeClassName, inputRef) {
 	        if (inputRef === void 0) { inputRef = this.props.inputRef; }
-	        var className = classNames(Classes.CONTROL, typeClassName, (_a = {}, _a[Classes.DISABLED] = this.props.disabled, _a), this.props.className);
+	        var className = classNames(Classes.CONTROL, typeClassName, (_a = {},
+	            _a[Classes.DISABLED] = this.props.disabled,
+	            _a[Classes.INLINE] = this.props.inline,
+	            _a), this.props.className);
 	        var inputProps = props_1.removeNonHTMLProps(this.props, INVALID_PROPS, true);
 	        return (React.createElement("label", { className: className, style: this.props.style },
 	            React.createElement("input", tslib_1.__assign({}, inputProps, { ref: inputRef, type: type })),
@@ -5545,6 +5549,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        return {
 	            checked: value === this.props.selectedValue,
 	            disabled: disabled || this.props.disabled,
+	            inline: this.props.inline,
 	            name: name == null ? this.autoGroupName : name,
 	            onChange: this.props.onChange,
 	        };
@@ -5706,6 +5711,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var hotkeyParser_1 = __webpack_require__(58);
 	var KeyIcons = {
 	    alt: "pt-icon-key-option",
+	    cmd: "pt-icon-key-command",
 	    ctrl: "pt-icon-key-control",
 	    delete: "pt-icon-key-delete",
 	    down: "pt-icon-arrow-down",
@@ -5852,7 +5858,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    command: "meta",
 	    escape: "esc",
 	    minus: "-",
-	    mod: ((typeof navigator !== "undefined") && /Mac|iPod|iPhone|iPad/.test(navigator.platform)) ? "meta" : "ctrl",
+	    mod: isMac() ? "meta" : "ctrl",
 	    option: "alt",
 	    plus: "+",
 	    return: "enter",
@@ -6013,11 +6019,24 @@ return /******/ (function(modules) { // webpackBootstrap
 	 * Unlike the parseKeyCombo method, this method does NOT convert shifted
 	 * action keys. So `"@"` will NOT be converted to `["shift", "2"]`).
 	 */
-	exports.normalizeKeyCombo = function (combo) {
+	exports.normalizeKeyCombo = function (combo, platformOverride) {
 	    var keys = combo.replace(/\s/g, "").split("+");
-	    return keys.map(function (key) { return exports.Aliases[key] != null ? exports.Aliases[key] : key; });
+	    return keys.map(function (key) {
+	        var keyName = (exports.Aliases[key] != null) ? exports.Aliases[key] : key;
+	        return (keyName === "meta")
+	            ? (isMac(platformOverride) ? "cmd" : "ctrl")
+	            : keyName;
+	    });
 	};
 	/* tslint:enable:no-string-literal */
+	function isMac(platformOverride) {
+	    var platform = platformOverride != null
+	        ? platformOverride
+	        : (typeof navigator !== "undefined" ? navigator.platform : undefined);
+	    return platform == null
+	        ? false
+	        : /Mac|iPod|iPhone|iPad/.test(platform);
+	}
 	
 	//# sourceMappingURL=hotkeyParser.js.map
 

@@ -127,7 +127,7 @@ public class Log extends Actor<Log> {
                     case DEBUG: svString = "D "; break;
                     case ERROR: svString = "E "; break;
                 }
-                System.out.println(svString+formatter.format(new Date())+" : "+ tname +" : "+source+" : "+msg);
+                System.out.println(svString+formatter.format(new Date())+";"+ tname +";"+source+";"+msg);
                 if ( ex != null ) {
                     System.out.println("EXC:");
                     ex.printStackTrace(System.out);

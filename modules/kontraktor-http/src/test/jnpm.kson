@@ -2,7 +2,7 @@ JNPMConfig {
   versionMap:
     {
       module-name :  "1.2.3"
-      react: "^15.0.0"
-      react-dom: "^15.0.0"
+      # react: "^15.0.0"
+      # react-dom: "^15.0.0"
     }
 }
