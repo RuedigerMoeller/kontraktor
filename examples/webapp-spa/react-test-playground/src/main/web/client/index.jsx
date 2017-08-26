@@ -67,11 +67,13 @@ class App extends Component {
   render() {
     return (
       <MuiThemeProvider>
-        <HCenter>
+        <div>
           <br/>
-          <div style={{fontWeight: 'bold', fontSize: 18}}>
-            Hello World !
-          </div>
+          <HCenter>
+            <div style={{fontWeight: 'bold', fontSize: 18}}>
+              Hello World !
+            </div>
+          </HCenter>
           <br/>
           { this.state.loggedIn ?
             <Fader><Greeter/></Fader>
@@ -93,21 +95,21 @@ class App extends Component {
               </Fader>
             )
           }
-          <BootPlay/>
-          <SemanticPlay/>
-          <MaterialPlay/>
-          {
-            /**
-             <SemanticPlay/>
-             <BluePlay/> **/""
-          }
+          <div>
+            <BootPlay/>
+          </div>
+          <div>
+            <SemanticPlay/>
+          </div>
+          <div>
+            <MaterialPlay/>
+          </div>
           <div>
             {this.state.error ? <div><b>error</b></div> : ""}
-          </div>i
-
-        </HCenter>
+          </div>
+        </div>
       </MuiThemeProvider>
-  )}
+    )}
 
 }
 

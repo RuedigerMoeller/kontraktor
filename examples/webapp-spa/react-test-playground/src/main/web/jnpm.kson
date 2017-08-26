@@ -1,7 +1,9 @@
 JNPMConfig {
   versionMap:
     {
-      module-name :  "^1.2.3"
+      # avoid getting beta
+      react :  "^15.0.0"
+      react-dom :  "^15.0.0"
     }
   repo: "http://registry.npmjs.org/"
 }
