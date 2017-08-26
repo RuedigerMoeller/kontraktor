@@ -5,8 +5,10 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Scheduler;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
+import org.nustaq.kontraktor.remoting.base.SessionResurrector;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.transpiler.JSXIntrinsicTranspiler;
 
 import java.io.File;
@@ -17,7 +19,7 @@ import java.util.stream.IntStream;
 /**
  * minimal implementation of session based server (incl. load balancing)
  */
-public class ReactTestApp extends Actor<ReactTestApp> {
+public class ReactSemanticUITestApp extends Actor<ReactSemanticUITestApp> {
 
     private Scheduler clientThreads[];
     private Random rand = new Random();
@@ -29,12 +31,12 @@ public class ReactTestApp extends Actor<ReactTestApp> {
             .forEach( i -> clientThreads[i] = new SimpleScheduler(100, true /*Important!*/ ));
     }
 
-    public IPromise<ReactTestSession> login(String username) {
+    public IPromise<ReactSemanticUITestSession> login(String username) {
         if ( "".equals(username.trim()) ) {
             return reject("empty username");
         }
-        ReactTestSession session = AsActor(
-            ReactTestSession.class,
+        ReactSemanticUITestSession session = AsActor(
+            ReactSemanticUITestSession.class,
             // randomly distribute session actors among clientThreads
             clientThreads[rand.nextInt(clientThreads.length)]
         );
@@ -46,11 +48,11 @@ public class ReactTestApp extends Actor<ReactTestApp> {
         boolean DEVMODE = true;
 
         if ( ! new File("./src/main/web/client/index.html").exists() ) {
-            System.out.println("Please run with working dir: '[..]/react-test-playground");
+            System.out.println("Please run with working dir: '[..]/semantic-ui");
             System.exit(-1);
         }
 
-        ReactTestApp app = AsActor(ReactTestApp.class);
+        ReactSemanticUITestApp app = AsActor(ReactSemanticUITestApp.class);
         app.init(4);
 
         Http4K.Build("localhost", 8080)
@@ -66,7 +68,9 @@ public class ReactTestApp extends Actor<ReactTestApp> {
             .httpAPI("/api", app)
                 .serType(SerializerType.JsonNoRef)
                 .setSessionTimeout(TimeUnit.MINUTES.toMillis(30))
+//                .setSessionTimeout(10000)
                 .buildHttpApi()
             .build();
     }
+
 }

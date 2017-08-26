@@ -1,12 +1,5 @@
 import React, {Component} from 'react';
-import StepGroup from 'semantic-ui-react/dist/commonjs/elements/Step/StepGroup.js' // workaround cyclic import issue
 import {Button,Dropdown,Label,Input,Step,Icon,Form} from 'semantic-ui-react';
-
-const steps = [
-  { icon: 'truck', title: 'Shipping', description: 'Choose your shipping options' },
-  { active: true, icon: 'payment', title: 'Billing', description: 'Enter billing information' },
-  { disabled: true, icon: 'info', title: 'Confirm Order' },
-];
 
 const optionsDD = [
   { key: 'angular', text: 'Angular', value: 'angular' },
@@ -117,31 +110,6 @@ class SemanticPlay extends Component {
             <option value='Dutch' />
           </datalist>
         </div>
-        <br/><br/>
-
-        <div>
-          <StepGroup>
-            <Step>
-              <Icon name='truck' />
-              <Step.Content>
-                <Step.Title>Shipping</Step.Title>
-                <Step.Description>Choose your shipping options</Step.Description>
-              </Step.Content>
-            </Step>
-
-            <Step active>
-              <Icon name='payment' />
-              <Step.Content title='Billing' description='Enter billing information' />
-            </Step>
-
-            <Step disabled icon='info' title='Confirm Order' />
-          </StepGroup>
-
-          <br />
-
-          <StepGroup items={steps} />
-        </div>
-
         <br/><br/>
 
         <div>

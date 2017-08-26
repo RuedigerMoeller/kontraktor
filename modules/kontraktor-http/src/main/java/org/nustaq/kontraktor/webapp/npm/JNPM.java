@@ -95,7 +95,7 @@ public class JNPM extends Actor<JNPM> {
             {
                 Log.Warn(this, "Delaying because in transfer:"+module+" "+targetDir.getAbsolutePath());
                 Promise p = new Promise();
-                delayed(500, ()-> npmInstall(module, finalVersionSpec1, importingModuleDir).then(p) );
+                delayed(1000, ()-> npmInstall(module, finalVersionSpec1, importingModuleDir).then(p) );
                 return p;
             }
             File pack = new File(nodeModule,"package.json");
@@ -118,7 +118,7 @@ public class JNPM extends Actor<JNPM> {
                 } catch (Exception e) {
                     Log.Error(this, "can't parse package.json in "+module+" "+importingModuleDir.getAbsolutePath()+". Retry");
                     Promise p = new Promise();
-                    delayed(500, ()-> npmInstall(module, finalVersionSpec1, importingModuleDir).then(p) );
+                    delayed(1000, ()-> npmInstall(module, finalVersionSpec1, importingModuleDir).then(p) );
                     return p;
                 }
             } else

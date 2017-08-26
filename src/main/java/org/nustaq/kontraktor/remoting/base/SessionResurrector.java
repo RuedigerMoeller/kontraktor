@@ -9,12 +9,6 @@ import org.nustaq.kontraktor.Promise;
  */
 public interface SessionResurrector {
     /**
-     * currently only called in case of http remoting. An unknown remote ref was detected,
-     * notify a new connection has been established.
-     */
-    void restoreRemoteRefConnection(String sessionId);
-
-    /**
      * reanimate a remote ref of a resurrected facade connection
      *
      * @param sessionId

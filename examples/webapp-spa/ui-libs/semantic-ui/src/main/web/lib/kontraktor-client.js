@@ -677,6 +677,9 @@ class KontrActor {
       this.global.batchCB = [];
       socket.send(data).then( (r,e) => {
         if (e) {
+          if ( e == 401 ) {
+             this.global.listener.onInvalidResponse(401);
+          }
           this.socketHolder.socket.termOpenCBs(prev);
         }
       });

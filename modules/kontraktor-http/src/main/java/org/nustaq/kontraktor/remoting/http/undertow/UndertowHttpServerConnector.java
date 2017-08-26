@@ -126,7 +126,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
                 if ( httpObjectSocket != null ) {
                     handleClientRequest(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null);
                 } else {
-                    exchange.setResponseCode(404);
+                    exchange.setResponseCode(401);
                     exchange.endExchange();
                 }
             }

@@ -10,7 +10,7 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
-    <artifactId>react-test-playground</artifactId>
+    <artifactId>semantic-ui</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <build>

@@ -1,6 +1,7 @@
 import React,{Component} from 'react';
 import {global} from "../global";
-import {Fader} from "./util";
+import {Fader, HCenter} from "./util";
+import {Button} from 'semantic-ui-react';
 
 class Greeter extends Component {
 
@@ -13,22 +14,33 @@ class Greeter extends Component {
 
   componentDidMount() {
     global.session.greet('World')
-      .then( (res,err) => {
-        console.log("receive greeting ",res,err);
-        this.setState({greeting: err ? err : res });
-      });
+      .then( (res,err) => this.setState({greeting: err ? err : res}) );
+  }
+
+  anotherGreet() {
+    global.session.greet("Another World "+new Date())
+      .then( (res,err) => this.setState({greeting: err ? err : res}) );
   }
 
   render() {
     /*enforce component creation to trigger fading*/
     return (
-      <Fader>
-        { this.state.greeting == '...' ?
-          <div>{this.state.greeting}</div>
-          :
-          <div>{this.state.greeting}</div>
-      }
-      </Fader>
+      <div>
+        <HCenter>
+          <Fader>
+            { this.state.greeting == '...' ?
+              <div>{this.state.greeting}</div>
+              :
+              <div>{this.state.greeting}</div>
+            }
+          </Fader>
+        </HCenter>
+        <HCenter>
+          <Button onClick={() => this.anotherGreet()}>
+            Another Greet
+          </Button>
+        </HCenter>
+      </div>
     );
   }
 

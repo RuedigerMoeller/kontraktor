@@ -131,15 +131,6 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     }*/
 
     /**
-     * just a notification
-     * @param sessionId
-     */
-    @Override @Local
-    public void restoreRemoteRefConnection(String sessionId) {
-        Log.Info(this,"try reanimating "+ sessionId);
-    }
-
-    /**
      * An existing spa client made a request after being inactive for a long time.
      *
      * mission: reconstruct a session actor and load its state (e.g. from persistence) so it can continue or

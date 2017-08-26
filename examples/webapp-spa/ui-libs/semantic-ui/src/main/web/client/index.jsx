@@ -1,18 +1,12 @@
 import React from 'react'
 import {Component}  from 'react'
 import ReactDOM from 'react-dom';
-import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 
 import {HCenter,Fader} from './subtest/util';
 import {Greeter} from './subtest/greeter';
-import {global} from "./global"
-import {BootPlay} from './boostrapplay/bootplay';
-import {SemanticPlay} from './semantic/semanticplay';
-import {MaterialPlay} from './materialui/materialplay';
-
-//@ignore:./iconv-loader
-// import Encoding from 'encoding';
-// import {Button} from 'material-ui'
+import global from "./global"
+import {SemanticPlay as MySemanticPlay} from './semantic/semanticplay';
+import {Form,Modal} from 'semantic-ui-react';
 
 class App extends Component {
 
@@ -22,8 +16,20 @@ class App extends Component {
       user: '',
       loginEnabled: false,
       loggedIn: false,
-      error: null
-    }
+      error: null,
+      expired: false
+    };
+    const self = this;
+    global.kclient.listener = new class extends KClientListener {
+      onInvalidResponse(resp) {
+        // session timeout (=401 or 'unknown actor')
+        self.setState({expired: true});
+      }
+    };
+  }
+
+  reload() {
+    document.location.href = "/";
   }
 
   handleUChange(ev) {
@@ -66,48 +72,51 @@ class App extends Component {
 
   render() {
     return (
-      <MuiThemeProvider>
+      <div>
+        <Modal
+          open={this.state.expired}
+          header='Session expired'
+          content='you need to relogin'
+          actions={[
+            { key: 'ok', content: 'Ok', color: 'green' },
+          ]}
+          onClose={()=>this.reload()}
+        />
         <HCenter>
-          <br/>
           <div style={{fontWeight: 'bold', fontSize: 18}}>
             Hello World !
           </div>
-          <br/>
-          { this.state.loggedIn ?
-            <Fader><Greeter/></Fader>
-            : (
-              <Fader>
-                <HCenter>
-                  <input type="text" value={this.state.user}
-                         onChange={ ev => this.handleUChange(ev) }></input>
-                </HCenter>
-                <br/>
-                <HCenter>
-                  <button
-                    disabled={!this.state.loginEnabled}
-                    className='defbtn'
-                    onClick={ ev => this.login(ev) }>
-                    Login
-                  </button>
-                </HCenter>
-              </Fader>
-            )
-          }
-          <BootPlay/>
-          <SemanticPlay/>
-          <MaterialPlay/>
-          {
-            /**
-             <SemanticPlay/>
-             <BluePlay/> **/""
-          }
-          <div>
-            {this.state.error ? <div><b>error</b></div> : ""}
-          </div>i
-
         </HCenter>
-      </MuiThemeProvider>
-  )}
+        <br/>
+        { this.state.loggedIn ?
+          <Fader><Greeter/></Fader>
+          : (
+            <Fader>
+              <HCenter>
+                <Form>
+                  <Form.Input label='Log In' placeholder='nick name' onChange={ ev => this.handleUChange(ev) } />
+                  <HCenter>
+                    <Form.Button
+                      disabled={!this.state.loginEnabled}
+                      onClick={ ev => this.login(ev) }>
+                      Login
+                    </Form.Button>
+                  </HCenter>
+                </Form>
+              </HCenter>
+              <br/>
+            </Fader>
+          )
+        }
+        <div>
+          {this.state.error ? <div><b>error</b></div> : ""}
+        </div>
+        <div>
+          <MySemanticPlay/>
+        </div>
+      </div>
+    )}
+
 
 }
 

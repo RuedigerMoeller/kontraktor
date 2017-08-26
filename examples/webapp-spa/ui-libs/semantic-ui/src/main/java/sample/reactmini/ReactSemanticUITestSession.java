@@ -6,7 +6,7 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
 import org.nustaq.kontraktor.util.Log;
 
-public class ReactTestSession extends Actor<ReactTestSession> implements RemotedActor {
+public class ReactSemanticUITestSession extends Actor<ReactSemanticUITestSession> implements RemotedActor {
 
     private String name;
 

@@ -68,7 +68,6 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
     protected HttpObjectSocket restoreSessionFromId(String sessionId) {
         if ( facade instanceof SessionResurrector)
         {
-            ((SessionResurrector)facade.getActorRef()).restoreRemoteRefConnection(sessionId);
             HttpObjectSocket sock = new HttpObjectSocket( sessionId, () -> facade.execute( () -> closeSession(sessionId))) {
                 @Override
                 protected int getObjectMaxBatchSize() {

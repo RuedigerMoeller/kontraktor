@@ -75,7 +75,7 @@ public class ServletActorConnector extends AbstractHttpServerConnector {
 //                    handleClientRequest(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null);
                 } else {
                     HttpServletResponse response = (HttpServletResponse) aCtx.getResponse();
-                    response.setStatus(404);
+                    response.setStatus(401);
                     aCtx.complete();
                 }
             }
