@@ -124,6 +124,7 @@ public class JNPM extends Actor<JNPM> {
             } else
                 return resolve(InstallResult.EXISTS);
         }
+
         Promise p = new Promise();
 
         // fire in parallel

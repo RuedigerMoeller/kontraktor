@@ -2,13 +2,14 @@ import React from 'react'
 import {Component}  from 'react'
 import ReactDOM from 'react-dom';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-
+import {KClientListener} from 'kontraktor-client';
 import {HCenter,Fader} from './util';
 import Greeter from './greeter';
 import global from "./global"
 import MaterialPlay from './materialui/materialplay';
 import TextField from 'material-ui/TextField';
 import RaisedButton from 'material-ui/RaisedButton';
+import Dialog from 'material-ui/Dialog';
 
 class App extends Component {
 
@@ -85,10 +86,10 @@ class App extends Component {
 
   render() {
     const actions = [
-      <FlatButton
-        label="Cancel"
+      <RaisedButton
+        label="Ok"
         primary={true}
-        onClick={this.handleClose}
+        onClick={ () => this.relogin() }
       />
     ];
     return (

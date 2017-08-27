@@ -200,16 +200,16 @@ class DecodingHelper {
       type = 'map';
     }
     if( Object.prototype.toString.call( list ) === '[object Array]' ) {
-        list.splice( 0, 0, list.length/2 ); // insert number of elements at 0
-        return { typ: type, obj: list };
+      list.splice( 0, 0, list.length/2 ); // insert number of elements at 0
+      return { typ: type, obj: list };
     } else {
       var res = { typ: type, obj: [] };
       var count = 0;
       for (var property in list) {
         if (list.hasOwnProperty(property)) {
-            count++;
-            res.obj.push(property);
-            res.obj.push(list[property]);
+          count++;
+          res.obj.push(property);
+          res.obj.push(list[property]);
         }
       }
       res.obj.splice( 0, 0, res.obj.length/2 ); // insert number of elements at 0
@@ -218,7 +218,7 @@ class DecodingHelper {
   }
 }
 
-if ( typeof module !== 'undefined' ) {
+if ( module ) {
   module.exports = {
     KPromise : KPromise,
     DecodingHelper : DecodingHelper

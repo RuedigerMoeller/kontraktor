@@ -3,17 +3,15 @@
 
 const _kontraktor_IsNode = Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
 if ( _kontraktor_IsNode ) {
-  kontraktor = require('kontraktor-common');
-
-  KPromise = kontraktor.KPromise;
-  coder = new kontraktor.DecodingHelper();
   if ( typeof window === 'undefined')
     window = {}; // node
   XMLHttpRequest = require("./xmlhttpdummy.js");
   WebSocket = require('ws');
-} else {
-  coder = new DecodingHelper();
 }
+
+const kontraktor = require ? require('kontraktor-common') : { KPromise:KPromise, DecodingHelper:DecodingHelper };
+const KPromise = kontraktor.KPromise;
+const coder = new kontraktor.DecodingHelper();
 
 const NO_RESULT = "NO_RESULT";
 
@@ -678,7 +676,7 @@ class KontrActor {
       socket.send(data).then( (r,e) => {
         if (e) {
           if ( e == 401 ) {
-             this.global.listener.onInvalidResponse(401);
+            this.global.listener.onInvalidResponse(401);
           }
           this.socketHolder.socket.termOpenCBs(prev);
         }
@@ -740,7 +738,7 @@ class KontrActor {
 
 }
 
-if ( _kontraktor_IsNode ) {
+if ( module ) {
   module.exports = {
     KClient : KClient,
     KPromise : KPromise,

@@ -236,7 +236,7 @@ public class JSXParser implements ParseUtils {
         if ( ch == 0 )
             ch = ';';
         in.index = pos;
-        if ( "/>;:{(}?=".indexOf(ch) >= 0 )
+        if ( "/>;:{([,}?=".indexOf(ch) >= 0 )
             return true;
         return false;
     }

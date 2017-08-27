@@ -66,6 +66,7 @@ public class ReactMaterialUITestApp extends Actor<ReactMaterialUITestApp> {
             .httpAPI("/api", app)
                 .serType(SerializerType.JsonNoRef)
                 .setSessionTimeout(TimeUnit.MINUTES.toMillis(30))
+//                .setSessionTimeout(1000)
                 .buildHttpApi()
             .build();
     }
