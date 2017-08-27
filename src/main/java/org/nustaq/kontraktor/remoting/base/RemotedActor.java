@@ -25,7 +25,11 @@ public interface RemotedActor {
     /**
      * notification method called once an actor has been unpublished. E.g. in case of a ClientSession role
      * actor, this will be called once the client disconnects or times out
+     * @param connectionIdentifier
      */
-    public void hasBeenUnpublished();
+    void hasBeenUnpublished(String connectionIdentifier);
+    default void hasBeenPublished(String connectionIdentifier) {
+        // empty
+    }
 
 }

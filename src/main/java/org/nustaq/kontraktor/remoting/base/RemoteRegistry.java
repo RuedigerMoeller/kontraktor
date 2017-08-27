@@ -190,7 +190,8 @@ public abstract class RemoteRegistry implements RemoteConnection {
             publishedActorMappingReverse.remove(act.getActorRef());
             act.__removeRemoteConnection(this);
             if ( act instanceof RemotedActor) {
-                ((RemotedActor) act).hasBeenUnpublished();
+                String connectionIdentifier = getSocketRef().getConnectionIdentifier();
+                ((RemotedActor) act).hasBeenUnpublished(connectionIdentifier);
             }
         }
     }

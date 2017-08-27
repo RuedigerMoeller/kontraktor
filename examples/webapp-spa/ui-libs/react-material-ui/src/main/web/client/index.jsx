@@ -10,6 +10,8 @@ import MaterialPlay from './materialui/materialplay';
 import TextField from 'material-ui/TextField';
 import RaisedButton from 'material-ui/RaisedButton';
 import Dialog from 'material-ui/Dialog';
+import Static from './static';
+import {RadioButtonGroup,RadioButton} from 'material-ui/RadioButton';
 
 class App extends Component {
 
@@ -20,6 +22,7 @@ class App extends Component {
       loginEnabled: false,
       loggedIn: false,
       relogin: false,
+      connectionType: 'HTLP',
       error: null
     };
     const self = this;
@@ -27,18 +30,15 @@ class App extends Component {
       // session timeout or resurrection fail
       onInvalidResponse(response) {
         console.error("invalid response");
-        self.setState({relogin: true});
-      }
-      onError(obj) {
-        console.error("connectionError",obj)
-      }
-      onClosed() {
-        console.warn("connection closed")
+        self.setState({relogin: true}); // session expired
       }
       onResurrection() {
-        console.log("session resurrected")
+        console.log("session resurrected. should update client data + resubscribe streams in case !")
       }
     };
+  }
+  handleConnectionSelect(event, value) {
+    this.setState( { connectionType:"http" == value ? "HTPL" : "WS" } )
   }
 
   handleUChange(ev) {
@@ -57,8 +57,16 @@ class App extends Component {
   }
 
   login() {
+    var url,connectionType;
+    if ( this.state.connectionType == 'HTLP' ) {
+      url = "/api";
+      connectionType = "HTLP";
+    } else {
+      url = "ws://"+document.location.host+"/ws";
+      connectionType = "WS";
+    }
     global.kclient
-      .connect("/api")
+      .connect(url,connectionType)
         .then( (server,err) => {
           if ( err )
             this.setState( {error: ""+err} );
@@ -104,7 +112,7 @@ class App extends Component {
           >
             Session timed out. Pls relogin.
           </Dialog>
-
+          <br/><br/><br/>
           <HCenter>
             <div style={{fontWeight: 'bold', fontSize: 18}}>
               Hello World !
@@ -124,6 +132,19 @@ class App extends Component {
                 </HCenter>
                 <br/>
                 <HCenter>
+                  <RadioButtonGroup name="connection" defaultSelected="http" onChange={(ev,val) => this.handleConnectionSelect(ev,val)}>
+                    <RadioButton
+                      value="http"
+                      label="Http (adaptive long poll)"
+                    />
+                    <RadioButton
+                      value="websockets"
+                      label="WebSocket"
+                    />
+                  </RadioButtonGroup>
+                </HCenter>
+                <br/>
+                <HCenter>
                   <RaisedButton
                     disabled={!this.state.loginEnabled}
                     onClick={ ev => this.login(ev) }>
@@ -136,9 +157,12 @@ class App extends Component {
           <div>
             {this.state.error ? <div><b>error</b></div> : ""}
           </div>
+          { this.state.loggedIn ?
           <div>
             <MaterialPlay/>
           </div>
+            : <Static/>
+          }
         </div>
       </MuiThemeProvider>
   )}
@@ -146,5 +170,4 @@ class App extends Component {
 }
 
 global.app = <App/>;
-
 ReactDOM.render(global.app,document.getElementById("root"));

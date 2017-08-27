@@ -38,7 +38,7 @@ public abstract class BasicWebSessionActor<T extends BasicWebSessionActor> exten
     }
 
     @Override
-    public void hasBeenUnpublished() {
+    public void hasBeenUnpublished(String connectionIdentifier) {
         app.notifySessionEnd(self());
         ISessionStorage storage = app.getSessionStorage();
         persistSessionData(sessionId, storage);

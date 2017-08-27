@@ -70,7 +70,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
         setPrefix(prefix);
         dependencyResolver = new DependencyResolver(resPathBase,resourcePath,this);
         if ( devMode )
-            Log.Warn(this, "Dependency resolving is running in *DEVELOPMENT MODE*. Turn off development mode to cache aggregated resources");
+            Log.Warn(this, "Dependency resolving is running in *DEVELOPMENT MODE*. Turn off development mode to enable bundling+optimization");
         else
             Log.Info(this, "Dependency resolving is running in *PRODUCTION MODE*. Turn on development mode for script-refresh-on-reload and per file javascript debugging");
     }

@@ -33,6 +33,7 @@ import org.xnio.Buffers;
 import java.io.IOException;
 import java.lang.ref.*;
 import java.nio.ByteBuffer;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -68,43 +69,51 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
                     UTWebObjectSocket objectSocket = new UTWebObjectSocket(exchange, channel, sendStrings);
                     ObjectSink sink = factory.apply(objectSocket);
                     objectSocket.setSink(sink);
-
                     channel.getReceiveSetter().set(new AbstractReceiveListener() {
-                       @Override
-                       protected void onCloseMessage(CloseMessage cm, WebSocketChannel channel) {
-                           try {
-                               channel.close();
-                           } catch (IOException e) {
-                               e.printStackTrace();
-                           }
-                           sink.sinkClosed();
-                           try {
-                               objectSocket.close();
-                           } catch (IOException e) {
-                               e.printStackTrace();
-                           }
-                           channel.getReceiveSetter().set(null);
-                       }
 
-                       @Override
-                       protected void onError(WebSocketChannel channel, Throwable error) {
-                           Log.Debug(this,error);
-                           sink.sinkClosed();
-                       }
+                        @Override
+                        protected void onCloseMessage(CloseMessage cm, WebSocketChannel channel) {
+                            try {
+                                channel.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            sink.sinkClosed();
+                            try {
+                                objectSocket.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            channel.getReceiveSetter().set(null);
+                        }
 
-                       @Override
-                       protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
-                           String data = message.getData();
-                           byte[] bytez = data.getBytes("UTF-8");
-                           sink.receiveObject(objectSocket.getConf().asObject(bytez), null, null );
-                       }
+                        @Override
+                        protected void onError(WebSocketChannel channel, Throwable error) {
+                            Log.Debug(this,error);
+                            sink.sinkClosed();
+                        }
 
-                       @Override
-                       protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
-                           ByteBuffer[] data = message.getData().getResource();
-                           byte[] bytez = Buffers.take(data, 0, data.length);
-                           sink.receiveObject(objectSocket.getConf().asObject(bytez), null, null );
-                       }
+                        @Override
+                        protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
+                            String data = message.getData();
+//                            if ( data.startsWith("sid:") ) {
+//                                String sid = data.substring(5,40);
+//                                data = data.substring(40);
+//                                byte[] bytez = data.getBytes("UTF-8");
+//                                sink.receiveObject(objectSocket.getConf().asObject(bytez), null, sid );
+//                                return;
+//                            }
+                            byte[] bytez = data.getBytes("UTF-8");
+                            sink.receiveObject(objectSocket.getConf().asObject(bytez), null, null );
+                        }
+
+                        @Override
+                        protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
+                            ByteBuffer[] data = message.getData().getResource();
+                            byte[] bytez = Buffers.take(data, 0, data.length);
+                            sink.receiveObject(objectSocket.getConf().asObject(bytez), null, null );
+                        }
+
                     });
                     latch.countDown();
                 };
@@ -115,7 +124,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
                     // TODO Auto-generated catch block
                     e.printStackTrace();
                 }
-               channel.resumeReceives();
+                channel.resumeReceives();
             })
         );
     }
@@ -143,11 +152,14 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
         protected WebSocketChannel channel;
         protected WebSocketHttpExchange ex;
         protected WeakReference<ObjectSink> sink;
+        protected String uuid;
 
         public UTWebObjectSocket(WebSocketHttpExchange ex, WebSocketChannel channel, boolean sendStrings) {
             this.ex = ex;
             this.channel = channel;
             this.sendStrings = sendStrings;
+            this.uuid = UUID.randomUUID().toString();
+            WebSockets.sendText(ByteBuffer.wrap(("sid:"+uuid).getBytes()), channel, null );
         }
 
         @Override
@@ -185,6 +197,11 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
             conf = null;
             channel = null;
             ex = null;
+        }
+
+        @Override
+        public String getConnectionIdentifier() {
+            return uuid;
         }
 
         static AtomicInteger idCount = new AtomicInteger(0);

@@ -47,7 +47,7 @@ public class UndertowMain {
                 .serType(SerializerType.JsonNoRef)
                 // replace serType like below to provide classes which are encoded using simple names (no fqclassnames)
 //                .coding(new Coding(SerializerType.JsonNoRef, msgClasses ))
-                .build()
+                .buildWebsocket()
             .build();
     }
 

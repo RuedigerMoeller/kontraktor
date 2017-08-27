@@ -9,8 +9,10 @@ import org.nustaq.kontraktor.util.Log;
 public class ReactMaterialUITestSession extends Actor<ReactMaterialUITestSession> implements RemotedActor {
 
     private String name;
+    private ReactMaterialUITestApp app;
 
-    public void init(String name) {
+    public void init(String name, ReactMaterialUITestApp app) {
+        this.app = app;
         this.name = name;
     }
 
@@ -20,9 +22,15 @@ public class ReactMaterialUITestSession extends Actor<ReactMaterialUITestSession
 
     /**
      * interface RemotedActor, session time out notification callback
+     * @param connectionIdentifier
      */
     @Override
-    public void hasBeenUnpublished() {
-        Log.Info(this,"bye "+name);
+    public void hasBeenUnpublished(String connectionIdentifier) {
+    }
+
+    @Override
+    public void hasBeenPublished(String connectionIdentifier) {
+        // associate user identity with sessionid for resurrection
+        app.registerSessionData(connectionIdentifier,name);
     }
 }

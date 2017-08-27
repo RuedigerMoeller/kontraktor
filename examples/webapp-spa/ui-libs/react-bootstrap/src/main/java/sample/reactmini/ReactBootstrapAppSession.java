@@ -20,9 +20,10 @@ public class ReactBootstrapAppSession extends Actor<ReactBootstrapAppSession> im
 
     /**
      * interface RemotedActor, session time out notification callback
+     * @param connectionIdentifier
      */
     @Override
-    public void hasBeenUnpublished() {
+    public void hasBeenUnpublished(String connectionIdentifier) {
         Log.Info(this,"bye "+name);
     }
 }

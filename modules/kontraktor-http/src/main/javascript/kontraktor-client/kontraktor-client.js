@@ -49,7 +49,9 @@ class KClient {
     this.batchCB = [];
     this.proxies = true;
     this.listener = new KClientListener();
+    this.wsid = null; // session id in case of websocket
   }
+
   // if set to false => only tell, ask style calls are allowed, else a proxy is generated which
   // generates tell/ask messages from methods called on the proxy. Use x.$methodname() if the method returns a promise (=ask).
   useProxies(bool) {
@@ -212,6 +214,10 @@ class KontraktorSocket {
   onmessage(eventListener) {
     this.socket.onmessage = message => {
       if (typeof message.data == 'string') {
+        if ( message.data.indexOf("sid:") == 0 ) {
+          this.global.wsid = message.data.substring(4);
+          return;
+        }
         try {
           const response = JSON.parse(message.data);
           this.global.processSocketResponse(-1,response, this.automaticTransformResults, eventListener, this);
@@ -669,7 +675,9 @@ class KontrActor {
     const socket = this.socketHolder.socket;
     socket.triggerNextSend(() => {
       //console.log("send batched \n"+JSON.stringify(batch,null,2));
-      const data = JSON.stringify(this.buildCallList(this.global.batch, socket.lpSeqNo));
+      let callList = this.buildCallList(this.global.batch, socket.lpSeqNo);
+      // const data = (this.global.wsid ? "sid:"+this.global.wsid : "") + JSON.stringify(callList);
+      const data = JSON.stringify(callList);
       const prev = this.global.batchCB;
       this.global.batch = [];
       this.global.batchCB = [];

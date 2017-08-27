@@ -1,108 +1,19 @@
 {
-  "name": "react",
-  "description": "React is a JavaScript library for building user interfaces.",
-  "version": "15.6.1",
-  "keywords": [
-    "react"
+  "styp": "array",
+  "seq": [
+    2,
+    {
+      "typ": "call",
+      "obj": {
+        "futureKey": 4,
+        "queue": 0,
+        "method": "greet",
+        "receiverKey": 2,
+        "serializedArgs": "{\"styp\":\"array\",\"seq\":[1,\"Another World Sun Aug 27 2017 22:43:32 GMT+0200 (CEST)\"]}",
+        "cb": null
+      }
+    },
+    0
   ],
-  "homepage": "https://facebook.github.io/react/",
-  "bugs": {
-    "url": "https://github.com/facebook/react/issues"
-  },
-  "license": "BSD-3-Clause",
-  "files": [
-    "LICENSE",
-    "PATENTS",
-    "addons.js",
-    "react.js",
-    "addons/",
-    "dist/",
-    "lib/"
-  ],
-  "main": "react.js",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/facebook/react.git"
-  },
-  "engines": {
-    "node": ">=0.10.0"
-  },
-  "dependencies": {
-    "create-react-class": "^15.6.0",
-    "fbjs": "^0.8.9",
-    "loose-envify": "^1.1.0",
-    "object-assign": "^4.1.0",
-    "prop-types": "^15.5.10"
-  },
-  "browserify": {
-    "transform": [
-      "loose-envify"
-    ]
-  },
-  "_id": "react@15.6.1",
-  "_shasum": "baa8434ec6780bde997cdc380b79cd33b96393df",
-  "_resolved": "file:packages/react.tgz",
-  "_from": "packages/react.tgz",
-  "scripts": {},
-  "_npmVersion": "3.9.3",
-  "_nodeVersion": "6.2.1",
-  "_npmUser": {
-    "name": "gaearon",
-    "email": "dan.abramov@gmail.com"
-  },
-  "dist": {
-    "shasum": "baa8434ec6780bde997cdc380b79cd33b96393df",
-    "tarball": "https://registry.npmjs.org/react/-/react-15.6.1.tgz"
-  },
-  "maintainers": [
-    {
-      "name": "acdlite",
-      "email": "acdlite@me.com"
-    },
-    {
-      "name": "brianvaughn",
-      "email": "briandavidvaughn@gmail.com"
-    },
-    {
-      "name": "fb",
-      "email": "opensource+npm@fb.com"
-    },
-    {
-      "name": "flarnie",
-      "email": "flarnie.npm@gmail.com"
-    },
-    {
-      "name": "gaearon",
-      "email": "dan.abramov@gmail.com"
-    },
-    {
-      "name": "jeffmo",
-      "email": "lbljeffmo@gmail.com"
-    },
-    {
-      "name": "sebmarkbage",
-      "email": "sebastian@calyptus.eu"
-    },
-    {
-      "name": "spicyj",
-      "email": "ben@benalpert.com"
-    },
-    {
-      "name": "tomocchino",
-      "email": "tomocchino@gmail.com"
-    },
-    {
-      "name": "trueadm",
-      "email": "dg@domgan.com"
-    },
-    {
-      "name": "zpao",
-      "email": "paul@oshannessy.com"
-    }
-  ],
-  "_npmOperationalInternal": {
-    "host": "s3://npm-registry-packages",
-    "tmp": "tmp/react-15.6.1.tgz_1497485111414_0.6312931932043284"
-  },
-  "directories": {}
+  "wsid": "68797d10-6add-4c40-93a2-b47b4f31dd5a"
 }

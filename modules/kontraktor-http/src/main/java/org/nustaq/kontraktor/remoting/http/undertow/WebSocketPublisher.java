@@ -55,7 +55,7 @@ public class WebSocketPublisher implements ActorPublisher {
         this.cfg = cfgFourK;
     }
 
-    public BldFourK build() {
+    public BldFourK buildWebsocket() {
         return cfg;
     }
 

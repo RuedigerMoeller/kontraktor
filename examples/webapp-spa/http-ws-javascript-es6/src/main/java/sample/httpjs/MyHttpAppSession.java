@@ -76,7 +76,7 @@ public class MyHttpAppSession extends Actor<MyHttpAppSession> implements Remoted
     }
 
     @Override
-    public void hasBeenUnpublished() {
+    public void hasBeenUnpublished(String connectionIdentifier) {
         app.clientClosed(self());
         self().stop();
     }

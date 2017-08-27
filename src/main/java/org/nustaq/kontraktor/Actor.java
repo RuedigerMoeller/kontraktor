@@ -44,6 +44,7 @@ import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.RemotedActor;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.TicketMachine;
@@ -547,6 +548,10 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         }
         if ( ! __connections.contains(con) ) {
             __connections.add(con);
+            if ( this instanceof RemotedActor) {
+                String connectionIdentifier = con.getSocketRef().getConnectionIdentifier();
+                ((RemotedActor) this).hasBeenPublished(connectionIdentifier);
+            }
         }
     }
 
@@ -673,6 +678,12 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             }
         }
         return createdFutures != null && createdFutures.size() > 0;
+    }
+
+    protected String getConnectionIdentifier() {
+        if ( __connections != null && !__connections.isEmpty())
+            return __connections.iterator().next().getSocketRef().getConnectionIdentifier();
+        return null;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////

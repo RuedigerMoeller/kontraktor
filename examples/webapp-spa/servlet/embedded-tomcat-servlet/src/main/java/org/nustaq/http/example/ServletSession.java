@@ -33,7 +33,7 @@ public class ServletSession extends Actor<ServletSession> implements RemotedActo
     }
 
     @Override
-    public void hasBeenUnpublished() {
+    public void hasBeenUnpublished(String connectionIdentifier) {
         Log.Info(this,"client closed "+user);
     }
 }

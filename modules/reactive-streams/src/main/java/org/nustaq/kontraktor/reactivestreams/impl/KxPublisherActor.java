@@ -411,7 +411,7 @@ public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> 
     }
 
     @Override // some client disconnected
-    public void hasBeenUnpublished() {
+    public void hasBeenUnpublished(String connectionIdentifier) {
         for (Iterator<Entry<Integer, SubscriberEntry>> iterator = subscribers.entrySet().iterator(); iterator.hasNext(); ) {
             Entry<Integer, SubscriberEntry> entry = iterator.next();
             Callback subscriber = entry.getValue().subscriber;

@@ -5,6 +5,7 @@
 * DONE add regex to parser
 * DONE implement jsx default export (currently syntax error)
 * DONE trailing ',' in import
+* shorten generated import code
 * session resurrection (+websockets)
 * make kontraktor packs npm'able
 * windows test

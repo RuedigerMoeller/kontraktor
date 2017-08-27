@@ -90,6 +90,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.github.yuchi</groupId>
+            <artifactId>npm-semver</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpasyncclient</artifactId>
             <version>4.1</version>

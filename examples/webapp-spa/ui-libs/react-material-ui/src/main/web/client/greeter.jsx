@@ -36,6 +36,7 @@ class Greeter extends Component {
             }
           </Fader>
         </HCenter>
+        <br/><br/>
         <HCenter>
           <RaisedButton onClick={() => this.anotherGreet()}>
             Greet

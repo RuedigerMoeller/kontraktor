@@ -13,6 +13,9 @@
 
 <div id="root" style="width: 80%;margin: 0 auto;"></div>
 
+<script src="index.jsx"></script>
+
+<!-- take care: in dev mode index.jsx is loaded deferred (side effect of document.write -->
 <!-- This script adds the Roboto font to our project. For more detail go to this site:  http://www.google.com/fonts#UsePlace:use/Collection:Roboto:400,300,500 -->
 <script>
   var WebFontConfig = {
@@ -27,10 +30,6 @@
     s.parentNode.insertBefore(wf, s);
   })();
 </script>
-
-<script src="index.jsx"></script>
-
-<!-- take care: in dev mode index.jsx is loaded deferred (side effect of document.write -->
 
 </body>
 

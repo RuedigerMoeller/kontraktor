@@ -64,11 +64,11 @@ public class SimpleServerWithWS {
 
         Http4K.Build("localhost", 8080)
             .websocket("/ws/ms", publisher.asActor())
-                .build()
+                .buildWebsocket()
             .websocket("/ws/seconds", publisher.map(new Divider(1000)).asActor())
-                .build()
+                .buildWebsocket()
             .websocket("/ws/minutes", publisher.map(new Divider(1000 * 60)).asActor())
-                .build()
+                .buildWebsocket()
             .build();
 
     }
