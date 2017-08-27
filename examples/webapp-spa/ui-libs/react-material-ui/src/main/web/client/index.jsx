@@ -4,9 +4,11 @@ import ReactDOM from 'react-dom';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 
 import {HCenter,Fader} from './util';
-import {Greeter} from './greeter';
-import {global} from "./global"
-import {MaterialPlay} from './materialui/materialplay';
+import Greeter from './greeter';
+import global from "./global"
+import MaterialPlay from './materialui/materialplay';
+import TextField from 'material-ui/TextField';
+import RaisedButton from 'material-ui/RaisedButton';
 
 class App extends Component {
 
@@ -16,8 +18,26 @@ class App extends Component {
       user: '',
       loginEnabled: false,
       loggedIn: false,
+      relogin: false,
       error: null
-    }
+    };
+    const self = this;
+    global.kclient.listener = new class extends KClientListener {
+      // session timeout or resurrection fail
+      onInvalidResponse(response) {
+        console.error("invalid response");
+        self.setState({relogin: true});
+      }
+      onError(obj) {
+        console.error("connectionError",obj)
+      }
+      onClosed() {
+        console.warn("connection closed")
+      }
+      onResurrection() {
+        console.log("session resurrected")
+      }
+    };
   }
 
   handleUChange(ev) {
@@ -28,6 +48,11 @@ class App extends Component {
     this.setState({
       loginEnabled: this.state.user.trim().length > 0
     });
+  }
+
+  relogin() {
+    // forcereload
+    document.location.href = "/";
   }
 
   login() {
@@ -59,9 +84,26 @@ class App extends Component {
   }
 
   render() {
+    const actions = [
+      <FlatButton
+        label="Cancel"
+        primary={true}
+        onClick={this.handleClose}
+      />
+    ];
     return (
       <MuiThemeProvider>
         <div>
+          <Dialog
+            title="Session expired"
+            actions={actions}
+            modal={true}
+            open={this.state.relogin}
+            onRequestClose={() => this.relogin()}
+          >
+            Session timed out. Pls relogin.
+          </Dialog>
+
           <HCenter>
             <div style={{fontWeight: 'bold', fontSize: 18}}>
               Hello World !
@@ -73,17 +115,19 @@ class App extends Component {
             : (
               <Fader>
                 <HCenter>
-                  <input type="text" value={this.state.user}
-                         onChange={ ev => this.handleUChange(ev) }></input>
+                  <TextField
+                    onChange={ ev => this.handleUChange(ev) }
+                    hintText="nickname"
+                    floatingLabelText="Login"
+                  />
                 </HCenter>
                 <br/>
                 <HCenter>
-                  <button
+                  <RaisedButton
                     disabled={!this.state.loginEnabled}
-                    className='defbtn'
                     onClick={ ev => this.login(ev) }>
                     Login
-                  </button>
+                  </RaisedButton>
                 </HCenter>
               </Fader>
             )

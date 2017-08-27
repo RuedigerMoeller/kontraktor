@@ -6,7 +6,6 @@ import {
 } from 'material-ui/Stepper';
 import RaisedButton from 'material-ui/RaisedButton';
 import FlatButton from 'material-ui/FlatButton';
-import MenuExIcns from './menusample';
 import Badge from 'material-ui/Badge';
 import IconButton from 'material-ui/IconButton';
 import NotificationsIcon from 'material-ui/svg-icons/social/notifications';
@@ -235,7 +234,7 @@ const TextFieldExampleSimple = () => (
   </div>
 );
 
-export class MaterialPlay extends React.Component {
+class MaterialPlay extends React.Component {
 
   render() {
     return (
@@ -247,10 +246,11 @@ export class MaterialPlay extends React.Component {
         </div>
         <div>
           <HorizontalLinearStepper/>
-          <MenuExIcns/>
           <BadgeExampleSimple/>
         </div>
       </div>
     );
   }
 }
+
+export default MaterialPlay;
