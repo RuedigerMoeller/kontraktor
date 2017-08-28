@@ -12,6 +12,7 @@ import RaisedButton from 'material-ui/RaisedButton';
 import Dialog from 'material-ui/Dialog';
 import Static from './static';
 import {RadioButtonGroup,RadioButton} from 'material-ui/RadioButton';
+import Snackbar from 'material-ui/Snackbar';
 
 class App extends Component {
 
@@ -23,17 +24,20 @@ class App extends Component {
       loggedIn: false,
       relogin: false,
       connectionType: 'HTLP',
-      error: null
+      error: null,
+      snackText: "",
+      snackOpen: false
     };
     const self = this;
     global.kclient.listener = new class extends KClientListener {
       // session timeout or resurrection fail
       onInvalidResponse(response) {
-        console.error("invalid response");
+        console.error("invalid response",response);
         self.setState({relogin: true}); // session expired
       }
       onResurrection() {
         console.log("session resurrected. should update client data + resubscribe streams in case !")
+        self.setState({snackText: "Session Resurrected !", snackOpen: true });
       }
     };
   }
@@ -103,6 +107,12 @@ class App extends Component {
     return (
       <MuiThemeProvider>
         <div>
+          <Snackbar
+            open={this.state.snackOpen}
+            message={this.state.snackText}
+            autoHideDuration={4000}
+            onRequestClose={ () => this.setState({snackText: "", snackOpen: false }) }
+          />
           <Dialog
             title="Session expired"
             actions={actions}

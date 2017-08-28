@@ -1,4 +1,4 @@
-package sample.reactmini;
+package sample.reactmaterial;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;

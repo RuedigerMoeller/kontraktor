@@ -1,10 +1,9 @@
-package sample.reactmini;
+package sample.reactmaterial;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
-import org.nustaq.kontraktor.util.Log;
 
 public class ReactMaterialUITestSession extends Actor<ReactMaterialUITestSession> implements RemotedActor {
 

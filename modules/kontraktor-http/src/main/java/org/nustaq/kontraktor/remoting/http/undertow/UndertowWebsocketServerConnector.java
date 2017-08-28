@@ -96,13 +96,6 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
                         @Override
                         protected void onFullTextMessage(WebSocketChannel channel, BufferedTextMessage message) throws IOException {
                             String data = message.getData();
-//                            if ( data.startsWith("sid:") ) {
-//                                String sid = data.substring(5,40);
-//                                data = data.substring(40);
-//                                byte[] bytez = data.getBytes("UTF-8");
-//                                sink.receiveObject(objectSocket.getConf().asObject(bytez), null, sid );
-//                                return;
-//                            }
                             byte[] bytez = data.getBytes("UTF-8");
                             sink.receiveObject(objectSocket.getConf().asObject(bytez), null, null );
                         }

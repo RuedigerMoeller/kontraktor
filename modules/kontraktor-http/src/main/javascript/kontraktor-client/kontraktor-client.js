@@ -183,7 +183,8 @@ class KontraktorSocket {
     this.inParse = false;
     this.lpSeqNo = 0; // dummy for now
     this.automaticTransformResults = true;
-
+    this.protocols = protocols;
+    this.url = url;
     if ( protocols )
       this.socket = new WebSocket(url,protocols);
     else
@@ -202,9 +203,59 @@ class KontraktorSocket {
     fun.apply(this,[]);
   };
 
+  reconnect(refId) {
+    const p = new KPromise();
+    this.lpSeqNo = 0; // dummy for now
+    const prevSocket = this.socket;
+    if ( this.protocols )
+      this.socket = new WebSocket(this.url,this.protocols);
+    else
+      this.socket = new WebSocket(this.url);
+
+    this.socket.onclose = prevSocket.onclose;
+    this.socket.onmessage = prevSocket.onmessage;
+    this.socket.onerror = prevSocket.onerror;
+
+    this.socket.addEventListener('open', (event) => {
+      const reconnect = {
+        typ: "org.nustaq.kontraktor.remoting.base.Reconnect",
+        obj: {
+          sessionId: this.global.wsid,
+          remoteRefId: refId
+        }
+      };
+      this.socket.send(JSON.stringify(reconnect)); // enable resurrection
+      p.resolve("");
+    });
+    return p;
+  }
+
   send( data ) {
-    this.socket.send(data);
-    return new KPromise("",null);
+    try {
+      if ( this.socket.readyState != 1 ) {
+        const p = new KPromise();
+        // umh .. need to unpack in order to find remoteref id
+        const dataUnpacked = JSON.parse(data);
+        //FIXME: this will fail for batched call array
+        // with calls to multiple remoted actor instance.
+        // should unsplit into separate calls and do reanimation on the set of
+        // different receiverKeys (however would need clazz info for those than)
+        const refId = dataUnpacked.seq[1].obj.receiverKey;
+        this.reconnect().then( (r,e) => {
+          if ( !e ) {
+            this.send(data).then( (rr,ee) => p.complete(rr,ee) );
+            this.global.listener.onResurrection();
+          } else {
+            setTimeout( () => this.send(data).then( (rr,ee) => p.complete(rr,ee) ), 1000 );
+          }
+        });
+        return p;
+      }
+      this.socket.send(data);
+      return new KPromise("",null);
+    } catch (err) {
+      this.global.listener.onError(err);
+    }
   };
 
   onclose( eventListener ) {

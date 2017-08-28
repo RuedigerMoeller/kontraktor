@@ -290,7 +290,14 @@ public abstract class RemoteRegistry implements RemoteConnection {
         if ( response == RemoteRegistry.OUT_OF_ORDER_SEQ ) {
             Log.Warn(this,"out of sequence remote call received");
             return false;
-        }
+        } else if ( response instanceof Reconnect && facadeActor instanceof SessionResurrector ) {
+            String sid = ((Reconnect) response).getSessionId();
+            Actor target = ((SessionResurrector) facadeActor).reanimate(sid,-1).await();
+            if (target != null) {
+                publishActorDirect(((Reconnect) response).getRemoteRefId(), target);
+            }
+            return false;
+        } else
         if ( response instanceof Object[] ) { // bundling. last element contains sequence
             Object arr[] = (Object[]) response;
             boolean hadResp = false;
