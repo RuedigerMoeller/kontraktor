@@ -1,4 +1,4 @@
-# Testbed react with kontraktor (without node/babel) + 3rd party libs
+# react-material-ui with kontraktor intrinsic jnpm, jsx transpilation and bundling (no node/npm/babel required)
 
 Full example featuring
 
