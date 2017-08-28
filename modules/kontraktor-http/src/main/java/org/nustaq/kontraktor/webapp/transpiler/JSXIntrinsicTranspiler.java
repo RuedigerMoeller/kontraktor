@@ -221,7 +221,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
             if ( dev ) {
                 String dirName = "_node_modules";
-                if (f.getAbsolutePath().indexOf("/node_modules/") < 0 ) {
+                if (f.getAbsolutePath().replace('\\','/').indexOf("/node_modules/") < 0 ) {
                     dirName = "_appsrc";
                 }
                 String name = constructLibName(f, resolver) + ".transpiled";
@@ -426,7 +426,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             name = name.substring(0,name.length()-4);
         if ( name.endsWith(".json") )
             name = name.substring(0,name.length()-5);
-        return name.replace('\\','/');
+        return name;
     }
 
     protected String getInitialShims() {

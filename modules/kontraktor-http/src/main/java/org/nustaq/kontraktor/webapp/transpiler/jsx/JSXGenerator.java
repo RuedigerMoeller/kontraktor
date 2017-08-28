@@ -156,7 +156,7 @@ public class JSXGenerator {
         }
 
         public boolean generateCommonJSWrap() {
-            return f.getAbsolutePath().indexOf("/node_modules/") >= 0;
+            return f.getAbsolutePath().replace('\\','/').indexOf("/node_modules/") >= 0;
         }
 
         public String getFilePath() {

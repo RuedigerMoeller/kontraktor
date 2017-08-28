@@ -112,7 +112,7 @@ public class DependencyResolver implements HtmlImportShim.ResourceLocator{
                 if ( fp.startsWith(p) && p.length() > longestMatch.length() )
                     longestMatch = p;
             }
-            return fp.substring(longestMatch.length());
+            return fp.substring(longestMatch.length()).replace('\\', '/');
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -202,7 +202,7 @@ public class JSXParser implements ParseUtils {
     Boolean isNodeModule;
     private boolean isNodeModule() {
         if ( isNodeModule == null )
-            isNodeModule = file.getAbsolutePath().contains("/node_modules/");
+            isNodeModule = file.getAbsolutePath().replace('\\','/').contains("/node_modules/");
         return isNodeModule;
     }
 
