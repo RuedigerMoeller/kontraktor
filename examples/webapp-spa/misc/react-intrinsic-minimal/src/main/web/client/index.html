@@ -19,6 +19,8 @@ kontraktor classes are available globally and need no 'import' inside jsx
 -->
 <script src="kontraktor-common.js"></script>
 <script src="kontraktor-client.js"></script>
+<script src="react.js"></script>
+<script src="react-dom.js"></script>
 
 <script>
   // in order to make UMD builds work with 'import' we need a map of library filename to library Object,
@@ -26,7 +28,8 @@ kontraktor classes are available globally and need no 'import' inside jsx
   // its also possible to construct 'virtual' library object in case lib exposes its stuff globally
   // like 'libFilenameWithoutExtension': () => { return { fancyFunc: fancyFunc,.. } }
   klibmap = {
-    react: () => React
+    react: () => React,
+    'react-dom': () => ReactDOM
   };
 </script>
 

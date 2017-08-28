@@ -40,8 +40,8 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
     Function<ObjectSocket, ObjectSink> sinkFactory;
 
     public MyWebSocketConnector() {
-        System.out.println("creating jee websocket connector");
-        System.out.println("init ws");
+//        System.out.println("creating jee websocket connector");
+//        System.out.println("init ws");
         ActorServer actorServer = null;
         facade = Actors.AsActor(ServletApp.class);
         facade.init(4);
@@ -70,7 +70,7 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
 
     @Override
     public void onOpen(Session session, EndpointConfig config) {
-        System.out.println(session.getId() + " has opened a connection");
+//        System.out.println(session.getId() + " has opened a connection");
 
         // never received in tcat 8.5 ??
 //        session.addMessageHandler(byte[].class, message -> {
@@ -83,7 +83,7 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
             socket.setSink(sink);
             sessions.put(session.getId(), socket);
             session.addMessageHandler(String.class, message -> {
-                    System.out.println("msg String "+message);
+//                    System.out.println("msg String "+message);
                     try {
                         Object o = socket.getConf().asObject(message.getBytes("UTF-8"));
                         socket.getSink().receiveObject(o, null, null );

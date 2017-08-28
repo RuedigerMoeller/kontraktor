@@ -196,20 +196,23 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	'use strict';
 
-	var isAbsolute = function isAbsolute(pathname) {
+	exports.__esModule = true;
+	function isAbsolute(pathname) {
 	  return pathname.charAt(0) === '/';
-	};
+	}
 
 	// About 1.5x faster than the two-arg version of Array#splice()
-	var spliceOne = function spliceOne(list, index) {
+	function spliceOne(list, index) {
 	  for (var i = index, k = i + 1, n = list.length; k < n; i += 1, k += 1) {
 	    list[i] = list[k];
-	  }list.pop();
-	};
+	  }
+
+	  list.pop();
+	}
 
 	// This implementation is based heavily on node's url.parse
-	var resolvePathname = function resolvePathname(to) {
-	  var from = arguments.length <= 1 || arguments[1] === undefined ? '' : arguments[1];
+	function resolvePathname(to) {
+	  var from = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
 
 	  var toParts = to && to.split('/') || [];
 	  var fromParts = from && from.split('/') || [];
@@ -261,9 +264,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  if (hasTrailingSlash && result.substr(-1) !== '/') result += '/';
 
 	  return result;
-	};
+	}
 
-	module.exports = resolvePathname;
+	exports.default = resolvePathname;
+	module.exports = exports['default'];
 
 /***/ },
 /* 3 */
@@ -275,15 +279,13 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-	var valueEqual = function valueEqual(a, b) {
+	function valueEqual(a, b) {
 	  if (a === b) return true;
 
 	  if (a == null || b == null) return false;
 
 	  if (Array.isArray(a)) {
-	    if (!Array.isArray(b) || a.length !== b.length) return false;
-
-	    return a.every(function (item, index) {
+	    return Array.isArray(b) && a.length === b.length && a.every(function (item, index) {
 	      return valueEqual(item, b[index]);
 	    });
 	  }
@@ -310,9 +312,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }
 
 	  return false;
-	};
+	}
 
 	exports.default = valueEqual;
+	module.exports = exports['default'];
 
 /***/ },
 /* 4 */

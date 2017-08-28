@@ -14,48 +14,6 @@
 
 <body>
 
-<!--old ES5 client-->
-
-<!-- <script src="jsk/js4k.js"></script>-->
-<!--<script>-->
-<!--var server = null;-->
-<!--var errCB = function( err ) { console.error(err); };-->
-
-<!--jsk.connect("http://localhost:8080/ep","HTLP",errCB) // use this for long poll-->
-  <!--.then( function( app, error ) {-->
-    <!--console.log("received response ",app,error);-->
-    <!--if ( ! app ) {-->
-      <!--console.log("connection failure");-->
-      <!--console.error(error);-->
-    <!--}-->
-    <!--server = app;-->
-    <!--server.ask("hello", "from client").then( (res,err) => {-->
-      <!--document.getElementById("here").innerHTML = res;-->
-    <!--});-->
-
-    <!--var session = null;-->
-    <!--server.ask("login","angela","grökaz").then( (r,e) => {-->
-      <!--if ( r ) {-->
-        <!--session = r[0];-->
-        <!--server.ask("hello", "from client after login").then( (r,e) => {-->
-          <!--document.getElementById("here").innerHTML = r;-->
-        <!--});-->
-        <!--session.tell("push", (res,err) => {-->
-          <!--document.getElementById("there").innerHTML = res;-->
-        <!--});-->
-        <!--session.ask("whatsYourName").then( (r,e) => {-->
-          <!--if ( r )-->
-            <!--document.getElementById("name").innerHTML = r;-->
-          <!--else-->
-            <!--document.getElementById("error").innerHTML = r;-->
-        <!--});-->
-      <!--}-->
-      <!--else-->
-        <!--document.getElementById("error").innerHTML = e;-->
-    <!--});-->
-  <!--});-->
-<!--</script>-->
-
 <!-- new es6 client, no need to bundle and minifiy, server does this on the fly -->
 <script src="kontraktor-common.js"></script>
 <script src="kontraktor-client.js"></script>

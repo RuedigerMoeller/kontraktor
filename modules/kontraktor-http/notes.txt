@@ -11,3 +11,4 @@
 * shorten generated import code
 * windows test
 * documentation
+* support plain json object as parameter in remoting

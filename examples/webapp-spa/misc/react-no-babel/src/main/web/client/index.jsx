@@ -4,7 +4,7 @@ import { Game } from './fbreactexample.jsx';
 import { Login, Register } from './login.jsx';
 import { HCenter } from './layout.jsx';
 import { HashRouter as Router, Route, Switch, Link, NavLink, Redirect } from 'react-router-dom'
-import { createBrowserHistory } from 'history';
+import { createHashHistory } from 'history';
 import { AppActions,Store as AppStore } from "./store.jsx";
 import { UserTable } from "./usertable.jsx";
 
@@ -104,7 +104,7 @@ class App extends React.Component {
     return (
       <HCenter style={{ height: "100%" }} >
         <div style={{maxWidth: 1000, width: '100%', height: "100%" }} className="gradientbg">
-          <Router history={createBrowserHistory()}>
+          <Router history={createHashHistory()}>
             {loggedIn ? this.renderLoggedInApp() : this.renderLogin() }
           </Router>
         </div>

@@ -23,7 +23,7 @@
 var server = null;
 var kclient = new KClient();
 
-const useWS = true;
+const useWS = false;
 var connector = useWS ?
   kclient.connect("ws://localhost:8080/ws","WS") :
   kclient.connect("http://localhost:8080/api");

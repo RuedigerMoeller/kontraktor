@@ -21,7 +21,7 @@ public class ServletApp extends Actor<ServletApp> {
     }
 
     public IPromise<String> hello(String s) {
-        System.out.println("hello received "+s);
+//        System.out.println("hello received "+s);
         return resolve(s+" "+new Date());
     }
 

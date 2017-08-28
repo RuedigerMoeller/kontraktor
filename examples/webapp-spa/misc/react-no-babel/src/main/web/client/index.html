@@ -23,9 +23,10 @@
     // as libs arent loaded yet, provide lambdas
     klibmap = {
       react: () => React,
+      'react-dom': () => ReactDOM,
       history: () => History,
-      reactRouterDom: () => ReactRouterDOM,
-      events: () => { return {  // events exposes global objects, so we need to construct a virtual lib object
+      'react-router-dom': () => ReactRouterDOM,
+      'subdir/events': () => { return {  // events exposes global objects, so we need to construct a virtual lib object
         EventEmitter: EventEmitter,
       }}
     };

@@ -54,6 +54,7 @@ public class MyHttpAppMain {
                 .buildHttpApi()
             .websocket("/ws", myHttpApp)
                 .serType(SerializerType.JsonNoRef)
+                .sendSid(true) // required for resurrection
                 .buildWebsocket()
             .build();
     }

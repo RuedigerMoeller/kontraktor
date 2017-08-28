@@ -18,6 +18,7 @@ check out the index.html in chrome when in prod mode (5,6kb incl. everything).
 
 run ./web/getstuff.sh in order to update libs (requires npm)
 
-this is the low level kontraktor webapp interface, checkout kontraktor-web for a more frameworky approach.
+this is the low level kontraktor webapp interface. checkout react-material-ui for an advanced example 
+([...]/kontraktor/examples/webapp-spa/react-ui-lib-examples/react-material-ui)
 
 see kontraktor/attic/http-ws.. for a version using the old js4k.js API [does not use es6-proxies]

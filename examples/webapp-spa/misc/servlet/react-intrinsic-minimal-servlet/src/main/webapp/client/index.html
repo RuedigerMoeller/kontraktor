@@ -26,7 +26,8 @@ kontraktor classes are available globally and need no 'import' inside jsx
   // its also possible to construct 'virtual' library object in case lib exposes its stuff globally
   // like 'libFilenameWithoutExtension': () => { return { fancyFunc: fancyFunc,.. } }
   klibmap = {
-    react: () => React
+    react: () => React,
+    'react-dom': () => ReactDOM
   };
 </script>
 

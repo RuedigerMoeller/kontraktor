@@ -21,7 +21,7 @@ public class ServletSession extends Actor<ServletSession> implements RemotedActo
     }
 
     public IPromise<String> whatsYourName() {
-        System.out.println("whatsYourName " + user);
+//        System.out.println("whatsYourName " + user);
         return new Promise<>("Hello "+ user);
     }
 
