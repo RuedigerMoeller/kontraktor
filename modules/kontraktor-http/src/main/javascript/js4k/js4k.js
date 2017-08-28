@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// version 3.33
+// version 4.x
 // JavaScript to Kontraktor bridge
 // matches kontraktor 3 json-no-ref encoded remoting
 var jskIsNode = false;
@@ -109,16 +109,16 @@ window.jsk = window.jsk || (function () {
       type = 'map';
     }
     if( Object.prototype.toString.call( list ) === '[object Array]' ) {
-        list.splice( 0, 0, list.length/2 ); // insert number of elements at 0
-        return { typ: type, obj: list };
+      list.splice( 0, 0, list.length/2 ); // insert number of elements at 0
+      return { typ: type, obj: list };
     } else {
       var res = { typ: type, obj: [] };
       var count = 0;
       for (var property in list) {
         if (list.hasOwnProperty(property)) {
-            count++;
-            res.obj.push(property);
-            res.obj.push(list[property]);
+          count++;
+          res.obj.push(property);
+          res.obj.push(list[property]);
         }
       }
       res.obj.splice( 0, 0, res.obj.length/2 ); // insert number of elements at 0
@@ -548,6 +548,9 @@ window.jsk = window.jsk || (function () {
     self.onmessage = function (eventListener) {
       self.socket.onmessage = function (message) {
         if (typeof message.data == 'string') {
+          if ( message.data.indexOf("sid:") == 0) { // session id, resurrection is not supported by js4k
+            return;
+          }
           try {
             var response = JSON.parse(message.data);
             processSocketResponse(-1,response, self.automaticTransformResults, eventListener, self);

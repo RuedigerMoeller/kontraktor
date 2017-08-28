@@ -1,12 +1,12 @@
 import React from 'react'
 import {Component}  from 'react'
 import ReactDOM from 'react-dom';
-
 import {HCenter,Fader} from './subtest/util';
 import {Greeter} from './subtest/greeter';
 import global from "./global"
 import {SemanticPlay as MySemanticPlay} from './semantic/semanticplay';
 import {Form,Modal} from 'semantic-ui-react';
+import {KClientListener} from 'kontraktor-client';
 
 class App extends Component {
 

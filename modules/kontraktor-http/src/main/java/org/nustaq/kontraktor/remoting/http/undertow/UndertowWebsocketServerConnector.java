@@ -51,6 +51,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
     String path;
     int port;
     boolean sendStrings = false;
+    boolean sendSid = false; // send session id on connect, only understood by SPA clients for now
 
     public UndertowWebsocketServerConnector(String path, int port, String host) {
         this.path = path;
@@ -66,7 +67,7 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
             Handlers.websocket((exchange, channel) -> { // connection callback
                 final CountDownLatch latch = new CountDownLatch(1);
                 Runnable runnable = () -> {
-                    UTWebObjectSocket objectSocket = new UTWebObjectSocket(exchange, channel, sendStrings);
+                    UTWebObjectSocket objectSocket = new UTWebObjectSocket(exchange, channel, sendStrings, sendSid);
                     ObjectSink sink = factory.apply(objectSocket);
                     objectSocket.setSink(sink);
                     channel.getReceiveSetter().set(new AbstractReceiveListener() {
@@ -138,21 +139,43 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
         return this;
     }
 
+    public UndertowWebsocketServerConnector host(String host) {
+        this.host = host;
+        return this;
+    }
+
+    public UndertowWebsocketServerConnector path(String path) {
+        this.path = path;
+        return this;
+    }
+
+    public UndertowWebsocketServerConnector port(int port) {
+        this.port = port;
+        return this;
+    }
+
+    public UndertowWebsocketServerConnector sendSid(boolean sendSid) {
+        this.sendSid = sendSid;
+        return this;
+    }
 
     protected static class UTWebObjectSocket extends WebObjectSocket {
 
-        protected final boolean sendStrings;
+        protected boolean sendSid;
+        protected boolean sendStrings;
         protected WebSocketChannel channel;
         protected WebSocketHttpExchange ex;
         protected WeakReference<ObjectSink> sink;
         protected String uuid;
 
-        public UTWebObjectSocket(WebSocketHttpExchange ex, WebSocketChannel channel, boolean sendStrings) {
+        public UTWebObjectSocket(WebSocketHttpExchange ex, WebSocketChannel channel, boolean sendStrings, boolean sendSid ) {
             this.ex = ex;
             this.channel = channel;
             this.sendStrings = sendStrings;
+            this.sendSid = sendSid;
             this.uuid = UUID.randomUUID().toString();
-            WebSockets.sendText(ByteBuffer.wrap(("sid:"+uuid).getBytes()), channel, null );
+            if ( sendSid )
+                WebSockets.sendText(ByteBuffer.wrap(("sid:"+uuid).getBytes()), channel, null );
         }
 
         @Override

@@ -1,10 +1,14 @@
 # Testbed react with kontraktor (without node/babel) + 3rd party libs
 
-test external libs and stuff with intrinsic react. might not compile/work at times.
+react-bootstrap showcase. 
 
-currently:
-* react-bootstrap
-* semantic ui
-* blueprint
+* Does not include session timeout, session resurrection and 
+websocket connectivity. See react-material-ui example for examples of this.
 
-all mixed into one playground site, so expect loading time and css trouble
+**how to run:**
+
+* add project to your ide (from pom)
+* run ReactMaterialUITestApp with workingdir [...]/examples/webapp-spa/react-ui-lib-examples/react-bootstrap
+* goto localhost:8080 in your browser
+* first request triggers download of required npm packages so give it like 50 seconds (wathc console)
+* set DEVMODE to false to get a (dynamically) bundled build

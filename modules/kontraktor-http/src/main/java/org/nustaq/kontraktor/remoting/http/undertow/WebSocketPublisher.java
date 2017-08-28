@@ -40,6 +40,7 @@ public class WebSocketPublisher implements ActorPublisher {
     Coding coding = new Coding(SerializerType.FSTSer);
     Actor facade;
     boolean sendStringMessages = false;
+    boolean sendSid = false;
 
     public WebSocketPublisher() {}
 
@@ -64,7 +65,7 @@ public class WebSocketPublisher implements ActorPublisher {
         Promise finished = new Promise();
         try {
             ActorServer publisher = new ActorServer(
-                new UndertowWebsocketServerConnector(urlPath,port,hostName).sendStrings(sendStringMessages),
+                new UndertowWebsocketServerConnector(urlPath,port,hostName).sendStrings(sendStringMessages).sendSid(sendSid),
                 facade,
                 coding
             );
@@ -124,5 +125,18 @@ public class WebSocketPublisher implements ActorPublisher {
         return this;
     }
 
+    public WebSocketPublisher cfg(BldFourK cfg) {
+        this.cfg = cfg;
+        return this;
+    }
 
+    /**
+     * send sessionid like sid:234-234-234 after a client connects. WARNING: only javascript-SPA clients
+     * currently understand this. ensure false for non-SPA servers. Defaults false
+     *
+     */
+    public WebSocketPublisher sendSid(boolean sendSid) {
+        this.sendSid = sendSid;
+        return this;
+    }
 }

@@ -1,4 +1,4 @@
-import KClient from 'kontraktor-client'
+import {KClient} from 'kontraktor-client'
 
 const global = {
   kclient: new KClient(), // loaded in index.html, no import required
