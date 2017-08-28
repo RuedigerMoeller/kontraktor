@@ -1,5 +1,7 @@
 # react-material-ui with kontraktor intrinsic jnpm, jsx transpilation and bundling (no node/npm/babel required)
 
+**This does not run under Windows currently**, working on that ..
+
 Full example featuring
 
 * jsx transpilation, automatic npm download (without having nodejs/npm installed)
