@@ -1,0 +1,12 @@
+* DONE define process.env.NODE_ENV in prod
+* DONE separate user source from node source
+* DONE rename /debug/
+* test require(x.json)
+* DONE add regex to parser
+* DONE implement jsx default export (currently syntax error)
+* DONE trailing ',' in import
+* shorten generated import code
+* DONE session resurrection (+websockets) material-ui sample
+* DONE make kontraktor packs npm'able
+* windows test
+* bundle npm option on transpiler
