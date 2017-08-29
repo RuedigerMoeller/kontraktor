@@ -15,9 +15,9 @@
 
 ## Where does it come from
 
-The core has been developed when I consulted Deutsche Börse. Kontraktor (+an early version of reallive) powers a Microservice Cluster+DataGrid responsible for routing and preprocessing realtime updates from several exchange backends (up to 100000 per second) to trading front ends (up ~20000 distinct filtered subscriptions).
+The core has been developed when I consulted Deutsche Börse. Kontraktor (+an early version of reallive) powers a Microservice Cluster+DataGrid responsible for routing and preprocessing of realtime mass data stemming from several exchange backends (up to 100000 per second). These data stream then had to be filtered and delivered to trading front ends (up ~20000 distinct filtered subscriptions). So the basic requirements where: heterogenous Network (TCP to back-ends and cross service communication, Http, Websockets to the clients-apps and some remotely located data sources).
 
-It's also used in at least 2 Startups e.g. juptr.io (and another undisclosed one). 
+It's also used in at least 2 Startups (juptr.io, and an undisclosed one) as a backbone for distributed analytics and microservice systems. 
 
 ## Why do I do it ?
 
