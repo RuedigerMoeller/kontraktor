@@ -15,13 +15,13 @@
 
 ## Where does it come from
 
-The core has been developed when I consulted Deutsche Börse. Kontraktor (+an early version of reallive) powers a Microservice Cluster+DataGrid responsible for routing and preprocessing of realtime mass data stemming from several exchange backends (up to 100000 per second). These data stream then had to be filtered and delivered to trading front ends (up ~20000 distinct filtered subscriptions). So the basic requirements where: heterogenous Network (TCP to back-ends and cross service communication, Http, Websockets to the clients-apps and some remotely located data sources).
+The core has been developed when I consulted Deutsche Börse. Kontraktor (+an early version of reallive) powers a Microservice Cluster+DataGrid responsible for routing and preprocessing of realtime mass data stemming from several exchange backends (up to 100000 per second). These data streams then had to be filtered and delivered to trading front ends (up ~20000 distinct filtered subscriptions). So the basic requirements where: horizontal scalability, heterogenous Network Infrastructure (TCP for back-ends and intra service communication, Http + Websockets for clients-apps and some remotely located data sources), high throughput - low latency, 
 
 It's also used in at least 2 Startups (juptr.io, and an undisclosed one) as a backbone for distributed analytics and microservice systems. 
 
-## Why do I do it ?
+## Why kontraktor ?
 
-Because I am missing a lean, flexible + fast asynchronous Networking Framework which generalizes such that it can be used to power modern Java Script SPA's (webserver remote actor) as well as distributed systems (datagrids, microservice clusters etc.)
+Because I am missing a lean, flexible + fast asynchronous Networking framework which is general enough to power modern Java Script SPA's (webserver, client's are seen as remoted actor's) as well as distributed systems (datagrids, microservice clusters, distributed analytics ..) using a single abstraction. Also I like creating things :)
 
 ## Modules
 
