@@ -13,6 +13,16 @@
 
 [Code Examples](https://github.com/RuedigerMoeller/kontraktor/tree/trunk/examples), [Related Blogpost's](https://juptr.io/@kontraktor)
 
+## Where does it come from
+
+The core has been developed when I consulted Deutsche Börse. Kontraktor (+an early version of reallive) powers a Microservice Cluster+DataGrid responsible for routing and preprocessing realtime updates from several exchange backends (up to 100000 per second) to trading front ends (up ~20000 distinct filtered subscriptions).
+
+It's also used in at least 2 Startups e.g. juptr.io (and another undisclosed one). 
+
+## Why do I do it ?
+
+Because I am missing a lean, flexible + fast asynchronous Networking Framework which generalizes such that it can be used to power modern Java Script SPA's (webserver remote actor) as well as distributed systems (datagrids, microservice clusters etc.)
+
 ## Modules
 
 Kontraktor consists of several modules. For sake of simplicity all module versions are kept in sync with kontraktor core.
