@@ -77,61 +77,6 @@ write an ES6 class and make it accessible to other (kontraktor) processes using 
 
 old (es5) implementation of kontraktor-client. somewhat messy, but production-proven
  
-### [Undocumented] kontraktor-web
-
-A lightweight framework on top of kontraktor to serve JavaScript Single Page Application clients (e.g. Polymer.js, React.js) from a Java Server.
-
-* session handling: for each client an actor instance is created server side. No need to manually juggle Id's
-* session invalidation
-* session resurrection (=wake up / re-establish a session of a client which has been away for some time). No more "your session has expired")
-* built in support for Polymer.js and React.js (incl. jsx, babel+browserify) 
-
-```xml
-<dependency>
-    <groupId>de.ruedigermoeller</groupId>
-    <artifactId>kontraktor-web</artifactId>
-    <version>4.13</version>
-</dependency>
-```
-
-**[Undocumented] kontraktor-reallive**
-
-A clusterable NoSQL data base.
-
-* Reactive: Each transaction/data change is broadcasted to (filtered) subscribers. CQRS/MVC at cluster scale.
-* Can be used to organize intra-service communication in a fail-safe and decoupled fashion.
-* clusterable
-* optional full in memory caching. 
-* distributed Lambda execution featuring advanced and very fast inmemory analytics.
-* powers message routing middleware of a large european stock exchange (up to 100.000 transactions per second, up to 200k messages per second)
-* powers realtime NLP and cluster-coordination of juptr.io
-
-Currently undocumented
-
-**[Undocumented] cluster-troll**
-
-Simple peer-2-peer network of "Process Controlling" nodes. Enables to start/stop clusters in a distributed setup (multiple machines).
-
-**[Unreleased] kontraktor-wapi**
-
-kontraktor based API-gateway/proxy/message-router. Manages JWT-based API tokens. 
-
-**[Unreleased] service-support**
-
-* framework/tools to control and configure a cluster of reallive + webserver(s) + (micro-)services
-
-**[Untested] Kontraktor-Reactive Streams** 
-
-(Implements Reactive Streams Spec 1.0, remoteable)
-
-```xml
-<dependency>
-    <groupId>de.ruedigermoeller</groupId>
-    <artifactId>kontraktor-reactive-streams</artifactId>
-    <version>4.13</version>
-</dependency>
-```
-
 **[Untested] Kontraktor-Bare** 
 
 (Minimalistic standalone Http-LongPoll client [legacy apps, Android] ), requires Java 7, Apache 2.0 Licensed
