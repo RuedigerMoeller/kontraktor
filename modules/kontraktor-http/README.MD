@@ -23,5 +23,4 @@ to even install nodejs/npm.
 
 **Documentation**: https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4.
 
-Maven:
-http://ruedigermoeller.github.io/kontraktor/#maven
+
