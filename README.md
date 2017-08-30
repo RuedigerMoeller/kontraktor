@@ -6,12 +6,22 @@
 * A boilerplate free and consistent abstraction for asynchronous remote communication powered by a **distributed actor-model**
 * A **SPA WebApp platform** supporting a Java backend for modern SPA javascript client frameworks like Polymer.js, vue.js and React.js (transpilation, packaging, optimization). Different to webpack/browserify etc. kontraktor does this on the fly (when running in prod mode) without an extra build step using pure java. [see IntrinsicReact example](https://github.com/RuedigerMoeller/InstrinsicReactJSX)
 * eases polyglot (**java, javascript** nodejs + browser) (micro-)service oriented distributed systems
-* separates transport and message encoding from application code. 
+* separates network transport (TCP, WebSockets, Http) and message encoding (fast-serialization, json, ..) from application code. 
 * **asynchronous, non-blocking**
 * **high performance**
 * production proven
 
 [Code Examples](https://github.com/RuedigerMoeller/kontraktor/tree/trunk/examples), [Related Blogpost's](https://juptr.io/@kontraktor)
+
+## Where does it come from
+
+The core has been developed when I consulted Deutsche Börse. Kontraktor (+an early version of reallive) powers a Microservice Cluster+DataGrid responsible for routing and preprocessing of realtime mass data stemming from several exchange backends (up to 100000 per second). These data streams then had to be filtered and delivered to trading front ends (up ~20000 distinct filtered subscriptions). So the basic requirements where: horizontal scalability, heterogenous Network Infrastructure (TCP for back-ends and intra service communication, Http + Websockets for clients-apps and some remotely located data sources), high throughput - low latency, 
+
+It's also used in at least 2 Startups (juptr.io, and an undisclosed one) as a backbone for distributed analytics and microservice systems. 
+
+## Why kontraktor ?
+
+Because I am missing a lean, flexible + fast asynchronous Networking framework which is general enough to power modern Java Script SPA's (webserver, client's are seen as remoted actor's) as well as distributed systems (datagrids, microservice clusters, distributed analytics ..) using a single abstraction. Also I like creating things :)
 
 ## Modules
 

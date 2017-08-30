@@ -21,7 +21,6 @@ to even install nodejs/npm.
 
 **Recommended Example**: kontraktor/examples/webapp-spa/react-ui-lib-examples/react-material-ui (full feature set)
 
-**Documentation**: https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4.
+**Documentation**: https://github.com/RuedigerMoeller/kontraktor/wiki/Kontraktor-4-Http.
 
-Maven:
-http://ruedigermoeller.github.io/kontraktor/#maven
+
