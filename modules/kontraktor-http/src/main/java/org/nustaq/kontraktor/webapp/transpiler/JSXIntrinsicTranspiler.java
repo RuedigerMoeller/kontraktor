@@ -29,6 +29,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     protected boolean autoJNPM;
     protected JNPMConfig jnpmConfig;
     protected String jnpmConfigFile;
+    protected JNPMConfig jnpmConfigFileCached;
 
     public JSXIntrinsicTranspiler(boolean dev) {
         this.dev = dev;
@@ -187,7 +188,9 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     protected byte[] processJSX(boolean dev, File f, FileResolver resolver, Map<String, Object> alreadyResolved) {
         try {
             boolean isInitialIndexJSX = "index.jsx".equals(f.getName());
-            JSXGenerator.ParseResult result = JSXGenerator.process(f,dev,createNodeLibNameResolver(resolver));
+            if ( isInitialIndexJSX )
+                jnpmConfigFileCached = null;
+            JSXGenerator.ParseResult result = JSXGenerator.process(f,dev,createNodeLibNameResolver(resolver),getConfig());
             List<ImportSpec> specs = result.getImports();
             byte[] res = result.getFiledata();
             if (isInitialIndexJSX) {
@@ -346,13 +349,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 }
                 // single file can't be a node module
                 if ( required.indexOf(".") < 0 ) {
-                    JNPMConfig config =
-                        jnpmConfig != null ?
-                            jnpmConfig
-                            : (jnpmConfigFile != null ?
-                            JNPMConfig.read(jnpmConfigFile)
-                            : new JNPMConfig()
-                        );
+                    JNPMConfig config = getConfig();
                     Log.Info(this, importSpec.getFrom() + " not found. installing .. '" + required+"'");
                     try {
                         JNPM.InstallResult await = JNPM.Install(required, null, jnpmNodeModulesDir, config).await(60_000);
@@ -367,6 +364,15 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             Log.Warn(this, importSpec.getFrom() + " not found. requiredBy:" + requiringFile.getCanonicalPath());
         }
         return requiringFile;
+    }
+
+    protected JNPMConfig getConfig() {
+        return jnpmConfig != null ?
+            jnpmConfig
+            : (jnpmConfigFile != null ?
+            (jnpmConfigFileCached != null ? jnpmConfigFileCached : (jnpmConfigFileCached = JNPMConfig.read(jnpmConfigFile)) )
+            : new JNPMConfig()
+        );
     }
 
     protected String generateCommonJSPrologue(File f, JSXGenerator.ParseResult result, FileResolver resolver ) {
@@ -399,16 +405,12 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         for (int i = 0; i < imports.size(); i++) {
             ImportSpec spec = imports.get(i);
             String libname = createNodeLibNameResolver(resolver).getFinalLibName(result.getFile(),resolver,spec.getFrom());
-            String exportObject = "_kresolve('" + libname+"')";
             if ( spec.getAlias() != null ) {
-                String alias1 = spec.getAlias()+"1";
-                s+="  var "+ alias1 +" = "+exportObject+".__esModule ? "+exportObject+".default:"+exportObject+";\n";
-                s+="  "+alias1+" = "+alias1+".__kdefault__ ? "+alias1+".__kdefault__ : "+alias1+";\n";
-                s+="  const "+spec.getAlias()+" = "+alias1+";\n";
+                s+="const "+spec.getAlias()+" = _kresolve('"+libname+"');\n";
             }
             for (int j = 0; j < spec.getAliases().size(); j++) {
                 String alias = spec.getAliases().get(j);
-                s+="  const "+alias+" = _kresolve('"+libname+"', '"+spec.getComponents().get(j)+"');\n";
+                s+="const "+alias+" = _kresolve('"+libname+"', '"+spec.getComponents().get(j)+"');\n";
             }
         }
         s += "\n";
@@ -481,6 +483,10 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "  if ( ! res ) {\n" +
             "    console.error(\"unable to resolve \"+identifier+\" in klibmap['\"+libname+\"'] \")\n" +
             "  }\n" +
+            "  else if (!identifier) {"+
+            "    var res1 = res.__esModule ? res.default:res;\n" +
+            "    return res1.__kdefault__ ? res1.__kdefault__ : res1;\n"+
+            "  }"+
             "  return res;\n" +
             "};\n" +
             "window.module = {}; \n" +

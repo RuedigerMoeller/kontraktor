@@ -13,7 +13,7 @@
     <dependency>
       <groupId>de.ruedigermoeller</groupId>
       <artifactId>kontraktor-http</artifactId>
-      <version>4.12</version>
+      <version>4.13</version>
     </dependency>
 
     <dependency>

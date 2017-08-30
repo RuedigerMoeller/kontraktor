@@ -9,6 +9,6 @@
 * DONE bundle npm option on transpiler
 * test require(x.json)
 * shorten generated import code
-* windows test
+* DONE windows test
 * documentation
-* support plain json object as parameter in remoting
+* DONE support plain json object as parameter in remoting

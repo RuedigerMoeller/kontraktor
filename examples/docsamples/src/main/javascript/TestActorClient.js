@@ -39,8 +39,8 @@ kclient.useProxies(true).connect("http://localhost:8888/test").then( (app,e) => 
 
   app.$plainUnknown({
     x: "pasd",
-    yyy: [1, 23, 1123, 123, 123, -1123],
-    z: {text: "Halli"}
+    yyy: [1, 23, 1123, 123, 123, -1123,"pokpok"],
+    z: {text: "Halli",x:[ 394875, 's' , [ 9,"d",{x:"abc"}]]}
   });
 
   app.createAnotherOne("otherActor").then((other, err) => {

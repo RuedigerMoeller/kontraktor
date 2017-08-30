@@ -63,7 +63,7 @@ public class Service4Node extends Actor<Service4Node> {
         System.out.println("x:"+unknown.getInt("x"));
         System.out.println("y:"+unknown.getDouble("y"));
         System.out.println("z:"+unknown.getString("z"));
-        System.out.println("xx:" + Arrays.toString(unknown.getArr("xx")));
+        System.out.println("xx:" + unknown.getArr("xx"));
     }
 
     public static void main(String[] args) {

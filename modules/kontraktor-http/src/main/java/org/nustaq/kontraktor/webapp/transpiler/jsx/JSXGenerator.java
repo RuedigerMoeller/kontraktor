@@ -1,13 +1,25 @@
 package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.webapp.npm.JNPMConfig;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class JSXGenerator {
+
+    String transformFunctionName;
+
+    public JSXGenerator() {
+        this("React.createElement");
+    }
+
+    public JSXGenerator(String transformFunctionName) {
+        this.transformFunctionName = transformFunctionName;
+    }
 
     public void generateJS(TokenNode root, PrintStream out ) {
         for (int i = 0; i < root.getChildren().size(); i++) {
@@ -37,7 +49,7 @@ public class JSXGenerator {
                 out.print(tokenNode.getChars());
         } else if ( tokenNode instanceof TagNode) {
             TagNode te = (TagNode) tokenNode;
-            out.println("React.createElement(");
+            out.println(transformFunctionName+"(");
             if ( te.isReactComponent() ) {
                 out.println("  "+te.getTagName()+",");
             } else {
@@ -170,13 +182,26 @@ public class JSXGenerator {
         public File getFile() {
             return f;
         }
+
+        public ParseResult patchImports(Map<String, String> nodeLibraryMap) {
+            if ( nodeLibraryMap != null && nodeLibraryMap.size() > 0 ) {
+                imports.forEach( imp -> {
+                    String s = nodeLibraryMap.get(imp.getFrom());
+                    if (s!=null) {
+                        imp.from(s);
+                    }
+                });
+            }
+            return this;
+        }
     }
 
-    public static ParseResult process(File f, boolean pretty, NodeLibNameResolver nlib) throws IOException {
+    public static ParseResult process(
+        File f, boolean pretty, NodeLibNameResolver nlib, JNPMConfig config) throws IOException {
+
         // this is really inefficient, there are loads of optimization opportunities,
         // however this code runs in devmode only ..
 
-        String canonicalPath = f.getCanonicalPath();
         JSXParser jsx = new JSXParser(f,nlib);
         JSNode root = new JSNode();
         byte[] bytes = Files.readAllBytes(f.toPath());
@@ -185,12 +210,12 @@ public class JSXGenerator {
         jsx.parseJS(root,new Inp(cont));
         if ( jsx.depth != 0 ) {
             Log.Warn(JSXGenerator.class,"probably parse issues non-matching braces in "+f.getAbsolutePath());
-//            ParseResult parseResult = new ParseResult(f, bytes, f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(), jsx.getTopLevelObjects(), jsx.getIgnoredRequires());
-//            return parseResult;
+            ParseResult parseResult = new ParseResult(f, bytes, f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(), jsx.getTopLevelObjects(), jsx.getIgnoredRequires(),jsx.getDefaultExport());
+            return parseResult.patchImports(config.getNodeLibraryMap());
         }
         ByteArrayOutputStream out = new ByteArrayOutputStream(bytes.length);
         PrintStream ps = new PrintStream(out);
-        JSXGenerator gen = new JSXGenerator();
+        JSXGenerator gen = new JSXGenerator(config.getTransformFunction());
         gen.generateJS(root,ps);
         ps.flush();ps.close();
         byte[] filedata = out.toByteArray();
@@ -206,6 +231,7 @@ public class JSXGenerator {
         ParseResult parseResult = new ParseResult(
             f, filedata, f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(),
             jsx.getTopLevelObjects(), jsx.getIgnoredRequires(), jsx.getDefaultExport() );
+        parseResult.patchImports(config.getNodeLibraryMap());
         return parseResult;
     }
 }
