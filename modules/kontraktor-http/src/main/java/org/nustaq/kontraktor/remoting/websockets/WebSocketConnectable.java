@@ -70,7 +70,7 @@ public class WebSocketConnectable implements ConnectableActor {
             }
         };
         if ( ! Actor.inside() ) {
-            JSR356ClientConnector.get().execute(() -> Thread.currentThread().setName("singleton remote client actor polling"));
+            JSR356ClientConnector.get().execute(() -> Thread.currentThread().setName("JSR356WS singleton remote client actor polling"));
             JSR356ClientConnector.get().execute(connect);
         }
         else

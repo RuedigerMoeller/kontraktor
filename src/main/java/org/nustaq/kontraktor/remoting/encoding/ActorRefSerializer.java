@@ -63,8 +63,14 @@ public class ActorRefSerializer extends FSTBasicObjectSerializer {
     public void writeObject(FSTObjectOutput out, Object toWrite, FSTClazzInfo clzInfo, FSTClazzInfo.FSTFieldInfo referencedBy, int streamPosition) throws IOException {
         // fixme: catch republish of foreign actor
         Actor act = (Actor) toWrite;
-        long id = reg.publishActor(act); // register published host side FIXME: if ref is foreign ref, scnd id is required see javascript impl
+        Actor publishTarget = act.__publishTarget == null ? act : act.__publishTarget;
+        long id = reg.publishActor(publishTarget); // register published host side FIXME: if ref is foreign ref, scnd id is required see javascript impl
         out.writeLong(id);
-        out.writeStringUTF(act.getActorRef().getClass().getName());
+        Actor actorRef = act.getActorRef();
+        if  ( actorRef == null ) // assume untyped remote ref see getUntypedRef
+        {
+            out.writeStringUTF(Actor.class.getName()+"_ActorProxy");
+        } else
+            out.writeStringUTF(actorRef.getClass().getName());
     }
 }

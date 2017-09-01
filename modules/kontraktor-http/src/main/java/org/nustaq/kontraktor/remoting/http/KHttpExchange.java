@@ -1,5 +1,7 @@
 package org.nustaq.kontraktor.remoting.http;
 
+import org.nustaq.kontraktor.util.Pair;
+
 /**
  * Created by ruedi on 19.06.17.
  *
@@ -18,4 +20,5 @@ public interface KHttpExchange {
     void send(byte[] b);
 
     void sendAuthResponse(byte[] response, String sessionId);
+
 }

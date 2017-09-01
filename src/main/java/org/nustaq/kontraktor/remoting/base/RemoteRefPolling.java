@@ -79,7 +79,6 @@ public class RemoteRefPolling implements Runnable {
 
     boolean loopStarted = false;
     boolean underway = false;
-    static AtomicInteger scansPersec = new AtomicInteger(0);
     Thread pollThread;
 
     int remoteRefCounter = 0; // counts active remote refs, if none backoff remoteref polling massively eats cpu
@@ -121,7 +120,6 @@ public class RemoteRefPolling implements Runnable {
         //while ( maxit > 0 && count > 0)
         {
             count = 0;
-            scansPersec.incrementAndGet();
             for (int i = 0; i < sendJobs.size(); i++) {
                 ScheduleEntry entry = sendJobs.get(i);
                 if ( entry.reg.getRemoteActorSize() > 0 ) {

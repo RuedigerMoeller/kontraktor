@@ -22,6 +22,7 @@ public class ReactMaterialUITestSession extends Actor<ReactMaterialUITestSession
     /**
      * interface RemotedActor, session time out notification callback
      * @param connectionIdentifier
+     *
      */
     @Override
     public void hasBeenUnpublished(String connectionIdentifier) {

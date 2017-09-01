@@ -48,8 +48,18 @@ public abstract class WebObjectSocket implements ObjectSocket {
         objects = new ArrayList();
     }
 
+    Thread debugT;
     @Override
     public void writeObject(Object toWrite) throws Exception {
+        if ( debugT != null && debugT != Thread.currentThread() ) {
+            System.out.println("Thread "+Thread.currentThread().getName()+" other "+debugT.getName());
+            System.out.println("writing object:"+toWrite);
+            if ( Thread.currentThread().getName().indexOf("Dispatch") < 0 ) {
+                int debug = 1;
+            }
+            debugT = Thread.currentThread();
+        }
+        debugT = Thread.currentThread();
         objects.add(toWrite);
         if (objects.size() > getObjectMaxBatchSize()) {
             flush();
@@ -64,6 +74,13 @@ public abstract class WebObjectSocket implements ObjectSocket {
 
     @Override
     public void flush() throws Exception {
+        if ( debugT != null && debugT != Thread.currentThread() ) {
+            System.out.println("flush Thread "+Thread.currentThread().getName()+" other "+debugT.getName());
+            if ( Thread.currentThread().getName().indexOf("Dispatch") < 0 ) {
+                int debug = 1;
+            }
+            debugT = Thread.currentThread();
+        }
         if (objects.size() == 0) {
             return;
         }

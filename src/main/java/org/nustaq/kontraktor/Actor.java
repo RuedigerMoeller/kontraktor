@@ -427,7 +427,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * can be used to wait for all messages having been processed and get a signal from the returned future once this is complete
      * @return
      */
-    @Local
     public IPromise ping() {
         return new Promise<>("pong");
     }
@@ -457,35 +456,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
-     * only meaningful if this actor is a buffered actor (failover/reconnect scenarios).
-     * LIMITATION: not loss free in case. If new messages are enqueued from another thread while transfer is
-     * processed, messages can be lost. In case the buffering actor reference is replaced prior to calling
-     * transferTo(), message order might get messed up. However still useful on platforms which value
-     * availability over correctness.
-     *
-     * Note: In order to make this fully save, locking would be required at some point. As locking in central dispatch
-     * would result in a major performance bottleneck, so a special LockingScheduler or so could be implemented to support
-     * transactionally safe buffering actors. Due to time constraints, this might get implemented at some point in the future.
-     *
-     * @param target
-     */
-    @CallerSideMethod
-    public void transferTo(Actor target) {
-        Queue mailbox = __self.__mailbox;
-        Queue cbQueue = __self.__cbQueue;
-
-        target = target.__self;
-        Object poll;
-        while( (poll = cbQueue.poll()) != null ) {
-            while( ! target.__cbQueue.add(poll) );
-        }
-        while( (poll = mailbox.poll()) != null ) {
-            while( ! target.__mailbox.add(poll) );
-        }
-    }
-
-    /**
-     * tellMsg the execution machinery to throw an ActorBlockedException in case the actor is blocked trying to
+     * tell the execution machinery to throw an ActorBlockedException in case the actor is blocked trying to
      * put a message on an overloaded actor's mailbox/queue. Useful e.g. when dealing with actors representing
      * a remote client (might block or lag due to connection issues).
      *
@@ -529,6 +500,13 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
 
     protected ConcurrentLinkedQueue<RemoteConnection> getConnections() {
         return __connections;
+    }
+
+    @CallerSideMethod
+    public Actor getUntypedRef() {
+        Actor actor = new Actor();
+        actor.__publishTarget = self();
+        return actor;
     }
 
 ////////////////////////////// internals ///////////////////////////////////////////////////////////////////
@@ -656,23 +634,31 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
                 final Promise finalP = p;
                 final RemoteCallEntry finalRce = rce;
                 ((IPromise) future).then( (r,e) -> {
-                    try {
-                        registry.receiveCBResult(objSocket, finalRce.getFutureKey(), r, e);
-                        if ( finalP != null )
-                            finalP.resolve();
-                    } catch (Exception ex) {
-                        Log.Warn(this, ex, "--");
-                    }
+                    Runnable runnable = () -> {
+                        try {
+                            registry.receiveCBResult(objSocket, finalRce.getFutureKey(), r, e);
+                            if (finalP != null)
+                                finalP.resolve();
+                        } catch (Exception ex) {
+                            Log.Warn(this, ex, "--");
+                        }
+                    };
+                    if ( Thread.currentThread() != __currentDispatcher )
+                        self().execute(runnable);
+                    else
+                        runnable.run();
                 });
             }
         } catch (Throwable th) {
             Log.Warn(this,th);
-            if ( rce.getFutureKey() > 0 ) {
-                try {
-                    registry.receiveCBResult(objSocket, rce.getFutureKey(), null, FSTUtil.toString(th));
-                } catch (Exception e) {
-                    Log.Error(this,e);
-                }
+            if ( rce.getFutureKey() != 0 ) {
+                    self().execute(() -> {
+                        try {
+                            registry.receiveCBResult(objSocket, rce.getFutureKey(), null, FSTUtil.toString(th));
+                        } catch (Exception e) {
+                            Log.Error(this,e);
+                        }
+                    });
             } else {
                 FSTUtil.<RuntimeException>rethrow(th);
             }
@@ -685,6 +671,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             return __connections.iterator().next().getSocketRef().getConnectionIdentifier();
         return null;
     }
+
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //
@@ -701,6 +688,8 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return new Promise<>(new Monitorable[0]);
     }
 
+    // special in order to send actor ref's without referring to class (routing)
+    public Actor __publishTarget;
 
     public static class ActorReport {
         String clz;

@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -405,7 +406,17 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
         }
 
         @Override
+        public Path getFilePath() {
+            return null;
+        }
+
+        @Override
         public File getResourceManagerRoot() {
+            return null;
+        }
+
+        @Override
+        public Path getResourceManagerRootPath() {
             return null;
         }
 

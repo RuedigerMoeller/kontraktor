@@ -21,6 +21,7 @@ public class ReactSemanticUITestSession extends Actor<ReactSemanticUITestSession
     /**
      * interface RemotedActor, session time out notification callback
      * @param connectionIdentifier
+     *
      */
     @Override
     public void hasBeenUnpublished(String connectionIdentifier) {

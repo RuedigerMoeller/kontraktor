@@ -22,6 +22,7 @@ import org.nustaq.kontraktor.annotations.Remoted;
 import org.nustaq.kontraktor.annotations.Secured;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.remoting.encoding.*;
+import org.nustaq.kontraktor.routers.AbstractKrouter;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
@@ -52,9 +53,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
     public static final Object OUT_OF_ORDER_SEQ = "OOOS";
     public static int MAX_BATCH_CALLS = 500;
 
-    private ActorServer server;
-    private boolean secured;
-
     public static void registerDefaultClassMappings(FSTConfiguration conf) {
         conf.registerCrossPlatformClassMapping(new String[][]{
             {"call", RemoteCallEntry.class.getName()},
@@ -63,6 +61,10 @@ public abstract class RemoteRegistry implements RemoteConnection {
     }
 
     public static BiFunction remoteCallMapper; // if set, each remote call and callback is mapped through
+
+    private ActorServer server;
+    private boolean secured;
+    private ConcurrentHashMap userData = new ConcurrentHashMap(5);
 
     protected FSTConfiguration conf;
     protected RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
@@ -108,6 +110,15 @@ public abstract class RemoteRegistry implements RemoteConnection {
         configureSerialization(code);
 	}
 
+    /**
+     * allow association of custom data with this remoteregistry
+     *
+     * @return
+     */
+    public ConcurrentHashMap getUserData() {
+        return userData;
+    }
+
     public BiFunction<Actor, String, Boolean> getRemoteCallInterceptor() {
         return remoteCallInterceptor;
     }
@@ -133,7 +144,10 @@ public abstract class RemoteRegistry implements RemoteConnection {
     }
 
     public Callback getPublishedCallback(long id) {
-        return (Callback) publishedActorMapping.get(id);
+        Object o = publishedActorMapping.get(id);
+        if ( o instanceof Callback )
+            return (Callback) o;
+        return null;
     }
 
     public RemoteScheduler getScheduler() {
@@ -319,7 +333,13 @@ public abstract class RemoteRegistry implements RemoteConnection {
                         if (processRemoteCallEntry(responseChannel, (RemoteCallEntry) resp, createdFutures, authContext))
                             hadResp = true;
                     } catch (UnknownActorException uae) {
-                        responseChannel.writeObject("Unknown actor id "+((RemoteCallEntry) resp).getReceiverKey());
+                        inFacadeThread(()-> {
+                            try {
+                                responseChannel.writeObject("Unknown actor id "+((RemoteCallEntry) resp).getReceiverKey());
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        });
                         hadResp = true;
                     }
                 }
@@ -344,38 +364,47 @@ public abstract class RemoteRegistry implements RemoteConnection {
     // dispatch incoming remotecalls, return true if a future has been created
     protected boolean processRemoteCallEntry(ObjectSocket objSocket, RemoteCallEntry response, List<IPromise> createdFutures, Object authContext) throws Exception {
         RemoteCallEntry read = response;
+        long receiverKey = read.getReceiverKey();
         if (read.getQueue() == read.MAILBOX) {
             if ( remoteCallMapper != null ) {
                 read = (RemoteCallEntry) remoteCallMapper.apply(this,read);
             }
-            Actor targetActor = getPublishedActor(read.getReceiverKey());
-            if (targetActor==null) {
-                if ( facadeActor instanceof SessionResurrector ) {
-                    try {
-                        // FIXME: this could become a bottle neck as its synchronous
-                        // workaround would be to create a queuing proxy until actor is returned
-                        SessionResurrector actorRef = (SessionResurrector) facadeActor.getActorRef();
-                        targetActor = actorRef.reanimate(objSocket.getConnectionIdentifier(), read.getReceiverKey()).await();
-                        if (targetActor != null) {
-                            publishActorDirect(read.getReceiverKey(), targetActor);
+            if ( facadeActor instanceof AbstractKrouter) {
+                facadeActor.__dispatchRemoteCall(objSocket,read,this,createdFutures, authContext, remoteCallInterceptor);
+            } else {
+                Actor targetActor = getPublishedActor(receiverKey);
+                if (receiverKey < 0 && targetActor == null) // forward
+                {
+                    targetActor = getPublishedActor(-receiverKey);
+                }
+                if (targetActor == null) {
+                    if (facadeActor instanceof SessionResurrector) {
+                        try {
+                            // FIXME: this could become a bottle neck as its synchronous
+                            // workaround would be to create a queuing proxy until actor is returned
+                            SessionResurrector actorRef = (SessionResurrector) facadeActor.getActorRef();
+                            targetActor = actorRef.reanimate(objSocket.getConnectionIdentifier(), receiverKey).await();
+                            if (targetActor != null) {
+                                publishActorDirect(receiverKey, targetActor);
+                            }
+                        } catch (Throwable th) {
+                            Log.Info(this, th);
                         }
-                    } catch (Throwable th) {
-                        Log.Info(this,th);
                     }
                 }
+                if (targetActor == null) {
+                    Log.Lg.error(this, null, "registry:" + System.identityHashCode(this) + " no actor found for key " + read);
+                    throw new UnknownActorException("unknown actor id " + receiverKey);
+                }
+                targetActor.__dispatchRemoteCall(objSocket, read, this, createdFutures, authContext, remoteCallInterceptor);
             }
-            if (targetActor==null) {
-                Log.Lg.error(this, null, "registry:"+System.identityHashCode(this)+" no actor found for key " + read);
-                throw new UnknownActorException("unknown actor id "+read.getReceiverKey());
-            }
-            targetActor.__dispatchRemoteCall(objSocket,read,this,createdFutures, authContext, remoteCallInterceptor);
         } else if (read.getQueue() == read.CBQ) {
             if ( remoteCallMapper != null ) {
                 read = (RemoteCallEntry) remoteCallMapper.apply(this,read);
             }
-            Callback publishedCallback = getPublishedCallback(read.getReceiverKey());
+            Callback publishedCallback = getPublishedCallback(receiverKey);
             if ( publishedCallback == null ) {
-                publishedCallback = getPublishedCallback(-read.getReceiverKey()); // check forward
+                publishedCallback = getPublishedCallback(-receiverKey); // check forward
                 if ( publishedCallback != null ) {
                     publishedCallback.complete(read,null); // in case of forwards => promote full remote call object
                     return false;
@@ -393,7 +422,7 @@ public abstract class RemoteRegistry implements RemoteConnection {
                     read.getArgs()[1] = Callback.CONT; // enable ==
                 publishedCallback.complete(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
                 if (!isContinue)
-                    removePublishedObject(read.getReceiverKey());
+                    removePublishedObject(receiverKey);
             }
         }
         return createdFutures != null && createdFutures.size() > 0;
@@ -438,26 +467,36 @@ public abstract class RemoteRegistry implements RemoteConnection {
         }
     }
 
-    public void receiveCBResult(ObjectSocket chan, long id, Object result, Object error) throws Exception {
+    public void inFacadeThread(Runnable toRun) {
         if (facadeActor!=null) {
-            Thread debug = facadeActor.getCurrentDispatcher();
             if ( Thread.currentThread() != facadeActor.getCurrentDispatcher() ) {
-                facadeActor.execute( () -> {
-                    try {
-                        if ( Thread.currentThread() != debug )
-                            System.out.println("??");
-                        receiveCBResult(chan,id,result, error);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
+                facadeActor.execute( toRun );
                 return;
             }
+        } else {
+            int debug = 1;
         }
+        toRun.run();
+    }
+
+    public void forwardRemoteMessage(RemoteCallEntry rce) {
+        try {
+            ObjectSocket chan = getWriteObjectSocket().get();
+            writeObject(chan, rce);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void receiveCBResult(ObjectSocket chan, long id, Object result, Object error) {
         RemoteCallEntry rce = new RemoteCallEntry(0, id, null, null, conf.asByteArray(new Object[] {result,error}));
         rce.setQueue(rce.CBQ);
         rce.setContinue( error == Actors.CONT );
-        writeObject(chan, rce);
+        try {
+            writeObject(chan, rce);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void close() {
@@ -560,17 +599,6 @@ public abstract class RemoteRegistry implements RemoteConnection {
         return hadAnyMsg;
     }
 
-    //WARNING: must be called on correct thread ! FIXME: batching ??
-    public void forwardRemoteMessage(RemoteCallEntry rce) {
-        try {
-            ObjectSocket chan = getWriteObjectSocket().get();
-            writeObject(chan, rce);
-            chan.flush();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     public abstract AtomicReference<ObjectSocket> getWriteObjectSocket();
 
     @Override
@@ -623,4 +651,5 @@ public abstract class RemoteRegistry implements RemoteConnection {
             return new Promise<>(null,"server is null");
         }
     }
+
 }

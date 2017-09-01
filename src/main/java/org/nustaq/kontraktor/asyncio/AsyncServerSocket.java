@@ -21,6 +21,7 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.remoting.tcp.TCPServerConnector;
 import org.nustaq.kontraktor.util.Log;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -123,7 +124,11 @@ public class AsyncServerSocket {
                                             // yield ?
                                         }
                                     } catch (Exception ioe) {
-                                        ioe.printStackTrace();
+                                        if ( ioe instanceof EOFException ) {
+                                            Log.Info(this, ""+ioe);
+                                        } else {
+                                            Log.Info(this, ioe);
+                                        }
                                         con.closed(ioe);
                                         key.cancel();
                                         try {

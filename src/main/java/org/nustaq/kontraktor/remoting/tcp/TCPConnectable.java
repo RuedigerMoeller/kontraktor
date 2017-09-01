@@ -67,7 +67,7 @@ public class TCPConnectable implements ConnectableActor {
             connector.connect(inboundQueueSize, actorDisconnecCB).then(result);
         };
         if ( ! Actor.inside() ) {
-            TCPClientConnector.get().execute(() -> Thread.currentThread().setName("singleton remote client actor polling"));
+            TCPClientConnector.get().execute(() -> Thread.currentThread().setName("tcp singleton remote client actor polling"));
             TCPClientConnector.get().execute(connect);
         }
         else

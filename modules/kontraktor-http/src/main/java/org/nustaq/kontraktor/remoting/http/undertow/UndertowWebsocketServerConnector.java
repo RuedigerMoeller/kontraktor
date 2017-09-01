@@ -30,6 +30,8 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.util.FSTUtil;
 import org.xnio.Buffers;
+import org.xnio.ChannelListener;
+
 import java.io.IOException;
 import java.lang.ref.*;
 import java.nio.ByteBuffer;
@@ -71,6 +73,11 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
                     ObjectSink sink = factory.apply(objectSocket);
                     objectSocket.setSink(sink);
                     channel.getReceiveSetter().set(new AbstractReceiveListener() {
+
+                        @Override
+                        protected void onClose(WebSocketChannel webSocketChannel, StreamSourceFrameChannel channel) throws IOException {
+                            onCloseMessage(null,webSocketChannel);
+                        }
 
                         @Override
                         protected void onCloseMessage(CloseMessage cm, WebSocketChannel channel) {
@@ -205,11 +212,17 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
 
         @Override
         public void close() throws IOException {
-            channel.getReceiveSetter().set(null);
-            channel.close();
-            ObjectSink objectSink = sink.get();
-            if (objectSink != null )
-                objectSink.sinkClosed();
+            if ( channel != null ) {
+                ChannelListener.Setter<WebSocketChannel> receiveSetter = channel.getReceiveSetter();
+                if ( receiveSetter != null )
+                    receiveSetter.set(null);
+                channel.close();
+            }
+            if ( sink != null ) {
+                ObjectSink objectSink = sink.get();
+                if (objectSink != null)
+                    objectSink.sinkClosed();
+            }
             conf = null;
             channel = null;
             ex = null;

@@ -73,6 +73,7 @@ public class JSR356ClientConnector implements ActorClientConnector {
         endpoint = new WSClientEndpoint(uri,null);
         ObjectSink sink = factory.apply(endpoint);
         endpoint.setSink(sink);
+
         return new Promise<>(null);
     }
 

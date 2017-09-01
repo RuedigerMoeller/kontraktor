@@ -1,0 +1,2 @@
+- forward unpublish from facade to services
+- improve websocket server disconnect detection

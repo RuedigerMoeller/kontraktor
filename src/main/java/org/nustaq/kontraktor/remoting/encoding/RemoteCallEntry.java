@@ -163,5 +163,18 @@ public class RemoteCallEntry implements Serializable {
     public void setCB(Callback CB) {
         this.cb = CB;
     }
+
+    public RemoteCallEntry createCopy() {
+        RemoteCallEntry copy = new RemoteCallEntry();
+        copy.receiverKey = receiverKey; // id of published actor in host, contains cbId in case of callbacks
+        copy.futureKey = futureKey; // id of future if any
+        copy.method = method;
+        copy.args = args;
+        copy.serializedArgs = serializedArgs;
+        copy.queue = queue;
+        copy.isContinue = isContinue;
+        copy.cb = cb;
+        return copy;
+    }
 }
 

@@ -21,6 +21,7 @@ public class ReactMiniSession extends Actor<ReactMiniSession> implements Remoted
     /**
      * interface RemotedActor, session time out notification callback
      * @param connectionIdentifier
+     *
      */
     @Override
     public void hasBeenUnpublished(String connectionIdentifier) {
