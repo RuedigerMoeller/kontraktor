@@ -1,8 +1,6 @@
 # kontraktor 4
 
-**Credits**
-
-kontraktor makes use of many awesome open source libraries such as
+**Credits**: kontraktor makes use of many awesome open source libraries such as
 * undertow, (io.undertow) see [undertow.io](undertow.io)
 * jsoup (org.jsoup) - real world html parser
 * httpasyncclient (org.apache.httpcomponents) 
