@@ -16,7 +16,6 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.impl;
 
-import org.jctools.queues.MpscArrayQueue;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.base.RemoteRegistry;

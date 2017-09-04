@@ -7,10 +7,9 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
-import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * HotHot failover Router
@@ -27,18 +26,20 @@ public class HotHotFailoverKrouter<T extends HotHotFailoverKrouter> extends Abst
 
     public void init() {
         remoteServices = new ArrayList<>();
+        super.init();
     }
 
-    public IPromise router$Register(Actor remoteRef) {
+    @Override
+    public IPromise router$RegisterService(Actor remoteRef) {
         ArrayList services = new ArrayList();
-        services.addAll(remoteServices);
         services.add(remoteRef);
+        services.addAll(remoteServices);
         remoteServices = services;
         return resolve();
     }
 
     @Local
-    public void router$handleDisconnect(Actor x) {
+    public void router$handleServiceDisconnect(Actor x) {
         //FIXME: reply pending callbacks / promises with error
         boolean remove = remoteServices.remove(x.getActor());
         if ( ! remove )
@@ -49,6 +50,15 @@ public class HotHotFailoverKrouter<T extends HotHotFailoverKrouter> extends Abst
         } else {
             Log.Info(this, "removed service "+x);
         }
+    }
+
+    @Override
+    protected List<Actor> getServices() {
+        ArrayList<Actor> svs = new ArrayList<>();
+        if (remoteServices!=null) {
+            svs.addAll(remoteServices);
+        }
+        return svs;
     }
 
     @Override @CallerSideMethod

@@ -44,13 +44,13 @@ public interface ConnectableActor extends Serializable {
      * @param <T>
      * @return
      */
-    <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB);
+    <T extends Actor> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB);
 
-    default <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback) {
+    default <T extends Actor> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback) {
         return this.connect(disconnectCallback,null);
     }
 
-    default <T> IPromise<T> connect() {
+    default <T extends Actor> IPromise<T> connect() {
         return this.connect(null,null);
     }
 

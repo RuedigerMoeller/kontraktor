@@ -4,33 +4,35 @@ import kontraktor.krouter.service.DummyService;
 import kontraktor.krouter.service.ForeignClass;
 import org.nustaq.kontraktor.AwaitException;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
+import org.nustaq.kontraktor.routers.Routing;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import java.util.stream.IntStream;
 
 public class DummyServiceKrouterClient {
 
+    private static void runTest(DummyService routerClient) {
+
+//        runSimpleBench(routerClient);
+//        runPromiseBench(routerClient);
+//        System.out.println("main done");
+        basics(routerClient,false);
+    }
+
     public static void main(String[] args) {
 
         // connect to service via Krouter
-//        DummyService routerClient = (DummyService)
-//            new WebSocketConnectable()
-//                .url("ws://localhost:8888/binary")
-//                .url("ws://localhost:6666/service")
-//                .actorClass(DummyService.class)
-//                .serType(SerializerType.FSTSer).connect( (x, err) -> System.exit(1) )
-//                .await();
-
         DummyService routerClient = (DummyService)
-            new TCPConnectable()
-                .host("localhost").port(6667)
-                .actorClass(DummyService.class)
-                .serType(SerializerType.FSTSer).connect( (x, err) -> System.exit(1) )
-                .await();
+            Routing.connectClient(
+                new WebSocketConnectable()
+                    .url("ws://localhost:8888/binary")
+                    .actorClass(DummyService.class)
+                    .serType(SerializerType.FSTSer
+                ),
+                x -> System.exit(1)
+            ).await();
         try {
             routerClient.ping().await(); // throws exception if not available
         } catch (AwaitException ae) {
@@ -77,16 +79,9 @@ public class DummyServiceKrouterClient {
             LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(100));
     }
 
-    private static void runTest(DummyService routerClient) {
-
-//        runSimpleBench(routerClient);
-//        runPromiseBench(routerClient);
-        System.out.println("main done");
-        basics(routerClient);
-    }
-
-    private static void basics(DummyService routerClient) {
-        if ( 1 != 1 ) {
+    private static void basics(DummyService routerClient, boolean subservice) {
+//        if ( 1 != 1 )
+        {
             routerClient.roundTrip(System.currentTimeMillis()).then((l, e) -> {
                 if (l == null)
                     System.out.println(e);
@@ -98,13 +93,17 @@ public class DummyServiceKrouterClient {
                 System.out.println("subs " + r + " " + e);
             });
         }
-        routerClient.createSubService().then( (service,err) -> {
-            System.out.println("got subservice "+service);
-            service.subMe("XX", (r,e) -> {
-                System.out.println("SUBCB "+r+" "+e);
-            }).then( (r,e) -> {
-                System.out.println("SUBPROM "+r+" "+e);
+        if ( subservice ) {
+            // subservices only works for sticky krouters (e.g. hotcold,hothot)
+            // as with roundrobin the subservice will be created in one instance only
+            routerClient.createSubService().then((service, err) -> {
+                System.out.println("got subservice " + service);
+                service.subMe("XX", (r, e) -> {
+                    System.out.println("SUBCB " + r + " " + e);
+                }).then((r, e) -> {
+                    System.out.println("SUBPROM " + r + " " + e);
+                });
             });
-        });
+        }
     }
 }

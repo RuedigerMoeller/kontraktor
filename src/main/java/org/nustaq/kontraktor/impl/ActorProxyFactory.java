@@ -247,7 +247,9 @@ public class ActorProxyFactory {
                  originalMethod.getName().equals("tellMsg") ||
                  originalMethod.getName().equals("__unpublish") ||
                  originalMethod.getName().equals("__republished") ||
+                 originalMethod.getName().equals("router$clientPing") ||
                  originalMethod.getName().equals("ping") ||
+                 originalMethod.getName().equals("cyclic") ||
                  originalMethod.getName().equals("__submit") ||
                  originalMethod.getName().equals("exec") ||
                  originalMethod.getName().equals("asyncstop") ||

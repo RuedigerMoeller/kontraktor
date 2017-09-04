@@ -47,7 +47,7 @@ public class DummyService extends Actor {
             .actorClass(SimpleKrouter.class)
             .serType(SerializerType.JsonNoRef)
             .connect( (x,err) -> System.out.println("discon "+x) ).await();
-        krouter.router$Register(serv.getUntypedRef()).await();
+        krouter.router$RegisterService(serv.getUntypedRef()).await();
     }
 
 }

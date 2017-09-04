@@ -58,7 +58,5 @@ public interface ObjectSocket {
     /**
      * @return an id for this connection, currently set for http connections only (returns http session id)
      */
-    default String getConnectionIdentifier() {
-        return null;
-    }
+    String getConnectionIdentifier();
 }

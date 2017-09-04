@@ -173,5 +173,10 @@ public class TCPServerConnector implements ActorServerConnector {
         public int getId() {
             return id;
         }
+
+        @Override
+        public String getConnectionIdentifier() {
+            return ""+id;
+        }
     }
 }

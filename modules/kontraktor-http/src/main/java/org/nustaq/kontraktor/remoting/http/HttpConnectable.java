@@ -109,7 +109,7 @@ public class HttpConnectable implements ConnectableActor {
     }
 
     @Override
-    public <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB) {
+    public <T extends Actor> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB) {
         HttpClientConnector con = new HttpClientConnector(this);
         con.disconnectCallback = disconnectCallback;
         ActorClient actorClient = new ActorClient(con, clz, coding);

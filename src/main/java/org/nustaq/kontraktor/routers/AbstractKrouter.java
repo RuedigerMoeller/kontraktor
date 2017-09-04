@@ -4,14 +4,15 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
-import org.nustaq.kontraktor.remoting.base.ActorPublisher;
-import org.nustaq.kontraktor.remoting.base.ObjectSocket;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
-import org.nustaq.kontraktor.remoting.base.RemotedActor;
+import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
+import org.nustaq.kontraktor.util.Log;
 
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 /**
  * base class for load balancers and failover proxies.
@@ -31,15 +32,29 @@ import java.util.function.BiFunction;
  * more than one type of Service)
  *
  */
-public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T> implements RemotedActor {
+public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T> implements RemotedActor, ServingActor {
 
     public static final String SERVICE_UNAVAILABLE = "Service unavailable";
+    /**
+     * client connection loss detection can be slow (just needed for resource cleanup)
+     */
+    public static long CLIENT_PING_INTERVAL_MS = 5000L;
+
+    protected HashMap<Object,Long> timeoutMap;
+    protected HashMap<String,ConnectionRegistry> clients; // also services (timing from connect => registerService makes service detection unreliable)
+
+    public abstract IPromise router$RegisterService(Actor remoteRef);
+    @Local
+    public abstract void router$handleServiceDisconnect(Actor disconnected );
 
     @Local
-    public abstract void init();
-
-    @Local
-    public abstract void router$handleDisconnect( Actor disconnected );
+    public void init() {
+        timeoutMap = new HashMap<>();
+        clients = new HashMap<>();
+        delayed(getServicePingTimeout(), () -> cyclic( getServicePingTimeout(), () -> pingServices() ) );
+        delayed(getClientPingTimeout(), () -> cyclic( getClientPingTimeout(), () -> checkPingOnClients() ) );
+        delayed(CLIENT_PING_INTERVAL_MS*2, () -> cyclic( CLIENT_PING_INTERVAL_MS*2, () -> timeoutMap.clear() ) );
+    }
 
     @Override @CallerSideMethod
     public boolean __dispatchRemoteCall(
@@ -63,6 +78,62 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
         }
         return false;
     }
+
+    @Local
+    public void pingServices() {
+        getServices().forEach( serv -> {
+            serv.ping().timeoutIn(getServicePingTimeout())
+                .onResult( r -> {
+                    timeoutMap.put(serv,System.currentTimeMillis());
+                })
+                .onTimeout( () -> {
+                    Long tim = timeoutMap.get(serv);
+                    if ( tim != null && System.currentTimeMillis()-tim > getServicePingTimeout() ) {
+                        Log.Info(this, "service timeout, closing " + serv);
+                        handleServiceDiscon(serv);
+                        if ( serv.isPublished() )
+                            serv.close();
+                    }
+                });
+        });
+    }
+
+    @Local
+    public void checkPingOnClients() {
+        long now = System.currentTimeMillis();
+        System.out.println("checkPingClients "+clients.size());
+        clients.forEach( (id,reg) -> {
+            if ( isService(reg) )
+            {
+                int debug = 1;
+//                clients.remove(id); cannot do that will hit freshly connected clients
+
+                // FIXME: services get stuck in clients collections as well as clients
+                // which never did get through a ping. Currently only distinction between
+                // a client and a serevice is wehter it pings or not (+wether it registers)
+            } else {
+                if ( now-reg.getLastClientPing() > getClientPingTimeout() ||
+                     reg.isTerminated()
+                ){
+                    self().clientDisconnected(reg,id);
+                }
+            }
+        });
+    }
+
+    private boolean isService(ConnectionRegistry reg) {
+        return reg.getLastClientPing() == 0;
+    }
+
+
+    protected long getServicePingTimeout() {
+        return 2000L;
+    }
+    protected long getClientPingTimeout() {
+        return CLIENT_PING_INTERVAL_MS*2;
+    }
+
+    protected abstract List<Actor> getServices();
 
     @CallerSideMethod
     protected RemoteCallEntry createErrorPromiseResponse(RemoteCallEntry rce, RemoteRegistry clientRemoteRegistry) {
@@ -99,7 +170,7 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
                         serviceRemoteReg.removePublishedObject(cbid);
                         // websocket close is unreliable
                         if ( serviceRemoteReg.isTerminated() ) {
-                            router$handleDisconnect(remoteRef);
+                            handleServiceDiscon(remoteRef);
                             return;
                         }
                         if (!done[0]) {
@@ -127,7 +198,7 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
             if ( ! serviceRemoteReg.isTerminated() )
                 serviceRemoteReg.forwardRemoteMessage(rce);
             else {
-                router$handleDisconnect(remoteRef);
+                handleServiceDiscon(remoteRef);
             }
         };
         if ( Thread.currentThread() != getCurrentDispatcher() )
@@ -167,7 +238,7 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
                     serviceRemoteReg.removePublishedObject(cbid);
                     // websocket close is unreliable
                     if ( serviceRemoteReg.isTerminated() ) {
-                        router$handleDisconnect(remoteRef);
+                        handleServiceDiscon(remoteRef);
                         return;
                     }
                     RemoteCallEntry cbrce = (RemoteCallEntry) r;
@@ -186,7 +257,7 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
             if ( ! serviceRemoteReg.isTerminated() )
                 serviceRemoteReg.forwardRemoteMessage(finalRce);
             else {
-                router$handleDisconnect(remoteRef);
+                handleServiceDiscon(remoteRef);
             }
         };
         if ( Thread.currentThread() != getCurrentDispatcher() )
@@ -195,20 +266,24 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
             toRun.run();
     }
 
+    @CallerSideMethod
+    protected void handleServiceDiscon(Actor remoteRef) {
+        // todo remove from clients hasmap
+        self().router$handleServiceDisconnect(remoteRef);
+    }
+
     public void hasBeenUnpublished(String connectionIdentifier) {
         System.out.println("Krouter lost client "+connectionIdentifier);
     }
 
-    public static <T extends AbstractKrouter> T start(Class<T> krouterClass, ActorPublisher ... publisher) {
-        T res = AsActor(krouterClass);
-        res.init();
-        for (int i = 0; i < publisher.length; i++) {
-            ActorPublisher actorPublisher = publisher[i].facade(res);
-            actorPublisher.publish( act -> {
-                res.router$handleDisconnect(act);
-            });
-        }
-        return res;
+    public void clientConnected(ConnectionRegistry connectionRegistry, String connectionIdentifier) {
+        System.out.println("client connected "+connectionIdentifier);
+        clients.put(connectionIdentifier,connectionRegistry);
+    }
+
+    public void clientDisconnected(ConnectionRegistry connectionRegistry, String connectionIdentifier) {
+        System.out.println("client disconnected "+connectionIdentifier);
+        clients.remove(connectionIdentifier,connectionRegistry);
     }
 
 }

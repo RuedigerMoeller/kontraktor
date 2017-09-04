@@ -132,6 +132,11 @@ public class _JSR356ServerConnector extends Endpoint implements ActorServerConne
         public int getId() {
             return id;
         }
+
+        @Override
+        public String getConnectionIdentifier() {
+            return ""+id;
+        }
     }
 
     static class DefaultClientEndpointConfig implements ClientEndpointConfig {

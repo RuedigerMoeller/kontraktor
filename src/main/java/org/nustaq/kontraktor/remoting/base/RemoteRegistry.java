@@ -66,6 +66,8 @@ public abstract class RemoteRegistry implements RemoteConnection {
     private boolean secured;
     private ConcurrentHashMap userData = new ConcurrentHashMap(5);
 
+    protected long lastPing = 0; // only set if a client calls ping on a serving actor
+
     protected FSTConfiguration conf;
     protected RemoteScheduler scheduler = new RemoteScheduler(); // unstarted thread dummy
     // holds published actors, futures and callbacks of this process
@@ -652,4 +654,11 @@ public abstract class RemoteRegistry implements RemoteConnection {
         }
     }
 
+    public void ping() {
+        lastPing = System.currentTimeMillis();
+    }
+
+    public long getLastPing() {
+        return lastPing;
+    }
 }

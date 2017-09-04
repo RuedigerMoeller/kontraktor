@@ -187,7 +187,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
                     if ( serviceDescription.getConnectable() == null ) {
                         Log.Error(this, "No connecteable defined for service "+serviceDescription.getName() );
                     }
-                    IPromise<Object> connect;
+                    IPromise connect;
                     try {
                         Log.Info(this,"connect "+serviceDescription.getConnectable());
                         connect = serviceDescription.getConnectable().connect();

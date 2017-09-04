@@ -27,6 +27,7 @@ import org.nustaq.kontraktor.remoting.encoding.Coding;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -91,9 +92,11 @@ public class NIOServerConnector extends AsyncServerSocket implements ActorServer
 
     static class MyObjectAsyncSocketConnection extends ObjectAsyncSocketConnection {
         ObjectSink sink;
+        String id;
 
         public MyObjectAsyncSocketConnection(SelectionKey key, SocketChannel chan) {
             super(key, chan);
+            this.id = UUID.randomUUID().toString();
         }
 
         public void init( ObjectSink sink ) { this.sink = sink; }
@@ -109,6 +112,11 @@ public class NIOServerConnector extends AsyncServerSocket implements ActorServer
         public void close() throws IOException {
             chan.close();
             sink.sinkClosed();
+        }
+
+        @Override
+        public String getConnectionIdentifier() {
+            return id;
         }
 
     }

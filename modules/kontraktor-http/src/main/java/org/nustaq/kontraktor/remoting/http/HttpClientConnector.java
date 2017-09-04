@@ -334,6 +334,11 @@ public class HttpClientConnector implements ActorClientConnector {
             return id;
         }
 
+        @Override
+        public String getConnectionIdentifier() {
+            return ""+id;
+        }
+
         private FutureCallback<HttpResponse> getHttpLPFutureCallback(final Promise p, final AtomicInteger timedout) {
             return new FutureCallback<HttpResponse>() {
                 @Override

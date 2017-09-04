@@ -148,6 +148,11 @@ public class TCPClientConnector implements ActorClientConnector {
         public int getId() {
             return id;
         }
+
+        @Override
+        public String getConnectionIdentifier() {
+            return ""+id;
+        }
     }
 
 }

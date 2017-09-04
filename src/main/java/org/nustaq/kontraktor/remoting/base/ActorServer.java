@@ -98,7 +98,11 @@ public class ActorServer {
             reg.setFacadeActor(facade);
             reg.publishActor(facade);
             reg.setServer(this);
-            Log.Info(this, "connected a client with registry "+System.identityHashCode(reg));
+            Log.Info(this, "connected a client with registry "+System.identityHashCode(reg)+", "+writesocket.getConnectionIdentifier() );
+            final ConnectionRegistry connectionRegistry = new ConnectionRegistry(reg);
+            if ( facade instanceof ServingActor ) {
+                ((ServingActor) facade).clientConnected(connectionRegistry,writesocket.getConnectionIdentifier());
+            }
             return new ObjectSink() {
 
                 @Override
@@ -112,6 +116,10 @@ public class ActorServer {
 
                 @Override
                 public void sinkClosed() {
+                    Log.Info(ActorServer.this,"disconnected a client "+System.identityHashCode(reg)+", "+writesocket.getConnectionIdentifier());
+                    if ( facade instanceof ServingActor ) {
+                        ((ServingActor) facade).clientDisconnected(connectionRegistry,writesocket.getConnectionIdentifier());
+                    }
                     reg.disconnect();
                 }
             };

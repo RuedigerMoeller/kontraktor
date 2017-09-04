@@ -187,6 +187,11 @@ public class JSR356ClientConnector implements ActorClientConnector {
             return id;
         }
 
+        @Override
+        public String getConnectionIdentifier() {
+            return ""+id;
+        }
+
     }
 
 }

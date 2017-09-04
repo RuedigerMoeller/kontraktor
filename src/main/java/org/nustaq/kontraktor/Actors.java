@@ -68,7 +68,6 @@ public class Actors {
      * Default is to use Unbounded queues. Warning: calling queue size related
      * methods is quite expensive then (except isEmpty()).
      */
-    public static boolean DEFAULT_BOUNDED_QUEUE = false;
 
     static {
         exec = new ThreadPoolExecutor(

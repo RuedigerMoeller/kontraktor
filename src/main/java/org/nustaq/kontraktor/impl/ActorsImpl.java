@@ -17,7 +17,6 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.impl;
 
 import org.eclipse.jetty.util.ConcurrentArrayQueue;
-import org.jctools.queues.MpscArrayQueue;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Scheduler;
@@ -96,10 +95,7 @@ public class ActorsImpl {
     }
 
     public Queue createQueue(int qSize) {
-        if ( Actors.DEFAULT_BOUNDED_QUEUE )
-            return new MpscArrayQueue<>(qSize);
-        else
-            return new ConcurrentArrayQueue<>( Math.max(512, qSize/10) );
+        return new ConcurrentArrayQueue<>( Math.max(512, qSize/10) );
     }
 
     public Actor newProxy(Class<? extends Actor> clz, Scheduler sched, int qsize) {

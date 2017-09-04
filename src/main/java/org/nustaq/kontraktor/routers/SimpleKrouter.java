@@ -3,15 +3,14 @@ package org.nustaq.kontraktor.routers;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
-import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiFunction;
 
 /**
  * Created by ruedi on 13.03.17.
@@ -23,7 +22,8 @@ public class SimpleKrouter<T extends SimpleKrouter> extends AbstractKrouter<T> {
 
     protected Actor remoteRef;
 
-    public IPromise router$Register(Actor remoteRef) {
+    @Override
+    public IPromise router$RegisterService(Actor remoteRef) {
         this.remoteRef = remoteRef;
         self().remoteRef = remoteRef;
         return resolve();
@@ -31,12 +31,20 @@ public class SimpleKrouter<T extends SimpleKrouter> extends AbstractKrouter<T> {
 
     @Override
     public void init() {
-
+        super.init();
     }
 
     @Local
-    public void router$handleDisconnect(Actor x) {
+    public void router$handleServiceDisconnect(Actor x) {
         remoteRef = null;
+    }
+
+    @Override
+    protected List<Actor> getServices() {
+        List<Actor> svs = new ArrayList<>();
+        if ( remoteRef != null )
+            svs.add(remoteRef);
+        return svs;
     }
 
     @Override @CallerSideMethod
@@ -50,7 +58,7 @@ public class SimpleKrouter<T extends SimpleKrouter> extends AbstractKrouter<T> {
     }
 
     public static void main(String[] args) {
-        start(
+        Routing.start(
             SimpleKrouter.class,
             new TCPNIOPublisher()
                 .port(6667)

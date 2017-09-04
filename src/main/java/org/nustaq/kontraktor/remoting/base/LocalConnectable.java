@@ -45,7 +45,7 @@ public class LocalConnectable implements ConnectableActor {
      * @return
      */
     @Override
-    public <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB) {
+    public <T extends Actor> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB) {
         return new Promise<>((T) actor);
     }
 

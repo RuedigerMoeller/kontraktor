@@ -291,7 +291,8 @@ public class KxReactiveStreams extends Actors {
                 disconHandler.complete(acc,err);
             }
         };
-        IPromise<KxPublisher<T>> connect = connectable.actorClass(KxPublisherActor.class).inboundQueueSize(scheduler.getDefaultQSize()).connect(discon, remoteref -> {
+        IPromise connect = connectable.actorClass(KxPublisherActor.class).inboundQueueSize(scheduler.getDefaultQSize()).connect(discon, r -> {
+            Object remoteref = r;
             if (((KxPublisherActor) remoteref)._callerSideSubscribers != null) {
                 ((KxPublisherActor) remoteref)._callerSideSubscribers.forEach(subs -> {
                     ((Subscriber) subs).onError(new IOException("connection lost"));
@@ -303,7 +304,7 @@ public class KxReactiveStreams extends Actors {
         connect.then( (publisher,err) -> {
             if ( publisher != null ) {
                 ((KxPublisherActor) publisher)._streams = this;
-                res.resolve(publisher);
+                res.resolve((KxPublisher<T>) publisher);
             } else {
                 res.reject(err);
             }

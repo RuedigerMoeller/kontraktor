@@ -103,6 +103,11 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
         return id;
     }
 
+    @Override
+    public String getConnectionIdentifier() {
+        return sessionId;
+    }
+
     public void setSink(ObjectSink sink) {
         this.sink = sink;
     }

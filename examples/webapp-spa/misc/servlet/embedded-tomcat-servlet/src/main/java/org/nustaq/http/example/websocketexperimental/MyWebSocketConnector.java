@@ -158,6 +158,11 @@ public class MyWebSocketConnector extends Endpoint implements ActorServerConnect
             return id;
         }
 
+        @Override
+        public String getConnectionIdentifier() {
+            return ""+id;
+        }
+
         public void setSink(ObjectSink sink) {
             this.sink = sink;
         }

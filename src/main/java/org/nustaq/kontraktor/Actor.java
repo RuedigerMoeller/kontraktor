@@ -130,7 +130,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     ConcurrentLinkedQueue<Callback<SELF>> __stopHandlers;
     public int __mailboxCapacity; // fixme: checkout why there is also _mbCapacity :)
     public void __submit(Runnable toRun) { toRun.run(); }
-
     // <- internal
 
     /**
@@ -265,6 +264,19 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         __scheduler.runBlockingCall(self(), callable, prom);
         return prom;
     }
+
+    @Local
+    public void cyclic(long interval, Runnable toRun) {
+        if ( ! isStopped() ) {
+            try {
+                toRun.run();
+            } catch (Exception e) {
+                Log.Warn(this,e);
+            }
+            self().delayed(interval,() -> cyclic(interval,toRun) );
+        }
+    }
+
 
     /**
      * schedule an action or call delayed.
@@ -428,7 +440,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * @return
      */
     public IPromise ping() {
-        return new Promise<>("pong");
+        return new Promise<>(0);
     }
 
     protected TicketMachine __ticketMachine;
@@ -664,6 +676,14 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             }
         }
         return createdFutures != null && createdFutures.size() > 0;
+    }
+
+    public IPromise<Long> router$clientPing(long tim) {
+        RemoteConnection remoteConnection = connection.get();
+        if ( remoteConnection != null ) {
+            ((RemoteRegistry)remoteConnection).ping();
+        }
+        return resolve(tim);
     }
 
     protected String getConnectionIdentifier() {

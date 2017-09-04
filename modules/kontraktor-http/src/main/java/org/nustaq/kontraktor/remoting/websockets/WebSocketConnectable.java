@@ -56,7 +56,7 @@ public class WebSocketConnectable implements ConnectableActor {
     }
 
     @Override
-    public <T> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB) {
+    public <T extends Actor> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB) {
         Promise result = new Promise();
         Runnable connect = () -> {
             JSR356ClientConnector client = null;

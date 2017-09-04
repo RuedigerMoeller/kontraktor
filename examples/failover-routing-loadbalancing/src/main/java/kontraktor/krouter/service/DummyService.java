@@ -1,17 +1,17 @@
 package kontraktor.krouter.service;
 
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.remoting.base.RemotedActor;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
-import org.nustaq.kontraktor.routers.SimpleKrouter;
+import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
+import org.nustaq.kontraktor.routers.Krouter;
+import org.nustaq.kontraktor.routers.Routing;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.RateMeasure;
 
 /**
  * Created by ruedi on 09.03.17.
  */
-public class DummyService extends Actor implements RemotedActor {
+public class DummyService extends Actor {
 
     public void init() {
     }
@@ -57,39 +57,19 @@ public class DummyService extends Actor implements RemotedActor {
         DummyService serv = Actors.AsActor(DummyService.class);
         serv.init();
 
-        serv.execute( () -> {
-            SimpleKrouter krouter = (SimpleKrouter)
-//                new WebSocketConnectable()
-//                    .url("ws://localhost:8888/binary")
-//                    .actorClass(SimpleKrouter.class)
-//                    .serType(SerializerType.FSTSer)
-//                    .connect( (x,err) -> {
-//                        System.out.println("discon "+x);
-//                        System.exit(-1);
-//                    }).await();
-            new TCPConnectable()
-                .host("localhost").port(6667)
-                .actorClass(SimpleKrouter.class)
-                .serType(SerializerType.FSTSer)
-                .connect( (x,err) -> {
-                    System.out.println("discon "+x);
-                    System.exit(-1);
-                }).await();
+        Krouter krouter = (Krouter) Routing.registerService(
+            new WebSocketConnectable()
+                .url("ws://localhost:8888/binary")
+                .actorClass(Krouter.class)
+                .serType(SerializerType.FSTSer),
+            serv,
+            x -> {
+                System.out.println("discon " + x);
+                System.exit(-1);
+            }
+        ).await();
 
-            krouter.router$Register(serv.getUntypedRef()).await();
-            Log.Info(DummyService.class,"service registered at krouter");
-//        new TCPNIOPublisher().port(6666).serType(SerializerType.JsonNoRef).facade(serv).publish();
-//            new WebSocketPublisher().hostName("localhost").urlPath("/service").port(6666).serType(SerializerType.JsonNoRef).facade(serv).publish();
-        });
+        Log.Info(DummyService.class,"service registered at krouter");
     }
 
-    @Override
-    public void hasBeenUnpublished(String connectionIdentifier) {
-        System.out.println("service unpublished "+connectionIdentifier);
-    }
-
-    @Override
-    public void hasBeenPublished(String connectionIdentifier) {
-        System.out.println("facade service published");
-    }
 }
