@@ -1,5 +1,14 @@
 # kontraktor 4
 
+## Credits
+
+kontraktor makes use of many awesome open source libraries such as
+* httpasyncclient (org.apache.httpcomponents) 
+* undertow, (io.undertow) see [undertow.io](undertow.io)
+* jsoup (org.jsoup) - real world html parser
+* npm-semver, (com.github.yuchi)
+* fast-classpath-scanner (io.github.lukehutch)
+* org.apache.commons, slf4j-api, minimal-json (com.eclipsesource.minimal-json), junit
 
 ## What is kontraktor ?
 
@@ -13,9 +22,14 @@
 
 [Code Examples](https://github.com/RuedigerMoeller/kontraktor/tree/trunk/examples), [Related Blogpost's](https://juptr.io/@kontraktor)
 
+## What can I use it for ?
+
+* build modern microservice systems (java (JVM), nodejs) beyond the Limits of REST. Asynchronous, event sourced, encoding (fast binary, json for interop) and network transport independent (choose from TCP, WebSockets, Http-(Long Poll)).
+* power modern SPA apps with a java based webserver
+
 ## Where does it come from
 
-The core has been developed when I consulted Deutsche Börse. Kontraktor (+an early version of reallive) powers a Microservice Cluster+DataGrid responsible for routing and preprocessing of realtime mass data stemming from several exchange backends (up to 100000 per second). These data streams then had to be filtered and delivered to trading front ends (up ~20000 distinct filtered subscriptions). So the basic requirements where: horizontal scalability, heterogenous Network Infrastructure (TCP for back-ends and intra service communication, Http + Websockets for clients-apps and some remotely located data sources), high throughput - low latency, 
+The core has been developed when I consulted a large european stock exchange. Kontraktor powers a Microservice Cluster+DataGrid responsible for routing and preprocessing of realtime mass data (up to 100000 per second). These data streams then had to be filtered and delivered to trading front ends (up ~20000 distinct filtered subscriptions). So the basic requirements where: horizontal scalability (distributed system), heterogenous Network Infrastructure (TCP for back-ends and intra service communication, Http + Websockets for clients-apps and some remotely located data sources), high throughput - low latency, 
 
 It's also used in at least 2 Startups (juptr.io, and an undisclosed one) as a backbone for distributed analytics and microservice systems. 
 
