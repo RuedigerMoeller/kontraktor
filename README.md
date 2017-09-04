@@ -1,6 +1,6 @@
 # kontraktor 4
 
-## Credits
+**Credits**
 
 kontraktor makes use of many awesome open source libraries such as
 * httpasyncclient (org.apache.httpcomponents) 
