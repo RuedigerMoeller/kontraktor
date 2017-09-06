@@ -66,7 +66,7 @@ public class ActorServer {
         this.coding = coding;
         conf = coding.createConf();
         conf.setName("MAINCONFIG");
-        RemoteRegistry.registerDefaultClassMappings(conf);
+        ConnectionRegistry.registerDefaultClassMappings(conf);
         if ( coding.getCrossPlatformShortClazzNames() != null ) {
             conf.registerCrossPlatformClassMappingUseSimpleName(coding.getCrossPlatformShortClazzNames());
         }
@@ -79,7 +79,7 @@ public class ActorServer {
     public void start(Consumer<Actor> disconnectHandler) throws Exception {
         connector.connect(facade, writesocket -> {
             AtomicReference<ObjectSocket> socketRef = new AtomicReference<>(writesocket);
-            RemoteRegistry reg = new RemoteRegistry( conf.deriveConfiguration(), coding) {
+            ConnectionRegistry reg = new ConnectionRegistry( conf.deriveConfiguration(), coding) {
                 @Override
                 public Actor getFacadeProxy() {
                     return facade;
@@ -99,9 +99,8 @@ public class ActorServer {
             reg.publishActor(facade);
             reg.setServer(this);
             Log.Info(this, "connected a client with registry "+System.identityHashCode(reg)+", "+writesocket.getConnectionIdentifier() );
-            final ConnectionRegistry connectionRegistry = new ConnectionRegistry(reg);
             if ( facade instanceof ServingActor ) {
-                ((ServingActor) facade).clientConnected(connectionRegistry,writesocket.getConnectionIdentifier());
+                ((ServingActor) facade).clientConnected(reg,writesocket.getConnectionIdentifier());
             }
             return new ObjectSink() {
 
@@ -118,7 +117,7 @@ public class ActorServer {
                 public void sinkClosed() {
                     Log.Info(ActorServer.this,"disconnected a client "+System.identityHashCode(reg)+", "+writesocket.getConnectionIdentifier());
                     if ( facade instanceof ServingActor ) {
-                        ((ServingActor) facade).clientDisconnected(connectionRegistry,writesocket.getConnectionIdentifier());
+                        ((ServingActor) facade).clientDisconnected(reg,writesocket.getConnectionIdentifier());
                     }
                     reg.disconnect();
                 }

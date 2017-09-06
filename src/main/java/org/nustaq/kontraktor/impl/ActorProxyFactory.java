@@ -251,7 +251,7 @@ public class ActorProxyFactory {
                  originalMethod.getName().equals("ping") ||
                  originalMethod.getName().equals("cyclic") ||
                  originalMethod.getName().equals("__submit") ||
-                 originalMethod.getName().equals("exec") ||
+                 originalMethod.getName().equals("execInThreadPool") ||
                  originalMethod.getName().equals("asyncstop") ||
                  originalMethod.getName().equals("receive") ||
                  originalMethod.getName().equals("complete") ||
@@ -306,7 +306,7 @@ public class ActorProxyFactory {
                 } else if (
                     ! method.getName().equals("getActor") &&
                     ! method.getName().equals("delayed") &&
-                    ! method.getName().equals("exec")
+                    ! method.getName().equals("execInThreadPool")
                 )
                 {
                     method.setBody("throw new RuntimeException(\"can only call public methods on actor ref. method:'"+method.getName()+"\");");

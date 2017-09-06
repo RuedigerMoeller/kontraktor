@@ -31,7 +31,6 @@ public class ServletActorConnector extends AbstractHttpServerConnector {
         super(facade);
         this.servlet = servlet;
         try {
-            facade.setThrowExWhenBlocked(true);
             setConnectionVerifier(connectionVerifier);
             setSessionTimeout(sessionTimeout);
             actorServer = new ActorServer( this, facade, coding == null ? new Coding(SerializerType.FSTSer) : coding );

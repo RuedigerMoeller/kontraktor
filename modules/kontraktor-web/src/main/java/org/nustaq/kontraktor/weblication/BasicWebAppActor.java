@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.annotations.Remoted;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
+import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
 import org.nustaq.kontraktor.remoting.base.SessionResurrector;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.weblication.model.DefaultSessionStorage;
@@ -54,7 +55,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
     @Remoted
     public IPromise<Object[]> login(String user, String pw, String jwt) {
         Promise res = new Promise();
-        RemoteConnection remoteConnection = connection.get();
+        ConnectionRegistry remoteConnection = connection.get();
         getCredentials(user,pw,jwt).then( (authres, err) -> {
             if ( err != null ) {
                 res.reject(err);

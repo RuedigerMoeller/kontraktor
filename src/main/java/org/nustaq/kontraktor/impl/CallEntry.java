@@ -17,7 +17,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
 
 import java.lang.reflect.Method;
 
@@ -33,7 +33,7 @@ public class CallEntry<T> {
     transient private Actor sendingActor; // defines the sender of this message. null in case of outside call
     transient private Actor targetActor;  // defines actor assignment in case target is callback
     transient private boolean onCBQueue;  // determines queue used
-    transient private RemoteRegistry remoteRefRegistry; // remote connection call came from
+    transient private ConnectionRegistry remoteRefRegistry; // remote connection call came from
 
     public CallEntry(T target, Method method, Object[] args, Actor sender, Actor targetActor, boolean isCB) {
         this.target = target;
@@ -44,11 +44,11 @@ public class CallEntry<T> {
         this.onCBQueue = isCB;
     }
 
-    public void setRemoteRefRegistry(RemoteRegistry remoteRefRegistry) {
+    public void setRemoteRefRegistry(ConnectionRegistry remoteRefRegistry) {
         this.remoteRefRegistry = remoteRefRegistry;
     }
 
-    public RemoteRegistry getRemoteRefRegistry() {
+    public ConnectionRegistry getRemoteRefRegistry() {
         return remoteRefRegistry;
     }
 

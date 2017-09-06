@@ -109,13 +109,15 @@ public class RemoteCallEntry implements Serializable {
     @Override
     public String toString() {
         return "RemoteCallEntry{" +
-                "receiverKey=" + receiverKey +
-                ", futureKey=" + futureKey +
-                ", method='" + method + '\'' +
-                ", args=" + Arrays.toString(args) +
-                ", serargs=" + serializedArgs +
-                ", queue=" + queue +
-                '}';
+            "receiverKey=" + receiverKey +
+            ", futureKey=" + futureKey +
+            ", method='" + method + '\'' +
+            ", args=" + Arrays.toString(args) +
+            ", serializedArgs=" + serializedArgs +
+            ", queue=" + queue +
+            ", isContinue=" + isContinue +
+            ", cb=" + cb +
+            '}';
     }
 
     public void setSerializedArgs(byte[] serializedArgs) {

@@ -40,11 +40,10 @@ package org.nustaq.kontraktor;
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
+import org.nustaq.kontraktor.annotations.Remoted;
 import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
-import org.nustaq.kontraktor.remoting.base.ObjectSocket;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
-import org.nustaq.kontraktor.remoting.base.RemotedActor;
+import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.TicketMachine;
@@ -52,8 +51,7 @@ import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.Serializable;
 import java.lang.reflect.Method;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -98,7 +96,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     /**
      * contains remote connection if current message came from remote
      */
-    public static ThreadLocal<RemoteConnection> connection = new ThreadLocal<>();
+    public static ThreadLocal<ConnectionRegistry> connection = new ThreadLocal<>();
 
     /**
      * @return current actor or throw an exception if not running inside an actor thread.
@@ -123,9 +121,9 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     public volatile boolean __stopped;
     public Actor __self; // the proxy object
     public long __remoteId; // id in case this actor is published via network
-    public boolean __throwExAtBlock; // if true, trying to send a message to full queue will throw an exception instead of blocking
-    public volatile ConcurrentLinkedQueue<RemoteConnection> __connections; // a list of connections required to be notified on close (publisher/server side))
-    public RemoteConnection __clientConnection; // remoteconnection this in case of remote ref
+    public volatile ConcurrentLinkedQueue<ConnectionRegistry> __connections; // a list of connections required to be notified on close (publisher/server side))
+    public ConnectionRegistry __clientConnection; // remoteconnection in case this is a remote ref
+    public boolean zzRoutingGCEnabled;
     // register callbacks notified on stop
     ConcurrentLinkedQueue<Callback<SELF>> __stopHandlers;
     public int __mailboxCapacity; // fixme: checkout why there is also _mbCapacity :)
@@ -218,12 +216,12 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     @CallerSideMethod
     public IPromise ask(String messageId, Object ... args ) {
         boolean isCB = args != null && args.length > 0 && args[args.length-1] instanceof Callback;
-        if ( isRemote() && __clientConnection instanceof RemoteRegistry ) {
+        if ( isRemote() && __clientConnection instanceof ConnectionRegistry) {
             Actor sendingActor = Actor.sender.get();
             Object[] newArgs = new Object[args.length+1];
             System.arraycopy(args,0,newArgs,1,args.length);
             newArgs[0] = messageId;
-            return (IPromise) getScheduler().enqueueCall((RemoteRegistry) __clientConnection,sendingActor,getActor(),"ask",newArgs,isCB);
+            return (IPromise) getScheduler().enqueueCall((ConnectionRegistry) __clientConnection,sendingActor,getActor(),"ask",newArgs,isCB);
         }
         return (IPromise) getScheduler().enqueueCall(Actor.sender.get(),getActor(),messageId,args,isCB);
     }
@@ -237,12 +235,12 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     @CallerSideMethod
     public void tell(String messageId, Object ... args ) {
         boolean isCB = args != null && args.length > 0 && args[args.length-1] instanceof Callback;
-        if ( isRemote() && __clientConnection instanceof RemoteRegistry ) {
+        if ( isRemote() && __clientConnection instanceof ConnectionRegistry) {
             Actor sendingActor = Actor.sender.get();
             Object[] newArgs = new Object[args.length+1];
             System.arraycopy(args,0,newArgs,1,args.length);
             newArgs[0] = messageId;
-            getScheduler().enqueueCall((RemoteRegistry) __clientConnection, sendingActor,getActor(),"tell",newArgs,isCB);
+            getScheduler().enqueueCall((ConnectionRegistry) __clientConnection, sendingActor,getActor(),"tell",newArgs,isCB);
             return;
         }
         getScheduler().enqueueCall(Actor.sender.get(),getActor(),messageId,args,isCB);
@@ -259,7 +257,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * @param <T>
      * @return
      */
-    public <T> IPromise<T> exec(Callable<T> callable) {
+    public <T> IPromise<T> execInThreadPool(Callable<T> callable) {
         Promise<T> prom = new Promise<>();
         __scheduler.runBlockingCall(self(), callable, prom);
         return prom;
@@ -394,7 +392,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     @Local
     public void close() {
         if (__connections != null) {
-            final ConcurrentLinkedQueue<RemoteConnection> prevCon = getActorRef().__connections;
+            final ConcurrentLinkedQueue<ConnectionRegistry> prevCon = getActorRef().__connections;
             getActorRef().__connections = null;
             getActor().__connections = null;
             prevCon.forEach((con) -> con.close());
@@ -406,7 +404,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * If current message was not sent by a client, NOP.
      */
     protected void closeCurrentClient() {
-        RemoteConnection remoteConnection = connection.get();
+        ConnectionRegistry remoteConnection = connection.get();
         if ( remoteConnection != null ) {
             delayed(1000, () -> remoteConnection.close());
         }
@@ -468,27 +466,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     /**
-     * tell the execution machinery to throw an ActorBlockedException in case the actor is blocked trying to
-     * put a message on an overloaded actor's mailbox/queue. Useful e.g. when dealing with actors representing
-     * a remote client (might block or lag due to connection issues).
-     *
-     * Obsolete since kontraktor defaults to unbounded queues
-     *
-     * @param b
-     * @return
-     */
-    @CallerSideMethod public SELF setThrowExWhenBlocked( boolean b ) {
-        getActorRef().__throwExAtBlock = b;
-        getActor().__throwExAtBlock = b;
-        return (SELF) this;
-    }
-
-    protected boolean getThrowExWhenBlocked() {
-        return __throwExAtBlock;
-    }
-
-
-    /**
      * @return true wether this actor is published to network
      */
     @CallerSideMethod public boolean isPublished() {
@@ -497,7 +474,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
 
     /**
      * just enqueue given runable to this actors mailbox and execute on the actor's thread
-     * WARNING: the similar named method exec() works different (bad naming)
+     * WARNING: the similar named method execInThreadPool() works different (bad naming)
      * @param command
      */
     @CallerSideMethod @Local @Override
@@ -510,7 +487,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return (DispatcherThread) __currentDispatcher;
     }
 
-    protected ConcurrentLinkedQueue<RemoteConnection> getConnections() {
+    protected ConcurrentLinkedQueue<ConnectionRegistry> getConnections() {
         return __connections;
     }
 
@@ -531,9 +508,9 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         __stopHandlers.add(cb);
     }
 
-    @CallerSideMethod public void __addRemoteConnection( RemoteConnection con ) {
+    @CallerSideMethod public void __addRemoteConnection( ConnectionRegistry con ) {
         if ( __connections == null ) {
-            getActorRef().__connections = new ConcurrentLinkedQueue<RemoteConnection>();
+            getActorRef().__connections = new ConcurrentLinkedQueue<ConnectionRegistry>();
             getActor().__connections = getActorRef().__connections;
         }
         if ( ! __connections.contains(con) ) {
@@ -545,7 +522,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         }
     }
 
-    @CallerSideMethod public void __removeRemoteConnection( RemoteConnection con ) {
+    @CallerSideMethod public void __removeRemoteConnection( ConnectionRegistry con ) {
         if ( __connections != null ) {
             __connections.remove(con);
         }
@@ -560,8 +537,6 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             return;
         getActorRef().__stopped = true;
         getActor().__stopped = true;
-        getActorRef().__throwExAtBlock = true;
-        getActor().__throwExAtBlock = true;
         if (__stopHandlers!=null) {
             __stopHandlers.forEach( (cb) -> cb.complete(self(), null) );
             __stopHandlers.clear();
@@ -633,7 +608,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * called if a message invokation from remote is received
      * @return true if a new promise has been created
      */
-    @CallerSideMethod public boolean __dispatchRemoteCall(ObjectSocket objSocket, RemoteCallEntry rce, RemoteRegistry registry, List<IPromise> createdFutures, Object authContext, BiFunction<Actor, String, Boolean> callInterceptor) {
+    @CallerSideMethod public boolean __dispatchRemoteCall(ObjectSocket objSocket, RemoteCallEntry rce, ConnectionRegistry registry, List<IPromise> createdFutures, Object authContext, BiFunction<Actor, String, Boolean> callInterceptor) {
         rce.unpackArgs(registry.getConf());
         try {
             Object future = getScheduler().enqueueCallFromRemote(registry, null, self(), rce.getMethod(), rce.getArgs(), false, null, callInterceptor);
@@ -678,20 +653,81 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return createdFutures != null && createdFutures.size() > 0;
     }
 
-    public IPromise<Long> router$clientPing(long tim) {
-        RemoteConnection remoteConnection = connection.get();
+    @Local
+    public void unpublish() {
+        if ( __connections != null )
+            __connections.forEach( conreg -> conreg.unpublishActor(this));
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Routing specials
+
+    /**
+     * a krouter client should ping using this method.
+     *
+     * @param tim
+     * @param publishedActorIds - published actors of sender
+     * @return
+     */
+    @Remoted
+    public IPromise<Long> router$clientPing(long tim, long[] publishedActorIds) {
+        ConnectionRegistry remoteConnection = connection.get();
         if ( remoteConnection != null ) {
-            ((RemoteRegistry)remoteConnection).ping();
+            remoteConnection.pingFromRoutingClient();
         }
         return resolve(tim);
     }
 
-    protected String getConnectionIdentifier() {
-        if ( __connections != null && !__connections.isEmpty())
-            return __connections.iterator().next().getSocketRef().getConnectionIdentifier();
-        return null;
+    private long zzLastLiveActorIds[];
+    @Remoted
+    public void zzRoutingRefGC(long ids[]) {
+        if ( zzRoutingGCEnabled ) {
+            ConnectionRegistry connectionRegistry = connection.get();
+            if ( zzLastLiveActorIds == null ) {
+                zzLastLiveActorIds = connectionRegistry.getPublishedActorIds();
+            } else {
+                // to overcome timings, do gc against previous set of remoted actors
+                // remove not-alive actors. (check each id against current live set)
+//                System.out.println("GC reported alive:"+Arrays.toString(ids));
+//                System.out.println("GC last seen alive:"+Arrays.toString(zzLastLiveActorIds));
+//                System.out.println("GC alive:"+Arrays.toString(connectionRegistry.getPublishedActorIds()));
+//                System.out.println("GC alive remoted:"+Arrays.toString(connectionRegistry.getRemotedActorIds()));
+                for (int i = 0; i < zzLastLiveActorIds.length; i++) {
+                    long zzLastLiveActorId = zzLastLiveActorIds[i];
+                    if ( zzLastLiveActorId < 2 )
+                        continue;
+                    boolean alive = false;
+                    for (int j = 0; j < ids.length; j++) {
+                        long id = ids[j];
+                        if ( id == zzLastLiveActorId ) {
+                            alive = true;
+                            break;
+                        }
+                    }
+                    if ( ! alive ) {
+                        Actor publishedActor = connectionRegistry.getPublishedActor(zzLastLiveActorId);
+                        if ( publishedActor != null && ! publishedActor.isStopped() && publishedActor.isPublished() ) {
+                            System.out.println("unpublishing " + zzLastLiveActorId + " " + publishedActor);
+                            connectionRegistry.unpublishActor(publishedActor);
+                            publishedActor.stop();
+                        }
+                    } else {
+//                        System.out.println("alive: "+zzLastLiveActorId);
+                    }
+                }
+                zzLastLiveActorIds = connectionRegistry.getPublishedActorIds();
+            }
+        }
     }
 
+    @Remoted
+    public void zzkrouterLostClient() {
+        ConnectionRegistry remoteConnection = connection.get();
+        if ( this instanceof ServingActor ) {
+            ((ServingActor)this).clientDisconnected(null,null);
+        }
+    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     //

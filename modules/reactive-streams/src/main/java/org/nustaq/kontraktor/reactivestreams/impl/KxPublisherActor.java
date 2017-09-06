@@ -20,6 +20,7 @@ import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.reactivestreams.KxReactiveStreams;
 import org.nustaq.kontraktor.reactivestreams.KxPublisher;
+import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
 import org.nustaq.kontraktor.util.Log;
 import org.reactivestreams.Processor;
@@ -427,9 +428,9 @@ public class KxPublisherActor<IN, OUT> extends Actor<KxPublisherActor<IN, OUT>> 
     public void stop() {
         if ( isPublished() ) {
             if ( closeOnComplete ) {
-                ConcurrentLinkedQueue<RemoteConnection> connections = getConnections();
+                ConcurrentLinkedQueue<ConnectionRegistry> connections = getConnections();
                 close();
-                for (Iterator<RemoteConnection> iterator = connections.iterator(); iterator.hasNext(); ) {
+                for (Iterator<ConnectionRegistry> iterator = connections.iterator(); iterator.hasNext(); ) {
                     iterator.next().closeNetwork();
                 }
             }

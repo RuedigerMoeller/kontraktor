@@ -373,7 +373,7 @@ public class BasicTest {
         public IPromise<String> get( final String url ) {
             final Promise<String> content = new Promise();
             final Thread myThread = Thread.currentThread();
-            exec( () -> {
+            execInThreadPool( () -> {
                 assertTrue(Thread.currentThread() instanceof DispatcherThread == false);
                 return new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next();
             }).then( (result, error) -> {
@@ -598,7 +598,6 @@ public class BasicTest {
         public volatile boolean hadEx = false;
 
         public void test() {
-            setThrowExWhenBlocked(true);
             try {
                 for (int i=0; i < 100000; i++)
                     deadlockMySelf();

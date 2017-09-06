@@ -20,13 +20,11 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.IOError;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -65,7 +63,7 @@ public class RemoteRefPolling implements Runnable {
      * @return future completed upon termination of scheduling (disconnect)
      *
      */
-    public IPromise scheduleSendLoop(RemoteRegistry reg) {
+    public IPromise scheduleSendLoop(ConnectionRegistry reg) {
         Promise promise = new Promise();
         sendJobs.add(new ScheduleEntry(reg, promise));
         synchronized (this) {
@@ -157,12 +155,12 @@ public class RemoteRefPolling implements Runnable {
     }
 
     public static class ScheduleEntry {
-        public ScheduleEntry( RemoteRegistry reg, Promise promise) {
+        public ScheduleEntry(ConnectionRegistry reg, Promise promise) {
             this.reg = reg;
             this.promise = promise;
         }
 
-        RemoteRegistry reg;
+        ConnectionRegistry reg;
         IPromise promise;
     }
 }

@@ -18,7 +18,7 @@ package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
@@ -26,7 +26,7 @@ import java.util.concurrent.Callable;
 /**
  * Created by ruedi on 08.08.14.
  *
- * pure dummy buffering messages, which are then polled by a remote forwarder (RemoteRegistry, RemoteRefPolling etc)
+ * pure dummy buffering messages, which are then polled by a remote forwarder (ConnectionRegistry, RemoteRefPolling etc)
  */
 public class RemoteScheduler extends SimpleScheduler {
 
@@ -61,7 +61,7 @@ public class RemoteScheduler extends SimpleScheduler {
         throw new RuntimeException("cannot be used on a remote reference (no thread)");
     }
 
-    protected CallEntry createCallentry(RemoteRegistry reg, Object[] args, boolean isCB, Actor actor, Method method) {
+    protected CallEntry createCallentry(ConnectionRegistry reg, Object[] args, boolean isCB, Actor actor, Method method) {
 
         CallEntry e = new CallEntry(
             actor, // target

@@ -51,7 +51,6 @@ public class MyHttpApp extends Actor<MyHttpApp> {
         } else {
             // create new session and assign it a random scheduler (~thread). Note that with async nonblocking style
             MyHttpAppSession sess = AsActor(MyHttpAppSession.class,clientThreads[((int) (Math.random() * clientThreads.length))]);
-            sess.setThrowExWhenBlocked(true);
             sess.init( self(), Arrays.asList("procrastinize", "drink coffee", "code", "play the piano", "ignore *") );
             result.resolve(sess);
             sessionCount++;

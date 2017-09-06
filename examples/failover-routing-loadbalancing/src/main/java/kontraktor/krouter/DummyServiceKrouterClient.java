@@ -15,10 +15,10 @@ public class DummyServiceKrouterClient {
 
     private static void runTest(DummyService routerClient) {
 
-//        runSimpleBench(routerClient);
+        runSimpleBench(routerClient);
 //        runPromiseBench(routerClient);
 //        System.out.println("main done");
-        basics(routerClient,false);
+        basics(routerClient,true, true);
     }
 
     public static void main(String[] args) {
@@ -79,7 +79,7 @@ public class DummyServiceKrouterClient {
             LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(100));
     }
 
-    private static void basics(DummyService routerClient, boolean subservice) {
+    private static void basics(DummyService routerClient, boolean subservice, boolean cyclic) {
 //        if ( 1 != 1 )
         {
             routerClient.roundTrip(System.currentTimeMillis()).then((l, e) -> {
@@ -89,6 +89,9 @@ public class DummyServiceKrouterClient {
                     System.out.println("RT " + (System.currentTimeMillis() - (Long) l));
             });
 
+            routerClient.pingForeign(new ForeignClass(2,4,6)).then( r -> {
+                System.out.println("pingFor:"+r);
+            });
             routerClient.subscribe(new ForeignClass(1, 2, 3), (r, e) -> {
                 System.out.println("subs " + r + " " + e);
             });
@@ -96,13 +99,33 @@ public class DummyServiceKrouterClient {
         if ( subservice ) {
             // subservices only works for sticky krouters (e.g. hotcold,hothot)
             // as with roundrobin the subservice will be created in one instance only
-            routerClient.createSubService().then((service, err) -> {
-                System.out.println("got subservice " + service);
-                service.subMe("XX", (r, e) -> {
+            routerClient.createSubService().then((subserv, err) -> {
+                System.out.println("got subservice " + subserv);
+                subserv.subMe("XX", (r, e) -> {
                     System.out.println("SUBCB " + r + " " + e);
                 }).then((r, e) -> {
                     System.out.println("SUBPROM " + r + " " + e);
                 });
+                if ( cyclic ) {
+                    String state = "Hello " + Math.random();
+                    subserv.setState(state);
+                    new Thread(()->{
+                        while ( true ) {
+                            try {
+                                Thread.sleep(2000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            subserv.getState().then( r -> {
+                                if ( state.equals(r) ) {
+                                    System.out.println("state ok");
+                                } else {
+                                    System.out.println("WRONG STATE "+r+" my:"+state);
+                                }
+                            });
+                        }
+                    }).start();
+                }
             });
         }
     }

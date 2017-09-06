@@ -18,7 +18,7 @@ package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
 import org.nustaq.kontraktor.util.Log;
 
 import java.lang.reflect.InvocationHandler;
@@ -134,10 +134,6 @@ public class SimpleScheduler implements Scheduler {
                         if (sendingActor != null)
                             sender = ", sender:" + sendingActor.getActor().getClass().getSimpleName();
                         Log.Lg.warn(this, "Warning: Thread " + Thread.currentThread().getName() + " blocked more than "+BLOCKED_MS_TIL_WARN+"ms trying to put message on " + receiverString + sender + " msg:" + o);
-                        if ( sendingActor != null && sendingActor.__throwExAtBlock ) {
-                            Log.Warn(this,"throwing ActorBlockedException to "+sendingActor.getClass().getName()+" qsiz:"+sendingActor.getMailboxSize()+"/"+sendingActor.getCallbackSize());
-                            throw ActorBlockedException.Instance;
-                        }
                     }
                 }
             }
@@ -163,16 +159,16 @@ public class SimpleScheduler implements Scheduler {
 
     @Override
     public Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
-        return enqueueCallFromRemote((RemoteRegistry) receiver.__clientConnection,sendingActor,receiver,methodName,args,isCB, null, null);
+        return enqueueCallFromRemote((ConnectionRegistry) receiver.__clientConnection,sendingActor,receiver,methodName,args,isCB, null, null);
     }
 
     @Override
-    public Object enqueueCall(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
+    public Object enqueueCall(ConnectionRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
         return enqueueCallFromRemote( reg,sendingActor,receiver,methodName,args,isCB, null, null);
     }
 
     @Override
-    public Object enqueueCallFromRemote(RemoteRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB, Object securityContext, BiFunction<Actor, String, Boolean> callInterceptor) {
+    public Object enqueueCallFromRemote(ConnectionRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB, Object securityContext, BiFunction<Actor, String, Boolean> callInterceptor) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
         Actor actor = receiver.getActor();
@@ -192,7 +188,7 @@ public class SimpleScheduler implements Scheduler {
         return put2QueuePolling(e);
     }
 
-    protected CallEntry createCallentry(RemoteRegistry reg, Object[] args, boolean isCB, Actor actor, Method method) {
+    protected CallEntry createCallentry(ConnectionRegistry reg, Object[] args, boolean isCB, Actor actor, Method method) {
         CallEntry e = new CallEntry(
                 actor, // target
                 method,

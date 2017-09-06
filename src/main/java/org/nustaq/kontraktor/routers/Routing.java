@@ -5,16 +5,18 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
-import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
+import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 
-import java.util.List;
+import java.util.Arrays;
 import java.util.function.Consumer;
 
 import static org.nustaq.kontraktor.Actors.AsActor;
 import static org.nustaq.kontraktor.Actors.promise;
 import static org.nustaq.kontraktor.routers.AbstractKrouter.CLIENT_PING_INTERVAL_MS;
 
+/**
+ * main entrance point for sarting Krouters, clients and services
+ */
 public class Routing {
 
     //////////////////////////////////////////////////// static API /////////////////////////////////////////////
@@ -62,7 +64,13 @@ public class Routing {
         connectable.connect(null, disconnectCallback ).then( (r,e) -> {
             if ( r != null )  {
                 getPinger().cyclic(CLIENT_PING_INTERVAL_MS, () -> {
-                    r.router$clientPing(System.currentTimeMillis());
+
+                    long[] paids = null;
+                    if ( r.__clientConnection != null )
+                        paids = r.__clientConnection.getRemotedActorIds();
+//                    System.out.println("remoted ids:"+ Arrays.toString(paids));
+//                    System.out.println("published ids:"+ Arrays.toString(r.__clientConnection.getPublishedActorIds()));
+                    r.router$clientPing(System.currentTimeMillis(),paids);
                 });
             }
             p.complete(r,e);
@@ -80,6 +88,8 @@ public class Routing {
      */
     public static IPromise<Object> registerService(ConnectableActor connectable, Actor service, Consumer<Actor> disconnectCallback) {
         Promise p = promise();
+        service.getActor().zzRoutingGCEnabled = true;
+        service.getActorRef().zzRoutingGCEnabled = true;
         service.execute( () -> {
             connectable
                 .connect(null, (Consumer<Actor>) disconnectCallback)

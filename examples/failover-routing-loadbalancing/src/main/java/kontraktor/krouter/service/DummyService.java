@@ -11,7 +11,7 @@ import org.nustaq.kontraktor.util.RateMeasure;
 /**
  * Created by ruedi on 09.03.17.
  */
-public class DummyService extends Actor {
+public class DummyService extends Actor<DummyService> {
 
     public void init() {
     }
@@ -24,6 +24,10 @@ public class DummyService extends Actor {
     public void subscribe(ForeignClass in, Callback dummy) {
         System.out.println("subscribe "+dummy);
         pingIt(10,in, dummy);
+    }
+
+    public IPromise pingForeign(ForeignClass in) {
+        return resolve(in);
     }
 
     private void pingIt(int i, ForeignClass in, Callback dummy) {

@@ -74,7 +74,7 @@ public class ActorClient<T extends Actor> {
                 facadeProxy.__remoteId = 1;
 
                 AtomicReference<ObjectSocket> socketRef = new AtomicReference<>(writesocket);
-                RemoteRegistry reg = new RemoteRegistry(coding) {
+                ConnectionRegistry reg = new ConnectionRegistry(coding) {
                     @Override
                     public Actor getFacadeProxy() {
                         return facadeProxy;

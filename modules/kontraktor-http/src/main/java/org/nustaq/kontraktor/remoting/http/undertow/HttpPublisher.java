@@ -99,7 +99,6 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
     public IPromise<ActorServer> publish(Consumer<Actor> disconnectCallback) {
         ActorServer actorServer;
         try {
-            facade.setThrowExWhenBlocked(true);
             Pair<PathHandler, Undertow> serverPair = Http4K.get().getServer(port, hostName);
             UndertowHttpServerConnector con = new UndertowHttpServerConnector(facade);
             con.setConnectionVerifier(connectionVerifier);

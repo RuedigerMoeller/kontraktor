@@ -233,7 +233,6 @@ public class KxReactiveStreams extends Actors {
         ((KxPublisherActor) pub.getActor())._streams = this;
 
         pub.setBatchSize(batchSize);
-        pub.setThrowExWhenBlocked(true);
         pub.initFromIterator(iter);
         return pub;
     }
@@ -384,7 +383,6 @@ public class KxReactiveStreams extends Actors {
         pub._streams = this;
         ((KxPublisherActor) pub.getActor())._streams = this;
         pub.setBatchSize(batchSize);
-        pub.setThrowExWhenBlocked(true);
         pub.init(processingFunction);
         return pub;
     }
@@ -417,7 +415,6 @@ public class KxReactiveStreams extends Actors {
         pub._streams = this;
         ((KxPublisherActor) pub.getActor())._streams = this;
         pub.setBatchSize(batchSize);
-        pub.setThrowExWhenBlocked(true);
         pub.setLossy(true);
         pub.init(processingFunction);
         return pub;

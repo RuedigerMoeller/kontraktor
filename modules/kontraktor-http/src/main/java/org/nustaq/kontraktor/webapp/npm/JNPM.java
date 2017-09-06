@@ -235,7 +235,7 @@ public class JNPM extends Actor<JNPM> {
         list.add(p);
         checkThread();
         http.getContentBytes(tarUrl).then( (resp,err) -> {
-            exec( () -> { // multithread unpacking (java io blocks, so lets mass multithread)
+            execInThreadPool( () -> { // multithread unpacking (java io blocks, so lets mass multithread)
                 byte b[] = resp;
                 try {
                     b = AsyncHttpActor.unGZip(b,b.length*10);

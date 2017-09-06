@@ -1,15 +1,18 @@
 package kontraktor.krouter;
 
+import org.junit.Test;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;
-import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
-import org.nustaq.kontraktor.routers.*;
+import org.nustaq.kontraktor.routers.HotColdFailoverKrouter;
+import org.nustaq.kontraktor.routers.HotHotFailoverKrouter;
+import org.nustaq.kontraktor.routers.Routing;
 
-public class KrouterMain {
+public class KrouterStart {
 
-    public static void main(String[] args) {
+    @Test
+    public void startWS() throws InterruptedException {
         Routing.start(
-            HotHotFailoverKrouter.class,
+            HotColdFailoverKrouter.class,
 //            new TCPNIOPublisher()
 //                .serType(SerializerType.FSTSer)
 //                .port(6667),
@@ -29,5 +32,9 @@ public class KrouterMain {
 //                .port(8888)
 //                .serType(SerializerType.JsonNoRef)
         );
+        while (true) {
+            Thread.sleep(1000000l);
+        }
     }
+
 }

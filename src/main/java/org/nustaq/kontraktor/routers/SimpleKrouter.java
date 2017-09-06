@@ -3,7 +3,7 @@ package org.nustaq.kontraktor.routers;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
@@ -48,7 +48,7 @@ public class SimpleKrouter<T extends SimpleKrouter> extends AbstractKrouter<T> {
     }
 
     @Override @CallerSideMethod
-    protected boolean dispatchRemoteCall(RemoteCallEntry rce, RemoteRegistry clientRemoteRegistry) {
+    protected boolean dispatchRemoteCall(RemoteCallEntry rce, ConnectionRegistry clientRemoteRegistry) {
         if ( remoteRef == null ) {
             Log.Warn(this,"unhandled call, service has disconnected");
             return false;

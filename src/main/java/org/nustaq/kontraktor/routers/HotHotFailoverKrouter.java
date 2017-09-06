@@ -5,7 +5,7 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.util.Log;
 import java.util.ArrayList;
@@ -62,7 +62,7 @@ public class HotHotFailoverKrouter<T extends HotHotFailoverKrouter> extends Abst
     }
 
     @Override @CallerSideMethod
-    protected boolean dispatchRemoteCall(RemoteCallEntry rce, RemoteRegistry clientRemoteRegistry) {
+    protected boolean dispatchRemoteCall(RemoteCallEntry rce, ConnectionRegistry clientRemoteRegistry) {
         if ( getActor().remoteServices.size() == 0 )
             return false;
         // attention: breaking threading contract here ! (see immutable add in register)
@@ -73,7 +73,7 @@ public class HotHotFailoverKrouter<T extends HotHotFailoverKrouter> extends Abst
     }
 
     @CallerSideMethod
-    protected void dispatchImpl(RemoteCallEntry rce, RemoteRegistry clientRemoteRegistry, boolean[] done, Callback[] selected) {
+    protected void dispatchImpl(RemoteCallEntry rce, ConnectionRegistry clientRemoteRegistry, boolean[] done, Callback[] selected) {
         getActor().remoteServices.forEach( service -> {
             forwardMultiCall(rce, (Actor) service,clientRemoteRegistry, done, selected);
         });

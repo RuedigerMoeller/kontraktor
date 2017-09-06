@@ -5,14 +5,13 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.remoting.base.*;
+import org.nustaq.kontraktor.remoting.encoding.CallbackRefSerializer;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.util.RateMeasure;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 
 /**
  * base class for load balancers and failover proxies.
@@ -43,14 +42,62 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
     protected HashMap<Object,Long> timeoutMap;
     protected HashMap<String,ConnectionRegistry> clients; // also services (timing from connect => registerService makes service detection unreliable)
 
+    protected Set<Long> nextAliveRemoteActors;
+    protected long lastSwitch;
+    protected RateMeasure requestCounter = new RateMeasure("requests").print(true);
+    protected RateMeasure responseCounter = new RateMeasure("responses").print(true);
+    protected RateMeasure trafficCounter = new RateMeasure("bytez").print(true);
+
     public abstract IPromise router$RegisterService(Actor remoteRef);
+
     @Local
     public abstract void router$handleServiceDisconnect(Actor disconnected );
+
+    @Override
+    public IPromise<Long> router$clientPing(long tim, long[] publishedActorIds) {
+        for (int i = 0; i < publishedActorIds.length; i++) {
+            long publishedActorId = publishedActorIds[i];
+            nextAliveRemoteActors.add(publishedActorId);
+        }
+        if ( lastSwitch == 0 ) {
+            lastSwitch = System.currentTimeMillis();
+        } else {
+            long now = System.currentTimeMillis();
+            if ( now - lastSwitch > CLIENT_PING_INTERVAL_MS * 2) {
+                Set<Long> tmp = this.nextAliveRemoteActors;
+                getServices().forEach( serv -> tmp.add(serv.__remoteId));
+                nextAliveRemoteActors = new HashSet<>();
+                lastSwitch = now;
+//                System.out.println("alive:");
+//                tmp.forEach( l -> System.out.println("  "+l));
+                ConnectionRegistry reg = connection.get();
+                long alive[] = new long[tmp.size()];
+                int idx = 0;
+                for (Iterator<Long> iterator = tmp.iterator(); iterator.hasNext(); ) {
+                    Long next = iterator.next();
+                    alive[idx++] = next;
+                }
+                if ( reg != null ) {
+                    RemoteCallEntry rce = new RemoteCallEntry(
+                        0, 1,
+                        "zzRoutingRefGC",
+                        null,
+                        reg.getConf().asByteArray(new Object[] {alive})
+                    );
+                    getServices().forEach( service -> {
+                        forwardMultiCall(rce, service, reg, null, null);
+                    });
+                }
+            }
+        }
+        return super.router$clientPing(tim, publishedActorIds);
+    }
 
     @Local
     public void init() {
         timeoutMap = new HashMap<>();
         clients = new HashMap<>();
+        nextAliveRemoteActors = new HashSet<>();
         delayed(getServicePingTimeout(), () -> cyclic( getServicePingTimeout(), () -> pingServices() ) );
         delayed(getClientPingTimeout(), () -> cyclic( getClientPingTimeout(), () -> checkPingOnClients() ) );
         delayed(CLIENT_PING_INTERVAL_MS*2, () -> cyclic( CLIENT_PING_INTERVAL_MS*2, () -> timeoutMap.clear() ) );
@@ -59,13 +106,20 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
     @Override @CallerSideMethod
     public boolean __dispatchRemoteCall(
         ObjectSocket objSocket, RemoteCallEntry rce,
-        RemoteRegistry clientRemoteRegistry, // registry of client connection
+        ConnectionRegistry clientRemoteRegistry, // registry of client connection
         List<IPromise> createdFutures, Object authContext,
         BiFunction<Actor, String, Boolean> callInterceptor)
     {
-        if ( rce.getMethod() != null && rce.getMethod().startsWith("router$") ) {
+        boolean isCB = rce.getMethod() != null;
+        if ( isCB && rce.getMethod().startsWith("router$") ) {
             return super.__dispatchRemoteCall(objSocket,rce,clientRemoteRegistry,createdFutures,authContext,callInterceptor);
         }
+        if ( isCB ) {
+            getActor().responseCounter.count();
+        } else {
+            getActor().requestCounter.count();
+        }
+        getActor().trafficCounter.count(rce.getSerializedArgs().length);
         boolean success = dispatchRemoteCall(rce, clientRemoteRegistry);
         if ( ! success ) {
             if (rce.getCB() != null) {
@@ -101,18 +155,16 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
     @Local
     public void checkPingOnClients() {
         long now = System.currentTimeMillis();
-        System.out.println("checkPingClients "+clients.size());
+//        System.out.println("checkPingClients "+clients.size());
         clients.forEach( (id,reg) -> {
             if ( isService(reg) )
             {
                 int debug = 1;
-//                clients.remove(id); cannot do that will hit freshly connected clients
-
                 // FIXME: services get stuck in clients collections as well as clients
                 // which never did get through a ping. Currently only distinction between
                 // a client and a serevice is wehter it pings or not (+wether it registers)
             } else {
-                if ( now-reg.getLastClientPing() > getClientPingTimeout() ||
+                if ( now-reg.getLastRoutingClientPing() > getClientPingTimeout() ||
                      reg.isTerminated()
                 ){
                     self().clientDisconnected(reg,id);
@@ -122,9 +174,8 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
     }
 
     private boolean isService(ConnectionRegistry reg) {
-        return reg.getLastClientPing() == 0;
+        return reg.getLastRoutingClientPing() == 0;
     }
-
 
     protected long getServicePingTimeout() {
         return 2000L;
@@ -136,7 +187,7 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
     protected abstract List<Actor> getServices();
 
     @CallerSideMethod
-    protected RemoteCallEntry createErrorPromiseResponse(RemoteCallEntry rce, RemoteRegistry clientRemoteRegistry) {
+    protected RemoteCallEntry createErrorPromiseResponse(RemoteCallEntry rce, ConnectionRegistry clientRemoteRegistry) {
         RemoteCallEntry cbrce = new RemoteCallEntry();
         cbrce.setReceiverKey(rce.getFutureKey());
         cbrce.setSerializedArgs(clientRemoteRegistry.getConf().asByteArray(new Object[]{null,SERVICE_UNAVAILABLE}));
@@ -145,19 +196,19 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
     }
 
     @CallerSideMethod
-    protected void forwardMultiCall(RemoteCallEntry rce, Actor remoteRef, RemoteRegistry clientRemoteRegistry,boolean[] done, Callback[] selected ) {
+    protected void forwardMultiCall(RemoteCallEntry rce, Actor remoteRef, ConnectionRegistry clientRemoteRegistry, boolean[] done, Callback[] selected ) {
         getActor().forwardMultiCallInternal(rce,remoteRef,clientRemoteRegistry, done, selected);
     }
 
     // tweak handling such it can deal with double results, runs in caller thread (but single threaded => remoteref registry)
     @CallerSideMethod
     protected void forwardMultiCallInternal(
-        RemoteCallEntry rceIn, Actor remoteRef, RemoteRegistry clientRemoteRegistry,
+        RemoteCallEntry rceIn, Actor remoteRef, ConnectionRegistry clientRemoteRegistry,
         boolean[] done, Callback[] selected )
     {
         RemoteCallEntry rce = rceIn.createCopy();
         Runnable toRun = () -> {
-            RemoteRegistry serviceRemoteReg = (RemoteRegistry) remoteRef.__self.__clientConnection;
+            ConnectionRegistry serviceRemoteReg = remoteRef.__self.__clientConnection;
             if ( rce.getReceiverKey() == 1 ) // targets krouter facade
                 rce.setReceiverKey(remoteRef.__remoteId);
             if ( rce.getFutureKey() != 0 ) {
@@ -208,25 +259,25 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
     }
 
     /**
-     * dispatch call to a service.
+     * dispatch call to a service. (use forwardXX to send)
      * @param rce
      * @param clientRemoteRegistry
      * @return return false in case call could not be dispatched
      */
     @CallerSideMethod
-    protected abstract boolean dispatchRemoteCall(RemoteCallEntry rce, RemoteRegistry clientRemoteRegistry );
+    protected abstract boolean dispatchRemoteCall(RemoteCallEntry rce, ConnectionRegistry clientRemoteRegistry );
 
     @CallerSideMethod
-    protected void forwardCall(RemoteCallEntry rce, Actor remoteRef, RemoteRegistry clientRemoteRegistry ) {
+    protected void forwardCall(RemoteCallEntry rce, Actor remoteRef, ConnectionRegistry clientRemoteRegistry ) {
         getActor().forwardCallInternal(rce,remoteRef,clientRemoteRegistry);
     }
 
     // call from client to service
     // mission: patch remotecall ids such everything is mappe via Krouter registry
-    protected void forwardCallInternal(RemoteCallEntry rce, Actor remoteRef, RemoteRegistry clientRemoteRegistry ) {
+    protected void forwardCallInternal(RemoteCallEntry rce, Actor remoteRef, ConnectionRegistry clientRemoteRegistry ) {
         RemoteCallEntry finalRce = rce.createCopy();
         Runnable toRun = () -> {
-            RemoteRegistry serviceRemoteReg = (RemoteRegistry) remoteRef.__self.__clientConnection;
+            ConnectionRegistry serviceRemoteReg = (ConnectionRegistry) remoteRef.__self.__clientConnection;
             if ( finalRce.getReceiverKey() == 1 ) // targets krouter facade
                 finalRce.setReceiverKey(remoteRef.__remoteId);
             if (finalRce.getFutureKey() != 0) {
@@ -249,9 +300,18 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
                 });
             }
             if (finalRce.getCB() != null) {
-                Callback cb = finalRce.getCB();
-                CallbackWrapper wrapper = new CallbackWrapper(self(), cb);
-                finalRce.setCB(wrapper);
+                CallbackRefSerializer.MyRemotedCallback cb = (CallbackRefSerializer.MyRemotedCallback) finalRce.getCB();
+                long id = cb.getId();
+                finalRce.setCB( new CallbackWrapper(self(), (res,err) -> {
+                    RemoteCallEntry rcerouted = (RemoteCallEntry) res;
+                    rcerouted.setReceiverKey(id);
+                    clientRemoteRegistry.forwardRemoteMessage(rcerouted);
+                }){
+                    @Override
+                    public boolean isRouted() {
+                        return true;
+                    }
+                });
             }
             // websocket close is unreliable
             if ( ! serviceRemoteReg.isTerminated() )

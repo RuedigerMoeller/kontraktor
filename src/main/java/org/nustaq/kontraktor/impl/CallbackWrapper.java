@@ -85,6 +85,10 @@ public class CallbackWrapper<T> implements IPromise<T>, Serializable {
         this.targetActor = targetQ;
     }
 
+    public boolean isRouted() {
+        return false;
+    }
+
     @Override
     public void complete(T result, Object error) {
         if ( realCallback == null ) {

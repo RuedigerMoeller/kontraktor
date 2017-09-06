@@ -17,7 +17,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.encoding;
 
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
 import org.nustaq.serialization.FSTBasicObjectSerializer;
 import org.nustaq.serialization.FSTClazzInfo;
 import org.nustaq.serialization.FSTObjectInput;
@@ -30,9 +30,9 @@ import java.io.IOException;
  */
 public class ActorRefSerializer extends FSTBasicObjectSerializer {
 
-    RemoteRegistry reg;
+    ConnectionRegistry reg;
 
-    public ActorRefSerializer(RemoteRegistry reg) {
+    public ActorRefSerializer(ConnectionRegistry reg) {
         this.reg = reg;
     }
 

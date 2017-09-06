@@ -47,18 +47,18 @@ public class PromiseSampleService<T extends PromiseSampleService> extends Actor<
     public IPromise<String> getURLContent(final String url ) {
         Promise<String> prom = new Promise(); // unresolved promise
         // as URL.openStream is blocking API, run this external on a thread pool
-        exec(
+        execInThreadPool(
             () -> new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next()
         ).then( (result, error) ->
             prom.complete(result, error) // runs in actor thread again (*)
         );
-        // caveat: execute() executes on the actor thread, exec() on a threadpool
+        // caveat: execute() executes on the actor thread, execInThreadPool() on a threadpool
         return prom;
     }
 
     public IPromise<String> getURLContent1(final String url ) {
         Promise<String> prom = new Promise();
-        exec(
+        execInThreadPool(
             () -> new Scanner(new URL(url).openStream(), "UTF-8").useDelimiter("\\A").next()
         ).then( prom ); // <= shorthand for code marked (*) above
         return prom;

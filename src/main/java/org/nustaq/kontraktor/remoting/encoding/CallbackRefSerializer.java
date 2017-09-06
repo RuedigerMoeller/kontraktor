@@ -17,7 +17,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.encoding;
 
 import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.kontraktor.remoting.base.RemotedCallback;
 import org.nustaq.kontraktor.util.Log;
@@ -35,9 +35,9 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class CallbackRefSerializer extends FSTBasicObjectSerializer {
 
-    RemoteRegistry reg;
+    ConnectionRegistry reg;
 
-    public CallbackRefSerializer(RemoteRegistry reg) {
+    public CallbackRefSerializer(ConnectionRegistry reg) {
         this.reg = reg;
     }
 

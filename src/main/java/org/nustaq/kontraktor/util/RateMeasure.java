@@ -35,6 +35,8 @@ public class RateMeasure {
     long statInterval = 1000;
     long lastRatePersecond;
     boolean print = false;
+    boolean accumulate = true;
+    long accumulated = 0;
 
     String name = "none";
 
@@ -47,11 +49,23 @@ public class RateMeasure {
         this.name = name;
     }
 
+    public long getAccumulated() {
+        return accumulated;
+    }
+
     /**
      * @return lastRate per interval
      */
     public long count() {
         int c = count.incrementAndGet();
+        if ( (c & ~checkEachMask) == c ) {
+            checkStats();
+        }
+        return lastRatePersecond;
+    }
+
+    public long count(int amount) {
+        int c = count.addAndGet(amount);
         if ( (c & ~checkEachMask) == c ) {
             checkStats();
         }
@@ -74,8 +88,10 @@ public class RateMeasure {
         long now = System.currentTimeMillis();
         long diff = now-lastStats;
         if ( diff > statInterval ) {
-            lastRatePersecond = count.get()*1000l/diff;
+            int val = count.get();
+            lastRatePersecond = val *1000l/diff;
             lastStats = now;
+            accumulated += val;
             count.set(0);
             statsUpdated(lastRatePersecond);
         }
@@ -87,8 +103,42 @@ public class RateMeasure {
      */
     protected void statsUpdated(long lastRatePersecond) {
         if ( print )
-            Log.Info(this,"***** Stats for "+name+":   "+lastRatePersecond+"   per second *********");
+            Log.Info(this,"***** Stats for "+name+":   "+lastRatePersecond+"   per second, acc:"+accumulated+" *********");
     }
 
 
+    public RateMeasure lastStats(long lastStats) {
+        this.lastStats = lastStats;
+        return this;
+    }
+
+    public RateMeasure checkEachMask(int checkEachMask) {
+        this.checkEachMask = checkEachMask;
+        return this;
+    }
+
+    public RateMeasure statInterval(long statInterval) {
+        this.statInterval = statInterval;
+        return this;
+    }
+
+    public RateMeasure lastRatePersecond(long lastRatePersecond) {
+        this.lastRatePersecond = lastRatePersecond;
+        return this;
+    }
+
+    public RateMeasure accumulate(boolean accumulate) {
+        this.accumulate = accumulate;
+        return this;
+    }
+
+    public RateMeasure name(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public RateMeasure accumulated(long accumulated) {
+        this.accumulated = accumulated;
+        return this;
+    }
 }

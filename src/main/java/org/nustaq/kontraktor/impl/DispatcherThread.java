@@ -18,7 +18,6 @@ package org.nustaq.kontraktor.impl;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.util.FSTUtil;
 

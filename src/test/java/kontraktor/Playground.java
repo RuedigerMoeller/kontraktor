@@ -32,7 +32,7 @@ public class Playground {
 
         public void doBlockingStuff( final String id ) {
             final Thread t = Thread.currentThread();
-            exec(() -> "TEST" //new Scanner(new URL("http://www.spiegel.org").openStream(), "UTF-8").useDelimiter("\\A").next();
+            execInThreadPool(() -> "TEST" //new Scanner(new URL("http://www.spiegel.org").openStream(), "UTF-8").useDelimiter("\\A").next();
             ).then( (result, error) -> {
                 if (t != Thread.currentThread()) {
                     System.out.println("Ooops !");

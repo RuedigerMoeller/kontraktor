@@ -2,7 +2,7 @@ package org.nustaq.kontraktor.routers;
 
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.remoting.base.RemoteRegistry;
+import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 
 import java.util.List;
@@ -28,7 +28,7 @@ public class Krouter extends AbstractKrouter<Krouter> {
     }
 
     @Override
-    protected boolean dispatchRemoteCall(RemoteCallEntry rce, RemoteRegistry clientRemoteRegistry) {
+    protected boolean dispatchRemoteCall(RemoteCallEntry rce, ConnectionRegistry clientRemoteRegistry) {
         return false;
     }
 }
