@@ -264,14 +264,16 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     }
 
     @Local
-    public void cyclic(long interval, Runnable toRun) {
+    public void cyclic(long interval, Callable<Boolean> toRun) {
         if ( ! isStopped() ) {
+            Boolean res = true;
             try {
-                toRun.run();
+                res = toRun.call();
             } catch (Exception e) {
                 Log.Warn(this,e);
             }
-            self().delayed(interval,() -> cyclic(interval,toRun) );
+            if (res)
+                self().delayed(interval,() -> cyclic(interval,toRun) );
         }
     }
 

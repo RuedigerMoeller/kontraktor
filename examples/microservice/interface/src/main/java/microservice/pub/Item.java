@@ -24,4 +24,12 @@ public class Item implements Serializable {
         this.description = description;
         return this;
     }
+
+    @Override
+    public String toString() {
+        return "Item{" +
+            "name='" + name + '\'' +
+            ", description='" + description + '\'' +
+            '}';
+    }
 }

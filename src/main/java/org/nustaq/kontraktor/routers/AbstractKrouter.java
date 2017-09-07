@@ -98,9 +98,9 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
         timeoutMap = new HashMap<>();
         clients = new HashMap<>();
         nextAliveRemoteActors = new HashSet<>();
-        delayed(getServicePingTimeout(), () -> cyclic( getServicePingTimeout(), () -> pingServices() ) );
-        delayed(getClientPingTimeout(), () -> cyclic( getClientPingTimeout(), () -> checkPingOnClients() ) );
-        delayed(CLIENT_PING_INTERVAL_MS*2, () -> cyclic( CLIENT_PING_INTERVAL_MS*2, () -> timeoutMap.clear() ) );
+        delayed(getServicePingTimeout(), () -> cyclic( getServicePingTimeout(), () -> {pingServices(); return true;} ) );
+        delayed(getClientPingTimeout(), () -> cyclic( getClientPingTimeout(), () -> {checkPingOnClients(); return true;} ) );
+        delayed(CLIENT_PING_INTERVAL_MS*2, () -> cyclic( CLIENT_PING_INTERVAL_MS*2, () -> { timeoutMap.clear(); return true; } ) );
     }
 
     @Override @CallerSideMethod

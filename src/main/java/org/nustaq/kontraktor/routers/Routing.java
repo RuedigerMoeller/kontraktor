@@ -64,13 +64,13 @@ public class Routing {
         connectable.connect(null, disconnectCallback ).then( (r,e) -> {
             if ( r != null )  {
                 getPinger().cyclic(CLIENT_PING_INTERVAL_MS, () -> {
-
                     long[] paids = null;
                     if ( r.__clientConnection != null )
                         paids = r.__clientConnection.getRemotedActorIds();
 //                    System.out.println("remoted ids:"+ Arrays.toString(paids));
 //                    System.out.println("published ids:"+ Arrays.toString(r.__clientConnection.getPublishedActorIds()));
                     r.router$clientPing(System.currentTimeMillis(),paids);
+                    return true;
                 });
             }
             p.complete(r,e);
@@ -111,5 +111,6 @@ public class Routing {
     //
     //
     //////////////////////////////////////////////////// static API /////////////////////////////////////////////
+
 
 }

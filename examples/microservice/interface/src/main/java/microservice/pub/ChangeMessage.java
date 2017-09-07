@@ -30,5 +30,11 @@ public class ChangeMessage implements Serializable {
         return item;
     }
 
-
+    @Override
+    public String toString() {
+        return "ChangeMessage{" +
+            "action=" + action +
+            ", item=" + item +
+            '}';
+    }
 }
