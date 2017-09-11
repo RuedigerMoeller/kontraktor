@@ -14,7 +14,7 @@ import java.util.List;
  */
 public class Krouter extends AbstractKrouter<Krouter> {
     @Override
-    public IPromise router$RegisterService(Actor remoteRef) {
+    public IPromise router$RegisterService(Actor remoteRef, boolean stateful) {
         return null;
     }
 

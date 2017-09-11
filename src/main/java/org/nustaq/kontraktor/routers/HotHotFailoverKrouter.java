@@ -30,11 +30,13 @@ public class HotHotFailoverKrouter<T extends HotHotFailoverKrouter> extends Abst
     }
 
     @Override
-    public IPromise router$RegisterService(Actor remoteRef) {
+    public IPromise router$RegisterService(Actor remoteRef, boolean stateful) {
+        super.router$RegisterService(remoteRef,stateful);
         ArrayList services = new ArrayList();
         services.add(remoteRef);
         services.addAll(remoteServices);
         remoteServices = services;
+        Log.Info(this,"service registered "+remoteRef);
         return resolve();
     }
 
@@ -45,7 +47,6 @@ public class HotHotFailoverKrouter<T extends HotHotFailoverKrouter> extends Abst
         if ( ! remove )
             remove = remoteServices.remove(x.getActorRef());
         if ( ! remove ) {
-//            Log.Warn(this,"failed to remove disconnected service "+x);
             // can happen multiple times
         } else {
             Log.Info(this, "removed service "+x);

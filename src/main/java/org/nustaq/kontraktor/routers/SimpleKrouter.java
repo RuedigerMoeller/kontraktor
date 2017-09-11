@@ -1,69 +1,43 @@
 package org.nustaq.kontraktor.routers;
 
-import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
-import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
-import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
-import org.nustaq.kontraktor.remoting.encoding.SerializerType;
-import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
-import org.nustaq.kontraktor.util.Log;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * Created by ruedi on 13.03.17.
+ * a Krouter supporting dynamic replacement of a single service. For stateful service's,
+ * clients keep connected to the service instance they originally
+ * connected. Once this old service terminates they failover to the "current" service instance.
  *
- * Simply forwards all incoming calls to the registered Service
+ * THIS IS NOT A FAILOVER: if the primary (least recently connected) service goes down, no new service
+ * can connect ('service unavailable), however clients connected to a previous service instance will continue working.
+ * Use HotColdFailover for dynamic failover + dynamic replacement use cases.
+ *
+ * Use case: Replacement / Zero Downtime software update. In general its favourable to always
+ * use HotColdFailover instead of SimpleKrouter, as this also covers dynamic replacement. (SimpleKrouter's
+ * orinigal role was having a simple case for testing debugging).
  *
  */
-public class SimpleKrouter<T extends SimpleKrouter> extends AbstractKrouter<T> {
+public class SimpleKrouter extends SingleActiveServiceKrouter<SimpleKrouter> {
 
-    protected Actor remoteRef;
+    Actor remRef;
 
-    @Override
-    public IPromise router$RegisterService(Actor remoteRef) {
-        this.remoteRef = remoteRef;
-        self().remoteRef = remoteRef;
-        return resolve();
+    @CallerSideMethod
+    protected Actor getRemoteRef() {
+        return getActor().remRef;
     }
 
-    @Override
-    public void init() {
-        super.init();
+    @CallerSideMethod
+    protected void setRemoteRef(Actor remoteRef) {
+        getActor().remRef = remoteRef;
+        self().remRef = remoteRef;
     }
 
     @Local
     public void router$handleServiceDisconnect(Actor x) {
-        remoteRef = null;
+        if ( x.getActor() == getRemoteRef() || x.getActorRef() == getRemoteRef() )
+            setRemoteRef(null);
     }
 
-    @Override
-    protected List<Actor> getServices() {
-        List<Actor> svs = new ArrayList<>();
-        if ( remoteRef != null )
-            svs.add(remoteRef);
-        return svs;
-    }
-
-    @Override @CallerSideMethod
-    protected boolean dispatchRemoteCall(RemoteCallEntry rce, ConnectionRegistry clientRemoteRegistry) {
-        if ( remoteRef == null ) {
-            Log.Warn(this,"unhandled call, service has disconnected");
-            return false;
-        } else
-            forwardCall(rce,remoteRef,clientRemoteRegistry);
-        return true;
-    }
-
-    public static void main(String[] args) {
-        Routing.start(
-            SimpleKrouter.class,
-            new TCPNIOPublisher()
-                .port(6667)
-                .serType(SerializerType.JsonNoRef)
-        );
-    }
 
 }

@@ -55,5 +55,6 @@ public interface ConnectableActor extends Serializable {
     }
 
     ConnectableActor actorClass( Class actorClz );
+    Class<? extends Actor> getActorClass();
     ConnectableActor inboundQueueSize(final int inboundQueueSize);
 }

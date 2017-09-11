@@ -8,7 +8,6 @@ import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.remoting.encoding.CallbackRefSerializer;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.kontraktor.util.RateMeasure;
 
 import java.util.*;
 import java.util.function.BiFunction;
@@ -44,11 +43,19 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
 
     protected Set<Long> nextAliveRemoteActors;
     protected long lastSwitch;
-    protected RateMeasure requestCounter = new RateMeasure("requests").print(true);
-    protected RateMeasure responseCounter = new RateMeasure("responses").print(true);
-    protected RateMeasure trafficCounter = new RateMeasure("bytez").print(true);
+    private boolean stateful = false;
 
-    public abstract IPromise router$RegisterService(Actor remoteRef);
+    public IPromise router$RegisterService(Actor remoteRef, boolean stateful) {
+        ((AbstractKrouter) getActor()).stateful = stateful;
+        ((AbstractKrouter) getActorRef()).stateful = stateful;
+        Log.Info(this, (this.stateful ? "stateful ":"")+"service registered ");
+        return null; // must be overridden
+    }
+
+    @CallerSideMethod
+    protected boolean isStateful() {
+        return stateful;
+    }
 
     @Local
     public abstract void router$handleServiceDisconnect(Actor disconnected );
@@ -114,12 +121,12 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
         if ( isCB && rce.getMethod().startsWith("router$") ) {
             return super.__dispatchRemoteCall(objSocket,rce,clientRemoteRegistry,createdFutures,authContext,callInterceptor);
         }
-        if ( isCB ) {
-            getActor().responseCounter.count();
-        } else {
-            getActor().requestCounter.count();
-        }
-        getActor().trafficCounter.count(rce.getSerializedArgs().length);
+//        if ( isCB ) {
+//            getActor().responseCounter.count();
+//        } else {
+//            getActor().requestCounter.count();
+//        }
+//        getActor().trafficCounter.count(rce.getSerializedArgs().length);
         boolean success = dispatchRemoteCall(rce, clientRemoteRegistry);
         if ( ! success ) {
             if (rce.getCB() != null) {
@@ -127,7 +134,9 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
             }
             if ( rce.getFutureKey() != 0 ) {
                 RemoteCallEntry cbrce = createErrorPromiseResponse(rce, clientRemoteRegistry);
-                clientRemoteRegistry.forwardRemoteMessage(cbrce);
+                clientRemoteRegistry.inFacadeThread( () -> {
+                    clientRemoteRegistry.forwardRemoteMessage(cbrce);
+                });
             }
         }
         return false;
@@ -136,19 +145,18 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
     @Local
     public void pingServices() {
         getServices().forEach( serv -> {
-            serv.ping().timeoutIn(getServicePingTimeout())
-                .onResult( r -> {
-                    timeoutMap.put(serv,System.currentTimeMillis());
-                })
-                .onTimeout( () -> {
-                    Long tim = timeoutMap.get(serv);
-                    if ( tim != null && System.currentTimeMillis()-tim > getServicePingTimeout() ) {
-                        Log.Info(this, "service timeout, closing " + serv);
-                        handleServiceDiscon(serv);
-                        if ( serv.isPublished() )
-                            serv.close();
-                    }
-                });
+            serv.ping().then( r -> {
+                timeoutMap.put(serv,System.currentTimeMillis());
+            });
+        });
+        getServices().forEach( serv -> {
+            Long tim = timeoutMap.get(serv);
+            if (tim != null && System.currentTimeMillis() - tim > getServicePingTimeout() * 2) {
+                Log.Info(this, "service timeout, closing " + serv);
+                handleServiceDiscon(serv);
+                if (serv.isPublished())
+                    serv.close();
+            }
         });
     }
 
@@ -178,10 +186,25 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
     }
 
     protected long getServicePingTimeout() {
-        return 2000L;
+        return 1000L;
     }
     protected long getClientPingTimeout() {
         return CLIENT_PING_INTERVAL_MS*2;
+    }
+
+    @CallerSideMethod
+    protected void sendFailoverNotification(ConnectionRegistry clientRemoteRegistry) {
+        getActor().sendFailoverNotificationInternal(clientRemoteRegistry);
+    }
+
+    protected void sendFailoverNotificationInternal(ConnectionRegistry registry) {
+        RemoteCallEntry rce = new RemoteCallEntry(
+            0, 0,
+            "krouterTargetDidChange",
+            null,
+            registry.getConf().asByteArray(new Object[] {})
+        );
+        registry.inFacadeThread( () -> registry.forwardRemoteMessage(rce) );
     }
 
     protected abstract List<Actor> getServices();
@@ -333,16 +356,16 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
     }
 
     public void hasBeenUnpublished(String connectionIdentifier) {
-        System.out.println("Krouter lost client "+connectionIdentifier);
+        Log.Info(this,"Krouter lost client "+connectionIdentifier);
     }
 
     public void clientConnected(ConnectionRegistry connectionRegistry, String connectionIdentifier) {
-        System.out.println("client connected "+connectionIdentifier);
+        Log.Info(this,"client connected "+connectionIdentifier);
         clients.put(connectionIdentifier,connectionRegistry);
     }
 
     public void clientDisconnected(ConnectionRegistry connectionRegistry, String connectionIdentifier) {
-        System.out.println("client disconnected "+connectionIdentifier);
+        Log.Info(this,"client disconnected "+connectionIdentifier);
         clients.remove(connectionIdentifier,connectionRegistry);
     }
 

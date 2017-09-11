@@ -230,7 +230,7 @@ public class ActorProxyFactory {
                 }
             }
 
-            boolean allowed = ((method.getModifiers() & AccessFlag.ABSTRACT) == 0 ) &&
+            boolean allowed = //((method.getModifiers() & AccessFlag.ABSTRACT) == 0 ) &&
                     (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 &&
                     (method.getModifiers() & AccessFlag.PUBLIC) != 0 &&
                     !isCallerSide;

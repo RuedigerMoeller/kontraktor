@@ -22,6 +22,8 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Scheduler;
 import org.nustaq.serialization.util.FSTUtil;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -58,7 +60,13 @@ public class ActorsImpl {
     public Actor makeProxy(Actor realActor, Class<? extends Actor> clz, DispatcherThread disp, int qs) {
         try {
             if ( realActor == null ) {
-                realActor = clz.newInstance();
+                if (Modifier.isAbstract(clz.getModifiers())) { // pseudo interface/abstract
+                    realActor = getFactory().instantiateProxy(clz,realActor);
+                    Field target = realActor.getClass().getField("__target");
+                    target.setAccessible(true);
+                    target.set(realActor,realActor);
+                } else
+                    realActor = clz.newInstance();
             }
             if ( qs <= 100 )
                 qs = disp.getScheduler().getDefaultQSize();

@@ -1,0 +1,32 @@
+# denotes pathes hosting a krouter
+WSKrouterStarterConfig {
+  host: localhost
+  port: 6667
+  services:
+    [
+      {
+        path: "myservice/v1/json"
+        encoding: JsonNoRef
+        strategy: HotCold
+      }
+
+      {
+        path: "myservice/v1/bin"
+        encoding: FSTSer
+        strategy: HotCold
+      }
+
+      {
+        path: "slservice/v1/json"
+        encoding: JsonNoRef
+        strategy: RoundRobin
+      }
+
+      {
+        path: "slservice/v1/bin"
+        encoding: FSTSer
+        strategy: RoundRobin
+      }
+
+    ]
+}

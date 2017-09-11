@@ -70,7 +70,8 @@ public class DummyService extends Actor<DummyService> {
             x -> {
                 System.out.println("discon " + x);
                 System.exit(-1);
-            }
+            },
+            true
         ).await();
 
         Log.Info(DummyService.class,"service registered at krouter");

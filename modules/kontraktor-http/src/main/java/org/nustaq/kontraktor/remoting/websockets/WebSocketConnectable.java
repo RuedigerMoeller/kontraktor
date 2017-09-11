@@ -38,7 +38,7 @@ import java.util.function.Consumer;
  */
 public class WebSocketConnectable implements ConnectableActor {
 
-    Class clz;
+    Class actorClass;
     String url;
     Coding coding = new Coding(SerializerType.FSTSer);
     int inboundQueueSize = SimpleScheduler.DEFQSIZE;
@@ -46,7 +46,7 @@ public class WebSocketConnectable implements ConnectableActor {
     public WebSocketConnectable() {}
 
     public WebSocketConnectable(Class clz, String url) {
-        this.clz = clz;
+        this.actorClass = clz;
         this.url = url;
     }
 
@@ -57,12 +57,15 @@ public class WebSocketConnectable implements ConnectableActor {
 
     @Override
     public <T extends Actor> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB) {
+        if ( actorClass == null ) {
+            throw new RuntimeException("pls specify actor clazz to connect to");
+        }
         Promise result = new Promise();
         Runnable connect = () -> {
             JSR356ClientConnector client = null;
             try {
                 client = new JSR356ClientConnector(url);
-                ActorClient connector = new ActorClient(client,clz,coding);
+                ActorClient connector = new ActorClient(client, actorClass,coding);
                 connector.connect(inboundQueueSize, actorDisconnecCB).then(result);
             } catch (URISyntaxException e) {
                 e.printStackTrace();
@@ -80,8 +83,13 @@ public class WebSocketConnectable implements ConnectableActor {
 
     @Override
     public WebSocketConnectable actorClass(Class actorClz) {
-        clz = actorClz;
+        actorClass = actorClz;
         return this;
+    }
+
+    @Override
+    public Class<? extends Actor> getActorClass() {
+        return actorClass;
     }
 
     public WebSocketConnectable coding(Coding coding) {
@@ -95,7 +103,7 @@ public class WebSocketConnectable implements ConnectableActor {
     }
 
     public Class getClz() {
-        return clz;
+        return actorClass;
     }
 
     public String getUrl() {
@@ -114,7 +122,7 @@ public class WebSocketConnectable implements ConnectableActor {
     @Override
     public String toString() {
         return "WebSocketConnectable{" +
-                "clz=" + clz +
+                "actorClass=" + actorClass +
                 ", url='" + url + '\'' +
                 ", coding=" + coding +
                 '}';

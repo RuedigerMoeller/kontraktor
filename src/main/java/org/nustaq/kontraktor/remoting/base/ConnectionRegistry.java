@@ -24,7 +24,6 @@ import org.nustaq.kontraktor.impl.*;
 import org.nustaq.kontraktor.remoting.encoding.*;
 import org.nustaq.kontraktor.routers.AbstractKrouter;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.kontraktor.util.RateMeasure;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.IOError;
@@ -63,9 +62,10 @@ public abstract class ConnectionRegistry {
 
     public static BiFunction remoteCallMapper; // if set, each remote call and callback is mapped through
 
+    public AtomicReference<Object> userData = new AtomicReference<>();
+
     private ActorServer server;
     private boolean secured;
-    private ConcurrentHashMap userData = new ConcurrentHashMap(5);
 
     protected long lastRoutingClientPing = 0; // only set if a client calls ping on a serving actor
 
@@ -113,15 +113,6 @@ public abstract class ConnectionRegistry {
         registerDefaultClassMappings(conf);
         configureSerialization(code);
 	}
-
-    /**
-     * allow association of custom data with this remoteregistry
-     *
-     * @return
-     */
-    public ConcurrentHashMap getUserData() {
-        return userData;
-    }
 
     public BiFunction<Actor, String, Boolean> getRemoteCallInterceptor() {
         return remoteCallInterceptor;
@@ -399,6 +390,14 @@ public abstract class ConnectionRegistry {
                             Log.Info(this, th);
                         }
                     }
+                }
+                if ( receiverKey == 0 ) // special: invoke client callback set on client's remoteproxy
+                {
+                    if ( getFacadeProxy() != null && getFacadeProxy().zzServerMsgCallback != null ) {
+                        read.unpackArgs(conf);
+                        getFacadeProxy().zzServerMsgCallback.complete(read,null);
+                    }
+                    return false;
                 }
                 if (targetActor == null) {
                     Log.Lg.error(this, null, "registry:" + System.identityHashCode(this) + " no actor found for key " + read);

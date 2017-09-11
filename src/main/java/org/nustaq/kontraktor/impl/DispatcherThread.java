@@ -119,8 +119,12 @@ public class DispatcherThread extends Thread implements Monitorable {
     }
 
     public void addActor(Actor act) {
-        act.getActorRef().__currentDispatcher = act.getActor().__currentDispatcher = this;
-        toAdd.offer(act.getActorRef());
+        Actor ref = act.getActorRef();
+        Actor thisActor = act.getActor();
+        ref.__currentDispatcher = this;
+        if ( thisActor != null ) // pseudo interface
+            thisActor.__currentDispatcher = this;
+        toAdd.offer(ref);
     }
 
     public boolean isAutoShutDown() {

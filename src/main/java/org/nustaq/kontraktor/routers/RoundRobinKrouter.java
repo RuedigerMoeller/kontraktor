@@ -6,26 +6,36 @@ import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A load balancing Krouter. Forwards round robin. Enables dynamic scaling of a
  * service.
+ *
+ * Clients of stateful services stick to initially connected instance (unless this fails)
  */
-public class RoundRobinKrouter extends HotHotFailoverKrouter<RoundRobinKrouter> {
+public class RoundRobinKrouter extends HotColdFailoverKrouter<RoundRobinKrouter> {
 
     int count = 0;
-    @Override @CallerSideMethod
-    protected boolean dispatchRemoteCall(RemoteCallEntry rce, ConnectionRegistry clientRemoteRegistry) {
-        ArrayList<Actor> remoteServices = getActor().remoteServices;
+
+    @CallerSideMethod
+    protected Actor getRemoteRef() {
+        List<Actor> remoteServices = getActor().remoteServices;
         if ( remoteServices.size() == 0 )
-            return false;
-        // attention: breaking threading contract here ! (see immutable add in register)
-        count++;
+            return null;
+//        System.out.println("count:"+getActor().count);
+        int count = getActor().count;
         if ( count >= remoteServices.size() ) {
             count = 0;
         }
-        forwardCall(rce, remoteServices.get(count), clientRemoteRegistry);
-        return true;
+        return remoteServices.get(count);
+    }
+
+    @Override @CallerSideMethod
+    protected void willDispatch() {
+        getActor().count++;
+        if ( getActor().count >= getActor().remoteServices.size() )
+            getActor().count = 0;
     }
 
 }

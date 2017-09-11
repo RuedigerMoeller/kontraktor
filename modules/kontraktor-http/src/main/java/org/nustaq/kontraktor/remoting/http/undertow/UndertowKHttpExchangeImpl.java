@@ -69,7 +69,7 @@ public class UndertowKHttpExchangeImpl implements KHttpExchange {
                     }
                 else
                 {
-        Log.Info(this,"client connected "+ finalSessionId1);
+                    Log.Info(this,"client connected "+ finalSessionId1);
                     ex.endExchange();
                 }
             }

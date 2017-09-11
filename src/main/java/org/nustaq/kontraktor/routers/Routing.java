@@ -5,9 +5,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
-import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 
-import java.util.Arrays;
 import java.util.function.Consumer;
 
 import static org.nustaq.kontraktor.Actors.AsActor;
@@ -86,17 +84,20 @@ public class Routing {
      * @param disconnectCallback
      * @return
      */
-    public static IPromise<Object> registerService(ConnectableActor connectable, Actor service, Consumer<Actor> disconnectCallback) {
+    public static IPromise<Object> registerService(ConnectableActor connectable, Actor service, Consumer<Actor> disconnectCallback, boolean stateful) {
         Promise p = promise();
         service.getActor().zzRoutingGCEnabled = true;
         service.getActorRef().zzRoutingGCEnabled = true;
+        if (connectable.getActorClass() == null ) {
+            connectable.actorClass(Krouter.class);
+        }
         service.execute( () -> {
             connectable
                 .connect(null, (Consumer<Actor>) disconnectCallback)
                 .then( (r,e) -> {
                     if ( r != null ) {
                         try {
-                            ((AbstractKrouter) r).router$RegisterService(service.getUntypedRef()).await();
+                            ((AbstractKrouter) r).router$RegisterService(service.getUntypedRef(), stateful).await();
                         } catch (Exception ex) {
                             p.complete(null,ex);
                             return;

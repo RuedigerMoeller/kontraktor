@@ -103,6 +103,11 @@ public class TCPConnectable implements ConnectableActor {
         return this;
     }
 
+    @Override
+    public Class<? extends Actor> getActorClass() {
+        return actorClz;
+    }
+
     public TCPConnectable coding(Coding coding) {
         this.coding = coding;
         return this;

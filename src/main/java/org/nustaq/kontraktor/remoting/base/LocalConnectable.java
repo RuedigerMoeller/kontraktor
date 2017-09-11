@@ -58,6 +58,11 @@ public class LocalConnectable implements ConnectableActor {
     }
 
     @Override
+    public Class<? extends Actor> getActorClass() {
+        return getActor().getClass();
+    }
+
+    @Override
     public ConnectableActor inboundQueueSize(int inboundQueueSize) {
         return this;
     }

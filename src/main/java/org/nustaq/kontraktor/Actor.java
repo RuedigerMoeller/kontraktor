@@ -112,6 +112,10 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         return sender.get() != null;
     }
 
+    /**
+     * free for outer mechanics to use.
+     */
+    public Object userData; // attention self() and this !!
     // internal ->
     public Queue __mailbox; // mailbox/eventloop queue
     public int __mbCapacity;
@@ -665,6 +669,17 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     //
     // Routing specials
 
+    public Callback<RemoteCallEntry> zzServerMsgCallback;
+
+    /**
+     * cb is invoked once the server sends back messages to a client,
+     * the client does not necessary have an actor running but might simply connect
+     * using ordinary mt code
+     * @param cb
+     */
+    @Local @CallerSideMethod public void setServerMsgCallback(Callback<RemoteCallEntry> cb) {
+        zzServerMsgCallback = cb;
+    }
     /**
      * a krouter client should ping using this method.
      *

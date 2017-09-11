@@ -45,7 +45,7 @@ import java.util.function.Consumer;
  */
 public class HttpConnectable implements ConnectableActor {
 
-    protected Class clz;
+    protected Class actorClz;
     protected String url;
     protected Coding coding = new Coding( SerializerType.FSTSer );
     protected Object[] authData; // always json encoded
@@ -59,7 +59,7 @@ public class HttpConnectable implements ConnectableActor {
     }
 
     public HttpConnectable(Class clz, String url) {
-        this.clz = clz;
+        this.actorClz = clz;
         this.url = url;
     }
 
@@ -79,7 +79,7 @@ public class HttpConnectable implements ConnectableActor {
     }
 
     public HttpConnectable actorClazz(Class clz) {
-        this.clz = clz;
+        this.actorClz = clz;
         return this;
     }
 
@@ -112,7 +112,7 @@ public class HttpConnectable implements ConnectableActor {
     public <T extends Actor> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB) {
         HttpClientConnector con = new HttpClientConnector(this);
         con.disconnectCallback = disconnectCallback;
-        ActorClient actorClient = new ActorClient(con, clz, coding);
+        ActorClient actorClient = new ActorClient(con, actorClz, coding);
         Promise p = new Promise();
         con.getRefPollActor().execute(() -> {
             Thread.currentThread().setName("Http Ref Polling");
@@ -123,12 +123,17 @@ public class HttpConnectable implements ConnectableActor {
 
     @Override
     public ConnectableActor actorClass(Class actorClz) {
-        clz = actorClz;
+        this.actorClz = actorClz;
         return this;
     }
 
-    public Class getClz() {
-        return clz;
+    @Override
+    public Class<? extends Actor> getActorClass() {
+        return actorClz;
+    }
+
+    public Class getActorClz() {
+        return actorClz;
     }
 
     public String getUrl() {

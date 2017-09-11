@@ -10,7 +10,7 @@ public class WSKrouterStarter {
 
     public static void main(String[] args) {
         WSKrouterStarterConfig read = WSKrouterStarterConfig.read();
-        Arrays.stream(read.getServices())
+        Arrays.stream( read.getServices() )
             .forEach( routedServiceEntry -> {
                 Log.Info(WSKrouterStarter.class,"start "+routedServiceEntry.strategy+":"+routedServiceEntry.encoding+"@"+routedServiceEntry.getPath());
                 Routing.start(
