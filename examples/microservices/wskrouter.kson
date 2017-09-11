@@ -1,4 +1,4 @@
-# denotes pathes hosting a krouter
+# denotes pathes hosting websocket krouters
 WSKrouterStarterConfig {
   host: localhost
   port: 6667

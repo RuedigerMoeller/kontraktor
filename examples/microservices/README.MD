@@ -1,6 +1,6 @@
 # Microservice / Krouter example
 
-* How to set up completely isolated, typesafe services
+* How to set up completely isolated, typesafe async services (=remoted actors)
 * How to publish and failover / load-balance them using WebSocket based Krouter's
 
 ## Krouter
@@ -19,7 +19,7 @@ Also possible:
 * run a service fully redundant (fastest response wins)
 * dynamic load balancing (add service instances to a running cluster in order to scale)
 
-## Run
+## How to run
 
 * run build.sh
 * start run-krouter.sh
