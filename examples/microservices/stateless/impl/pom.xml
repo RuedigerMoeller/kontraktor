@@ -30,11 +30,11 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
-                    <!--<archive>-->
-                        <!--<manifest>-->
-                            <!--<mainClass>sample.reactmaterial.ReactMaterialUITestApp</mainClass>-->
-                        <!--</manifest>-->
-                    <!--</archive>-->
+                    <archive>
+                        <manifest>
+                            <mainClass>microservice.impl.StatelessService</mainClass>
+                        </manifest>
+                    </archive>
                 </configuration>
                 <executions>
                     <execution>

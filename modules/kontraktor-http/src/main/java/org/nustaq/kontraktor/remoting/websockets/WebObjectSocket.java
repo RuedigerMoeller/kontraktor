@@ -48,21 +48,25 @@ public abstract class WebObjectSocket implements ObjectSocket {
         objects = new ArrayList();
     }
 
-    Thread debugT;
+    Thread debugT; boolean DBGTHREADS = false;
     @Override
     public void writeObject(Object toWrite) throws Exception {
-        if ( debugT != null && debugT != Thread.currentThread() ) {
-            System.out.println("Thread "+Thread.currentThread().getName()+" other "+debugT.getName());
-            System.out.println("writing object:"+toWrite);
-            if ( Thread.currentThread().getName().indexOf("Dispatch") < 0 ) {
-                int debug = 1;
+        if ( DBGTHREADS ) {
+            if (debugT != null && debugT != Thread.currentThread()) {
+                System.out.println("Thread " + Thread.currentThread().getName() + " other " + debugT.getName());
+                System.out.println("writing object:" + toWrite);
+                if (Thread.currentThread().getName().indexOf("Dispatch") < 0) {
+                    int debug = 1;
+                }
+                debugT = Thread.currentThread();
             }
             debugT = Thread.currentThread();
         }
-        debugT = Thread.currentThread();
-        objects.add(toWrite);
-        if (objects.size() > getObjectMaxBatchSize()) {
-            flush();
+        synchronized (this) { //FIXME: hotfix. Didn't do all the single thread enforcement to introduce this ..
+            objects.add(toWrite);
+            if (objects.size() > getObjectMaxBatchSize()) {
+                flush();
+            }
         }
     }
 
@@ -74,27 +78,31 @@ public abstract class WebObjectSocket implements ObjectSocket {
 
     @Override
     public void flush() throws Exception {
-        if ( debugT != null && debugT != Thread.currentThread() ) {
-            System.out.println("flush Thread "+Thread.currentThread().getName()+" other "+debugT.getName());
-            if ( Thread.currentThread().getName().indexOf("Dispatch") < 0 ) {
-                int debug = 1;
-            }
-            debugT = Thread.currentThread();
-        }
-        if (objects.size() == 0) {
-            return;
-        }
-        if ( isClosed() ) {
-            if ( lastError != null ) {
-                FSTUtil.<RuntimeException>rethrow(lastError);
-            } else {
-                throw new IOException("WebSocket is closed");
+        if (DBGTHREADS) {
+            if (debugT != null && debugT != Thread.currentThread()) {
+                System.out.println("flush Thread " + Thread.currentThread().getName() + " other " + debugT.getName());
+                if (Thread.currentThread().getName().indexOf("Dispatch") < 0) {
+                    int debug = 1;
+                }
+                debugT = Thread.currentThread();
             }
         }
-        objects.add(sendSequence.incrementAndGet()); // sequence
-        Object[] objArr = objects.toArray();
-        objects.clear();
-        sendBinary(conf.asByteArray(objArr));
+        synchronized (this) { //FIXME: hotfix. Didn't do all the single thread enforcement to introduce this ..
+            if (objects.size() == 0) {
+                return;
+            }
+            if (isClosed()) {
+                if (lastError != null) {
+                    FSTUtil.<RuntimeException>rethrow(lastError);
+                } else {
+                    throw new IOException("WebSocket is closed");
+                }
+            }
+            objects.add(sendSequence.incrementAndGet()); // sequence
+            Object[] objArr = objects.toArray();
+            objects.clear();
+            sendBinary(conf.asByteArray(objArr));
+        }
     }
 
     @Override

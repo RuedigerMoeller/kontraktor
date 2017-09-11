@@ -29,13 +29,13 @@
     <dependency>
         <groupId>de.ruedigermoeller</groupId>
         <artifactId>kontraktor</artifactId>
-        <version>4.13</version>
+        <version>4.14</version>
     </dependency>
 
     <dependency>
         <groupId>de.ruedigermoeller</groupId>
         <artifactId>kontraktor-http</artifactId>
-        <version>4.13</version>
+        <version>4.14</version>
     </dependency>
 
 </dependencies>
