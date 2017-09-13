@@ -1,0 +1,194 @@
+package examples.rest;
+
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
+import io.undertow.util.HeaderMap;
+import io.undertow.util.Headers;
+import io.undertow.util.HttpString;
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.util.Pair;
+import org.nustaq.serialization.FSTConfiguration;
+import org.xnio.channels.StreamSourceChannel;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
+import java.util.Deque;
+import java.util.Map;
+
+public class UndertowRESTHandler implements HttpHandler {
+
+    private static final Object NOVAL = new Object();
+    String basePath;
+    Actor facade;
+    FSTConfiguration jsonConf = FSTConfiguration.createJsonConfiguration();
+
+    public UndertowRESTHandler(String basePath, Actor facade) {
+        this.basePath = basePath;
+        this.facade = facade;
+    }
+
+    @Override
+    public void handleRequest(HttpServerExchange exchange) throws Exception {
+        String requestPath = exchange.getRequestPath();
+        requestPath = requestPath.substring(basePath.length());
+        while ( requestPath.startsWith("/") ) {
+            requestPath = requestPath.substring(1);
+        }
+        String[] split = requestPath.split("/");
+        String method = ""+exchange.getRequestMethod();
+        String methodName = method.toLowerCase();
+        if (split.length > 0 && split[0].length() > 1 ) {
+            methodName += split[0].substring(0,1).toUpperCase()+split[0].substring(1);
+        }
+        Method m = facade.getActor().__getCachedMethod(methodName,facade,null);
+        if ( m == null ) {
+            exchange.setResponseCode(404);
+            exchange.endExchange();
+            return;
+        }
+
+        ContentType ct = m.getAnnotation(ContentType.class);
+        if ( ct != null ) {
+            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, ct.value());
+        }
+        // read post data.
+        String first = exchange.getRequestHeaders().getFirst(Headers.CONTENT_LENGTH);
+        if ( first != null ) {
+            int len = Integer.parseInt(first);
+            StreamSourceChannel requestChannel = exchange.getRequestChannel();
+            ByteBuffer buf = ByteBuffer.allocate(len);
+            String finalMethodName = methodName;
+            requestChannel.getReadSetter().set(streamSourceChannel -> {
+                    try {
+                        streamSourceChannel.read(buf);
+                    } catch (IOException e) {
+                        Log.Warn(this, e);
+                    }
+                    if (buf.remaining() == 0) {
+                        try {
+                            requestChannel.shutdownReads();
+                        } catch (IOException e) {
+                            Log.Warn(this, e);
+                        }
+                        exchange.dispatch();
+                        parseAndDispatch(exchange, split, finalMethodName, m, buf.array());
+                    }
+                }
+            );
+            requestChannel.resumeReads();
+        } else {
+            exchange.dispatch();
+            parseAndDispatch(exchange, split, methodName, m, new byte[0] );
+        }
+    }
+
+    private void parseAndDispatch(HttpServerExchange exchange, String[] split, String methodName, Method m, byte[] postData) {
+        try {
+            Class<?>[] parameterTypes = m.getParameterTypes();
+            Annotation[][] parameterAnnotations = m.getParameterAnnotations();
+            Object args[] = new Object[parameterTypes.length];
+            int splitIndex = 1;
+            for (int i = 0; i < parameterTypes.length; i++) {
+                Class<?> parameterType = parameterTypes[i];
+                Annotation[] parameterAnnotation = parameterAnnotations[i];
+                if ( parameterAnnotation != null && parameterAnnotation.length > 0 && parameterAnnotation[0].annotationType() == FromQuery.class ) {
+                    String value = ((FromQuery) parameterAnnotation[0]).value();
+                    Deque<String> strings = exchange.getQueryParameters().get(value);
+                    if ( strings != null ) {
+                        args[i] = inferValue(parameterType,strings.getFirst());
+                    }
+                    continue;
+                }
+                if ( splitIndex < split.length ) {
+                    String stringVal = split[splitIndex];
+                    Object val = inferValue(parameterType, stringVal);
+                    if (val != NOVAL) {
+                        args[i] = val;
+                        splitIndex++;
+                        continue;
+                    }
+                }
+                // specials
+                if ( parameterType == HeaderMap.class ) {
+                    args[i] = exchange.getRequestHeaders();
+                } else if ( parameterType == JsonObject.class || parameterType == JsonValue.class ) {
+                    try {
+                        args[i] = Json.parse(new String(postData,"UTF-8"));
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
+                } else if ( parameterType == byte[].class ) {
+                    args[i] = postData;
+                } else if ( parameterType == Map.class ) {
+                    args[i] = exchange.getQueryParameters();
+                } else {
+                    System.out.println("unsupported parameter type "+parameterType.getName());
+                }
+            }
+            if ( splitIndex != split.length ) {
+                exchange.setResponseCode(404);
+                exchange.endExchange();
+                return;
+            }
+            Object invoke = m.invoke(facade.getActorRef(), args);
+            if ( invoke instanceof IPromise ) {
+                ((IPromise) invoke).then( (r,e) -> {
+                    if ( e != null ) {
+                        exchange.setResponseCode(500);
+                        exchange.getResponseSender().send(""+e);
+                    } else {
+                        if ( r instanceof String ) {
+                            exchange.setResponseCode(500);
+                            exchange.getResponseSender().send(""+e);
+                        } else if ( r instanceof Integer ) {
+                            exchange.setResponseCode((Integer) r);
+                            exchange.endExchange();
+                        } else if ( r instanceof Pair ) {
+                            exchange.setResponseCode((Integer) ((Pair) r).car());
+                            exchange.getResponseSender().send(""+((Pair) r).cdr());
+                        } else if ( r instanceof JsonValue ) {
+                            exchange.getResponseSender().send(r.toString());
+                        } else if ( r instanceof Serializable ) {
+                            byte[] bytes = jsonConf.asByteArray(r);
+                            exchange.getResponseSender().send(ByteBuffer.wrap(bytes));
+                        }
+                    }
+                });
+            } else if (invoke == null) {
+                exchange.setResponseCode(200);
+                exchange.endExchange();
+            }
+        } catch (Exception e) {
+            Log.Warn(this,e);
+            exchange.setResponseCode(500);
+            exchange.getResponseSender().send(""+e);
+            exchange.endExchange();
+            return;
+        }
+    }
+
+    private Object inferValue(Class<?> parameterType, String stringVal) {
+        if ( parameterType == int.class ) {
+            return Integer.parseInt(stringVal);
+        } else if (parameterType == long.class ) {
+            return Long.parseLong(stringVal);
+        } else if ( parameterType == double.class ) {
+            return Double.parseDouble(stringVal);
+        } else if ( parameterType == String.class ) {
+            return stringVal;
+        } else if ( parameterType == String.class ) {
+            return stringVal;
+        }
+        return NOVAL;
+    }
+
+}

@@ -9,7 +9,7 @@ A Krouter is like nginx for remoted actors (=services).
 
 * Services connect and publish at a Krouter
 * Clients connect to Krouter
-* Krouter load balances / provides high availability (failover) both stateless and
+* Krouter load balances / provides high availability (failover) for both stateless and
 stateful services
 
 Also possible:
@@ -33,7 +33,7 @@ currently only WebSocket connections have been tested, should work with tcp conn
 (K)routing flavors:
 * HotCold - from a list of service instances, one is active. Once a service goes down, next one is taken
 from the list. Its possible to dynamically add/remove service instances
-* Round-Robin - from a list of service instances, requests are dispacthed round robin. Stateful services
+* RoundRobin - from a list of service instances, requests are dispacthed round robin. Stateful services
 are assigned a sticky service instance. Once this goes down, the stateful client is notified of
 failover in order to re-establish state (e.g. stream subscriptions/listeners). Its possible to dynamically add/remove service instances
 * HotHot - each client request is dispacthed to several service instances - fastest response wins. 

@@ -1,0 +1,9 @@
+OK - class laoding test
+- retest multitest
+OK - ping services for failover
+OK - pin clients (sticky)
+- hook for creation of sticky service on demand
+- rate limiting, counting, authentication
+OK - forward unpublish from facade to services
+OK - improve websocket server disconnect detection
+- __ als private prefix is doof bei completion => anderen prefix finden (achtung proxyfactory)
