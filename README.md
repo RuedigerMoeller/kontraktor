@@ -1,13 +1,5 @@
 # kontraktor 4
 
-**Credits**: kontraktor makes use of many awesome open source libraries such as
-* undertow, (io.undertow) see [undertow.io](undertow.io)
-* jsoup (org.jsoup) - real world html parser
-* httpasyncclient (org.apache.httpcomponents) 
-* npm-semver, (com.github.yuchi)
-* fast-classpath-scanner (io.github.lukehutch)
-* org.apache.commons, slf4j-api, minimal-json (com.eclipsesource.minimal-json), junit
-
 ## What is kontraktor ?
 
 * A boilerplate free and consistent abstraction for asynchronous remote communication powered by a **distributed actor-model**
@@ -27,6 +19,15 @@
 
 * build modern microservice systems (java (JVM), nodejs) beyond the Limits of REST. Asynchronous, event sourced, encoding (fast binary, json for interop) and network transport independent (choose from TCP, WebSockets, Http-(Long Poll)).
 * power modern SPA apps with a java based webserver
+
+**Credits**: kontraktor makes use of many awesome open source libraries such as
+* undertow, (io.undertow) see [undertow.io](undertow.io)
+* jsoup (org.jsoup) - real world html parser
+* httpasyncclient (org.apache.httpcomponents) 
+* npm-semver, (com.github.yuchi)
+* fast-classpath-scanner (io.github.lukehutch)
+* org.apache.commons, slf4j-api, minimal-json (com.eclipsesource.minimal-json), junit
+
 
 ## Modules
 
