@@ -1,4 +1,4 @@
-package examples.rest;
+package org.nustaq.kontraktor.rest;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
@@ -7,7 +7,6 @@ import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderMap;
 import io.undertow.util.Headers;
-import io.undertow.util.HttpString;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.util.Log;
@@ -21,23 +20,49 @@ import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.util.Deque;
-import java.util.Map;
+import java.util.*;
+import java.util.function.Function;
 
 public class UndertowRESTHandler implements HttpHandler {
 
-    private static final Object NOVAL = new Object();
-    String basePath;
-    Actor facade;
-    FSTConfiguration jsonConf = FSTConfiguration.createJsonConfiguration();
+    protected static final Object NOVAL = new Object();
+    protected String basePath;
+    protected Actor facade;
+    protected FSTConfiguration jsonConf = FSTConfiguration.createJsonConfiguration();
+    protected Function<HeaderMap,IPromise> requestAuthenticator;
+    protected Set<String> allowedMethods;
 
-    public UndertowRESTHandler(String basePath, Actor facade) {
+    public UndertowRESTHandler(String basePath, Actor facade, Function<HeaderMap,IPromise> requestAuthenticator ) {
         this.basePath = basePath;
         this.facade = facade;
+        this.requestAuthenticator = requestAuthenticator;
+        allowedMethods = new HashSet<>();
+        Arrays.stream(new String[] {
+            "get","put","patch","post","delete","head"
+        }).forEach( s -> allowedMethods.add(s) );
+    }
+
+    public void setAllowedMethods(Set<String> allowedMethods) {
+        this.allowedMethods = allowedMethods;
     }
 
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
+        if ( requestAuthenticator != null ) {
+            requestAuthenticator.apply(exchange.getRequestHeaders()).then( (r,e) -> {
+                if ( e != null ) {
+                    exchange.setResponseCode(403);
+                    exchange.getResponseSender().send(""+e);
+                } else {
+                    handleInternal(exchange);
+                }
+            });
+        } else {
+            handleInternal(exchange);
+        }
+    }
+
+    private void handleInternal(HttpServerExchange exchange) {
         String requestPath = exchange.getRequestPath();
         requestPath = requestPath.substring(basePath.length());
         while ( requestPath.startsWith("/") ) {
@@ -46,6 +71,11 @@ public class UndertowRESTHandler implements HttpHandler {
         String[] split = requestPath.split("/");
         String method = ""+exchange.getRequestMethod();
         String methodName = method.toLowerCase();
+        if ( ! allowedMethods.contains(methodName) ) {
+            exchange.setResponseCode(400);
+            exchange.endExchange();
+            return;
+        }
         if (split.length > 0 && split[0].length() > 1 ) {
             methodName += split[0].substring(0,1).toUpperCase()+split[0].substring(1);
         }
@@ -135,7 +165,7 @@ public class UndertowRESTHandler implements HttpHandler {
                 }
             }
             if ( splitIndex != split.length ) {
-                exchange.setResponseCode(404);
+                exchange.setResponseCode(400);
                 exchange.endExchange();
                 return;
             }

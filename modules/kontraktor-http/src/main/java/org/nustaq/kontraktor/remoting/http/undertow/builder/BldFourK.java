@@ -16,9 +16,12 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.http.undertow.builder;
 
 import io.undertow.server.HttpHandler;
+import io.undertow.util.HeaderMap;
 import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.remoting.http.undertow.HttpPublisher;
+import org.nustaq.kontraktor.rest.UndertowRESTHandler;
 import org.nustaq.kontraktor.webapp.javascript.*;
 import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;
 
@@ -26,6 +29,7 @@ import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 09.06.2015.
@@ -84,6 +88,16 @@ public class BldFourK {
 
     public BldFourK httpHandler( String urlPath, HttpHandler handler ) {
         items.add(new BldHttpHandler(urlPath,handler));
+        return this;
+    }
+
+    public BldFourK restAPI( String urlPath, Actor restActor ) {
+        items.add(new BldHttpHandler(urlPath,new UndertowRESTHandler(urlPath,restActor,null)));
+        return this;
+    }
+
+    public BldFourK restAPI(String urlPath, Actor restActor, Function<HeaderMap, IPromise> reqauth) {
+        items.add(new BldHttpHandler(urlPath,new UndertowRESTHandler(urlPath,restActor,reqauth)));
         return this;
     }
 

@@ -1,4 +1,4 @@
-package examples.rest;
+package org.nustaq.kontraktor.rest;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
