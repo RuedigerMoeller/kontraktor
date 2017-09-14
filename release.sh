@@ -30,7 +30,7 @@ mvn clean package -Dmaven.test.skip=true gpg:sign  -Dgpg.passphrase=$PW
 mkdir target
 cd target
 rm -r */
-rm *-jar-with*
+rm khttp.jar
 jar -cf bundle.jar *
 cd ..
 mvn install -Dmaven.test.skip=true # install

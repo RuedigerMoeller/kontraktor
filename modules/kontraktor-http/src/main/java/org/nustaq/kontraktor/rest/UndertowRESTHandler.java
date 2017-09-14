@@ -215,9 +215,10 @@ public class UndertowRESTHandler implements HttpHandler {
             return Double.parseDouble(stringVal);
         } else if ( parameterType == String.class ) {
             return stringVal;
-        } else if ( parameterType == String.class ) {
-            return stringVal;
         }
+//        else if ( parameterType == String.class ) {
+//            return stringVal;
+//        }
         return NOVAL;
     }
 
