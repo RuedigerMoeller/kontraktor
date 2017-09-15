@@ -12,7 +12,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-http</artifactId>
-    <version>4.14</version>
+    <version>4.16</version>
 
     <description>http connectivity for kontraktor</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -71,32 +71,32 @@
                 </executions>
             </plugin>
 
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <finalName>khttp</finalName>
-                    <appendAssemblyId>false</appendAssemblyId>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                    <archive>
-                        <manifest>
-                            <mainClass>sample.reactmaterial.ReactMaterialUITestApp</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make-assembly</id>
-                        <!-- this is used for inheritance merges -->
-                        <phase>package</phase>
-                        <!-- bind to the packaging phase -->
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+            <!--<plugin>-->
+                <!--<artifactId>maven-assembly-plugin</artifactId>-->
+                <!--<configuration>-->
+                    <!--<finalName>khttp</finalName>-->
+                    <!--<appendAssemblyId>false</appendAssemblyId>-->
+                    <!--<descriptorRefs>-->
+                        <!--<descriptorRef>jar-with-dependencies</descriptorRef>-->
+                    <!--</descriptorRefs>-->
+                    <!--<archive>-->
+                        <!--<manifest>-->
+                            <!--<mainClass>sample.reactmaterial.ReactMaterialUITestApp</mainClass>-->
+                        <!--</manifest>-->
+                    <!--</archive>-->
+                <!--</configuration>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>make-assembly</id>-->
+                        <!--&lt;!&ndash; this is used for inheritance merges &ndash;&gt;-->
+                        <!--<phase>package</phase>-->
+                        <!--&lt;!&ndash; bind to the packaging phase &ndash;&gt;-->
+                        <!--<goals>-->
+                            <!--<goal>single</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
+            <!--</plugin>-->
 
         </plugins>
 
@@ -107,7 +107,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor</artifactId>
-            <version>4.14</version>
+            <version>4.16</version>
         </dependency>
 
         <dependency>

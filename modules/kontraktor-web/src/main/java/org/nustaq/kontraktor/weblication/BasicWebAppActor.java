@@ -41,7 +41,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
 
     protected ISessionStorage createSessionStorage(C config) {
         DefaultSessionStorage defaultSessionStorage = AsActor(DefaultSessionStorage.class);
-        defaultSessionStorage.init(new DefaultSessionStorage.Config()).await(30_000);
+        defaultSessionStorage.init(new DefaultSessionStorage.Config()).await(60_000);
         return defaultSessionStorage;
     }
 

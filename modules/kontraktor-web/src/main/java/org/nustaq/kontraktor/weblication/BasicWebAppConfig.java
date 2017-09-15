@@ -14,7 +14,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class BasicWebAppConfig implements Serializable {
 
-    public static BasicWebAppConfig read(Class<? extends BasicWebAppConfig> target,Class ... mapped) {
+    private String jnpmCfgFilePath;
+
+    public static BasicWebAppConfig read(Class<? extends BasicWebAppConfig> target, Class ... mapped) {
         return read("./run/etc/app.kson", mapped,target);
     }
 
@@ -60,6 +62,7 @@ public class BasicWebAppConfig implements Serializable {
     protected String host = "localhost";
     protected String clientRoot = "./src/main/web/client";
     protected long sessionTimeoutMS = TimeUnit.MINUTES.toMillis(5);
+    protected String nodeModulesDir;
 
     public int getNumSessionThreads() {
         return numSessionThreads;
@@ -79,6 +82,10 @@ public class BasicWebAppConfig implements Serializable {
             BasicAuthenticationResult.class,
             Record.class
         };
+    }
+
+    public String getNodeModulesDir() {
+        return nodeModulesDir;
     }
 
     public BasicWebAppConfig dev(boolean dev) {
@@ -138,5 +145,20 @@ public class BasicWebAppConfig implements Serializable {
     public BasicWebAppConfig staticFileRoot(String staticFileRoot) {
         this.staticFileRoot = staticFileRoot;
         return this;
+    }
+
+    public String getJNPMConfigFile() {
+        return jnpmCfgFilePath;
+    }
+
+    public String getJnpmCfgFilePath() {
+        if ( jnpmCfgFilePath == null && nodeModulesDir != null ) {
+            return new File(nodeModulesDir+"../jnpm.kson").getAbsolutePath();
+        }
+        return jnpmCfgFilePath;
+    }
+
+    public void setJnpmCfgFilePath(String jnpmCfgFilePath) {
+        this.jnpmCfgFilePath = jnpmCfgFilePath;
     }
 }

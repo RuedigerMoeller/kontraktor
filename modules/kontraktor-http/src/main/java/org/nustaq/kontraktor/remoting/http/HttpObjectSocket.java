@@ -76,19 +76,21 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
     @Override
     public void sendBinary(byte[] message) {
-        checkThread();
-        queue.addInt(sendSequence.get());
-        queue.addInt(message.length);
-        queue.add(new HeapBytez(message));
-        if ( LP_DEBUG )
-            System.out.println("send binary " + sendSequence.get());
+        synchronized (this) {
+            queue.addInt(sendSequence.get());
+            queue.addInt(message.length);
+            queue.add(new HeapBytez(message));
+            if (LP_DEBUG)
+                System.out.println("send binary " + sendSequence.get());
+        }
         triggerLongPoll();
     }
 
     @Override
     public void writeObject(Object toWrite) throws Exception {
-        checkThread();
-        super.writeObject(toWrite);
+        synchronized (this) {
+            super.writeObject(toWrite);
+        }
     }
 
     @Override
@@ -117,34 +119,35 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     }
 
     public Pair<byte[],Integer> getNextQueuedMessage() {
-        checkThread();
+        synchronized (this) {
 //            if ( queue.available() < 8 )
-        {
-            try {
-                flush();
-            } catch (Exception e) {
-                FSTUtil.rethrow(e);
+            {
+                try {
+                    flush();
+                } catch (Exception e) {
+                    FSTUtil.rethrow(e);
+                }
             }
-        }
-        if ( queue.available() > 8 ) {
-            int seq = queue.readInt();
-            int len = queue.readInt();
-            if ( len>0 && queue.available() >= len )
-                return new Pair(queue.readByteArray(len),seq);
-            else
-                return new Pair(new byte[0],0);
-        } else {
-            return new Pair(new byte[0],0);
+            if (queue.available() > 8) {
+                int seq = queue.readInt();
+                int len = queue.readInt();
+                if (len > 0 && queue.available() >= len)
+                    return new Pair(queue.readByteArray(len), seq);
+                else
+                    return new Pair(new byte[0], 0);
+            } else {
+                return new Pair(new byte[0], 0);
+            }
         }
     }
 
     protected void checkThread() {
-        if ( myThread == null )
-            myThread = Thread.currentThread();
-        else if ( myThread != Thread.currentThread() ) {
-            Log.Error(this,"unexpected multithreading detected:" + myThread.getName() + " curr:" + Thread.currentThread().getName());
-            Thread.dumpStack();
-        }
+//        if ( myThread == null )
+//            myThread = Thread.currentThread();
+//        else if ( myThread != Thread.currentThread() ) {
+//            Log.Error(this,"unexpected multithreading detected:" + myThread.getName() + " curr:" + Thread.currentThread().getName());
+//            Thread.dumpStack();
+//        }
     }
 
     public Pair<Runnable,KHttpExchange> getLongPollTask() {
@@ -206,22 +209,28 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     }
 
     public Object takeStoredLPMessage(int seq) {
-        return store.getMessage("sen",seq);
+        synchronized (this) {
+            return store.getMessage("sen", seq);
+        }
     }
 
     public void storeLPMessage(int inSequence, Object msg) {
-        store.putMessage("sen", inSequence, msg);
+        synchronized (this) {
+            store.putMessage("sen", inSequence, msg);
+        }
     }
 
     @Override
     public void flush() throws Exception {
-        if (objects.size() == 0) {
-            return;
+        synchronized (this) {
+            if (objects.size() == 0) {
+                return;
+            }
+            objects.add(sendSequence.incrementAndGet()); // sequence
+            Object[] objArr = objects.toArray();
+            objects.clear();
+            sendBinary(conf.asByteArray(objArr));
         }
-        objects.add(sendSequence.incrementAndGet()); // sequence
-        Object[] objArr = objects.toArray();
-        objects.clear();
-        sendBinary(conf.asByteArray(objArr));
     }
 
 }

@@ -381,7 +381,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
     protected String generateCommonJSEnd(File f, JSXGenerator.ParseResult result, FileResolver resolver) {
         String s = constructLibName(f, resolver);
-        return "})( kgetModule('"+s+"').exports, krequire, kgetModule('"+s+"'), '', '' );";
+        return "\n})( kgetModule('"+s+"').exports, krequire, kgetModule('"+s+"'), '', '' );";
     }
 
     protected String generateImportEnd(JSXGenerator.ParseResult result, FileResolver resolver) {
