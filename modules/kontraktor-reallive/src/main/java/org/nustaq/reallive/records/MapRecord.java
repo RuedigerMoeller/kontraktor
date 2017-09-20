@@ -95,7 +95,7 @@ public class MapRecord implements Record {
             {
                 map.put(key,value);
             } else {
-                throw new RuntimeException("allowed values: jdk classes and instanceof PersistedRecord");
+                throw new RuntimeException("allowed values: jdk classes and instanceof Record");
             }
         } else
             map.put(key,value);

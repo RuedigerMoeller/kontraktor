@@ -39,12 +39,16 @@ package org.nustaq.kontraktor;
  */
 
 import java.io.Serializable;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 
 /**
  * Typically used to receive/stream results from outside the actor.
  * The underlying mechanics scans method arguments and schedules calls on the call back into the calling actors thread.
  * Note that the callback invocation is added as a message to the end of the calling actor.
  * e.g. actor.method( arg, new Callbacl() { public void complete(T result, Object error ) { ..runs in caller thread.. } }
+ *
+ * The only valid method on receiver side is to implement 'complete'.
  */
 public interface Callback<T> extends Serializable
 {

@@ -23,8 +23,6 @@ import org.nustaq.kontraktor.util.PromiseLatch;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.LockSupport;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -354,6 +352,10 @@ public class Actors {
      */
     public static <T> Stream<T> stream(T... t) {
         return Arrays.stream(t);
+    }
+
+    public static <T> KFlow<T> flow() {
+        return new KFlow<>();
     }
 
     /**
