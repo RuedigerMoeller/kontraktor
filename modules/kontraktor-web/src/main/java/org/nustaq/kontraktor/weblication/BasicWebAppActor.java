@@ -20,6 +20,7 @@ import java.util.Map;
  */
 public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends BasicWebAppConfig> extends Actor<T> implements SessionResurrector {
 
+    public static final String SESSIONID_SPECIAL_STRING = "SESSION_ID";
     public static String WEBAPP_DIR = "./src/main/web/client";
     public static String BASH_EXEC = "/usr/bin/bash";
     public static String BABEL_SERVER_JS_PATH = "./node_modules/babelserver/babelserver.js";
@@ -77,6 +78,7 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
 
     /**
      * does a lookup for a user record using 'user' as key. Compares pw with 'pwd' of user record if found
+     * if user denotes a vaild old session id and pwd == 'SESSION_ID', a session is created from a previous authentication
      *
      * @param pw
      * @param jwt
@@ -84,19 +86,34 @@ public abstract class BasicWebAppActor<T extends BasicWebAppActor,C extends Basi
      */
     protected IPromise<BasicAuthenticationResult> getCredentials(String user, String pw, String jwt) {
         Promise p = new Promise();
-        sessionStorage.getUser(user).then( (rec, err) -> {
-            if ( rec == null ) {
-                p.reject("wrong user or password");
-            } else {
-                if ( pw.equals(rec.getString("pwd" ) ) ) {
-                    if ( ! rec.getBool("verified") ) {
-                        // e.g. email verification etc.
-                        p.reject("account not verified");
-                    } else
-                        p.resolve( new BasicAuthenticationResult().userName(rec.getKey()) );
+        if ( SESSIONID_SPECIAL_STRING.equals(pw) ) {
+            sessionStorage.getUserFromSessionId(user).then( (r,e) -> {
+                if ( r != null ) {
+                    sessionStorage.getUser(r).then( (rec,err) -> {
+                        if ( rec != null )
+                            getCredentials(rec.getKey(),rec.getString("pwd"), null ).then(p);
+                        else
+                            p.reject("unknown user");
+                    });
+                } else {
+                    p.reject("authentication failed");
                 }
-            }
-        });
+            });
+        } else {
+            sessionStorage.getUser(user).then((rec, err) -> {
+                if (rec == null) {
+                    p.reject("wrong user or password");
+                } else {
+                    if (pw.equals(rec.getString("pwd"))) {
+                        if (!rec.getBool("verified")) {
+                            // e.g. email verification etc.
+                            p.reject("account not verified");
+                        } else
+                            p.resolve(new BasicAuthenticationResult().userName(rec.getKey()));
+                    }
+                }
+            });
+        }
         return p;
     }
 

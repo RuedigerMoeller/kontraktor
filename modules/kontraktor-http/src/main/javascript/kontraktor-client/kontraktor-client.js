@@ -48,7 +48,7 @@ class KClient {
     this.batchCB = [];
     this.proxies = true;
     this.listener = new KClientListener();
-    this.wsid = null; // session id in case of websocket
+    this.sessionId = null; // session id
   }
 
   // if set to false => only tell, ask style calls are allowed, else a proxy is generated which
@@ -219,7 +219,7 @@ class KontraktorSocket {
       const reconnect = {
         typ: "org.nustaq.kontraktor.remoting.base.Reconnect",
         obj: {
-          sessionId: this.global.wsid,
+          sessionId: this.global.sessionId,
           remoteRefId: refId
         }
       };
@@ -265,7 +265,7 @@ class KontraktorSocket {
     this.socket.onmessage = message => {
       if (typeof message.data == 'string') {
         if ( message.data.indexOf("sid:") == 0 ) {
-          this.global.wsid = message.data.substring(4);
+          this.global.sessionId = message.data.substring(4);
           return;
         }
         try {
@@ -605,6 +605,7 @@ class KontraktorPollSocket{
         return;
       }
       this.sessionId = JSON.parse(request.responseText);
+      this.global.sessionId = this.sessionId;
       this.isConnected = true;
       console.log("sessionId:"+this.sessionId);
       if ( this.onopenHandler ) {
@@ -726,7 +727,7 @@ class KontrActor {
     socket.triggerNextSend(() => {
       //console.log("send batched \n"+JSON.stringify(batch,null,2));
       let callList = this.buildCallList(this.global.batch, socket.lpSeqNo);
-      // const data = (this.global.wsid ? "sid:"+this.global.wsid : "") + JSON.stringify(callList);
+      // const data = (this.global.sessionId ? "sid:"+this.global.sessionId : "") + JSON.stringify(callList);
       const data = JSON.stringify(callList);
       const prev = this.global.batchCB;
       this.global.batch = [];
