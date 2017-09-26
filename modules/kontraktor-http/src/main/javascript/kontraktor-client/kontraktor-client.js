@@ -35,6 +35,7 @@ class KClient {
 
   constructor() {
     this.reset();
+    this.coder = coder; // make accessible for object transforms
     this.listener = new KClientListener();
   }
 
