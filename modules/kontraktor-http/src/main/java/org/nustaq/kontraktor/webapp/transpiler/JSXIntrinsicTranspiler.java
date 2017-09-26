@@ -235,6 +235,10 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 );
             }
             if (isInitialIndexJSX) {
+                if ( dev )
+                    indexBaos.write( "document.write('<script>_kreporterr = true; kinitfuns.forEach( fun => fun() );</script>')\n".getBytes("UTF-8"));
+                else
+                    indexBaos.write( "_kreporterr = true; kinitfuns.forEach( fun => fun() );\n".getBytes("UTF-8"));
                 Long tim = (Long) alreadyResolved.get("JSXIndexStart");
                 Log.Info(this, "Transpilation time:"+(System.currentTimeMillis()-tim)/1000.0);
                 return indexBaos.toByteArray();
@@ -402,18 +406,32 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         String s = "";
         s += "(new function() {\n";
         List<ImportSpec> imports = result.getImports();
+        // declaration
         for (int i = 0; i < imports.size(); i++) {
             ImportSpec spec = imports.get(i);
             String libname = createNodeLibNameResolver(resolver).getFinalLibName(result.getFile(),resolver,spec.getFrom());
             if ( spec.getAlias() != null ) {
-                s+="const "+spec.getAlias()+" = _kresolve('"+libname+"');\n";
+                s+="  let "+spec.getAlias()+" = null;\n";
             }
             for (int j = 0; j < spec.getAliases().size(); j++) {
                 String alias = spec.getAliases().get(j);
-                s+="const "+alias+" = _kresolve('"+libname+"', '"+spec.getComponents().get(j)+"');\n";
+                s+="  let "+alias+" = null;\n";
             }
         }
-        s += "\n";
+        s+="  const _initmods = () => {\n";
+        for (int i = 0; i < imports.size(); i++) {
+            ImportSpec spec = imports.get(i);
+            String libname = createNodeLibNameResolver(resolver).getFinalLibName(result.getFile(),resolver,spec.getFrom());
+            if ( spec.getAlias() != null ) {
+                s+="    "+spec.getAlias()+" = _kresolve('"+libname+"');\n";
+            }
+            for (int j = 0; j < spec.getAliases().size(); j++) {
+                String alias = spec.getAliases().get(j);
+                s+="    "+alias+" = _kresolve('"+libname+"', '"+spec.getComponents().get(j)+"');\n";
+            }
+        }
+        s += "  };\n";
+        s += "  kaddinit(_initmods);\n\n";
         return s;
     }
 
@@ -471,6 +489,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "  });\n" +
             "  return obj;\n" +
             "};\n" +
+            "var _kreporterr = false;"+
             "window._kresolve = function (libname,identifier) {\n" +
             "  var res = klibmap[libname] ? klibmap[libname]() : (window.kimports[libname] ? window.kimports[libname] : null);\n" +
             "  if ( identifier && res) res = res[identifier];\n"+
@@ -481,7 +500,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "        res = kmodules[libname] ? kmodules[libname].exports[identifier] : null;\n" +
             "  }\n" +
             "  if ( ! res ) {\n" +
-            "    console.error(\"unable to resolve \"+identifier+\" in klibmap['\"+libname+\"'] \")\n" +
+            "    if (_kreporterr) console.error(\"unable to resolve \"+identifier+\" in klibmap['\"+libname+\"'] \")\n" +
             "  }\n" +
             "  else if (!identifier) {"+
             "    var res1 = res.__esModule ? res.default:res;\n" +
@@ -490,6 +509,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "  return res;\n" +
             "};\n" +
             "window.module = {}; \n" +
+            "const kinitfuns = [];\n"+
+            "function kaddinit(fun) { fun(); kinitfuns.push(fun); }\n"+
             (dev ? "window.process = { env: {} };" : "window.process = { env: { 'NODE_ENV' : 'production' } };")+
         "\n";
     }

@@ -6,6 +6,8 @@ import org.nustaq.reallive.query.Value;
 import org.nustaq.reallive.records.MapRecord;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -41,6 +43,58 @@ public interface Record extends Serializable, EvalContext {
         if ( val == null )
             return 0;
         return ((Number)val).longValue();
+    }
+
+    default Record getRec(String field) {
+        Object val = get(field);
+        if ( val == null )
+            return MapRecord.New(null);
+        return (Record) val;
+    }
+
+    /**
+     * creates and sets an empty record in case
+     * @param field
+     * @return
+     */
+    default Record rec(String field) {
+        Object val = get(field);
+        if ( val == null ) {
+            MapRecord aNew = MapRecord.New(null);
+            put(field,aNew);
+            return aNew;
+        }
+        return (Record) val;
+    }
+
+    /**
+     * creates and sets an empty list in case
+     * @param field
+     * @return
+     */
+    default List arr(String field) {
+        Object val = get(field);
+        if ( val == null ) {
+            ArrayList aNew = new ArrayList();
+            put(field,aNew);
+            return aNew;
+        }
+        return (List) val;
+    }
+
+    /**
+     * creates and sets an empty list in case
+     * @param field
+     * @return
+     */
+    default List<Record> recarr(String field) {
+        Object val = get(field);
+        if ( val == null ) {
+            ArrayList aNew = new ArrayList();
+            put(field,aNew);
+            return aNew;
+        }
+        return (List) val;
     }
 
     default double getDouble(String field) {
