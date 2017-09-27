@@ -48,7 +48,7 @@ Actors + TCP Remoting
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>4.16</version>
+    <version>4.18</version>
 </dependency>
 ```
 
@@ -70,7 +70,7 @@ Adds WebSockets, Http LongPoll for actor-remoting, JavaScript interop. Uses Unde
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-http</artifactId>
-    <version>4.16</version>
+    <version>4.18</version>
 </dependency>
 ```
 
@@ -101,7 +101,7 @@ old (es5) implementation of kontraktor-client. somewhat messy, but production-pr
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-bare</artifactId>
-    <version>4.16</version>
+    <version>4.18</version>
 </dependency>
 ```
 
