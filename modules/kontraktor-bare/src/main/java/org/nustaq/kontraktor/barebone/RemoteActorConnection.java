@@ -619,7 +619,8 @@ public class RemoteActorConnection {
             if ( call.getQueue() == 1 ) // callback
             {
                 call.unpack(conf);
-                // catch and transform remote actor reference
+                transformRecursive(conf,o,null, -1, null);
+                // catch and transform direct remote actor reference
                 if ( call.getArgs()[0] instanceof Unknown) {
                     Unknown uk = (Unknown) call.getArgs()[0];
                     List items = uk.getItems();
@@ -660,6 +661,49 @@ public class RemoteActorConnection {
                             callback.receive(call.getArgs()[0], error);
                         }
                     });
+                }
+            }
+        }
+    }
+
+    protected void transformRecursive(FSTConfiguration conf, Object obj, Object parent, int parindex, String attr) {
+        if ( obj instanceof Object[] ) {
+            Object arr[] = (Object[]) obj;
+            for (int i = 0; i < arr.length; i++) {
+                Object o = arr[i];
+                transformRecursive(conf, o, (Object[]) obj, i,null);
+            }
+        } else if ( obj instanceof Unknown ) {
+            Unknown unk = (Unknown) obj;
+            // actor proxy detected
+            String actorName = (String) unk.getType();
+            if ( unk.getType().endsWith("_ActorProxy") ) {
+                actorName = actorName.substring(0, actorName.length() - "_ActorProxy".length());
+                RemoteActor replaced = new RemoteActor(
+                    actorName,
+                    ((Number) unk.getItems().get(0)).intValue(),
+                    RemoteActorConnection.this
+                );
+                if ( parent instanceof Object[] && parindex >= 0 ) {
+                    ((Object[])parent)[parindex] = replaced;
+                } else if ( parent instanceof Unknown ) {
+                    if ( parindex >= 0 ) {
+                        ((Unknown)parent).getItems().set(parindex,replaced);
+                    } else {
+                        ((Unknown)parent).put(attr,replaced);
+                    }
+                }
+            } else {
+                if ( unk.isSequence() ) {
+                    for (int j = 0; j < unk.getItems().size(); j++) {
+                        Object obj1 = unk.getItems().get(j);
+                        transformRecursive(conf,obj1,unk,j,null);
+                    }
+                } else {
+                    Map<String, Object> fields = unk.getFields();
+                    for (String s : fields.keySet()) {
+                        transformRecursive(conf,unk.get(s),unk,-1,s);
+                    }
                 }
             }
         }
