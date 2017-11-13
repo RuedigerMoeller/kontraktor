@@ -88,6 +88,7 @@ class App extends Component {
           </div>
         </HCenter>
         <br/>
+        { this.state.loggedIn && <p>Testcase requires kontraktor-http >= 4.18.1</p>}
         { this.state.loggedIn ?
           <Fader><Greeter/></Fader>
           : (
