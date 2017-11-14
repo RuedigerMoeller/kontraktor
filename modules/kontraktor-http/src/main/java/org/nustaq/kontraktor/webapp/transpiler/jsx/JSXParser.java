@@ -235,13 +235,15 @@ public class JSXParser implements ParseUtils {
         char ch = in.ch();
         if ( ch == 0 )
             ch = ';';
+        if ( ch == 'n' ) // detect 'return'
+        {
+            boolean res = in.matchReverse("return");
+            in.index = pos;
+            return res;
+        }
         in.index = pos;
         if ( "/>;:{([,}?=&|".indexOf(ch) >= 0 )
             return true;
-        if ( ch == 'n' ) // detect 'return'
-        {
-            return in.matchReverse("return");
-        }
         return false;
     }
 

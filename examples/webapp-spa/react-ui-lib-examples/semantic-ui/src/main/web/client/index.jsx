@@ -70,6 +70,10 @@ class App extends Component {
     }
   }
 
+  testCall() {
+    return <p>Testcase requires kontraktor-http >= 4.18.2</p>;
+  }
+
   render() {
     return (
       <div>
@@ -88,7 +92,7 @@ class App extends Component {
           </div>
         </HCenter>
         <br/>
-        { this.state.loggedIn && <p>Testcase requires kontraktor-http >= 4.18.1</p>}
+        { this.state.loggedIn && this.testCall()}
         { this.state.loggedIn ?
           <Fader><Greeter/></Fader>
           : (
