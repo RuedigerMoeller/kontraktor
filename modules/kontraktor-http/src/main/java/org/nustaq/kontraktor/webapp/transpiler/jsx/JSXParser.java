@@ -238,6 +238,10 @@ public class JSXParser implements ParseUtils {
         in.index = pos;
         if ( "/>;:{([,}?=&|".indexOf(ch) >= 0 )
             return true;
+        if ( ch == 'n' ) // detect 'return'
+        {
+            return in.matchReverse("return");
+        }
         return false;
     }
 

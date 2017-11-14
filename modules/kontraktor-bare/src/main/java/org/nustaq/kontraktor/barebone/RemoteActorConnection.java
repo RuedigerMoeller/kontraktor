@@ -619,7 +619,7 @@ public class RemoteActorConnection {
             if ( call.getQueue() == 1 ) // callback
             {
                 call.unpack(conf);
-                transformRecursive(conf,o,null, -1, null);
+                transformRecursive(conf,  call.getArgs(),null, -1, null);
                 // catch and transform direct remote actor reference
                 if ( call.getArgs()[0] instanceof Unknown) {
                     Unknown uk = (Unknown) call.getArgs()[0];
@@ -676,8 +676,8 @@ public class RemoteActorConnection {
         } else if ( obj instanceof Unknown ) {
             Unknown unk = (Unknown) obj;
             // actor proxy detected
-            String actorName = (String) unk.getType();
-            if ( unk.getType().endsWith("_ActorProxy") ) {
+            String actorName = unk.getType();
+            if ( actorName != null && unk.getType().endsWith("_ActorProxy") ) {
                 actorName = actorName.substring(0, actorName.length() - "_ActorProxy".length());
                 RemoteActor replaced = new RemoteActor(
                     actorName,
@@ -690,7 +690,7 @@ public class RemoteActorConnection {
                     if ( parindex >= 0 ) {
                         ((Unknown)parent).getItems().set(parindex,replaced);
                     } else {
-                        ((Unknown)parent).put(attr,replaced);
+                        ((Unknown)parent).set(attr,replaced);
                     }
                 }
             } else {

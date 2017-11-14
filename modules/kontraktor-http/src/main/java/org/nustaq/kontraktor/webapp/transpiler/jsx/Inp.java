@@ -50,6 +50,13 @@ public class Inp {
         return true;
     }
 
+    public boolean matchReverse(String str) {
+        for ( int i=0; i < str.length(); i++)
+            if ( ch(-i) != str.charAt(str.length()-i-1))
+                return false;
+        return true;
+    }
+
     public int index() {
         return index;
     }
