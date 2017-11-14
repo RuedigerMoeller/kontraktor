@@ -136,6 +136,13 @@ public class JSXParser implements ParseUtils {
                         if (braceCount <= 0) {
                             cur.add(ch);
                             in.advance(1);
+                            if (depth+1 >= 0) {
+                                if (braceInsert[depth + 1] != null) {
+                                    cur.chars.append(braceInsert[depth + 1]);
+                                    braceInsert[depth + 1] = null;
+                                }
+                            } else
+                                Log.Warn(this,"imbalanced braces. "+file.getAbsolutePath());
                             cur.closeCont();
                             return;
                         }
@@ -436,20 +443,29 @@ public class JSXParser implements ParseUtils {
             }
             StringBuilder name = readAttrName(in);
             in.skipWS();
-            AttributeNode attr = new AttributeNode().name(name);
-            tokenEntry.addAttribute(attr);
-            if (in.ch() == '/' && in.ch(1) == '>') // autoclose, no value
-            {
-                in.advance(2);
-                return true;
+            if ( in.ch() == '{' ) {
+                // inline object <JSX {...props} />
+                AttributeNode att = new AttributeNode().name(new StringBuilder("_JS_"));
+                JSNode jsn = new JSNode();
+                parseJS(jsn,in);
+                att.addChild(jsn);
+                tokenEntry.addAttribute(att);
+            } else {
+                AttributeNode attr = new AttributeNode().name(name);
+                tokenEntry.addAttribute(attr);
+                if (in.ch() == '/' && in.ch(1) == '>') // autoclose, no value
+                {
+                    in.advance(2);
+                    return true;
+                }
+                in.skipWS();
+                if (in.ch() == '=') {
+                    in.inc();
+                    readAttrValue(attr, in);
+                }
+                if ( tokenEntry.attributes.size() > 100 )
+                    throw new RuntimeException("parsing error:"+in);
             }
-            in.skipWS();
-            if (in.ch() == '=') {
-                in.inc();
-                readAttrValue(attr, in);
-            }
-            if ( tokenEntry.attributes.size() > 100 )
-                throw new RuntimeException("parsing error:"+in);
         }
         return false;
     }

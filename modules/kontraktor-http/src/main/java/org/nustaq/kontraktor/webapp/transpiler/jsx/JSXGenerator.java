@@ -24,7 +24,11 @@ public class JSXGenerator {
     public void generateJS(TokenNode root, PrintStream out ) {
         for (int i = 0; i < root.getChildren().size(); i++) {
             TokenNode tokenNode = root.getChildren().get(i);
-            renderSingleNode(tokenNode, out);
+            String s = tokenNode.getChars().toString().trim();
+            if ( s.startsWith("/*") && s.endsWith("*/") )
+                out.print("null");
+            else
+                renderSingleNode(tokenNode, out);
         }
     }
     protected void renderSingleNode(TokenNode tokenNode, PrintStream out) {

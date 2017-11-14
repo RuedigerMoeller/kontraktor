@@ -75,8 +75,10 @@ class App extends Component {
   }
 
   render() {
+    const p = { a: 1, b: 2, c: 3 };
     return (
       <div>
+        <HCenter  {...p} ></HCenter>
         <Modal
           open={this.state.expired}
           header='Session expired'
@@ -87,11 +89,12 @@ class App extends Component {
           onClose={()=>this.reload()}
         />
         <HCenter>
-          <div style={{fontWeight: 'bold', fontSize: 18}}>
+          <div style={{fontWeight: 'bold', fontSize: 18}} >
             Hello World !
           </div>
         </HCenter>
         <br/>
+        {/*{ this.state.loggedIn && this.testCall()}*/}
         { this.state.loggedIn && this.testCall()}
         { this.state.loggedIn ?
           <Fader><Greeter/></Fader>
