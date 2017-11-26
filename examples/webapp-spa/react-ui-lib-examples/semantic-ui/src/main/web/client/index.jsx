@@ -76,9 +76,10 @@ class App extends Component {
 
   render() {
     const p = { a: 1, b: 2, c: 3 };
+    const xx = { a: 99, ...p, c: 99 }; // test
     return (
       <div>
-        <HCenter  {...p} ></HCenter>
+        <HCenter  {...p}></HCenter> // 4.18.3 required
         <Modal
           open={this.state.expired}
           header='Session expired'

@@ -11,8 +11,8 @@
   let Modal = null;
   let KClientListener = null;
   const _initmods = () => {
-    React = _kresolve('react/index');
-    Component = _kresolve('react/index', 'Component');
+    React = _kresolve('react/react');
+    Component = _kresolve('react/react', 'Component');
     ReactDOM = _kresolve('react-dom/index');
     HCenter = _kresolve('subtest/util', 'HCenter');
     Fader = _kresolve('subtest/util', 'Fader');
@@ -61,24 +61,24 @@
 
     login() {
       global.kclient
-        .connect("/api")
-        .then((server, err) => {
-          if (err)
-            this.setState({error: "" + err});
-          else {
-            global.server = server;
-            server.login(this.state.user)
-              .then((session, err) => {
-                if (err)
-                  this.setState({error: "" + err});
-                else {
-                  global.session = session;
-                  console.log("logged in");
-                  this.setState({loggedIn: true});
-                }
-              })
-          }
-        });
+      .connect("/api")
+      .then((server, err) => {
+        if (err)
+          this.setState({error: "" + err});
+        else {
+          global.server = server;
+          server.login(this.state.user)
+          .then((session, err) => {
+            if (err)
+              this.setState({error: "" + err});
+            else {
+              global.session = session;
+              console.log("logged in");
+              this.setState({loggedIn: true});
+            }
+          })
+        }
+      });
     }
 
     componentWillUpdate(nextProps, nextState) {

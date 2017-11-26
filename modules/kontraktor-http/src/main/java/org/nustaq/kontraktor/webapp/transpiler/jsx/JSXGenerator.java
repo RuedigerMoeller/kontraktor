@@ -38,11 +38,23 @@ public class JSXGenerator {
         if ( tokenNode instanceof JSNode) {
             List<TokenNode> chs = tokenNode.getChildren();
             if ( chs.size() > 0 ) {
-                if ( chs.get(0) instanceof ContentNode)
-                    ((ContentNode) chs.get(0)).getChars().setCharAt(0,' ');
-                if ( chs.get(chs.size() - 1) instanceof ContentNode) {
-                    StringBuilder chars = ((ContentNode) chs.get(chs.size() - 1)).getChars();
-                    chars.setCharAt(chars.length() - 1, ' ');
+                // note: code below assumes '{ ... }' and eliminates braces
+                // fails for spread operator
+                // check for direct sprd
+
+                if ( JSXParser.SHIM_OBJ_SPREAD &&
+                     chs.get(0) instanceof ContentNode &&
+                    chs.get(0).getChars().length() > 0 &&
+                    chs.get(0).getChars().charAt(0) == '_') {
+                   // nothing
+                } else {
+                    // cut braces
+                    if (chs.get(0) instanceof ContentNode)
+                        ((ContentNode) chs.get(0)).getChars().setCharAt(0, ' ');
+                    if (chs.get(chs.size() - 1) instanceof ContentNode) {
+                        StringBuilder chars = ((ContentNode) chs.get(chs.size() - 1)).getChars();
+                        chars.setCharAt(chars.length() - 1, ' ');
+                    }
                 }
             }
             generateJS(tokenNode,out);
@@ -62,9 +74,17 @@ public class JSXGenerator {
             if ( te.getAttributes().size() == 0 ) {
                 out.println("  null"+(te.getChildren().size()>0?",":""));
             } else {
+                boolean hasSpread = false;
+                if ( JSXParser.SHIM_OBJ_SPREAD )
+                    hasSpread = te.hasSprdInAttributes();
+                // render attributes
                 out.println( "  {");
                 for (int j = 0; j < te.getAttributes().size(); j++) {
                     AttributeNode ae = te.getAttributes().get(j);
+                    if ( ae.getName().charAt(0) == '_' && "_JS_".equals(ae.getName().toString()) ) {
+                        // top level js like <JSX {...props}/>
+                        System.out.println("POK");
+                    }
                     out.print("    '"+ae.getName().toString()+"':");
                     if ( ae.isJSValue() ) {
                         generateJS(ae,out);
