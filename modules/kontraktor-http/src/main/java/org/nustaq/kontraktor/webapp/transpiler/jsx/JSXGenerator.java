@@ -78,14 +78,18 @@ public class JSXGenerator {
                 if ( JSXParser.SHIM_OBJ_SPREAD )
                     hasSpread = te.hasSprdInAttributes();
                 // render attributes
-                out.println( "  {");
+                if ( hasSpread )
+                    out.println( "    _sprd({");
+                else
+                    out.println( "    {");
+                int cnt = 0;
                 for (int j = 0; j < te.getAttributes().size(); j++) {
                     AttributeNode ae = te.getAttributes().get(j);
                     if ( ae.getName().charAt(0) == '_' && "_JS_".equals(ae.getName().toString()) ) {
                         // top level js like <JSX {...props}/>
-                        System.out.println("POK");
-                    }
-                    out.print("    '"+ae.getName().toString()+"':");
+                        out.print("    '..."+(cnt++)+"':");
+                    } else
+                        out.print("    '"+ae.getName().toString()+"':");
                     if ( ae.isJSValue() ) {
                         generateJS(ae,out);
                     } else {
@@ -99,7 +103,10 @@ public class JSXGenerator {
                     else
                         out.println("");
                 }
-                out.println( "  }"+(te.getChildren().size()>0?",":""));
+                if ( hasSpread )
+                    out.println( "  })"+(te.getChildren().size()>0?",":""));
+                else
+                    out.println( "  }"+(te.getChildren().size()>0?",":""));
             }
             boolean nonEmptyWasThere = false;
             for (int j = 0; j < te.getChildren().size(); j++) {

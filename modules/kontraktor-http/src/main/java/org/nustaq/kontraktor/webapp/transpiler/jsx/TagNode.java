@@ -47,7 +47,7 @@ public class TagNode extends TokenNode {
     public boolean hasSprdInAttributes() {
         for (int i = 0; i < attributes.size(); i++) {
             AttributeNode attributeNode = attributes.get(i);
-            if ( "_JS_".equals(attributeNode.getName()) )
+            if ( attributeNode.getName().charAt(0) == '_' && "_JS_".equals(attributeNode.getName().toString()) )
                 return true;
         }
         return false;
