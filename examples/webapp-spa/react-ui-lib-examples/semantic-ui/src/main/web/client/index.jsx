@@ -79,7 +79,7 @@ class App extends Component {
     const xx = { a: 77, ...p, c: 66 }; // test
     return (
       <div>
-        <HCenter  { ...p , ...xx, c: 99 }></HCenter> // 4.18.3 required
+        <HCenter  { ...p , ...xx, c: 99 }></HCenter>
         <Modal
           open={this.state.expired}
           header='Session expired'

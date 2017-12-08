@@ -6,6 +6,7 @@ import org.jsoup.parser.Tag;
 import org.jsoup.select.Elements;
 import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMinifcationPostProcessor;
 import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.File;
@@ -31,6 +32,7 @@ import java.util.List;
  */
 public class HtmlImportShim {
 
+
     public interface ResourceLocator {
         File locateResource( String urlPath );
 
@@ -50,6 +52,7 @@ public class HtmlImportShim {
 
     KUrl baseUrl;
     ResourceLocator locator;
+    private List<JSPostProcessor> jsPostProcessors = new ArrayList<>();
 
     public HtmlImportShim( File baseDir, String baseUrl) {
         this.baseUrl = new KUrl(baseUrl);
@@ -59,11 +62,21 @@ public class HtmlImportShim {
                 return new File(baseDir+"/"+urlPath );
             }
         };
+        jsPostProcessors.add(new JSMinifcationPostProcessor());
     }
 
     public HtmlImportShim inline(boolean inline) {
         this.inline = inline;
         return this;
+    }
+
+    public HtmlImportShim jsPostProcessors(final List<JSPostProcessor> jsPostProcessors) {
+        this.jsPostProcessors = jsPostProcessors;
+        return this;
+    }
+
+    public void setJSPostProcessors(List<JSPostProcessor> JSPostProcessors) {
+        this.jsPostProcessors = JSPostProcessors;
     }
 
     public HtmlImportShim(String baseUrl) {
@@ -292,7 +305,7 @@ public class HtmlImportShim {
                                 Element newScript = new Element(Tag.valueOf("script"), "" );
                                 byte[] bytes = locator.retrieveBytes(impFi);
                                 if ( minify && (url.getExtension().equals("js") || url.getName().endsWith("index.jsx")) )
-                                    bytes = JSMin.minify(bytes);
+                                    bytes = DynamicResourceManager.runJSPostProcessors(jsPostProcessors, bytes);
                                 String scriptSource = new String(bytes, "UTF-8");
                                 newScript.appendChild(new DataNode(scriptSource, ""));
                                 newScript.attr("no-inline", "true");

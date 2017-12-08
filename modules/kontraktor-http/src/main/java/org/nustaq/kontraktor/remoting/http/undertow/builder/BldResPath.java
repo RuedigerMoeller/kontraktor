@@ -16,9 +16,13 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.http.undertow.builder;
 
 import io.undertow.server.HttpServerExchange;
+import org.nustaq.kontraktor.webapp.javascript.JSPostProcessor;
+import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMinifcationPostProcessor;
 import org.nustaq.kontraktor.webapp.transpiler.TranspilerHook;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -37,21 +41,45 @@ public class BldResPath {
     boolean inline = true;
     boolean stripComments = true;
     boolean minify = true;
+    boolean runClojureService = false;
+
     transient Map<String,TranspilerHook> transpilers = new HashMap<>();
     // all requests are forwarded to this, return true in case function wants to capture the request
     Function<HttpServerExchange, Boolean> handlerInterceptor;
+    List<JSPostProcessor> prodModePostProcessors = new ArrayList();
 
     public BldResPath(BldFourK cfg4k, String urlPath) {
         this.cfg4k = cfg4k;
         this.urlPath = urlPath;
+        prodModePostProcessors.add(new JSMinifcationPostProcessor());
     }
     public BldResPath handlerInterceptor(final Function<HttpServerExchange,Boolean> handlerInterceptor) {
         this.handlerInterceptor = handlerInterceptor;
         return this;
     }
 
+    public List<JSPostProcessor> getProdModePostProcessors() {
+        return prodModePostProcessors;
+    }
+
     public Function<HttpServerExchange, Boolean> getHandlerInterceptor() {
         return handlerInterceptor;
+    }
+
+    /**
+     * post processors are invoked on js fragments/files once "minify" is set to true.
+     * by default JSMinification postporcessor is set.
+     * Calling this resets post processors.
+     * (see JSMinificationPostProcessor, ClojureJSPostProcessor)
+     * @param procs
+     * @return
+     */
+    public BldResPath jsPostProcessors( JSPostProcessor ... procs) {
+        prodModePostProcessors.clear();
+        for (int i = 0; i < procs.length; i++) {
+            prodModePostProcessors.add(procs[i]);
+        }
+        return this;
     }
 
     /**
@@ -150,7 +178,11 @@ public class BldResPath {
         return compress;
     }
 
-    public BldResPath transpile( String ending, TranspilerHook hook ) {
+    public boolean isRunClojureService() {
+        return runClojureService;
+    }
+
+    public BldResPath transpile(String ending, TranspilerHook hook ) {
         transpilers.put(ending,hook);
         return this;
     }
@@ -158,4 +190,11 @@ public class BldResPath {
     public Map<String, TranspilerHook> getTranspilers() {
         return transpilers;
     }
+
+    public BldResPath runClojureService(final boolean runClojureService) {
+        this.runClojureService = runClojureService;
+        return this;
+    }
+
+
 }

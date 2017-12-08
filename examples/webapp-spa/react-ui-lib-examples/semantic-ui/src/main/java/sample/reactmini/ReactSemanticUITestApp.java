@@ -9,6 +9,7 @@ import org.nustaq.kontraktor.remoting.base.SessionResurrector;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.webapp.javascript.clojure.ClojureJSPostProcessor;
 import org.nustaq.kontraktor.webapp.transpiler.JSXIntrinsicTranspiler;
 
 import java.io.File;
@@ -45,7 +46,7 @@ public class ReactSemanticUITestApp extends Actor<ReactSemanticUITestApp> {
     }
 
     public static void main(String[] args) {
-        boolean DEVMODE = false;
+        boolean DEVMODE = true;
 
         if ( ! new File("./src/main/web/client/index.html").exists() ) {
             System.out.println("Please run with working dir: '[..]/semantic-ui");
@@ -63,6 +64,7 @@ public class ReactSemanticUITestApp extends Actor<ReactSemanticUITestApp> {
                         .configureJNPM("./src/main/web/node_modules","./src/main/web/jnpm.kson")
                         .autoJNPM(DEVMODE)
                 )
+                .jsPostProcessors(new ClojureJSPostProcessor())
                 .allDev(DEVMODE)
                 .buildResourcePath()
             .httpAPI("/api", app)

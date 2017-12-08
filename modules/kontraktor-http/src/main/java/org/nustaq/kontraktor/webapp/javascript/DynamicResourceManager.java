@@ -55,9 +55,11 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
      * so file crawling is done once after server restart.
      */
     ConcurrentHashMap<String,Resource> lookupCache = new ConcurrentHashMap<>();
-    boolean minify;
+    boolean minify; // now denotes running the postprocessing pipeline
+
     private Map<String, TranspilerHook> transpilerMap;
     private Map<String,byte[]> debugInstalls = new ConcurrentHashMap<>();
+    private List<JSPostProcessor> jsPostProcessors;
 
     public DynamicResourceManager(boolean devMode, String prefix, boolean minify, String resPathBase, String ... resourcePath) {
         this(new File("."),devMode,prefix,minify,resPathBase,resourcePath);
@@ -94,6 +96,14 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
 
     public Resource getCacheEntry(String normalizedPath) {
         return lookupCache.get(normalizedPath);
+    }
+
+    public static byte[] runJSPostProcessors(List<JSPostProcessor> procs, byte[] b) {
+        for (int i = 0; i < procs.size(); i++) {
+            JSPostProcessor jsPostProcessor = procs.get(i);
+            b = jsPostProcessor.postProcess(b, null);
+        }
+        return b;
     }
 
     @Override
@@ -140,7 +150,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
                 if ( fname.endsWith(".js") && minify ) {
                     try {
                         byte[] bytes = Files.readAllBytes(file.toPath());
-                        bytes = JSMin.minify(bytes);
+                        bytes = runJSPostProcessors(jsPostProcessors,bytes);
                         return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/javascript", !isDevMode()? lastStartup : null ));
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -155,7 +165,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
                             if ( transpilerHook != null ) {
                                 byte[] transpiled = transpilerHook.transpile(file, this, new HashMap());
                                 if (minify) {
-                                    transpiled = JSMin.minify(transpiled);
+                                    transpiled = runJSPostProcessors(jsPostProcessors,transpiled);
                                 }
                                 if ( transpiled != null ) {
                                     return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, transpiled, "text/javascript", !isDevMode()? lastStartup : null ));
@@ -322,6 +332,10 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
 
     public Date getLastModifiedDate() {
         return lastStartup;
+    }
+
+    public void setJSPostProcessors(List<JSPostProcessor> JSPostProcessors) {
+        this.jsPostProcessors = JSPostProcessors;
     }
 
     public static class MyResource implements Resource {
