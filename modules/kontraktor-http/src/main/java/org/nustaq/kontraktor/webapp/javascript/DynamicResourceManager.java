@@ -24,7 +24,6 @@ import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.server.handlers.resource.Resource;
 import io.undertow.util.*;
 import org.jsoup.nodes.Element;
-import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.transpiler.TranspilerHook;
 import org.nustaq.serialization.util.FSTUtil;
@@ -49,6 +48,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
     HtmlImportShim importShim; // null means no imports supported
     String prefix = "";
     Date lastStartup; // last startUp, will be returned as LastModifiedDate for cached resources..
+    File cachedIndexDir;
 
     /**
      * in case not run with cacheAggregates, store lookup results in memory,
@@ -129,6 +129,15 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
             if (res != null) {
                 return res;
             }
+            if ( cachedIndexDir != null && cachedIndexDir.exists() && initialPath.endsWith("index.html") ) {
+                try {
+                    byte bytes[] = Files.readAllBytes(new File(cachedIndexDir,normalizedPath).toPath());
+                    Log.Info(this, "reading "+normalizedPath+" from static file "+new File(cachedIndexDir,normalizedPath).getAbsolutePath());
+                    return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/html",  !isDevMode()? lastStartup : null ));
+                } catch (IOException e) {
+                    Log.Warn(this,e);
+                }
+            }
         }
         // import shim is applied to *index.html file only
         if ( initialPath.endsWith("index.html") && importShim != null ) {
@@ -138,9 +147,14 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
                     return super.getResource(initialPath);
                 }
                 byte bytes[] = element.toString().getBytes("UTF-8");
+                if ( ! devMode && cachedIndexDir != null ) {
+                    // save to file for static serving
+                    cachedIndexDir.mkdirs();
+                    Files.write(new File(cachedIndexDir,normalizedPath).toPath(),bytes);
+                }
                 return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/html",  !isDevMode()? lastStartup : null ));
             } catch (IOException e) {
-                e.printStackTrace();
+                Log.Warn(this,e);
             }
         } else {
             File file = dependencyResolver.locateResource(normalizedPath);
@@ -336,6 +350,61 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
 
     public void setJSPostProcessors(List<JSPostProcessor> JSPostProcessors) {
         this.jsPostProcessors = JSPostProcessors;
+    }
+
+    public DynamicResourceManager devMode(boolean devMode) {
+        this.devMode = devMode;
+        return this;
+    }
+
+    public DynamicResourceManager dependencyResolver(DependencyResolver dependencyResolver) {
+        this.dependencyResolver = dependencyResolver;
+        return this;
+    }
+
+    public DynamicResourceManager importShim(HtmlImportShim importShim) {
+        this.importShim = importShim;
+        return this;
+    }
+
+    public DynamicResourceManager prefix(String prefix) {
+        this.prefix = prefix;
+        return this;
+    }
+
+    public DynamicResourceManager lastStartup(Date lastStartup) {
+        this.lastStartup = lastStartup;
+        return this;
+    }
+
+    public DynamicResourceManager cachedIndexDir(File cachedIndexFile) {
+        this.cachedIndexDir = cachedIndexFile;
+        return this;
+    }
+
+    public DynamicResourceManager lookupCache(ConcurrentHashMap<String, Resource> lookupCache) {
+        this.lookupCache = lookupCache;
+        return this;
+    }
+
+    public DynamicResourceManager minify(boolean minify) {
+        this.minify = minify;
+        return this;
+    }
+
+    public DynamicResourceManager transpilerMap(Map<String, TranspilerHook> transpilerMap) {
+        this.transpilerMap = transpilerMap;
+        return this;
+    }
+
+    public DynamicResourceManager debugInstalls(Map<String, byte[]> debugInstalls) {
+        this.debugInstalls = debugInstalls;
+        return this;
+    }
+
+    public DynamicResourceManager jsPostProcessors(List<JSPostProcessor> jsPostProcessors) {
+        this.jsPostProcessors = jsPostProcessors;
+        return this;
     }
 
     public static class MyResource implements Resource {

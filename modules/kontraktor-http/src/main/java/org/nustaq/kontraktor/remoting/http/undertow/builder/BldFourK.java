@@ -147,6 +147,7 @@ public class BldFourK {
             } else if (item instanceof BldResPath) {
                 BldResPath dr = (BldResPath) item;
                 DynamicResourceManager drm = new DynamicResourceManager(!dr.isCacheAggregates(), dr.getUrlPath(), dr.isMinify(), dr.getBaseDir(), dr.getResourcePath());
+                drm.cachedIndexDir(dr.getProductionBuildDir());
                 HtmlImportShim shim = new HtmlImportShim(dr.getUrlPath());
                 drm.setJSPostProcessors(dr.getProdModePostProcessors());
                 shim.setJSPostProcessors(dr.getProdModePostProcessors());

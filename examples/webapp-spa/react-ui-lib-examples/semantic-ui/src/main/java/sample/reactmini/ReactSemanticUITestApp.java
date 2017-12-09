@@ -5,10 +5,8 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Scheduler;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
-import org.nustaq.kontraktor.remoting.base.SessionResurrector;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
-import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.javascript.clojure.ClojureJSPostProcessor;
 import org.nustaq.kontraktor.webapp.transpiler.JSXIntrinsicTranspiler;
 
@@ -66,6 +64,7 @@ public class ReactSemanticUITestApp extends Actor<ReactSemanticUITestApp> {
                 )
                 .jsPostProcessors(new ClojureJSPostProcessor())
                 .allDev(DEVMODE)
+                .productionBuildDir(new File("./dist/"))
                 .buildResourcePath()
             .httpAPI("/api", app)
                 .serType(SerializerType.JsonNoRef)
