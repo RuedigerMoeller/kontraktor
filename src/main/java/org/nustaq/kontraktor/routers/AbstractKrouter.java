@@ -19,15 +19,10 @@ import java.util.function.BiFunction;
  * ServiceActors connect and register actively to be available. Clients connect to
  * the Krouter which then forwards/dispatches remote messages and results depending
  * on implemented strategy.
- * This way services are protected against any malicious attacks as the don't even
+ * This way services are protected against any malicious attacks as they don't even
  * accept connections from the network (they are clients of the Krouter, the Krouter has no
  * prior knowledge of address of the krouter's address. E.g. its possible to have a public Krouter
  * running in the cloud and run the service behind a firewall (or even http proxy).
- *
- * Note there is the assumption all services connecting have the same async interface.
- *
- * (use separate Krouters published on distinct url pathes (WebSockets or Http) in order to have one process support
- * more than one type of Service)
  *
  */
 public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T> implements RemotedActor, ServingActor {
