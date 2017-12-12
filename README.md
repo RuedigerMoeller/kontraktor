@@ -93,7 +93,7 @@ write an ES6 class and make it accessible to other (kontraktor) processes using 
 
 old (es5) implementation of kontraktor-client. somewhat messy, but production-proven
  
-**[Untested] Kontraktor-Bare** 
+**Kontraktor-Bare** 
 
 (Minimalistic standalone Http-LongPoll client [legacy apps, Android] ), requires Java 7, Apache 2.0 Licensed
 
@@ -101,7 +101,7 @@ old (es5) implementation of kontraktor-client. somewhat messy, but production-pr
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-bare</artifactId>
-    <version>4.18</version>
+    <version>4.18.1</version>
 </dependency>
 ```
 
