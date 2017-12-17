@@ -163,9 +163,8 @@ class Patch1 extends TestPT {
 }
 
 const sub = new TestPT();
-const patch0 = new Patch0();
 
-patch0.hello();
+new Patch0().hello();
 
 Object.getOwnPropertyNames(Patch1.prototype).forEach( key => {
   console.log("patching "+key);
