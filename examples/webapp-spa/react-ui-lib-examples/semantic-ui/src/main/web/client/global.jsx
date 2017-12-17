@@ -6,5 +6,5 @@ const global = {
   server: null,
   session: null
 };
-
+//
 export default global;

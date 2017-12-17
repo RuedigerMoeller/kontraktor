@@ -132,3 +132,29 @@ class App extends Component {
 global.app = <App/>;
 
 ReactDOM.render(global.app,document.getElementById("root"));
+
+class TestPT {
+  hello() {
+    console.log("hello");
+  }
+}
+
+class TestPTSub extends TestPT {
+  hello() {
+    console.log("helloSub");
+  }
+}
+
+class TestPTSub1 extends TestPTSub {
+  hello() {
+    console.log("helloSubSub");
+  }
+}
+
+const base = new TestPT();
+const sub = new TestPTSub();
+const subsub = new TestPTSub1();
+
+sub.hello();
+Object.setPrototypeOf(sub, TestPTSub1.prototype);
+sub.hello();

@@ -23,6 +23,7 @@ import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -73,6 +74,17 @@ public class Promise<T> implements IPromise<T> {
      * create an unfulfilled/unsettled Promise
      */
     public Promise() {}
+
+    /**
+     * Promise constructor matching ES6-style Promise constructor semantics
+     *
+     * return new Promise( (resolve,reject) -> { if ( 1 != 0 ) resolve.accept("Hello") else reject.accept("Never") }
+     *
+     * @param <T>
+     */
+    public Promise(BiConsumer<Consumer<T>,Consumer<Object>> body) {
+        body.accept( resolved -> this.resolve(resolved), rejected -> this.reject(rejected) );
+    }
 
     /**
      * remoting helper

@@ -3,21 +3,18 @@ package org.nustaq.kontraktor.webapp.transpiler;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
-import org.nustaq.kontraktor.KTimeoutException;
+import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.javascript.FileResolver;
-import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.webapp.npm.JNPM;
 import org.nustaq.kontraktor.webapp.npm.JNPMConfig;
+import org.nustaq.kontraktor.webapp.transpiler.jsx.FileWatcher;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.ImportSpec;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.JSXGenerator;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.NodeLibNameResolver;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * transpiles jsx without requiring babel.
@@ -30,6 +27,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     protected JNPMConfig jnpmConfig;
     protected String jnpmConfigFile;
     protected JNPMConfig jnpmConfigFileCached;
+    protected List<File> readFiles;
+    protected FileWatcher watcher;
 
     public JSXIntrinsicTranspiler(boolean dev) {
         this.dev = dev;
@@ -188,8 +187,20 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     protected byte[] processJSX(boolean dev, File f, FileResolver resolver, Map<String, Object> alreadyResolved) {
         try {
             boolean isInitialIndexJSX = "index.jsx".equals(f.getName());
-            if ( isInitialIndexJSX )
+            if ( isInitialIndexJSX ) {
                 jnpmConfigFileCached = null;
+                if ( dev ) {
+                    readFiles = new ArrayList<>();
+                    if ( watcher != null ) {
+                        watcher.stopWatching();
+                        watcher = null;
+                    }
+                }
+            }
+            if ( dev ) {
+                if ( isNotInNodeModules(f) )
+                    readFiles.add(f);
+            }
             JSXGenerator.ParseResult result = JSXGenerator.process(f,dev,createNodeLibNameResolver(resolver),getConfig());
             List<ImportSpec> specs = result.getImports();
             byte[] res = result.getFiledata();
@@ -224,7 +235,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
             if ( dev ) {
                 String dirName = "_node_modules";
-                if (f.getAbsolutePath().replace('\\','/').indexOf("/node_modules/") < 0 ) {
+                if (isNotInNodeModules(f)) {
                     dirName = "_appsrc";
                 }
                 String name = constructLibName(f, resolver) + ".transpiled";
@@ -235,8 +246,12 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 );
             }
             if (isInitialIndexJSX) {
-                if ( dev )
-                    indexBaos.write( "document.write('<script>_kreporterr = true; kinitfuns.forEach( fun => fun() );</script>')\n".getBytes("UTF-8"));
+                if ( dev ) {
+                    indexBaos.write("document.write('<script>_kreporterr = true; kinitfuns.forEach( fun => fun() );</script>')\n".getBytes("UTF-8"));
+                    watcher = Actors.AsActor(FileWatcher.class);
+                    watcher.setFiles(readFiles);
+                    watcher.startWatching();
+                }
                 else
                     indexBaos.write( "_kreporterr = true; kinitfuns.forEach( fun => fun() );\n".getBytes("UTF-8"));
                 Long tim = (Long) alreadyResolved.get("JSXIndexStart");
@@ -255,6 +270,10 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             }
         }
         return new byte[0];
+    }
+
+    public static boolean isNotInNodeModules(File f) {
+        return f.getAbsolutePath().replace('\\','/').indexOf("/node_modules/") < 0;
     }
 
     private File resolveImportSpec(File requiringFile, ImportSpec importSpec, FileResolver resolver, Map<String, Object> alreadyResolved, Set ignoredRequires) throws IOException {
@@ -532,6 +551,12 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         return this;
     }
 
+    /**
+     * automatically import unknown modules via jnpm
+     *
+     * @param b
+     * @return
+     */
     public JSXIntrinsicTranspiler autoJNPM(boolean b) {
         this.autoJNPM = b;
         return this;
