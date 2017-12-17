@@ -134,27 +134,42 @@ global.app = <App/>;
 ReactDOM.render(global.app,document.getElementById("root"));
 
 class TestPT {
+  constructor() {
+    console.log("construct testpt");
+  }
   hello() {
     console.log("hello");
   }
 }
 
-class TestPTSub extends TestPT {
+class Patch0 extends TestPT {
+  constructor() {
+    super();
+    console.log("construct patch0");
+  }
   hello() {
     console.log("helloSub");
   }
 }
 
-class TestPTSub1 extends TestPTSub {
+class Patch1 extends TestPT {
+  constructor() {
+    super();
+    console.log("construct patch1");
+  }
   hello() {
-    console.log("helloSubSub");
+    console.log("helloSub1");
   }
 }
 
-const base = new TestPT();
-const sub = new TestPTSub();
-const subsub = new TestPTSub1();
+const sub = new TestPT();
+const patch0 = new Patch0();
 
-sub.hello();
-Object.setPrototypeOf(sub, TestPTSub1.prototype);
-sub.hello();
+patch0.hello();
+
+Object.getOwnPropertyNames(Patch1.prototype).forEach( key => {
+  console.log("patching "+key);
+  Patch0.prototype[key] = Patch1.prototype[key];
+});
+
+new Patch0().hello();
