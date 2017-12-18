@@ -11,11 +11,10 @@ import java.util.Map;
 
 public class FileWatcher extends Actor<FileWatcher> {
 
-    List<File> watched = new ArrayList<>();
-    Map<File,Long> timestamps = new HashMap<>();
+    List<WatchedFile> watched = new ArrayList<>();
     boolean doStop = false;
 
-    public void setFiles(List<File> watched) {
+    public void setFiles(List<WatchedFile> watched) {
         this.watched = watched;
     }
 
@@ -26,18 +25,12 @@ public class FileWatcher extends Actor<FileWatcher> {
 
     public void startWatching() {
         cyclic(100, () -> {
-            List<File> changed = new ArrayList();
-//            Log.Info(this,"checking "+watched.size()+" files ..");
-            watched.forEach( fi -> {
-                Long l = timestamps.get(fi);
-                if ( l == null ) {
-                    l = fi.lastModified();
-                    timestamps.put(fi,l);
-                }
-                if ( l != fi.lastModified() ) {
-                    Log.Info(this, "File "+fi.getAbsolutePath()+" was modified");
-                    changed.add(fi);
-                    timestamps.put(fi,fi.lastModified());
+            watched.forEach( watchedFile -> {
+                Long l = watchedFile.getLastModified();
+                if ( l != watchedFile.getFile().lastModified() ) {
+                    Log.Info(this, "File "+watchedFile.getFile().getAbsolutePath()+" was modified");
+                    watchedFile.updateTS();
+                    watchedFile.transpiler.updateJSX(watchedFile.getFile(),watchedFile.resolver);
                 }
             });
             return !doStop;

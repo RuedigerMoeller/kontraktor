@@ -133,6 +133,37 @@ global.app = <App/>;
 
 ReactDOM.render(global.app,document.getElementById("root"));
 
+
+////////// HM Reloading playground
+
+reloadSemplay = () => {
+  fetch("_appsrc/semantic/semanticplay.transpiled")
+    .then( response => response.text() )
+    .then( text => {
+      const prev = kimports['semantic/semanticplay'];
+      const exp = eval(text.toString());
+      const patch = kimports['semantic/semanticplay'];
+      kimports['semantic/semanticplay'] = prev;
+      Object.getOwnPropertyNames(patch).forEach( topleveldev => {
+        if ( typeof patch[topleveldev] === 'function') {
+          const isfun = patch[topleveldev].toString().indexOf("class") != 0;
+          if ( isfun ) // assume function
+          {
+            // function
+            console.log("fun ",patch[topleveldev].name);
+          } else {
+            console.log("class ",patch[topleveldev].name);
+            Object.getOwnPropertyNames(patch[topleveldev].prototype).forEach( key => {
+              console.log("patching "+key);
+              prev[topleveldev].prototype[key] = patch[topleveldev].prototype[key];
+            });
+          }
+        }
+      });
+      console.log(prev,patch);
+    });
+}
+
 class TestPT {
   constructor() {
     console.log("construct testpt");

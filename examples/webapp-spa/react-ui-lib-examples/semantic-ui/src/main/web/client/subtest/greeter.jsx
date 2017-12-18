@@ -20,6 +20,7 @@ class Greeter extends Component {
   anotherGreet() {
     global.session.greet("Another World "+new Date())
       .then( (res,err) => this.setState({greeting: err ? err : res}) );
+    reloadSemplay();
   }
 
   render() {

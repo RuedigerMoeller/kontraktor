@@ -244,6 +244,8 @@ public class JSXGenerator {
             ParseResult parseResult = new ParseResult(f, bytes, f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(), jsx.getTopLevelObjects(), jsx.getIgnoredRequires(),jsx.getDefaultExport());
             return parseResult.patchImports(config.getNodeLibraryMap());
         }
+//        if ( f.getName().indexOf("semanticplay") >= 0 )
+//            System.out.println("POK");
         ByteArrayOutputStream out = new ByteArrayOutputStream(bytes.length);
         PrintStream ps = new PrintStream(out);
         JSXGenerator gen = new JSXGenerator(config.getTransformFunction());

@@ -28,6 +28,14 @@ const options = [
   { key: 'f', text: 'Female', value: 'female' },
 ];
 
+function DummyFun(x,y) {
+  console.log("DummyFun");
+}
+
+const DummyFun1 = (x,y) => {
+  console.log("DummyFun");
+};
+
 class FormExampleSubcomponentControl extends Component {
 
   constructor(p) {
@@ -37,6 +45,7 @@ class FormExampleSubcomponentControl extends Component {
 
   handleChange(e, { value }) {
     this.setState({ value });
+    console.log("handleChange",value);
   }
 
   render() {
