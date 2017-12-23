@@ -613,8 +613,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     protected String getHMRReloadFun() {
         return "////////// generated Hot Reloading support\n" +
             "if ( typeof _kHMR === 'undefined') {\n" +
-            "  if ( ! KClient ) {\n" +
-            "    console.error(\"hot module reloading requires import {KClient} from 'kontraktor-client'\");\n" +
+            "  if ( typeof KClient === 'undefined' ) {\n" +
+            "    console.error(\"hot module reloading requires 'import {KClient} from 'kontraktor-client''\");\n" +
             "  }\n" +
             "  const hmrcl = new KClient().useProxies(false);\n" +
             "  let addr = \"ws://\"+ window.location.host + \"/hotreloading\";\n" +
