@@ -1,4 +1,4 @@
-import {Component}, React from 'react'
+import React, {Component} from 'react'
 
 export class HCenter extends Component {
 
@@ -17,6 +17,8 @@ export class HCenter extends Component {
   }
 
 }
+
+//
 
 export class Fader extends Component {
   constructor(p) {

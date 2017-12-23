@@ -10,11 +10,13 @@ public class WatchedFile {
     long lastModified;
     JSXIntrinsicTranspiler transpiler;
     FileResolver resolver;
+    private String webPath;
 
-    public WatchedFile(File file, JSXIntrinsicTranspiler transpiler, FileResolver resolver) {
+    public WatchedFile(File file, JSXIntrinsicTranspiler transpiler, FileResolver resolver, String finalLibName) {
         this.file = file;
         this.transpiler = transpiler;
         this.resolver = resolver;
+        this.webPath = finalLibName;
         updateTS();
     }
 
@@ -42,5 +44,9 @@ public class WatchedFile {
             ", transpiler=" + transpiler +
             ", resolver=" + resolver +
             '}';
+    }
+
+    public String getWebPath() {
+        return webPath;
     }
 }

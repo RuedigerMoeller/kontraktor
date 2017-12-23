@@ -1,6 +1,8 @@
 import React, {Component} from 'react';
 import {Button,Dropdown,Label,Input,Step,Icon,Form} from 'semantic-ui-react';
 
+const BratkartoffelnWärenLecker = { text: 'mmh' };
+
 const optionsDD = [
   { key: 'angular', text: 'Angular', value: 'angular' },
   { key: 'css', text: 'CSS', value: 'css' },
@@ -19,28 +21,39 @@ const optionsDD = [
   { key: 'repair', text: 'Kitchen Repair', value: 'repair' },
   { key: 'ruby', text: 'Ruby', value: 'ruby' },
   { key: 'ui', text: 'UI Design', value: 'ui' },
-  { key: 'ux', text: 'User Experience', value: 'ux' },
+  { key: 'ux', text: 'User Experience', value: 'ux' }
 ];
 
 
-const options = [
+export const options = [
   { key: 'm', text: 'Male', value: 'male' },
   { key: 'f', text: 'Female', value: 'female' },
 ];
 
-function DummyFun(x,y) {
+export function DummyFun(x,y) {
   console.log("DummyFun");
+  return "Honkytonk1";
 }
 
-const DummyFun1 = (x,y) => {
-  console.log("DummyFun");
+export const DummyFun1 = (x,y) => {
+  console.log("DummyFun1");
 };
 
-class FormExampleSubcomponentControl extends Component {
+export const DummyFun2 = function(x,y) {
+  console.log("DummyFun2");
+};
+
+export const DummyFun3 = x => {
+  console.log("DummyFun3");
+  return "DM3-XX--"+BratkartoffelnWärenLecker.text;
+};
+
+export class FormExampleSubcomponentControl extends Component {
 
   constructor(p) {
     super(p);
     this.state = {};
+    console.log("FEX construcotr");
   }
 
   handleChange(e, { value }) {
@@ -49,7 +62,8 @@ class FormExampleSubcomponentControl extends Component {
   }
 
   render() {
-    const { value } = this.state
+    console.log("FEX state",this.state);
+    const { value } = this.state;
     return (
       <Form>
         <Form.Group widths='equal'>
@@ -59,39 +73,42 @@ class FormExampleSubcomponentControl extends Component {
         </Form.Group>
         <Form.Group inline>
           <label>Size</label>
-          <Form.Radio label='Small' value='sm' checked={value === 'sm'} onChange={this.handleChange.bind(this)} />
-          <Form.Radio label='Medium' value='md' checked={value === 'md'} onChange={this.handleChange.bind(this)} />
-          <Form.Radio label='Large' value='lg' checked={value === 'lg'} onChange={this.handleChange.bind(this)} />
+          <Form.Radio label='Small' value='sm' checked={value === 'sm'} onChange={ (e,v) => this.handleChange(e,v) } />
+          <Form.Radio label='Medium' value='md' checked={value === 'md'} onChange={ (e,v) => this.handleChange(e,v) } />
+          <Form.Radio label='Large' value='lg' checked={value === 'lg'} onChange={ (e,v) => this.handleChange(e,v) } />
         </Form.Group>
         <Form.TextArea label='About' placeholder='Tell us more about you...' />
-        <Form.Checkbox label='I agree to the Terms and Conditions' />
+        <Form.Checkbox label='I might agree to the Terms and Conditions' />
         <Form.Button>Submit</Form.Button>
       </Form>
     )
   }
 }
-
+//
 class SemanticPlay extends Component {
 
   render() {
+    const h = 22;
     return (
       <div style={{marginTop: 48, marginBottom: 48}}>
         <h1>Semantic UI</h1>
         <div>
           <Button label={1048} icon='fork' labelPosition='left' />
           <Button label='1,048' icon='fork' labelPosition='left' />
-          <Button label={{ content: '2,048' }} icon='heart' content='Like' labelPosition='left' />
+          <Button label={{ content: '248' }} icon='heart' content='Likely' labelPosition='left' />
           <Button label={<Label>2,048</Label>} icon='heart' content='Like' />
         </div>
         <br/><br/>
         <div>
-          <Input loading placeholder='Search...' />
+          <Input loading placeholder='Search me ..' />
         </div>
         <br/><br/>
         <div>
           <Input label='http://' placeholder='mysite.com' />
         </div>
-        <br/><br/>
+        <div style={{height: h }}/>
+        <div style={{height: h, backgroundColor: 'green'}}/>
+        <div style={{height: h, backgroundColor: 'red'}}/>
         <div>
           <Input
             icon='tags'

@@ -19,11 +19,13 @@ import io.undertow.server.HttpHandler;
 import io.undertow.util.HeaderMap;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.remoting.http.undertow.HttpPublisher;
 import org.nustaq.kontraktor.rest.UndertowRESTHandler;
 import org.nustaq.kontraktor.webapp.javascript.*;
 import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;
+import org.nustaq.kontraktor.webapp.transpiler.jsx.FileWatcher;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
@@ -77,6 +79,14 @@ public class BldFourK {
 
     public WebSocketPublisher websocket( String urlPath, Actor facade ) {
         return websocket(urlPath,facade,false);
+    }
+
+    public BldFourK hmrServer(boolean on) {
+        if ( on )
+            return websocket("/hotreloading", FileWatcher.get())
+                .serType(SerializerType.JsonNoRef)
+                .buildWebsocket();
+        return this;
     }
 
     public WebSocketPublisher websocket( String urlPath, Actor facade, boolean useStringMessages ) {

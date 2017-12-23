@@ -4,9 +4,9 @@ import ReactDOM from 'react-dom';
 import {HCenter,Fader} from './subtest/util';
 import {Greeter} from './subtest/greeter';
 import global from "./global"
-import {SemanticPlay as MySemanticPlay} from './semantic/semanticplay';
+import {SemanticPlay as MySemanticPlay,DummyFun,DummyFun3,BratkartoffelnWärenLecker} from './semantic/semanticplay';
 import {Form,Modal} from 'semantic-ui-react';
-import {KClientListener} from 'kontraktor-client';
+import {KClientListener,KClient} from 'kontraktor-client';
 
 class App extends Component {
 
@@ -103,7 +103,7 @@ class App extends Component {
             <Fader>
               <HCenter>
                 <Form>
-                  <Form.Input label='Log In' placeholder='nick name' onChange={ ev => this.handleUChange(ev) } />
+                  <Form.Input label='Sign In' placeholder='some name' onChange={ ev => this.handleUChange(ev) } />
                   <HCenter>
                     <Form.Button
                       disabled={!this.state.loginEnabled}
@@ -120,6 +120,9 @@ class App extends Component {
         <div>
           {this.state.error ? <div><b>error</b></div> : ""}
         </div>
+        <p>{DummyFun(1,2)}</p>
+        <p>{DummyFun3(1)}</p>
+        <p>{BratkartoffelnWärenLecker.text}</p>
         <div>
           <MySemanticPlay/>
         </div>
@@ -129,77 +132,8 @@ class App extends Component {
 
 }
 
-global.app = <App/>;
-
-ReactDOM.render(global.app,document.getElementById("root"));
-
-
-////////// HM Reloading playground
-
-reloadSemplay = () => {
-  fetch("_appsrc/semantic/semanticplay.transpiled")
-    .then( response => response.text() )
-    .then( text => {
-      const prev = kimports['semantic/semanticplay'];
-      const exp = eval(text.toString());
-      const patch = kimports['semantic/semanticplay'];
-      kimports['semantic/semanticplay'] = prev;
-      Object.getOwnPropertyNames(patch).forEach( topleveldev => {
-        if ( typeof patch[topleveldev] === 'function') {
-          const isfun = patch[topleveldev].toString().indexOf("class") != 0;
-          if ( isfun ) // assume function
-          {
-            // function
-            console.log("fun ",patch[topleveldev].name);
-          } else {
-            console.log("class ",patch[topleveldev].name);
-            Object.getOwnPropertyNames(patch[topleveldev].prototype).forEach( key => {
-              console.log("patching "+key);
-              prev[topleveldev].prototype[key] = patch[topleveldev].prototype[key];
-            });
-          }
-        }
-      });
-      console.log(prev,patch);
-    });
+if ( typeof _kHMR === 'undefined') { // indicates not running in a hot reload cycle
+  global.app = <App/>; // avoid replacment of whole app
+  // set app root for hot reloading
+  window._kreactapprender = ReactDOM.render(global.app, document.getElementById("root"));
 }
-
-class TestPT {
-  constructor() {
-    console.log("construct testpt");
-  }
-  hello() {
-    console.log("hello");
-  }
-}
-
-class Patch0 extends TestPT {
-  constructor() {
-    super();
-    console.log("construct patch0");
-  }
-  hello() {
-    console.log("helloSub");
-  }
-}
-
-class Patch1 extends TestPT {
-  constructor() {
-    super();
-    console.log("construct patch1");
-  }
-  hello() {
-    console.log("helloSub1");
-  }
-}
-
-const sub = new TestPT();
-
-new Patch0().hello();
-
-Object.getOwnPropertyNames(Patch1.prototype).forEach( key => {
-  console.log("patching "+key);
-  Patch0.prototype[key] = Patch1.prototype[key];
-});
-
-new Patch0().hello();

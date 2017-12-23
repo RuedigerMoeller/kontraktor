@@ -18,9 +18,8 @@ class Greeter extends Component {
   }
 
   anotherGreet() {
-    global.session.greet("Another World "+new Date())
+    global.session.greet("Another World 1 POKPOK"+new Date())
       .then( (res,err) => this.setState({greeting: err ? err : res}) );
-    reloadSemplay();
   }
 
   render() {

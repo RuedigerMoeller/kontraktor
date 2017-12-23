@@ -9,6 +9,7 @@ import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.webapp.javascript.clojure.ClojureJSPostProcessor;
 import org.nustaq.kontraktor.webapp.transpiler.JSXIntrinsicTranspiler;
+import org.nustaq.kontraktor.webapp.transpiler.jsx.FileWatcher;
 
 import java.io.File;
 import java.util.Random;
@@ -61,8 +62,9 @@ public class ReactSemanticUITestApp extends Actor<ReactSemanticUITestApp> {
                     new JSXIntrinsicTranspiler(DEVMODE)
                         .configureJNPM("./src/main/web/node_modules","./src/main/web/jnpm.kson")
                         .autoJNPM(DEVMODE)
+                        .hmr(DEVMODE) // enable hot reloading support in transpiler
                 )
-                .jsPostProcessors(new ClojureJSPostProcessor())
+                .jsPostProcessors(new ClojureJSPostProcessor()) // production mode only
                 .allDev(DEVMODE)
                 .productionBuildDir(new File("./dist/"))
                 .buildResourcePath()
@@ -71,6 +73,7 @@ public class ReactSemanticUITestApp extends Actor<ReactSemanticUITestApp> {
                 .setSessionTimeout(TimeUnit.MINUTES.toMillis(30))
 //                .setSessionTimeout(10000)
                 .buildHttpApi()
+            .hmrServer(DEVMODE) // enable hot reloading
             .build();
     }
 
