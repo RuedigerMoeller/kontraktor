@@ -522,6 +522,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
     protected String getInitialShims() {
         return
+            "// generated, see _appsrc folder in chrome's src tab for original sourcecode"+
             "window.kmodules = {};\n" +
             "\n" +
             "  function kgetModule(name) {\n" +
@@ -622,78 +623,93 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     protected String getHMRReloadFun() {
         if ( USE_CUSTOM_RELOADFUN )
             return "";
-        return "////////// generated Hot Reloading support\n" +
+        return "\n////////// generated Hot Reloading support\n" +
             "if ( typeof _kHMR === 'undefined') {\n" +
             "  if ( typeof KClient === 'undefined' ) {\n" +
             "    console.error(\"hot module reloading requires 'import {KClient} from 'kontraktor-client''\");\n" +
             "  }\n" +
             "  const hmrcl = new KClient().useProxies(false);\n" +
             "  let addr = \"ws://\"+ window.location.host + \"/hotreloading\";\n" +
+            "\n" +
+            "  window._kredefineModule = function (patch, prev, libname) {\n" +
+            "    Object.getOwnPropertyNames(patch).forEach(topleveldef => {\n" +
+            "      const istop = \"__kdefault__\" !== topleveldef && prev['__kdefault__'] === prev[topleveldef];\n" +
+            "      if (\"__kdefault__\" === topleveldef) {\n" +
+            "        // ignore\n" +
+            "      } else if (!prev[topleveldef]) {\n" +
+            "        prev[topleveldef] = patch[topleveldef]; // new definition, FIXME: not locally visible, unsupported for now\n" +
+            "      } else if (patch[topleveldef]._kNoHMR) {\n" +
+            "        // unmarked for HMR\n" +
+            "      } else if (typeof patch[topleveldef] === 'function') {\n" +
+            "        let src = patch[topleveldef].toString();\n" +
+            "        const isclass = src.indexOf(\"class\") == 0;\n" +
+            "        const isfun = src.indexOf(\"function\") == 0;\n" +
+            "        if (isfun || (!isclass)) // assume function or lambda\n" +
+            "        {\n" +
+            "          if (patch[topleveldef]._kwrapped && prev[topleveldef]._kwrapped) {\n" +
+            "            let funsrc = patch[topleveldef]._kwrapped.toString();\n" +
+            "            let evalSrc = \"\" + topleveldef + \" = \" + funsrc + \";\" + topleveldef;\n" +
+            "            const newfun = __keval[libname](evalSrc);\n" +
+            "            prev[topleveldef]._kwrapped = newfun;\n" +
+            "          }\n" +
+            "        } else if (isclass) {\n" +
+            "          const newName = topleveldef;\n" +
+            "          const newDef = __keval[libname](newName + \"=\" + src + \"; \" + newName);\n" +
+            "          Object.getOwnPropertyNames(newDef.prototype).forEach(key => {\n" +
+            "            prev[topleveldef].prototype[key] = newDef.prototype[key];\n" +
+            "          });\n" +
+            "        } else { // should not happen\n" +
+            "          console.error(\"unknown function object\", src);\n" +
+            "        }\n" +
+            "      } else {\n" +
+            "        Object.assign(prev[topleveldef], patch[topleveldef]);\n" +
+            "      }\n" +
+            "      if (istop)\n" +
+            "        prev['__kdefault__'] = prev[topleveldef];\n" +
+            "    });\n" +
+            "    window._kreactapprender.forceUpdate();\n" +
+            "  };\n" +
+            "  // subscribe to filewatcher\n" +
             "  hmrcl.connect(addr,\"WS\").then( (conn, err) => {\n" +
             "    if ( err ) {\n" +
             "      console.error(\"failed to connect to hot reloading actor on '\"+addr+\"'. Hot reloading won't work.\");\n" +
             "      console.error('add to server builder:\".hmrServer(true)\"\\n' );\n" +
             "      return;\n" +
             "    }\n" +
-            "    conn.ask(\"addListener\", (r,e) => {\n" +
-            "      console.log(\"a file has changed _appsrc/\"+r);\n" +
+            "    conn.ask(\"addListener\", (libname,e) => {\n" +
+            "      console.log(\"a file has changed _appsrc/\"+libname);\n" +
             "      if ( ! window._kreactapprender ) {\n" +
             "        console.error(\"hot module reloading requires window._kreactapprender to be set to rect root. E.g. 'window._kreactapprender = ReactDOM.render(global.app,document.getElementById(\\\"root\\\"));' \");\n" +
             "        return;\n" +
             "      }\n" +
-            "      if ( !r ) {\n" +
+            "      if ( !libname ) {\n" +
             "        console.error(\"failed to init hot reloading actor on '\"+addr+\"'. Hot reloading won't work.\");\n" +
             "        console.error('add to server builder:\".hmrServer(true)\"\\n' );\n" +
             "      }\n" +
-            "      const lib = kimports[r];\n" +
+            "      const lib = kimports[libname];\n" +
             "      if ( lib ) {\n" +
             "        // fetch new source and patch\n" +
-            "        fetch(\"_appsrc/\"+r+\".transpiled\")\n" +
+            "        fetch(\"_appsrc/\"+libname+\".transpiled\")\n" +
             "        .then( response => response.text() )\n" +
             "        .then( text => {\n" +
-            "          const prev = kimports[r];\n" +
-            "          const prevEval = __keval[r];\n" +
+            "          const prev = kimports[libname];\n" +
+            "          const prevEval = __keval[libname];\n" +
             "          const exp = eval(\"let _kHMR=true;\"+text.toString());\n" +
-            "          const patch = kimports[r];\n" +
-            "          kimports[r] = prev;\n" +
-            "          __keval[r] = prevEval;\n" +
-            "          Object.getOwnPropertyNames(patch).forEach( topleveldef => {\n" +
-            "            if ( \"__kdefault__\" === topleveldef ) {\n" +
-            "              // ignore\n" +
-            "            } else if ( ! prev[topleveldef] ) {\n" +
-            "              prev[topleveldef] = patch[topleveldef]; // new definition, FIXME: not locally visible\n" +
-            "            } else if ( patch[topleveldef]._kNoHMR ) {\n" +
-            "              // unmarked for HMR\n" +
-            "            } else if ( typeof patch[topleveldef] === 'function') {\n" +
-            "              let src = patch[topleveldef].toString();\n" +
-            "              const isclass = src.indexOf(\"class\") == 0;\n" +
-            "              const isfun = src.indexOf(\"function\") == 0;\n" +
-            "              if ( isfun || (!isclass) ) // assume function or lambda\n" +
-            "              {\n" +
-            "                if ( patch[topleveldef]._kwrapped && prev[topleveldef]._kwrapped ) {\n" +
-            "                  let funsrc = patch[topleveldef]._kwrapped.toString();\n" +
-            "                  let evalSrc = \"\"+topleveldef+\" = \"+funsrc+\";\"+topleveldef;\n" +
-            "                  const newfun = __keval[r](evalSrc);\n" +
-            "                  prev[topleveldef]._kwrapped = newfun;\n" +
-            "                }\n" +
-            "              } else if ( isclass ) {\n" +
-            "                const newName = topleveldef;\n" +
-            "                const newDef = __keval[r](newName+\"=\"+src+\"; \"+newName);\n" +
-            "                Object.getOwnPropertyNames(newDef.prototype).forEach( key => {\n" +
-            "                  prev[topleveldef].prototype[key] = newDef.prototype[key];\n" +
-            "                });\n" +
-            "              } else { // should not happen\n" +
-            "                console.error(\"unknown function object\",src);\n" +
-            "              }\n" +
-            "            } else {\n" +
-            "              Object.assign(prev[topleveldef],patch[topleveldef]);\n" +
-            "            }\n" +
-            "          });\n" +
-            "          window._kreactapprender.forceUpdate();\n" +
+            "          const patch = kimports[libname];\n" +
+            "          kimports[libname] = prev;\n" +
+            "          __keval[libname] = prevEval;\n" +
+            "          window._kredefineModule(patch, prev, libname);\n" +
             "        });\n" +
             "      }\n" +
             "    }).then( (r,e) => { if (r) console.log('connected to hmr server' ); else console.log('could not subscribe to hmr server' );} );\n" +
             "  });\n" +
+            "\n" +
+            "  // initially redefine all libs to avoid state loss on first redefine\n" +
+            "  console.log(\"init hot reloading ..\");\n" +
+            "  Object.getOwnPropertyNames(kimports).forEach( prop => {\n" +
+            "    window._kredefineModule(kimports[prop],kimports[prop],prop);\n" +
+            "  });\n" +
+            "  console.log(\"... done init hot reloading\");\n" +
             "}\n";
     }
 
