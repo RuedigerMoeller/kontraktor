@@ -522,7 +522,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
     protected String getInitialShims() {
         return
-            "// generated, see _appsrc folder in chrome's src tab for original sourcecode"+
+            "// generated, see _appsrc folder in chrome's src tab for original sourcecode\n\n"+
             "window.kmodules = {};\n" +
             "\n" +
             "  function kgetModule(name) {\n" +
@@ -621,7 +621,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
     public static boolean USE_CUSTOM_RELOADFUN = false;
     protected String getHMRReloadFun() {
-        if ( USE_CUSTOM_RELOADFUN )
+        if ( USE_CUSTOM_RELOADFUN ) // must be provided at bottom of index.jsx then
             return "";
         return "\n////////// generated Hot Reloading support\n" +
             "if ( typeof _kHMR === 'undefined') {\n" +
