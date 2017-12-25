@@ -453,12 +453,20 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             String gl = result.getGlobals().get(i);
             s+=exportObject+"."+gl+" = _kwrapfn("+gl+");";
             if ( gl.equals(result.getDefaultExport())) {
-                s+=exportObject+".__kdefault__="+gl+";";
+                s+=exportObject+".__kdefault__= "+exportObject+"."+gl;
             }
         }
-        if ( dev ) {
-            s += "\n__keval['" + libName + "'] = s => eval(s.toString());\n";
-            if ( "index".equals(libName) && hmr ) {
+        if ( dev && hmr ) {
+            s += "\n__keval['" + libName + "'] = s => {";
+            for (int i = 0; i < result.getGlobals().size(); i++) {
+                String gl = result.getGlobals().get(i);
+                s+="var "+gl+" = _kimptmp['"+gl+"'];";
+                if ( gl.equals(result.getDefaultExport())) {
+                    s+="var __kdefault__= "+gl+";";
+                }
+            }
+            s += "return eval(s.toString()); }";
+            if ( "index".equals(libName) ) {
                 s+=getHMRReloadFun();
             }
         }
@@ -610,7 +618,10 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         "};\n";
     }
 
+    public static boolean USE_CUSTOM_RELOADFUN = false;
     protected String getHMRReloadFun() {
+        if ( USE_CUSTOM_RELOADFUN )
+            return "";
         return "////////// generated Hot Reloading support\n" +
             "if ( typeof _kHMR === 'undefined') {\n" +
             "  if ( typeof KClient === 'undefined' ) {\n" +
@@ -641,12 +652,16 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "        .then( response => response.text() )\n" +
             "        .then( text => {\n" +
             "          const prev = kimports[r];\n" +
+            "          const prevEval = __keval[r];\n" +
             "          const exp = eval(\"let _kHMR=true;\"+text.toString());\n" +
             "          const patch = kimports[r];\n" +
             "          kimports[r] = prev;\n" +
+            "          __keval[r] = prevEval;\n" +
             "          Object.getOwnPropertyNames(patch).forEach( topleveldef => {\n" +
-            "            if ( ! prev[topleveldef] ) {\n" +
-            "              prev[topleveldef] = patch[topleveldef]; // new definition\n" +
+            "            if ( \"__kdefault__\" === topleveldef ) {\n" +
+            "              // ignore\n" +
+            "            } else if ( ! prev[topleveldef] ) {\n" +
+            "              prev[topleveldef] = patch[topleveldef]; // new definition, FIXME: not locally visible\n" +
             "            } else if ( patch[topleveldef]._kNoHMR ) {\n" +
             "              // unmarked for HMR\n" +
             "            } else if ( typeof patch[topleveldef] === 'function') {\n" +
@@ -655,11 +670,17 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "              const isfun = src.indexOf(\"function\") == 0;\n" +
             "              if ( isfun || (!isclass) ) // assume function or lambda\n" +
             "              {\n" +
-            "                if ( patch[topleveldef]._kwrapped && prev[topleveldef]._kwrapped )\n" +
-            "                  prev[topleveldef]._kwrapped = patch[topleveldef]._kwrapped;\n" +
+            "                if ( patch[topleveldef]._kwrapped && prev[topleveldef]._kwrapped ) {\n" +
+            "                  let funsrc = patch[topleveldef]._kwrapped.toString();\n" +
+            "                  let evalSrc = \"\"+topleveldef+\" = \"+funsrc+\";\"+topleveldef;\n" +
+            "                  const newfun = __keval[r](evalSrc);\n" +
+            "                  prev[topleveldef]._kwrapped = newfun;\n" +
+            "                }\n" +
             "              } else if ( isclass ) {\n" +
-            "                Object.getOwnPropertyNames(patch[topleveldef].prototype).forEach( key => {\n" +
-            "                  prev[topleveldef].prototype[key] = patch[topleveldef].prototype[key];\n" +
+            "                const newName = topleveldef;\n" +
+            "                const newDef = __keval[r](newName+\"=\"+src+\"; \"+newName);\n" +
+            "                Object.getOwnPropertyNames(newDef.prototype).forEach( key => {\n" +
+            "                  prev[topleveldef].prototype[key] = newDef.prototype[key];\n" +
             "                });\n" +
             "              } else { // should not happen\n" +
             "                console.error(\"unknown function object\",src);\n" +
@@ -673,7 +694,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "      }\n" +
             "    }).then( (r,e) => { if (r) console.log('connected to hmr server' ); else console.log('could not subscribe to hmr server' );} );\n" +
             "  });\n" +
-            "}";
+            "}\n";
     }
 
     public JSXIntrinsicTranspiler nodeModulesDir(File jnpmNodeModulesDir) {
