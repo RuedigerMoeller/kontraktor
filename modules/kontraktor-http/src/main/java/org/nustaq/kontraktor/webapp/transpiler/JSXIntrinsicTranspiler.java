@@ -633,6 +633,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "\n" +
             "  window._kredefineModule = function (patch, prev, libname) {\n" +
             "    Object.getOwnPropertyNames(patch).forEach(topleveldef => {\n" +
+            "      try {" +
             "      const istop = \"__kdefault__\" !== topleveldef && prev['__kdefault__'] === prev[topleveldef];\n" +
             "      if (\"__kdefault__\" === topleveldef) {\n" +
             "        // ignore\n" +
@@ -662,10 +663,16 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "          console.error(\"unknown function object\", src);\n" +
             "        }\n" +
             "      } else {\n" +
-            "        Object.assign(prev[topleveldef], patch[topleveldef]);\n" +
+            "        if ( typeof patch[topleveldef] === 'object' )\n" +
+            "           Object.assign(prev[topleveldef], patch[topleveldef]);\n" +
+            "        else {\n" +
+            "           console.log('(possible hot rel failure) direct assignment on redefine:'+topleveldef+','+(typeof patch[topleveldef]),patch[topleveldef] );\n" +
+            "           prev[topleveldef] = patch[topleveldef];"+
+            "        }\n" +
             "      }\n" +
             "      if (istop)\n" +
             "        prev['__kdefault__'] = prev[topleveldef];\n" +
+            "      } catch (e) { console.log(e); }" +
             "    });\n" +
             "    window._kreactapprender.forceUpdate();\n" +
             "  };\n" +
