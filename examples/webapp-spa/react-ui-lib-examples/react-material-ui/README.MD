@@ -17,3 +17,5 @@ Full example featuring
 * goto localhost:8080 in your browser
 * first request triggers download of required npm packages so give it like 50 seconds (wathc console)
 * set DEVMODE to false to get a (dynamically) bundled build
+
+**Note:** hot module reloading is not enabled (see wiki, semantic ui example on how to do that)
