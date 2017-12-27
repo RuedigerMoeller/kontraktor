@@ -672,7 +672,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "      }\n" +
             "      if (istop)\n" +
             "        prev['__kdefault__'] = prev[topleveldef];\n" +
-            "      } catch (e) { console.log(e); }" +
+            "      } catch (e) { if (! (e instanceof TypeError) ) console.log(e); }" +
             "    });\n" +
             "    window._kreactapprender.forceUpdate();\n" +
             "  };\n" +
