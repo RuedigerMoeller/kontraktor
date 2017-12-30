@@ -3,17 +3,16 @@
 ## What is kontraktor ?
 
 * A boilerplate free and consistent abstraction for asynchronous remote communication powered by a **distributed actor-model**
-* A **SPA WebApp platform** supporting a Java backend for modern SPA javascript client frameworks like Polymer.js, vue.js and React.js (transpilation, packaging, optimization). Different to webpack/browserify etc. kontraktor does this on the fly (when running in prod mode) without an extra build step using pure java. [see IntrinsicReact example](https://github.com/RuedigerMoeller/InstrinsicReactJSX)
-* eases polyglot (**java, javascript** nodejs + browser) (micro-)service oriented distributed systems
+* A **SPA WebApp platform** enabling Java to back modern SPA javascript client frameworks like React.js, Polymer.js, .. (transpilation, packaging, optimization). Different to webpack/browserify etc. kontraktor does this on the fly (when running in prod mode) without an extra build step using pure java. [see IntrinsicReact example](https://github.com/RuedigerMoeller/InstrinsicReactJSX)
 * separates network transport (TCP, WebSockets, Http) and message encoding (fast-serialization, json, ..) from application code. 
-* **Async REST services**
-* **asynchronous, non-blocking**
-* **high performance**
+* **asynchronous, non-blocking,high performance**
 * production proven
 
 [Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki)
 
 [Code Examples](https://github.com/RuedigerMoeller/kontraktor/tree/trunk/examples), [Related Blogpost's](https://juptr.io/@kontraktor)
+
+[React Example](https://github.com/RuedigerMoeller/InstrinsicReactJSX)
 
 ## What can I use it for ?
 
@@ -48,7 +47,7 @@ Actors + TCP Remoting
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>4.19</version>
+    <version>4.20</version>
 </dependency>
 ```
 
@@ -70,7 +69,7 @@ Adds WebSockets, Http LongPoll for actor-remoting, JavaScript interop. Uses Unde
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-http</artifactId>
-    <version>4.19</version>
+    <version>4.20</version>
 </dependency>
 ```
 
@@ -101,7 +100,7 @@ old (es5) implementation of kontraktor-client. somewhat messy, but production-pr
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-bare</artifactId>
-    <version>4.19</version>
+    <version>4.20</version>
 </dependency>
 ```
 
