@@ -69,7 +69,7 @@ Adds WebSockets, Http LongPoll for actor-remoting, JavaScript interop. Uses Unde
 <dependency>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-http</artifactId>
-    <version>4.20</version>
+    <version>4.20.1</version>
 </dependency>
 ```
 

@@ -49,6 +49,7 @@ public class UndertowRESTHandler implements HttpHandler {
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
         if ( requestAuthenticator != null ) {
+            exchange.dispatch();
             requestAuthenticator.apply(exchange.getRequestHeaders()).then( (r,e) -> {
                 if ( e != null ) {
                     exchange.setResponseCode(403);
@@ -70,7 +71,8 @@ public class UndertowRESTHandler implements HttpHandler {
         }
         String[] split = requestPath.split("/");
         String method = ""+exchange.getRequestMethod();
-        String methodName = method.toLowerCase();
+        String rawMethodName = method.toLowerCase();
+        String methodName = rawMethodName;
         if ( ! allowedMethods.contains(methodName) ) {
             exchange.setResponseCode(400);
             exchange.endExchange();
@@ -81,9 +83,12 @@ public class UndertowRESTHandler implements HttpHandler {
         }
         Method m = facade.getActor().__getCachedMethod(methodName,facade,null);
         if ( m == null ) {
-            exchange.setResponseCode(404);
-            exchange.endExchange();
-            return;
+            m = facade.getActor().__getCachedMethod(rawMethodName,facade,null);
+            if ( m == null ) {
+                exchange.setResponseCode(404);
+                exchange.endExchange();
+                return;
+            }
         }
 
         ContentType ct = m.getAnnotation(ContentType.class);
@@ -97,6 +102,7 @@ public class UndertowRESTHandler implements HttpHandler {
             StreamSourceChannel requestChannel = exchange.getRequestChannel();
             ByteBuffer buf = ByteBuffer.allocate(len);
             String finalMethodName = methodName;
+            Method finalM = m;
             requestChannel.getReadSetter().set(streamSourceChannel -> {
                     try {
                         streamSourceChannel.read(buf);
@@ -110,18 +116,18 @@ public class UndertowRESTHandler implements HttpHandler {
                             Log.Warn(this, e);
                         }
                         exchange.dispatch();
-                        parseAndDispatch(exchange, split, finalMethodName, m, buf.array());
+                        parseAndDispatch(exchange, split, rawMethodName, finalM, buf.array());
                     }
                 }
             );
             requestChannel.resumeReads();
         } else {
             exchange.dispatch();
-            parseAndDispatch(exchange, split, methodName, m, new byte[0] );
+            parseAndDispatch(exchange, split, requestPath, m, new byte[0] );
         }
     }
 
-    private void parseAndDispatch(HttpServerExchange exchange, String[] split, String methodName, Method m, byte[] postData) {
+    private void parseAndDispatch(HttpServerExchange exchange, String[] split, String rawPath, Method m, byte[] postData) {
         try {
             Class<?>[] parameterTypes = m.getParameterTypes();
             Annotation[][] parameterAnnotations = m.getParameterAnnotations();
@@ -130,13 +136,18 @@ public class UndertowRESTHandler implements HttpHandler {
             for (int i = 0; i < parameterTypes.length; i++) {
                 Class<?> parameterType = parameterTypes[i];
                 Annotation[] parameterAnnotation = parameterAnnotations[i];
-                if ( parameterAnnotation != null && parameterAnnotation.length > 0 && parameterAnnotation[0].annotationType() == FromQuery.class ) {
-                    String value = ((FromQuery) parameterAnnotation[0]).value();
-                    Deque<String> strings = exchange.getQueryParameters().get(value);
-                    if ( strings != null ) {
-                        args[i] = inferValue(parameterType,strings.getFirst());
+                if ( parameterAnnotation != null && parameterAnnotation.length > 0 ) {
+                    if ( parameterAnnotation[0].annotationType() == FromQuery.class ) {
+                        String value = ((FromQuery) parameterAnnotation[0]).value();
+                        Deque<String> strings = exchange.getQueryParameters().get(value);
+                        if (strings != null) {
+                            args[i] = inferValue(parameterType, strings.getFirst());
+                        }
+                        continue;
+                    } else if ( parameterAnnotation[0].annotationType() == RequestPath.class ) {
+                        args[i] = rawPath;
+                        continue;
                     }
-                    continue;
                 }
                 if ( splitIndex < split.length ) {
                     String stringVal = split[splitIndex];
@@ -150,6 +161,8 @@ public class UndertowRESTHandler implements HttpHandler {
                 // specials
                 if ( parameterType == HeaderMap.class ) {
                     args[i] = exchange.getRequestHeaders();
+                } else if ( parameterType == String[].class ) {
+                    args[i] = split;
                 } else if ( parameterType == JsonObject.class || parameterType == JsonValue.class ) {
                     try {
                         args[i] = Json.parse(new String(postData,"UTF-8"));
@@ -164,11 +177,12 @@ public class UndertowRESTHandler implements HttpHandler {
                     System.out.println("unsupported parameter type "+parameterType.getName());
                 }
             }
-            if ( splitIndex != split.length ) {
-                exchange.setResponseCode(400);
-                exchange.endExchange();
-                return;
-            }
+            // change: allow incomplete parameters
+//            if ( splitIndex != split.length ) {
+//                exchange.setResponseCode(400);
+//                exchange.endExchange();
+//                return;
+//            }
             Object invoke = m.invoke(facade.getActorRef(), args);
             if ( invoke instanceof IPromise ) {
                 ((IPromise) invoke).then( (r,e) -> {
