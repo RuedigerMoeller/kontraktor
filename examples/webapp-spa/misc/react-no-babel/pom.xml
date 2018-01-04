@@ -80,7 +80,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor-web</artifactId>
-            <version>4.20</version>
+            <version>4.21</version>
         </dependency>
 
         <dependency>

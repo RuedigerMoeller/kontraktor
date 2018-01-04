@@ -5,8 +5,8 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.reallive.impl.FilterSpore;
 import org.nustaq.reallive.impl.MapSpore;
 import org.nustaq.reallive.impl.QueryPredicate;
+import org.nustaq.reallive.query.QParseException;
 
-import java.text.ParseException;
 
 /**
  * Created by ruedi on 04/08/15.
@@ -25,7 +25,7 @@ public interface RealLiveStreamActor extends SafeRealLiveStreamActor {
         forEachWithSpore(new MapSpore(predicate,mapFun).setForEach(cb).onFinish( () -> cb.finish() ));
     }
 
-    @CallerSideMethod default void query(String query, Callback<Record> cb) throws ParseException {
+    @CallerSideMethod default void query(String query, Callback<Record> cb) throws QParseException {
         this.forEach(new QueryPredicate<Record>(query), cb);
     }
 

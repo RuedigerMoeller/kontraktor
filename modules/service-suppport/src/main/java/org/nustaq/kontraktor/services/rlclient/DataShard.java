@@ -11,8 +11,6 @@ import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
-import org.nustaq.reallive.messages.ChangeUtils;
-import org.nustaq.reallive.records.MapRecord;
 
 import java.io.File;
 
@@ -83,7 +81,7 @@ public class DataShard extends ServiceActor<DataShard> {
     public static void main(String[] args) {
         DataShard ds = Actors.AsActor(DataShard.class,256000);
         DataShardArgs options = (DataShardArgs) ServiceRegistry.parseCommandLine(args, new DataShardArgs());
-        ds.init(new TCPConnectable(ServiceRegistry.class, options.getGravityHost(), options.getGravityPort()), options, true); // .await(); fail ..
+        ds.init(new TCPConnectable(ServiceRegistry.class, options.getRegistryHost(), options.getRegistryPort()), options, true); // .await(); fail ..
         Log.Info(ds.getClass(), "Init finished");
     }
 }

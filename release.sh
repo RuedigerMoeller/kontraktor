@@ -64,3 +64,12 @@ rm -r */
 jar -cf bundle.jar *
 cd ..
 
+cd ../service-suppport
+mvn clean package -Dmaven.test.skip=true gpg:sign  -Dgpg.passphrase=$PW
+mkdir target
+cd target
+rm *-jar-with*
+rm -r */
+jar -cf bundle.jar *
+cd ..
+

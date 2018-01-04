@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Created by ruedi on 11.08.2015.
@@ -104,6 +105,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
 
     protected void broadcastAvailable(ServiceDescription desc) {
         Pair msg = new Pair(AVAILABLE,desc);
+        listeners = listeners.stream().filter( cb -> !cb.isTerminated()).collect(Collectors.toList());
         listeners.forEach(cb -> {
             try {
                 cb.pipe(msg);
@@ -200,7 +202,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         ServiceRegistry serviceRegistry = Actors.AsActor(ServiceRegistry.class);
         serviceRegistry.init();
 
-        new TCPNIOPublisher(serviceRegistry,options.getGravityPort()).publish(actor -> {
+        new TCPNIOPublisher(serviceRegistry,options.getRegistryPort()).publish(actor -> {
             Log.Info(null, actor + " has disconnected");
         });
 

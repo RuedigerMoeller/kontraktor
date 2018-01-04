@@ -8,7 +8,7 @@ import org.nustaq.kontraktor.services.ServiceArgs;
  */
 public class DataShardArgs extends ServiceArgs {
 
-    @Parameter( required = true, names = "-sn")
+    @Parameter( required = true, names = { "-sn","-shardNo" })
     int shardNo;
 
     public int getShardNo() {

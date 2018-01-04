@@ -3,6 +3,7 @@ package org.nustaq.reallive.client;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.RealLiveTable;
 import org.nustaq.reallive.api.RecordStorage;
 import org.nustaq.reallive.api.TableDescription;
@@ -10,10 +11,8 @@ import org.nustaq.reallive.impl.actors.RealLiveTableActor;
 import org.nustaq.reallive.impl.storage.CachedOffHeapStorage;
 import org.nustaq.reallive.impl.storage.HeapRecordStorage;
 import org.nustaq.reallive.impl.storage.OffHeapRecordStorage;
-import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
 
 import java.io.File;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 public class EmbeddedRealLive {
@@ -37,13 +36,15 @@ public class EmbeddedRealLive {
 
         Supplier<RecordStorage> memFactory;
         if (desc.getFilePath() == null) {
-            switch (desc.getType()) {
+            Log.Info(this,"no file specified. all data in memory "+desc.getName());
+            switch (desc.getStorageType()) {
                 case CACHED:
                     memFactory = () -> new CachedOffHeapStorage(
                         new OffHeapRecordStorage(desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries()),
                         new HeapRecordStorage());
                     break;
                 default:
+                    Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to PERSIST");
                 case PERSIST:
                     memFactory = () -> new OffHeapRecordStorage(desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries());
                     break;
@@ -55,11 +56,13 @@ public class EmbeddedRealLive {
             String bp = dataDir == null ? desc.getFilePath() : dataDir;
             desc.filePath(bp);
             new File(bp).mkdirs();
-            switch (desc.getType()) {
+            String file = bp + "/" + desc.getName() + "_" + desc.getShardNo() + ".bin";
+            switch (desc.getStorageType()) {
                 case CACHED:
+                    Log.Info(this,"memory mapping file "+file);
                     memFactory = () -> new CachedOffHeapStorage(
                         new OffHeapRecordStorage(
-                            bp + "/" + desc.getName() + "_" + desc.getShardNo() + ".bin",
+                            file,
                             desc.getKeyLen(),
                             desc.getSizeMB(),
                             desc.getNumEntries()
@@ -68,10 +71,12 @@ public class EmbeddedRealLive {
                     );
                     break;
                 default:
+                    Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to PERSIST");
                 case PERSIST:
+                    Log.Info(this,"memory mapping file "+file);
                     memFactory = () ->
                         new OffHeapRecordStorage(
-                            bp + "/" + desc.getName() + "_" + desc.getShardNo() + ".bin",
+                            file,
                             desc.getKeyLen(),
                             desc.getSizeMB(),
                             desc.getNumEntries()

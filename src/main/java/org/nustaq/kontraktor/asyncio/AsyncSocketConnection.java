@@ -95,7 +95,7 @@ public abstract class AsyncSocketConnection {
      * @param buf
      * @return
      */
-    protected Thread theExecutingThread; // originall for debugging, but now used to reschedule ..
+    protected Thread theExecutingThread; // originally for debugging, but now used to reschedule ..
     protected IPromise directWrite(ByteBuffer buf) {
         checkThread();
         if ( myActor == null )

@@ -19,7 +19,7 @@ public class TableDescription implements Serializable, Cloneable {
     int numEntries=100_000;
     int shardNo;
     int keyLen = 48;
-    StorageType st = StorageType.CACHED;
+    String storageType = StorageType.CACHED.toString();
 
     public TableDescription() {}
 
@@ -32,13 +32,13 @@ public class TableDescription implements Serializable, Cloneable {
         return this;
     }
 
-    public TableDescription type(final StorageType st) {
-        this.st = st;
+    public TableDescription storageType(final StorageType st) {
+        this.storageType = st.toString();
         return this;
     }
 
-    public StorageType getType() {
-        return st;
+    public StorageType getStorageType() {
+        return StorageType.valueOf(storageType);
     }
 
     public TableDescription sizeMB(final int sizeMB) {

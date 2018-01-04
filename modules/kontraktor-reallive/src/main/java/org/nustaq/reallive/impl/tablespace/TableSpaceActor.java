@@ -58,7 +58,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
     }
 
     private RealLiveTableActor createTableActor(TableDescription desc) {
-        return (RealLiveTableActor) EmbeddedRealLive.get().createTable(desc,getBaseDir());
+        return (RealLiveTableActor) EmbeddedRealLive.get().createTable(desc,getBaseDir()).await();
     }
 
     @Override

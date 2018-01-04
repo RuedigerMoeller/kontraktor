@@ -83,6 +83,16 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
     public abstract void receivedObject(Object o);
 
     public void writeObject(Object o) {
+        if ( theExecutingThread != Thread.currentThread() && myActor != null ) {
+            myActor.execute( () -> {
+                try {
+                    writeObject(o);
+                } catch (Exception e) {
+                    Log.Warn(this,e);
+                }
+            });
+            return;
+        }
         if ( myActor != null )
             myActor = Actor.current();
         checkThread();
@@ -98,9 +108,7 @@ public abstract class ObjectAsyncSocketConnection extends QueuingAsyncSocketConn
 
     @Override
     public void flush() throws IOException, Exception {
-        if ( theExecutingThread != Thread.currentThread() ) {
-            if ( myActor == null )
-                return;
+        if ( theExecutingThread != Thread.currentThread() && myActor != null ) {
             myActor.execute( () -> {
                 try {
                     flush();

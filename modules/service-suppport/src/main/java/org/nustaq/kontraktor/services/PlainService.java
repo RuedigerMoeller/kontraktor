@@ -26,7 +26,7 @@ public class PlainService extends ServiceActor<PlainService> {
         }
         this.serviceName = name;
         Promise p = new Promise();
-        self().init( new TCPConnectable( ServiceRegistry.class, options.getGravityHost(), options.getGravityPort() ), options, true)
+        self().init( new TCPConnectable( ServiceRegistry.class, options.getRegistryHost(), options.getRegistryPort() ), options, true)
             .then( (r,e) -> {
                 if ( e == null ) {
                     p.resolve(self());

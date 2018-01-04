@@ -2,8 +2,8 @@ package org.nustaq.reallive.api;
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.reallive.impl.QueryPredicate;
+import org.nustaq.reallive.query.QParseException;
 
-import java.text.ParseException;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -20,7 +20,7 @@ public interface ChangeStream extends SafeChangeStream {
     }
 
     default @CallerSideMethod
-    Subscriber subscribeOn(String query, ChangeReceiver receiver) throws ParseException {
+    Subscriber subscribeOn(String query, ChangeReceiver receiver) throws QParseException {
         Subscriber subs = new Subscriber(new QueryPredicate(query),receiver);
         this.subscribe(subs);
         return subs;

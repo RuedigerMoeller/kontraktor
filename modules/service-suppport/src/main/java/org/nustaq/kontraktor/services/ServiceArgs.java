@@ -13,10 +13,10 @@ import java.net.UnknownHostException;
 public class ServiceArgs {
 
     @Parameter(names={"-s","-servicereg"}, description = "serviceregistry host")
-    String gravityHost = "localhost";
+    String registryHost = "localhost";
 
     @Parameter(names={"-sp","-serviceregport"}, description = "serviceregistry port")
-    int gravityPort = 4567;
+    int registry = 4567;
 
     @Parameter(names = {"-h","-help","-?", "--help"}, help = true, description = "display help")
     boolean help;
@@ -38,12 +38,12 @@ public class ServiceArgs {
         }
     }
 
-    public String getGravityHost() {
-        return gravityHost;
+    public String getRegistryHost() {
+        return registryHost;
     }
 
-    public int getGravityPort() {
-        return gravityPort;
+    public int getRegistryPort() {
+        return registry;
     }
 
     public int getDataShardPortBase() {
@@ -57,8 +57,8 @@ public class ServiceArgs {
     @Override
     public String toString() {
         return "ServiceArgs{" +
-                   "gravityHost='" + gravityHost + '\'' +
-                   ", gravityPort=" + gravityPort +
+                   "registryHost='" + registryHost + '\'' +
+                   ", registry=" + registry +
                    ", help=" + help +
                    ", host='" + host + '\'' +
                    ", dataShardPortBase=" + dataShardPortBase +

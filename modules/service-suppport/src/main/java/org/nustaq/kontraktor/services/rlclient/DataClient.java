@@ -66,7 +66,7 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
      * @return
      */
     @CallerSideMethod
-    public RealLiveTable ts(String name ) {
+    public RealLiveTable tbl(String name ) {
         return (RealLiveTable) getActor().syncTableAccess.get(name);
     }
 

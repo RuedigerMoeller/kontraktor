@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.services;
 
+import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.services.rlclient.DataShard;
 import org.nustaq.kontraktor.Actor;
@@ -11,6 +12,7 @@ import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
+import org.nustaq.serialization.util.FSTUtil;
 
 import java.util.*;
 
@@ -18,6 +20,32 @@ import java.util.*;
  * Created by ruedi on 12.08.2015.
  */
 public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
+
+    /**
+     * run & connect a service with given cmdline args and classes
+     *
+     * @param args
+     * @param serviceClazz
+     * @param argsClazz
+     * @return
+     * @throws IllegalAccessException
+     * @throws InstantiationException
+     */
+    public static ServiceActor RunTCP( String args[], Class<? extends ServiceActor> serviceClazz, Class<? extends ServiceArgs> argsClazz) {
+        ServiceActor myService = AsActor(serviceClazz);
+        ServiceArgs options = null;
+        try {
+            options = ServiceRegistry.parseCommandLine(args, argsClazz.newInstance());
+        } catch (Exception e) {
+            FSTUtil.rethrow(e);
+        }
+        TCPConnectable connectable = new TCPConnectable(ServiceRegistry.class, options.getRegistryHost(), options.getRegistryPort());
+
+        myService.init( connectable, options, true).await(30_000);
+        Log.Info(myService.getClass(), "Init finished");
+
+        return myService;
+    }
 
     public static final String UNCONNECTED = "UNCONNECTED";
 

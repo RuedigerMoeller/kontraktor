@@ -30,8 +30,8 @@ public class Basic {
         TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
         ts.init();
 
-        ts.createOrLoadTable(new TableDescription("blogs").numEntries(500_000).type(TableDescription.StorageType.TEMP).sizeMB(500)).await();
-        ts.createOrLoadTable(new TableDescription("articles").numEntries(500_000 * 10).type(TableDescription.StorageType.TEMP).sizeMB(500 * 10)).await();
+        ts.createOrLoadTable(new TableDescription("blogs").numEntries(500_000).storageType(TableDescription.StorageType.TEMP).sizeMB(500)).await();
+        ts.createOrLoadTable(new TableDescription("articles").numEntries(500_000 * 10).storageType(TableDescription.StorageType.TEMP).sizeMB(500 * 10)).await();
 
         RealLiveTable blogs = ts.getTableAsync("blogs").await();
         RealLiveTable articles = ts.getTableAsync("articles").await();

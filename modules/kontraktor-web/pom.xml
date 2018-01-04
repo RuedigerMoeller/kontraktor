@@ -12,7 +12,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-web</artifactId>
-    <version>4.20</version>
+    <version>4.21</version>
 
     <description>webapp utils/framework for kontraktor</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -45,6 +45,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.0.0-M1</version>
                 <configuration>
                     <additionalparam>-Xdoclint:none</additionalparam>
                 </configuration>
@@ -99,13 +100,13 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>reallive</artifactId>
-            <version>4.20</version>
+            <version>4.21</version>
         </dependency>
 
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor-http</artifactId>
-            <version>4.20</version>
+            <version>4.21</version>
         </dependency>
 
         <dependency>

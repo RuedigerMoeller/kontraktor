@@ -74,7 +74,7 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
                     .keyLen(64)
                     .sizeMB(cfg.getSizeSessionIdsMB())
                     .name("sessionid2userkey")
-                    .type(TableDescription.StorageType.PERSIST),
+                    .storageType(TableDescription.StorageType.PERSIST),
                 dataDir
             );
             IPromise _userData = EmbeddedRealLive.get().createTable(
@@ -82,7 +82,7 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
                     .keyLen(64)
                     .sizeMB(cfg.getSizeSessionIdsMB())
                     .name("userdata")
-                    .type(TableDescription.StorageType.PERSIST),
+                    .storageType(TableDescription.StorageType.PERSIST),
                 dataDir
             );
             Actors.all(_sessionId2UserKey,_userData).then( () -> {
