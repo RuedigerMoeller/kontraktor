@@ -5,9 +5,14 @@ import org.junit.Test;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.http.HttpConnectable;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
+import org.nustaq.kontraktor.remoting.http.undertow.HttpPublisher;
 import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;
+import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
+import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -18,6 +23,7 @@ public class RemotingTest {
     public void test() {
         RemotingTA serv = Actors.AsActor(RemotingTA.class);
 
+        // websocket
         WebSocketPublisher pub = new WebSocketPublisher()
             .facade(serv)
             .hostName("0.0.0.0")
@@ -29,6 +35,18 @@ public class RemotingTest {
         WebSocketConnectable con = new WebSocketConnectable()
             .actorClass(RemotingTA.class)
             .url("ws://localhost:7777/websocket");
+        fromRemote(con);
+
+        // TCP
+        new TCPNIOPublisher(serv,7778).publish().await();
+        fromRemote(new TCPConnectable(RemotingTA.class,"localhost",7778));
+
+        // Http-Longpoll
+        new HttpPublisher(serv,"0.0.0.0","/httpapi",7779).publish().await();
+        fromRemote(new HttpConnectable(RemotingTA.class,"http://localhost:7779/httpapi"));
+    }
+
+    private void fromRemote(ConnectableActor con) {
         RemotingTA remote = (RemotingTA) con.connect().await();
 
 
