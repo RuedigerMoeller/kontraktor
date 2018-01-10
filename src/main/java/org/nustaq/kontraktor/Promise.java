@@ -76,17 +76,6 @@ public class Promise<T> implements IPromise<T> {
     public Promise() {}
 
     /**
-     * Promise constructor matching ES6-style Promise constructor semantics
-     *
-     * return new Promise( (resolve,reject) -> { if ( 1 != 0 ) resolve.accept("Hello") else reject.accept("Never") }
-     *
-     * @param <T>
-     */
-    public Promise(BiConsumer<Consumer<T>,Consumer<Object>> body) {
-        body.accept( resolved -> this.resolve(resolved), rejected -> this.reject(rejected) );
-    }
-
-    /**
      * remoting helper
      */
     public String getId() {
