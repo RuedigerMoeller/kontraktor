@@ -13,6 +13,7 @@ import org.nustaq.kontraktor.remoting.http.undertow.HttpPublisher;
 import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
+import org.nustaq.kontraktor.remoting.tcp.TCPPublisher;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -37,9 +38,13 @@ public class RemotingTest {
             .url("ws://localhost:7777/websocket");
         fromRemote(con);
 
-        // TCP
+        // TCP NIO
         new TCPNIOPublisher(serv,7778).publish().await();
         fromRemote(new TCPConnectable(RemotingTA.class,"localhost",7778));
+
+        // TCP Sync
+        new TCPPublisher(serv,7780).publish().await();
+        fromRemote(new TCPConnectable(RemotingTA.class,"localhost",7780));
 
         // Http-Longpoll
         new HttpPublisher(serv,"0.0.0.0","/httpapi",7779).publish().await();
