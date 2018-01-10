@@ -613,6 +613,7 @@ public class BasicTest {
     }
 
 
+    @Ignore // invalid as no blocking queues are used anymore
     @Test public void testBlockEx() {
         ExceptionThrower act = Actors.AsActor(ExceptionThrower.class, 1000);
         act.test();

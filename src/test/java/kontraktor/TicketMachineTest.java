@@ -86,7 +86,7 @@ public class TicketMachineTest {
             proc.process(stocks[index], seq[index]++ );
             LockSupport.parkNanos(1000*100);
         }
-        Thread.sleep(1000*5);
+        Thread.sleep(1000*10);
         Assert.assertTrue(proc.getMachindeForTest().getTickets().size() == 0);
         Assert.assertTrue(errorCount.get() == 0);
     }
