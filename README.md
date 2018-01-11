@@ -3,7 +3,7 @@
 ## What is kontraktor ?
 
 * A boilerplate free and consistent abstraction for asynchronous remote communication powered by a **distributed actor-model**
-* A **SPA WebApp platform** enabling Java to back modern SPA javascript client frameworks like React.js, Polymer.js, .. (transpilation, packaging, optimization). Different to webpack/browserify etc. kontraktor does this on the fly (when running in prod mode) without an extra build step using pure java. [see IntrinsicReact example](https://github.com/RuedigerMoeller/InstrinsicReactJSX)
+* One important application of this abstraction are **SPA WebApplications** enabling Java to back modern SPA javascript client frameworks like React.js, Polymer.js, .. (transpilation, packaging, optimization). Different to webpack/browserify etc. kontraktor does this on the fly (when running in prod mode) without an extra build step using pure java. [see IntrinsicReact example](https://github.com/RuedigerMoeller/InstrinsicReactJSX)
 * separates network transport (TCP, WebSockets, Http) and message encoding (fast-serialization, json, ..) from application code. 
 * **asynchronous, non-blocking,high performance**
 * production proven
@@ -16,7 +16,7 @@
 
 ## What can I use it for ?
 
-* build modern microservice systems (java (JVM), nodejs) beyond the Limits of REST. Asynchronous, event sourced, encoding (fast binary, json for interop) and network transport independent (choose from TCP, WebSockets, Http-(Long Poll)).
+* build modern microservice systems (java (JVM), nodejs) beyond the Limits of REST. Asynchronous, event sourced, independent of encoding and network transport (choose from TCP, WebSockets, Http-(Long Poll), json or binary encoding).
 * power modern SPA apps with a java based webserver
 
 **Credits**: kontraktor makes use of many awesome open source libraries such as
