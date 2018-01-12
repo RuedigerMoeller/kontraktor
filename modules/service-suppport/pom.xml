@@ -11,7 +11,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>service-support</artifactId>
-    <version>4.22</version>
+    <version>4.22.1</version>
 
     <description>service registry</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -115,10 +115,23 @@
             <artifactId>junit</artifactId>
             <version>4.12</version>
         </dependency>
+
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor-http</artifactId>
             <version>4.22</version>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.mail</groupId>
+            <artifactId>javax.mail-api</artifactId>
+            <version>1.5.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.5.2</version>
         </dependency>
 
     </dependencies>
