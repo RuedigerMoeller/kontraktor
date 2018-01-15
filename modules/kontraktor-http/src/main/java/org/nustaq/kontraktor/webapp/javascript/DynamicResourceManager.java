@@ -131,7 +131,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
             }
             if ( cachedIndexDir != null && cachedIndexDir.exists() && initialPath.endsWith("index.html") ) {
                 try {
-                    byte bytes[] = Files.readAllBytes(new File(cachedIndexDir,normalizedPath).toPath());
+                    byte bytes[] = Files.readAllBytes(new File(cachedIndexDir,normalizedPath).toPath().normalize());
                     Log.Info(this, "reading "+normalizedPath+" from static file "+new File(cachedIndexDir,normalizedPath).getAbsolutePath());
                     return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/html",  !isDevMode()? lastStartup : null ));
                 } catch (IOException e) {
@@ -163,7 +163,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
                 final String fname = file.getName();
                 if ( fname.endsWith(".js") && minify ) {
                     try {
-                        byte[] bytes = Files.readAllBytes(file.toPath());
+                        byte[] bytes = Files.readAllBytes(file.toPath().normalize());
                         bytes = runJSPostProcessors(jsPostProcessors,bytes);
                         return mightCache(normalizedPath, new MyResource(initialPath, normalizedPath, bytes, "text/javascript", !isDevMode()? lastStartup : null ));
                     } catch (IOException e) {
@@ -279,7 +279,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
                     }
                 }
                 if ( bytes == null )
-                    bytes = Files.readAllBytes(file.toPath());
+                    bytes = Files.readAllBytes(file.toPath().normalize());
             }
             return bytes;
         } catch (Exception e) {

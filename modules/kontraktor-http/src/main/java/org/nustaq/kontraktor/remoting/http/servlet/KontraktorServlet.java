@@ -139,7 +139,7 @@ public abstract class KontraktorServlet extends HttpServlet {
             if ( resource instanceof DynamicResourceManager.MyResource) {
                 bytes = ((DynamicResourceManager.MyResource) resource).getBytes();
             } else if ( resource.getFile() != null ) {
-                bytes = Files.readAllBytes(resource.getFile().toPath());
+                bytes = Files.readAllBytes(resource.getFile().toPath().normalize());
             }
             // FIXME: mimetype, lastModified / 304
             if ( bytes != null ) {

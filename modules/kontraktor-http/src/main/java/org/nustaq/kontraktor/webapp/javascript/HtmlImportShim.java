@@ -38,7 +38,7 @@ public class HtmlImportShim {
 
         default byte[] retrieveBytes(File impFi) {
             try {
-                return Files.readAllBytes(impFi.toPath());
+                return Files.readAllBytes(impFi.toPath().normalize());
             } catch (IOException e) {
                 FSTUtil.rethrow(e);
             }
@@ -267,7 +267,7 @@ public class HtmlImportShim {
                     } else {
                         visited.add(resUrl);
                         Element style = new Element(Tag.valueOf("style"), "" );
-                        byte[] bytes = Files.readAllBytes(impFi.toPath());
+                        byte[] bytes = Files.readAllBytes(impFi.toPath().normalize());
                         style.appendChild( new DataNode(new String(bytes,"UTF-8"),"") );
                         link.replaceWith(style);
                     }
