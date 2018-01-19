@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMin;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.javascript.jsmin.JSMinifcationPostProcessor;
 import org.nustaq.serialization.util.FSTUtil;
+import org.nustaq.utils.FileUtil;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -38,7 +39,7 @@ public class HtmlImportShim {
 
         default byte[] retrieveBytes(File impFi) {
             try {
-                return Files.readAllBytes(impFi.toPath().normalize());
+                return FileUtil.readFully(impFi);
             } catch (IOException e) {
                 FSTUtil.rethrow(e);
             }
@@ -267,7 +268,7 @@ public class HtmlImportShim {
                     } else {
                         visited.add(resUrl);
                         Element style = new Element(Tag.valueOf("style"), "" );
-                        byte[] bytes = Files.readAllBytes(impFi.toPath().normalize());
+                        byte[] bytes = FileUtil.readFully(impFi);
                         style.appendChild( new DataNode(new String(bytes,"UTF-8"),"") );
                         link.replaceWith(style);
                     }

@@ -9,6 +9,7 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.javascript.DynamicResourceManager;
 import org.nustaq.kontraktor.webapp.javascript.HtmlImportShim;
 import org.nustaq.kontraktor.webapp.transpiler.JSXIntrinsicTranspiler;
+import org.nustaq.utils.FileUtil;
 
 import javax.servlet.*;
 import javax.servlet.annotation.WebServlet;
@@ -139,7 +140,7 @@ public abstract class KontraktorServlet extends HttpServlet {
             if ( resource instanceof DynamicResourceManager.MyResource) {
                 bytes = ((DynamicResourceManager.MyResource) resource).getBytes();
             } else if ( resource.getFile() != null ) {
-                bytes = Files.readAllBytes(resource.getFile().toPath().normalize());
+                bytes = FileUtil.readFully(resource.getFile());
             }
             // FIXME: mimetype, lastModified / 304
             if ( bytes != null ) {

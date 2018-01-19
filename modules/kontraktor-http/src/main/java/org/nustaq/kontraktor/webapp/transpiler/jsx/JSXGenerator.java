@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.npm.JNPMConfig;
+import org.nustaq.utils.FileUtil;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -235,7 +236,7 @@ public class JSXGenerator {
 
         JSXParser jsx = new JSXParser(f,nlib);
         JSNode root = new JSNode();
-        byte[] bytes = Files.readAllBytes(f.toPath().normalize());
+        byte[] bytes = FileUtil.readFully(f);
 
         String cont = new String(bytes, "UTF-8");
         jsx.parseJS(root,new Inp(cont));
