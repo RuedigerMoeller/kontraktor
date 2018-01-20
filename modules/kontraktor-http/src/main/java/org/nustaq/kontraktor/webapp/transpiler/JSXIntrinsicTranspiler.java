@@ -671,7 +671,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "            {\n" +
             "              if (patch[topleveldef]._kwrapped && prev[topleveldef]._kwrapped) {\n" +
             "                let funsrc = patch[topleveldef]._kwrapped.toString();\n" +
-            "                let evalSrc = \"\" + topleveldef + \" = \" + funsrc + \";\" + topleveldef;\n" +
+            "                let evalSrc = impPatch+\";\"+\"\" + topleveldef + \" = \" + funsrc + \";\" + topleveldef;\n" +
             "                const newfun = __keval[libname](evalSrc);\n" +
             "                prev[topleveldef]._kwrapped = newfun;\n" +
             "              }\n" +
