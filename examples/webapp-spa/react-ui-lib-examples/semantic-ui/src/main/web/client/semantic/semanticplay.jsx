@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {Button,Dropdown,Label,Input,Step,Icon,Form} from 'semantic-ui-react';
+import {Button,Dropdown,Label,Input,Step,Icon,Form,Progress} from 'semantic-ui-react';
 
 const BratkartoffelnWärenLecker = { text: 'mmh' };
 
@@ -23,7 +23,6 @@ const optionsDD = [
   { key: 'ui', text: 'UI Design', value: 'ui' },
   { key: 'ux', text: 'User Experience', value: 'ux' }
 ];
-
 
 export const options = [
   { key: 'm', text: 'Male', value: 'male' },
@@ -53,7 +52,6 @@ export class FormExampleSubcomponentControl extends Component {
   constructor(p) {
     super(p);
     this.state = {};
-    console.log("FEX construcotr");
   }
 
   handleChange(e, { value }) {
@@ -62,7 +60,6 @@ export class FormExampleSubcomponentControl extends Component {
   }
 
   render() {
-    console.log("FEX state",this.state);
     const { value } = this.state;
     return (
       <Form>
