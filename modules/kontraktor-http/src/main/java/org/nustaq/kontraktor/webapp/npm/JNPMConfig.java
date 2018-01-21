@@ -7,7 +7,9 @@ import org.nustaq.serialization.util.FSTUtil;
 import java.io.File;
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 public class JNPMConfig implements Serializable {
 
@@ -17,6 +19,8 @@ public class JNPMConfig implements Serializable {
     protected Map<String,String> nodeLibraryMap = new HashMap<>();
     protected String repo = "http://registry.npmjs.org/";
     protected String transformFunction = "React.createElement";
+    protected Set<String> ignoredDevRequires = new HashSet<>();
+    protected Set<String> ignoredProdRequires = new HashSet<>();
 
     public JNPMConfig() {
         versionMap.put("module-name","^1.2.3");
@@ -77,6 +81,14 @@ public class JNPMConfig implements Serializable {
 
     public static void main(String[] args) {
         read();
+    }
+
+    public Set<String> getIgnoredDevRequires() {
+        return ignoredDevRequires;
+    }
+
+    public Set<String> getIgnoredProdRequires() {
+        return ignoredProdRequires;
     }
 
     public JNPMConfig versionMap(Map<String, String> versionMap) {

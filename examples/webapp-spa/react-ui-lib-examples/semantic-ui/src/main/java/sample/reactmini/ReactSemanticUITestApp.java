@@ -45,7 +45,7 @@ public class ReactSemanticUITestApp extends Actor<ReactSemanticUITestApp> {
     }
 
     public static void main(String[] args) {
-        boolean DEVMODE = true;
+        boolean DEVMODE = false;
 
         if ( ! new File("./src/main/web/client/index.html").exists() ) {
             System.out.println("Please run with working dir: '[..]/semantic-ui");
@@ -66,7 +66,7 @@ public class ReactSemanticUITestApp extends Actor<ReactSemanticUITestApp> {
                 )
                 .jsPostProcessors(new ClojureJSPostProcessor()) // production mode only
                 .allDev(DEVMODE)
-                .productionBuildDir(new File("./dist/"))
+//                .productionBuildDir(new File("./dist/"))
                 .buildResourcePath()
             .httpAPI("/api", app)
                 .serType(SerializerType.JsonNoRef)

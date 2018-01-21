@@ -320,6 +320,10 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         if ( importSpec.isRequire() ) {
             if (ignoredRequires.contains(importSpec.getFrom()) )
                 return null;
+            if ( dev && getConfig().getIgnoredDevRequires().contains(importSpec.getFrom()))
+                return null;
+            if ( !dev && getConfig().getIgnoredProdRequires().contains(importSpec.getFrom()))
+                return null;
 
             String canonicalF = findNodeSubDir(requiringFile);
             if ( canonicalF != null ) {
