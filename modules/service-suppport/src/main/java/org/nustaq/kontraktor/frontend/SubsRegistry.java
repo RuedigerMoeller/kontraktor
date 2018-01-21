@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 /**
- * builds up real remote queries from searchfilter objects. FIXME: move to kontraktor
+ * builds up real remote queries from searchfilter objects.
  */
 public class SubsRegistry {
 
@@ -48,7 +48,7 @@ public class SubsRegistry {
                         if (Actors.isError(error) ) {
                             changeReceiver.reject(error);
                         } else
-                            changeReceiver.pipe(new QueryDoneMessage());
+                            changeReceiver.resolve(new QueryDoneMessage());
                     }
                 });
             } catch (QParseException e) {
