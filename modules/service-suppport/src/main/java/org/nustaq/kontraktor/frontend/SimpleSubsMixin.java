@@ -5,7 +5,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.reallive.api.ChangeMessage;
 
-public interface SimpleSubsDelegate {
+public interface SimpleSubsMixin {
 
     SubsRegistry getReg();
 
