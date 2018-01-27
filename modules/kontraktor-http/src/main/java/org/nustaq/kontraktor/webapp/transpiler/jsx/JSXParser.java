@@ -5,6 +5,10 @@ import org.nustaq.kontraktor.util.Log;
 import java.io.File;
 import java.util.*;
 
+/**
+ * basically a tokenizer with some raw detection of top level definitions
+ * and jsx detection
+ */
 public class JSXParser implements ParseUtils {
 
     public static boolean SHIM_OBJ_SPREAD = true;
@@ -148,9 +152,11 @@ public class JSXParser implements ParseUtils {
                         }
                     }
                 }
+                // detect top level objects
                 if ( depth == 0 && !Character.isLetterOrDigit(in.ch(-1)) ) {
                     if ( ch == 'v' || ch == 'l' || ch == 'f' || ch == 'c' ) { // interpreter speed
                         if (in.match("var ") || in.match("let ")) {
+                            insertLastTopLevel(in,cur);
                             for (int i = 0; i < 4; i++) {
                                 cur.add(in.ch());
                                 in.inc();
@@ -159,6 +165,7 @@ public class JSXParser implements ParseUtils {
                             continue;
                         }
                         if (in.match("function ")) {
+                            insertLastTopLevel(in, cur);
                             int length = "function ".length();
                             for (int i = 0; i < length; i++) {
                                 cur.add(in.ch());
@@ -168,6 +175,7 @@ public class JSXParser implements ParseUtils {
                             continue;
                         }
                         if (in.match("const ") || in.match("class ")) {
+                            insertLastTopLevel(in, cur);
                             for (int i = 0; i < 5; i++) {
                                 cur.add(in.ch());
                                 in.inc();
@@ -204,6 +212,16 @@ public class JSXParser implements ParseUtils {
                 in.index++; // speed interpretere
             }
         }
+    }
+
+    private void insertLastTopLevel(Inp in, TokenNode cur) {
+        // fails on node_module libs, should only be applied to app src
+//        if (topLevelObjects.size()>0){
+//            String def = topLevelObjects.get(topLevelObjects.size() - 1);
+//            if ( ! "shouldUseNative".equals(def) ) {
+//                cur.add("const _k_"+def+"="+def+";\n");
+//            }
+//        }
     }
 
     Boolean isNodeModule;

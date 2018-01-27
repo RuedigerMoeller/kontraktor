@@ -47,6 +47,13 @@ export const DummyFun3 = x => {
   return "DM3-XX--"+BratkartoffelnWärenLecker.text;
 };
 
+export function curry(message) {
+  return () => <div>{message}</div>
+}
+
+export const currySameModule = curry("currySameModule");
+currySameModule._kNoHMR = true;
+
 export class FormExampleSubcomponentControl extends Component {
 
   constructor(p) {
