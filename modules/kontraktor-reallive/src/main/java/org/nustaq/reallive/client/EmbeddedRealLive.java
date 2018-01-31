@@ -28,7 +28,7 @@ public class EmbeddedRealLive {
      * just init a singleton containing all your tables once.
      *
      * @param desc
-     * @param dataDir
+     * @param dataDir - if null use path from description
      * @return a thread save actor reference to a newly loaded or created table
      */
     public IPromise<RealLiveTable> createTable(TableDescription desc, String dataDir) {
