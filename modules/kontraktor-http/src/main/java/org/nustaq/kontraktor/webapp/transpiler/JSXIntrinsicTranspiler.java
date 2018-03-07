@@ -651,7 +651,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "  const hmrcl = new KClient().useProxies(false);\n" +
             "  let addr = \"ws://\" + window.location.host + \"/hotreloading\";\n" +
             "\n" +
-            "  window._kredefineModule = function(patch, prev, libname) {\n" +
+            "  window._kredefineModule = function(patch, prev, libname, noUpdate) {\n" +
             "\n" +
             "    let impPatch = '';\n" +
             "    Object.getOwnPropertyNames(patch.__modimports).forEach( key => {\n" +
@@ -710,7 +710,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "        }\n" +
             "      }\n" +
             "    );\n" +
-            "    window._kreactapprender.forceUpdate();\n" +
+            "    !noUpdate &&  window._kreactapprender.forceUpdate();\n" +
             "  }\n" +
             "  ;\n" +
             "  // subscribe to filewatcher\n" +
@@ -758,7 +758,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             "  // initially redefine all libs to avoid state loss on first redefine\n" +
             "  console.log(\"init hot reloading ..\");\n" +
             "  Object.getOwnPropertyNames(kimports).forEach(prop=>{\n" +
-            "      window._kredefineModule(kimports[prop], kimports[prop], prop);\n" +
+            "      window._kredefineModule(kimports[prop], kimports[prop], prop, true);\n" +
             "    }\n" +
             "  );\n" +
             "  console.log(\"... done init hot reloading\");\n" +
