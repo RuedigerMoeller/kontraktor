@@ -111,10 +111,12 @@ public class StorageDriver implements ChangeReceiver {
                 } else {
                     // old values are actually not needed inside the diff
                     // however they are needed in a change notification for filter processing (need to reconstruct prev record)
-                    Diff newDiff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec, updateMessage.getDiff().getChangedFields());
-                    Record newRecord = unwrap(oldRec); // clarification
-                    store.put(change.getKey(),newRecord);
-                    listener.receive( new UpdateMessage(newDiff,newRecord,change.getForcedUpdateFields()));
+                    if ( ! updateMessage.getDiff().isEmpty() ) {
+                        Diff newDiff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec, updateMessage.getDiff().getChangedFields());
+                        Record newRecord = unwrap(oldRec); // clarification
+                        store.put(change.getKey(), newRecord);
+                        listener.receive(new UpdateMessage(newDiff, newRecord, change.getForcedUpdateFields()));
+                    }
                 }
                 break;
             }

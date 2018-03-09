@@ -48,7 +48,7 @@ public class PatchingRecord extends RecordWrapper {
         if (override != null) {
             final Object r = override.get(field);
             if (r != null) {
-                return r == NULL ? null : NULL;
+                return r == NULL ? null : r;
             }
         }
         return super.get(field);

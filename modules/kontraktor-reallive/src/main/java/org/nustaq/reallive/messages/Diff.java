@@ -56,4 +56,8 @@ public class Diff implements Serializable {
         }
         return new Diff(newChanged,newVals);
     }
+
+    public boolean isEmpty() {
+        return changedFields!=null&&changedFields.length == 0;
+    }
 }
