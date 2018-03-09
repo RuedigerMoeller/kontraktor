@@ -13,6 +13,9 @@ import java.util.*;
  * to submit results of cpu intensive computations)
  */
 public class PatchingRecord extends RecordWrapper {
+
+    public static final Object NULL = new Object();
+
     MapRecord override;
     HashSet<String> forcedUpdate;
 
@@ -45,7 +48,7 @@ public class PatchingRecord extends RecordWrapper {
         if (override != null) {
             final Object r = override.get(field);
             if (r != null) {
-                return r;
+                return r == NULL ? null : NULL;
             }
         }
         return super.get(field);
@@ -55,6 +58,8 @@ public class PatchingRecord extends RecordWrapper {
     public Record put(String field, Object value) {
         if (override == null)
             override = MapRecord.New(getKey());
+        if ( value == null )
+            value = NULL;
         return override.put(field, value);
     }
 
