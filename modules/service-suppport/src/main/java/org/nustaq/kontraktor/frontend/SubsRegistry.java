@@ -117,4 +117,8 @@ public class SubsRegistry {
     public void setTerminated(boolean iAmDead) {
         this.terminated = iAmDead;
     }
+
+    public void unsubscribeAll() {
+        subsMap.keySet().forEach( k -> this.unsubscribe(k));
+    }
 }
