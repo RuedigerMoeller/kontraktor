@@ -21,6 +21,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 public class UndertowRESTHandler implements HttpHandler {
@@ -64,6 +65,7 @@ public class UndertowRESTHandler implements HttpHandler {
     }
 
     private void handleInternal(HttpServerExchange exchange) {
+        System.out.println("handleinternal");
         String requestPath = exchange.getRequestPath();
         requestPath = requestPath.substring(basePath.length());
         while ( requestPath.startsWith("/") ) {
@@ -101,15 +103,17 @@ public class UndertowRESTHandler implements HttpHandler {
             int len = Integer.parseInt(first);
             StreamSourceChannel requestChannel = exchange.getRequestChannel();
             ByteBuffer buf = ByteBuffer.allocate(len);
-            String finalMethodName = methodName;
             Method finalM = m;
+            checkExchangeState(exchange);
+            AtomicBoolean hadResponse = new AtomicBoolean(false);
             requestChannel.getReadSetter().set(streamSourceChannel -> {
-                    try {
+                checkExchangeState(exchange);
+                try {
                         streamSourceChannel.read(buf);
                     } catch (IOException e) {
                         Log.Warn(this, e);
                     }
-                    if (buf.remaining() == 0) {
+                    if ( buf.remaining() == 0 && hadResponse.compareAndSet(false,true )) {
                         try {
                             requestChannel.shutdownReads();
                         } catch (IOException e) {
@@ -121,6 +125,7 @@ public class UndertowRESTHandler implements HttpHandler {
                 }
             );
             requestChannel.resumeReads();
+            checkExchangeState(exchange);
         } else {
             exchange.dispatch();
             parseAndDispatch(exchange, split, requestPath, m, new byte[0] );
@@ -128,54 +133,59 @@ public class UndertowRESTHandler implements HttpHandler {
     }
 
     private void parseAndDispatch(HttpServerExchange exchange, String[] split, String rawPath, Method m, byte[] postData) {
+        System.out.println("parseAndDispatch");
         try {
             Class<?>[] parameterTypes = m.getParameterTypes();
             Annotation[][] parameterAnnotations = m.getParameterAnnotations();
             Object args[] = new Object[parameterTypes.length];
             int splitIndex = 1;
-            for (int i = 0; i < parameterTypes.length; i++) {
-                Class<?> parameterType = parameterTypes[i];
-                Annotation[] parameterAnnotation = parameterAnnotations[i];
-                if ( parameterAnnotation != null && parameterAnnotation.length > 0 ) {
-                    if ( parameterAnnotation[0].annotationType() == FromQuery.class ) {
-                        String value = ((FromQuery) parameterAnnotation[0]).value();
-                        Deque<String> strings = exchange.getQueryParameters().get(value);
-                        if (strings != null) {
-                            args[i] = inferValue(parameterType, strings.getFirst());
+            try {
+                for (int i = 0; i < parameterTypes.length; i++) {
+                    Class<?> parameterType = parameterTypes[i];
+                    Annotation[] parameterAnnotation = parameterAnnotations[i];
+                    if (parameterAnnotation != null && parameterAnnotation.length > 0) {
+                        if (parameterAnnotation[0].annotationType() == FromQuery.class) {
+                            String value = ((FromQuery) parameterAnnotation[0]).value();
+                            Deque<String> strings = exchange.getQueryParameters().get(value);
+                            if (strings != null) {
+                                args[i] = inferValue(parameterType, strings.getFirst());
+                            }
+                            continue;
+                        } else if (parameterAnnotation[0].annotationType() == RequestPath.class) {
+                            args[i] = rawPath;
+                            continue;
                         }
-                        continue;
-                    } else if ( parameterAnnotation[0].annotationType() == RequestPath.class ) {
-                        args[i] = rawPath;
-                        continue;
+                    }
+                    if (splitIndex < split.length) {
+                        String stringVal = split[splitIndex];
+                        Object val = inferValue(parameterType, stringVal);
+                        if (val != NOVAL) {
+                            args[i] = val;
+                            splitIndex++;
+                            continue;
+                        }
+                    }
+                    // specials
+                    if (parameterType == HeaderMap.class) {
+                        args[i] = exchange.getRequestHeaders();
+                    } else if (parameterType == String[].class) {
+                        args[i] = split;
+                    } else if (parameterType == JsonObject.class || parameterType == JsonValue.class) {
+                        args[i] = Json.parse(new String(postData, "UTF-8"));
+                    } else if (parameterType == byte[].class) {
+                        args[i] = postData;
+                    } else if (parameterType == Map.class) {
+                        args[i] = exchange.getQueryParameters();
+                    } else {
+                        System.out.println("unsupported parameter type " + parameterType.getName());
                     }
                 }
-                if ( splitIndex < split.length ) {
-                    String stringVal = split[splitIndex];
-                    Object val = inferValue(parameterType, stringVal);
-                    if (val != NOVAL) {
-                        args[i] = val;
-                        splitIndex++;
-                        continue;
-                    }
-                }
-                // specials
-                if ( parameterType == HeaderMap.class ) {
-                    args[i] = exchange.getRequestHeaders();
-                } else if ( parameterType == String[].class ) {
-                    args[i] = split;
-                } else if ( parameterType == JsonObject.class || parameterType == JsonValue.class ) {
-                    try {
-                        args[i] = Json.parse(new String(postData,"UTF-8"));
-                    } catch (UnsupportedEncodingException e) {
-                        e.printStackTrace();
-                    }
-                } else if ( parameterType == byte[].class ) {
-                    args[i] = postData;
-                } else if ( parameterType == Map.class ) {
-                    args[i] = exchange.getQueryParameters();
-                } else {
-                    System.out.println("unsupported parameter type "+parameterType.getName());
-                }
+            } catch (Throwable th) {
+                Log.Warn(this,th,postData != null ? new String(postData,0):"");
+                exchange.setStatusCode(400);
+                exchange.getResponseSender().send(""+th+"\n");
+//                exchange.endExchange();
+                return;
             }
             // change: allow incomplete parameters
 //            if ( splitIndex != split.length ) {
@@ -185,19 +195,21 @@ public class UndertowRESTHandler implements HttpHandler {
 //            }
             Object invoke = m.invoke(facade.getActorRef(), args);
             if ( invoke instanceof IPromise ) {
+                checkExchangeState(exchange);
                 ((IPromise) invoke).then( (r,e) -> {
                     if ( e != null ) {
-                        exchange.setResponseCode(500);
+                        exchange.setStatusCode(500);
                         exchange.getResponseSender().send(""+e);
                     } else {
+                        checkExchangeState(exchange);
                         if ( r instanceof String ) {
-                            exchange.setResponseCode(500);
+                            exchange.setStatusCode(500);
                             exchange.getResponseSender().send(""+e);
                         } else if ( r instanceof Integer ) {
-                            exchange.setResponseCode((Integer) r);
+                            exchange.setStatusCode((Integer) r);
                             exchange.endExchange();
                         } else if ( r instanceof Pair ) {
-                            exchange.setResponseCode((Integer) ((Pair) r).car());
+                            exchange.setStatusCode((Integer) ((Pair) r).car());
                             exchange.getResponseSender().send(""+((Pair) r).cdr());
                         } else if ( r instanceof JsonValue ) {
                             exchange.getResponseSender().send(r.toString());
@@ -208,15 +220,22 @@ public class UndertowRESTHandler implements HttpHandler {
                     }
                 });
             } else if (invoke == null) {
-                exchange.setResponseCode(200);
+                exchange.setStatusCode(200);
                 exchange.endExchange();
             }
         } catch (Exception e) {
             Log.Warn(this,e);
-            exchange.setResponseCode(500);
+            exchange.setStatusCode(500);
             exchange.getResponseSender().send(""+e);
             exchange.endExchange();
             return;
+        }
+    }
+
+    private void checkExchangeState(HttpServerExchange exchange) {
+        if ( exchange.isResponseStarted() ) {
+            int debug = 1;
+            System.out.println("response started "+Thread.currentThread().getName());
         }
     }
 
