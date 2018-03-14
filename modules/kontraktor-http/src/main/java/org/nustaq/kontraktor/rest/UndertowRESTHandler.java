@@ -201,7 +201,7 @@ public class UndertowRESTHandler implements HttpHandler {
                     } else {
                         checkExchangeState(exchange);
                         if ( r instanceof String ) {
-                            exchange.setStatusCode(500);
+                            exchange.setStatusCode(400);
                             exchange.getResponseSender().send(""+e);
                         } else if ( r instanceof Integer ) {
                             exchange.setStatusCode((Integer) r);
