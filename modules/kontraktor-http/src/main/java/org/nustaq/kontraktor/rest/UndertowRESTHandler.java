@@ -65,7 +65,6 @@ public class UndertowRESTHandler implements HttpHandler {
     }
 
     private void handleInternal(HttpServerExchange exchange) {
-        System.out.println("handleinternal");
         String requestPath = exchange.getRequestPath();
         requestPath = requestPath.substring(basePath.length());
         while ( requestPath.startsWith("/") ) {
@@ -133,7 +132,6 @@ public class UndertowRESTHandler implements HttpHandler {
     }
 
     private void parseAndDispatch(HttpServerExchange exchange, String[] split, String rawPath, Method m, byte[] postData) {
-        System.out.println("parseAndDispatch");
         try {
             Class<?>[] parameterTypes = m.getParameterTypes();
             Annotation[][] parameterAnnotations = m.getParameterAnnotations();
@@ -181,10 +179,10 @@ public class UndertowRESTHandler implements HttpHandler {
                     }
                 }
             } catch (Throwable th) {
+                th.printStackTrace();
                 Log.Warn(this,th,postData != null ? new String(postData,0):"");
                 exchange.setStatusCode(400);
                 exchange.getResponseSender().send(""+th+"\n");
-//                exchange.endExchange();
                 return;
             }
             // change: allow incomplete parameters
