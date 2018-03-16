@@ -420,7 +420,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     JNPMConfig config = getConfig();
                     Log.Info(this, importSpec.getFrom() + " not found. installing .. '" + required+"'");
                     try {
-                        JNPM.InstallResult await = JNPM.Install(required, null, jnpmNodeModulesDir, config).await(60_000);
+                        JNPM.InstallResult await = JNPM.Install(required, null, jnpmNodeModulesDir, config).await(180_000);
                         if ( await == JNPM.InstallResult.INSTALLED )
                             return resolveImportSpec(requiringFile, importSpec, resolver, alreadyResolved, ignoredRequires);
                     } catch (Throwable kt) {

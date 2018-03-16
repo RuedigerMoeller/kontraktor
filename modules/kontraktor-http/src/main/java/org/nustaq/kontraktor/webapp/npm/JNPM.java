@@ -136,7 +136,7 @@ public class JNPM extends Actor<JNPM> {
         distributionsProm.then( (dist, derr) -> {
             if ( dist == null ) {
                 dist = new JsonObject();
-                Log.Warn(this,"distribution is empty or error "+derr);
+                Log.Error(this,"distribution is empty or error "+derr+" in module:"+module);
             }
             JsonObject finalDist = dist;
 
