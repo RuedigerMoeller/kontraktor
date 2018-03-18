@@ -17,6 +17,7 @@ import org.nustaq.utils.AsyncHttpActor;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class JNPM extends Actor<JNPM> {
 
@@ -30,6 +31,8 @@ public class JNPM extends Actor<JNPM> {
 
     File nodeModulesDir;
     AsyncHttpActor http;
+
+
     JNPMConfig config;
 
     public void init(File nodeModules, JNPMConfig config ) {

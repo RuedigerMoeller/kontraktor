@@ -21,6 +21,7 @@ public class JNPMConfig implements Serializable {
     protected String transformFunction = "React.createElement";
     protected Set<String> ignoredDevRequires = new HashSet<>();
     protected Set<String> ignoredProdRequires = new HashSet<>();
+    protected boolean generatePackageDotJson = true;
 
     public JNPMConfig() {
         versionMap.put("module-name","^1.2.3");
@@ -52,6 +53,10 @@ public class JNPMConfig implements Serializable {
 
     public static JNPMConfig read() {
         return read("./run/etc/jnpm.kson");
+    }
+
+    public boolean isGeneratePackageDotJson() {
+        return generatePackageDotJson;
     }
 
     public static JNPMConfig read(String pathname) {

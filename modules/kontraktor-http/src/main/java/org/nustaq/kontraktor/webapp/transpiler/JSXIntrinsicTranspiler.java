@@ -25,6 +25,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     protected String jnpmConfigFile;
     protected JNPMConfig jnpmConfigFileCached;
     protected List<WatchedFile> readFiles;
+    protected Map<String,File> nodeTopLevelImports;
     protected FileWatcher watcher;
     protected boolean hmr = false;
 
@@ -226,6 +227,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 jnpmConfigFileCached = null;
                 if ( dev ) {
                     readFiles = new ArrayList<>();
+                    nodeTopLevelImports = new HashMap<>();
                     if ( watcher != null ) {
 //                        watcher.stopWatching(); is now singleton
                         watcher = null;
@@ -288,6 +290,20 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     indexBaos.write("document.write('<script>_kreporterr = true; kinitfuns.forEach( fun => fun() );</script>')\n".getBytes("UTF-8"));
                     watcher = FileWatcher.get();
                     watcher.setFiles(readFiles);
+
+                    if ( dev && getConfig().isGeneratePackageDotJson() ) {
+                        System.out.println("============================= TOP LEVEL IMPORTS ======================================");
+                        nodeTopLevelImports.forEach( (s,fi) -> {
+                            try {
+                                JsonValue packjson = Json.parse(new FileReader(new File(fi, "package.json")));
+                                String version = packjson.asObject().getString("version" ,"*");
+                                System.out.println("\""+s+"\":"+"\""+version+"\",");
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        });
+
+                    }
                 }
                 else
                     indexBaos.write( "_kreporterr = true; kinitfuns.forEach( fun => fun() );\n".getBytes("UTF-8"));
@@ -367,6 +383,13 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             resolvedFile = resolver.resolveFile(requiringFile.getParentFile(), from);
         }
         if ( resolvedFile != null && resolvedFile.isDirectory() ) {
+
+            if ( isNotInNodeModules(requiringFile) )
+            {
+                String tlFrom = importSpec.getFrom();
+                nodeTopLevelImports.put(tlFrom,resolvedFile);
+            }
+
             File indexFile = processNodeDir(resolvedFile, resolver, alreadyResolved);
             if ( indexFile == falseFile ) {
                 return null;
