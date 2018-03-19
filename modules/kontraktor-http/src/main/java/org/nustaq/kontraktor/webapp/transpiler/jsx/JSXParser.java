@@ -433,6 +433,8 @@ public class JSXParser implements ParseUtils {
                         in.advance(off + 1);
                         continue;
                     }
+                } else {
+                    in.advance(1);
                 }
             } else
             if (in.ch() == '{' ) {
