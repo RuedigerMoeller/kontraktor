@@ -7,7 +7,6 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.PromiseLatch;
 import org.nustaq.reallive.impl.actors.RealLiveTableActor;
-import org.nustaq.reallive.impl.actors.ShardFunc;
 import org.nustaq.reallive.impl.actors.TableSharding;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
 import org.nustaq.reallive.api.*;
@@ -362,8 +361,7 @@ public class Basic {
             rls[i] = Actors.AsActor(RealLiveTableActor.class);
             rls[i].init(() -> new OffHeapRecordStorage(32, 500 / rls.length, 700_000 / rls.length), null);
         }
-        ShardFunc sfunc = key -> Math.abs(key.hashCode()) % rls.length;
-        TableSharding sharding = new TableSharding(sfunc, rls, null);
+        TableSharding sharding = new TableSharding(rls, null);
 
         TA ta = Actors.AsActor(TA.class);
 //        while( System.currentTimeMillis() != 0)
@@ -383,8 +381,7 @@ public class Basic {
                 rls[i] = Actors.AsActor(RealLiveTableActor.class);
                 rls[i].init( () -> new OffHeapRecordStorage(32, 1500/rls.length, 1_500_000/rls.length), null);
             }
-            ShardFunc sfunc = key -> Math.abs(key.hashCode()) % rls.length;
-            TableSharding sharding = new TableSharding(sfunc, rls, null);
+            TableSharding sharding = new TableSharding(rls, null);
 
             TA ta = Actors.AsActor(TA.class);
             ta.randomTest(sharding).await(500000);

@@ -16,45 +16,45 @@ import java.util.List;
  */
 public class ClusteredTableSpaceClient<T extends ClusteredTableSpaceClient> extends Actor<T> implements TableSpace {
 
-    protected TableSpaceSharding tableSharding;
+    protected TableSpaceSharding tableSpaceSharding;
 
     @Override
     public IPromise<RealLiveTable> createOrLoadTable(TableDescription desc) {
-        return tableSharding.createOrLoadTable(desc);
+        return tableSpaceSharding.createOrLoadTable(desc);
     }
 
     @Override
     public IPromise dropTable(String name) {
-        return tableSharding.dropTable(name);
+        return tableSpaceSharding.dropTable(name);
     }
 
     @Override
     public IPromise<List<TableDescription>> getTableDescriptions() {
-        return tableSharding.getTableDescriptions();
+        return tableSpaceSharding.getTableDescriptions();
     }
 
     public IPromise<List<StorageStats>> getStats() {
-        return resolve(tableSharding.getStats());
+        return resolve(tableSpaceSharding.getStats());
     }
 
     @Override
     public IPromise<List<RealLiveTable>> getTables() {
-        return tableSharding.getTables();
+        return tableSpaceSharding.getTables();
     }
 
     @Override
     public IPromise<RealLiveTable> getTableAsync(String name) {
-        return tableSharding.getTableAsync(name);
+        return tableSpaceSharding.getTableAsync(name);
     }
 
     @Override
     public IPromise shutDown() {
-        return tableSharding.shutDown();
+        return tableSpaceSharding.shutDown();
     }
 
     @Override
     public void stateListener(Callback<StateMessage> stateListener) {
-        tableSharding.stateListener(stateListener);
+        tableSpaceSharding.stateListener(stateListener);
     }
 
 }

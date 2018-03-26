@@ -40,19 +40,24 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         this.hostingService=hostingService;
         this.shards = shards;
         syncTableAccess = new HashMap();
-        tableSharding = new TableSpaceSharding(shards,key -> Math.abs(key.hashCode())%shards.length);
-        tableSharding.init().await();
+        tableSpaceSharding = new TableSpaceSharding(shards);
+        tableSpaceSharding.init().await();
         TableDescription[] schema = config.getSchema();
         return all( schema.length, i -> {
-            Promise p = new Promise();
-            tableSharding.createOrLoadTable(schema[i]).then( (r,e) -> {
-                if ( r != null ) {
-                    syncTableAccess.put(schema[i].getName(), r);
-                }
-                p.complete(r,e);
-            });
-            return p;
+            TableDescription desc = schema[i];
+            return initTable(desc);
         });
+    }
+
+    private IPromise<Object> initTable(TableDescription desc) {
+        Promise p = new Promise();
+        tableSpaceSharding.createOrLoadTable(desc).then( (r, e) -> {
+            if ( r != null ) {
+                syncTableAccess.put(desc.getName(), r);
+            }
+            p.complete(r,e);
+        });
+        return p;
     }
 
     @CallerSideMethod

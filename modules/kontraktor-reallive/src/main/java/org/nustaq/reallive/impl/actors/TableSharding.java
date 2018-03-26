@@ -19,21 +19,23 @@ import java.util.concurrent.atomic.*;
  */
 public class TableSharding implements RealLiveTable {
 
-    ShardFunc func;
     RealLiveTable shards[];
     final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap();
     private TableDescription description;
 
-    public TableSharding(ShardFunc func, RealLiveTable[] shards, TableDescription desc) {
-        this.func = func;
+    public TableSharding(RealLiveTable[] shards, TableDescription desc) {
         this.shards = shards;
         this.description = desc;
+    }
+
+    protected RealLiveTable hash(String key) {
+        return shards[Math.abs(key.hashCode())%shards.length];
     }
 
     @Override
     public void receive(ChangeMessage change) {
         if ( change.getType() != ChangeMessage.QUERYDONE )
-            shards[func.apply(change.getKey())].receive(change);
+            hash(change.getKey()).receive(change);
     }
 
     public IPromise resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes) {
@@ -88,7 +90,7 @@ public class TableSharding implements RealLiveTable {
 
     @Override
     public IPromise atomic(String key, RLFunction<Record, Object> action) {
-        return shards[func.apply(key)].atomic(key, action);
+        return hash(key).atomic(key, action);
     }
 
     @Override
@@ -99,47 +101,47 @@ public class TableSharding implements RealLiveTable {
     }
 
     public void put(String key, Object... keyVals) {
-        shards[func.apply(key)].receive(new PutMessage(RLUtil.get().record(key,keyVals)));
+        hash(key).receive(new PutMessage(RLUtil.get().record(key,keyVals)));
     }
 
     public void merge(String key, Object... keyVals) {
-        shards[func.apply(key)].receive(RLUtil.get().addOrUpdate(key, keyVals));
+        hash(key).receive(RLUtil.get().addOrUpdate(key, keyVals));
     }
 
     public IPromise<Boolean> add(String key, Object... keyVals) {
-        return shards[func.apply(key)].add(key, keyVals);
+        return hash(key).add(key, keyVals);
     }
 
     public IPromise<Boolean> addRecord(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        return shards[func.apply(rec.getKey())].addRecord(rec);
+        return hash(rec.getKey()).addRecord(rec);
     }
 
     public void mergeRecord(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        shards[func.apply(rec.getKey())].receive(new AddMessage(true,rec));
+        hash(rec.getKey()).receive(new AddMessage(true,rec));
     }
 
     public void setRecord(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        shards[func.apply(rec.getKey())].receive(new PutMessage(rec));
+        hash(rec.getKey()).receive(new PutMessage(rec));
     }
 
     public void update(String key, Object... keyVals) {
-        shards[func.apply(key)].receive(RLUtil.get().update(key, keyVals));
+        hash(key).receive(RLUtil.get().update(key, keyVals));
     }
 
     @Override
     public IPromise<Record> take(String key) {
-        return shards[func.apply(key)].take(key);
+        return hash(key).take(key);
     }
 
     public void remove(String key) {
         RemoveMessage remove = RLUtil.get().remove(key);
-        shards[func.apply(key)].receive(remove);
+        hash(key).receive(remove);
     }
 
     @Override
@@ -199,7 +201,7 @@ public class TableSharding implements RealLiveTable {
     public IPromise<Record> get(String key) {
         if ( key == null )
             return null;
-        return shards[func.apply(key)].get(key);
+        return hash(key).get(key);
     }
 
     @Override

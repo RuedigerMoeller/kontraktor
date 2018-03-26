@@ -26,11 +26,9 @@ public class TableSpaceSharding implements TableSpace {
     TableSpaceActor shards[];
     HashMap<String,RealLiveTable> tableMap = new HashMap();
     HashMap<String,TableDescription> tableDescriptionMap = new HashMap();
-    ShardFunc func;
 
-    public TableSpaceSharding(TableSpaceActor[] shards, ShardFunc func) {
+    public TableSpaceSharding(TableSpaceActor[] shards) {
         this.shards = shards;
-        this.func = func;
     }
 
     public IPromise init() {
@@ -77,7 +75,7 @@ public class TableSpaceSharding implements TableSpace {
             }
         }
         if ( ! errors ) {
-            TableSharding ts = new TableSharding(func, tableShards, desc );
+            TableSharding ts = new TableSharding(tableShards, desc );
             tableMap.put(desc.getName(),ts);
             tableDescriptionMap.put(desc.getName(),desc);
             res.resolve(ts);
