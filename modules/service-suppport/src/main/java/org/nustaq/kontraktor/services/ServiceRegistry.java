@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  *
  * Rationale: in cluster of services managing connectivity gets complex
  * quickly. In order to simplify this, services are given a single point
- * of contact: the service registry (gravity). They register themself and
+ * of contact: the service registry (serviceRegistry). They register themself and
  * obtain address and availability from the central registry.
  * Note: Downside is, this is a SPOF.
  */

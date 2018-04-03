@@ -19,6 +19,8 @@ import java.util.function.Supplier;
 
 /**
  * Created by ruedi on 08.08.2015.
+ *
+ * groups a set of table definitions. Runs server/node -side
  */
 public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpace {
 

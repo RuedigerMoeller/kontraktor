@@ -49,7 +49,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
 
     public static final String UNCONNECTED = "UNCONNECTED";
 
-    protected ServiceRegistry gravity;
+    protected ServiceRegistry serviceRegistry;
     protected Map<String,Object> requiredServices;
     protected ClusterCfg config;
     protected ServiceDescription serviceDescription;
@@ -65,15 +65,15 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         }
 
         Log.Info(this, "startup options " + options);
-        Log.Info(this, "connecting to gravity ..");
-        gravity = (ServiceRegistry) gravityConnectable.connect((conn, err) -> {
-            Log.Warn(null,"gravity disconnected");
+        Log.Info(this, "connecting to serviceRegistry ..");
+        serviceRegistry = (ServiceRegistry) gravityConnectable.connect((conn, err) -> {
+            Log.Warn(null,"serviceRegistry disconnected");
             gravityDisconnected();
         }).await();
 
-        Log.Info(this, "connected gravity.");
+        Log.Info(this, "connected serviceRegistry.");
 
-        config = gravity.getConfig().await();
+        config = serviceRegistry.getConfig().await();
 
         Log.Info(this, "loaded cluster configuration");
         requiredServices = new HashMap<>();
@@ -119,15 +119,14 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         return resolve(dclient);
     }
 
-
     protected void registerAtGravity() {
         publishSelf();
-        gravity.registerService(getServiceDescription());
-        gravity.subscribe((pair, err) -> {
+        serviceRegistry.registerService(getServiceDescription());
+        serviceRegistry.subscribe((pair, err) -> {
             serviceEvent(pair.car(), pair.cdr(), err);
         });
         heartBeat();
-        Log.Info(this, "registered at gravity.");
+        Log.Info(this, "registered at serviceRegistry.");
     }
 
     protected void publishSelf() {
@@ -205,7 +204,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
             return resolve();
         }
         IPromise res = new Promise<>();
-        gravity.getServiceMap().then((smap, err) -> {
+        serviceRegistry.getServiceMap().then((smap, err) -> {
             List<IPromise<Object>> servicePromis = new ArrayList();
             String[] servNames = getAllServiceNames();
             for (int i = 0; i < servNames.length; i++) {
@@ -256,9 +255,9 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
     public void heartBeat() {
         if ( isStopped() )
             return;
-        if (gravity!=null) {
+        if (serviceRegistry !=null) {
             ServiceDescription sd = getServiceDescription();
-            gravity.receiveHeartbeat(sd.getName(), sd.getUniqueKey());
+            serviceRegistry.receiveHeartbeat(sd.getName(), sd.getUniqueKey());
             delayed(3000, () -> heartBeat());
         } else {
             delayed(1000, () -> heartBeat());
@@ -266,7 +265,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
     }
 
     protected void gravityDisconnected() {
-        gravity = null;
+        serviceRegistry = null;
     }
 
     abstract protected ServiceDescription createServiceDescription();

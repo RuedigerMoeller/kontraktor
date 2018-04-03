@@ -99,7 +99,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor</artifactId>
-            <version>4.22</version>
+            <version>4.23</version>
         </dependency>
 
         <dependency>

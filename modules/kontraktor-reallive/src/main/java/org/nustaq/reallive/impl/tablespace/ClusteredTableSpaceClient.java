@@ -12,7 +12,7 @@ import org.nustaq.reallive.messages.StateMessage;
 import java.util.List;
 
 /**
- * Created by ruedi on 15.08.2015.
+ * Makes an actor out of TableSpaceSharding by wrapping it. Runs client side.
  */
 public class ClusteredTableSpaceClient<T extends ClusteredTableSpaceClient> extends Actor<T> implements TableSpace {
 

@@ -13,47 +13,119 @@ import org.nustaq.reallive.records.RecordWrapper;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.stream.Collectors;
 
 /**
  * Created by moelrue on 06.08.2015.
  */
 public class TableSharding implements RealLiveTable {
+    final static int NUM_SLOTS = 10_000;
 
-    RealLiveTable shards[];
     final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap();
     private TableDescription description;
+    private HashMap<Integer,RealLiveTable[]> shardMap = new HashMap();
+    private Set<RealLiveTable> shards = new HashSet<>();
 
     public TableSharding(RealLiveTable[] shards, TableDescription desc) {
-        this.shards = shards;
         this.description = desc;
+        for (int i = 0; i < shards.length; i++) {
+            addNode( createSlots(shards.length,i), shards[i] );
+        }
     }
 
-    protected RealLiveTable hash(String key) {
-        return shards[Math.abs(key.hashCode())%shards.length];
+    private int[] createSlots(int length, int i) {
+        int start = (NUM_SLOTS/length) * i;
+        int end = (NUM_SLOTS/length) * (i+1);
+        if ( i == length - 1 ) // extends last node to remaining
+            end = NUM_SLOTS;
+        int arr[] = new int[end-start];
+        for ( int ii = start; ii < end; ii ++ ) {
+            arr[ii-start] = ii;
+        }
+        return arr;
+    }
+
+    public void addNode(int slots[], RealLiveTable shard) {
+        shards.add(shard);
+        for (int i = 0; i < slots.length; i++) {
+            int slot = slots[i];
+            addSlot(shard, slot);
+        }
+    }
+
+    public void removeNode(RealLiveTable shard2Remove) {
+        shardMap.forEach( (k,v) -> {
+            for (int i = 0; i < v.length; i++) {
+                RealLiveTable realLiveTable = v[i];
+                if ( realLiveTable == shard2Remove ) {
+                    RealLiveTable newArr[] = new RealLiveTable[v.length-1];
+                    int oldIdx = 0; int newIdx = 0;
+                    while( newIdx < newArr.length ) {
+                        if ( v[oldIdx] != shard2Remove ) {
+                            newArr[newIdx] = v[oldIdx];
+                            newIdx++; oldIdx++;
+                        } else {
+                            oldIdx++;
+                        }
+                    }
+                    break;
+                }
+            }
+        });
+        shards.remove(shard2Remove);
+    }
+
+    private void addSlot(RealLiveTable shard, int slot) {
+        RealLiveTable[] mappedShards = shardMap.get(slot);
+        if ( mappedShards == null ) {
+            mappedShards = new RealLiveTable[] { shard };
+            shardMap.put(slot, mappedShards);
+        } else {
+            RealLiveTable newArr[] = new RealLiveTable[mappedShards.length+1];
+            System.arraycopy(mappedShards,0,newArr,0,mappedShards.length+1);
+            newArr[newArr.length-1] = shard;
+            shardMap.put(slot, newArr);
+        }
+    }
+
+    protected RealLiveTable[] hashAll(String key) {
+        int h = Math.abs(key.hashCode())%NUM_SLOTS;
+        RealLiveTable[] tables = shardMap.get(h);
+        if ( tables == null || tables.length == 0 ) {
+            Log.Warn(this, "cannot map keyHash " + h);
+            return null; // FIXME: needs to be handled in methods below
+        }
+        return tables;
+    }
+
+    protected RealLiveTable hashAny(String key) {
+        int h = Math.abs(key.hashCode())%NUM_SLOTS;
+        RealLiveTable[] tables = shardMap.get(h);
+        if ( tables == null || tables.length == 0 ) {
+            Log.Warn(this, "cannot map keyHash " + h);
+            return null; // FIXME: needs to be handled in methods below
+        }
+        return tables[0];
     }
 
     @Override
     public void receive(ChangeMessage change) {
         if ( change.getType() != ChangeMessage.QUERYDONE )
-            hash(change.getKey()).receive(change);
+            hashAny(change.getKey()).receive(change);
     }
 
     public IPromise resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes) {
         List<IPromise<Object>> futs = new ArrayList();
-        for (int i = 0; i < shards.length; i++) {
-            RealLiveTable shard = shards[i];
-            futs.add(shard.resizeIfLoadFactorLarger(loadFactor,maxGrowBytes));
-        }
+        shards.forEach( shard -> futs.add(shard.resizeIfLoadFactorLarger(loadFactor,maxGrowBytes)) );
         return Actors.all(futs);
     }
 
     @Override
     public void subscribe(Subscriber subs) {
-        AtomicInteger doneCount = new AtomicInteger(shards.length);
+        AtomicInteger doneCount = new AtomicInteger(shards.size());
         ChangeReceiver receiver = subs.getReceiver();
         ArrayList<Subscriber> subsList = new ArrayList();
-        for (int i = 0; i < shards.length; i++) {
-            RealLiveTable shard = shards[i];
+        shards.forEach( shard -> {
             Subscriber shardSubs = new Subscriber(subs.getFilter(), change -> {
                 if (change.getType() == ChangeMessage.QUERYDONE) {
                     int count = doneCount.decrementAndGet();
@@ -66,7 +138,7 @@ public class TableSharding implements RealLiveTable {
             });
             subsList.add(shardSubs);
             shard.subscribe(shardSubs);
-        }
+        });
         subsMap.put(subs,subsList);
     }
 
@@ -83,84 +155,75 @@ public class TableSharding implements RealLiveTable {
         }
         for (int i = 0; i < subscribers.size(); i++) {
             Subscriber subscriber = subscribers.get(i);
-            shards[i].unsubscribe(subscriber);
+            shards.forEach(shard->shard.unsubscribe(subscriber));
         }
         subsMap.remove(subs);
     }
 
     @Override
     public IPromise atomic(String key, RLFunction<Record, Object> action) {
-        return hash(key).atomic(key, action);
+        return hashAny(key).atomic(key, action);
     }
 
     @Override
     public void atomicUpdate(RLPredicate<Record> filter, RLFunction<Record, Boolean> action) {
-        for (int i = 0; i < shards.length; i++) {
-            shards[i].atomicUpdate(filter,action);
-        }
+        shards.forEach( shard -> shard.atomicUpdate(filter,action) );
     }
 
     public void put(String key, Object... keyVals) {
-        hash(key).receive(new PutMessage(RLUtil.get().record(key,keyVals)));
+        hashAny(key).receive(new PutMessage(RLUtil.get().record(key,keyVals)));
     }
 
     public void merge(String key, Object... keyVals) {
-        hash(key).receive(RLUtil.get().addOrUpdate(key, keyVals));
+        hashAny(key).receive(RLUtil.get().addOrUpdate(key, keyVals));
     }
 
     public IPromise<Boolean> add(String key, Object... keyVals) {
-        return hash(key).add(key, keyVals);
+        return hashAny(key).add(key, keyVals);
     }
 
     public IPromise<Boolean> addRecord(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        return hash(rec.getKey()).addRecord(rec);
+        return hashAny(rec.getKey()).addRecord(rec);
     }
 
     public void mergeRecord(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        hash(rec.getKey()).receive(new AddMessage(true,rec));
+        hashAny(rec.getKey()).receive(new AddMessage(true,rec));
     }
 
     public void setRecord(Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        hash(rec.getKey()).receive(new PutMessage(rec));
+        hashAny(rec.getKey()).receive(new PutMessage(rec));
     }
 
     public void update(String key, Object... keyVals) {
-        hash(key).receive(RLUtil.get().update(key, keyVals));
+        hashAny(key).receive(RLUtil.get().update(key, keyVals));
     }
 
     @Override
     public IPromise<Record> take(String key) {
-        return hash(key).take(key);
+        return hashAny(key).take(key);
     }
 
     public void remove(String key) {
         RemoveMessage remove = RLUtil.get().remove(key);
-        hash(key).receive(remove);
+        hashAny(key).receive(remove);
     }
 
     @Override
     public <T> void forEachWithSpore(Spore<Record, T> spore) {
-        spore.setExpectedFinishCount(shards.length);
-        for (int i = 0; i < shards.length; i++) {
-            RealLiveTable shard = shards[i];
-            shard.forEachWithSpore(spore);
-        }
+        spore.setExpectedFinishCount(shards.size());
+        shards.forEach( shard -> shard.forEachWithSpore(spore) );
     }
 
     @Override
     public IPromise ping() {
         List<IPromise<Object>> futs = new ArrayList();
-        for (int i = 0; i < shards.length; i++) {
-            RealLiveTable shard = shards[i];
-            futs.add(shard.ping());
-        }
-        return Actors.all(futs);
+        return Actors.all( shards.stream().map( shard -> shard.ping() ).collect(Collectors.toList()));
     }
 
     @Override
@@ -169,24 +232,20 @@ public class TableSharding implements RealLiveTable {
     }
 
     public void stop() {
-        for (int i = 0; i < shards.length; i++) {
-            shards[i].stop();
-        }
+        shards.forEach( shard -> shard.stop() );
     }
 
     @Override
     public IPromise<StorageStats> getStats() {
         Promise res = new Promise();
         try {
-            Actors.all(shards.length, i -> shards[i].getStats()).then( (shardStats,err) -> {
-                if (shardStats!=null) {
-                    StorageStats stats = new StorageStats();
-                    for (int i = 0; i < shardStats.length; i++) {
-                        StorageStats storageStats = shardStats[i].get();
-                        storageStats.addTo(stats);
-                    }
-                    res.resolve(stats);
-                } else {
+            Actors.all(shards.stream().map( shard -> shard.getStats() ).collect(Collectors.toList()))
+                    .then( (shardStats,err) -> {
+                        if (shardStats!=null) {
+                            StorageStats stats = new StorageStats();
+                            shardStats.stream().map( fut -> fut.get() ).forEach( nodeStats -> nodeStats.addTo(stats));
+                            res.resolve(stats);
+                        } else {
                     res.reject(err);
                 }
             });
@@ -201,21 +260,17 @@ public class TableSharding implements RealLiveTable {
     public IPromise<Record> get(String key) {
         if ( key == null )
             return null;
-        return hash(key).get(key);
+        return hashAny(key).get(key);
     }
 
     @Override
     public IPromise<Long> size() {
         Promise result = new Promise();
-        List<IPromise<Long>> futs = new ArrayList();
-        for (int i = 0; i < shards.length; i++) {
-            RealLiveTable shard = shards[i];
-            futs.add(shard.size());
-        }
-        Actors.all(futs).then( longPromisList -> {
-            long sum = longPromisList.stream().mapToLong(prom -> prom.get()).sum();
-            result.resolve(sum);
-        });
+        Actors.all(shards.stream().map( shard -> shard.size() ).collect(Collectors.toList()))
+                .then( longPromisList -> {
+                    long sum = longPromisList.stream().mapToLong(prom -> prom.get()).sum();
+                    result.resolve(sum);
+                });
         return result;
     }
 }
