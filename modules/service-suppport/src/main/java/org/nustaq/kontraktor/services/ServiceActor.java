@@ -186,6 +186,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
 
     }
 
+    // ping based
     protected void requiredSerivceWentDown( ServiceDescription cdr ) {
         Log.Error(this,"required service went down. Shutting down. :"+cdr);
         self().stop();
@@ -217,7 +218,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
                     IPromise connect;
                     try {
                         Log.Info(this,"connect "+serviceDescription.getConnectable());
-                        connect = serviceDescription.getConnectable().connect();
+                        connect = serviceDescription.getConnectable().connect(null, act -> serviceDisconnected(act) );
                     } catch (Throwable th) {
                         Log.Error(this, th, "failed to connect "+serviceDescription.getName() );
                         continue;
@@ -251,6 +252,11 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         return res;
     }
 
+    protected void serviceDisconnected(Actor act) {
+        Log.Warn(this,"a remote service disconnected "+act );
+        dclient.nodeDisconnected(act);
+    }
+
     @Local
     public void heartBeat() {
         if ( isStopped() )
@@ -258,7 +264,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         if (serviceRegistry !=null) {
             ServiceDescription sd = getServiceDescription();
             serviceRegistry.receiveHeartbeat(sd.getName(), sd.getUniqueKey());
-            delayed(3000, () -> heartBeat());
+            delayed(1000, () -> heartBeat());
         } else {
             delayed(1000, () -> heartBeat());
         }

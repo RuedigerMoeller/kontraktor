@@ -1,12 +1,10 @@
 package org.nustaq.kontraktor.services.rlclient;
 
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.services.ServiceActor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.reallive.impl.actors.TableSharding;
 import org.nustaq.reallive.impl.tablespace.ClusteredTableSpaceClient;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
 import org.nustaq.reallive.impl.tablespace.TableSpaceSharding;
@@ -157,6 +155,10 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
             RealLiveTable table = t;
             table.forEach(predicate, cb);
         });
+    }
+
+    public void nodeDisconnected(Actor act) {
+        syncTableAccess.values().forEach( table -> ((TableSharding)table).removeNode(act.getActorRef()));
     }
 
 }

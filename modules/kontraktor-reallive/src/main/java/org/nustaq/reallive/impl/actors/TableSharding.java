@@ -53,7 +53,7 @@ public class TableSharding implements RealLiveTable {
         }
     }
 
-    public void removeNode(RealLiveTable shard2Remove) {
+    public void removeTableShard(RealLiveTable shard2Remove) {
         shardMap.forEach( (k,v) -> {
             for (int i = 0; i < v.length; i++) {
                 RealLiveTable realLiveTable = v[i];
@@ -272,5 +272,16 @@ public class TableSharding implements RealLiveTable {
                     result.resolve(sum);
                 });
         return result;
+    }
+
+    public void removeNode(Actor actorRef) {
+        shards.stream().filter( tableShard -> {
+            Actor removedNode = actorRef.getActorRef();
+            Actor shardFacade = ((Actor) tableShard).__clientConnection.getFacadeProxy().getActorRef();
+            return shardFacade == removedNode;
+        }).collect(Collectors.toList()).forEach( tableShard ->  {
+            System.out.println("remove "+actorRef+" from "+tableShard);
+            removeTableShard(tableShard);
+        });
     }
 }
