@@ -1,12 +1,10 @@
 package org.nustaq.kontraktor.services.rlclient;
 
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.services.ServiceActor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.reallive.impl.actors.TableSharding;
 import org.nustaq.reallive.impl.tablespace.ClusteredTableSpaceClient;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
 import org.nustaq.reallive.impl.tablespace.TableSpaceSharding;
@@ -40,19 +38,24 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         this.hostingService=hostingService;
         this.shards = shards;
         syncTableAccess = new HashMap();
-        tableSharding = new TableSpaceSharding(shards,key -> Math.abs(key.hashCode())%shards.length);
-        tableSharding.init().await();
+        tableSpaceSharding = new TableSpaceSharding(shards);
+        tableSpaceSharding.init().await();
         TableDescription[] schema = config.getSchema();
         return all( schema.length, i -> {
-            Promise p = new Promise();
-            tableSharding.createOrLoadTable(schema[i]).then( (r,e) -> {
-                if ( r != null ) {
-                    syncTableAccess.put(schema[i].getName(), r);
-                }
-                p.complete(r,e);
-            });
-            return p;
+            TableDescription desc = schema[i];
+            return initTable(desc);
         });
+    }
+
+    private IPromise<Object> initTable(TableDescription desc) {
+        Promise p = new Promise();
+        tableSpaceSharding.createOrLoadTable(desc).then( (r, e) -> {
+            if ( r != null ) {
+                syncTableAccess.put(desc.getName(), r);
+            }
+            p.complete(r,e);
+        });
+        return p;
     }
 
     @CallerSideMethod
@@ -152,6 +155,10 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
             RealLiveTable table = t;
             table.forEach(predicate, cb);
         });
+    }
+
+    public void nodeDisconnected(Actor act) {
+        syncTableAccess.values().forEach( table -> ((TableSharding)table).removeNode(act.getActorRef()));
     }
 
 }

@@ -60,6 +60,10 @@ public class TCPConnectable implements ConnectableActor {
 
     @Override
     public <T extends Actor> IPromise<T> connect(Callback<ActorClientConnector> disconnectCallback, Consumer<Actor> actorDisconnecCB) {
+        if ( actorClz == null )
+            throw new RuntimeException("actor class cannot be null on TCPConnectable");
+        if ( host == null )
+            throw new RuntimeException("host cannot be null on TCPConnectable");
         Promise result = new Promise();
         Runnable connect = () -> {
             TCPClientConnector client = new TCPClientConnector(port,host,disconnectCallback);

@@ -510,9 +510,12 @@ public abstract class ConnectionRegistry {
         }
     }
 
-    public void close() {
+    public void close(Actor closedOne) {
         try {
             getWriteObjectSocket().get().flush();
+            if ( closedOne.getActor() == facadeActor.getActor() ) {
+                getWriteObjectSocket().get().close();
+            }
         } catch (Exception e) {
             Log.Warn(this,e);
         }

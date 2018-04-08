@@ -28,7 +28,7 @@ public class ServiceArgs {
     private int dataShardPortBase = 30000;
 
     @Parameter(names = {"-nolog"}, help = true, description = "log to sysout without log4j", arity = 1)
-    public boolean sysoutlog = true;
+    public boolean asyncLog = true;
 
     public ServiceArgs() {
         try {
@@ -69,8 +69,8 @@ public class ServiceArgs {
         return host;
     }
 
-    public boolean isSysoutlog() {
-        return sysoutlog;
+    public boolean isAsyncLog() {
+        return asyncLog;
     }
 
     public static ServiceArgs parseCommandLine(String[] args, ServiceArgs options) {

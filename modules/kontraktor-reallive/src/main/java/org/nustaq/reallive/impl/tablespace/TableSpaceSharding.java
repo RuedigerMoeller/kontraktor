@@ -5,7 +5,6 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.reallive.impl.actors.ShardFunc;
 import org.nustaq.reallive.impl.actors.TableSharding;
 import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.api.RealLiveTable;
@@ -13,24 +12,28 @@ import org.nustaq.reallive.api.TableDescription;
 import org.nustaq.reallive.api.TableSpace;
 import org.nustaq.reallive.messages.StateMessage;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * Created by ruedi on 12.08.2015.
+ * Provides a view on a clustered remote TableSpace as if it was a single node. Runs client side
  */
 public class TableSpaceSharding implements TableSpace {
 
-    TableSpaceActor shards[];
+    List<TableSpaceActor> shards = new ArrayList<>();
     HashMap<String,RealLiveTable> tableMap = new HashMap();
     HashMap<String,TableDescription> tableDescriptionMap = new HashMap();
-    ShardFunc func;
 
-    public TableSpaceSharding(TableSpaceActor[] shards, ShardFunc func) {
-        this.shards = shards;
-        this.func = func;
+    public TableSpaceSharding(TableSpaceActor[] shards) {
+        Arrays.stream(shards).forEach( sh -> addShard(sh));
+    }
+
+    private void addShard(TableSpaceActor sh) {
+        if ( shards.indexOf(sh) < 0 )
+            shards.add(sh);
+        else
+            Log.Warn(this,"double add of shard "+sh );
     }
 
     public IPromise init() {
@@ -41,8 +44,8 @@ public class TableSpaceSharding implements TableSpace {
     public IPromise<RealLiveTable> createOrLoadTable(TableDescription desc) {
         Promise<RealLiveTable> res = new Promise();
         ArrayList<IPromise<RealLiveTable>> results = new ArrayList();
-        for (int i = 0; i < shards.length; i++) {
-            TableSpaceActor shard = shards[i];
+        for (int i = 0; i < shards.size(); i++) {
+            TableSpaceActor shard = shards.get(i);
             IPromise<RealLiveTable> table = shard.createOrLoadTable(desc.clone().shardNo(i));
             Promise p = new Promise();
             results.add(p);
@@ -77,7 +80,7 @@ public class TableSpaceSharding implements TableSpace {
             }
         }
         if ( ! errors ) {
-            TableSharding ts = new TableSharding(func, tableShards, desc );
+            TableSharding ts = new TableSharding(tableShards, desc );
             tableMap.put(desc.getName(),ts);
             tableDescriptionMap.put(desc.getName(),desc);
             res.resolve(ts);
@@ -88,8 +91,8 @@ public class TableSpaceSharding implements TableSpace {
     @Override
     public IPromise dropTable(String name) {
         ArrayList<IPromise<Object>> results = new ArrayList();
-        for (int i = 0; i < shards.length; i++) {
-            TableSpaceActor shard = shards[i];
+        for (int i = 0; i < shards.size(); i++) {
+            TableSpaceActor shard = shards.get(i);
             results.add(shard.dropTable(name));
         }
         return Actors.all(results);

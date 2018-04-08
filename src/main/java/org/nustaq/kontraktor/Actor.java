@@ -401,7 +401,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             final ConcurrentLinkedQueue<ConnectionRegistry> prevCon = getActorRef().__connections;
             getActorRef().__connections = null;
             getActor().__connections = null;
-            prevCon.forEach((con) -> con.close());
+            prevCon.forEach((con) -> con.close(this));
         }
     }
 
@@ -412,7 +412,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     protected void closeCurrentClient() {
         ConnectionRegistry remoteConnection = connection.get();
         if ( remoteConnection != null ) {
-            delayed(1000, () -> remoteConnection.close());
+            delayed(1000, () -> remoteConnection.close(this));
         }
     }
 
