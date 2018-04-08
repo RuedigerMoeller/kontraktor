@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 
 /**
  * Created by moelrue on 06.08.2015.
+ * Provides a single view on to a sharded table
  */
 public class TableSharding implements RealLiveTable {
     final static int NUM_SLOTS = 10_000;
@@ -31,6 +32,24 @@ public class TableSharding implements RealLiveTable {
         for (int i = 0; i < shards.length; i++) {
             addNode( createSlots(shards.length,i), shards[i] );
         }
+        if ( ! isComplete() ) {
+            Log.Error(this,"incomplete key coverage");
+        }
+    }
+
+    private void dumpMisses() {
+        for (int i=0; i < NUM_SLOTS; i++ ) {
+            if ( ! shardMap.containsKey(i) )
+                Log.Error(this,"   missing bucket "+i);
+        }
+    }
+
+    private boolean isComplete() {
+        for (int i=0; i < NUM_SLOTS; i++ ) {
+            if ( ! shardMap.containsKey(i) )
+                return false;
+        }
+        return true;
     }
 
     private int[] createSlots(int length, int i) {

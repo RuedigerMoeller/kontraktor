@@ -49,31 +49,11 @@ public class TestCluster {
         }
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-        String name = new File("./").getCanonicalFile().getName();
-        if ( ! "service-suppport".equals(name)) {
-            System.out.println("pls run with working die service-support");
-            System.exit(1);
-        }
+    public static void main(String[] args) throws IOException, InterruptedException, Exception {
+        checkDir();
+        ServiceRegistry registryServer = startRegistry();
 
-        // start Registry
-        ServiceRegistry.main( new String[] {});
-        Thread.sleep(1000);
-
-        Executor ex = Executors.newCachedThreadPool();
-
-        // Start Data Shards
-        AtomicReference<DataShard> someShard = new AtomicReference<>();
-        ClusterCfg cfg = ClusterCfg.read();
-        for ( int i = 0; i < cfg.getDataCluster().getNumberOfShards(); i++ ) {
-            final int finalI = i;
-            ex.execute( () -> {
-                DataShard sh = DataShard.start(new String[]{"-host", "localhost", "-shardNo", "" + finalI});
-                if ( someShard.get() == null || Math.random() > .5)
-                    someShard.set(sh);
-            });
-        }
-        Thread.sleep(2000);
+        AtomicReference<DataShard> someShard = initDataNodes();
         Log.Info(TestCluster.class,"start test");
 
         // connect client
@@ -88,13 +68,46 @@ public class TestCluster {
         user.get("0").await();
         Log.Info(TestCluster.class,"done");
 
-        ex.execute( () -> queryLoop(user) );
+        Executors.newCachedThreadPool().execute( () -> queryLoop(user) );
         Thread.sleep(5000);
 
         Log.Info(TestCluster.class,"terminating node ..."+someShard.get());
         someShard.get().close();
         someShard.get().stop();
         return;
+    }
+
+    // return random datanode for failover tests
+    protected static AtomicReference<DataShard> initDataNodes() throws InterruptedException {
+        Executor ex = Executors.newCachedThreadPool();
+        // Start Data Shards
+        AtomicReference<DataShard> someShard = new AtomicReference<>();
+        ClusterCfg cfg = ClusterCfg.read();
+        for ( int i = 0; i < cfg.getDataCluster().getNumberOfShards(); i++ ) {
+            final int finalI = i;
+            ex.execute( () -> {
+                DataShard sh = DataShard.start(new String[]{"-host", "localhost", "-shardNo", "" + finalI});
+                if ( someShard.get() == null || Math.random() > .5)
+                    someShard.set(sh);
+            });
+        }
+        Thread.sleep(2000);
+        return someShard;
+    }
+
+    protected static void checkDir() throws IOException {
+        String name = new File("./").getCanonicalFile().getName();
+        if ( ! "service-suppport".equals(name)) {
+            System.out.println("pls run with working die service-support");
+            System.exit(1);
+        }
+    }
+
+    protected static ServiceRegistry startRegistry() throws InterruptedException {
+        // start Registry
+        ServiceRegistry registryServer = ServiceRegistry.start(new String[]{});
+        Thread.sleep(1000);
+        return registryServer;
     }
 
 }

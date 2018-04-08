@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.services;
 
+import org.nustaq.kontraktor.remoting.base.ReconnectableRemoteRef;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.services.rlclient.DataShard;
@@ -49,67 +50,128 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
 
     public static final String UNCONNECTED = "UNCONNECTED";
 
-    protected ServiceRegistry serviceRegistry;
+    protected ReconnectableRemoteRef<ServiceRegistry> serviceRegistry;
     protected Map<String,Object> requiredServices;
     protected ClusterCfg config;
     protected ServiceDescription serviceDescription;
     protected ServiceArgs cmdline;
     protected DataClient dclient;
 
-    public IPromise init(ConnectableActor gravityConnectable, ServiceArgs options, boolean autoRegister) {
+    IPromise initComplete;
+
+    public IPromise init(ConnectableActor registryConnectable, ServiceArgs options, boolean autoRegister) {
+        initComplete = new Promise();
         this.cmdline = options;
 
-        if ( ! options.isSysoutlog() ) {
+        if ( ! options.isAsyncLog() ) {
             Log.SetSynchronous();
-//            Log.Lg.setLogWrapper(new Log4j2LogWrapper(Log.Lg.getSeverity()));
         }
 
         Log.Info(this, "startup options " + options);
         Log.Info(this, "connecting to serviceRegistry ..");
-        serviceRegistry = (ServiceRegistry) gravityConnectable.connect((conn, err) -> {
-            Log.Warn(null,"serviceRegistry disconnected");
-            gravityDisconnected();
-        }).await();
-
-        Log.Info(this, "connected serviceRegistry.");
-
-        config = serviceRegistry.getConfig().await();
-
-        Log.Info(this, "loaded cluster configuration");
-        requiredServices = new HashMap<>();
-        Arrays.stream(getAllServiceNames()).forEach(sname -> requiredServices.put(sname, UNCONNECTED));
-
-        Log.Info(this, "waiting for required services ..");
-        awaitRequiredServices().await();
-        if (needsDataCluster()) {
-            Log.Info(this, "init datacluster client");
-            int nShards = config.getDataCluster().getNumberOfShards();
-            Log.Info(this, "number of shards "+nShards);
-            DataShard shards[] =  new DataShard[nShards];
-            TableSpaceActor tsShard[] = new TableSpaceActor[nShards];
-            for ( int i = 0; i < nShards; i++ ) {
-                shards[i] = getService(DataShard.DATA_SHARD_NAME + i);
-                Log.Info(this,"connect to shard "+i);
-                tsShard[i] = shards[i].getTableSpace().await();
+        serviceRegistry = new ReconnectableRemoteRef<>(registryConnectable, new ReconnectableRemoteRef.ReconnectableListener() {
+            @Override
+            public void remoteDisconnected(Actor disconnected) {
+                execute( () -> onRegistryDisconnected() );
             }
-            Log.Info(this, "dc connected all shards");
 
-            dclient = Actors.AsActor(DataClient.class);
-            dclient.connect(config.getDataCluster(),tsShard,self()).await();
+            @Override
+            public void remoteConnected(Actor connected) {
+                execute( () -> {
+                    onRegistryConnected(autoRegister);
+                });
+            }
 
-            Log.Info(this, "dc init done");
-        }
-        Log.Info(this, "got all required services ..");
-
-        // all required services are there, now
-        // publish self as available service
-        if ( autoRegister )
-            registerAtGravity();
-
-        return resolve();
+        });
+        return initComplete;
     }
 
-    int eventKey = 1;
+    protected void onRegistryDisconnected() {
+
+    }
+
+    protected void onRegistryConnected(boolean autoRegister) {
+        Log.Info(this, "connected serviceRegistry.");
+        config = serviceRegistry.get().getConfig().await();
+
+        boolean isReconnect = initComplete.isSettled();
+
+        if ( isReconnect ) {
+            onServiceRegistryReconnected();
+            registerSelf();
+        } else {
+            Log.Info(this, "loaded cluster configuration");
+            // FIXME: might want to close old services and resubscribe ..
+            requiredServices = new HashMap<>();
+
+            Arrays.stream(getAllServiceNames()).forEach(sname -> requiredServices.put(sname, UNCONNECTED));
+            Log.Info(this, "waiting for required services ..");
+            awaitRequiredServices().then((r, e) -> {
+                if (e == null) {
+                    if (needsDataCluster()) {
+                        initRealLive(); // awaits
+                    }
+                    Log.Info(this, "got all required services ..");
+                    // all required services are there, now
+                    // publish self as available service
+                    if (autoRegister)
+                        registerSelf();
+                    initComplete.resolve();
+                } else {
+                    Log.Warn(this, "missing services " + e);
+                }
+            });
+        }
+
+    }
+
+    protected void onServiceRegistryReconnected() {
+        // re-register and resubscription is already handled
+        // subclasse might want to update configuration and check if
+        // services have been relocated
+        Log.Info(this, "service registry reconnected.");
+    }
+
+    protected IPromise awaitRequiredServices() {
+        Promise p = new Promise();
+        awaitRequiredServicesInternal(p);
+        return p;
+    }
+
+    private void awaitRequiredServicesInternal(Promise p) {
+        connectRequiredServices().then( () -> {
+            long missing = requiredServices.values().stream().filter(serv -> serv == UNCONNECTED).count();
+            if ( missing > 0 ) {
+                Log.Warn(this,"missing: ");
+                requiredServices.forEach((name,serv) -> {
+                    if ( serv == UNCONNECTED )
+                        Log.Warn(this,"    "+name);
+                });
+                delayed(2000, () -> awaitRequiredServicesInternal(p));
+            } else {
+                p.resolve();
+            }
+        });
+    }
+
+    private void initRealLive() {
+        Log.Info(this, "init datacluster client");
+        int nShards = config.getDataCluster().getNumberOfShards();
+        Log.Info(this, "number of shards "+nShards);
+        DataShard shards[] =  new DataShard[nShards];
+        TableSpaceActor tsShard[] = new TableSpaceActor[nShards];
+        for ( int i = 0; i < nShards; i++ ) {
+            shards[i] = getService(DataShard.DATA_SHARD_NAME + i);
+            Log.Info(this,"connect to shard "+i);
+            tsShard[i] = shards[i].getTableSpace().await();
+        }
+        Log.Info(this, "dc connected all shards");
+
+        dclient = Actors.AsActor(DataClient.class);
+        dclient.connect(config.getDataCluster(),tsShard,self()).await();
+
+        Log.Info(this, "dc init done");
+    }
 
     public IPromise<ClusterCfg> getConfig() {
         return resolve(config);
@@ -119,10 +181,13 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         return resolve(dclient);
     }
 
-    protected void registerAtGravity() {
+    /**
+     * register at service registry
+     */
+    protected void registerSelf() {
         publishSelf();
-        serviceRegistry.registerService(getServiceDescription());
-        serviceRegistry.subscribe((pair, err) -> {
+        serviceRegistry.get().registerService(getServiceDescription());
+        serviceRegistry.get().subscribe((pair, err) -> {
             serviceEvent(pair.car(), pair.cdr(), err);
         });
         heartBeat();
@@ -199,13 +264,17 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         return (T) service;
     }
 
-    public IPromise awaitRequiredServices() {
+    /**
+     * try to connect required (unconnected) services, in case of failur UNCONNECTED is put into service hashmap instead
+     * @return
+     */
+    public IPromise connectRequiredServices() {
         Log.Info(this, "connecting required services ..");
         if ( requiredServices.size() == 0 ) {
             return resolve();
         }
         IPromise res = new Promise<>();
-        serviceRegistry.getServiceMap().then((smap, err) -> {
+        serviceRegistry.get().getServiceMap().then((smap, err) -> {
             List<IPromise<Object>> servicePromis = new ArrayList();
             String[] servNames = getAllServiceNames();
             for (int i = 0; i < servNames.length; i++) {
@@ -225,6 +294,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
                     }
                     Promise notify = new Promise();
                     servicePromis.add(notify);
+
                     connect.then((actor, connectionError) -> {
                         if (actor != null) {
                             requiredServices.put(servName, actor);
@@ -236,18 +306,10 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
                         }
                     });
                 } else {
-                    res.reject("required service "+servName+" not registered.");
-                    return;
+                    requiredServices.put(servName,UNCONNECTED);
                 }
             }
-            if ( ! res.isSettled() ) {
-                all(servicePromis).timeoutIn(15000)
-                    .then(res)
-                    .onTimeout(() -> {
-                        // todo:retry
-                        Log.Info(this, "failed to connect required services, retry");
-                    });
-            }
+            all(servicePromis).then( res );
         });
         return res;
     }
@@ -261,11 +323,9 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
     public void heartBeat() {
         if ( isStopped() )
             return;
-        if (serviceRegistry !=null) {
+        if (serviceRegistry.isOnline()) {
             ServiceDescription sd = getServiceDescription();
-            serviceRegistry.receiveHeartbeat(sd.getName(), sd.getUniqueKey());
-            delayed(1000, () -> heartBeat());
-        } else {
+            serviceRegistry.get().receiveHeartbeat(sd.getName(), sd.getUniqueKey());
             delayed(1000, () -> heartBeat());
         }
     }

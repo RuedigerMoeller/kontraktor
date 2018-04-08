@@ -192,11 +192,15 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
 
     public static void main(String[] args) {
 
+        start(args);
+
+    }
+
+    public static ServiceRegistry start(String[] args) {
         options = parseCommandLine(args,new ServiceArgs());
 
-        if ( ! options.isSysoutlog() ) {
+        if ( ! options.isAsyncLog() ) {
             Log.SetSynchronous();
-//            Log.Lg.setLogWrapper(new Log4j2LogWrapper(Log.Lg.getSeverity()));
         }
 
         ServiceRegistry serviceRegistry = Actors.AsActor(ServiceRegistry.class);
@@ -211,6 +215,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             Log.Info(serviceRegistry.getClass(), pair.car() + " " + pair.cdr());
         });
 
+        return serviceRegistry;
     }
 
 }

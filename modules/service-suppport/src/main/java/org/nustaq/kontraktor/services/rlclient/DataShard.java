@@ -23,13 +23,18 @@ public class DataShard extends ServiceActor<DataShard> {
     TableSpaceActor tableSpace;
 
     @Override
-    public IPromise init(ConnectableActor gravityConnectable, ServiceArgs options, boolean auto /*ignored*/) {
+    public IPromise init(ConnectableActor registryConnectable, ServiceArgs options, boolean auto /*ignored*/) {
         IPromise p = new Promise();
         try {
-            super.init(gravityConnectable, options,false).await();
-            initTableSpace();
-            registerAtGravity();
-            p.resolve();
+            super.init(registryConnectable, options,false).then( (r,e) -> {
+                try {
+                    initTableSpace();
+                    registerSelf();
+                    p.resolve();
+                } catch (Exception ex) {
+                    Log.Error(this,ex);
+                }
+            });
         } catch (Throwable t) {
             p.reject(t);
         }
