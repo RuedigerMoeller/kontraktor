@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class TestCluster {
@@ -74,7 +75,12 @@ public class TestCluster {
         Log.Info(TestCluster.class,"terminating node ..."+someShard.get());
         someShard.get().close();
         someShard.get().stop();
-        return;
+
+//        Thread.sleep(2000);
+//
+//        Log.Info(TestCluster.class,"restarting node ... "+someShardNo.get());
+//        DataShard.start(new String[]{"-host", "localhost", "-shardNo", "" + someShardNo.get() });
+
     }
 
     // return random datanode for failover tests
@@ -82,13 +88,16 @@ public class TestCluster {
         Executor ex = Executors.newCachedThreadPool();
         // Start Data Shards
         AtomicReference<DataShard> someShard = new AtomicReference<>();
+        AtomicInteger someShardNo = new AtomicInteger();
         ClusterCfg cfg = ClusterCfg.read();
         for ( int i = 0; i < cfg.getDataCluster().getNumberOfShards(); i++ ) {
             final int finalI = i;
             ex.execute( () -> {
                 DataShard sh = DataShard.start(new String[]{"-host", "localhost", "-shardNo", "" + finalI});
-                if ( someShard.get() == null || Math.random() > .5)
+                if ( someShard.get() == null || Math.random() > .5)  {
                     someShard.set(sh);
+                    someShardNo.set(finalI);
+                }
             });
         }
         Thread.sleep(2000);
