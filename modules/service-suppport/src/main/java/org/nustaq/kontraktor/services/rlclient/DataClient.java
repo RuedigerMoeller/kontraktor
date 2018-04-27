@@ -99,20 +99,7 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
                             RealLiveTable table = shard.getTableAsync(desc.getName()).await(60_000);
                             table.forEach( rec -> true, (rec,err) -> {
                                 if ( rec != null ) {
-                                    try {
-                                        // write marker to enable recovery in case of corruption
-                                        synchronized (fout) {
-                                            fout.write(31);
-                                            fout.write(32);
-                                            fout.write(33);
-                                            fout.write(34);
-                                            byte[] b = writeConf.asByteArray(rec);
-                                            fout.writeInt(b.length);
-                                            fout.write(b);
-                                        }
-                                    } catch (IOException e) {
-                                        Log.Error(this,e);
-                                    }
+                                    writeRecord(writeConf, fout, rec);
                                 } else if (err != null ) {
                                     Log.Warn(this,"error during export "+err);
                                     pl.countDown();
@@ -145,6 +132,23 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         return res;
     }
 
+    private void writeRecord(FSTConfiguration writeConf, DataOutputStream fout, Record rec) {
+        try {
+            // write marker to enable recovery in case of corruption
+            synchronized (fout) {
+                fout.write(31);
+                fout.write(32);
+                fout.write(33);
+                fout.write(34);
+                byte[] b = writeConf.asByteArray(rec);
+                fout.writeInt(b.length);
+                fout.write(b);
+            }
+        } catch (IOException e) {
+            Log.Error(this,e);
+        }
+    }
+
     public IPromise<Integer> getNoShards() {
         return resolve(shards.length);
     }
@@ -161,4 +165,7 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         syncTableAccess.values().forEach( table -> ((TableSharding)table).removeNode(act.getActorRef()));
     }
 
+    public TableSpaceActor[] getShards() {
+        return shards;
+    }
 }
