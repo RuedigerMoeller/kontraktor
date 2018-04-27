@@ -165,7 +165,8 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         syncTableAccess.values().forEach( table -> ((TableSharding)table).removeNode(act.getActorRef()));
     }
 
+    @CallerSideMethod
     public TableSpaceActor[] getShards() {
-        return shards;
+        return getActor().shards;
     }
 }
