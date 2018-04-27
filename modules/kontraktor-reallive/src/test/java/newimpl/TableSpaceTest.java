@@ -42,7 +42,7 @@ public class TableSpaceTest {
             TableSpaceActor space = spaces[i];
             space.init();
         }
-        TableSpaceSharding ts = new TableSpaceSharding( spaces, key -> Math.abs(key.hashCode())%spaces.length );
+        TableSpaceSharding ts = new TableSpaceSharding( spaces );
         Assert.assertTrue(runSimpleTest(ts, () -> createShardedTableDescription()) == EXPECT_SIMPLECOUNT);
         ts.shutDown().await();
     }
@@ -65,7 +65,7 @@ public class TableSpaceTest {
             TableSpaceActor space = spaces[i];
             space.init();
         }
-        TableSpaceSharding ts = new TableSpaceSharding( spaces, key -> Math.abs(key.hashCode())%spaces.length );
+        TableSpaceSharding ts = new TableSpaceSharding( spaces );
         Assert.assertTrue(runSimpleTest(ts, () -> createShardedTableDescription()) == EXPECT_SIMPLECOUNT);
         ts.shutDown().await();
     }

@@ -256,7 +256,8 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     public IPromise<Boolean> addRecord(Record rec) {
         if ( rec instanceof RecordWrapper)
             rec = ((RecordWrapper) rec).getRecord();
-        if ( storageDriver.getStore().get(rec.getKey()) != null )
+        Record existing = storageDriver.getStore().get(rec.getKey());
+        if ( existing != null )
             return resolve(false);
         receive((ChangeMessage) new AddMessage(rec));
         return resolve(true);

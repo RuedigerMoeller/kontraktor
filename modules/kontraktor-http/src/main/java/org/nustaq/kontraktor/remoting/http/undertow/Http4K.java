@@ -137,6 +137,8 @@ public class Http4K {
      * @param root - directory to be published
      */
     public Http4K publishFileSystem( String hostName, String urlPath, int port, File root ) {
+        if ( ! root.exists() )
+            root.mkdirs();
         if ( ! root.isDirectory() ) {
             throw new RuntimeException("root must be an existing direcory:"+root.getAbsolutePath());
         }

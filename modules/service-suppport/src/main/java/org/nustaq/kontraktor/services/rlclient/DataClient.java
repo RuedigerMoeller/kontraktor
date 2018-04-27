@@ -1,12 +1,10 @@
 package org.nustaq.kontraktor.services.rlclient;
 
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.services.ServiceActor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.reallive.impl.actors.TableSharding;
 import org.nustaq.reallive.impl.tablespace.ClusteredTableSpaceClient;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
 import org.nustaq.reallive.impl.tablespace.TableSpaceSharding;
@@ -40,19 +38,24 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         this.hostingService=hostingService;
         this.shards = shards;
         syncTableAccess = new HashMap();
-        tableSharding = new TableSpaceSharding(shards,key -> Math.abs(key.hashCode())%shards.length);
-        tableSharding.init().await();
+        tableSpaceSharding = new TableSpaceSharding(shards);
+        tableSpaceSharding.init().await();
         TableDescription[] schema = config.getSchema();
         return all( schema.length, i -> {
-            Promise p = new Promise();
-            tableSharding.createOrLoadTable(schema[i]).then( (r,e) -> {
-                if ( r != null ) {
-                    syncTableAccess.put(schema[i].getName(), r);
-                }
-                p.complete(r,e);
-            });
-            return p;
+            TableDescription desc = schema[i];
+            return initTable(desc);
         });
+    }
+
+    private IPromise<Object> initTable(TableDescription desc) {
+        Promise p = new Promise();
+        tableSpaceSharding.createOrLoadTable(desc).then( (r, e) -> {
+            if ( r != null ) {
+                syncTableAccess.put(desc.getName(), r);
+            }
+            p.complete(r,e);
+        });
+        return p;
     }
 
     @CallerSideMethod
@@ -96,20 +99,7 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
                             RealLiveTable table = shard.getTableAsync(desc.getName()).await(60_000);
                             table.forEach( rec -> true, (rec,err) -> {
                                 if ( rec != null ) {
-                                    try {
-                                        // write marker to enable recovery in case of corruption
-                                        synchronized (fout) {
-                                            fout.write(31);
-                                            fout.write(32);
-                                            fout.write(33);
-                                            fout.write(34);
-                                            byte[] b = writeConf.asByteArray(rec);
-                                            fout.writeInt(b.length);
-                                            fout.write(b);
-                                        }
-                                    } catch (IOException e) {
-                                        Log.Error(this,e);
-                                    }
+                                    writeRecord(writeConf, fout, rec);
                                 } else if (err != null ) {
                                     Log.Warn(this,"error during export "+err);
                                     pl.countDown();
@@ -142,6 +132,23 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         return res;
     }
 
+    private void writeRecord(FSTConfiguration writeConf, DataOutputStream fout, Record rec) {
+        try {
+            // write marker to enable recovery in case of corruption
+            synchronized (fout) {
+                fout.write(31);
+                fout.write(32);
+                fout.write(33);
+                fout.write(34);
+                byte[] b = writeConf.asByteArray(rec);
+                fout.writeInt(b.length);
+                fout.write(b);
+            }
+        } catch (IOException e) {
+            Log.Error(this,e);
+        }
+    }
+
     public IPromise<Integer> getNoShards() {
         return resolve(shards.length);
     }
@@ -154,4 +161,11 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         });
     }
 
+    public void nodeDisconnected(Actor act) {
+        syncTableAccess.values().forEach( table -> ((TableSharding)table).removeNode(act.getActorRef()));
+    }
+
+    public TableSpaceActor[] getShards() {
+        return shards;
+    }
 }

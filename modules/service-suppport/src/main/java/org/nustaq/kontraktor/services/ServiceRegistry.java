@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  *
  * Rationale: in cluster of services managing connectivity gets complex
  * quickly. In order to simplify this, services are given a single point
- * of contact: the service registry (gravity). They register themself and
+ * of contact: the service registry (serviceRegistry). They register themself and
  * obtain address and availability from the central registry.
  * Note: Downside is, this is a SPOF.
  */
@@ -192,11 +192,15 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
 
     public static void main(String[] args) {
 
+        start(args);
+
+    }
+
+    public static ServiceRegistry start(String[] args) {
         options = parseCommandLine(args,new ServiceArgs());
 
-        if ( ! options.isSysoutlog() ) {
+        if ( ! options.isAsyncLog() ) {
             Log.SetSynchronous();
-//            Log.Lg.setLogWrapper(new Log4j2LogWrapper(Log.Lg.getSeverity()));
         }
 
         ServiceRegistry serviceRegistry = Actors.AsActor(ServiceRegistry.class);
@@ -211,6 +215,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             Log.Info(serviceRegistry.getClass(), pair.car() + " " + pair.cdr());
         });
 
+        return serviceRegistry;
     }
 
 }

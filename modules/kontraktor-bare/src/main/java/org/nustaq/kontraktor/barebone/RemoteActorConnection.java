@@ -62,6 +62,7 @@ public class RemoteActorConnection {
     protected static CloseableHttpAsyncClient asyncHttpClient;
     protected volatile boolean isConnected;
     private static final boolean SENDDEBUG = false;
+    public boolean noSeqChecking = true;
 
     public CloseableHttpAsyncClient getClient() {
         synchronized (this) {
@@ -578,7 +579,7 @@ public class RemoteActorConnection {
         if ( SENDDEBUG )
             System.out.println("RECEIVE:"+(o.length-1));
         int seq = ((Number) o[o.length - 1]).intValue();
-        if ( seq == lastSeenSeq+1 || lastSeenSeq == 0 ) {
+        if ( seq == lastSeenSeq+1 || lastSeenSeq == 0 || noSeqChecking ) {
             lastSeenSeq = seq;
             processDecodedResultArray(o);
             Object next[];
