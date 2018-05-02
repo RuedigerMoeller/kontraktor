@@ -296,14 +296,19 @@ public class JNPM extends Actor<JNPM> {
         return untaredFiles;
     }
 
+    static JNPM singleton;
     public static IPromise<InstallResult> Install(String module, String versionSpec, File modulesDir, JNPMConfig config) {
         Promise p = new Promise();
-        JNPM unpkgCrawler = AsActor(JNPM.class,AsyncHttpActor.getSingleton().getScheduler());
-        unpkgCrawler.init( modulesDir, config);
-        unpkgCrawler.npmInstall(module, versionSpec,modulesDir).then( (r,e) -> {
+        synchronized ( JNPM.class ) {
+            if ( singleton == null || singleton.isStopped() ) {
+                singleton = AsActor(JNPM.class, AsyncHttpActor.getSingleton().getScheduler());
+                singleton.init(modulesDir, config);
+            }
+        }
+        singleton.npmInstall(module, versionSpec, modulesDir).then((r, e) -> {
 //            Log.Info(JNPM.class,"DONE "+r+" "+e);
-            unpkgCrawler.stop();
-            p.complete(r,e);
+//                unpkgCrawler.stop();
+            p.complete(r, e);
         });
         return p;
     }

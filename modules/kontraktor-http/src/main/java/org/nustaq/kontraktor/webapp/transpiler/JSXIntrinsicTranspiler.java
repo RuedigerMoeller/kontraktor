@@ -387,7 +387,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             if ( isNotInNodeModules(requiringFile) )
             {
                 String tlFrom = importSpec.getFrom();
-                nodeTopLevelImports.put(tlFrom,resolvedFile);
+                if ( nodeTopLevelImports != null )
+                    nodeTopLevelImports.put(tlFrom,resolvedFile);
             }
 
             File indexFile = processNodeDir(resolvedFile, resolver, alreadyResolved);
