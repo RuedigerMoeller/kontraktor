@@ -440,7 +440,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     required = required.substring(0,i);
                 }
                 // single file can't be a node module
-                if ( required.indexOf(".") < 0 ) {
+                if ( required.indexOf(".") != 0 )
+                {
                     JNPMConfig config = getConfig();
                     Log.Info(this, importSpec.getFrom() + " not found. installing .. '" + required+"'");
                     try {

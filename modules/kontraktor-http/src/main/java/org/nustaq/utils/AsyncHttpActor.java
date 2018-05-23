@@ -465,7 +465,7 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
 
     public static void main(String[] args) throws InterruptedException {
         AsyncHttpActor http = Actors.AsActor(AsyncHttpActor.class);
-        http.getContent("http://www.zeit.de/gesellschaft/zeitgeschehen/2017-01/washington-womens-march-donald-trump-frauen-protest").then( r -> {
+        http.getContent("https://www.chefkoch.de/rs/s0/Apfel/Rezepte.html").then( r -> {
 //        http.getContent("http://www.spiegel.de").then( r -> {
             System.out.println(r);
         });
