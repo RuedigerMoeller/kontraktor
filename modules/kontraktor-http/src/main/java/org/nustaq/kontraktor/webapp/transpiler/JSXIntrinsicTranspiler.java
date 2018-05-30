@@ -222,7 +222,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
     protected byte[] processJSX(boolean dev, File f, FileResolver resolver, Map<String, Object> alreadyResolved) {
         try {
-            boolean isInitialIndexJSX = "index.jsx".equals(f.getName());
+            boolean isInitialIndexJSX = f != null && f.getName().endsWith("index.jsx");
             if ( isInitialIndexJSX ) {
                 jnpmConfigFileCached = null;
                 if ( dev ) {
