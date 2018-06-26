@@ -38,6 +38,7 @@ public class JNPM extends Actor<JNPM> {
     public void init(File nodeModules, JNPMConfig config ) {
         nodeModulesDir = nodeModules;
         http = AsyncHttpActor.getSingleton();
+        http.setLimits(5,10);
         this.config = config;
     }
 

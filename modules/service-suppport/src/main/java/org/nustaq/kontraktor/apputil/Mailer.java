@@ -23,6 +23,8 @@ import javax.mail.internet.MimeMessage;
  */
 public class Mailer extends Actor<Mailer> {
 
+    public static String DEFAULT_SENDER = "support@foo.bar";
+
     static Mailer singleton;
 
     public static void initSingleton(MailCfg settings) {
@@ -81,7 +83,6 @@ public class Mailer extends Actor<Mailer> {
         }
     }
 
-
     /**
      *
      * @param receiver - the mail receiver
@@ -104,7 +105,7 @@ public class Mailer extends Actor<Mailer> {
             Session session = Session.getInstance(props);
             MimeMessage message = new MimeMessage(session);
 
-            message.setFrom( displayName == null ?  new InternetAddress("support@juptr.io") : new InternetAddress("support@juptr.io", displayName)  );
+            message.setFrom( displayName == null ? new InternetAddress(DEFAULT_SENDER) : new InternetAddress(DEFAULT_SENDER, displayName)  );
             message.setSubject(subject);
             message.setText(content,"utf-8", "html");
             message.setRecipient(Message.RecipientType.TO, new InternetAddress(receiver, false));
