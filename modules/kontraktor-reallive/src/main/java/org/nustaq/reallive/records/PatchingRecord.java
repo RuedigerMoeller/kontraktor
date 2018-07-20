@@ -120,6 +120,7 @@ public class PatchingRecord extends RecordWrapper {
             String field = fields[i];
             res.put(field, get(field));
         }
+        res.lastModified = getLastModified();
         return res;
     }
 }

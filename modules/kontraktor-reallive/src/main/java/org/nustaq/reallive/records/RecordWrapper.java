@@ -38,6 +38,21 @@ public class RecordWrapper implements Record {
     }
 
     @Override
+    public long getLastModified() {
+        return record.getLastModified();
+    }
+
+    @Override
+    public void setLastModified(long tim) {
+        record.setLastModified(tim);
+    }
+
+    @Override
+    public void updateLastModified() {
+        record.updateLastModified();
+    }
+
+    @Override
     public void key(String key) {
         record.key(key);
     }

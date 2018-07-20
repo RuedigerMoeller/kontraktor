@@ -15,6 +15,11 @@ import java.util.List;
 public interface Record extends Serializable, EvalContext {
 
     String getKey();
+    long getLastModified();
+    void setLastModified(long tim);
+    default void updateLastModified() {
+        setLastModified(System.currentTimeMillis());
+    }
 
     /**
      * take care, kind of dangerous

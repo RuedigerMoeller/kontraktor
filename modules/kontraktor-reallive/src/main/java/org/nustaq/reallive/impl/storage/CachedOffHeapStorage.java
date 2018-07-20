@@ -44,8 +44,9 @@ public class CachedOffHeapStorage implements RecordStorage {
 
     @Override
     public RecordStorage put(String key, Record value) {
-        offheap.put(key,value);
-        onHeap.put(key,value);
+        value.updateLastModified();
+        offheap._put(key,value);
+        onHeap._put(key,value);
         return this;
     }
 

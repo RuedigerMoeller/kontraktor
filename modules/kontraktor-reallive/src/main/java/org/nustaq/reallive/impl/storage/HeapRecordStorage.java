@@ -25,6 +25,11 @@ public class HeapRecordStorage implements RecordStorage {
 
     @Override
     public RecordStorage put(String key, Record value) {
+        value.updateLastModified();
+        return _put(key,value);
+    }
+
+    public RecordStorage _put(String key, Record value) {
         map.put(key,value);
         return this;
     }
@@ -36,7 +41,10 @@ public class HeapRecordStorage implements RecordStorage {
 
     @Override
     public Record remove(String key) {
-        return map.remove(key);
+        Record removed = map.remove(key);
+        if ( removed != null )
+            removed.updateLastModified();
+        return removed;
     }
 
     @Override

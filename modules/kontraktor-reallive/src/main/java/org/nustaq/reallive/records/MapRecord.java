@@ -34,6 +34,7 @@ public class MapRecord implements Record {
 
     protected transient String fields[];
     protected String key;
+    protected long lastModified;
 
     protected MapRecord() {
     }
@@ -60,6 +61,16 @@ public class MapRecord implements Record {
     }
 
     @Override
+    public long getLastModified() {
+        return lastModified;
+    }
+
+    @Override
+    public void setLastModified(long tim) {
+        lastModified = tim;
+    }
+
+    @Override
     public void key(String key) {
         this.key = key;
     }
@@ -80,7 +91,7 @@ public class MapRecord implements Record {
 
     @Override
     public MapRecord put( String key, Object value ) {
-        if ( map.put(key, value) == null ) {
+        if ( map.put(key, value) == null ) { // delete attribute
             fields = null;
         }
         if (value == null)
@@ -118,6 +129,7 @@ public class MapRecord implements Record {
     public MapRecord copied() {
         MapRecord newReq = MapRecord.New(getKey());
         map.forEach( (k,v) -> newReq.put(k,v) );
+        newReq.setLastModified(lastModified);
         return newReq;
     }
 }
