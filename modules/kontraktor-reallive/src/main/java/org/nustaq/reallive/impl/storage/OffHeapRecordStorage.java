@@ -84,7 +84,7 @@ public class OffHeapRecordStorage implements RecordStorage {
 
     @Override
     public RecordStorage put(String key, Record value) {
-        value.updateLastModified();
+        value.internal_updateLastModified();
         return _put(key,value);
     }
 
@@ -129,7 +129,7 @@ public class OffHeapRecordStorage implements RecordStorage {
         Record v = get(key);
         if ( v != null ) {
             store.remove(key);
-            v.updateLastModified();
+            v.internal_updateLastModified();
         }
         return v;
     }

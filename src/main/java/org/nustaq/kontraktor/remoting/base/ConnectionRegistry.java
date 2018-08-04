@@ -134,6 +134,10 @@ public abstract class ConnectionRegistry {
         conf.registerClass(Actor.class);
 	}
 
+	public int getOpenRemoteMappingsCount() {
+        return publishedActorMap.size();
+    }
+
     public Actor getPublishedActor(long id) {
         return (Actor) publishedActorMap.get(id);
     }
