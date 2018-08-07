@@ -16,9 +16,13 @@ public interface Record extends Serializable, EvalContext {
 
     String getKey();
     long getLastModified();
-    void setLastModified(long tim);
-    default void updateLastModified() {
-        setLastModified(System.currentTimeMillis());
+    void internal_setLastModified(long tim);
+    void internal_incSequence();
+    long getSequence(); // increments with each update of the record
+
+    default void internal_updateLastModified() {
+        internal_setLastModified(System.currentTimeMillis());
+        internal_incSequence();
     }
 
     /**

@@ -43,13 +43,23 @@ public class RecordWrapper implements Record {
     }
 
     @Override
-    public void setLastModified(long tim) {
-        record.setLastModified(tim);
+    public void internal_setLastModified(long tim) {
+        record.internal_setLastModified(tim);
     }
 
     @Override
-    public void updateLastModified() {
-        record.updateLastModified();
+    public void internal_incSequence() {
+        record.internal_incSequence();
+    }
+
+    @Override
+    public long getSequence() {
+        return record.getSequence();
+    }
+
+    @Override
+    public void internal_updateLastModified() {
+        record.internal_updateLastModified();
     }
 
     @Override
