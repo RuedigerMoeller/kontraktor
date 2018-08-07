@@ -39,7 +39,13 @@ class KClient {
     this.listener = new KClientListener();
   }
 
+  close() {
+    if ( this.currentSocket && this.currentSocket.socket )
+      this.currentSocket.socket.close();
+  }
+
   reset() {
+    this.close();
     this.currentSocket = {socket: null};
     this.futureMap = {}; // future id => promise
     this.callMap = {}; // future id => argumentlist to support offline caching

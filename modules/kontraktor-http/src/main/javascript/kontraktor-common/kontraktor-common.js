@@ -65,6 +65,7 @@ class KPromise {
         this.complete( null, error ? error : 'timeout');
       }
     },ms);
+    return this;
   }
 
 }
