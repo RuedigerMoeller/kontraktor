@@ -141,6 +141,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
                         try {
                             spore.remote(rec);
                         } catch (Throwable ex) {
+                            Log.Warn(this,ex,"exception in spore "+spore);
                             spore.complete(null, ex);
                         }
                     }

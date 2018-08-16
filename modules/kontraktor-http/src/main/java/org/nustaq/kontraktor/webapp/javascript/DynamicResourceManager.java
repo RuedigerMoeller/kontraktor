@@ -130,7 +130,7 @@ public class DynamicResourceManager extends FileResourceManager implements FileR
             if (res != null) {
                 return res;
             }
-            if ( cachedIndexDir != null && cachedIndexDir.exists() && initialPath.endsWith("index.html") ) {
+            if ( cachedIndexDir != null && cachedIndexDir.exists() && initialPath.endsWith("index.html") && new File(cachedIndexDir,normalizedPath).exists() ) {
                 try {
                     byte bytes[] = FileUtil.readFully(new File(cachedIndexDir,normalizedPath));
                     Log.Info(this, "reading "+normalizedPath+" from static file "+new File(cachedIndexDir,normalizedPath).getAbsolutePath());

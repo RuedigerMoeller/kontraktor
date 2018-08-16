@@ -120,6 +120,13 @@ public interface Record extends Serializable, EvalContext {
         return val.toString();
     }
 
+    default String getSafeString(String field) {
+        Object val = get(field);
+        if ( val == null )
+            return "";
+        return val.toString();
+    }
+
     default String asString() {
         String[] fields = getFields();
         String res = "[  *"+getKey()+"  ";

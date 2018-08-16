@@ -1,6 +1,7 @@
 package org.nustaq.reallive.impl.storage;
 
 import org.nustaq.kontraktor.Spore;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.offheap.FSTAsciiStringOffheapMap;
 import org.nustaq.offheap.FSTBinaryOffheapMap;
 import org.nustaq.offheap.FSTSerializedOffheapMap;
@@ -158,7 +159,13 @@ public class OffHeapRecordStorage implements RecordStorage {
     public <T> void forEachWithSpore(Spore<Record, T> spore) {
         for (Iterator iterator = store.values(); iterator.hasNext(); ) {
             Record record = (Record) iterator.next();
-            spore.remote(record);
+            try {
+                spore.remote(record);
+            } catch ( Throwable ex ) {
+                Log.Warn(this, ex, "exception in spore " + spore);
+                throw ex;
+            }
+
             if ( spore.isFinished() )
                 break;
         }
