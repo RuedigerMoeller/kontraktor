@@ -28,6 +28,12 @@ public interface ChangeStream extends SafeChangeStream {
 
     void unsubscribe( Subscriber subs );
 
+    /**
+     * faster than an ordinary query as get is used instead of table scan
+     * @param keys
+     * @param rec
+     * @return
+     */
     default @CallerSideMethod Subscriber observe(String[] keys, ChangeReceiver rec) {
         KeySetSubscriber subs = new KeySetSubscriber(keys,rec);
         subscribe(subs);
