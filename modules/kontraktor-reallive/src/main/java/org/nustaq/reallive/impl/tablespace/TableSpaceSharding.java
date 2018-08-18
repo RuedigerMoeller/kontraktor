@@ -5,7 +5,7 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.reallive.impl.actors.TableSharding;
+import org.nustaq.reallive.impl.actors.ShardedTable;
 import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.api.RealLiveTable;
 import org.nustaq.reallive.api.TableDescription;
@@ -80,7 +80,7 @@ public class TableSpaceSharding implements TableSpace {
             }
         }
         if ( ! errors ) {
-            TableSharding ts = new TableSharding(tableShards, desc );
+            ShardedTable ts = new ShardedTable(tableShards, desc );
             tableMap.put(desc.getName(),ts);
             tableDescriptionMap.put(desc.getName(),desc);
             res.resolve(ts);

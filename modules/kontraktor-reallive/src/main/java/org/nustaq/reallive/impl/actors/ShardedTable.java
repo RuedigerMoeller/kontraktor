@@ -2,6 +2,7 @@ package org.nustaq.reallive.impl.actors;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.reallive.impl.FilterProcessor;
 import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.impl.RLUtil;
@@ -19,21 +20,64 @@ import java.util.stream.Collectors;
  * Created by moelrue on 06.08.2015.
  * Provides a single view on to a sharded table
  */
-public class TableSharding implements RealLiveTable {
+public class ShardedTable implements RealLiveTable {
     final static int NUM_SLOTS = 10_000;
 
-    final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap();
+    final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap(); // real subscriptions only
     private TableDescription description;
     private HashMap<Integer,RealLiveTable[]> shardMap = new HashMap();
     private Set<RealLiveTable> shards = new HashSet<>();
+    private FilterProcessor proc = new FilterProcessor(this);
+    AtomicBoolean globalListenReady = new AtomicBoolean(false);
 
-    public TableSharding(RealLiveTable[] shards, TableDescription desc) {
+    public ShardedTable(RealLiveTable[] shards, TableDescription desc) {
         this.description = desc;
         for (int i = 0; i < shards.length; i++) {
             addNode( createSlots(shards.length,i), shards[i] );
         }
         if ( ! isComplete() ) {
             Log.Error(this,"incomplete key coverage");
+        }
+
+        long now = System.currentTimeMillis();
+        realSubs( rec -> rec.getLastModified() > now-TimeUnit.SECONDS.toMillis(10), change -> globalListen(change) );
+    }
+
+    // actually subscribes at datanodes
+    private Subscriber realSubs(RLPredicate<Record> filter, ChangeReceiver receiver) {
+        Subscriber subs = new Subscriber(filter,receiver);
+        this.subscribe(subs);
+        return subs;
+    }
+
+    // actually subscribes at datanodes
+    private void realSubscribe(Subscriber subs) {
+        AtomicInteger doneCount = new AtomicInteger(shards.size());
+        ChangeReceiver receiver = subs.getReceiver();
+        ArrayList<Subscriber> subsList = new ArrayList();
+        shards.forEach( shard -> {
+            Subscriber shardSubs = new Subscriber(subs.getFilter(), change -> {
+                if (change.getType() == ChangeMessage.QUERYDONE) {
+                    int count = doneCount.decrementAndGet();
+                    if (count == 0) {
+                        receiver.receive(change);
+                    }
+                } else {
+                    receiver.receive(change);
+                }
+            });
+            subsList.add(shardSubs);
+            shard.subscribe(shardSubs);
+        });
+        subsMap.put(subs,subsList);
+    }
+
+    private void globalListen(ChangeMessage change) {
+        if ( change.isDoneMsg() ) {
+            globalListenReady.set(true);
+        }
+        else if ( globalListenReady.get() ) {
+            proc.receive(change);
         }
     }
 
@@ -141,28 +185,21 @@ public class TableSharding implements RealLiveTable {
 
     @Override
     public void subscribe(Subscriber subs) {
-        AtomicInteger doneCount = new AtomicInteger(shards.size());
-        ChangeReceiver receiver = subs.getReceiver();
-        ArrayList<Subscriber> subsList = new ArrayList();
-        shards.forEach( shard -> {
-            Subscriber shardSubs = new Subscriber(subs.getFilter(), change -> {
-                if (change.getType() == ChangeMessage.QUERYDONE) {
-                    int count = doneCount.decrementAndGet();
-                    if (count == 0) {
-                        receiver.receive(change);
-                    }
-                } else {
-                    receiver.receive(change);
-                }
-            });
-            subsList.add(shardSubs);
-            shard.subscribe(shardSubs);
+        forEach(subs.getFilter(),(change,err) -> {
+            if ( Actors.isResult(err) )
+                subs.getReceiver().receive(new AddMessage(change));
+            else if ( Actors.isComplete(err) ) {
+                proc.startListening(subs);
+            }
         });
-        subsMap.put(subs,subsList);
     }
 
     @Override
     public void unsubscribe(Subscriber subs) {
+        proc.unsubscribe(subs);
+    }
+
+    public void realUnsubscribe(Subscriber subs) {
         if ( subs == null ) {
             Log.Warn(this,"unsubscribed is null");
             return;

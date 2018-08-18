@@ -22,21 +22,21 @@ import java.util.List;
 public class FilterProcessor implements ChangeReceiver {
 
     List<Subscriber> filterList = new ArrayList();
-    RealLiveTableActor table;
+    RealLiveTable table;
 
-    public FilterProcessor(RealLiveTableActor table) {
+    public FilterProcessor(RealLiveTable table) {
         this.table = table;
     }
 
-    public void startListening(Subscriber subs) {
+    public synchronized void startListening( Subscriber subs ) {
         filterList.add(subs);
     }
 
-    public void unsubscribe( Subscriber subs ) {
+    public synchronized void unsubscribe( Subscriber subs ) {
         filterList.remove(subs);
     }
 
-    public void receive(ChangeMessage change) {
+    public synchronized void receive(ChangeMessage change) {
         switch (change.getType()) {
             case ChangeMessage.QUERYDONE:
                 break;
