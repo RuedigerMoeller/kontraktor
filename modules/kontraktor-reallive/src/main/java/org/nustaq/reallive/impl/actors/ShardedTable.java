@@ -40,13 +40,13 @@ public class ShardedTable implements RealLiveTable {
         }
 
         long now = System.currentTimeMillis();
-        realSubs( rec -> rec.getLastModified() > now-TimeUnit.SECONDS.toMillis(10), change -> globalListen(change) );
+        realSubs( rec -> true, change -> globalListen(change) );
     }
 
     // actually subscribes at datanodes
     private Subscriber realSubs(RLPredicate<Record> filter, ChangeReceiver receiver) {
         Subscriber subs = new Subscriber(filter,receiver);
-        this.subscribe(subs);
+        this.realSubscribe(subs);
         return subs;
     }
 
@@ -73,10 +73,11 @@ public class ShardedTable implements RealLiveTable {
     }
 
     private void globalListen(ChangeMessage change) {
-        if ( change.isDoneMsg() ) {
+        boolean fin = globalListenReady.get();
+        if ( !fin && change.isDoneMsg() ) {
             globalListenReady.set(true);
         }
-        else if ( globalListenReady.get() ) {
+        else if (fin) {
             proc.receive(change);
         }
     }
@@ -190,12 +191,14 @@ public class ShardedTable implements RealLiveTable {
                 subs.getReceiver().receive(new AddMessage(change));
             else if ( Actors.isComplete(err) ) {
                 proc.startListening(subs);
+                System.out.println("SUBSLOCAL "+description.getName());
             }
         });
     }
 
     @Override
     public void unsubscribe(Subscriber subs) {
+        System.out.println("UNSUBSLOCAL "+description.getName());
         proc.unsubscribe(subs);
     }
 
