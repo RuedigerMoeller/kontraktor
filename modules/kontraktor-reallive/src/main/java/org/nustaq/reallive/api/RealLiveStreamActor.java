@@ -29,4 +29,11 @@ public interface RealLiveStreamActor extends SafeRealLiveStreamActor {
         this.forEach(new QueryPredicate<Record>(query), cb);
     }
 
+    /**
+     * sends null,null as marker for finish (so null cannot be a valid result of the spore)
+     */
+    @CallerSideMethod default <I,O> void forEach(Spore<I,O> spore, Callback<O> result) {
+        spore.setForEach(result).onFinish( () -> result.complete(null,null) );
+    }
+
 }

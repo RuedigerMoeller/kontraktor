@@ -189,8 +189,8 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
 //                            .setConnectionRequestTimeout(10000)
 //                            .build()
 //                    )
-                    .setMaxConnPerRoute(MAX_CONN_PER_ROUTE)
-                    .setMaxConnTotal(MAX_CONN_TOTAL)
+                    .setMaxConnPerRoute(maxConnPerRoute)
+                    .setMaxConnTotal(maxConnTotal)
                     .setHostnameVerifier(SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER)
                     .setDefaultIOReactorConfig(
                         IOReactorConfig.custom()
@@ -246,6 +246,28 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
             Log.Warn(this, "error while cleanup url:" + url);
             t.printStackTrace();
             return url;
+        }
+    }
+
+    int maxConnPerRoute = MAX_CONN_PER_ROUTE;
+    int maxConnTotal = MAX_CONN_TOTAL;
+
+    /**
+     * overwrite static limits, WARNING: careful when accessing the singleton
+     *
+     * @param maxConPerRoute
+     * @param maxConTotal
+     */
+    public void setLimits(int maxConPerRoute, int maxConTotal) {
+        this.maxConnPerRoute = maxConPerRoute;
+        this.maxConnTotal = maxConTotal;
+        if ( asyncHttpClient != null ) {
+            try {
+                asyncHttpClient.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            asyncHttpClient = null;
         }
     }
 
@@ -465,7 +487,7 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
 
     public static void main(String[] args) throws InterruptedException {
         AsyncHttpActor http = Actors.AsActor(AsyncHttpActor.class);
-        http.getContent("http://www.zeit.de/gesellschaft/zeitgeschehen/2017-01/washington-womens-march-donald-trump-frauen-protest").then( r -> {
+        http.getContent("https://www.chefkoch.de/rs/s0/Apfel/Rezepte.html").then( r -> {
 //        http.getContent("http://www.spiegel.de").then( r -> {
             System.out.println(r);
         });

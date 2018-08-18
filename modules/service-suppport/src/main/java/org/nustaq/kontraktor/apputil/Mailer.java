@@ -23,6 +23,8 @@ import javax.mail.internet.MimeMessage;
  */
 public class Mailer extends Actor<Mailer> {
 
+    public static String DEFAULT_SENDER = "support@foo.bar";
+
     static Mailer singleton;
 
     public static void initSingleton(MailCfg settings) {
@@ -43,6 +45,42 @@ public class Mailer extends Actor<Mailer> {
 
     public void updateSettings( MailCfg conf ) {
         this.settings = conf;
+    }
+
+    /**
+     * @param receiver    - the mail receiver
+     * @param subject     - subject of the mail
+     * @param content     - mail content
+     * @param senderEmail - email adress from sender
+     * @param displayName - display name shown instead of the sender email ..
+     * @return promise ..
+     */
+    public IPromise<Boolean> sendEMail(String receiver, String subject, String content, String senderEmail, String displayName /* Sender Name*/) {
+        if (receiver == null || !receiver.contains("@")) {
+            return new Promise<>(false, "Not a valid email address: " + receiver);
+        }
+        try {
+            Properties props = new Properties();
+            props.put("mail.smtp.auth", settings.getSmtpAuth());
+            props.put("mail.smtp.starttls.enable", settings.getStartTls());
+            props.put("mail.smtp.host", settings.getSmtpHost());
+            props.put("mail.smtp.port", settings.getSmtpPort());
+
+            Session session = Session.getInstance(props);
+            MimeMessage message = new MimeMessage(session);
+
+            message.setFrom(displayName == null ? new InternetAddress(senderEmail) : new InternetAddress(senderEmail, displayName));
+            message.setSubject(subject);
+            message.setText(content, "utf-8", "html");
+            message.setRecipient(Message.RecipientType.TO, new InternetAddress(receiver, false));
+            message.setSentDate(new Date());
+            Transport.send(message, settings.getUser(), settings.getPassword());
+            Log.Info(this, "definitely sent mail to " + receiver + " subject:" + subject);
+            return new Promise<>(true);
+        } catch (Exception e) {
+            Log.Warn(this, e);
+            return new Promise<>(false, e);
+        }
     }
 
     /**
@@ -67,7 +105,7 @@ public class Mailer extends Actor<Mailer> {
             Session session = Session.getInstance(props);
             MimeMessage message = new MimeMessage(session);
 
-            message.setFrom( displayName == null ?  new InternetAddress("support@juptr.io") : new InternetAddress("support@juptr.io", displayName)  );
+            message.setFrom( displayName == null ? new InternetAddress(DEFAULT_SENDER) : new InternetAddress(DEFAULT_SENDER, displayName)  );
             message.setSubject(subject);
             message.setText(content,"utf-8", "html");
             message.setRecipient(Message.RecipientType.TO, new InternetAddress(receiver, false));

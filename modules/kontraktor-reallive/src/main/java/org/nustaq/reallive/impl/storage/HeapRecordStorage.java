@@ -1,6 +1,7 @@
 package org.nustaq.reallive.impl.storage;
 
 import org.nustaq.kontraktor.Spore;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.*;
 
 import java.util.HashMap;
@@ -25,6 +26,11 @@ public class HeapRecordStorage implements RecordStorage {
 
     @Override
     public RecordStorage put(String key, Record value) {
+        value.internal_updateLastModified();
+        return _put(key,value);
+    }
+
+    public RecordStorage _put(String key, Record value) {
         map.put(key,value);
         return this;
     }
@@ -36,7 +42,10 @@ public class HeapRecordStorage implements RecordStorage {
 
     @Override
     public Record remove(String key) {
-        return map.remove(key);
+        Record removed = map.remove(key);
+        if ( removed != null )
+            removed.internal_updateLastModified();
+        return removed;
     }
 
     @Override
@@ -50,7 +59,12 @@ public class HeapRecordStorage implements RecordStorage {
         long now = System.currentTimeMillis();
         for (Iterator<Map.Entry<Object, Record>> iterator = map.entrySet().iterator(); iterator.hasNext(); ) {
             Map.Entry<Object, Record> next = iterator.next();
-            spore.remote(next.getValue());
+            try {
+                spore.remote(next.getValue());
+            } catch ( Throwable ex ) {
+                Log.Warn(this, ex, "exception in spore " + spore);
+                throw ex;
+            }
             if ( spore.isFinished() )
                 break;
         }

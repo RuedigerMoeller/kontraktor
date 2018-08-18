@@ -59,6 +59,15 @@ class KPromise {
     }
   };
 
+  timeoutIn(ms,error) {
+    setTimeout(() => {
+      if ( ! this.isCompleted() ) {
+        this.complete( null, error ? error : 'timeout');
+      }
+    },ms);
+    return this;
+  }
+
 }
 
 class DecodingHelper {

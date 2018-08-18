@@ -15,6 +15,15 @@ import java.util.List;
 public interface Record extends Serializable, EvalContext {
 
     String getKey();
+    long getLastModified();
+    void internal_setLastModified(long tim);
+    void internal_incSequence();
+    long getSequence(); // increments with each update of the record
+
+    default void internal_updateLastModified() {
+        internal_setLastModified(System.currentTimeMillis());
+        internal_incSequence();
+    }
 
     /**
      * take care, kind of dangerous
@@ -108,6 +117,13 @@ public interface Record extends Serializable, EvalContext {
         Object val = get(field);
         if ( val == null )
             return null;
+        return val.toString();
+    }
+
+    default String getSafeString(String field) {
+        Object val = get(field);
+        if ( val == null )
+            return "";
         return val.toString();
     }
 

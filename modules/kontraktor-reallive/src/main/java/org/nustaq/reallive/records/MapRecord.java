@@ -34,6 +34,7 @@ public class MapRecord implements Record {
 
     protected transient String fields[];
     protected String key;
+    protected long lastModified, seq;
 
     protected MapRecord() {
     }
@@ -60,6 +61,26 @@ public class MapRecord implements Record {
     }
 
     @Override
+    public long getLastModified() {
+        return lastModified;
+    }
+
+    @Override
+    public void internal_setLastModified(long tim) {
+        lastModified = tim;
+    }
+
+    @Override
+    public void internal_incSequence() {
+        seq++; // requires updating is single threaded !
+    }
+
+    @Override
+    public long getSequence() {
+        return seq;
+    }
+
+    @Override
     public void key(String key) {
         this.key = key;
     }
@@ -80,7 +101,7 @@ public class MapRecord implements Record {
 
     @Override
     public MapRecord put( String key, Object value ) {
-        if ( map.put(key, value) == null ) {
+        if ( map.put(key, value) == null ) { // delete attribute
             fields = null;
         }
         if (value == null)
@@ -118,6 +139,12 @@ public class MapRecord implements Record {
     public MapRecord copied() {
         MapRecord newReq = MapRecord.New(getKey());
         map.forEach( (k,v) -> newReq.put(k,v) );
+        newReq.internal_setLastModified(lastModified);
+        newReq.internal_setSeq(seq);
         return newReq;
+    }
+
+    private void internal_setSeq(long seq) {
+        this.seq = seq;
     }
 }

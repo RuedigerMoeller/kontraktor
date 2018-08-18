@@ -134,6 +134,10 @@ public abstract class ConnectionRegistry {
         conf.registerClass(Actor.class);
 	}
 
+	public int getOpenRemoteMappingsCount() {
+        return publishedActorMap.size();
+    }
+
     public Actor getPublishedActor(long id) {
         return (Actor) publishedActorMap.get(id);
     }
@@ -420,8 +424,14 @@ public abstract class ConnectionRegistry {
                     // FIXME: this might happen frequently as messages are in flight.
                     // FIXME: need a better way to handle this. Frequently it is not an error.
                     Log.Warn(this,"call to stopped remote actor");
-                } else
-                    Log.Warn(this,"Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent. "+read);
+                } else {
+                    try {
+                        read.unpackArgs(getConf());
+                    } catch (Exception e) {
+                        // quiet
+                    }
+                    Log.Warn(this, "Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent. " + read);
+                }
             } else {
                 boolean isContinue = read.isContinue();
                 if ( publishedCallback instanceof CallbackWrapper && ((CallbackWrapper) publishedCallback).isRouted() ) {

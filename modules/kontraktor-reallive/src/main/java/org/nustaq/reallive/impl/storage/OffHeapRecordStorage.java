@@ -1,6 +1,7 @@
 package org.nustaq.reallive.impl.storage;
 
 import org.nustaq.kontraktor.Spore;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.offheap.FSTAsciiStringOffheapMap;
 import org.nustaq.offheap.FSTBinaryOffheapMap;
 import org.nustaq.offheap.FSTSerializedOffheapMap;
@@ -84,6 +85,11 @@ public class OffHeapRecordStorage implements RecordStorage {
 
     @Override
     public RecordStorage put(String key, Record value) {
+        value.internal_updateLastModified();
+        return _put(key,value);
+    }
+
+    public RecordStorage _put(String key, Record value) {
         if ( protocol != null ) {
             try {
                 FSTConfiguration.getDefaultConfiguration().encodeToStream(protocol,new Object[] {"putRecord",key,value});
@@ -122,8 +128,10 @@ public class OffHeapRecordStorage implements RecordStorage {
             }
         }
         Record v = get(key);
-        if ( v != null )
+        if ( v != null ) {
             store.remove(key);
+            v.internal_updateLastModified();
+        }
         return v;
     }
 
@@ -151,7 +159,13 @@ public class OffHeapRecordStorage implements RecordStorage {
     public <T> void forEachWithSpore(Spore<Record, T> spore) {
         for (Iterator iterator = store.values(); iterator.hasNext(); ) {
             Record record = (Record) iterator.next();
-            spore.remote(record);
+            try {
+                spore.remote(record);
+            } catch ( Throwable ex ) {
+                Log.Warn(this, ex, "exception in spore " + spore);
+                throw ex;
+            }
+
             if ( spore.isFinished() )
                 break;
         }

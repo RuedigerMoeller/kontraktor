@@ -31,5 +31,5 @@ public class TestDClient extends TestCluster {
         Executors.newCachedThreadPool().execute( () -> queryLoop(user) );
 
     }
-
 }
+

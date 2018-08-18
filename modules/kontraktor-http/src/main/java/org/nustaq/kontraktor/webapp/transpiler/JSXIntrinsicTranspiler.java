@@ -222,7 +222,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
     protected byte[] processJSX(boolean dev, File f, FileResolver resolver, Map<String, Object> alreadyResolved) {
         try {
-            boolean isInitialIndexJSX = "index.jsx".equals(f.getName());
+            boolean isInitialIndexJSX = f != null && f.getName().endsWith("index.jsx");
             if ( isInitialIndexJSX ) {
                 jnpmConfigFileCached = null;
                 if ( dev ) {
@@ -387,7 +387,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             if ( isNotInNodeModules(requiringFile) )
             {
                 String tlFrom = importSpec.getFrom();
-                nodeTopLevelImports.put(tlFrom,resolvedFile);
+                if ( nodeTopLevelImports != null )
+                    nodeTopLevelImports.put(tlFrom,resolvedFile);
             }
 
             File indexFile = processNodeDir(resolvedFile, resolver, alreadyResolved);
@@ -439,7 +440,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     required = required.substring(0,i);
                 }
                 // single file can't be a node module
-                if ( required.indexOf(".") < 0 ) {
+                if ( required.indexOf(".") != 0 )
+                {
                     JNPMConfig config = getConfig();
                     Log.Info(this, importSpec.getFrom() + " not found. installing .. '" + required+"'");
                     try {
