@@ -110,9 +110,20 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
                 localSubs.getReceiver().receive(RLUtil.get().done());
             }
         });
-        forEachQueued(spore, () -> {
+        if ( pred instanceof KeySetSubscriber.KSPredicate ) {
+            KeySetSubscriber.KSPredicate<Record> p = (KeySetSubscriber.KSPredicate) pred;
+            p.getKeys().forEach( key -> {
+                Record record = storageDriver.getStore().get(key);
+                if ( record != null ) {
+                    localSubs.getReceiver().receive(new AddMessage(record));
+                }
+            });
+            localSubs.getReceiver().receive(RLUtil.get().done());
             filterProcessor.startListening(localSubs);
-        });
+        } else {
+            forEachDirect(spore); // removed queuing, ot tested well enough
+            filterProcessor.startListening(localSubs);
+        }
     }
 
     static class QueryQEntry {

@@ -32,4 +32,5 @@ public interface SafeRealLiveTable extends ChangeReceiver, SafeChangeStream, Saf
     // named 'set' to avoid calling put(key,Record) actualle invoking put(key, ...keyval) accidentally
     IPromise<Boolean> addRecord(Record rec );
 
+
 }

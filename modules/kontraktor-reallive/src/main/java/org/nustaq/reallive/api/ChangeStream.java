@@ -28,4 +28,10 @@ public interface ChangeStream extends SafeChangeStream {
 
     void unsubscribe( Subscriber subs );
 
+    default @CallerSideMethod Subscriber observe(String[] keys, ChangeReceiver rec) {
+        KeySetSubscriber subs = new KeySetSubscriber(keys,rec);
+        subscribe(subs);
+        return subs;
+    }
+
 }
