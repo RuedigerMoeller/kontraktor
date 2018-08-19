@@ -11,9 +11,9 @@ import org.nustaq.reallive.messages.QueryDoneMessage;
 import org.nustaq.reallive.query.QParseException;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * builds up real remote queries from searchfilter objects.
@@ -120,6 +120,6 @@ public class SubsRegistry {
     }
 
     public void unsubscribeAll() {
-        new HashSet<>(subsMap.keySet()).forEach(k -> this.unsubscribe(k));
+        subsMap.keySet().stream().collect(Collectors.toList()).forEach( k -> this.unsubscribe(k) );
     }
 }

@@ -121,6 +121,7 @@ public class PatchingRecord extends RecordWrapper {
             res.put(field, get(field));
         }
         res.lastModified = getLastModified();
+        res.seq = getSequence();
         return res;
     }
 }
