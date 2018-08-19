@@ -121,7 +121,11 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
             localSubs.getReceiver().receive(RLUtil.get().done());
             filterProcessor.startListening(localSubs);
         } else {
-            forEachDirect(spore); // removed queuing, ot tested well enough
+            if ( pred instanceof RLNoQueryPredicate ) {
+                localSubs.getReceiver().receive(RLUtil.get().done());
+            } else {
+                forEachDirect(spore); // removed queuing, ot tested well enough
+            }
             filterProcessor.startListening(localSubs);
         }
     }

@@ -10,6 +10,10 @@ import org.nustaq.reallive.query.QParseException;
  */
 public interface ChangeStream extends SafeChangeStream {
 
+    /**
+     * DO NOT USE DIRECTLY, use subscribeOn etc.
+     * @param subs
+     */
     void subscribe( Subscriber subs );
 
     default @CallerSideMethod
@@ -40,4 +44,9 @@ public interface ChangeStream extends SafeChangeStream {
         return subs;
     }
 
+    default @CallerSideMethod Subscriber listen(RLNoQueryPredicate<Record> filter,ChangeReceiver rec) {
+        Subscriber subs = new Subscriber(filter,rec);
+        subscribe(subs);
+        return subs;
+    }
 }

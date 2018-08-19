@@ -8,6 +8,7 @@ import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.impl.RLUtil;
 import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.PutMessage;
+import org.nustaq.reallive.messages.QueryDoneMessage;
 import org.nustaq.reallive.messages.RemoveMessage;
 import org.nustaq.reallive.records.RecordWrapper;
 
@@ -40,7 +41,7 @@ public class ShardedTable implements RealLiveTable {
         }
 
         long now = System.currentTimeMillis();
-        realSubs( rec -> true, change -> globalListen(change) );
+        realSubs( (RLNoQueryPredicate)rec -> true, change -> globalListen(change) );
     }
 
     // actually subscribes at datanodes
@@ -79,6 +80,8 @@ public class ShardedTable implements RealLiveTable {
         }
         else if (fin) {
             proc.receive(change);
+        } else {
+            int shouldnotHppen = 1;
         }
     }
 
@@ -186,21 +189,23 @@ public class ShardedTable implements RealLiveTable {
 
     @Override
     public void subscribe(Subscriber subs) {
-        forEach(subs.getFilter(),(change,err) -> {
-//            System.out.println("SUBSCRIBE FOREACH:"+change+" ,"+err+" "+Thread.currentThread().getName());
-            if ( Actors.isResult(err) ) {
-                subs.getReceiver().receive(new AddMessage(change));
-            }
-            else if ( Actors.isComplete(err) ) {
-                proc.startListening(subs);
-                System.out.println("SUBSLOCAL "+description.getName());
-            }
-        });
+        if ( subs.getFilter() instanceof RLNoQueryPredicate ) {
+            subs.getReceiver().receive(new QueryDoneMessage());
+            proc.startListening(subs);
+        } else {
+            forEach(subs.getFilter(), (change, err) -> {
+                if (Actors.isResult(err)) {
+                    subs.getReceiver().receive(new AddMessage(change));
+                } else if (Actors.isComplete(err)) {
+                    subs.getReceiver().receive(new QueryDoneMessage());
+                    proc.startListening(subs);
+                }
+            });
+        }
     }
 
     @Override
     public void unsubscribe(Subscriber subs) {
-        System.out.println("UNSUBSLOCAL "+description.getName());
         proc.unsubscribe(subs);
     }
 
@@ -341,7 +346,6 @@ public class ShardedTable implements RealLiveTable {
             Actor shardFacade = ((Actor) tableShard).__clientConnection.getFacadeProxy().getActorRef();
             return shardFacade == removedNode;
         }).collect(Collectors.toList()).forEach( tableShard ->  {
-            System.out.println("remove "+actorRef+" from "+tableShard);
             removeTableShard(tableShard);
         });
     }

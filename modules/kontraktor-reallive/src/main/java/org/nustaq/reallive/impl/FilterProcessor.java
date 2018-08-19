@@ -28,6 +28,7 @@ public class FilterProcessor implements ChangeReceiver {
         this.table = table;
     }
 
+    //FIXME: benchmark if cloning is faster
     public synchronized void startListening( Subscriber subs ) {
         filterList.add(subs);
     }
