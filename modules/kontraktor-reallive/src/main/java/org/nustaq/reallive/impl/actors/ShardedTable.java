@@ -193,12 +193,12 @@ public class ShardedTable implements RealLiveTable {
             subs.getReceiver().receive(new QueryDoneMessage());
             proc.startListening(subs);
         } else {
+            proc.startListening(subs);
             forEach(subs.getFilter(), (change, err) -> {
                 if (Actors.isResult(err)) {
                     subs.getReceiver().receive(new AddMessage(change));
                 } else if (Actors.isComplete(err)) {
                     subs.getReceiver().receive(new QueryDoneMessage());
-                    proc.startListening(subs);
                 }
             });
         }
