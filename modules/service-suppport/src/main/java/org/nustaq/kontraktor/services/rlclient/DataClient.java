@@ -4,7 +4,7 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.services.ServiceActor;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.reallive.impl.actors.TableSharding;
+import org.nustaq.reallive.impl.actors.ShardedTable;
 import org.nustaq.reallive.impl.tablespace.ClusteredTableSpaceClient;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
 import org.nustaq.reallive.impl.tablespace.TableSpaceSharding;
@@ -162,7 +162,7 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
     }
 
     public void nodeDisconnected(Actor act) {
-        syncTableAccess.values().forEach( table -> ((TableSharding)table).removeNode(act.getActorRef()));
+        syncTableAccess.values().forEach( table -> ((ShardedTable)table).removeNode(act.getActorRef()));
     }
 
     @CallerSideMethod

@@ -69,12 +69,12 @@ public class TestCluster {
         user.get("0").await();
         Log.Info(TestCluster.class,"done");
 
-        Executors.newCachedThreadPool().execute( () -> queryLoop(user) );
-        Thread.sleep(5000);
+//        Executors.newCachedThreadPool().execute( () -> queryLoop(user) );
+//        Thread.sleep(5000);
 
-        Log.Info(TestCluster.class,"terminating node ..."+someShard.get());
-        someShard.get().close();
-        someShard.get().stop();
+//        Log.Info(TestCluster.class,"terminating node ..."+someShard.get());
+//        someShard.get().close();
+//        someShard.get().stop();
 
 //        Thread.sleep(2000);
 //

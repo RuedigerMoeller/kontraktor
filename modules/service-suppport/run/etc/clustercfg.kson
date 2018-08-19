@@ -2,7 +2,11 @@ ClusterCfg {
   publicHostUrl: "http://localhost:8888"
   dataCluster:
     DataCfg {
-      dataDir: [ "./run/reallive" "./run/reallive" "./run/reallive" ]
+      dataDir: [
+        "./run/reallive"
+#        "./run/reallive"
+#        "./run/reallive"
+      ]
       schema:
         [
           {

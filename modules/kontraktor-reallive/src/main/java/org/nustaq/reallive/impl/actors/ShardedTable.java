@@ -187,8 +187,10 @@ public class ShardedTable implements RealLiveTable {
     @Override
     public void subscribe(Subscriber subs) {
         forEach(subs.getFilter(),(change,err) -> {
-            if ( Actors.isResult(err) )
+//            System.out.println("SUBSCRIBE FOREACH:"+change+" ,"+err+" "+Thread.currentThread().getName());
+            if ( Actors.isResult(err) ) {
                 subs.getReceiver().receive(new AddMessage(change));
+            }
             else if ( Actors.isComplete(err) ) {
                 proc.startListening(subs);
                 System.out.println("SUBSLOCAL "+description.getName());

@@ -21,14 +21,28 @@ public class TestDClient extends TestCluster {
         DataClient dclient = serviceActor.getDataClient().await();
         RealLiveTable user = dclient.tbl("user");
         Log.Info(TestCluster.class,"start insert");
-        for ( int i = 0; i < 10000; i++ ) {
+        for ( int i = 0; i < 15000; i++ ) {
             user.add(""+i, "name", "Ruedi", "value", "val"+i );
         }
         Log.Info(TestCluster.class,"waiting ..");
         user.get("0").await();
         Log.Info(TestCluster.class,"done");
 
-        Executors.newCachedThreadPool().execute( () -> queryLoop(user) );
+        user.subscribeOn( rec -> "val13".equals(rec.getString("value")), change -> {
+            System.out.println("CHANGE val13 "+change);
+        } );
+
+        user.subscribeOn( rec -> true, change -> {
+            System.out.println("CHANGE ALL "+change);
+        } );
+
+        while( true ) {
+            user.update(""+13, "name", "Ruedi"+Math.random());
+            Thread.sleep(1000);
+            user.add(""+Math.random(), "name", "Ruedi", "value", "val"+Math.random());
+            Thread.sleep(1000);
+        }
+//        Executors.newCachedThreadPool().execute( () -> queryLoop(user) );
 
     }
 }
