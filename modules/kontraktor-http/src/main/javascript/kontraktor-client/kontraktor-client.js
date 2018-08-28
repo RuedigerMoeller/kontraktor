@@ -1,5 +1,5 @@
 // ES6 Port of js4k 3.34
-// matches kontraktor 3 json-no-ref encoded remoting
+// matches kontraktor 4 json-no-ref encoded remoting
 
 const _kontraktor_IsNode = Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
 if ( _kontraktor_IsNode ) {
@@ -13,6 +13,12 @@ const kontraktor = typeof require !== 'undefined' ? require('kontraktor-common')
 const coder = new kontraktor.DecodingHelper();
 
 const NO_RESULT = "NO_RESULT";
+
+function print_call_stack() {
+  // var stack = new Error().stack;
+  // console.log("PRINTING CALL STACK");
+  // console.log( stack );
+}
 
 class KClientListener {
   // if server does not support resurrection this signals session timeout / connection loss
@@ -28,6 +34,9 @@ class KClientListener {
   onResurrection() {
     console.log("session resurrected")
   }
+  onLPFailure(count,status) {
+    console.log("longpoll failed",count,status);
+  }
 }
 
 // a (batching) kontraktor client
@@ -40,12 +49,20 @@ class KClient {
   }
 
   close() {
-    if ( this.currentSocket && this.currentSocket.socket )
+    print_call_stack();
+    this.doStop = true;
+    if ( this.hasSocket() )
       this.currentSocket.socket.close();
   }
 
+  hasSocket() {
+    return this.currentSocket && this.currentSocket.socket;
+  }
+
   reset() {
-    this.close();
+    if ( this.hasSocket() )
+      this.close();
+    this.doStop = false;
     this.currentSocket = {socket: null};
     this.futureMap = {}; // future id => promise
     this.callMap = {}; // future id => argumentlist to support offline caching
@@ -64,6 +81,7 @@ class KClient {
     this.proxies = bool;
     return this;
   }
+
   connect(wsurl, connectionMode) {
     const res = new kontraktor.KPromise();
     if ( this.currentSocket.socket != null ) {
@@ -86,6 +104,8 @@ class KClient {
       console.error("unexpected message");
       console.log(JSON.stringify(message, null, 2));
       this.listener.onError(message);
+      if ( ! res.isCompleted() )
+        res.complete(null,err);
     });
     socket.onerror( err => {
       this.listener.onError(err);
@@ -94,11 +114,16 @@ class KClient {
         res.complete(null,err);
     });
     socket.onclose( () => {
+      const prev = this.socket;
       this.socket = null;
+      if ( prev ) {
+        if ( ! res.isCompleted() )
+          res.complete(null,"closed");
+        this.listener.onClosed();
+        console.log("closed connection");
+      }
       if ( ! res.isCompleted() )
-        res.complete(null,"closed");
-      this.listener.onClosed();
-      console.log("closed connection");
+        res.complete(null,err);
     });
     socket.onopen( event=> {
       this.currentSocket.socket = socket;
@@ -427,7 +452,7 @@ class KontraktorPollSocket{
   longPoll() {
     const sleepNoReqSent = 100;
     if ( this.doStop || ! this.doLongPoll ) {
-      console.log("lp stopped");
+      console.log("lp stopped",this);
       return;
     }
     if ( ! this.isConnected ) {
@@ -453,9 +478,7 @@ class KontraktorPollSocket{
           console.log("response error:"+request.status);
           //fireError(); dont't give up on failed long poll
           this.pollErrorsInRow++;
-          if (this.pollErrorsInRow >= this.global.maxLongpollFailures){
-            this.global.handleLongpollFailureCallback();
-          }
+          this.global.listener.onLPFailure(this.pollErrorsInRow,request.status);
           setTimeout(this.longPoll.bind(this),3000);
           return;
         }
@@ -499,6 +522,7 @@ class KontraktorPollSocket{
   onmessage(messageHandler) { this.onmessageHandler = messageHandler; };
 
   close( code, reaseon ) {
+    print_call_stack();
     this.doStop = true;
     if ( this.oncloseHandler )
       this.oncloseHandler.apply(this,["closed by application"]);
@@ -619,7 +643,6 @@ class KontraktorPollSocket{
         this.fireOpen();
       }
     };
-
     request.open("POST", this.url, true);
     request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
     if ( this.token )
