@@ -196,7 +196,7 @@ public class ShardedTable implements RealLiveTable {
             proc.startListening(subs);
             forEach(subs.getFilter(), (change, err) -> {
                 if (Actors.isResult(err)) {
-                    subs.getReceiver().receive(new AddMessage(change));
+                    subs.getReceiver().receive(new AddMessage(0,change));
                 } else if (Actors.isComplete(err)) {
                     subs.getReceiver().receive(new QueryDoneMessage());
                 }
@@ -236,47 +236,48 @@ public class ShardedTable implements RealLiveTable {
         shards.forEach( shard -> shard.atomicUpdate(filter,action) );
     }
 
-    public void put(String key, Object... keyVals) {
-        hashAny(key).receive(new PutMessage(RLUtil.get().record(key,keyVals)));
+    public void put(int senderId, String key, Object... keyVals) {
+        hashAny(key).receive(new PutMessage(senderId,RLUtil.get().record(key,keyVals)));
     }
 
-    public void merge(String key, Object... keyVals) {
-        hashAny(key).receive(RLUtil.get().addOrUpdate(key, keyVals));
+    public void merge(int senderId, String key, Object... keyVals) {
+        hashAny(key).receive(RLUtil.get().addOrUpdate(senderId, key, keyVals));
     }
 
-    public IPromise<Boolean> add(String key, Object... keyVals) {
-        return hashAny(key).add(key, keyVals);
+    public IPromise<Boolean> add(int senderId, String key, Object... keyVals) {
+        return hashAny(key).add(senderId, key, keyVals);
     }
 
-    public IPromise<Boolean> addRecord(Record rec) {
+    public IPromise<Boolean> addRecord(int senderId, Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        return hashAny(rec.getKey()).addRecord(rec);
+        return hashAny(rec.getKey()).addRecord(senderId, rec);
     }
 
-    public void mergeRecord(Record rec) {
+    public void mergeRecord(int senderId, Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        hashAny(rec.getKey()).receive(new AddMessage(true,rec));
+        hashAny(rec.getKey()).receive(new AddMessage(senderId, true,rec));
     }
 
-    public void setRecord(Record rec) {
+    public void setRecord(int senderId, Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        hashAny(rec.getKey()).receive(new PutMessage(rec));
+        hashAny(rec.getKey()).receive(new PutMessage(senderId, rec));
     }
 
-    public void update(String key, Object... keyVals) {
-        hashAny(key).receive(RLUtil.get().update(key, keyVals));
+    public void update(int senderId, String key, Object... keyVals) {
+        hashAny(key).receive(RLUtil.get().update(senderId, key, keyVals));
     }
+
 
     @Override
-    public IPromise<Record> take(String key) {
-        return hashAny(key).take(key);
+    public IPromise<Record> take(int senderId, String key) {
+        return hashAny(key).take(senderId,key);
     }
 
-    public void remove(String key) {
-        RemoveMessage remove = RLUtil.get().remove(key);
+    public void remove(int senderId, String key) {
+        RemoveMessage remove = RLUtil.get().remove(senderId, key);
         hashAny(key).receive(remove);
     }
 

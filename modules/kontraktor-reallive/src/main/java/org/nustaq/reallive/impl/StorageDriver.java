@@ -47,13 +47,13 @@ public class StorageDriver implements ChangeReceiver {
                 Record prevRecord = store.get(change.getKey());
                 if ( prevRecord == null ) {
                     store.put(change.getKey(),unwrap(change.getRecord()));
-                    receive( new AddMessage(true,change.getRecord()));
+                    receive( new AddMessage(change.getSenderId(),true,change.getRecord()));
                 } else {
                     Diff diff = ChangeUtils.diff(change.getRecord(), prevRecord);
                     if ( ! diff.isEmpty() ) {
                         Record newRecord = unwrap(change.getRecord()); // clarification
                         store.put(change.getKey(), newRecord);
-                        listener.receive(new UpdateMessage(diff, newRecord, null));
+                        listener.receive(new UpdateMessage(change.getSenderId(), diff, newRecord, null));
                     }
                 }
                 break;
@@ -70,7 +70,7 @@ public class StorageDriver implements ChangeReceiver {
                     Diff diff = ChangeUtils.copyAndDiff(addMessage.getRecord(), prevRecord);
                     Record newRecord = unwrap(prevRecord); // clarification
                     store.put(change.getKey(),newRecord);
-                    listener.receive( new UpdateMessage(diff,newRecord,null) );
+                    listener.receive( new UpdateMessage(change.getSenderId(), diff,newRecord,null) );
                 } else {
                     store.put(change.getKey(),unwrap(addMessage.getRecord()));
                     listener.receive(addMessage);
@@ -82,7 +82,7 @@ public class StorageDriver implements ChangeReceiver {
                 RemoveMessage removeMessage = (RemoveMessage) change;
                 Record v = store.remove(removeMessage.getKey());
                 if ( v != null ) {
-                    listener.receive(new RemoveMessage(unwrap(v)));
+                    listener.receive(new RemoveMessage(change.getSenderId(),unwrap(v)));
                 } else {
 //                    System.out.println("*********** failed remove "+change.getKey());
 //                    store.putRecord(change.getKey(), new MapRecord<K>(change.getKey()).putRecord("url", "POK"));
@@ -104,13 +104,13 @@ public class StorageDriver implements ChangeReceiver {
                         throw new RuntimeException("updated record does not exist, cannot fall back to 'Add' as UpdateMessage.newRecord is null");
                     }
                     store.put(change.getKey(),updateMessage.getNewRecord());
-                    listener.receive( new AddMessage(updateMessage.getNewRecord()) );
+                    listener.receive( new AddMessage(change.getSenderId(), updateMessage.getNewRecord()) );
                 } else if ( updateMessage.getDiff() == null ) {
                     Diff diff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec);
                     if ( ! diff.isEmpty() ) {
                         Record newRecord = unwrap(oldRec); // clarification
                         store.put(change.getKey(), newRecord);
-                        listener.receive(new UpdateMessage(diff, newRecord, change.getForcedUpdateFields()));
+                        listener.receive(new UpdateMessage(change.getSenderId(), diff, newRecord, change.getForcedUpdateFields()));
                     }
                 } else {
                     // old values are actually not needed inside the diff
@@ -119,7 +119,7 @@ public class StorageDriver implements ChangeReceiver {
                         Diff newDiff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec, updateMessage.getDiff().getChangedFields());
                         Record newRecord = unwrap(oldRec); // clarification
                         store.put(change.getKey(), newRecord);
-                        listener.receive(new UpdateMessage(newDiff, newRecord, change.getForcedUpdateFields()));
+                        listener.receive(new UpdateMessage(change.getSenderId(), newDiff, newRecord, change.getForcedUpdateFields()));
                     }
                 }
                 break;
@@ -151,8 +151,8 @@ public class StorageDriver implements ChangeReceiver {
         store.resizeIfLoadFactorLarger(loadFactor, maxGrowBytes);
     }
 
-    public void put(String key, Object ... keyVals) {
-        receive(RLUtil.get().put(key,keyVals));
+    public void put(int senderId, String key, Object ... keyVals) {
+        receive(RLUtil.get().put(senderId, key,keyVals));
     }
 
     /**
@@ -184,7 +184,7 @@ public class StorageDriver implements ChangeReceiver {
             {
                 receive( (ChangeMessage) res ) ;
             } else {
-                UpdateMessage updates = pr.getUpdates();
+                UpdateMessage updates = pr.getUpdates(0);
                 if (updates != null) {
                     receive(updates);
                 }
@@ -199,9 +199,9 @@ public class StorageDriver implements ChangeReceiver {
                 PatchingRecord pr = new PatchingRecord(r);
                 Boolean res = action.apply(pr);
                 if (res==Boolean.FALSE) {
-                    receive(RLUtil.get().remove(pr.getKey()));
+                    receive(RLUtil.get().remove(0,pr.getKey()));
                 } else {
-                    UpdateMessage updates = pr.getUpdates();
+                    UpdateMessage updates = pr.getUpdates(0);
                     if (updates != null) {
                         receive(updates);
                     }
@@ -210,32 +210,32 @@ public class StorageDriver implements ChangeReceiver {
         });
     }
 
-    public void addOrUpdate(String key, Object... keyVals) {
-        receive(RLUtil.get().addOrUpdate(key, keyVals));
+    public void addOrUpdate(int senderId, String key, Object... keyVals) {
+        receive(RLUtil.get().addOrUpdate(senderId,key, keyVals));
     }
 
-    public void add(String key, Object... keyVals) {
-        receive(RLUtil.get().add(key, keyVals));
+    public void add(int senderId, String key, Object... keyVals) {
+        receive(RLUtil.get().add(senderId,key, keyVals));
     }
 
-    public void add(Record rec) {
-        receive(new AddMessage(rec));
+    public void add(int senderId, Record rec) {
+        receive(new AddMessage(senderId,rec));
     }
 
-    public void addOrUpdateRec(Record rec) {
-        receive(new AddMessage(true,rec));
+    public void addOrUpdateRec(int senderId, Record rec) {
+        receive(new AddMessage(senderId,true,rec));
     }
 
-    public void put(Record rec) {
-        receive( new PutMessage(rec) );
+    public void put(int senderId, Record rec) {
+        receive( new PutMessage(senderId,rec) );
     }
 
-    public void update(String key, Object... keyVals) {
-        receive(RLUtil.get().update(key, keyVals));
+    public void update(int senderId, String key, Object... keyVals) {
+        receive(RLUtil.get().update(senderId,key, keyVals));
     }
 
-    public void remove(String key) {
-        RemoveMessage remove = RLUtil.get().remove(key);
+    public void remove(int senderId, String key) {
+        RemoveMessage remove = RLUtil.get().remove(senderId,key);
         receive(remove);
     }
 }

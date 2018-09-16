@@ -13,6 +13,11 @@ public class QueryDoneMessage implements ChangeMessage {
     }
 
     @Override
+    public int getSenderId() {
+        return 0;
+    }
+
+    @Override
     public String getKey() {
         return null;
     }

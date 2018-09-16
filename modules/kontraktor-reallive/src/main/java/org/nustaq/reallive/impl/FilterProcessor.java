@@ -96,9 +96,9 @@ public class FilterProcessor implements ChangeReceiver {
             if ( matchesOld && matchesNew) {
                 subscriber.getReceiver().receive(change);
             } else if ( matchesOld /*&& ! matchesNew*/ ) {
-                subscriber.getReceiver().receive(new RemoveMessage((Record)newRecord));
+                subscriber.getReceiver().receive(new RemoveMessage(change.getSenderId(),(Record)newRecord));
             } else if ( /*! matchesOld &&*/ matchesNew ) {
-                subscriber.getReceiver().receive(new AddMessage(newRecord));
+                subscriber.getReceiver().receive(new AddMessage(change.getSenderId(),newRecord));
             }
         }
     }
@@ -110,7 +110,7 @@ public class FilterProcessor implements ChangeReceiver {
                 final PatchingRecord patchingRecord = FilterSpore.rec.get();
                 patchingRecord.reset(record);
                 if ( subscriber.getFilter().test(patchingRecord))
-                    subscriber.getReceiver().receive(new AddMessage(add.isUpdateIfExisting(),patchingRecord.unwrapOrCopy()));
+                    subscriber.getReceiver().receive(new AddMessage(add.getSenderId(),add.isUpdateIfExisting(),patchingRecord.unwrapOrCopy()));
             }
         }
     }

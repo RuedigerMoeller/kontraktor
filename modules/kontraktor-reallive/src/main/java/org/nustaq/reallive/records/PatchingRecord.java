@@ -98,7 +98,7 @@ public class PatchingRecord extends RecordWrapper {
         return forcedUpdate;
     }
 
-    public UpdateMessage getUpdates() {
+    public UpdateMessage getUpdates(int senderId) {
         if (override == null)
             return null;
         Object update[] = new Object[override.size() * 2];
@@ -108,7 +108,7 @@ public class PatchingRecord extends RecordWrapper {
             update[idx++] = next.getKey();
             update[idx++] = next.getValue();
         }
-        return RLUtil.get().updateWithForced(getKey(), forcedUpdate, update);
+        return RLUtil.get().updateWithForced(senderId,getKey(), forcedUpdate, update);
     }
 
     public Record unwrapOrCopy() {

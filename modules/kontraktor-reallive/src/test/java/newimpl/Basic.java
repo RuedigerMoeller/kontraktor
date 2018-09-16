@@ -46,7 +46,7 @@ public class Basic {
                 .put("likes", 199)
                 .put("reads", 3485)
                 .put("sequence", i );
-            blogs.addRecord(blogEntry);
+            blogs.addRecord( blogEntry);
         }
 
         System.out.println("finished blogs");
@@ -68,7 +68,7 @@ public class Basic {
                 .put("reads", 3485)
                 .put("blog", "blog"+i)
                 .put("date", System.currentTimeMillis() );
-            articles.addRecord(article);
+            articles.addRecord( article);
         }
 
         System.out.println("finished articles");
@@ -176,7 +176,7 @@ public class Basic {
             });
             tim = System.currentTimeMillis();
             for ( int i = 0; i < 100_000; i++ ) {
-                stream.receive(cb.add("one"+i,
+                stream.receive(cb.add( 1,"one"+i,
                     "name", "emil",
                     "age", 9,
                     "bla", 13,
@@ -195,12 +195,12 @@ public class Basic {
             System.out.println("ADD "+(System.currentTimeMillis()-tim) );
             tim = System.currentTimeMillis();
             for ( int i = 0; i < 100_000; i++ ) {
-                stream.receive(cb.update("one" + i, "age", 10));
+                stream.receive(cb.update(1,"one" + i, "age", 10));
             }
             System.out.println("UPD "+(System.currentTimeMillis()-tim) );
             tim = System.currentTimeMillis();
             for ( int i = 0; i < 100_000; i++ ) {
-                stream.receive(cb.remove("one"+i) );
+                stream.receive(cb.remove(1,"one"+i) );
             }
             System.out.println("DEL "+(System.currentTimeMillis()-tim) );
         }
@@ -217,7 +217,7 @@ public class Basic {
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
                 yield();
-                rls.add("k" + i,
+                rls.add( "k" + i,
                         "name", "rm",
                         "age", rand,
                         "arr", new int[]{1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5, 1, 2, 3, 4, 5,}
@@ -229,7 +229,7 @@ public class Basic {
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
                 yield();
-                rls.update("k" + i,
+                rls.update( "k" + i,
                    "name", "rm"+(int)(Math.random()*i),
                    "age", rand,
                    "arr", new int[]{ 3, 4, 5, 1, 2, 3, 4, (int) rand}
@@ -240,7 +240,7 @@ public class Basic {
 
             for ( int i = 0; i < 500_000; i++ ) {
                 yield();
-                rls.remove("k" + (int) (Math.random() * 1_000_000));
+                rls.remove( "k" + (int) (Math.random() * 1_000_000));
             }
             rls.ping().await();
             System.out.println("REM SIZE" + rls.size().await());
@@ -248,7 +248,7 @@ public class Basic {
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
                 yield();
-                rls.merge("k" + i,
+                rls.merge( "k" + i,
                         "name", "rm",
                         "age", rand
                         );
@@ -314,10 +314,10 @@ public class Basic {
                 int i1 = 500_000;
 //                int i1 = 50;
                 for (int i = 0; i < i1; i++) {
-                    rls.merge("one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
+                    rls.merge( "one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
                 }
-                rls.update("one13", "age", 10);
-                rls.remove("one13");
+                rls.update( "one13", "age", 10);
+                rls.remove( "one13");
                 rls.ping().await();
                 System.out.println("add " + (System.currentTimeMillis() - tim1));
             });

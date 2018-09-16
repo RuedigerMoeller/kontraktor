@@ -101,7 +101,7 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
     public IPromise<String> createToken(Token t) {
         String key = UUID.randomUUID().toString();
         sessionId2UserKey.setRecord(
-            MapRecord.New(key)
+             MapRecord.New(key)
                 .put("lifeTime", System.currentTimeMillis()+t.getLifeTime())
                 .put("userId",t.getUserId())
                 .put("data",t.getData())
@@ -117,11 +117,11 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
                 // still valid ?
                 if ( r.getLong("lifeTime") > System.currentTimeMillis() ) {
                     if ( delete ) {
-                        sessionId2UserKey.remove(tokenId);
+                        sessionId2UserKey.remove( tokenId);
                     }
                     return new Token(r.getString("userId"),r.getString("data"),r.getLong("lifeTime"));
                 } else {
-                    sessionId2UserKey.remove(tokenId); // delete outdated token
+                    sessionId2UserKey.remove( tokenId); // delete outdated token
                 }
             }
             return null;
@@ -143,23 +143,23 @@ public class DefaultSessionStorage extends Actor<DefaultSessionStorage> implemen
 
     @Override
     public void putUserAtSessionId(String sessionId, String userKey) {
-        sessionId2UserKey.merge(sessionId, "user",userKey);
+        sessionId2UserKey.merge( sessionId, "user",userKey);
     }
 
     @Override
     public void putUser(Record userRecord) {
-        userData.setRecord(userRecord);
+        userData.setRecord( userRecord);
     }
 
     @Override
     public void delUser(String userkey) {
-        userData.remove(userkey);
+        userData.remove( userkey);
     }
 
     @Override
     public IPromise<Boolean> putUserIfNotPresent(Record userRecord) {
         Promise p = promise();
-        userData.addRecord(userRecord).then( p );
+        userData.addRecord( userRecord).then( p );
         return p;
     }
 

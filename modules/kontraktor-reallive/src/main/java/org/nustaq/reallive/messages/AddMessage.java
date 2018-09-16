@@ -9,14 +9,17 @@ public class AddMessage implements ChangeMessage {
 
     boolean updateIfExisting = false;
     private Record record;
+    int senderId;
 
-    public AddMessage(Record record) {
+    public AddMessage(int senderId, Record record) {
         this.record = record;
+        this.senderId = senderId;
     }
 
-    public AddMessage(boolean updateIfExisting, Record record) {
+    public AddMessage(int senderId, boolean updateIfExisting, Record record) {
         this.updateIfExisting = updateIfExisting;
         this.record = record;
+        this.senderId = senderId;
     }
 
     public Record getRecord() {
@@ -33,13 +36,18 @@ public class AddMessage implements ChangeMessage {
     }
 
     @Override
+    public int getSenderId() {
+        return senderId;
+    }
+
+    @Override
     public String getKey() {
         return record.getKey();
     }
 
     @Override
     public ChangeMessage reduced(String[] reducedFields) {
-        return new AddMessage(updateIfExisting,record.reduced(reducedFields));
+        return new AddMessage(senderId, updateIfExisting,record.reduced(reducedFields));
     }
 
     @Override

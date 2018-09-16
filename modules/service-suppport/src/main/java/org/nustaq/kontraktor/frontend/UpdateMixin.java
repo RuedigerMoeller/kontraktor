@@ -3,9 +3,6 @@ package org.nustaq.kontraktor.frontend;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.reallive.api.RealLiveTable;
-import org.nustaq.serialization.coders.Unknown;
-
-import java.util.Map;
 
 public interface UpdateMixin {
 
@@ -28,7 +25,7 @@ public interface UpdateMixin {
         RealLiveTable tab = getTable(table);
         if ( tab == null )
             return Actors.reject("table not found "+table);
-        tab.update(key,keyVals);
+        tab.update( key,keyVals);
         return Actors.resolve();
     }
 
@@ -36,7 +33,7 @@ public interface UpdateMixin {
         RealLiveTable tab = getTable(table);
         if ( tab == null )
             return Actors.reject("table not found "+table);
-        tab.remove(key);
+        tab.remove( key);
         return Actors.resolve();
     }
 

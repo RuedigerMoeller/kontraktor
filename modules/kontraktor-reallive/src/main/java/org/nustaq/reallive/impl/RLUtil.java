@@ -33,35 +33,35 @@ public class RLUtil {
         return name.startsWith("java.") || name.startsWith("javax.");
     }
 
-    public AddMessage add(String key, Object... keyVals) {
+    public AddMessage add(int senderId, String key, Object... keyVals) {
         Object record = record(key, keyVals);
-        return new AddMessage((Record) record);
+        return new AddMessage(senderId,(Record) record);
     }
 
-    public PutMessage put(String key, Object... keyVals) {
+    public PutMessage put(int senderId, String key, Object... keyVals) {
         Object record = record(key, keyVals);
-        return new PutMessage((Record) record);
+        return new PutMessage(senderId, (Record) record);
     }
 
-    public AddMessage addOrUpdate(String key, Object... keyVals) {
+    public AddMessage addOrUpdate(int senderId, String key, Object... keyVals) {
         Object record = record(key, keyVals);
-        return new AddMessage(true, (Record) record);
+        return new AddMessage( senderId, true, (Record) record);
     }
 
-    public UpdateMessage updateWithForced(String key, Set forced, Object... keyVals) {
-        UpdateMessage update = update(key, keyVals);
+    public UpdateMessage updateWithForced(int senderId, String key, Set forced, Object... keyVals) {
+        UpdateMessage update = update(senderId,key, keyVals);
         update.setForcedUpdateFields(forced);
         return update;
     }
 
-    public UpdateMessage update(String key, Object... keyVals) {
+    public UpdateMessage update(int senderId, String key, Object... keyVals) {
         String fi[] = new String[keyVals.length / 2];
         for (int i = 0; i < fi.length; i++) {
             fi[i] = (String) keyVals[i * 2];
         }
         Diff d = new Diff(fi, null);
         Object record = record(key, keyVals);
-        return new UpdateMessage(d, (Record) record, null);
+        return new UpdateMessage(senderId, d, (Record) record, null);
     }
 
     public Record record(String key, Object... keyVals) {
@@ -83,8 +83,8 @@ public class RLUtil {
         return res;
     }
 
-    public RemoveMessage remove(String key) {
-        return new RemoveMessage(MapRecord.New(key));
+    public RemoveMessage remove(int senderId, String key) {
+        return new RemoveMessage(senderId,MapRecord.New(key));
     }
 
     public ChangeMessage done() {

@@ -17,19 +17,22 @@ public class UpdateMessage implements ChangeMessage {
     final Record newRecord; // can nevere be null
     final boolean addIfNotExists ;
     Set<String> forcedUpdateFields;
+    int senderId;
 
-    public UpdateMessage(Diff diff, Record newRecord, Set<String> forcedUpdateFields) {
+    public UpdateMessage(int senderId, Diff diff, Record newRecord, Set<String> forcedUpdateFields) {
         this.diff = diff;
         this.newRecord = newRecord;
         this.addIfNotExists = true;
         this.forcedUpdateFields = forcedUpdateFields;
+        this.senderId = senderId;
     }
 
-    public UpdateMessage(Diff diff, Record newRecord, Set<String> forcedUpdateFields, boolean addIfNotExists) {
+    public UpdateMessage(int senderId,Diff diff, Record newRecord, Set<String> forcedUpdateFields, boolean addIfNotExists) {
         this.addIfNotExists = addIfNotExists;
         this.newRecord = newRecord;
         this.diff = diff;
         this.forcedUpdateFields = forcedUpdateFields;
+        this.senderId = senderId;
     }
 
     public Set<String> getForcedUpdateFields() {
@@ -46,6 +49,11 @@ public class UpdateMessage implements ChangeMessage {
     }
 
     @Override
+    public int getSenderId() {
+        return senderId;
+    }
+
+    @Override
     public String getKey() {
         return newRecord.getKey();
     }
@@ -53,7 +61,7 @@ public class UpdateMessage implements ChangeMessage {
     @Override
     public ChangeMessage reduced(String[] reducedFields) {
         return new UpdateMessage(
-            diff.reduced(reducedFields),
+            senderId, diff.reduced(reducedFields),
             newRecord.reduced(reducedFields),
             forcedUpdateFields,
             addIfNotExists);

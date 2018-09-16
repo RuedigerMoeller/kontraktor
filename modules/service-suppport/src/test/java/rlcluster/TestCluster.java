@@ -1,6 +1,5 @@
 package rlcluster;
 
-import org.junit.Test;
 import org.nustaq.kontraktor.services.*;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.services.rlclient.DataShard;
@@ -63,7 +62,7 @@ public class TestCluster {
         RealLiveTable user = dclient.tbl("user");
         Log.Info(TestCluster.class,"start insert");
         for ( int i = 0; i < 10000; i++ ) {
-            user.add(""+i, "name", "Ruedi", "value", "val"+i );
+            user.add( ""+i, "name", "Ruedi", "value", "val"+i );
         }
         Log.Info(TestCluster.class,"waiting ..");
         user.get("0").await();

@@ -44,7 +44,7 @@ public class SubsRegistry {
                         if (reducedFields != null && reducedFields.length > 0) {
                             record = record.reduced(reducedFields);
                         }
-                        changeReceiver.pipe(new AddMessage(record));
+                        changeReceiver.pipe(new AddMessage(0,record));
                     } else {
                         if (Actors.isError(error) ) {
                             changeReceiver.reject(error);

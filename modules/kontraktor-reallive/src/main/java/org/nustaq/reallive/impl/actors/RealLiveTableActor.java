@@ -103,7 +103,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
         spore.onFinish( () -> localSubs.getReceiver().receive(RLUtil.get().done()) );
         spore.setForEach((r, e) -> {
             if (Actors.isResult(e)) {
-                localSubs.getReceiver().receive(new AddMessage((Record) r));
+                localSubs.getReceiver().receive(new AddMessage(0,(Record) r));
             } else {
                 // FIXME: pass errors
                 // FIXME: called in case of error only (see onFinish above)
@@ -115,7 +115,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
             p.getKeys().forEach( key -> {
                 Record record = storageDriver.getStore().get(key);
                 if ( record != null ) {
-                    localSubs.getReceiver().receive(new AddMessage(record));
+                    localSubs.getReceiver().receive(new AddMessage(0,record));
                 }
             });
             localSubs.getReceiver().receive(RLUtil.get().done());
@@ -249,65 +249,65 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     @Override
-    public void put(String key, Object ... keyVals) {
-        receive(RLUtil.get().put(key, keyVals));
+    public void put(int senderId, String key, Object... keyVals) {
+        receive(RLUtil.get().put(senderId, key, keyVals));
     }
 
     @Override
-    public void merge(String key, Object... keyVals) {
+    public void merge(int senderId, String key, Object... keyVals) {
         if ( ((Object)key) instanceof Record )
             throw new RuntimeException("probably accidental method resolution fail. Use merge instead");
-        receive(RLUtil.get().addOrUpdate(key, keyVals));
+        receive(RLUtil.get().addOrUpdate(senderId, key, keyVals));
     }
 
     @Override
-    public IPromise<Boolean> add(String key, Object... keyVals) {
+    public IPromise<Boolean> add(int senderId, String key, Object... keyVals) {
         if ( storageDriver.getStore().get(key) != null )
             return resolve(false);
-        receive(RLUtil.get().add(key, keyVals));
+        receive(RLUtil.get().add(senderId, key, keyVals));
         return resolve(true);
     }
 
     @Override
-    public IPromise<Boolean> addRecord(Record rec) {
+    public IPromise<Boolean> addRecord(int senderId, Record rec) {
         if ( rec instanceof RecordWrapper)
             rec = ((RecordWrapper) rec).getRecord();
         Record existing = storageDriver.getStore().get(rec.getKey());
         if ( existing != null )
             return resolve(false);
-        receive((ChangeMessage) new AddMessage(rec));
+        receive((ChangeMessage) new AddMessage(senderId,rec));
         return resolve(true);
     }
 
     @Override
-    public void mergeRecord(Record rec) {
+    public void mergeRecord(int senderId, Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        receive(new AddMessage(true,rec));
+        receive(new AddMessage(senderId, true,rec));
     }
 
     @Override
-    public void setRecord(Record rec) {
+    public void setRecord(int senderId, Record rec) {
         if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        receive(new PutMessage(rec));
+        receive(new PutMessage(senderId, rec));
     }
 
     @Override
-    public void update(String key, Object... keyVals) {
-        receive(RLUtil.get().update(key, keyVals));
+    public void update(int senderId, String key, Object... keyVals) {
+        receive(RLUtil.get().update(senderId, key, keyVals));
     }
 
     @Override
-    public IPromise<Record> take(String key) {
+    public IPromise<Record> take(int senderId, String key) {
         Record record = storageDriver.getStore().get(key);
-        receive(RLUtil.get().remove(key));
+        receive(RLUtil.get().remove(senderId,key));
         return resolve(record);
     }
 
     @Override
-    public void remove(String key) {
-        RemoveMessage remove = RLUtil.get().remove(key);
+    public void remove(int senderId, String key) {
+        RemoveMessage remove = RLUtil.get().remove(senderId, key);
         receive(remove);
     }
 

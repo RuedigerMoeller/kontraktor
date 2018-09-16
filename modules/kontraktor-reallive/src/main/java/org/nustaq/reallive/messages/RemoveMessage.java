@@ -7,14 +7,21 @@ import org.nustaq.reallive.api.*;
  */
 public class RemoveMessage implements ChangeMessage {
     Record deletedRow;
+    int senderId;
 
-    public RemoveMessage(Record rec) {
+    public RemoveMessage(int senderId, Record rec) {
         this.deletedRow = rec;
+        this.senderId = senderId;
     }
 
     @Override
     public int getType() {
         return REMOVE;
+    }
+
+    @Override
+    public int getSenderId() {
+        return senderId;
     }
 
     @Override
@@ -24,7 +31,7 @@ public class RemoveMessage implements ChangeMessage {
 
     @Override
     public ChangeMessage reduced(String[] reducedFields) {
-        return new RemoveMessage(deletedRow.reduced(reducedFields));
+        return new RemoveMessage(senderId,deletedRow.reduced(reducedFields));
     }
 
     @Override

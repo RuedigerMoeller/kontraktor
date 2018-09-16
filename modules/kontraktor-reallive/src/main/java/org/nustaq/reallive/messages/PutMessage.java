@@ -8,8 +8,11 @@ import org.nustaq.reallive.api.Record;
  */
 public class PutMessage implements ChangeMessage {
 
-    public PutMessage(Record record) {
+    int senderId;
+
+    public PutMessage(int senderId, Record record) {
         this.record = record;
+        this.senderId = senderId;
     }
 
     private Record record;
@@ -24,13 +27,18 @@ public class PutMessage implements ChangeMessage {
     }
 
     @Override
+    public int getSenderId() {
+        return senderId;
+    }
+
+    @Override
     public String getKey() {
         return record.getKey();
     }
 
     @Override
     public ChangeMessage reduced(String[] reducedFields) {
-        return new PutMessage(record.reduced(reducedFields));
+        return new PutMessage(senderId,record.reduced(reducedFields));
     }
 
     @Override
