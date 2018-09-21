@@ -197,7 +197,7 @@ public class Query {
 
             @Override
             protected String stringOp(String stringValue, String stringValue1) {
-                return stringValue.compareTo(stringValue) < 0 ? "1" : "";
+                return stringValue.compareTo(stringValue1) < 0 ? "1" : "";
             }
         });
         operators.put("<=", new Operator("<=",6) {
@@ -213,7 +213,7 @@ public class Query {
 
             @Override
             protected String stringOp(String stringValue, String stringValue1) {
-                return stringValue.compareTo(stringValue) <= 0 ? "1" : "";
+                return stringValue.compareTo(stringValue1) <= 0 ? "1" : "";
             }
         });
         operators.put(">", new Operator(">",6) {
@@ -229,7 +229,7 @@ public class Query {
 
             @Override
             protected String stringOp(String stringValue, String stringValue1) {
-                return stringValue.compareTo(stringValue) > 0 ? "1" : "";
+                return stringValue.compareTo(stringValue1) > 0 ? "1" : "";
             }
         });
         operators.put(">=", new Operator(">=",6) {
@@ -245,7 +245,7 @@ public class Query {
 
             @Override
             protected String stringOp(String stringValue, String stringValue1) {
-                return stringValue.compareTo(stringValue) >= 0 ? "1" : "";
+                return stringValue.compareTo(stringValue1) >= 0 ? "1" : "";
             }
         });
         operators.put("!=", new Operator("!=",6) {
@@ -261,7 +261,7 @@ public class Query {
 
             @Override
             protected String stringOp(String stringValue, String stringValue1) {
-                return stringValue.compareTo(stringValue) != 0 ? "1" : "";
+                return stringValue.compareTo(stringValue1) != 0 ? "1" : "";
             }
         });
     }

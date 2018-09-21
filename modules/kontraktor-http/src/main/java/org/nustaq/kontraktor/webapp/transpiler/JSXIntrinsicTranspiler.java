@@ -493,15 +493,15 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             s += "\n_kimptmp.__modimports = __modimports; _kimptmp.__initial_modimports = __initial_modimports;\n";
         }
         if ( dev && hmr ) {
-            s += "\n__keval['" + libName + "'] = s => {";
+            s += "\n__keval['" + libName + "'] = __uh_oh__ => {";
             for (int i = 0; i < result.getGlobals().size(); i++) {
                 String gl = result.getGlobals().get(i);
-                s+="var "+gl+" = _kimptmp['"+gl+"'];";
+                s+="let "+gl+" = _kimptmp['"+gl+"'];";
                 if ( gl.equals(result.getDefaultExport())) {
-                    s+="var __kdefault__= "+gl+";";
+                    s+="let __kdefault__= "+gl+";";
                 }
             }
-            s += "return eval(s.toString()); }";
+            s += "return eval(__uh_oh__.toString()); }";
             if ( "index".equals(libName) ) {
                 s+=getHMRReloadFun();
             }
