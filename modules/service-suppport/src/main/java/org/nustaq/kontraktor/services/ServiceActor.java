@@ -298,15 +298,18 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
                     connect.then((actor, connectionError) -> {
                         if (actor != null) {
                             requiredServices.put(servName, actor);
+                            Log.Info(this,"connected requireed service "+servName);
                             notify.complete();
                         } else {
                             requiredServices.put(servName,UNCONNECTED);
+                            Log.Info(this,"connected requireed service "+servName);
                             Log.Warn(this, "failed to connect " + servName + " " + connectionError+" "+serviceDescription.getConnectable());
                             notify.reject("failed to connect " + servName + " " + connectionError);
                         }
                     });
                 } else {
-                    requiredServices.put(servName,UNCONNECTED);
+                    // wrong ! service already connected
+                    //requiredServices.put(servName,UNCONNECTED);
                 }
             }
             all(servicePromis).then( res );
