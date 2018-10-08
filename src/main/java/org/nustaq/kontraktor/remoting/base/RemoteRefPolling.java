@@ -79,7 +79,7 @@ public class RemoteRefPolling implements Runnable {
     boolean underway = false;
     Thread pollThread;
 
-    int remoteRefCounter = 0; // counts active remote refs, if none backoff remoteref polling massively eats cpu
+    int remoteRefCounter = 0; // counts active remote refs, if none backoff remoteref polling eats cpu
     public void run() {
         pollThread = Thread.currentThread();
         if ( underway )
@@ -96,9 +96,9 @@ public class RemoteRefPolling implements Runnable {
                     else {
                         if ( remoteRefCounter == 0 ) // no remote actors registered
                         {
-                            Actor.current().delayed(100, this); // backoff massively
+                            Actor.current().delayed(100, this); // backoff
                         } else {
-                            Actor.current().delayed(1, this); // backoff a bit (remoteactors present, no messages)
+                            Actor.current().delayed(3, this); // backoff a bit (remoteactors present, no messages)
                         }
                     }
                 } else {

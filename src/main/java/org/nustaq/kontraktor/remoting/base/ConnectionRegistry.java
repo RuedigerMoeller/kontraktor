@@ -56,6 +56,7 @@ public abstract class ConnectionRegistry {
     public static void registerDefaultClassMappings(FSTConfiguration conf) {
         conf.registerCrossPlatformClassMapping(new String[][]{
             {"call", RemoteCallEntry.class.getName()},
+            {"tcall", TrackedRemoteCallEntry.class.getName()},
             {"cbw", CallbackWrapper.class.getName()}
         });
     }
@@ -129,6 +130,7 @@ public abstract class ConnectionRegistry {
 		conf.registerSerializer(Spore.class, new SporeRefSerializer(), true);
         conf.registerSerializer(Timeout.class, new TimeoutSerializer(), false);
         conf.registerClass(RemoteCallEntry.class);
+        conf.registerClass(TrackedRemoteCallEntry.class);
         conf.registerClass(Spore.class);
         conf.registerClass(CallbackWrapper.class);
         conf.registerClass(Actor.class);

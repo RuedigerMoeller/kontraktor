@@ -185,6 +185,10 @@ public class SimpleScheduler implements Scheduler {
         }
 
         CallEntry e = createCallentry(reg, args, isCB, actor, method);
+        if (receiver.__doCallTracking) {
+            e.trackingId(receiver.generateNewTrackingId());
+            receiver.__tracker.externalBoundaryIncoming(receiver,methodName,args);
+        }
         return put2QueuePolling(e);
     }
 

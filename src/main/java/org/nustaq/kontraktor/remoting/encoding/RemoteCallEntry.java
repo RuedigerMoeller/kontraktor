@@ -178,5 +178,9 @@ public class RemoteCallEntry implements Serializable {
         copy.cb = cb;
         return copy;
     }
+
+    public int getTrackingId() {
+        return 0;
+    }
 }
 

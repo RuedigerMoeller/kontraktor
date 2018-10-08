@@ -52,10 +52,7 @@ import org.nustaq.serialization.util.FSTUtil;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executor;
+import java.util.concurrent.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -98,6 +95,10 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      */
     public static ThreadLocal<ConnectionRegistry> connection = new ThreadLocal<>();
 
+    public static int generateNewTrackingId() {
+        return ThreadLocalRandom.current().nextInt();
+    }
+
     /**
      * @return current actor or throw an exception if not running inside an actor thread.
      */
@@ -132,12 +133,29 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     ConcurrentLinkedQueue<Callback<SELF>> __stopHandlers;
     public int __mailboxCapacity; // fixme: checkout why there is also _mbCapacity :)
     public void __submit(Runnable toRun) { toRun.run(); }
+
+    // tracking related, must be propagated from proxy to actorimpl and vice versa (avoid pointerchasing for performance)
+    public boolean __doCallTracking = false;
+    public int __currentTrackingId;
+    public TrackingClient __tracker;
     // <- internal
 
     /**
      * required by bytecode magic. Use Actors.AsActor(..) to construct actor instances
      */
     public Actor() {
+    }
+
+    /**
+     * marks this actor as being an external boundery to a distributed actor system.
+     * for each incoming remote call a tracking Id will be generated and stored to __currentTrackingId
+     * @param tracker
+     */
+    @CallerSideMethod public void setIsExternalTrackingBoundary(TrackingClient tracker) {
+        getActor().__doCallTracking = true;
+        getActorRef().__doCallTracking = true;
+        getActor().__tracker = tracker;
+        getActorRef().__tracker = tracker;
     }
 
     /**

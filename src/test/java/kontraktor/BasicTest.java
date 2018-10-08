@@ -449,7 +449,7 @@ public class BasicTest {
         }
 
         public IPromise<String> doTestCall() {
-            final Promise<String> stringResult = new Promise<String>().setId("doTestCall");
+            final Promise<String> stringResult = new Promise<String>();
             ft.getString("13")
                 .then(new Callback<String>() {
                     @Override

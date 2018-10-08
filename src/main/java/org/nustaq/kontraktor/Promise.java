@@ -23,7 +23,6 @@ import java.util.TimerTask;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -37,6 +36,7 @@ import java.util.function.Supplier;
  * Its 'settled' or 'completed' once a result or error has been set.
  */
 public class Promise<T> implements IPromise<T> {
+
     protected Object result = null;
     protected Object error;
     protected Callback resultReceiver;
@@ -46,9 +46,7 @@ public class Promise<T> implements IPromise<T> {
     // probably unnecessary, increases cost
     // of allocation. However for now stay safe and optimize
     // from a proven-working implementation
-    // note: if removed some field must set to volatile
     final AtomicBoolean lock = new AtomicBoolean(false); // (AtomicFieldUpdater is slower!)
-    String id;
     IPromise nextFuture;
 
     /**
@@ -64,7 +62,6 @@ public class Promise<T> implements IPromise<T> {
 
     /**
      * create a resolved Promise by providing a result (cane be null).
-     * @param error
      */
     public Promise(T result) {
         this(result,null);
@@ -74,21 +71,6 @@ public class Promise<T> implements IPromise<T> {
      * create an unfulfilled/unsettled Promise
      */
     public Promise() {}
-
-    /**
-     * remoting helper
-     */
-    public String getId() {
-        return id;
-    }
-
-    /**
-     * remoting helper
-     */
-    public Promise<T> setId(String id) {
-        this.id = id;
-        return this;
-    }
 
     /**
      * see IPromise interface

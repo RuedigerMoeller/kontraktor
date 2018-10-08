@@ -29,11 +29,12 @@ public class CallEntry<T> {
     final private Method method;
     final private Object[] args;
     private IPromise futureCB;
-    transient final private T target;    // target and target actor are not necessary equal. E.g. target can be callback, but calls are put onto sendingActor Q
-    transient private Actor sendingActor; // defines the sender of this message. null in case of outside call
-    transient private Actor targetActor;  // defines actor assignment in case target is callback
-    transient private boolean onCBQueue;  // determines queue used
-    transient private ConnectionRegistry remoteRefRegistry; // remote connection call came from
+    final private T target;    // target and target actor are not necessary equal. E.g. target can be callback, but calls are put onto sendingActor Q
+    private Actor sendingActor; // defines the sender of this message. null in case of outside call
+    private Actor targetActor;  // defines actor assignment in case target is callback
+    private boolean onCBQueue;  // determines queue used
+    private ConnectionRegistry remoteRefRegistry; // remote connection call came from
+    private int trackingId;
 
     public CallEntry(T target, Method method, Object[] args, Actor sender, Actor targetActor, boolean isCB) {
         this.target = target;
@@ -93,5 +94,14 @@ public class CallEntry<T> {
 
     public boolean isCallback() {
         return onCBQueue;
+    }
+
+    public CallEntry trackingId(int trackingId) {
+        this.trackingId = trackingId;
+        return this;
+    }
+
+    public int getTrackingId() {
+        return trackingId;
     }
 }
