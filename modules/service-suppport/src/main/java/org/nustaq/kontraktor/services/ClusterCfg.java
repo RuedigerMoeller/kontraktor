@@ -13,7 +13,11 @@ import java.io.Serializable;
  */
 public class ClusterCfg implements Serializable {
 
-    public static String pathname = "run/etc/clustercfg.kson";
+    public static String filename = "clustercfg.kson";
+    public static String dir = "run/etc/";
+    public static String pathname = dir + filename;
+    public static Class[] configClasses = {ClusterCfg.class, DataCfg.class, TableDescription.class};
+
     public static long lastTime;
 
     public static boolean isDirty() {
@@ -26,7 +30,7 @@ public class ClusterCfg implements Serializable {
     }
 
     public static ClusterCfg read(String pathname) {
-        Kson kson = new Kson().map( ClusterCfg.class, DataCfg.class, TableDescription.class );
+        Kson kson = new Kson().map(configClasses);
         try {
             ClusterCfg clCfg = (ClusterCfg) kson.readObject(new File(pathname));
             String confString = kson.writeObject(clCfg);
