@@ -52,11 +52,11 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     ClusterCfg config;
 
     @Local
-    public void init() {
+    public void init(ClusterCfg clusterCfg) {
         services = new HashMap<>();
         listeners = new ArrayList<>();
         checkTimeout();
-        config = ClusterCfg.read();
+        config = clusterCfg;
         serviceDumper();
     }
 
@@ -204,7 +204,19 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         }
 
         ServiceRegistry serviceRegistry = Actors.AsActor(ServiceRegistry.class);
-        serviceRegistry.init();
+        try {
+            Config config = new Config(ClusterCfg.filename, options.isReplacingEnvVars(), ClusterCfg.configClasses);
+
+            if(options.isFilesystemConfigPreferred()) {
+                serviceRegistry.init(config.fromFilesystem(ClusterCfg.pathname));
+            } else {
+                serviceRegistry.init(config.fromClasspath());
+            }
+        } catch (Exception e) {
+            Log.Warn(ServiceRegistry.class, e);
+            Log.Warn(ServiceRegistry.class, "Using default configuration");
+            serviceRegistry.init(new ClusterCfg());
+        }
 
         new TCPNIOPublisher(serviceRegistry,options.getRegistryPort()).publish(actor -> {
             Log.Info(null, actor + " has disconnected");

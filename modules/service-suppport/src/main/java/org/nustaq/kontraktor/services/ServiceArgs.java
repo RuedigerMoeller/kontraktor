@@ -30,6 +30,12 @@ public class ServiceArgs {
     @Parameter(names = {"-nolog"}, help = true, description = "log to sysout without log4j", arity = 1)
     public boolean asyncLog = true;
 
+    @Parameter(names = {"-filesystemConfigPreferred"}, description = "if true, prefer files on file system instead of files from classpath")
+    private boolean filesystemConfigPreferred = true;
+
+    @Parameter(names = {"replacingEnvVars"}, description = "if true, will replace environment variable placeholders in config files (e.g. ${SOME_ENV_VAR})")
+    private boolean replacingEnvVars = false;
+
     public ServiceArgs() {
         try {
             host = InetAddress.getLocalHost().getHostName();
@@ -71,6 +77,14 @@ public class ServiceArgs {
 
     public boolean isAsyncLog() {
         return asyncLog;
+    }
+
+    public boolean isFilesystemConfigPreferred() {
+        return filesystemConfigPreferred;
+    }
+
+    public boolean isReplacingEnvVars() {
+        return replacingEnvVars;
     }
 
     public static ServiceArgs parseCommandLine(String[] args, ServiceArgs options) {
