@@ -33,7 +33,7 @@ public class ServiceArgs {
     @Parameter(names = {"-filesystemConfigPreferred"}, description = "if true, prefer files on file system instead of files from classpath")
     private boolean filesystemConfigPreferred = true;
 
-    @Parameter(names = {"replacingEnvVars"}, description = "if true, will replace environment variable placeholders in config files (e.g. ${SOME_ENV_VAR})")
+    @Parameter(names = {"-replacingEnvVars"}, description = "if true, will replace environment variable placeholders in config files (e.g. ${SOME_ENV_VAR})")
     private boolean replacingEnvVars = false;
 
     public ServiceArgs() {
