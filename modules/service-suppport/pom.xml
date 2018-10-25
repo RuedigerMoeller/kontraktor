@@ -92,6 +92,12 @@
             </plugin>
 
         </plugins>
+
+        <testResources>
+            <testResource>
+                <directory>${project.basedir}/src/test/resource</directory>
+            </testResource>
+        </testResources>
     </build>
 
     <dependencies>
