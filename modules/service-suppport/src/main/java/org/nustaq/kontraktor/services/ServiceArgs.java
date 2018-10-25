@@ -30,10 +30,10 @@ public class ServiceArgs {
     @Parameter(names = {"-nolog"}, help = true, description = "log to sysout without log4j", arity = 1)
     public boolean asyncLog = true;
 
-    @Parameter(names = {"-filesystemConfigPreferred"}, description = "if true, prefer files on file system instead of files from classpath")
+    @Parameter(names = {"-filesystemConfigPreferred"}, description = "if true, prefer files on file system instead of files from classpath", arity = 1)
     private boolean filesystemConfigPreferred = true;
 
-    @Parameter(names = {"-replacingEnvVars"}, description = "if true, will replace environment variable placeholders in config files (e.g. ${SOME_ENV_VAR})")
+    @Parameter(names = {"-replacingEnvVars"}, description = "if true, will replace environment variable placeholders in config files (e.g. ${SOME_ENV_VAR})", arity = 1)
     private boolean replacingEnvVars = false;
 
     public ServiceArgs() {
