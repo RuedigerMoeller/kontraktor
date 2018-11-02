@@ -10,7 +10,7 @@ public class JSBeautifier implements ParseUtils {
             if ( ch == '/' && in.ch(1) == '/' ) {
                 cur.print(readSlashComment(in));
             } else
-            if ( ch == '"' || ch == '\'') {
+            if ( ch == '"' || ch == '\'' || ch == '`') {
                 cur.print(readJSString(in));
             } else
             if ( ch == '/' && in.ch(1) == '*' ) {

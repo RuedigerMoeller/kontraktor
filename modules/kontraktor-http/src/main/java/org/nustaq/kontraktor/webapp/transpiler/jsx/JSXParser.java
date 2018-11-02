@@ -100,8 +100,9 @@ public class JSXParser implements ParseUtils {
             if ( ch == '/' && in.ch(1) == '/' ) {
                 cur.add(readSlashComment(in));
             } else
-            if ( ch == '"' || ch == '\'') {
-                cur.add(readJSString(in));
+            if ( ch == '"' || ch == '\'' || ch == '`') {
+                StringBuilder sb = readJSString(in);
+                cur.add(sb);
             } else
             if ( ch == '/' && in.ch(1) == '*' ) {
                 cur.add(readStarComment(in));
