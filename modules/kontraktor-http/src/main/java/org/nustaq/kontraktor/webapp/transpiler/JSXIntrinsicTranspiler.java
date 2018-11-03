@@ -11,6 +11,8 @@ import org.nustaq.kontraktor.webapp.npm.JNPMConfig;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.*;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 /**
@@ -108,26 +110,32 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         if ( !requireText.startsWith(".") ) {
             File f = new File(requiringFile, "node_modules/" + requireText);
             if (f.exists())
-                return new File(f.getCanonicalPath());
+                return new File(getCanonicalPath(f));
             f = new File(requiringFile, "node_modules/" + requireText + ".js");
             if (f.exists())
-                return new File(f.getCanonicalPath());
+                return new File(getCanonicalPath(f));
             return findNodeModulesNearestMatch(requiringFile.getParentFile(), requireText);
         } else {
             File f = new File(requiringFile.getParentFile(),requireText);
             if ( ! f.exists() )
                 f =  new File(requiringFile.getParentFile(),requireText+".js");
             if ( f.exists() )
-                return new File(f.getCanonicalPath());
+                return new File(getCanonicalPath(f));
         }
         return null;
+    }
+
+    private String getCanonicalPath(File f) throws IOException {
+        if ( Files.isSymbolicLink(f.toPath()) )
+            return f.getAbsolutePath();
+        return f.getCanonicalPath();
     }
 
     String findNodeSubDir(File requiringFile) throws IOException {
         if ( requiringFile == null )
             return null;
         if ( requiringFile.getParentFile() != null && requiringFile.getParentFile().getName().equals("node_modules") )
-            return requiringFile.getCanonicalPath();
+            return getCanonicalPath(requiringFile);
         else
             return findNodeSubDir(requiringFile.getParentFile());
     }
@@ -147,7 +155,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                         return new File(file,browser.asString());
                     }
                     if ( browser.isObject() ) {
-                        String nodeModuleDir = file.getCanonicalPath();
+                        String nodeModuleDir = getCanonicalPath(file);
                         JsonObject members = browser.asObject();
                         members.forEach( member -> {
                             String key = "browser_" + nodeModuleDir + "_" + member.getName();
@@ -156,7 +164,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 //                            System.out.println("  val:"+member.getValue());
                         });
                     } else {
-                        Log.Warn(this, "unrecognized 'browser' entry in package.json, " + file.getCanonicalPath());
+                        Log.Warn(this, "unrecognized 'browser' entry in package.json, " + getCanonicalPath(file));
                         return null;
                     }
                 }
@@ -402,7 +410,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             }
             if ( indexFile == null )
             {
-                Log.Warn(this,"node directory could not be resolved to a resource :"+resolvedFile.getCanonicalPath());
+                Log.Warn(this,"node directory could not be resolved to a resource :"+ getCanonicalPath(resolvedFile));
                 return null;
             } else {
                 toReadFrom = indexFile;
@@ -456,7 +464,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     }
                 }
             }
-            Log.Warn(this, importSpec.getFrom() + " not found. requiredBy:" + requiringFile.getCanonicalPath());
+            Log.Warn(this, importSpec.getFrom() + " not found. requiredBy:" + getCanonicalPath(requiringFile));
         }
         return requiringFile;
     }
