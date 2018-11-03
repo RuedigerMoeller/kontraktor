@@ -104,6 +104,8 @@ public class DependencyResolver implements HtmlImportShim.ResourceLocator{
     }
 
     public String resolveUniquePath(File fi) {
+        if ( fi == null )
+            return null;
         String longestMatch = "";
         try {
             String fp = fi.getCanonicalPath();

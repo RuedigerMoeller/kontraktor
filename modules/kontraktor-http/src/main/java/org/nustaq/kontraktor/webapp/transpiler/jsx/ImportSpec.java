@@ -9,7 +9,7 @@ public class ImportSpec {
     List<String> aliases = new ArrayList();;
     String component;
     String alias;
-    String from;
+    private String from;
     File requiredin;
     boolean isRequire;
 
@@ -36,7 +36,6 @@ public class ImportSpec {
     public String getFrom() {
         return from;
     }
-
 
     public ImportSpec components(List<String> components) {
         this.components = components;

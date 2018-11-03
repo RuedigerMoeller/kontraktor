@@ -76,10 +76,10 @@ public class JSXParser implements ParseUtils {
                             cur.add("/*could not parse name*/");
                         } else {
                             if (libNameResolver != null) {
-                                String finalLibName = libNameResolver.getFinalLibName(file, libNameResolver, spec.from);
+                                String finalLibName = libNameResolver.getFinalLibName(file, libNameResolver, spec.getFrom());
                                 cur.add("require('" + finalLibName + "')");
                             } else
-                                cur.add("require('" + spec.from + "')");
+                                cur.add("require('" + spec.getFrom() + "')");
                             continue;
                         }
                         ch = in.ch(); // might have changed
@@ -292,7 +292,7 @@ public class JSXParser implements ParseUtils {
             return null;
         }
         ImportSpec spec = new ImportSpec().requiredin(file);
-        spec.from = reqString.substring(1,reqString.length()-1);
+        spec.from(reqString.substring(1,reqString.length()-1));
         spec.isRequire = true;
         imports.add(spec);
 //        System.out.println("REQUIRE:"+in+" from "+ file.getPath());

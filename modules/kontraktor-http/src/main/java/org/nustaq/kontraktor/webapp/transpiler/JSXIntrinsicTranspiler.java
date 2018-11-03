@@ -295,9 +295,14 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                         System.out.println("============================= TOP LEVEL IMPORTS ======================================");
                         nodeTopLevelImports.forEach( (s,fi) -> {
                             try {
-                                JsonValue packjson = Json.parse(new FileReader(new File(fi, "package.json")));
-                                String version = packjson.asObject().getString("version" ,"*");
-                                System.out.println("\""+s+"\":"+"\""+version+"\",");
+                                File file = new File(fi, "package.json");
+                                if ( file.exists() ) {
+                                    JsonValue packjson = Json.parse(new FileReader(file));
+                                    String version = packjson.asObject().getString("version", "*");
+                                    System.out.println("\"" + s + "\":" + "\"" + version + "\",");
+                                } else {
+                                    System.out.println("\"" + s + "\":" + "no package.json");
+                                }
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
@@ -435,12 +440,9 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         else {
             if ( autoJNPM && jnpmNodeModulesDir != null ) {
                 String required = importSpec.getFrom();
-                int i = required.indexOf("/");
-                if ( i >= 0 ) {
-                    required = required.substring(0,i);
-                }
+                required = getLookupLibName(required);
                 // single file can't be a node module
-                if ( required.indexOf(".") != 0 )
+                if ( required.indexOf(".") < 0 )
                 {
                     JNPMConfig config = getConfig();
                     Log.Info(this, importSpec.getFrom() + " not found. installing .. '" + required+"'");
@@ -457,6 +459,24 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             Log.Warn(this, importSpec.getFrom() + " not found. requiredBy:" + requiringFile.getCanonicalPath());
         }
         return requiringFile;
+    }
+
+    public static String getLookupLibName(String required) {
+        if ( required.startsWith("@") ) { // deal with scopes by guessing for now
+            int idx = required.indexOf('/');
+            required = required.substring(0,idx)+"/"+required.substring(idx+1);
+            int i = required.indexOf("/",idx+1);
+            if (i >= 0) {
+                required = required.substring(0, i);
+            }
+            return required;
+        } else {
+            int i = required.indexOf("/");
+            if (i >= 0) {
+                required = required.substring(0, i);
+            }
+            return required;
+        }
     }
 
     protected JNPMConfig getConfig() {

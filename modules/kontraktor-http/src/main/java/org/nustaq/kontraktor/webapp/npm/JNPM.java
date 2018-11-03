@@ -18,6 +18,7 @@ import org.nustaq.utils.AsyncHttpActor;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public class JNPM extends Actor<JNPM> {
 
@@ -39,6 +40,8 @@ public class JNPM extends Actor<JNPM> {
         nodeModulesDir = nodeModules;
         http = AsyncHttpActor.getSingleton();
         http.setLimits(5,10);
+        http.enableShortTimeContentCache(TimeUnit.MINUTES.toMillis(2));
+//        http.DUMP_GET = true;
         this.config = config;
     }
 
@@ -86,6 +89,9 @@ public class JNPM extends Actor<JNPM> {
 
         File nodeModule = new File(nodeModulesDir, module);
         boolean installPrivate = false;
+        if ( module.startsWith("@")) {
+            int debug = 1;
+        }
         if (nodeModule.exists() ) {
             File targetDir = importingModuleDir.getName().equals("node_modules") ? nodeModulesDir:new File(importingModuleDir,"node_modules");
             String moduleKey = createModuleKey(module, targetDir);
@@ -150,9 +156,10 @@ public class JNPM extends Actor<JNPM> {
                     return;
                 }
                 String resolvedVersion = getVersion(module, finalVersionSpec, versions, finalDist);
-                http.getContent(config.getRepo()+"/"+module+"/"+ resolvedVersion).then( (cont, err) -> {
+                http.getContent(config.getRepo()+"/"+module+"/").then( (cont, err) -> {
                     if ( cont != null ) {
                         JsonObject pkg = Json.parse(cont).asObject();
+                        pkg = pkg.get("versions").asObject().get(resolvedVersion).asObject();
 
                         String tarUrl = pkg.get("dist").asObject().get("tarball").asString();
 
@@ -238,13 +245,22 @@ public class JNPM extends Actor<JNPM> {
         packagesUnderway.put(moduleKey, list);
         list.add(p);
         checkThread();
+        Object stupidity = new Object() {
+            @Override
+            public String toString() {
+                return "JNPM:StupidLock";
+            }
+        };
         http.getContentBytes(tarUrl).then( (resp,err) -> {
             execInThreadPool( () -> { // multithread unpacking (java io blocks, so lets mass multithread)
                 byte b[] = resp;
                 try {
                     b = AsyncHttpActor.unGZip(b,b.length*10);
-                    File outputDir = new File(targetDir, moduleName);
-                    unTar(new ByteArrayInputStream(b), outputDir);
+                    synchronized(stupidity) { // as I use existence of dirs/files as state during operations, concurrent untars can hurt
+                        File outputDir = new File(targetDir, moduleName);
+                        unTar(new ByteArrayInputStream(b), outputDir);
+                        Log.Info(this, String.format("untar'ed '%s' in %s.", moduleName + "@" + resolvedVersion, targetDir.getAbsolutePath()));
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                     return false;

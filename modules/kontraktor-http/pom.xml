@@ -12,7 +12,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-http</artifactId>
-    <version>4.26.2</version>
+    <version>4.26.3</version>
 
     <description>http connectivity for kontraktor</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -198,7 +198,7 @@
         <dependency>
           <groupId>com.google.javascript</groupId>
           <artifactId>closure-compiler</artifactId>
-          <version>v20171203</version>
+          <version>v20181008</version>
         </dependency>
 
         <!-- commandline parsing -->

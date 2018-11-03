@@ -29,6 +29,9 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -58,6 +61,8 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
             return new HeaderElement[0];
         }
     };
+
+    public static boolean DUMP_GET = false;
 
     public static String readContentString(HttpResponse resp) throws IOException {
         org.apache.http.Header[] headers = resp.getHeaders("Content-Type");
@@ -271,6 +276,17 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
         }
     }
 
+    HashMap<String,Promise<String>> contentCache;
+    long cacheContentShortTime;
+
+    /**
+     * caches getContent calls for some time. WARNING: IGNORES headers !!
+     */
+    public void enableShortTimeContentCache(long time) {
+        contentCache = new HashMap<>();
+        cacheContentShortTime = time;
+    }
+
     public IPromise<String> getContent(String url, String ... headers ) {
         if ( url == null || url.trim().length() == 0 ) {
             return reject("invalid url");
@@ -284,6 +300,25 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
         }
         Promise res = new Promise();
         try {
+            if ( cacheContentShortTime > 0 ) {
+                Promise<String> httpResponsePromise = contentCache.get(url);
+                if ( httpResponsePromise != null ) {
+                    if ( httpResponsePromise.isSettled() ) {
+                        return complete(httpResponsePromise.get(),httpResponsePromise.getError());
+                    } else {
+                        try {
+                            httpResponsePromise.await(TimeUnit.MINUTES.toMillis(1));
+                        } catch (Exception e) {
+                            // empty
+                            Log.Error(this,e);
+                        }
+                        return complete(httpResponsePromise.get(),httpResponsePromise.getError());
+                    }
+                }
+                contentCache.put(url,res);
+                String finalUrl = url;
+                delayed(cacheContentShortTime,() -> contentCache.remove(finalUrl));
+            }
             get(url, headers).then((response, err) -> {
                 if (err != null) {
                     res.reject(err);
@@ -361,6 +396,9 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
     }
 
     public IPromise<HttpResponse> get( String url, String ... headers ) {
+        if ( DUMP_GET ) {
+            System.out.println("GET "+url+" "+ Arrays.toString(headers));
+        }
         Promise res = new Promise();
         if (url==null) {
             int debug = 1;
