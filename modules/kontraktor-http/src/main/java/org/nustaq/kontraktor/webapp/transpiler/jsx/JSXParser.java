@@ -166,14 +166,17 @@ public class JSXParser implements ParseUtils {
                             continue;
                         }
                         if (in.match("function ")) {
-                            insertLastTopLevel(in, cur);
                             int length = "function ".length();
-                            for (int i = 0; i < length; i++) {
-                                cur.add(in.ch());
-                                in.inc();
+                            char c = in.peekNextNonWS(length);
+                            if ( c != '(' ) {
+                                insertLastTopLevel(in, cur);
+                                for (int i = 0; i < length; i++) {
+                                    cur.add(in.ch());
+                                    in.inc();
+                                }
+                                trackNextIdentifier = true;
+                                continue;
                             }
-                            trackNextIdentifier = true;
-                            continue;
                         }
                         if (in.match("const ") || in.match("class ")) {
                             insertLastTopLevel(in, cur);
@@ -492,8 +495,11 @@ public class JSXParser implements ParseUtils {
     }
 
     private void readAttrValue(AttributeNode attr, Inp in) {
-        switch (in.ch()) {
+        in.skipWS();
+        char ch = in.ch();
+        switch (ch) {
             case '"':
+            case '`':
             case '\'':
                 attr.value(readJSString(in));
                 break;

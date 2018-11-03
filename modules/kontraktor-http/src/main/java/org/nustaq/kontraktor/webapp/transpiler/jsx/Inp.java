@@ -50,6 +50,15 @@ public class Inp {
         return true;
     }
 
+    public char peekNextNonWS(int off) {
+        int curIndex = index;
+        advance(off);
+        skipWS();
+        char res = ch();
+        index = curIndex;
+        return res;
+    }
+
     public boolean matchReverse(String str) {
         for ( int i=0; i < str.length(); i++)
             if ( ch(-i) != str.charAt(str.length()-i-1))
