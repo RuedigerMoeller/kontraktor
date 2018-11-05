@@ -14,6 +14,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 /**
  * transpiles jsx without requiring babel.
@@ -455,7 +456,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     JNPMConfig config = getConfig();
                     Log.Info(this, importSpec.getFrom() + " not found. installing .. '" + required+"'");
                     try {
-                        JNPM.InstallResult await = JNPM.Install(required, null, jnpmNodeModulesDir, config).await(180_000);
+                        JNPM.InstallResult await = JNPM.Install(required, null, jnpmNodeModulesDir, config).await(TimeUnit.MINUTES.toMillis(1));
                         if ( await == JNPM.InstallResult.INSTALLED )
                             return resolveImportSpec(requiringFile, importSpec, resolver, alreadyResolved, ignoredRequires);
                     } catch (Throwable kt) {

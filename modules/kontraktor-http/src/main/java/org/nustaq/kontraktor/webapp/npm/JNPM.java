@@ -40,7 +40,7 @@ public class JNPM extends Actor<JNPM> {
         nodeModulesDir = nodeModules;
         http = AsyncHttpActor.getSingleton();
         http.setLimits(5,10);
-        http.enableShortTimeContentCache(TimeUnit.MINUTES.toMillis(2));
+        http.enableShortTimeContentCache(TimeUnit.SECONDS.toMillis(30));
 //        http.DUMP_GET = true;
         this.config = config;
     }
