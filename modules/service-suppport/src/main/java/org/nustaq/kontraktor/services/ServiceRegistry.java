@@ -1,21 +1,27 @@
 package org.nustaq.kontraktor.services;
 
 import com.beust.jcommander.JCommander;
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.Callback;
-import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
+import org.nustaq.kontraktor.remoting.encoding.Coding;
+import org.nustaq.kontraktor.remoting.encoding.SerializerType;
+import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
+import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
+import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
+import org.nustaq.kontraktor.services.rlclient.DataShard;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.reallive.api.Record;
+import org.nustaq.reallive.api.TableDescription;
 import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.QueryDoneMessage;
 import org.nustaq.reallive.messages.RemoveMessage;
 import org.nustaq.reallive.messages.UpdateMessage;
 import org.nustaq.reallive.records.MapRecord;
+import org.nustaq.serialization.FSTConfiguration;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,10 +48,6 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     public static final String SERVICEDUMP = "running";
     public static final String AVAILABLE = "available";
     public static final String TIMEOUT = "timeout";
-
-    public static Class JSONCLASSES[] = {
-        AddMessage.class, RemoveMessage.class, UpdateMessage.class, QueryDoneMessage.class, Record.class, MapRecord.class,
-    };
 
     HashMap<String, List<ServiceDescription>> services;
     List<Callback> listeners;
@@ -172,7 +174,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         return slist;
     }
 
-    public static ServiceArgs options;
+    public static RegistryArgs options;
     public static ServiceArgs parseCommandLine(String[] args, ServiceArgs options) {
 
         JCommander com = new JCommander();
@@ -190,14 +192,56 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         return options;
     }
 
+    private IPromise<RestApi> getRest() {
+        RestApi restApi = AsActor(RestApi.class, getScheduler());
+        restApi.init(self());
+        return resolve(restApi);
+    }
+
+    public static class RestApi extends Actor<RestApi> {
+
+        private ServiceRegistry reg;
+        FSTConfiguration jsonConfiguration;
+
+        public void init(ServiceRegistry reg) {
+            this.reg = reg;
+            jsonConfiguration = FSTConfiguration.createJsonConfiguration(true, false);
+            jsonConfiguration.registerCrossPlatformClassMappingUseSimpleName(
+                TableDescription.class,
+                ServiceDescription.class,
+                TCPConnectable.class,
+                DataShard.class,
+                SerializerType.class,
+                Coding.class,
+                WebSocketConnectable.class,
+                Class.class
+            );
+        }
+        // GET ./services
+        public IPromise getServices() {
+            Promise p = new Promise();
+            reg.getServiceMap().then( (r,e) -> {
+                if ( r != null ) {
+                    try {
+                        p.resolve(new String(jsonConfiguration.asByteArray(r), "UTF-8") );
+                    } catch (UnsupportedEncodingException e1) {
+                        Log.Error(this,e1);
+                        p.reject(500);
+                    }
+                } else {
+                    p.reject(500);
+                }
+            });
+            return p;
+        }
+    }
+
     public static void main(String[] args) {
-
         start(args);
-
     }
 
     public static ServiceRegistry start(String[] args) {
-        options = parseCommandLine(args,new ServiceArgs());
+        options = (RegistryArgs) parseCommandLine(args,new RegistryArgs());
 
         if ( ! options.isAsyncLog() ) {
             Log.SetSynchronous();
@@ -210,12 +254,19 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             Log.Info(null, actor + " has disconnected");
         });
 
+        Http4K.Build(options.getMonhost(), options.getMonport() )
+            .restAPI("/mon",serviceRegistry.getRest().await())
+            .build();
+
         // log service activity
-        serviceRegistry.subscribe((pair, err) -> {
-            Log.Info(serviceRegistry.getClass(), pair.car() + " " + pair.cdr());
-        });
+        if ( options.isLogServices() ) {
+            serviceRegistry.subscribe((pair, err) -> {
+                Log.Info(serviceRegistry.getClass(), pair.car() + " " + pair.cdr());
+            });
+        }
 
         return serviceRegistry;
     }
+
 
 }

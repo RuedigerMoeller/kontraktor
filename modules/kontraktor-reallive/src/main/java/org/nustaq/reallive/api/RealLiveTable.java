@@ -14,7 +14,7 @@ public interface RealLiveTable extends SafeRealLiveTable, ChangeStream, RealLive
      * is generated.
      *
      * In case the function returns a changemessage (add,putRecord,remove ..), the change message is applied
-     * to the original record and broadcasted
+     * to the original record and broadcasted. Else the result of the action function is passed to the remote callee
      *
      * @param key
      * @param action

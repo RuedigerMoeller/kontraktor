@@ -30,12 +30,26 @@ public class ServiceArgs {
     @Parameter(names = {"-nolog"}, help = true, description = "log to sysout without log4j", arity = 1)
     public boolean asyncLog = true;
 
+    @Parameter(names = {"-monitorhost"}, help = true, description = "monitoring api host address/name of this service")
+    private String monhost = "localhost";
+
+    @Parameter(names = {"-monitorport"}, help = true, description = "monitoring api port of this service")
+    private int monport = 1113;
+
     public ServiceArgs() {
         try {
             host = InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
             Log.Warn(this,e);
         }
+    }
+
+    public String getMonhost() {
+        return monhost;
+    }
+
+    public int getMonport() {
+        return monport;
     }
 
     public String getRegistryHost() {
