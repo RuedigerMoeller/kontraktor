@@ -21,6 +21,7 @@ import org.nustaq.reallive.messages.UpdateMessage;
 import org.nustaq.reallive.records.MapRecord;
 import org.nustaq.serialization.FSTConfiguration;
 
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,12 +51,14 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     public static final String TIMEOUT = "timeout";
 
     HashMap<String, List<ServiceDescription>> services;
+    Map<String,StatusEntry> statusMap;
     List<Callback> listeners;
     ClusterCfg config;
 
     @Local
     public void init() {
         services = new HashMap<>();
+        statusMap = new HashMap<>();
         listeners = new ArrayList<>();
         checkTimeout();
         config = ClusterCfg.read();
@@ -80,7 +83,8 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             } catch (Exception e) {
                 Log.Error(this,e);
             }
-            delayed(10000, () -> serviceDumper());
+            if ( options.dumpServices() )
+                delayed(10000, () -> serviceDumper());
         }
     }
 
@@ -135,12 +139,58 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         return resolve(config);
     }
 
+    // backward compat
     public void receiveHeartbeat( String serviceName, String uniqueKey ) {
+        receiveHeartbeatWithStatus(serviceName, uniqueKey,null);
+    }
+
+    public void receiveHeartbeatWithStatus( String serviceName, String uniqueKey, Serializable status ) {
+        long now = System.currentTimeMillis();
         getServiceList(serviceName).forEach(sdesc -> {
             if (sdesc.getUniqueKey().equals(uniqueKey)) {
                 sdesc.receiveHeartbeat();
+                if ( status != null )
+                    updateStatus(now, sdesc,uniqueKey+"#"+sdesc.getName(),status);
             }
         });
+    }
+
+    public static class StatusEntry implements Serializable {
+        long time;
+        Object status;
+        String key;
+        String name;
+
+        public StatusEntry(long time, Object status, String key, String name) {
+            this.time = time;
+            this.status = status;
+            this.key = key;
+            this.name = name;
+        }
+
+        public long getTime() {
+            return time;
+        }
+
+        public Object getStatus() {
+            return status;
+        }
+
+        public String getKey() {
+            return key;
+        }
+
+        public String getName() {
+            return name == null ? "unnamed" : name;
+        }
+    }
+
+    protected void removeStatus(String key) {
+        statusMap.remove( key );
+    }
+
+    protected void updateStatus(long now, ServiceDescription td, String key, Serializable status) {
+        statusMap.put( key, new StatusEntry(now,status,key,td.getName()) );
     }
 
     @Local public void checkTimeout() {
@@ -150,6 +200,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
                 ServiceDescription serviceDescription = list.get(i);
                 if ( serviceDescription.hasTimedOut() ) {
                     list.remove(i);
+                    removeStatus(serviceDescription.getUniqueKey()+"#"+serviceDescription.getName() );
                     i--;
                     broadCastTimeOut(serviceDescription);
                 }
@@ -214,7 +265,8 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
                 SerializerType.class,
                 Coding.class,
                 WebSocketConnectable.class,
-                Class.class
+                Class.class,
+                StatusEntry.class
             );
         }
         // GET ./services
@@ -234,6 +286,30 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             });
             return p;
         }
+        // GET ./services
+        public IPromise getStati() {
+            Promise p = new Promise();
+            reg.getStati().then( (r,e) -> {
+                if ( r != null ) {
+                    try {
+                        p.resolve(new String(jsonConfiguration.asByteArray(r), "UTF-8") );
+                    } catch (UnsupportedEncodingException e1) {
+                        Log.Error(this,e1);
+                        p.reject(500);
+                    }
+                } else {
+                    p.reject(500);
+                }
+            });
+            return p;
+        }
+    }
+
+    public IPromise<List<StatusEntry>> getStati() {
+        List<StatusEntry> res = new ArrayList<>();
+        statusMap.forEach( (k,v) ->  res.add(v) );
+        res.sort( (a,b) -> a.getName().compareTo(b.getName()));
+        return resolve(res);
     }
 
     public static void main(String[] args) {
@@ -259,11 +335,9 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             .build();
 
         // log service activity
-        if ( options.isLogServices() ) {
             serviceRegistry.subscribe((pair, err) -> {
                 Log.Info(serviceRegistry.getClass(), pair.car() + " " + pair.cdr());
             });
-        }
 
         return serviceRegistry;
     }

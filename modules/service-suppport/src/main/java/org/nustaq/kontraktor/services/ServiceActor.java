@@ -15,6 +15,7 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
 import org.nustaq.serialization.util.FSTUtil;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -328,9 +329,13 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
             return;
         if (serviceRegistry.isOnline()) {
             ServiceDescription sd = getServiceDescription();
-            serviceRegistry.get().receiveHeartbeat(sd.getName(), sd.getUniqueKey());
+            serviceRegistry.get().receiveHeartbeatWithStatus(sd.getName(), sd.getUniqueKey(), getStatus() );
             delayed(1000, () -> heartBeat());
         }
+    }
+
+    protected Serializable getStatus() {
+        return null;
     }
 
     protected void gravityDisconnected() {

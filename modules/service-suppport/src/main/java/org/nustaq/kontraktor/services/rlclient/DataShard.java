@@ -13,6 +13,7 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
 
 import java.io.File;
+import java.io.Serializable;
 
 /**
  * Created by ruedi on 15.08.2015.
@@ -81,6 +82,11 @@ public class DataShard extends ServiceActor<DataShard> {
 
     protected DataShardArgs getCmdline() {
         return (DataShardArgs) cmdline;
+    }
+
+    @Override
+    protected Serializable getStatus() {
+        return "{ connections:"+(__connections != null ? __connections.size() : 0)+"}";
     }
 
     public static void main(String[] args) {
