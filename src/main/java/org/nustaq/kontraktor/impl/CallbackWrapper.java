@@ -95,7 +95,7 @@ public class CallbackWrapper<T> implements IPromise<T>, Serializable {
             return;
         }
         if ( targetActor == null ) {
-            // call came from outside the actor world => use current thread => blocking the callback blocks actor, dont't !
+            // call came from outside the actor world => use current thread => blocking the callback blocks actor, don't !
             try {
                 receiveRes.invoke(realCallback, result, error);
             } catch (Exception e) {
