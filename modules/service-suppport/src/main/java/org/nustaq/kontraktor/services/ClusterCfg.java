@@ -31,13 +31,14 @@ public class ClusterCfg implements Serializable {
             ClusterCfg clCfg = (ClusterCfg) kson.readObject(new File(pathname));
             String confString = kson.writeObject(clCfg);
             System.out.println("run with config from "+ new File(pathname).getCanonicalPath());
-            System.out.println(confString);
+//            System.out.println(confString);
             return clCfg;
         } catch (Exception e) {
             Log.Warn(null, pathname + " not found or parse error. " + e.getClass().getSimpleName() + ":" + e.getMessage());
             try {
                 String sampleconf = kson.writeObject(new ClusterCfg());
-                System.out.println("Defaulting to:\n"+sampleconf);
+                System.out.println("Try:\n"+sampleconf);
+                System.exit(1);
             } catch (Exception e1) {
                 e1.printStackTrace();
             }

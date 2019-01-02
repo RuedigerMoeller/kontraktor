@@ -116,6 +116,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * free for outer mechanics to use.
      */
     public Object userData; // attention self() and this !!
+
     // internal ->
     public Queue __mailbox; // mailbox/eventloop queue
     public int __mbCapacity;
@@ -124,6 +125,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     public Scheduler __scheduler;
     public volatile boolean __stopped;
     public Actor __self; // the proxy object
+    private Map<String,Runnable> _debounceMap;
     public long __remoteId; // id in case this actor is published via network
     public volatile ConcurrentLinkedQueue<ConnectionRegistry> __connections; // a list of connections required to be notified on close (publisher/server side))
     public ConnectionRegistry __clientConnection; // remoteconnection in case this is a remote ref
@@ -279,6 +281,19 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             if (res)
                 self().delayed(interval,() -> cyclic(interval,toRun) );
         }
+    }
+
+    @Local
+    public void debounce(long timeout, String tag, Runnable toRun ) {
+        if ( _debounceMap == null )
+            _debounceMap = new HashMap<>(7);
+        _debounceMap.put(tag,toRun);
+        delayed(timeout, () -> {
+            if ( _debounceMap.get(tag) == toRun ) {
+                _debounceMap.remove(tag);
+                toRun.run();
+            }
+        });
     }
 
 

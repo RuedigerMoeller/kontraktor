@@ -75,4 +75,15 @@ public class Diff implements Serializable {
     public boolean isEmpty() {
         return changedFields!=null&&changedFields.length == 0;
     }
+
+    public boolean containsField(String field) {
+        if ( changedFields != null ) {
+            for (int i = 0; i < changedFields.length; i++) {
+                String changedField = changedFields[i];
+                if ( field.equals(changedField ) )
+                    return true;
+            }
+        }
+        return false;
+    }
 }

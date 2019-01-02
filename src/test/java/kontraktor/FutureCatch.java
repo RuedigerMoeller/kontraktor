@@ -43,6 +43,26 @@ public class FutureCatch {
             return res;
         }
 
+        public IPromise<Boolean> debounceTest() throws InterruptedException {
+            AtomicBoolean er = new AtomicBoolean(false);
+            AtomicBoolean ex = new AtomicBoolean(false);
+            debounce(100, "test", () -> er.set(true) );
+            yield(10);
+            debounce(100, "test", () -> er.set(true) );
+            yield(50);
+            debounce(100, "test", () -> er.set(true) );
+            yield(50);
+            debounce(100, "test", () -> er.set(true) );
+            yield(50);
+            debounce(100, "test", () -> er.set(true) );
+            yield(50);
+            debounce(100, "test", () -> er.set(true) );
+            yield(10);
+            debounce(100, "test", () -> ex.set(true) );
+            yield(200);
+            return resolve(!er.get() && ex.get());
+        }
+
         public IPromise<Integer> testAwait() {
             int correctCount = 0;
             AtomicInteger count = new AtomicInteger(0);
@@ -122,6 +142,15 @@ public class FutureCatch {
         Integer sync = futCatch.testAwait().await();
         System.out.println("Done");
         assertTrue(sync.intValue() == 6);
+        futCatch.stop();
+    }
+
+    @Test
+    public void testDebounce() throws InterruptedException {
+        final FutCatch futCatch = AsActor(FutCatch.class);
+        Boolean await = futCatch.debounceTest().await();
+        System.out.println("Done");
+        assertTrue(await);
         futCatch.stop();
     }
 

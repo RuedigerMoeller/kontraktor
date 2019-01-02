@@ -76,12 +76,28 @@ public class MessageValidator {
         if ( field.getType() == int.class ) {
             field.getField().set(target,jsonValue.asInt());
         } else
+        if ( field.getType() == boolean.class ) {
+            field.getField().set(target,jsonValue.asBoolean());
+        } else
         if ( field.getType() == double.class ) {
             double value = jsonValue.asDouble();
             field.getField().set(target, value);
         } else
         if ( field.getType() == long.class ) {
             field.getField().set(target,jsonValue.asLong());
+        } else
+        if ( field.getType() == Long.class ) {
+            field.getField().set(target,jsonValue.asLong());
+        } else
+        if ( field.getType() == Integer.class ) {
+            field.getField().set(target,jsonValue.asInt());
+        } else
+        if ( field.getType() == Boolean.class ) {
+            field.getField().set(target,jsonValue.asBoolean());
+        } else
+        if ( field.getType() == Double.class ) {
+            double value = jsonValue.asDouble();
+            field.getField().set(target, value);
         } else
         if ( field.getType().isEnum() ) {
             Enum anEnum = valueOfIgnoreCase(field.getType(), jsonValue.asString());
