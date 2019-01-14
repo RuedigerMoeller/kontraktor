@@ -22,6 +22,8 @@ import java.util.stream.Collectors;
  * Provides a single view on to a sharded table
  */
 public class ShardedTable implements RealLiveTable {
+    public static boolean DUMP_IN_PROC_CHANGES = false;
+
     final static int NUM_SLOTS = 10_000;
 
     final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap(); // real subscriptions only
@@ -40,8 +42,8 @@ public class ShardedTable implements RealLiveTable {
             Log.Error(this,"incomplete key coverage");
         }
 
-        long now = System.currentTimeMillis();
-        realSubs( (RLNoQueryPredicate)rec -> true, change -> globalListen(change) );
+        long now = System.currentTimeMillis() - 8;
+        realSubs( rec -> rec.getLastModified() > now, change -> globalListen(change) );
     }
 
     // actually subscribes at datanodes
@@ -76,11 +78,18 @@ public class ShardedTable implements RealLiveTable {
     private void globalListen(ChangeMessage change) {
         boolean fin = globalListenReady.get();
         if ( !fin && change.isDoneMsg() ) {
+            if ( DUMP_IN_PROC_CHANGES ) {
+                Log.Info(this, "Global Listen Ready");
+            }
             globalListenReady.set(true);
         }
         else if (fin) {
+            if ( DUMP_IN_PROC_CHANGES ) {
+                Log.Info(this, "Listen Receive:"+change);
+            }
             proc.receive(change);
         } else {
+            Log.Error(this, "Unexpected change routing:"+change);
             int shouldnotHppen = 1;
         }
     }
