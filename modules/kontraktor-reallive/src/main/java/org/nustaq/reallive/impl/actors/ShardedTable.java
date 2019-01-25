@@ -218,6 +218,12 @@ public class ShardedTable implements RealLiveTable {
         proc.unsubscribe(subs);
     }
 
+    @Override
+    public void unsubscribeById(int subsId) {
+        proc.unsubscribeById(subsId);
+    }
+
+
     public void realUnsubscribe(Subscriber subs) {
         if ( subs == null ) {
             Log.Warn(this,"unsubscribed is null");

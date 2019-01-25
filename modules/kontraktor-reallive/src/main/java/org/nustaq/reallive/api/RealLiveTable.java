@@ -30,4 +30,5 @@ public interface RealLiveTable extends SafeRealLiveTable, ChangeStream, RealLive
      */
     void atomicUpdate(RLPredicate<Record> filter, RLFunction<Record, Boolean> action);
 
+    void unsubscribeById(int subsId);
 }

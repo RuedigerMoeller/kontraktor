@@ -127,4 +127,13 @@ public class FilterProcessor implements ChangeReceiver {
         }
     }
 
+    public void unsubscribeById(long subsId) {
+        List<Subscriber> toRem = new ArrayList<>();
+        for ( Subscriber subscriber : filterList ) {
+            if ( subscriber.getId() == subsId ) {
+                toRem.add(subscriber);
+            }
+        }
+        toRem.forEach( s -> unsubscribe(s));
+    }
 }

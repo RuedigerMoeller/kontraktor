@@ -190,6 +190,11 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
         _unsubscribe( (r,e) -> {}, subs.getId() );
     }
 
+    @Override
+    public void unsubscribeById(int subsId) {
+        _unsubscribe( (r,e) -> {}, subsId );
+    }
+
     public void _unsubscribe( Callback cb /*dummy required to find sending connection*/, int id ) {
         checkThread();
         String sid = addChannelIdIfPresent(cb, ""+id);

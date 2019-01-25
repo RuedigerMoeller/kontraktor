@@ -31,7 +31,7 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
     DataCfg config;
     ServiceActor hostingService;
     TableSpaceActor shards[];
-    HashMap syncTableAccess;
+    HashMap<String,RealLiveTable> syncTableAccess;
 
     public IPromise connect( DataCfg config, TableSpaceActor shards[], ServiceActor hostingService ) {
         this.config = config;
@@ -168,5 +168,9 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
     @CallerSideMethod
     public TableSpaceActor[] getShards() {
         return getActor().shards;
+    }
+
+    public void unsubscribe(int subsId) {
+        syncTableAccess.values().forEach( table -> table.unsubscribeById(subsId));
     }
 }
