@@ -63,8 +63,8 @@ public class RecordWrapper implements Record {
     }
 
     @Override
-    public void key(String key) {
-        record.key(key);
+    public Record key(String key) {
+        record.key(key); return this;
     }
 
     @Override

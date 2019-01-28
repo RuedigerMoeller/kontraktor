@@ -29,7 +29,7 @@ public interface Record extends Serializable, EvalContext {
      * take care, kind of dangerous
      * @param key
      */
-    void key(String key);
+    Record key(String key);
     String[] getFields();
     Record put( String field, Object value );
 

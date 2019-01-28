@@ -81,8 +81,8 @@ public class MapRecord implements Record {
     }
 
     @Override
-    public void key(String key) {
-        this.key = key;
+    public Record key(String key) {
+        this.key = key;return this;
     }
 
     @Override

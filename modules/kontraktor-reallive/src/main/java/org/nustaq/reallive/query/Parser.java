@@ -239,14 +239,16 @@ public class Parser {
         Thread.sleep(2000);
         CompiledQuery nums = Query.compile("c!= -1");
         System.out.println(nums.evaluate(hm));
-        if ( 1 != 0 )
-            return;
+//        if ( 1 != 0 )
+//            return;
         CompiledQuery ctrue = Query.compile("time < age(1,\"sec\")");
         CompiledQuery cfalse = Query.compile("time < age(5,'sec')");
         CompiledQuery tim = Query.compile("a<1000000000");
+        CompiledQuery trUe = Query.compile("1");
         System.out.println(ctrue.evaluate(hm));
         System.out.println(cfalse.evaluate(hm));
         System.out.println(tim.evaluate(hm));
+        System.out.println(trUe.evaluate(hm).isTrue());
 
 //
 //        System.out.println(
