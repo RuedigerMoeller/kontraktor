@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.apputil;
 
 import io.undertow.server.HttpServerExchange;
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
@@ -11,12 +12,14 @@ import org.nustaq.reallive.api.Record;
 
 import java.util.UUID;
 
-public interface LinkMapper {
+public interface LinkMapperMixin<SELF extends Actor<SELF>> {
+
+    public static String TableName = "links";
 
     static void auto(BldFourK bld, Object linkMapper) {
         bld.httpHandler("link", httpServerExchange ->  {
             httpServerExchange.dispatch();
-            ((LinkMapper)linkMapper).handleRawHttp(httpServerExchange);
+            ((LinkMapperMixin)linkMapper).handleRawHttp(httpServerExchange);
         });
     }
 
@@ -27,21 +30,21 @@ public interface LinkMapper {
      * @param linkRecord
      * @return htmlpage to render
      */
-    @CallerSideMethod @Local String handleLinkSuccess(String linkId, Record linkRecord );
+    @CallerSideMethod @Local String handleLinkSuccess(String linkId, RegistrationRecordWrapper linkRecord );
 
     /**
      * @param linkId
      * @return htmlpage to render
      */
     @CallerSideMethod @Local String handleLinkFailure(String linkId);
-    Object getActor();
+    SELF getActor();
 
     /**
      * return uuid to use as link
      * @param rec
      * @return
      */
-    default IPromise<String> putRegistrationRecord(Record rec /*e.g. maprecord*/ ) {
+    default IPromise<String> putRegistrationRecord(RegistrationRecordWrapper rec /*e.g. maprecord*/ ) {
         String key  = UUID.randomUUID().toString();
         rec.key(key);
         getDClient().tbl("links" ).setRecord(rec.key(key));
@@ -63,11 +66,11 @@ public interface LinkMapper {
         if ( path.startsWith("/") )
             path = path.substring(1);
         String finalPath = path;
-        getDClient().tbl("links").get(path).then( (rec, err) -> {
+        getDClient().tbl(TableName).get(path).then( (rec, err) -> {
            if ( rec != null ) {
-               httpServerExchange.setResponseCode(200).getResponseSender().send(((LinkMapper)getActor()).handleLinkSuccess(finalPath,rec));
+               httpServerExchange.setResponseCode(200).getResponseSender().send(((LinkMapperMixin)getActor()).handleLinkSuccess(finalPath,new RegistrationRecordWrapper(rec)));
            } else {
-               httpServerExchange.setResponseCode(200).getResponseSender().send(((LinkMapper)getActor()).handleLinkFailure(finalPath));
+               httpServerExchange.setResponseCode(200).getResponseSender().send(((LinkMapperMixin)getActor()).handleLinkFailure(finalPath));
            }
         });
     }

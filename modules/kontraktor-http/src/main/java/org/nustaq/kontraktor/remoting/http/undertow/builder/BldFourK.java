@@ -60,7 +60,7 @@ public class BldFourK {
             for (int i = 0; i < interfaceClasses.length; i++) {
                 Object interfaceClass = interfaceClasses[i];
                 Method auto = ((Class) interfaceClass).getMethod("auto", BldFourK.class, Object.class );
-                auto.invoke(interfaceClass, this);
+                auto.invoke(interfaceClass, this, serverAppActor);
             }
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             FSTUtil.rethrow(e);
