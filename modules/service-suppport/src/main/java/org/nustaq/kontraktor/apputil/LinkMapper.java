@@ -21,8 +21,19 @@ public interface LinkMapper {
     }
 
     @CallerSideMethod @Local DataClient getDClient();
+
+    /**
+     * @param linkId
+     * @param linkRecord
+     * @return htmlpage to render
+     */
     @CallerSideMethod @Local String handleLinkSuccess(String linkId, Record linkRecord );
-    @CallerSideMethod @Local String handleLinkFailure(String linkId );
+
+    /**
+     * @param linkId
+     * @return htmlpage to render
+     */
+    @CallerSideMethod @Local String handleLinkFailure(String linkId);
     Object getActor();
 
     /**
