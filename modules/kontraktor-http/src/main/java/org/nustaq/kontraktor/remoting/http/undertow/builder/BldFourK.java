@@ -26,11 +26,15 @@ import org.nustaq.kontraktor.rest.UndertowRESTHandler;
 import org.nustaq.kontraktor.webapp.javascript.*;
 import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;
 import org.nustaq.kontraktor.webapp.transpiler.jsx.FileWatcher;
+import org.nustaq.serialization.util.FSTUtil;
 
 import javax.net.ssl.SSLContext;
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -45,11 +49,28 @@ public class BldFourK {
 
     List items = new ArrayList<>();
 
-
     public BldFourK(String hostName, int port, SSLContext context) {
         this.hostName = hostName;
         this.port = port;
         this.context = context;
+    }
+
+    public BldFourK auto( Object serverAppActor, Object ... interfaceClasses ) {
+        try {
+            for (int i = 0; i < interfaceClasses.length; i++) {
+                Object interfaceClass = interfaceClasses[i];
+                Method auto = ((Class) interfaceClass).getMethod("auto", BldFourK.class, Object.class );
+                auto.invoke(interfaceClass, this);
+            }
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            FSTUtil.rethrow(e);
+        }
+        return this;
+    }
+
+    public BldFourK auto( AutoConfig serverAppActor ) {
+        serverAppActor.auto(this);
+        return this;
     }
 
     public BldFourK fileRoot(String urlPath, String dir) {
@@ -63,7 +84,6 @@ public class BldFourK {
         httpCachedEnabled = b;
         return this;
     }
-
 
     public BldFourK fileRoot(String urlPath, File dir) {
         BldDirRoot rt = new BldDirRoot(urlPath,dir.getAbsolutePath());
