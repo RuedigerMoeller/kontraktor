@@ -1,16 +1,17 @@
-package org.nustaq.kontraktor.linkmapper;
+package org.nustaq.kontraktor.apputil;
 
 import io.undertow.server.HttpServerExchange;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.remoting.http.undertow.builder.AutoConfig;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.http.undertow.builder.BldFourK;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.reallive.api.Record;
 
 import java.util.UUID;
 
-public interface LinkMapper extends AutoConfig {
+public interface LinkMapper {
 
     static void auto(BldFourK bld, Object linkMapper) {
         bld.httpHandler("link", httpServerExchange ->  {
@@ -19,9 +20,21 @@ public interface LinkMapper extends AutoConfig {
         });
     }
 
-    DataClient getDClient();
-    String handleSuccess( String linkId, Record linkRecord );
-    String handleFailure( String linkId );
+    @CallerSideMethod @Local DataClient getDClient();
+
+    /**
+     * @param linkId
+     * @param linkRecord
+     * @return htmlpage to render
+     */
+    @CallerSideMethod @Local String handleLinkSuccess(String linkId, Record linkRecord );
+
+    /**
+     * @param linkId
+     * @return htmlpage to render
+     */
+    @CallerSideMethod @Local String handleLinkFailure(String linkId);
+    Object getActor();
 
     /**
      * return uuid to use as link
@@ -52,9 +65,9 @@ public interface LinkMapper extends AutoConfig {
         String finalPath = path;
         getDClient().tbl("links").get(path).then( (rec, err) -> {
            if ( rec != null ) {
-               httpServerExchange.setResponseCode(200).getResponseSender().send(handleSuccess(finalPath,rec));
+               httpServerExchange.setResponseCode(200).getResponseSender().send(((LinkMapper)getActor()).handleLinkSuccess(finalPath,rec));
            } else {
-               httpServerExchange.setResponseCode(200).getResponseSender().send(handleFailure(finalPath));
+               httpServerExchange.setResponseCode(200).getResponseSender().send(((LinkMapper)getActor()).handleLinkFailure(finalPath));
            }
         });
     }
