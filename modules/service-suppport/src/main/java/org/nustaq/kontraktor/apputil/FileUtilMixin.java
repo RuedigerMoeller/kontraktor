@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-public interface FileUtil {
+public interface FileUtilMixin {
 
     public static String RUN_ETC_TEMPLATES = "./run/etc/templates/";
 
