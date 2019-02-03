@@ -7,7 +7,9 @@ import org.nustaq.reallive.records.MapRecord;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -167,6 +169,16 @@ public interface Record extends Serializable, EvalContext {
             String field = fields[i];
             res[i*2] = field;
             res[i*2+1] = get(field);
+        }
+        return res;
+    }
+
+    default Map<String,Object> asMap() {
+        HashMap<String,Object> res = new HashMap<>();
+        final String[] fields = getFields();
+        for (int i = 0; i < fields.length; i++) {
+            String field = fields[i];
+            res.put(field,getValue(field));
         }
         return res;
     }

@@ -12,14 +12,20 @@ import org.nustaq.reallive.api.Record;
 
 import java.util.UUID;
 
+/**
+ * associates a link with a record in Table links + built in support for registration handling.
+ * Assumes implementation by ServerActor
+ *
+ * @param <SELF>
+ */
 public interface LinkMapperMixin<SELF extends Actor<SELF>> {
 
-    public static String TableName = "links";
+    String LinkTableName = "links";
 
     static void auto(BldFourK bld, Object linkMapper) {
-        bld.httpHandler("link", httpServerExchange ->  {
+        bld.httpHandler(LinkTableName, httpServerExchange ->  {
             httpServerExchange.dispatch();
-            ((LinkMapperMixin)linkMapper).handleRawHttp(httpServerExchange);
+            ((LinkMapperMixin)linkMapper).handleLinkHttp(httpServerExchange);
         });
     }
 
@@ -30,13 +36,14 @@ public interface LinkMapperMixin<SELF extends Actor<SELF>> {
      * @param linkRecord
      * @return htmlpage to render
      */
-    @CallerSideMethod @Local String handleLinkSuccess(String linkId, RegistrationRecordWrapper linkRecord );
+    @CallerSideMethod @Local String handleLinkSuccess(String linkId, Record linkRecord );
 
     /**
      * @param linkId
      * @return htmlpage to render
      */
     @CallerSideMethod @Local String handleLinkFailure(String linkId);
+
     SELF getActor();
 
     /**
@@ -44,10 +51,10 @@ public interface LinkMapperMixin<SELF extends Actor<SELF>> {
      * @param rec
      * @return
      */
-    default IPromise<String> putRegistrationRecord(RegistrationRecordWrapper rec /*e.g. maprecord*/ ) {
+    default IPromise<String> putRecord(Record rec /*e.g. maprecord*/ ) {
         String key  = UUID.randomUUID().toString();
         rec.key(key);
-        getDClient().tbl("links" ).setRecord(rec.key(key));
+        getDClient().tbl(LinkTableName).setRecord(rec.key(key));
         return Actors.resolve(key);
     }
 
@@ -56,19 +63,19 @@ public interface LinkMapperMixin<SELF extends Actor<SELF>> {
      *
      * .httpHandler("link", httpServerExchange ->  {
      *    httpServerExchange.dispatch();
-     *    app.handleRawHttp(httpServerExchange);
+     *    app.handleLinkHttp(httpServerExchange);
      * })
      *
      * @param httpServerExchange
      */
-    default void handleRawHttp(HttpServerExchange httpServerExchange) {
+    default void handleLinkHttp(HttpServerExchange httpServerExchange) {
         String path = httpServerExchange.getRelativePath();
         if ( path.startsWith("/") )
             path = path.substring(1);
         String finalPath = path;
-        getDClient().tbl(TableName).get(path).then( (rec, err) -> {
+        getDClient().tbl(LinkTableName).get(path).then( (rec, err) -> {
            if ( rec != null ) {
-               httpServerExchange.setResponseCode(200).getResponseSender().send(((LinkMapperMixin)getActor()).handleLinkSuccess(finalPath,new RegistrationRecordWrapper(rec)));
+               httpServerExchange.setResponseCode(200).getResponseSender().send(((LinkMapperMixin)getActor()).handleLinkSuccess(finalPath,rec));
            } else {
                httpServerExchange.setResponseCode(200).getResponseSender().send(((LinkMapperMixin)getActor()).handleLinkFailure(finalPath));
            }
