@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.webapp.transpiler.ErrorHandler;
 
 import java.io.File;
 import java.util.*;
@@ -146,8 +147,9 @@ public class JSXParser implements ParseUtils {
                                     cur.chars.append(braceInsert[depth + 1]);
                                     braceInsert[depth + 1] = null;
                                 }
-                            } else
-                                Log.Warn(this,"imbalanced braces. "+file.getAbsolutePath());
+                            } else {
+                                ErrorHandler.get().add( getClass(),"Imbalanced braces "+in.index()+" code:"+in.toString(), file);
+                            }
                             cur.closeCont();
                             return;
                         }
@@ -210,8 +212,9 @@ public class JSXParser implements ParseUtils {
                             cur.chars.append(braceInsert[depth + 1]);
                             braceInsert[depth + 1] = null;
                         }
-                    } else
-                        Log.Warn(this,"imbalanced braces. "+file.getAbsolutePath());
+                    } else {
+                        ErrorHandler.get().add(getClass(),"Imbalanced braces position: "+in.index()+" code:"+in.toString(),file);
+                    }
                 }
                 in.index++; // speed interpretere
             }
@@ -281,7 +284,7 @@ public class JSXParser implements ParseUtils {
         in.advance("require".length());
         in.skipWS();
         if ( in.ch() != '(' ) {
-            Log.Warn(this, "fake require:" + in + " " + file.getAbsolutePath());
+            ErrorHandler.get().add(getClass(),"warn: fake require position: "+in.index()+" code:"+in.toString(),file);
             in.index = i;
             return null;
         }
@@ -290,7 +293,7 @@ public class JSXParser implements ParseUtils {
         StringBuilder reqString = readJSString(in);
         in.skipWS();
         if ( in.ch() != ')' ) {
-            Log.Warn(this, "unparseable require:" + in + " " + file.getAbsolutePath());
+            ErrorHandler.get().add(getClass(),"warn: unparseable require, position: "+in.index()+" code:"+in.toString(),file);
             in.index = i;
             return null;
         }

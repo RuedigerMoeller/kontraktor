@@ -2,10 +2,12 @@ package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.npm.JNPMConfig;
+import org.nustaq.kontraktor.webapp.transpiler.ErrorHandler;
 import org.nustaq.utils.FileUtil;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -170,6 +172,7 @@ public class JSXGenerator {
             this.defaultExport = defaultExport;
         }
 
+
         public String getDefaultExport() {
             return defaultExport;
         }
@@ -229,7 +232,7 @@ public class JSXGenerator {
     }
 
     public static ParseResult process(
-        File f, boolean pretty, NodeLibNameResolver nlib, JNPMConfig config) throws IOException {
+        File f, boolean pretty, NodeLibNameResolver nlib, JNPMConfig config ) throws IOException {
 
         // this is really inefficient, there are loads of optimization opportunities,
         // however this code runs in devmode only ..
@@ -241,7 +244,7 @@ public class JSXGenerator {
         String cont = new String(bytes, "UTF-8");
         jsx.parseJS(root,new Inp(cont));
         if ( jsx.depth != 0 ) {
-            Log.Warn(JSXGenerator.class,"probably parse issues non-matching braces in "+f.getAbsolutePath());
+            ErrorHandler.get().add( JSXGenerator.class, "probably parse issues with non-matching braces",f);
             ParseResult parseResult = new ParseResult(f, bytes, f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(), jsx.getTopLevelObjects(), jsx.getIgnoredRequires(),jsx.getDefaultExport());
             return parseResult.patchImports(config.getNodeLibraryMap());
         }
