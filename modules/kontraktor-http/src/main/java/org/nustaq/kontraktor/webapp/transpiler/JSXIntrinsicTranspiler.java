@@ -21,6 +21,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class JSXIntrinsicTranspiler implements TranspilerHook {
 
+    public static boolean BUNDLE_NODE_ALWAYS = true;
+
     protected boolean dev;
     protected File jnpmNodeModulesDir;
     protected boolean autoJNPM;
@@ -195,8 +197,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     public byte[] updateJSX(File f, FileResolver resolver) {
         try {
             boolean dev = true;
+            ErrorHandler.get().reset();
             JSXGenerator.ParseResult result = JSXGenerator.process(f,dev,createNodeLibNameResolver(resolver),getConfig());
-            List<ImportSpec> specs = result.getImports();
             byte[] res = result.getFiledata();
             ByteArrayOutputStream mainBao = new ByteArrayOutputStream(20_000);
             if (result.generateESWrap())
@@ -233,6 +235,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         try {
             boolean isInitialIndexJSX = f != null && f.getName().endsWith("index.jsx");
             if ( isInitialIndexJSX ) {
+                ErrorHandler.get().reset();
                 jnpmConfigFileCached = null;
                 if ( dev ) {
                     readFiles = new ArrayList<>();
@@ -245,8 +248,10 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             }
             NodeLibNameResolver nodeLibNameResolver = createNodeLibNameResolver(resolver);
             JSXGenerator.ParseResult result = JSXGenerator.process(f,dev, nodeLibNameResolver,getConfig());
+            boolean notInNodeModules = isNotInNodeModules(f);
+            boolean notInNodeModulesForModuleBundlingDev = notInNodeModules || !BUNDLE_NODE_ALWAYS;
             if ( dev ) {
-                if ( isNotInNodeModules(f) ) {
+                if (notInNodeModules) {
                     String finalLibName = nodeLibNameResolver.getFinalLibName(f, resolver, f.getName() /*FIXME: ??*/);
                     readFiles.add(new WatchedFile(f, this, resolver, finalLibName));
                 }
@@ -271,7 +276,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 File redirected = resolveImportSpec(f, importSpec, resolver, alreadyResolved, ignoredRequires);
                 if (redirected == null) continue;
             }
-            ByteArrayOutputStream mainBao = dev ? new ByteArrayOutputStream(20_000) : indexBaos;
+            ByteArrayOutputStream mainBao = dev && notInNodeModulesForModuleBundlingDev  ? new ByteArrayOutputStream(20_000) : indexBaos;
             if (result.generateESWrap())
                 mainBao.write(generateImportPrologue(result, resolver).getBytes("UTF-8"));
             if (result.generateCommonJSWrap())
@@ -282,9 +287,9 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             if (result.generateCommonJSWrap())
                 mainBao.write(generateCommonJSEnd(f,result, resolver).getBytes("UTF-8"));
 
-            if ( dev ) {
+            if ( dev && notInNodeModulesForModuleBundlingDev ) {
                 String dirName = "_node_modules";
-                if (isNotInNodeModules(f)) {
+                if (notInNodeModules) {
                     dirName = "_appsrc";
                 }
                 String name = constructLibName(f, resolver) + ".transpiled";
@@ -323,6 +328,13 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     indexBaos.write( "_kreporterr = true; kinitfuns.forEach( fun => fun() );\n".getBytes("UTF-8"));
                 Long tim = (Long) alreadyResolved.get("JSXIndexStart");
                 Log.Info(this, "Transpilation time:"+(System.currentTimeMillis()-tim)/1000.0);
+                if ( isInitialIndexJSX && dev ) {
+                    List<String> errors = ErrorHandler.get().getErrors();
+                    for (int i = 0; i < errors.size(); i++) {
+                        String s = errors.get(i);
+                        indexBaos.write(("console.warn('"+s+"');\n").getBytes("UTF-8"));
+                    }
+                }
                 return indexBaos.toByteArray();
             }
             return mainBao.toByteArray();

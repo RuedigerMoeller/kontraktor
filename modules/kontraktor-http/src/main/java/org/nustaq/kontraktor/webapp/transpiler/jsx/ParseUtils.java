@@ -47,7 +47,7 @@ public interface ParseUtils {
         in.index++;
         StringBuilder res = new StringBuilder(100);
         res.append('/');
-        while( (c=in.ch()) != '/' )
+        while( (c=in.ch()) != '/' || (c=='/' && Character.isDigit(in.ch(1))) )
         {
             res.append(c);
             in.index++;
@@ -63,5 +63,10 @@ public interface ParseUtils {
         in.index++;
         res.append('/');
         return res;
+    }
+
+    public static void main(String[] args) {
+        ParseUtils pu = new JSBeautifier();
+        System.out.println(pu.readRegexp( new Inp("/[^+/0-9A-Za-z-_]/g")));
     }
 }
