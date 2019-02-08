@@ -24,8 +24,8 @@ public class UserRecord extends RecordWrapper {
         return this;
     }
 
-    public UserRecord type(final String type) {
-        put("type", type );
+    public UserRecord role(final String role) {
+        put("role", role );
         return this;
     }
 
