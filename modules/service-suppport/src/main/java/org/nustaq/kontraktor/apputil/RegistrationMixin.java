@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.apputil;
 
 import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
@@ -66,12 +67,33 @@ public interface RegistrationMixin<SELF extends Actor<SELF>> extends LinkMapperM
                 // outdated
                 return applyTemplate(rec, "html/registration-old.html");
             } else {
-                //TODO: create user, check uniqueness
+                //create user, check uniqueness should be done in create using atomic operations
+                Record existing = getDClient().tbl(UserTableName).get(rec.getEmail().toLowerCase()).await();
+                if ( existing != null ) {
+                    return applyTemplate(rec, "html/registration-exists.html");
+                }
+                createUserFromRegistrationRecord(rec);
                 return applyTemplate(rec, "html/registration-success.html");
             }
         } else { // wrong type
             return applyTemplate(null, "html/registration-fail.html");
         }
+    }
+
+    @CallerSideMethod @Local
+    default String handleLinkFailure(String linkId) {
+        return applyTemplate(null, "html/registration-fail.html");
+    }
+
+    default IPromise<UserRecord> createUserFromRegistrationRecord(RegistrationRecord rec) {
+        UserRecord u = new UserRecord(rec.getEmail().toLowerCase());
+        u.name(rec.getName())
+            .email(rec.getEmail())
+            .creation(System.currentTimeMillis())
+            .pwd(rec.getPwd())
+            .role("user");
+        getDClient().tbl(UserTableName).setRecord(u.getRecord());
+        return Actors.resolve(u);
     }
 
     static String applyTemplate(RegistrationRecord rec, String template) {
@@ -82,11 +104,6 @@ public interface RegistrationMixin<SELF extends Actor<SELF>> extends LinkMapperM
             Log.Warn(RegistrationMixin.class,e);
             return "<html>internal error "+e+"</html>";
         }
-    }
-
-    @CallerSideMethod @Local
-    default String handleLinkFailure(String linkId) {
-        return null;
     }
 
 }
