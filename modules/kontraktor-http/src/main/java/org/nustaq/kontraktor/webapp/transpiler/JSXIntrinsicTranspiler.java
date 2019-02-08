@@ -32,6 +32,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     protected List<WatchedFile> readFiles;
     protected Map<String,File> nodeTopLevelImports;
     protected FileWatcher watcher;
+    protected TimeStampedFileCache<JSXGenerator.ParseResult> transpiledCache = new TimeStampedFileCache();
+    protected Map<String,File> nodeDirResolveCache = new HashMap<>();
     protected boolean hmr = false;
 
     public JSXIntrinsicTranspiler(boolean dev) {
@@ -113,17 +115,17 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         if ( !requireText.startsWith(".") ) {
             File f = new File(requiringFile, "node_modules/" + requireText);
             if (f.exists())
-                return new File(getCanonicalPath(f));
+                return new File(TimeStampedFileCache.getCanonicalPath(f));
             f = new File(requiringFile, "node_modules/" + requireText + ".js");
             if (f.exists())
-                return new File(getCanonicalPath(f));
+                return new File(TimeStampedFileCache.getCanonicalPath(f));
             return findNodeModulesNearestMatch(requiringFile.getParentFile(), requireText);
         } else {
             File f = new File(requiringFile.getParentFile(),requireText);
             if ( ! f.exists() )
                 f =  new File(requiringFile.getParentFile(),requireText+".js");
             if ( f.exists() )
-                return new File(getCanonicalPath(f));
+                return new File(TimeStampedFileCache.getCanonicalPath(f));
         }
         return null;
     }
@@ -138,7 +140,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         if ( requiringFile == null )
             return null;
         if ( requiringFile.getParentFile() != null && requiringFile.getParentFile().getName().equals("node_modules") )
-            return getCanonicalPath(requiringFile);
+            return TimeStampedFileCache.getCanonicalPath(requiringFile);
         else
             return findNodeSubDir(requiringFile.getParentFile());
     }
@@ -158,7 +160,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                         return new File(file,browser.asString());
                     }
                     if ( browser.isObject() ) {
-                        String nodeModuleDir = getCanonicalPath(file);
+                        String nodeModuleDir = TimeStampedFileCache.getCanonicalPath(file);
                         JsonObject members = browser.asObject();
                         members.forEach( member -> {
                             String key = "browser_" + nodeModuleDir + "_" + member.getName();
@@ -167,7 +169,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 //                            System.out.println("  val:"+member.getValue());
                         });
                     } else {
-                        Log.Warn(this, "unrecognized 'browser' entry in package.json, " + getCanonicalPath(file));
+                        Log.Warn(this, "unrecognized 'browser' entry in package.json, " + TimeStampedFileCache.getCanonicalPath(file));
                         return null;
                     }
                 }
@@ -247,7 +249,15 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 }
             }
             NodeLibNameResolver nodeLibNameResolver = createNodeLibNameResolver(resolver);
-            JSXGenerator.ParseResult result = JSXGenerator.process(f,dev, nodeLibNameResolver,getConfig());
+            JSXGenerator.ParseResult result = null;
+            if ( dev && !isInitialIndexJSX ) {
+                result = transpiledCache.get(f);
+            }
+            if ( result == null ) {
+                result = JSXGenerator.process(f, dev, nodeLibNameResolver, getConfig());
+                if (dev && !isInitialIndexJSX)
+                    transpiledCache.put(f, result);
+            }
             boolean notInNodeModules = isNotInNodeModules(f);
             boolean notInNodeModulesForModuleBundlingDev = notInNodeModules || !BUNDLE_NODE_ALWAYS;
             if ( dev ) {
@@ -398,7 +408,13 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         }
         File resolvedFile;
         if (importSpec.isRequire() ) {
-            resolvedFile = findNodeModulesNearestMatch(requiringFile,from);
+            String key = requiringFile.getAbsolutePath() + "#" + from;
+            resolvedFile = nodeDirResolveCache.get(key);
+            if ( resolvedFile == null ) {
+                resolvedFile = findNodeModulesNearestMatch(requiringFile, from);
+                if ( resolvedFile != null )
+                    nodeDirResolveCache.put(key,resolvedFile);
+            }
             if ( resolvedFile != null ) {
                 toReadFromName = resolvedFile.getName();
                 toReadFrom = resolvedFile;
@@ -423,7 +439,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             }
             if ( indexFile == null )
             {
-                Log.Warn(this,"node directory could not be resolved to a resource :"+ getCanonicalPath(resolvedFile));
+                ErrorHandler.get().add(this.getClass(),"node directory could not be resolved to a resource ",resolvedFile);
                 return null;
             } else {
                 toReadFrom = indexFile;
@@ -477,7 +493,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     }
                 }
             }
-            Log.Warn(this, importSpec.getFrom() + " not found. requiredBy:" + getCanonicalPath(requiringFile));
+            ErrorHandler.get().add(this.getClass(), importSpec.getFrom() + " not found. requiredBy ",requiringFile);
         }
         return requiringFile;
     }
