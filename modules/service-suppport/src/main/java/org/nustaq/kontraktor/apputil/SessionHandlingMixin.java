@@ -11,7 +11,12 @@ import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.Record;
 
-public interface SessionResurrectionMixin<SELF extends Actor<SELF>> extends SessionResurrector {
+/**
+ * must be applied to ServerActor.
+ *
+ * @param <SELF>
+ */
+public interface SessionHandlingMixin<SELF extends Actor<SELF>> extends SessionResurrector {
 
     public static String TableName = "session2user";
 
@@ -41,10 +46,15 @@ public interface SessionResurrectionMixin<SELF extends Actor<SELF>> extends Sess
 
     IPromise<? extends Actor> login(String username, String pwd );
 
+    /**
+     * register a session for reanimation
+     *
+     * @param id
+     * @param userName
+     * @param pwd
+     */
     @Local
     default void registerSessionData(String id, String userName, String pwd) {
-        //TODO: persist data in order to re-identify "sleeping" clients waking up
-        //TODO: clean up / remove old sessionId's to avoid memleak
         getDClient().tbl(TableName).update(id, "userName", userName, "pwd",pwd );
     }
 
