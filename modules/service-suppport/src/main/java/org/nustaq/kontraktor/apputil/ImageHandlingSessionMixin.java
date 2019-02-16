@@ -3,6 +3,9 @@ package org.nustaq.kontraktor.apputil;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.annotations.Local;
+
 import java.awt.*;
 
 public interface ImageHandlingSessionMixin {
@@ -13,6 +16,7 @@ public interface ImageHandlingSessionMixin {
         return res;
     }
 
+    @CallerSideMethod @Local
     default ImageSaver getImageSaver() {
         return new ImageSaver("./run/upload/image");
     }
