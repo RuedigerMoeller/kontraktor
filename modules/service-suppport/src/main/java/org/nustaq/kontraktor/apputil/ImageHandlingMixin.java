@@ -8,7 +8,7 @@ import org.nustaq.kontraktor.annotations.Local;
 
 import java.awt.*;
 
-public interface ImageHandlingSessionMixin {
+public interface ImageHandlingMixin {
 
     default IPromise<String> uploadImage(String base64String , String imageType ){
         Promise<String> res = new Promise();
