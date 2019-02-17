@@ -34,7 +34,7 @@ public class ErrorHandler {
         } catch (IOException e) {
             Log.Error(this,e);
         }
-        error = "@"+ absolutePath +": "+error;
+        error = "@"+ absolutePath.replace('\\', '/') +": "+error;
         Log.Warn(sender,error);
         errors.add(error);
         if ( errors.size() > 100 ) {

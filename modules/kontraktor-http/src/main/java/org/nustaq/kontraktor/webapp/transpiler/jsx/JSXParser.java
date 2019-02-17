@@ -336,6 +336,10 @@ public class JSXParser implements ParseUtils {
                         spec.getAliases().add(s);
                     }
                 }
+            } else if ( in.ch() == '\'' || in.ch() == '"' ) {
+                // plain file
+                String from = readJSString(in).toString();
+                spec.from(from.substring(1,from.length()-1));
             } else {
                 // plain
                 StringBuilder sb = new StringBuilder();
@@ -369,14 +373,19 @@ public class JSXParser implements ParseUtils {
             }
         }
         in.skipWS();
-        if ( ! in.match("from") )
-            throw new RuntimeException("expected from >"+in+"<");
-        in.advance(4);
-        in.skipWS();
-        StringBuilder src = readJSString(in);
-        src.delete(0,1);
-        src.setLength(src.length()-1);
-        spec.from(src.toString());
+        if ( spec.isPureImport() ) {
+            // from is set
+            int debug = 1;
+        } else {
+            if (!in.match("from"))
+                throw new RuntimeException("expected from >" + in + "<");
+            in.advance(4);
+            in.skipWS();
+            StringBuilder src = readJSString(in);
+            src.delete(0, 1);
+            src.setLength(src.length() - 1);
+            spec.from(src.toString());
+        }
         while( in.ch() >= 32) {
             in.inc();
         }
