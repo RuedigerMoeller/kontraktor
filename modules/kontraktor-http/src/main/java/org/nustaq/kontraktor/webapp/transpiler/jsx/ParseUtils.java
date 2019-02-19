@@ -1,6 +1,33 @@
 package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
 public interface ParseUtils {
+
+    Set WordCount = new HashSet();
+    boolean CountWords = false;
+
+    static int calcWordCount() {
+        int sum = 0;
+        for (Iterator iterator = WordCount.iterator(); iterator.hasNext(); ) {
+            String next = (String) iterator.next();
+            if ( next.startsWith("'") || next.startsWith("\""))
+                next = next.substring(1);
+            if ( next.endsWith("'") || next.endsWith("\""))
+                next = next.substring(0,next.length()-1);
+            if ( next.length() <= 3 || next.indexOf("-") >= 0 || next.indexOf("_") >= 0 || next.indexOf("/") >= 0 || next.startsWith("on") || next.indexOf("#") >= 0 || next.indexOf("calc") >= 0 )
+                continue;
+            int length = next.split(" ").length;
+            if ( length < 1 )
+                continue;
+            sum += length;
+            System.out.println(next);
+        };
+        return sum;
+    }
 
     default StringBuilder readStarComment(Inp in) {
         StringBuilder res = new StringBuilder(100);
@@ -27,6 +54,10 @@ public interface ParseUtils {
         }
         res.append(endChar);
         in.inc();
+        if ( CountWords && ! in.isNodeFile() ) {
+            String s = res.toString();
+            WordCount.add(s);
+        }
         return res;
     }
 
@@ -67,6 +98,6 @@ public interface ParseUtils {
 
     public static void main(String[] args) {
         ParseUtils pu = new JSBeautifier();
-        System.out.println(pu.readRegexp( new Inp("/[^+/0-9A-Za-z-_]/g")));
+        System.out.println(pu.readRegexp( new Inp("/[^+/0-9A-Za-z-_]/g", null)));
     }
 }

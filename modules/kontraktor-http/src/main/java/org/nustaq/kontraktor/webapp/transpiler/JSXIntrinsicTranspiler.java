@@ -238,6 +238,8 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             boolean isInitialIndexJSX = f != null && f.getName().endsWith("index.jsx");
             if ( isInitialIndexJSX ) {
                 ErrorHandler.get().reset();
+                if ( ParseUtils.CountWords )
+                    ParseUtils.WordCount.clear();
                 jnpmConfigFileCached = null;
                 if ( dev ) {
                     readFiles = new ArrayList<>();
@@ -344,6 +346,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                         String s = errors.get(i);
                         indexBaos.write(("console.warn('"+s+"');\n").getBytes("UTF-8"));
                     }
+                    Log.Info(this, "Number of Words estimated "+ParseUtils.calcWordCount() );
                 }
                 return indexBaos.toByteArray();
             }

@@ -395,6 +395,10 @@ public class JSXParser implements ParseUtils {
         boolean autoclosed = parseAttributesOrTEnd(tokenEntry, in);
         if ( ! autoclosed ) {
             parseJSXContent(tokenEntry,in);
+            if ( CountWords && !in.isNodeFile() ) {
+                String s = tokenEntry.getChars().toString();
+                WordCount.add(s);
+            }
         }
     }
 

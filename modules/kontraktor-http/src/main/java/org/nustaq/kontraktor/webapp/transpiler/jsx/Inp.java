@@ -1,13 +1,23 @@
 package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
+import java.io.File;
+
 public class Inp {
     char[] file;
     int index;
     int failcount =0;
-    public Inp(String s) {
+    File f;
+
+    public Inp(String s, File f) {
         index = 0;
         file = s.toCharArray();
+        this.f = f;
     }
+
+    public boolean isNodeFile() {
+        return f != null && f.getAbsolutePath().indexOf("node_modules") >= 0;
+    }
+
     public char ch(int off) {
         try {
             return file[index + off];

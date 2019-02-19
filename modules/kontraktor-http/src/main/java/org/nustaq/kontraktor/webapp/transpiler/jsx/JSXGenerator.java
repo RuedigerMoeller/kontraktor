@@ -1,13 +1,10 @@
 package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
-import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.npm.JNPMConfig;
 import org.nustaq.kontraktor.webapp.transpiler.ErrorHandler;
 import org.nustaq.utils.FileUtil;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -242,7 +239,7 @@ public class JSXGenerator {
         byte[] bytes = FileUtil.readFully(f);
 
         String cont = new String(bytes, "UTF-8");
-        jsx.parseJS(root,new Inp(cont));
+        jsx.parseJS(root,new Inp(cont,f));
         if ( jsx.depth != 0 ) {
             ErrorHandler.get().add( JSXGenerator.class, "probably parse issues with non-matching braces",f);
             ParseResult parseResult = new ParseResult(f, bytes, f.getName().endsWith(".js") ? "js" : "jsx", jsx.getImports(), jsx.getTopLevelObjects(), jsx.getIgnoredRequires(),jsx.getDefaultExport());
@@ -260,7 +257,7 @@ public class JSXGenerator {
             ByteArrayOutputStream outpretty = new ByteArrayOutputStream(filedata.length + filedata.length / 5);
             PrintStream pspretty = new PrintStream(outpretty);
             JSBeautifier beautifier = new JSBeautifier();
-            beautifier.parseJS(new GenOut(pspretty), new Inp(new String(filedata, "UTF-8")));
+            beautifier.parseJS(new GenOut(pspretty), new Inp(new String(filedata, "UTF-8"), f));
             pspretty.flush();
             pspretty.close();
             filedata = outpretty.toByteArray();
