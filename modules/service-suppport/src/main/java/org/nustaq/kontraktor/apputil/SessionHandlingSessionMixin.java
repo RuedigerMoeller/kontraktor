@@ -1,13 +1,17 @@
 package org.nustaq.kontraktor.apputil;
 
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
+import org.nustaq.reallive.api.Subscriber;
 import org.nustaq.serialization.coders.Unknown;
 
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * must be applied to SessionActor
@@ -23,6 +27,9 @@ public interface SessionHandlingSessionMixin {
     @CallerSideMethod
     @Local
     UserRecord getUser();
+
+    @CallerSideMethod @Local
+    List<Subscriber> getSubscriptions(); // collects subscriptions to be unsubscribed at session termination
 
     default IPromise saveProfile(Unknown data) {
         Promise p = new Promise();
@@ -53,4 +60,14 @@ public interface SessionHandlingSessionMixin {
         return p;
     }
 
+    default void subscribeUserRecord(UserRecord user, Callback uiSubscription, AtomicBoolean initialDataDone) {
+        getSubscriptions().add(getDClient().tbl("user").subscribeOn( "_key == '"+user.getEmail()+"'", change -> {
+            // need to wait for initial query before promoting changes to user object
+            if ( change.isDoneMsg() )
+                initialDataDone.set(true);
+            else if ( initialDataDone.get() ){
+                uiSubscription.pipe(new SessionEvent("user", change));
+            }
+        }));
+    }
 }

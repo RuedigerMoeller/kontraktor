@@ -1,9 +1,6 @@
 package org.nustaq.kontraktor.apputil;
 
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.base.SessionResurrector;
@@ -39,12 +36,19 @@ public interface SessionHandlingMixin<SELF extends Actor<SELF>> extends SessionR
             // create a new session with stored data, client is notified
             // in case it needs to refresh client side data
             Log.Info(this,"reanimated session "+sessionId+" with data "+rec);
-            return (IPromise)login(rec.getSafeString("userName"),rec.getSafeString("pwd") );
+            return (IPromise)login(rec.getSafeString("userName"),rec.getSafeString("pwd"), null ); // fixme: manual event subscription required
         }
         return new Promise<>(null); // cannot reanimate => client shows "session expired"
     }
 
-    IPromise<? extends Actor> login(String username, String pwd );
+    /**
+     * returns logindata including session or session
+     *
+     * @param username
+     * @param pwd
+     * @return
+     */
+    IPromise login(String username, String pwd, Callback events );
 
     /**
      * register a session for reanimation
