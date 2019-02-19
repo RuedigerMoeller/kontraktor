@@ -3,8 +3,10 @@ package org.nustaq.kontraktor.webapp.transpiler;
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import io.undertow.server.handlers.resource.Resource;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.kontraktor.webapp.javascript.DynamicResourceManager;
 import org.nustaq.kontraktor.webapp.javascript.FileResolver;
 import org.nustaq.kontraktor.webapp.npm.JNPM;
 import org.nustaq.kontraktor.webapp.npm.JNPMConfig;
@@ -96,6 +98,11 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             @Override
             public String resolveUniquePath(File file) {
                 return resolver.resolveUniquePath(file);
+            }
+
+            @Override
+            public Resource getResource(String initialPath) {
+                return resolver.getResource(initialPath);
             }
         };
     }
@@ -449,8 +456,10 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 toReadFromName = indexFile.getName();
             }
         } else {
-            // fixme: hasExtension
-            if (!from.endsWith(".js") && !from.endsWith(".jsx") && !from.endsWith(".json")) {
+            int extlen = from.length() - from.lastIndexOf('.');
+            if ( extlen < 6 && from.substring(from.length()-extlen).indexOf('/') < 0) {
+               // hasExtension (now generally catched) [might have sideeffects see line below old code]
+            } else if (!from.endsWith(".js") && !from.endsWith(".jsx") && !from.endsWith(".json")) { // [old hack] auto add missing extension
                 from += ".js";
             }
         }
@@ -474,6 +483,21 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     jsonBao.write(
                         ("})( kgetModule('"+s+"').exports, krequire, kgetModule('"+s+"'), '', '' );").getBytes("UTF-8"));
                     resolver.install("/debug/" + name, jsonBao.toByteArray());
+                } else if (resolvedFile.getName().endsWith(".css") && importSpec.isPureImport() ) { // support direct import of css
+                    name = constructLibName(resolvedFile, resolver);
+                    ByteArrayOutputStream cssBao = new ByteArrayOutputStream(resolved.length+100);
+                    cssBao.write(("if ( !window['"+name+"'] ) {\n").getBytes("UTF-8"));
+                    cssBao.write("  const __css__ = document.createElement('style');".getBytes("UTF-8"));
+                    cssBao.write("  __css__.type = \"text/css\";\n".getBytes("UTF-8"));
+                    cssBao.write("  __css__.innerHTML = `".getBytes("UTF-8"));
+                    cssBao.write(resolved);
+                    cssBao.write("`\n".getBytes("UTF-8"));
+                    cssBao.write("  document.body.appendChild(__css__);\n".getBytes("UTF-8"));
+                    cssBao.write(("  window['"+name+"'] = 1;\n").getBytes("UTF-8"));
+                    cssBao.write("}\n".getBytes("UTF-8"));
+                    String s = constructLibName(requiringFile, resolver);
+                    resolver.install("/debug/" + name, cssBao.toByteArray());
+                    // code is taken out later when generating prologue
                 }
             }
         }
@@ -481,8 +505,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
             if ( autoJNPM && jnpmNodeModulesDir != null ) {
                 String required = importSpec.getFrom();
                 required = getLookupLibName(required);
-                // single file can't be a node module
-                if ( required.indexOf(".") < 0 )
+                if ( required.indexOf(".") < 0 ) // single file can't be a node module
                 {
                     JNPMConfig config = getConfig();
                     Log.Info(this, importSpec.getFrom() + " not found. installing .. '" + required+"'");
@@ -574,9 +597,10 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         s += "(new function() {\n";
         List<ImportSpec> imports = result.getImports();
         // declaration
+        NodeLibNameResolver nodeLibNameResolver = createNodeLibNameResolver(resolver);
         for (int i = 0; i < imports.size(); i++) {
             ImportSpec spec = imports.get(i);
-            String libname = createNodeLibNameResolver(resolver).getFinalLibName(result.getFile(),resolver,spec.getFrom());
+            String libname = nodeLibNameResolver.getFinalLibName(result.getFile(),resolver,spec.getFrom());
             if ( spec.getAlias() != null ) {
                 s+="let "+spec.getAlias()+"=null;";
             }
@@ -592,7 +616,17 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
         s+="\n  const _initmods = () => {\n";
         for (int i = 0; i < imports.size(); i++) {
             ImportSpec spec = imports.get(i);
-            String libname = createNodeLibNameResolver(resolver).getFinalLibName(result.getFile(),resolver,spec.getFrom());
+            String libname = nodeLibNameResolver.getFinalLibName(result.getFile(),resolver,spec.getFrom());
+            if ( spec.isPureImport() ) {
+                // assume pure "import 'a/b/xy.css' .. has been put to debug libs => insert generated code in place in module header
+                // hacked: install some js generate using resolver.install => then retrieve it here
+                byte[] resolved = ((DynamicResourceManager.MyResource)resolver.getResource("/debug/"+libname )).getBytes();
+                try {
+                    s += new String(resolved,"UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+            }
             if ( spec.getAlias() != null ) {
                 s+="    "+spec.getAlias()+" = _kresolve('"+libname+"');"+(hmr ? "": "\n");
                 if ( hmr ) {

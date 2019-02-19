@@ -91,7 +91,7 @@ public interface RegistrationMixin<SELF extends Actor<SELF>> extends LinkMapperM
             .email(rec.getEmail())
             .creation(System.currentTimeMillis())
             .pwd(rec.getPwd())
-            .role("user");
+            .role("User");
         getDClient().tbl(UserTableName).setRecord(u.getRecord());
         return Actors.resolve(u);
     }

@@ -66,6 +66,13 @@ public class ImportSpec {
         return this;
     }
 
+    /**
+     * @return wether this is a pure "import 'directfile.xy'" statement (outside node modules)
+     */
+    public boolean isPureImport() {
+        return (component == null || component.isEmpty()) && (aliases == null || aliases.isEmpty()) && from != null && ! isRequire();
+    }
+
     @Override
     public String toString() {
         return "ImportSpec{" +
