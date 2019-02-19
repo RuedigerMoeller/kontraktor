@@ -483,12 +483,15 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 } else if (resolvedFile.getName().endsWith(".css") && importSpec.isPureImport() ) { // support direct import of css
                     name = constructLibName(resolvedFile, resolver);
                     ByteArrayOutputStream cssBao = new ByteArrayOutputStream(resolved.length+100);
-                    cssBao.write("var __css__ = document.createElement('style');".getBytes("UTF-8"));
-                    cssBao.write("__css__.type = \"text/css\";\n".getBytes("UTF-8"));
-                    cssBao.write("__css__.innerHTML = `".getBytes("UTF-8"));
+                    cssBao.write(("if ( !window['"+name+"'] ) {\n").getBytes("UTF-8"));
+                    cssBao.write("  const __css__ = document.createElement('style');".getBytes("UTF-8"));
+                    cssBao.write("  __css__.type = \"text/css\";\n".getBytes("UTF-8"));
+                    cssBao.write("  __css__.innerHTML = `".getBytes("UTF-8"));
                     cssBao.write(resolved);
                     cssBao.write("`\n".getBytes("UTF-8"));
-                    cssBao.write("document.body.appendChild(__css__);;\n".getBytes("UTF-8"));
+                    cssBao.write("  document.body.appendChild(__css__);\n".getBytes("UTF-8"));
+                    cssBao.write(("  window['"+name+"'] = 1;\n").getBytes("UTF-8"));
+                    cssBao.write("}\n".getBytes("UTF-8"));
                     String s = constructLibName(requiringFile, resolver);
                     resolver.install("/debug/" + name, cssBao.toByteArray());
                     // code is taken out later when generating prologue

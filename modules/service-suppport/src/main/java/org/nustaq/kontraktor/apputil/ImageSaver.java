@@ -50,7 +50,7 @@ public class ImageSaver {
             String fullPath = basePath + "/" + fileName;
             boolean success = saveImage(img, fullPath);
             if (success) {
-                String imageId = "assets" + "/" + path + "/" + fileName;
+                String imageId = fileName;
                 prom.complete(imageId, null);
                 return prom;
             } else {
