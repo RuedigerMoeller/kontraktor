@@ -231,7 +231,7 @@ public class UndertowRESTHandler implements HttpHandler {
     }
 
     private void checkExchangeState(HttpServerExchange exchange) {
-        if ( exchange.isResponseStarted() ) {
+        if ( false && exchange.isResponseStarted() ) {
             int debug = 1;
             System.out.println("response started "+Thread.currentThread().getName());
         }
