@@ -22,10 +22,10 @@ import static org.nustaq.kontraktor.Actors.resolve;
  * * mentions @username (link is genereated to profile like /#/profiles/[username]
  * * some user refs are by user name, so user name must be equal (cannot use email key as they should be private)
  */
-public interface CommentsMixin {
+public interface CommentsSessionMixin {
 
     String TableName = "comment";
-    String HistoryTableName = "commentlog";
+    String HistoryTableName = "commentHistory";
     String DefaultUserImagePath = "./imgupload/default-user.png";
 
     @CallerSideMethod @Local
@@ -38,18 +38,22 @@ public interface CommentsMixin {
         return getOrCreateDiscussion(UUID.randomUUID().toString());
     }
 
-    default IPromise<Record> getOrCreateDiscussion(String commentId) {
+    default IPromise<Record> getOrCreateDiscussion(String commentTreeKey) {
         Promise res = new Promise();
-        getDClient().tbl(TableName).get(commentId).then( (r,e) -> {
+        getDClient().tbl(TableName).get(commentTreeKey).then( (r,e) -> {
             if ( r != null )
                 res.resolve(r);
             else {
+                long now = System.currentTimeMillis();
                 CommentRecord rec =
-                    new CommentRecord(commentId)
+                    new CommentRecord(commentTreeKey)
                         .author(getUser().getName())
+                        .creation(now)
+                        .lastModified(now)
                         .imageURL(getUser().getImageURL())
                         .text("root")
                         .id("root");
+                getDClient().tbl(TableName).setRecord(rec.getRecord());
                 res.resolve(rec.getRecord());
             }
         });
@@ -104,8 +108,7 @@ public interface CommentsMixin {
         });
     }
 
-    default IPromise editComment(
-        String commentTreeKey, String commentId, String text0, String editorId ) {
+    default IPromise editComment( String commentTreeKey, String commentId, String text0 ) {
         Promise res = new Promise();
         Set<String> mentions = new HashSet();
         String editorKey = getUser().getKey();
@@ -119,15 +122,18 @@ public interface CommentsMixin {
                         root.id("root");
                     CommentRecord childNode = root.findChildNode(commentId);
                     if (childNode != null) {
+                        long now = System.currentTimeMillis();
                         childNode.text(text);
+                        childNode.lastModified(now);
+                        root.lastModified(now);
                         root.children(root.getChildren());
                         CommentRecord parent = root.findParent(commentId);
                         CommentHistoryRecord ch =
                             new CommentHistoryRecord(UUID.randomUUID().toString())
                                 .foreignKey(commentTreeKey).id(commentId)
-                                .creation(System.currentTimeMillis())
+                                .creation(now)
                                 .editorId(editorKey)
-                                .affectedParentUser(parent.getAuthor())
+                                .affectedParentUser(parent != null ? parent.getAuthor() : null)
                                 .type("edit");
                         return ch;
                     } else {
@@ -140,15 +146,17 @@ public interface CommentsMixin {
                     CommentHistoryRecord casted = (CommentHistoryRecord) ch;
                     casted.mentions(mentions);
                     getDClient().tbl(HistoryTableName).addRecord(casted);
+                    res.resolve(commentId);
+                } else {
+                    res.reject("error: no comment record could be found");
                 }
             });
-            res.resolve(commentId);
             return;
         });
         return res;
     }
 
-    default IPromise addComment( String commentTreeKey, String commentId, String text0 ) {
+    default IPromise addComment( String commentTreeKey, String parentCommentId, String text0 ) {
         Promise res = new Promise();
         Set<String> mentions = new HashSet();
         RealLiveTable comments = getDClient().tbl(TableName);
@@ -160,7 +168,7 @@ public interface CommentsMixin {
                 .creation(System.currentTimeMillis())
                 .lastModified(System.currentTimeMillis())
                 .text(text)
-                .author(ukey)
+                .author(getUser().getName())
                 .imageURL(uImg);
             if ( newComment.getImageURL() == null || newComment.getImageURL().length() == 0) {
                 newComment.imageURL(DefaultUserImagePath);
@@ -171,17 +179,16 @@ public interface CommentsMixin {
                     CommentRecord root = new CommentRecord(ctree);
                     if ( root.getId() == null )
                         root.id("root");
-                    CommentRecord childNode = root.findChildNode(commentId);
-                    if ( childNode != null ) {
-                        childNode.addChild(newComment);
+                    CommentRecord parentNode = root.findChildNode(parentCommentId);
+                    if ( parentNode != null ) {
+                        parentNode.addChild(newComment);
                         root.children(root.getChildren());
-                        CommentRecord parent = root.findParent(commentId);
                         CommentHistoryRecord ch =
                             new CommentHistoryRecord(UUID.randomUUID().toString())
-                                .foreignKey(commentTreeKey).id(commentId)
+                                .foreignKey(commentTreeKey).id(parentCommentId)
                                 .creation(System.currentTimeMillis())
                                 .editorId(ukey)
-                                .affectedParentUser(parent.getAuthor())
+                                .affectedParentUser(parentNode.getAuthor())
                                 .type("add");
                         return ch;
                     } else {
@@ -196,7 +203,7 @@ public interface CommentsMixin {
                     getDClient().tbl(HistoryTableName).addRecord(casted);
                 }
             });
-            res.resolve(newComment);
+            res.resolve(newComment.getRecord());
         });
         return res;
     }
@@ -216,21 +223,32 @@ public interface CommentsMixin {
             while( idx >= 0 ) {
                 if ( idx >= 0 ) {
                     int idx1 = idx+1;
-                    while( idx1 < comment.length() && Character.isLetterOrDigit(comment.charAt(idx1)) ) {
+                    boolean quoted = false;
+                    if ( idx1 < comment.length() && comment.charAt(idx1) == '\'' ) { // name with spaces @'Rüdiger Möller'
                         idx1++;
+                        idx++;
+                        while( idx1 < comment.length() && comment.charAt(idx1) != '\'' ) {
+                            idx1++;
+                        }
+                        quoted = true;
+                    } else {
+                        while (idx1 < comment.length() && Character.isLetterOrDigit(comment.charAt(idx1))) {
+                            idx1++;
+                        }
                     }
                     if ( idx1 > idx ) {
                         String name = comment.substring(idx+1,idx1);
-                        int finalIdx = idx1;
-                        userTable.find( rec -> rec.getSafeString("name").equalsIgnoreCase(name) )
+                        int finalIdx = idx1+(quoted ? 1 : 0);
+                        int finalIdx1 = idx;
+                        userTable.find(rec -> rec.getSafeString("name").equalsIgnoreCase(name) )
                             .then( (rec,err) -> {
                                 if ( rec != null ) {
                                     UserRecord ulight = UserRecord.lightVersion(rec);
                                     String unam = ulight.getName();
                                     String replace = "<a href='/#/profiles/" + unam + "'>" + unam + "</a>";
-                                    String formatted = comment.substring(0, idx) + replace + comment.substring(finalIdx);
+                                    String formatted = comment.substring(0, finalIdx1) + replace + comment.substring(finalIdx);
                                     mentions.add(rec.getKey());
-                                    highLighComment(formatted,idx+replace.length(),mentions).then(res);
+                                    highLighComment(formatted, finalIdx1 +replace.length(),mentions).then(res);
                                 }
                         });
                         return res;
