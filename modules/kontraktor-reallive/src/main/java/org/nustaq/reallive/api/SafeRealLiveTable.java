@@ -60,5 +60,4 @@ public interface SafeRealLiveTable extends ChangeReceiver, SafeChangeStream, Saf
         return this.addRecord(0,rec);
     }
 
-
 }

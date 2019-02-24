@@ -24,8 +24,7 @@ public interface SessionHandlingSessionMixin {
     @Local
     DataClient getDClient();
 
-    @CallerSideMethod
-    @Local
+    @CallerSideMethod @Local
     UserRecord getUser();
 
     @CallerSideMethod @Local
@@ -37,9 +36,8 @@ public interface SessionHandlingSessionMixin {
         String verifyPwd = data.getString("verifyPwd");
         String oldPwd = data.getString("oldPwd");
 
-
         data.getFields().forEach( (k,v) -> {
-            if ( !"pwd".equals(k) && !"verifyPwd".equals(k) && !"oldPwd".equals(k) )
+            if ( !"pwd".equals(k) && !"verifyPwd".equals(k) && !"oldPwd".equals(k) && ! "name".equals(k) )
                 getUser().put(k,v);
         });
         if ( pwd != null && pwd.length() > 0 ) {

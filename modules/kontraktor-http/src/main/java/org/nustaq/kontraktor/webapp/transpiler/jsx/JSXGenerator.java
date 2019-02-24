@@ -231,8 +231,8 @@ public class JSXGenerator {
     public static ParseResult process(
         File f, boolean pretty, NodeLibNameResolver nlib, JNPMConfig config ) throws IOException {
 
-        // this is really inefficient, there are loads of optimization opportunities,
-        // however this code runs in devmode only ..
+        // this is inefficient, there are loads of optimization opportunities,
+        // code runs in devmode only ..
 
         JSXParser jsx = new JSXParser(f,nlib);
         JSNode root = new JSNode();

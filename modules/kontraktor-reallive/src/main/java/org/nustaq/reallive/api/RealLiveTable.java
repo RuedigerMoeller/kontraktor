@@ -1,6 +1,11 @@
 package org.nustaq.reallive.api;
 
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.Promise;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Created by ruedi on 06/08/15.
@@ -31,4 +36,31 @@ public interface RealLiveTable extends SafeRealLiveTable, ChangeStream, RealLive
     void atomicUpdate(RLPredicate<Record> filter, RLFunction<Record, Boolean> action);
 
     void unsubscribeById(int subsId);
+
+    default IPromise<List<Record>> queryList(RLPredicate<Record> condition) {
+        Promise prom = new Promise();
+        List<Record> res = new ArrayList<>();
+        forEach(condition, (r,e) -> {
+            if ( r != null ) {
+                res.add(r);
+            } else {
+                prom.resolve(res);
+            }
+        });
+        return prom;
+    }
+
+    default IPromise<Record> find(RLPredicate<Record> condition) {
+        Promise prom = new Promise();
+        queryList(condition).then( (r,e) -> {
+            if ( e != null )
+                prom.reject(e);
+            if ( r == null ) {
+                prom.reject("expected list but got null");
+            }
+            prom.resolve(r.size() == 0 ? null : r.get(0));
+        });
+        return prom;
+    }
+
 }

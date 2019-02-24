@@ -106,4 +106,23 @@ public class Inp {
         }
         return ch(off);
     }
+
+    // last two nonws chars
+    public String scanLastNWSDouble() {
+        int off = -1;
+        while ( Character.isWhitespace(ch(off)) && off + index >= 0 )
+        {
+            off--;
+        }
+        return ""+ch(off)+ch(off-1);
+    }
+
+    public boolean isFirstCharAfterLineBreak() {
+        int off = -1;
+        while ( Character.isWhitespace(ch(off)) && ch(off) != '\r' && ch(off) != '\n' && off + index >= 0 )
+        {
+            off--;
+        }
+        return  ch(off) == '\r' || ch(off) == '\n';
+    }
 }

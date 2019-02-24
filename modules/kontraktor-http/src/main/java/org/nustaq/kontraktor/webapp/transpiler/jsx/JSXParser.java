@@ -108,7 +108,7 @@ public class JSXParser implements ParseUtils {
             if ( ch == '/' && in.ch(1) == '*' ) {
                 cur.add(readStarComment(in));
             } else
-            if ( ch == '/' && "(,=:[!&|?{};".indexOf(in.scanLastNWS()) >= 0 ) {
+            if ( ch == '/' && couldBeRegexp(in)) {
                 cur.add(readRegexp(in));
             } else
             {
@@ -219,6 +219,13 @@ public class JSXParser implements ParseUtils {
                 in.index++; // speed interpretere
             }
         }
+    }
+
+    // assumes comments are logically excluded
+    private boolean couldBeRegexp(Inp in) {
+        // old code fails on comment => regexp
+        return "(,=:[!&|?{};".indexOf(in.scanLastNWS()) >= 0 || "*/".equalsIgnoreCase(in.scanLastNWSDouble()) || in.isFirstCharAfterLineBreak();
+        // if it is division
     }
 
     private void insertLastTopLevel(Inp in, TokenNode cur) {

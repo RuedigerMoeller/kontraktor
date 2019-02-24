@@ -456,8 +456,10 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                 toReadFromName = indexFile.getName();
             }
         } else {
-            int extlen = from.length() - from.lastIndexOf('.');
-            if ( extlen < 6 && from.substring(from.length()-extlen).indexOf('/') < 0) {
+            int pointIdx = from.lastIndexOf('.');
+            int extlen = from.length() - pointIdx;
+            int beginIndex = from.length() - extlen;
+            if ( pointIdx >= 0 && extlen < 6 && from.substring(beginIndex).indexOf('/') < 0) {
                // hasExtension (now generally catched) [might have sideeffects see line below old code]
             } else if (!from.endsWith(".js") && !from.endsWith(".jsx") && !from.endsWith(".json")) { // [old hack] auto add missing extension
                 from += ".js";

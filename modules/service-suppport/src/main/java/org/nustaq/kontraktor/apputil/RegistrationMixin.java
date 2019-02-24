@@ -35,20 +35,32 @@ public interface RegistrationMixin<SELF extends Actor<SELF>> extends LinkMapperM
         Promise p = new Promise();
         RegistrationRecord registerform = new RegistrationRecord(data);
         registerform.creation(System.currentTimeMillis());
-        putRecord(registerform).then( (r,e) -> {
-            if ( r != null ) {
-                HashMap<String, Object> copiedMap = createData(data, registerform);
-                Mailer.get().sendTemplateChannelMail(
-                    "registration",
-                    registerform.getEmail(),
-                    "Bitte bestätigen sie Ihre Registrierung",
-                    "mail/opt-in.html",
-                    copiedMap);
-                p.resolve(registerform);
-            } else {
-                p.reject(e);
-            }
-        });
+        registerform.name(registerform.getName().trim());
+        String name = registerform.getName().trim().toLowerCase();
+        getDClient().tbl(UserTableName).forEach(
+            rec -> new UserRecord(rec).getName().equalsIgnoreCase(name),
+            (rec,err) -> {
+                if ( rec != null ) {
+                    p.reject("Der Name '" + rec.get("name") + "' existiert bereits");
+                } else {
+                    if (!p.isSettled()) {
+                        putRecord(registerform).then( (r,e) -> {
+                            if ( r != null ) {
+                                HashMap<String, Object> copiedMap = createData(data, registerform);
+                                Mailer.get().sendTemplateChannelMail(
+                                    "registration",
+                                    registerform.getEmail(),
+                                    "Bitte bestätigen sie Ihre Registrierung",
+                                    "mail/opt-in.html",
+                                    copiedMap);
+                                p.resolve(registerform);
+                            } else {
+                                p.reject(e);
+                            }
+                        });
+                    }
+                }
+            });
         return p;
     }
 
@@ -62,18 +74,20 @@ public interface RegistrationMixin<SELF extends Actor<SELF>> extends LinkMapperM
     @CallerSideMethod @Local
     default String handleLinkSuccess(String linkId, Record linkRecord) {
         if ( linkRecord.getSafeString("type").equals("Registration") ) {
-            RegistrationRecord rec = new RegistrationRecord(linkRecord);
-            if ( System.currentTimeMillis() - rec.getCreation() > MAX_AGE ) {
+            RegistrationRecord regRec = new RegistrationRecord(linkRecord);
+            if ( System.currentTimeMillis() - regRec.getCreation() > MAX_AGE ) {
                 // outdated
-                return applyTemplate(rec, "html/registration-old.html");
+                return applyTemplate(regRec, "html/registration-old.html");
             } else {
                 //create user, check uniqueness should be done in create using atomic operations
-                Record existing = getDClient().tbl(UserTableName).get(rec.getEmail().toLowerCase()).await();
+                Record existing = getDClient().tbl(UserTableName).get(regRec.getEmail().toLowerCase()).await();
+                if ( existing == null )
+                    existing = getDClient().tbl(UserTableName).find( rec -> rec.getSafeString("name").equalsIgnoreCase(regRec.getName())).await();
                 if ( existing != null ) {
-                    return applyTemplate(rec, "html/registration-exists.html");
+                    return applyTemplate(regRec, "html/registration-exists.html");
                 }
-                createUserFromRegistrationRecord(rec);
-                return applyTemplate(rec, "html/registration-success.html");
+                createUserFromRegistrationRecord(regRec);
+                return applyTemplate(regRec, "html/registration-success.html");
             }
         } else { // wrong type
             return applyTemplate(null, "html/registration-fail.html");

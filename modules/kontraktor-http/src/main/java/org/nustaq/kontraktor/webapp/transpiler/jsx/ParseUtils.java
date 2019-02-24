@@ -1,5 +1,11 @@
 package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
+import org.nustaq.kontraktor.webapp.transpiler.JSXIntrinsicTranspiler;
+import org.nustaq.utils.FileUtil;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -47,7 +53,7 @@ public interface ParseUtils {
         {
             res.append(in.ch());
             in.advance(1);
-            if (in.ch() == endChar && in.ch(-1)=='\\' && in.ch(-2)!='\\') {
+            if (in.ch() == endChar && in.ch(-1)=='\\' && (in.ch(-2)!='\\' || in.ch(-3)=='\\' )) {
                 in.advance(1);
                 res.append(in.ch());
             }
@@ -96,8 +102,16 @@ public interface ParseUtils {
         return res;
     }
 
-    public static void main(String[] args) {
-        ParseUtils pu = new JSBeautifier();
-        System.out.println(pu.readRegexp( new Inp("/[^+/0-9A-Za-z-_]/g", null)));
+    public static void main(String[] args) throws IOException {
+        File f = new File("C:\\Users\\Moru0011\\IdeaProjects\\fundingbuero\\test.jsx");
+        JSXParser jsx = new JSXParser(f,null);
+        JSNode root = new JSNode();
+        byte[] bytes = FileUtil.readFully(f);
+
+        String cont = new String(bytes, "UTF-8");
+        jsx.parseJS(root,new Inp(cont,f));
+        if ( jsx.depth != 0 ) {
+            System.out.println("POK "+jsx.depth);
+        }
     }
 }
