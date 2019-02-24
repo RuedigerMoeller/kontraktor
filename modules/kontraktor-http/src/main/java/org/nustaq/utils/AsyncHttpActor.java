@@ -62,7 +62,7 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
         }
     };
 
-    public static boolean DUMP_GET = false;
+    public static boolean DUMP_GET = true;
 
     public static String readContentString(HttpResponse resp) throws IOException {
         org.apache.http.Header[] headers = resp.getHeaders("Content-Type");
@@ -288,6 +288,10 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
     }
 
     public IPromise<String> getContent(String url, String ... headers ) {
+        return getContentRaw(false,url,headers);
+    }
+
+    public IPromise<String> getContentRaw( boolean bChrome, String url, String ... headers ) {
         if ( url == null || url.trim().length() == 0 ) {
             return reject("invalid url");
         }
@@ -319,7 +323,7 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
                 String finalUrl = url;
                 delayed(cacheContentShortTime,() -> contentCache.remove(finalUrl));
             }
-            get(url, headers).then((response, err) -> {
+            getRaw(bChrome, url, headers).then((response, err) -> {
                 if (err != null) {
                     res.reject(err);
                     return;
@@ -396,6 +400,10 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
     }
 
     public IPromise<HttpResponse> get( String url, String ... headers ) {
+        return getRaw(true, url, headers );
+    }
+
+    public IPromise<HttpResponse> getRaw( boolean bChrome, String url, String ... headers ) {
         if ( DUMP_GET ) {
             System.out.println("GET "+url+" "+ Arrays.toString(headers));
         }
@@ -407,7 +415,8 @@ public class AsyncHttpActor extends Actor<AsyncHttpActor> {
             String cleanedUrl = tryCleanUpUrl(url );
             HttpGet req = new HttpGet( cleanedUrl );
             setHeaders(req, headers);
-            beChrome(req);
+            if ( bChrome )
+                beChrome(req);
             getClient().execute(req, new FutureCallback<HttpResponse>() {
 
                 @Override
