@@ -1,6 +1,6 @@
 package org.nustaq.kontraktor.apputil.comments;
 
-import com.google.common.collect.Tables;
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
@@ -8,8 +8,12 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.apputil.RegistrationMixin;
 import org.nustaq.kontraktor.apputil.UserRecord;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
+import org.nustaq.kontraktor.util.Pair;
+import org.nustaq.reallive.api.ChangeMessage;
 import org.nustaq.reallive.api.RealLiveTable;
 import org.nustaq.reallive.api.Record;
+import org.nustaq.reallive.api.Subscriber;
+import org.nustaq.serialization.FSTConfiguration;
 
 import java.util.*;
 
@@ -24,7 +28,7 @@ import static org.nustaq.kontraktor.Actors.resolve;
  */
 public interface CommentsSessionMixin {
 
-    String TableName = "comment";
+    String CommentTableName = "comment";
     String HistoryTableName = "commentHistory";
     String DefaultUserImagePath = "./imgupload/default-user.png";
 
@@ -40,9 +44,11 @@ public interface CommentsSessionMixin {
 
     default IPromise<Record> getOrCreateDiscussion(String commentTreeKey) {
         Promise res = new Promise();
-        getDClient().tbl(TableName).get(commentTreeKey).then( (r,e) -> {
-            if ( r != null )
+        getDClient().tbl(CommentTableName).get(commentTreeKey).then( (r, e) -> {
+            if ( r != null ) {
                 res.resolve(r);
+//                System.out.println("GET "+dbg_asJson(r));
+            }
             else {
                 long now = System.currentTimeMillis();
                 CommentRecord rec =
@@ -53,17 +59,22 @@ public interface CommentsSessionMixin {
                         .imageURL(getUser().getImageURL())
                         .text("root")
                         .id("root");
-                getDClient().tbl(TableName).setRecord(rec.getRecord());
+                getDClient().tbl(CommentTableName).setRecord(rec.getRecord());
                 res.resolve(rec.getRecord());
             }
         });
         return res;
     }
 
+    static FSTConfiguration jsonConfiguration = FSTConfiguration.createJsonConfiguration(true, false);
+    static String dbg_asJson(Record r) {
+        return jsonConfiguration.asJsonString(r);
+    }
+
     default IPromise<CommentRecord> getParentComment(String commentTreeKey, String subCommentId ) {
         if ( commentTreeKey == null )
             return resolve(null);
-        RealLiveTable comments = getDClient().tbl(TableName);
+        RealLiveTable comments = getDClient().tbl(CommentTableName);
         return comments.atomic( commentTreeKey, res -> {
             if ( res != null ) {
                 CommentRecord comment = new CommentRecord(res);
@@ -73,46 +84,74 @@ public interface CommentsSessionMixin {
         });
     }
 
-    default void delComment( String commentKey, String commentId ) {
-        RealLiveTable comments = getDClient().tbl(TableName);
+    /**
+     * returns changed record (if text was set to deleted or "deleted" if record has been deleted
+     */
+    default IPromise delComment( String commentKey, String commentId ) {
+        Promise p = new Promise();
+        RealLiveTable comments = getDClient().tbl(CommentTableName);
         String editorKey = getUser().getKey();
         comments.atomic( commentKey, ctree -> {
             if ( ctree == null ) {
             } else {
+//                System.out.println("DEL "+dbg_asJson(ctree));
                 CommentRecord root = new CommentRecord(ctree);
                 if ( root.getId() == null )
                     root.id("root");
                 CommentRecord childNode = root.findChildNode(commentId);
                 if ( childNode != null ) {
-                    childNode.text("[deleted]");
-                    root.children(root.getChildren()); // trigger change
                     CommentRecord parent = root.findParent(commentId);
-                    CommentHistoryRecord ch =
-                        new CommentHistoryRecord(UUID.randomUUID().toString())
-                            .foreignKey(commentKey).id(commentId)
-                            .creation(System.currentTimeMillis())
-                            .affectedParentUser(parent.getAuthor())
-                            .editorId(editorKey)
-                            .type("del");
-                    return childNode;
+                    if ( childNode.getChildren().size() > 0 ) {
+                        childNode.text("[deleted]");
+                        root.children(root.getChildren()); // trigger change
+                        CommentHistoryRecord ch =
+                            new CommentHistoryRecord(UUID.randomUUID().toString())
+                                .foreignKey(commentKey).id(commentId)
+                                .creation(System.currentTimeMillis())
+                                .affectedParentUser(parent.getAuthor())
+                                .editorId(editorKey)
+                                .id(commentId)
+                                .text(childNode.getText())
+                                .type("edit");
+                        return new Pair(childNode.getRecord(),ch);
+                    } else {
+                        parent.delChildNode(commentId);
+                        root.children(root.getChildren()); // trigger change
+                        CommentHistoryRecord ch =
+                            new CommentHistoryRecord(UUID.randomUUID().toString())
+                                .foreignKey(commentKey).id(commentId)
+                                .creation(System.currentTimeMillis())
+                                .affectedParentUser(parent.getAuthor())
+                                .id(commentId)
+                                .editorId(editorKey)
+                                .text(childNode.getText())
+                                .type("del");
+                        return new Pair(null,ch);
+                    }
                 } else {
                     // FIXME: error handling
                 }
             }
             return null;
-        }).then( (ch,e) -> {
-            if ( ch != null ) {
-                CommentHistoryRecord casted = (CommentHistoryRecord) ch;
+        }).then( (pair,e) -> {
+            if ( pair != null ) {
+                CommentHistoryRecord casted = (CommentHistoryRecord) ((Pair)pair).getSecond();
                 getDClient().tbl(HistoryTableName).addRecord(casted);
-            }
+                p.resolve(casted.getType().equalsIgnoreCase("del") ? "deleted" : ((Pair)pair).getFirst());
+            } else
+                p.reject("comment not found");
         });
+        return p;
     }
 
-    default IPromise editComment( String commentTreeKey, String commentId, String text0 ) {
+    /**
+     * return Record of edited comment
+     */
+    default IPromise<Record> editComment( String commentTreeKey, String commentId, String text0 ) {
         Promise res = new Promise();
         Set<String> mentions = new HashSet();
         String editorKey = getUser().getKey();
-        RealLiveTable comments = getDClient().tbl(TableName);
+        RealLiveTable comments = getDClient().tbl(CommentTableName);
         highLighComment(text0,0,mentions).then( text -> {
             comments.atomic(commentTreeKey, ctree -> {
                 if (ctree == null) {
@@ -134,19 +173,21 @@ public interface CommentsSessionMixin {
                                 .creation(now)
                                 .editorId(editorKey)
                                 .affectedParentUser(parent != null ? parent.getAuthor() : null)
+                                .text(childNode.getText())
+                                .id(commentId)
                                 .type("edit");
-                        return ch;
+                        return new Pair<>(childNode.getRecord(),ch);
                     } else {
                         // FIXME: error handling
                     }
                 }
                 return null;
-            }).then(ch -> {
-                if (ch != null) {
-                    CommentHistoryRecord casted = (CommentHistoryRecord) ch;
+            }).then(pair -> {
+                if (pair != null) {
+                    CommentHistoryRecord casted = (CommentHistoryRecord) ((Pair)pair).getSecond();
                     casted.mentions(mentions);
                     getDClient().tbl(HistoryTableName).addRecord(casted);
-                    res.resolve(commentId);
+                    res.resolve(((Pair)pair).getFirst());
                 } else {
                     res.reject("error: no comment record could be found");
                 }
@@ -156,10 +197,17 @@ public interface CommentsSessionMixin {
         return res;
     }
 
-    default IPromise addComment( String commentTreeKey, String parentCommentId, String text0 ) {
+    /**
+     * returns new record of new comment
+     * @param commentTreeKey
+     * @param parentCommentId
+     * @param text0
+     * @return
+     */
+    default IPromise<Record> addComment( String commentTreeKey, String parentCommentId, String text0 ) {
         Promise res = new Promise();
         Set<String> mentions = new HashSet();
-        RealLiveTable comments = getDClient().tbl(TableName);
+        RealLiveTable comments = getDClient().tbl(CommentTableName);
         String ukey = getUser().getKey();
         String uImg = getUser().getImageURL();
         highLighComment(text0,0,mentions).then( text -> {
@@ -169,6 +217,7 @@ public interface CommentsSessionMixin {
                 .lastModified(System.currentTimeMillis())
                 .text(text)
                 .author(getUser().getName())
+                .role(getUser().getRole())
                 .imageURL(uImg);
             if ( newComment.getImageURL() == null || newComment.getImageURL().length() == 0) {
                 newComment.imageURL(DefaultUserImagePath);
@@ -259,4 +308,8 @@ public interface CommentsSessionMixin {
         return resolve(comment);
     }
 
+    @Local @CallerSideMethod
+    default Subscriber listenCommentHistory( Callback<ChangeMessage> rec) {
+        return getDClient().tbl(HistoryTableName).listen( r -> true, chrec -> rec.pipe(chrec) );
+    }
 }
