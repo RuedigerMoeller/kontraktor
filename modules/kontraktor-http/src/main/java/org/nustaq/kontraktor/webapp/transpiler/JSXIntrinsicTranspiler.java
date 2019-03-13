@@ -485,7 +485,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     jsonBao.write(
                         ("})( kgetModule('"+s+"').exports, krequire, kgetModule('"+s+"'), '', '' );").getBytes("UTF-8"));
                     resolver.install("/debug/" + name, jsonBao.toByteArray());
-                } else if (resolvedFile.getName().endsWith(".css") && importSpec.isPureImport() ) { // support direct import of css
+                } else if ( resolvedFile.getName().endsWith(".css") && importSpec.isPureImport() ) { // support direct import of css
                     name = constructLibName(resolvedFile, resolver);
                     ByteArrayOutputStream cssBao = new ByteArrayOutputStream(resolved.length+100);
                     cssBao.write(("if ( !window['"+name+"'] ) {\n").getBytes("UTF-8"));
@@ -494,7 +494,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     cssBao.write("  __css__.innerHTML = `".getBytes("UTF-8"));
                     cssBao.write(resolved);
                     cssBao.write("`\n".getBytes("UTF-8"));
-                    cssBao.write("  document.body.appendChild(__css__);\n".getBytes("UTF-8"));
+                    cssBao.write("  document.body.prependChild(__css__);\n".getBytes("UTF-8"));
                     cssBao.write(("  window['"+name+"'] = 1;\n").getBytes("UTF-8"));
                     cssBao.write("}\n".getBytes("UTF-8"));
                     String s = constructLibName(requiringFile, resolver);
