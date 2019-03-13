@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
  */
 public class CommentRecord extends RecordWrapper implements
     CreationMixin<CommentRecord>, LastModifiedMixin<CommentRecord>, IdMixin<CommentRecord>,
-    AuthorMixin<CommentRecord>, ImageUrlMixin<CommentRecord>, TextMixin<CommentRecord>
+    AuthorMixin<CommentRecord>, ImageUrlMixin<CommentRecord>, TextMixin<CommentRecord>, RoleMixin<CommentRecord>
 {
 
     public CommentRecord(Record record) {
@@ -53,7 +53,7 @@ public class CommentRecord extends RecordWrapper implements
 
     public void addChild( CommentRecord cRecord ) {
         List crecs = getChildCommentRecords();
-        crecs.add(cRecord);
+        crecs.add(0,cRecord);
         children(crecs);
     }
 
@@ -68,15 +68,30 @@ public class CommentRecord extends RecordWrapper implements
         return getChildren().stream().map( r -> new CommentRecord(r) ).collect(Collectors.toList());
     }
 
-    public CommentRecord findChildNode(String parentId) {
-        if ( getId().equals(parentId) )
+    public CommentRecord findChildNode(String nodeId) {
+        if ( getId().equals(nodeId) )
             return this;
         List<Record> children = getChildren();
         for (int i = 0; i < children.size(); i++) {
             CommentRecord rec = new CommentRecord(children.get(i));
-            CommentRecord childNode = rec.findChildNode(parentId);
+            CommentRecord childNode = rec.findChildNode(nodeId);
             if ( childNode != null )
                 return childNode;
+        }
+        return null;
+    }
+
+    public CommentRecord delChildNode(String commentId) {
+        List<Record> children = getChildren();
+        for (int i = 0; i < children.size(); i++) {
+            CommentRecord rec = new CommentRecord(children.get(i));
+            if ( rec.getId().equalsIgnoreCase(commentId) ) {
+                children.remove(i);
+                return rec;
+            }
+            CommentRecord commentRecord = rec.delChildNode(commentId);
+            if ( commentRecord != null )
+                return commentRecord;
         }
         return null;
     }

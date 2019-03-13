@@ -1,15 +1,13 @@
 package org.nustaq.kontraktor.apputil.comments;
 
-import org.nustaq.kontraktor.apputil.recordwrappermixins.CreationMixin;
-import org.nustaq.kontraktor.apputil.recordwrappermixins.ForeignKeyMixin;
-import org.nustaq.kontraktor.apputil.recordwrappermixins.IdMixin;
-import org.nustaq.kontraktor.apputil.recordwrappermixins.TypeMixin;
+import org.nustaq.kontraktor.apputil.recordwrappermixins.*;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.records.RecordWrapper;
 
 import java.util.Set;
 
 public class CommentHistoryRecord extends RecordWrapper implements
+    TextMixin<CommentHistoryRecord>,
     CreationMixin<CommentHistoryRecord>,
     TypeMixin<CommentHistoryRecord>, // edit, add, del
     ForeignKeyMixin<CommentHistoryRecord>, // points to commentTree
