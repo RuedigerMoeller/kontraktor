@@ -9,6 +9,9 @@ import java.util.Set;
 public class CommentHistoryRecord extends RecordWrapper implements
     TextMixin<CommentHistoryRecord>,
     CreationMixin<CommentHistoryRecord>,
+    AuthorMixin<CommentHistoryRecord>,
+    ImageUrlMixin<CommentHistoryRecord>,
+    ParentIdMixin<CommentHistoryRecord>,
     TypeMixin<CommentHistoryRecord>, // edit, add, del
     ForeignKeyMixin<CommentHistoryRecord>, // points to commentTree
     IdMixin<CommentHistoryRecord> // points to commentTree's subcomment

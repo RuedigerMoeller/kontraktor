@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.apputil.RegistrationMixin;
+import org.nustaq.kontraktor.apputil.UniqueSessionIntIdMixin;
 import org.nustaq.kontraktor.apputil.UserRecord;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.util.Pair;
@@ -26,7 +27,7 @@ import static org.nustaq.kontraktor.Actors.resolve;
  * * mentions @username (link is genereated to profile like /#/profiles/[username]
  * * some user refs are by user name, so user name must be equal (cannot use email key as they should be private)
  */
-public interface CommentsSessionMixin {
+public interface CommentsSessionMixin extends UniqueSessionIntIdMixin {
 
     String CommentTableName = "comment";
     String HistoryTableName = "commentHistory";
@@ -87,11 +88,11 @@ public interface CommentsSessionMixin {
     /**
      * returns changed record (if text was set to deleted or "deleted" if record has been deleted
      */
-    default IPromise delComment( String commentKey, String commentId ) {
+    default IPromise delComment( String rootCommentKey, String commentId ) {
         Promise p = new Promise();
         RealLiveTable comments = getDClient().tbl(CommentTableName);
         String editorKey = getUser().getKey();
-        comments.atomic( commentKey, ctree -> {
+        comments.atomic( rootCommentKey, ctree -> {
             if ( ctree == null ) {
             } else {
 //                System.out.println("DEL "+dbg_asJson(ctree));
@@ -106,7 +107,9 @@ public interface CommentsSessionMixin {
                         root.children(root.getChildren()); // trigger change
                         CommentHistoryRecord ch =
                             new CommentHistoryRecord(UUID.randomUUID().toString())
-                                .foreignKey(commentKey).id(commentId)
+                                .foreignKey(rootCommentKey)
+                                .id(commentId)
+                                .parentId(parent.getId())
                                 .creation(System.currentTimeMillis())
                                 .affectedParentUser(parent.getAuthor())
                                 .editorId(editorKey)
@@ -119,7 +122,7 @@ public interface CommentsSessionMixin {
                         root.children(root.getChildren()); // trigger change
                         CommentHistoryRecord ch =
                             new CommentHistoryRecord(UUID.randomUUID().toString())
-                                .foreignKey(commentKey).id(commentId)
+                                .foreignKey(rootCommentKey).id(commentId)
                                 .creation(System.currentTimeMillis())
                                 .affectedParentUser(parent.getAuthor())
                                 .id(commentId)
@@ -136,7 +139,7 @@ public interface CommentsSessionMixin {
         }).then( (pair,e) -> {
             if ( pair != null ) {
                 CommentHistoryRecord casted = (CommentHistoryRecord) ((Pair)pair).getSecond();
-                getDClient().tbl(HistoryTableName).addRecord(casted);
+                getDClient().tbl(HistoryTableName).addRecord(getIntSessionId(), casted);
                 p.resolve(casted.getType().equalsIgnoreCase("del") ? "deleted" : ((Pair)pair).getFirst());
             } else
                 p.reject("comment not found");
@@ -186,7 +189,7 @@ public interface CommentsSessionMixin {
                 if (pair != null) {
                     CommentHistoryRecord casted = (CommentHistoryRecord) ((Pair)pair).getSecond();
                     casted.mentions(mentions);
-                    getDClient().tbl(HistoryTableName).addRecord(casted);
+                    getDClient().tbl(HistoryTableName).addRecord(getIntSessionId(),casted);
                     res.resolve(((Pair)pair).getFirst());
                 } else {
                     res.reject("error: no comment record could be found");
@@ -211,8 +214,9 @@ public interface CommentsSessionMixin {
         String ukey = getUser().getKey();
         String uImg = getUser().getImageURL();
         highLighComment(text0,0,mentions).then( text -> {
+            String newCommentId = UUID.randomUUID().toString();
             CommentRecord newComment = new CommentRecord("")
-                .id(UUID.randomUUID().toString())
+                .id(newCommentId)
                 .creation(System.currentTimeMillis())
                 .lastModified(System.currentTimeMillis())
                 .text(text)
@@ -233,9 +237,14 @@ public interface CommentsSessionMixin {
                         parentNode.addChild(newComment);
                         root.children(root.getChildren());
                         CommentHistoryRecord ch =
-                            new CommentHistoryRecord(UUID.randomUUID().toString())
+                            new CommentHistoryRecord(newCommentId)
                                 .foreignKey(commentTreeKey).id(parentCommentId)
                                 .creation(System.currentTimeMillis())
+                                .id(newComment.getId())
+                                .text(text)
+                                .author(newComment.getAuthor())
+                                .imageURL(newComment.getImageURL())
+                                .parentId(parentCommentId)
                                 .editorId(ukey)
                                 .affectedParentUser(parentNode.getAuthor())
                                 .type("add");
@@ -249,7 +258,7 @@ public interface CommentsSessionMixin {
                 if (ch != null) {
                     CommentHistoryRecord casted = (CommentHistoryRecord) ch;
                     casted.mentions(mentions);
-                    getDClient().tbl(HistoryTableName).addRecord(casted);
+                    getDClient().tbl(HistoryTableName).addRecord(getIntSessionId(),casted);
                 }
             });
             res.resolve(newComment.getRecord());
@@ -308,8 +317,17 @@ public interface CommentsSessionMixin {
         return resolve(comment);
     }
 
+    /**
+     * does NOT broadcast self inflicted changes
+     *
+     * @param rec
+     * @return
+     */
     @Local @CallerSideMethod
     default Subscriber listenCommentHistory( Callback<ChangeMessage> rec) {
-        return getDClient().tbl(HistoryTableName).listen( r -> true, chrec -> rec.pipe(chrec) );
+        return getDClient().tbl(HistoryTableName).listen( r -> true, chrec -> {
+            if ( chrec.getSenderId() != getIntSessionId() )
+                rec.pipe(chrec);
+        });
     }
 }

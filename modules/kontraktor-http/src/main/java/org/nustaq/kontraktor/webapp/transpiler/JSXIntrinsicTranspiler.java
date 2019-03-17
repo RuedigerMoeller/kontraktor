@@ -494,7 +494,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
                     cssBao.write("  __css__.innerHTML = `".getBytes("UTF-8"));
                     cssBao.write(resolved);
                     cssBao.write("`\n".getBytes("UTF-8"));
-                    cssBao.write("  document.body.prependChild(__css__);\n".getBytes("UTF-8"));
+                    cssBao.write("  document.body.appendChild(__css__);\n".getBytes("UTF-8"));
                     cssBao.write(("  window['"+name+"'] = 1;\n").getBytes("UTF-8"));
                     cssBao.write("}\n".getBytes("UTF-8"));
                     String s = constructLibName(requiringFile, resolver);

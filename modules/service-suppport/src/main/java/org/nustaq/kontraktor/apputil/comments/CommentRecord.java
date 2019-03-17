@@ -16,8 +16,13 @@ import java.util.stream.Collectors;
  *
  */
 public class CommentRecord extends RecordWrapper implements
-    CreationMixin<CommentRecord>, LastModifiedMixin<CommentRecord>, IdMixin<CommentRecord>,
-    AuthorMixin<CommentRecord>, ImageUrlMixin<CommentRecord>, TextMixin<CommentRecord>, RoleMixin<CommentRecord>
+    CreationMixin<CommentRecord>,
+    LastModifiedMixin<CommentRecord>,
+    IdMixin<CommentRecord>,
+    AuthorMixin<CommentRecord>,
+    ImageUrlMixin<CommentRecord>,
+    TextMixin<CommentRecord>,
+    RoleMixin<CommentRecord>
 {
 
     public CommentRecord(Record record) {
