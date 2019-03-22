@@ -125,6 +125,7 @@ public interface CommentsSessionMixin extends UniqueSessionIntIdMixin {
                                 .foreignKey(rootCommentKey).id(commentId)
                                 .creation(System.currentTimeMillis())
                                 .affectedParentUser(parent.getAuthor())
+                                .parentId(parent.getId())
                                 .id(commentId)
                                 .editorId(editorKey)
                                 .text(childNode.getText())
@@ -175,6 +176,7 @@ public interface CommentsSessionMixin extends UniqueSessionIntIdMixin {
                                 .foreignKey(commentTreeKey).id(commentId)
                                 .creation(now)
                                 .editorId(editorKey)
+                                .parentId(parent.getId())
                                 .affectedParentUser(parent != null ? parent.getAuthor() : null)
                                 .text(childNode.getText())
                                 .id(commentId)
@@ -326,7 +328,7 @@ public interface CommentsSessionMixin extends UniqueSessionIntIdMixin {
     @Local @CallerSideMethod
     default Subscriber listenCommentHistory( Callback<ChangeMessage> rec) {
         return getDClient().tbl(HistoryTableName).listen( r -> true, chrec -> {
-            if ( chrec.getSenderId() != getIntSessionId() )
+//            if ( chrec.getSenderId() != getIntSessionId() )
                 rec.pipe(chrec);
         });
     }

@@ -229,12 +229,12 @@ public class JSXGenerator {
     }
 
     public static ParseResult process(
-        File f, boolean pretty, NodeLibNameResolver nlib, JNPMConfig config ) throws IOException {
+        File f, boolean devmode, NodeLibNameResolver nlib, JNPMConfig config ) throws IOException {
 
         // this is inefficient, there are loads of optimization opportunities,
         // code runs in devmode only ..
 
-        JSXParser jsx = new JSXParser(f,nlib);
+        JSXParser jsx = new JSXParser(f,nlib,devmode);
         JSNode root = new JSNode();
         byte[] bytes = FileUtil.readFully(f);
 
@@ -253,7 +253,7 @@ public class JSXGenerator {
         gen.generateJS(root,ps);
         ps.flush();ps.close();
         byte[] filedata = out.toByteArray();
-        if (pretty) {
+        if (devmode) {
             ByteArrayOutputStream outpretty = new ByteArrayOutputStream(filedata.length + filedata.length / 5);
             PrintStream pspretty = new PrintStream(outpretty);
             JSBeautifier beautifier = new JSBeautifier();

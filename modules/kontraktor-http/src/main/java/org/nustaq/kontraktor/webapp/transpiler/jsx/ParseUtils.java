@@ -1,15 +1,12 @@
 package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
-import org.nustaq.kontraktor.webapp.transpiler.JSXIntrinsicTranspiler;
 import org.nustaq.utils.FileUtil;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public interface ParseUtils {
 
@@ -104,7 +101,7 @@ public interface ParseUtils {
 
     public static void main(String[] args) throws IOException {
         File f = new File("C:\\Users\\Moru0011\\IdeaProjects\\fundingbuero\\test.jsx");
-        JSXParser jsx = new JSXParser(f,null);
+        JSXParser jsx = new JSXParser(f,null, true);
         JSNode root = new JSNode();
         byte[] bytes = FileUtil.readFully(f);
 
