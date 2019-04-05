@@ -125,6 +125,7 @@ public interface CommentsSessionMixin extends UniqueSessionIntIdMixin {
                                 .foreignKey(rootCommentKey).id(commentId)
                                 .creation(System.currentTimeMillis())
                                 .affectedParentUser(parent.getAuthor())
+                                .parentId(parent.getId())
                                 .id(commentId)
                                 .editorId(editorKey)
                                 .text(childNode.getText())
@@ -177,6 +178,7 @@ public interface CommentsSessionMixin extends UniqueSessionIntIdMixin {
                                 .editorId(editorKey)
                                 .affectedParentUser(parent != null ? parent.getAuthor() : null)
                                 .text(childNode.getText())
+                                .parentId(parent.getId())
                                 .id(commentId)
                                 .type("edit");
                         return new Pair<>(childNode.getRecord(),ch);
