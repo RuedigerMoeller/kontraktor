@@ -1,6 +1,5 @@
 package org.nustaq.kontraktor.webapp.transpiler.jsx;
 
-import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.webapp.transpiler.ErrorHandler;
 
 import java.io.File;
@@ -21,10 +20,12 @@ public class JSXParser implements ParseUtils {
     protected File file;
     protected NodeLibNameResolver libNameResolver;
     protected String defaultExport;
+    boolean devmode = false;
 
-    public JSXParser(File f,NodeLibNameResolver libNameResolver) {
+    public JSXParser(File f, NodeLibNameResolver libNameResolver, boolean devmode) {
         this.file = f;
         this.libNameResolver = libNameResolver;
+        this.devmode = devmode;
     }
 
     public String getDefaultExport() {
@@ -99,7 +100,18 @@ public class JSXParser implements ParseUtils {
                 depth--;
             } else
             if ( ch == '/' && in.ch(1) == '/' ) {
-                cur.add(readSlashComment(in));
+                StringBuilder comment = readSlashComment(in);
+                if ( !devmode && comment.toString().trim().equalsIgnoreCase("//_DEV_") ) {
+                    while( !in.isEOF() ) {
+                        StringBuffer line = in.readline();
+                        if (line.toString().trim().equalsIgnoreCase("//_EDEV_"))
+                            break;
+                    }
+                    if ( in.isEOF() )
+                        ErrorHandler.get().add(getClass(),"_DEV_ pragma without matching _EDEV_",file);
+                } else {
+                    cur.add(comment);
+                }
             } else
             if ( ch == '"' || ch == '\'' || ch == '`') {
                 StringBuilder sb = readJSString(in);

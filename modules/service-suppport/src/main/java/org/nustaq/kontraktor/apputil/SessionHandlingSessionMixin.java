@@ -47,10 +47,11 @@ public interface SessionHandlingSessionMixin {
                 p.reject("neues Passwort wurde falsch wiederholt");
             } else if ( pwd.length() < 6 || pwd.length() > 20 ) {
                 p.reject("neues Passwort muss zwischen 6 und 20 Zeichen lang sein");
+            } else {
+                getUser().pwd(pwd); // assume this changes original copy !
+                getDClient().tbl(RegistrationMixin.UserTableName).setRecord(getUser().getRecord());
+                p.resolve("Daten und Passwort geändert");
             }
-            getUser().pwd(pwd); // assume this changes original copy !
-            getDClient().tbl(RegistrationMixin.UserTableName).setRecord(getUser().getRecord());
-            p.resolve("Daten und Passwort geändert");
         } else {
             getDClient().tbl(RegistrationMixin.UserTableName).setRecord(getUser().getRecord());
             p.resolve("Daten geändert");

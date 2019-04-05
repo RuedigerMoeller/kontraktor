@@ -125,4 +125,20 @@ public class Inp {
         }
         return  ch(off) == '\r' || ch(off) == '\n';
     }
+
+    public StringBuffer readline() {
+        StringBuffer line = new StringBuffer();
+        while( ch() != '\r' && ch() != '\n' && ch() != 0 ) {
+            line.append(ch());
+            inc();
+        }
+        inc();
+        if ( ch() == '\r' && ch() == '\n' )
+            inc();
+        return line;
+    }
+
+    public boolean isEOF() {
+        return index >= file.length;
+    }
 }
