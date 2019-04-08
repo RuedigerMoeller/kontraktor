@@ -474,7 +474,7 @@ class KontraktorPollSocket{
         }
         this.longPollUnderway--;
         if ( request.status !== 200 ) {
-          this.lastError = request.statusText;
+          this.lastError = request.status;
           console.log("response error:"+request.status);
           //fireError(); dont't give up on failed long poll
           this.pollErrorsInRow++;
@@ -596,7 +596,7 @@ class KontraktorPollSocket{
         tmp.apply(this,[]);
       }
       if ( request.status !== 200 ) {
-        this.lastError = request.statusText;
+        this.lastError = request.status;
         res.complete(null,request.status);
         return;
       }
@@ -631,7 +631,7 @@ class KontraktorPollSocket{
         return;
       }
       if ( request.status !== 200 ) {
-        this.lastError = request.statusText;
+        this.lastError = request.status;
         this.fireError();
         return;
       }
