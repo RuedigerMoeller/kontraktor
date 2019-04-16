@@ -7,6 +7,7 @@ import org.nustaq.reallive.api.TableDescription;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 26.12.16.
@@ -15,6 +16,7 @@ public class ClusterCfg implements Serializable {
 
     public static String pathname = "run/etc/clustercfg.kson";
     public static long lastTime;
+    public static Consumer<ClusterCfg> clusterCfgModificationHook;
 
     public static boolean isDirty() {
         return new File(pathname).lastModified() != lastTime;
@@ -29,6 +31,8 @@ public class ClusterCfg implements Serializable {
         Kson kson = new Kson().map( ClusterCfg.class, DataCfg.class, TableDescription.class );
         try {
             ClusterCfg clCfg = (ClusterCfg) kson.readObject(new File(pathname));
+            if ( clusterCfgModificationHook != null )
+                clusterCfgModificationHook.accept(clCfg);
             String confString = kson.writeObject(clCfg);
             System.out.println("run with config from "+ new File(pathname).getCanonicalPath());
 //            System.out.println(confString);

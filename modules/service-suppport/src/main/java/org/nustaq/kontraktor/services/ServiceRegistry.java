@@ -226,12 +226,14 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     }
 
     public static RegistryArgs options;
-    public static ServiceArgs parseCommandLine(String[] args, ServiceArgs options) {
+    public static ServiceArgs parseCommandLine(String[] args, String concatArgs[], ServiceArgs options) {
 
         JCommander com = new JCommander();
         com.addObject(options);
         try {
             com.parse(args);
+            if ( concatArgs != null )
+                com.parse(concatArgs);
         } catch (Exception ex) {
             System.out.println("command line error: '"+ex.getMessage()+"'");
             options.help = true;
@@ -317,7 +319,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     }
 
     public static ServiceRegistry start(String[] args) {
-        options = (RegistryArgs) parseCommandLine(args,new RegistryArgs());
+        options = (RegistryArgs) parseCommandLine(args,null,RegistryArgs.New());
 
         if ( ! options.isAsyncLog() ) {
             Log.SetSynchronous();

@@ -6,11 +6,18 @@ import org.nustaq.kontraktor.util.Log;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.function.Supplier;
 
 /**
  * Created by ruedi on 13/08/15.
  */
 public class ServiceArgs {
+
+    public static Supplier<ServiceArgs> factory = () -> new ServiceArgs();
+    public static ServiceArgs New() {
+        return factory.get();
+    }
+
 
     @Parameter(names={"-s","-servicereg"}, description = "serviceregistry host")
     String registryHost = "localhost";
@@ -36,7 +43,8 @@ public class ServiceArgs {
     @Parameter(names = {"-monitorport"}, help = true, description = "monitoring api port of this service")
     private int monport = 1113;
 
-    public ServiceArgs() {
+
+    protected ServiceArgs() {
         try {
             host = InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {

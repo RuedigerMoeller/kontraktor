@@ -37,7 +37,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         ServiceActor myService = AsActor(serviceClazz);
         ServiceArgs options = null;
         try {
-            options = ServiceRegistry.parseCommandLine(args, argsClazz.newInstance());
+            options = ServiceRegistry.parseCommandLine(args, null, argsClazz.newInstance());
         } catch (Exception e) {
             FSTUtil.rethrow(e);
         }

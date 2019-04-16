@@ -95,7 +95,7 @@ public class DataShard extends ServiceActor<DataShard> {
 
     public static DataShard start(String[] args) {
         DataShard ds = Actors.AsActor(DataShard.class,256000);
-        DataShardArgs options = (DataShardArgs) ServiceRegistry.parseCommandLine(args, new DataShardArgs());
+        DataShardArgs options = (DataShardArgs) ServiceRegistry.parseCommandLine(args, null, DataShardArgs.New());
         ds.init(new TCPConnectable(ServiceRegistry.class, options.getRegistryHost(), options.getRegistryPort()), options, true); // .await(); fail ..
         Log.Info(ds.getClass(), "Init finished");
         return ds;
