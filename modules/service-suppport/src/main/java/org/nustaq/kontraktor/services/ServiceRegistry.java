@@ -23,6 +23,7 @@ import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -232,8 +233,9 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         com.addObject(options);
         try {
             com.parse(args);
-            if ( concatArgs != null )
-                com.parse(concatArgs);
+            if ( concatArgs != null ) {
+                parseCommandLine(concatArgs,null,options);
+            }
         } catch (Exception ex) {
             System.out.println("command line error: '"+ex.getMessage()+"'");
             options.help = true;
