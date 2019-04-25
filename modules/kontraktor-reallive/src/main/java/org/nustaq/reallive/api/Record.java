@@ -182,4 +182,17 @@ public interface Record extends Serializable, EvalContext {
         }
         return res;
     }
+
+    /**
+     * copy all fields from given record to this
+     * @param record
+     */
+    default void merge(Record record) {
+        final String[] fields = record.getFields();
+        for (int i = 0; i < fields.length; i++) {
+            String field = fields[i];
+            put( field, record.get(field) );
+        }
+    }
+
 }
