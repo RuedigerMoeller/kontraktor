@@ -33,7 +33,7 @@ public class CachedOffHeapStorage implements RecordStorage {
                     unwrap = MapRecord.conversion.apply((MapRecord) unwrap);
                     reput.add(unwrap);
                 }
-                onHeap.put(input.getKey(), unwrap);
+                onHeap._put(input.getKey(), unwrap);
             }
         });
         for (int i = 0; i < reput.size(); i++) {
