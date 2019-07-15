@@ -173,7 +173,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         Log.Info(this, "dc connected all shards");
 
         dclient = Actors.AsActor(DataClient.class);
-        dclient.connect(config.getDataCluster(),tsShard,self()).await();
+        dclient.connect(config.getDataCluster(),tsShard,self()).await(60_000);
 
         Log.Info(this, "dc init done");
     }
