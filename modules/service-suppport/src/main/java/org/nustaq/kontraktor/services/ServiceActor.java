@@ -23,6 +23,10 @@ import java.util.*;
  */
 public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
 
+    public static ServiceActor RunTCP( String args[], Class<? extends ServiceActor> serviceClazz, Class<? extends ServiceArgs> argsClazz) {
+        return RunTCP(args,serviceClazz,argsClazz,60_000);
+    }
+
     /**
      * run & connect a service with given cmdline args and classes
      *
@@ -33,7 +37,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
      * @throws IllegalAccessException
      * @throws InstantiationException
      */
-    public static ServiceActor RunTCP( String args[], Class<? extends ServiceActor> serviceClazz, Class<? extends ServiceArgs> argsClazz) {
+    public static ServiceActor RunTCP( String args[], Class<? extends ServiceActor> serviceClazz, Class<? extends ServiceArgs> argsClazz, long timeout) {
         ServiceActor myService = AsActor(serviceClazz);
         ServiceArgs options = null;
         try {
@@ -43,7 +47,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         }
         TCPConnectable connectable = new TCPConnectable(ServiceRegistry.class, options.getRegistryHost(), options.getRegistryPort());
 
-        myService.init( connectable, options, true).await(30_000);
+        myService.init( connectable, options, true).await(timeout);
         Log.Info(myService.getClass(), "Init finished");
 
         return myService;
