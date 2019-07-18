@@ -247,6 +247,25 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         return options;
     }
 
+    // for production hotfix, remove !
+    public static ServiceArgs parseCommandLine(String[] args, ServiceArgs options) {
+
+        JCommander com = new JCommander();
+        com.addObject(options);
+        try {
+            com.parse(args);
+        } catch (Exception ex) {
+            System.out.println("command line error: '"+ex.getMessage()+"'");
+            options.help = true;
+        }
+        if ( options.help ) {
+            com.usage();
+            System.exit(-1);
+        }
+        return options;
+    }
+
+
     private IPromise<RestApi> getRest() {
         RestApi restApi = AsActor(RestApi.class, getScheduler());
         restApi.init(self());

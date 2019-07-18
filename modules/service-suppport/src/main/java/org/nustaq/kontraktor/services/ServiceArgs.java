@@ -44,7 +44,8 @@ public class ServiceArgs {
     private int monport = 1113;
 
 
-    protected ServiceArgs() {
+    // FIXME: for Production Hotfix, should be protected
+    public ServiceArgs() {
         try {
             host = InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
