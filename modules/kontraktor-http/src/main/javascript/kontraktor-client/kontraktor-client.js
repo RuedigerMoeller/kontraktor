@@ -573,6 +573,7 @@ class KontraktorPollSocket{
         } catch (ex) {
           console.error("exception in callback ", ex);
           res.complete(null, ex);
+          return;
         }
         try {
           res.complete("", null);
