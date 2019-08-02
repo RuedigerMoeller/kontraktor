@@ -175,18 +175,26 @@ class KClient {
             if ( this.callCache ) {
               this.callCache.put(methodAndArgs,[res,err]);
             }
-            cb.complete(res, err); // promise.complete(result, error)
+            try {
+              cb.complete(res, err); // promise.complete(result, error)
+            } catch (e) {
+              console.log("error in callback method:",methodAndArgs,"ex:",e);
+            }
           } else {
             const res = resp.obj.args.seq[1];
             const err = resp.obj.args.seq[2];
             if ( this.callCache ) {
               this.callCache.put(methodAndArgs,[res,err]);
             }
-            cb.complete(res, err); // promise.complete(result, error)
+            try {
+              cb.complete(res, err); // promise.complete(result, error)
+            } catch (e) {
+              console.log("error in callback method:",methodAndArgs,"ex:",e);
+            }
           }
         }
       } else {
-        messageListener(resp);
+        messageListener(resp); // not a remote call
       }
     }
     return sequence;
@@ -573,6 +581,7 @@ class KontraktorPollSocket{
         } catch (ex) {
           console.error("exception in callback ", ex);
           res.complete(null, ex);
+          return;
         }
         try {
           res.complete("", null);
