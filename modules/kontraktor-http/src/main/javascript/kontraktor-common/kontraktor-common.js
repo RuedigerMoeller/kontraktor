@@ -17,6 +17,7 @@ class KPromise {
     this.res = (initialResult || error) ? [initialResult ? initialResult : null, error ? error : null] : null;
     this.cb = null;
     this.nextPromise = null;
+    this.hasTimedOut = false;
   };
 
   isCompleted() { return this.res; };
@@ -51,6 +52,12 @@ class KPromise {
   }
 
   complete(r,e) {
+    if ( this.hasTimedOut )
+    {
+      if ( r )
+        console.warn("result received on timed out promise",r);
+      return;
+    }
     if ( this.res )
       throw "double completion on promise";
     this.res = [r,e];
@@ -62,6 +69,7 @@ class KPromise {
   timeoutIn(ms,error) {
     setTimeout(() => {
       if ( ! this.isCompleted() ) {
+        this.hasTimedOut = true;
         this.complete( null, error ? error : 'timeout');
       }
     },ms);
