@@ -11,7 +11,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>service-support</artifactId>
-    <version>4.28.6</version>
+    <version>4.28.7</version>
 
     <description>service registry</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
