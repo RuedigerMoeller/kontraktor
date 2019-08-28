@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "kontraktor-common": ">=4.23.0",
+    "kontraktor-common": "^4.25.4",
     "ws": "~3.0.0",
     "filereader": "~0.10.3"
   },
