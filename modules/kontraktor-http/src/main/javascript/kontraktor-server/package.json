@@ -1,6 +1,6 @@
 {
   "name": "kontraktor-server",
-  "version": "4.25.3",
+  "version": "4.25.4",
   "description": "expose an actor implemented in javascript to java (or javascript) clients",
   "main": "kontraktor-server.js",
   "scripts": {

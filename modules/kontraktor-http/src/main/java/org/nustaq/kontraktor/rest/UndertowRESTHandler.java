@@ -16,7 +16,6 @@ import org.xnio.channels.StreamSourceChannel;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
@@ -56,15 +55,15 @@ public class UndertowRESTHandler implements HttpHandler {
                     exchange.setResponseCode(403);
                     exchange.getResponseSender().send(""+e);
                 } else {
-                    handleInternal(exchange);
+                    handleInternal(exchange,r);
                 }
             });
         } else {
-            handleInternal(exchange);
+            handleInternal(exchange, null);
         }
     }
 
-    private void handleInternal(HttpServerExchange exchange) {
+    private void handleInternal(HttpServerExchange exchange, Object credentials) {
         String requestPath = exchange.getRequestPath();
         requestPath = requestPath.substring(basePath.length());
         while ( requestPath.startsWith("/") ) {
@@ -119,7 +118,7 @@ public class UndertowRESTHandler implements HttpHandler {
                             Log.Warn(this, e);
                         }
                         exchange.dispatch();
-                        parseAndDispatch(exchange, split, rawMethodName, finalM, buf.array());
+                        parseAndDispatch(exchange, split, rawMethodName, finalM, buf.array(), credentials);
                     }
                 }
             );
@@ -127,11 +126,11 @@ public class UndertowRESTHandler implements HttpHandler {
             checkExchangeState(exchange);
         } else {
             exchange.dispatch();
-            parseAndDispatch(exchange, split, requestPath, m, new byte[0] );
+            parseAndDispatch(exchange, split, requestPath, m, new byte[0], credentials );
         }
     }
 
-    private void parseAndDispatch(HttpServerExchange exchange, String[] split, String rawPath, Method m, byte[] postData) {
+    private void parseAndDispatch(HttpServerExchange exchange, String[] split, String rawPath, Method m, byte[] postData, Object credentials) {
         try {
             Class<?>[] parameterTypes = m.getParameterTypes();
             Annotation[][] parameterAnnotations = m.getParameterAnnotations();
@@ -151,6 +150,9 @@ public class UndertowRESTHandler implements HttpHandler {
                             continue;
                         } else if (parameterAnnotation[0].annotationType() == RequestPath.class) {
                             args[i] = rawPath;
+                            continue;
+                        } else if (parameterAnnotation[0].annotationType() == AuthCredentials.class) {
+                            args[i] = credentials;
                             continue;
                         }
                     }

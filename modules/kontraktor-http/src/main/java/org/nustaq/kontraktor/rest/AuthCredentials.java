@@ -6,9 +6,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * denote field as optional in json to java class parsing
+ * inject auth credentials to parameter as returned from requestvalidator
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.FIELD})
-public @interface JsonOption {
+@Target(ElementType.PARAMETER)
+public @interface AuthCredentials {
 }

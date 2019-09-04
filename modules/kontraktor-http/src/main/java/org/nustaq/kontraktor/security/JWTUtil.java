@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.Date;
 
 public class JWTUtil {
 
@@ -30,6 +31,7 @@ public class JWTUtil {
     public static String encrypt(String subject,String secret) {
         return Jwts.builder()
             .setSubject(subject)
+            .setIssuedAt(new Date())
             .signWith(SignatureAlgorithm.HS512, secret)
             .compact();
     }
@@ -38,10 +40,14 @@ public class JWTUtil {
         if ( secret == null )
             return null;
         //This line will throw an exception if it is not a signed JWS (as expected)
-        Claims claims = Jwts.parser()
-            .setSigningKey(DatatypeConverter.parseBase64Binary(secret))
-            .parseClaimsJws(jwt).getBody();
+        Claims claims = getClaims(jwt, secret);
         return claims.getSubject();
+    }
+
+    public static Claims getClaims(String jwt, String secret) {
+        return Jwts.parser()
+                .setSigningKey(DatatypeConverter.parseBase64Binary(secret))
+                .parseClaimsJws(jwt).getBody();
     }
 
     public static String readSecret(String fi) throws IOException {

@@ -1,6 +1,6 @@
 {
   "name": "js4k",
-  "version": "4.11.3",
+  "version": "4.11.4",
   "description": "interoperate with kontraktor actors/http4k",
   "main": "js4k.js",
   "scripts": {
