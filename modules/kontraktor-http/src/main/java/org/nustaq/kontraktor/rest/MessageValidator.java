@@ -33,11 +33,15 @@ public class MessageValidator {
 
         if ( targetType == null ) {
             JsonValue jtype = parsed.get("type");
+            String jtstring;
             if ( jtype == null || ! jtype.isString() )
             {
-                throw new ValidationException("missing type information "+parsed.toString() );
-            }
-            String jtstring = jtype.asString();
+                if ( type2Clazz.containsKey("") )
+                    jtstring = "";
+                else
+                    throw new ValidationException("missing type information "+parsed.toString() );
+            } else
+                jtstring = jtype.asString();
             if ( type2Clazz.containsKey(jtstring) ) {
                 targetType = type2Clazz.get(jtstring);
             } else {

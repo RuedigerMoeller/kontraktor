@@ -37,6 +37,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     protected TimeStampedFileCache<JSXGenerator.ParseResult> transpiledCache = new TimeStampedFileCache();
     protected Map<String,File> nodeDirResolveCache = new HashMap<>();
     protected boolean hmr = false;
+    protected String globalPrologue = ""; // injected at top level of index page
 
     public JSXIntrinsicTranspiler(boolean dev) {
         this.dev = dev;
@@ -46,6 +47,15 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
     @Override
     public byte[] transpile(File f) throws TranspileException {
         throw new RuntimeException("should not be called");
+    }
+
+    public JSXIntrinsicTranspiler globalPrologue(final String globalPrologue) {
+        this.globalPrologue = globalPrologue;
+        return this;
+    }
+
+    public String getGlobalPrologue() {
+        return globalPrologue;
     }
 
     @Override
@@ -664,6 +674,7 @@ public class JSXIntrinsicTranspiler implements TranspilerHook {
 
     protected String getInitialShims() {
         return
+            (globalPrologue != null ? globalPrologue+"\n" : "") +
             "// generated, see _appsrc folder in chrome's src tab for original sourcecode\n\n"+
             "window.kmodules = {};\n" +
             "\n" +
