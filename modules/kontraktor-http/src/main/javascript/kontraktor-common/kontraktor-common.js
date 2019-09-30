@@ -69,8 +69,8 @@ class KPromise {
   timeoutIn(ms,error) {
     setTimeout(() => {
       if ( ! this.isCompleted() ) {
-        this.hasTimedOut = true;
         this.complete( null, error ? error : 'timeout');
+        this.hasTimedOut = true;
       }
     },ms);
     return this;
