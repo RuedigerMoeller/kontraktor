@@ -1,13 +1,13 @@
 {
   "name": "kontraktor-server",
-  "version": "4.25.4",
+  "version": "4.27.0",
   "description": "expose an actor implemented in javascript to java (or javascript) clients",
   "main": "kontraktor-server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "kontraktor-common": ">=4.25.0",
+    "kontraktor-common": ">=4.27.0",
     "ws": "~3.0.0"
   },
   "repository": {

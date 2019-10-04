@@ -1,13 +1,13 @@
 {
   "name": "kontraktor-client",
-  "version": "4.26.4",
+  "version": "4.27.0",
   "description": "client for remote kontraktor actors written in java or javascript, can also be used in browser",
   "main": "kontraktor-client.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "kontraktor-common": "^4.25.4",
+    "kontraktor-common": "^4.27.0",
     "ws": "~3.0.0",
     "filereader": "~0.10.3"
   },

@@ -18,6 +18,7 @@ package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
+import org.nustaq.kontraktor.annotations.RateLimited;
 import org.nustaq.kontraktor.annotations.Remoted;
 import org.nustaq.kontraktor.annotations.Secured;
 import org.nustaq.kontraktor.impl.*;
@@ -30,9 +31,7 @@ import java.io.IOError;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
@@ -79,6 +78,10 @@ public abstract class ConnectionRegistry {
     protected ConcurrentLinkedQueue<Actor> remoteActors = new ConcurrentLinkedQueue<>();
     protected ConcurrentHashMap<Long,Actor> remoteActorMap = new ConcurrentHashMap<>();
     protected volatile boolean terminated = false;
+    protected Consumer<Actor> disconnectHandler;
+    protected boolean isObsolete;
+    protected Map<Method,RateLimitEntry> rateLimits;
+    private Actor facadeActor;
     protected BiFunction<Actor,String,Boolean> remoteCallInterceptor =
     (actor,methodName) -> {
         Method method = actor.__getCachedMethod(methodName, actor, null);
@@ -87,6 +90,16 @@ public abstract class ConnectionRegistry {
         }
         if ( method == null || ActorProxyFactory.getInheritedAnnotation(Local.class,method) != null ) {
             return false;
+        }
+
+        RateLimited rateLimited = ActorProxyFactory.getInheritedAnnotation(RateLimited.class, method);
+        if ( rateLimited != null ) {
+            synchronized (this) {
+                if (rateLimits == null) {
+                    rateLimits = new ConcurrentHashMap();
+                }
+                rateLimits.put(method, new RateLimitEntry(rateLimited));
+            }
         }
         // fixme: this slows down remote call performance somewhat.
         // checks should be done before putting methods into cache
@@ -97,9 +110,6 @@ public abstract class ConnectionRegistry {
         return true;
     };
 
-    protected Consumer<Actor> disconnectHandler;
-    protected boolean isObsolete;
-    private Actor facadeActor;
 
     public ConnectionRegistry(FSTConfiguration conf, Coding coding) {
         this.conf = conf;
