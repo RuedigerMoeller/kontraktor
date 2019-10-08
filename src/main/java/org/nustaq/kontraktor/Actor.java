@@ -629,9 +629,11 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      * called if a message invokation from remote is received
      * @return true if a new promise has been created
      */
-    @CallerSideMethod public boolean __dispatchRemoteCall(ObjectSocket objSocket, RemoteCallEntry rce, ConnectionRegistry registry, List<IPromise> createdFutures, Object authContext, BiFunction<Actor, String, Boolean> callInterceptor) {
+    @CallerSideMethod public boolean __dispatchRemoteCall(ObjectSocket objSocket, RemoteCallEntry rce, ConnectionRegistry registry, List<IPromise> createdFutures, Object authContext, BiFunction<Actor, String, Boolean> callInterceptor, long delayCode) {
         rce.unpackArgs(registry.getConf());
         try {
+            if ( delayCode == RateLimitEntry.REJECT )
+                throw new RuntimeException("Ratelimit hit");
             Object future = getScheduler().enqueueCallFromRemote(registry, null, self(), rce.getMethod(), rce.getArgs(), false, null, callInterceptor);
             if ( future instanceof IPromise) {
                 Promise p = null;

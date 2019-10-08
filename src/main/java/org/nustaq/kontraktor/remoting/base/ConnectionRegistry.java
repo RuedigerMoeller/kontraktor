@@ -80,7 +80,7 @@ public abstract class ConnectionRegistry {
     protected volatile boolean terminated = false;
     protected Consumer<Actor> disconnectHandler;
     protected boolean isObsolete;
-    protected Map<Method,RateLimitEntry> rateLimits;
+    protected Map<String,RateLimitEntry> rateLimits;
     private Actor facadeActor;
     protected BiFunction<Actor,String,Boolean> remoteCallInterceptor =
     (actor,methodName) -> {
@@ -98,7 +98,7 @@ public abstract class ConnectionRegistry {
                 if (rateLimits == null) {
                     rateLimits = new ConcurrentHashMap();
                 }
-                rateLimits.put(method, new RateLimitEntry(rateLimited));
+                rateLimits.put(method.getName(), new RateLimitEntry(rateLimited));
             }
         }
         // fixme: this slows down remote call performance somewhat.
@@ -383,7 +383,7 @@ public abstract class ConnectionRegistry {
                 read = (RemoteCallEntry) remoteCallMapper.apply(this,read);
             }
             if ( facadeActor instanceof AbstractKrouter) {
-                facadeActor.__dispatchRemoteCall(objSocket,read,this,createdFutures, authContext, remoteCallInterceptor);
+                facadeActor.__dispatchRemoteCall(objSocket,read,this,createdFutures, authContext, remoteCallInterceptor, 0);
             } else {
                 Actor targetActor = getPublishedActor(receiverKey);
                 if (receiverKey < 0 && targetActor == null) // forward
@@ -417,7 +417,15 @@ public abstract class ConnectionRegistry {
                     Log.Lg.error(this, null, "registry:" + System.identityHashCode(this) + " no actor found for key " + read);
                     throw new UnknownActorException("unknown actor id " + receiverKey);
                 }
-                targetActor.__dispatchRemoteCall(objSocket, read, this, createdFutures, authContext, remoteCallInterceptor);
+                long delay = 0;
+                if ( rateLimits != null ) {
+                    RateLimitEntry rateLimitEntry = rateLimits.get(read.getMethod());
+                    if ( rateLimitEntry != null ) {
+                        long now = System.currentTimeMillis();
+                        delay = rateLimitEntry.registerCall(now, read.getMethod());
+                    }
+                }
+                targetActor.__dispatchRemoteCall(objSocket, read, this, createdFutures, authContext, remoteCallInterceptor, delay);
             }
         } else if (read.getQueue() == read.CBQ) {
             if ( remoteCallMapper != null ) {

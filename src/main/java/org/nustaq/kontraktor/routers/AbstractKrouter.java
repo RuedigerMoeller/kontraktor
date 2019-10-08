@@ -110,11 +110,11 @@ public abstract class AbstractKrouter<T extends AbstractKrouter> extends Actor<T
         ObjectSocket objSocket, RemoteCallEntry rce,
         ConnectionRegistry clientRemoteRegistry, // registry of client connection
         List<IPromise> createdFutures, Object authContext,
-        BiFunction<Actor, String, Boolean> callInterceptor)
+        BiFunction<Actor, String, Boolean> callInterceptor, long delayCode)
     {
         boolean isCB = rce.getMethod() != null;
         if ( isCB && rce.getMethod().startsWith("router$") ) {
-            return super.__dispatchRemoteCall(objSocket,rce,clientRemoteRegistry,createdFutures,authContext,callInterceptor);
+            return super.__dispatchRemoteCall(objSocket,rce,clientRemoteRegistry,createdFutures,authContext,callInterceptor, delayCode);
         }
 //        if ( isCB ) {
 //            getActor().responseCounter.count();
