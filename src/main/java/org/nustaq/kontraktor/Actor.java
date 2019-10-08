@@ -633,7 +633,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         rce.unpackArgs(registry.getConf());
         try {
             if ( delayCode == RateLimitEntry.REJECT )
-                throw new RuntimeException("Ratelimit hit");
+                throw new RateLimitException();
             Object future = getScheduler().enqueueCallFromRemote(registry, null, self(), rce.getMethod(), rce.getArgs(), false, null, callInterceptor);
             if ( future instanceof IPromise) {
                 Promise p = null;
@@ -660,17 +660,19 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
                 });
             }
         } catch (Throwable th) {
-            Log.Warn(this,th);
+            if ( th instanceof RateLimitException == false )
+                Log.Warn(this,th);
             if ( rce.getFutureKey() != 0 ) {
                     self().execute(() -> {
                         try {
-                            registry.receiveCBResult(objSocket, rce.getFutureKey(), null, FSTUtil.toString(th));
+                            registry.receiveCBResult(objSocket, rce.getFutureKey(), null, th instanceof RateLimitException ? ""+th : FSTUtil.toString(th) );
                         } catch (Exception e) {
                             Log.Error(this,e);
                         }
                     });
             } else {
-                FSTUtil.<RuntimeException>rethrow(th);
+                if ( th instanceof RateLimitException == false )
+                    FSTUtil.<RuntimeException>rethrow(th);
             }
         }
         return createdFutures != null && createdFutures.size() > 0;
