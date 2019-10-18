@@ -123,7 +123,7 @@ class KClient {
         console.log("closed connection");
       }
       if ( ! res.isCompleted() )
-        res.complete(null,err);
+        res.complete(null,"closed");
     });
     socket.onopen( event=> {
       this.currentSocket.socket = socket;
