@@ -510,7 +510,8 @@ class KontraktorPollSocket{
         }
       };
       if ( this.longPollUnderway == 0 ) {
-        request.open("POST", this.url+"/"+this.sessionId, true);
+        request.open("POST", this.url, true);
+        request.setRequestHeader("sid",this.sessionId);
         request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         if ( this.token )
           request.setRequestHeader("JWT", this.token );
@@ -612,8 +613,9 @@ class KontraktorPollSocket{
       processRawResponse(request.responseText);
     };
 
-    request.open("POST", this.url+"/"+this.sessionId, true);
+    request.open("POST", this.url, true);
     request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    request.setRequestHeader("sid", this.sessionId );
     if ( this.token )
       request.setRequestHeader("JWT", this.token );
     if ( this.uname )

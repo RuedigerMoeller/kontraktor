@@ -17,6 +17,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.util;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
  * Created by ruedi on 03/05/15.
@@ -70,5 +71,19 @@ public class Pair<CAR, CDR> implements Serializable {
 
     public boolean allNull() {
         return cdr == null && car == null;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Pair<?, ?> pair = (Pair<?, ?>) o;
+        return Objects.equals(car, pair.car) &&
+            Objects.equals(cdr, pair.cdr);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(car, cdr);
     }
 }

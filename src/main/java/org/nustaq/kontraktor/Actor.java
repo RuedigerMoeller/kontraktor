@@ -621,6 +621,10 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
                     }
                 }
             }
+        } else if ( callInterceptor != null ){
+            if ( !callInterceptor.apply(actor,methodName) ) {
+                return null;
+            }
         }
         return method;
     }
