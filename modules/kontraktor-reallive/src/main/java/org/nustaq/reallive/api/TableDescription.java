@@ -14,7 +14,7 @@ public class TableDescription implements Serializable, Cloneable {
     }
 
     String name;
-    int sizeMB = 1000;
+    int sizeMB = 100;
     String filePath = TableSpace.USE_BASE_DIR;
     int numEntries=100_000;
     int shardNo;

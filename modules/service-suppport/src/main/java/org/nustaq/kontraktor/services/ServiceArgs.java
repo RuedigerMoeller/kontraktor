@@ -113,4 +113,44 @@ public class ServiceArgs {
         return options;
     }
 
+    public ServiceArgs registryHost(final String registryHost) {
+        this.registryHost = registryHost;
+        return this;
+    }
+
+    public ServiceArgs registry(final int registry) {
+        this.registry = registry;
+        return this;
+    }
+
+    public ServiceArgs help(final boolean help) {
+        this.help = help;
+        return this;
+    }
+
+    public ServiceArgs host(final String host) {
+        this.host = host;
+        return this;
+    }
+
+    public ServiceArgs dataShardPortBase(final int dataShardPortBase) {
+        this.dataShardPortBase = dataShardPortBase;
+        return this;
+    }
+
+    public ServiceArgs asyncLog(final boolean asyncLog) {
+        this.asyncLog = asyncLog;
+        return this;
+    }
+
+    public ServiceArgs monhost(final String monhost) {
+        this.monhost = monhost;
+        return this;
+    }
+
+    public ServiceArgs monport(final int monport) {
+        this.monport = monport;
+        return this;
+    }
+
 }

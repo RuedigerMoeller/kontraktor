@@ -40,13 +40,17 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
      * @throws InstantiationException
      */
     public static ServiceActor RunTCP( String args[], Class<? extends ServiceActor> serviceClazz, Class<? extends ServiceArgs> argsClazz, long timeout) {
-        ServiceActor myService = AsActor(serviceClazz);
         ServiceArgs options = null;
         try {
             options = ServiceRegistry.parseCommandLine(args, null, argsClazz.newInstance());
         } catch (Exception e) {
             FSTUtil.rethrow(e);
         }
+        return RunTCP(options, serviceClazz, timeout);
+    }
+
+    public static ServiceActor RunTCP(ServiceArgs options, Class<? extends ServiceActor> serviceClazz, long timeout) {
+        ServiceActor myService = AsActor(serviceClazz);
         TCPConnectable connectable = new TCPConnectable(ServiceRegistry.class, options.getRegistryHost(), options.getRegistryPort());
 
         myService.init( connectable, options, true).await(timeout);

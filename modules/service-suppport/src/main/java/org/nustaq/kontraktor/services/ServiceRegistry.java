@@ -57,12 +57,12 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     ClusterCfg config;
 
     @Local
-    public void init() {
+    public void init(ClusterCfg cfg) {
         services = new HashMap<>();
         statusMap = new HashMap<>();
         listeners = new ArrayList<>();
         checkTimeout();
-        config = ClusterCfg.read();
+        config = cfg == null ? ClusterCfg.read() : cfg;
         serviceDumper();
     }
 
@@ -341,26 +341,36 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
 
     public static ServiceRegistry start(String[] args) {
         options = (RegistryArgs) parseCommandLine(args,null,RegistryArgs.New());
+        return start(options);
+    }
 
-        if ( ! options.isAsyncLog() ) {
+    public static ServiceRegistry start(RegistryArgs options) {
+        return start(options,null);
+    }
+
+    public static ServiceRegistry start(RegistryArgs _options, ClusterCfg cfg) {
+        options = _options;
+
+        if ( ! _options.isAsyncLog() ) {
             Log.SetSynchronous();
         }
 
-        ServiceRegistry serviceRegistry = Actors.AsActor(ServiceRegistry.class);
-        serviceRegistry.init();
 
-        new TCPNIOPublisher(serviceRegistry,options.getRegistryPort()).publish(actor -> {
+        ServiceRegistry serviceRegistry = Actors.AsActor(ServiceRegistry.class);
+        serviceRegistry.init(cfg);
+
+        new TCPNIOPublisher(serviceRegistry,_options.getRegistryPort()).publish(actor -> {
             Log.Info(null, actor + " has disconnected");
         });
 
-        Http4K.Build(options.getMonhost(), options.getMonport() )
+        Http4K.Build(_options.getMonhost(), _options.getMonport() )
             .restAPI("/mon",serviceRegistry.getRest().await())
             .build();
 
         // log service activity
-            serviceRegistry.subscribe((pair, err) -> {
-                Log.Info(serviceRegistry.getClass(), pair.car() + " " + pair.cdr());
-            });
+        serviceRegistry.subscribe((pair, err) -> {
+            Log.Info(serviceRegistry.getClass(), pair.car() + " " + pair.cdr());
+        });
 
         return serviceRegistry;
     }

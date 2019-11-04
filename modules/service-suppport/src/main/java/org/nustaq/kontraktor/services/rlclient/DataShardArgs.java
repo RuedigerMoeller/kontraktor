@@ -15,6 +15,20 @@ public class DataShardArgs extends ServiceArgs {
         return factory.get();
     }
 
+    public static DataShardArgs from(ServiceArgs toCopy, int shardNo) {
+        DataShardArgs aNew = New();
+        aNew.registryHost( toCopy.getRegistryHost() );
+        aNew.registry( toCopy.getRegistryPort() );
+        aNew.help(toCopy.isHelp());
+        aNew.host(toCopy.getHost());
+        aNew.dataShardPortBase(toCopy.getDataShardPortBase());
+        aNew.asyncLog(toCopy.isAsyncLog());
+        aNew.monhost(toCopy.getMonhost());
+        aNew.monport(toCopy.getMonport());
+        aNew.shardNo = shardNo;
+        return aNew;
+    }
+
     protected DataShardArgs() {
         super();
     }
@@ -32,4 +46,6 @@ public class DataShardArgs extends ServiceArgs {
                    "shardNo=" + shardNo +
                    "} " + super.toString();
     }
+
+
 }

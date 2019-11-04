@@ -42,4 +42,11 @@ public class DataCfg implements Serializable {
     public TableDescription[] getSchema() {
         return schema;
     }
+
+    public DataCfg schema(final TableDescription[] schema) {
+        this.schema = schema;
+        return this;
+    }
+
+
 }
