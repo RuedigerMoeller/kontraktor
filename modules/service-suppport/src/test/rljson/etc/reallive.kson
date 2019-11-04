@@ -1,0 +1,10 @@
+SimpleRLConfig {
+  dataDir: "./data1"
+  numNodes: 5
+
+  tables: [
+    { name: test  ### defaults: sizeMB: 100 filePath: USE_BASE_DIR storageType: CACHED
+    }
+    { name: credentials }
+  ]
+}
