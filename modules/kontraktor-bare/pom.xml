@@ -11,7 +11,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-bare</artifactId>
-    <version>4.28</version>
+    <version>4.29</version>
 
     <description>minimalistic http client to kontraktor apps</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -45,9 +45,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <configuration>
-                    <additionalparam>-Xdoclint:none</additionalparam>
-                </configuration>
+                <!--<configuration>-->
+                    <!--<additionalparam>-Xdoclint:none</additionalparam>-->
+                <!--</configuration>-->
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>

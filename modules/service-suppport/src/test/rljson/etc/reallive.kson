@@ -1,5 +1,5 @@
 SimpleRLConfig {
-  dataDir: "./data1"
+  dataDir: "./data"
   numNodes: 5
 
   tables: [
