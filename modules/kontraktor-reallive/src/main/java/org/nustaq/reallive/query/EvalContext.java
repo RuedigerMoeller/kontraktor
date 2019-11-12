@@ -11,13 +11,13 @@ public interface EvalContext {
         if ( val == null )
             val = "";
         if ( val instanceof String) {
-            return new StringValue((String) val);
+            return new StringValue((String) val, null);
         } else if ( val instanceof Float || val instanceof Double) {
-            return new DoubleValue(((Number) val).doubleValue());
+            return new DoubleValue(((Number) val).doubleValue(), null);
         } else if ( val instanceof Number ) {
-            return new LongValue(((Number) val).longValue());
+            return new LongValue(((Number) val).longValue(), null);
         } else {
-            return new StringValue(val.toString());
+            return new StringValue(val.toString(), null);
         }
     }
 

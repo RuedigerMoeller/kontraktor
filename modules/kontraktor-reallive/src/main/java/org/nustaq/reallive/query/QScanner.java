@@ -11,7 +11,7 @@ public class QScanner {
         this.text = text;
     }
 
-    public String readNext() {
+    public QToken readNext() {
         int start = pos;
         while (true) {
             int ch = readChar();
@@ -20,45 +20,45 @@ public class QScanner {
                 if ( substring.length() == 0 ) {
                     return null;
                 }
-                return substring;
+                return new QToken(substring,text,pos);
             }
             if ( Character.isWhitespace(ch) ) {
                 start++;
             } else if ( ch == '(' || ch == ')' ) {
-                return text.substring(start,pos);
+                return new QToken(text.substring(start,pos),text,pos);
             } else if (Character.isJavaIdentifierStart(ch)) { // identifier
                 ch=readChar();
                 while( Character.isJavaIdentifierPart(ch) || ch == '.' ) {
                     ch=readChar();
                 }
                 if ( ch > 0 ) pos--;
-                return text.substring(start,pos);
+                return new QToken(text.substring(start,pos),text,pos);
             } else if ( ch == '\"' ) { // string
                 ch=readChar();
                 while( ch > 0 && ch != '\"') {
                     ch=readChar();
                 }
-                return text.substring(start,pos);
+                return new QToken(text.substring(start,pos),text,pos);
             } else if ( ch == '\'' ) { // string
                 ch=readChar();
                 while( ch > 0 && ch != '\'') {
                     ch=readChar();
                 }
-                return text.substring(start,pos);
+                return new QToken(text.substring(start,pos),text,pos);
             } else if ( Character.isDigit(ch) || ch == '.' ) { // number
                 ch=readChar();
                 while( Character.isDigit(ch) || ch == '.' ) {
                     ch=readChar();
                 }
                 if ( ch > 0 ) pos--;
-                return text.substring(start,pos);
+                return new QToken(text.substring(start,pos),text,pos);
             } else if ( !Character.isJavaIdentifierPart(ch) && ! Character.isWhitespace(ch) && ch != '\'' && ch != '\"' ) { // operator
                 ch=readChar();
                 while( !Character.isJavaIdentifierPart(ch) && ! Character.isWhitespace(ch) && ch > 0 && ch != '\'' && ch != '\"') {
                     ch=readChar();
                 }
                 if ( ch > 0 ) pos--;
-                return text.substring(start,pos);
+                return new QToken(text.substring(start,pos),text,pos);
             } else {
                 start++;
             }
@@ -71,10 +71,4 @@ public class QScanner {
         return text.charAt(pos++);
     }
 
-    public static void main(String[] args) {
-        QScanner sc = new QScanner(" x.y'pok'&&3 689 7765.876| || (3*7 +4)");
-        String s;
-        while ( (s=sc.readNext())!= null )
-            System.out.println(s);
-    }
 }
