@@ -134,9 +134,14 @@ public class Parser {
                     stackRPN.push(new StringValue(tokenValue.substring(1, tokenValue.length() - 1),token));
                 } else if ( tokenValue.startsWith("\"") && tokenValue.endsWith("\"") ) {
                     stackRPN.push(new StringValue(tokenValue.substring(1, tokenValue.length() - 1),token));
-                } else //if ( stringToken.startsWith(VARIABLE+".") )
+                } else
                 {
-                    stackRPN.push(new VarPath(tokenValue,ctxRef,token));
+                    if ( "true".equals(tokenValue) ) {
+                        stackRPN.push(new BooleanValue(true,token));
+                    } else if ( "false".equals(tokenValue) ) {
+                        stackRPN.push(new BooleanValue(false,token));
+                    } else
+                        stackRPN.push(new VarPath(tokenValue,ctxRef,token));
                 }
             }
             prevToken = token;

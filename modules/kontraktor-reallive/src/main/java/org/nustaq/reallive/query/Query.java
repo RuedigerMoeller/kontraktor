@@ -30,7 +30,7 @@ public class Query {
         operators.put("!", new Operator("!",15,1) {
             @Override
             protected Value compare(Value vb, Value va) {
-                return new LongValue(vb.isTrue()?0:1);
+                return new LongValue(vb.isTrue()?0:1, null);
             }
         });
         operators.put("+", new Operator("+",7) {
@@ -114,6 +114,20 @@ public class Query {
         operators.put("**", new Operator("**",6) {
             @Override
             protected Value compare(Value vb, Value va) {
+                if ( va.isArray() ) {
+                    Object bval = vb.getValue();
+                    Object[] ov = (Object[]) va.getValue();
+                    for (int i = 0; i < ov.length; i++) {
+                        Object o = ov[i];
+                        if ( o instanceof Number && vb instanceof NumberValue) {
+                            if ( ((Number)o).doubleValue() == vb.getDoubleValue() )
+                                return Value.TRUE;
+                        }
+                        if ( o != null && o.equals(bval) )
+                            return Value.TRUE;
+                    }
+                    return Value.FALSE;
+                }
                 return va.getStringValue().toLowerCase().indexOf(vb.getStringValue().toLowerCase()) >= 0 ? Value.TRUE:Value.FALSE;
             }
         });
@@ -150,29 +164,50 @@ public class Query {
                 return stringValue.equals(stringValue1) ? "1" : "0";
             }
         });
-        operators.put("!=", new Operator("!=",6) {
-            @Override
-            protected long longOp(long longValue, long longValue1) {
-                return longValue != longValue1 ? 1:0;
-            }
 
-            @Override
-            protected double doubleOp(double doubleValue, double doubleValue1) {
-                return doubleValue!=doubleValue1 ?1:0;
-            }
-
-            @Override
-            protected String stringOp(String stringValue, String stringValue1) {
-                return !stringValue.equals(stringValue1) ? "1" : "0";
-            }
-        });
+//        operators.put("!=", new Operator("!=",6) {
+//            @Override
+//            protected long longOp(long longValue, long longValue1) {
+//                return longValue != longValue1 ? 1:0;
+//            }
+//
+//            @Override
+//            protected double doubleOp(double doubleValue, double doubleValue1) {
+//                return doubleValue!=doubleValue1 ?1:0;
+//            }
+//
+//            @Override
+//            protected String stringOp(String stringValue, String stringValue1) {
+//                return !stringValue.equals(stringValue1) ? "1" : "0";
+//            }
+//        });
         operators.put("&&", new Operator("&&",3) {
+            @Override
+            public RLSupplier<Value> getEval( RLSupplier<Value> arg, RLSupplier<Value> arg1 ) {
+                return () -> {
+                    Value va = arg1.get();
+                    if ( !va.isTrue() )
+                        return Value.FALSE;
+                    Value vb = arg.get();
+                    return compare(vb, va);
+                };
+            }
             @Override
             protected Value compare(Value vb, Value va) {
                 return vb.isTrue() && va.isTrue() ? Value.TRUE : Value.FALSE;
             }
         });
         operators.put("||", new Operator("||",3) {
+            @Override
+            public RLSupplier<Value> getEval( RLSupplier<Value> arg, RLSupplier<Value> arg1 ) {
+                return () -> {
+                    Value va = arg1.get();
+                    if ( va.isTrue() )
+                        return Value.TRUE;
+                    Value vb = arg.get();
+                    return compare(vb, va);
+                };
+            }
             @Override
             protected Value compare(Value vb, Value va) {
                 return vb.isTrue() || va.isTrue() ? Value.TRUE : Value.FALSE;
@@ -267,27 +302,60 @@ public class Query {
     }
 
     protected static void defaultFun(HashMap<String, FuncOperand> functions) {
+
+        // Todo:
+        // arrays: sum avg contains
+        // object: match by example
+
         functions.put("lower", new FuncOperand("lower",1) {
             @Override
             protected Value apply(RLSupplier<Value>[] args) {
-                return new StringValue(args[0].get().getStringValue().toLowerCase());
-            }
-        });
-        functions.put("upper", new FuncOperand("upper",1) {
-            @Override
-            protected Value apply(RLSupplier<Value>[] args) {
-                return new StringValue(args[0].get().getStringValue().toUpperCase());
+                return new StringValue(args[0].get().getStringValue().toLowerCase(),null);
             }
         });
 
+        functions.put("upper", new FuncOperand("upper",1) {
+            @Override
+            protected Value apply(RLSupplier<Value>[] args) {
+                return new StringValue(args[0].get().getStringValue().toUpperCase(), null);
+            }
+        });
+
+        functions.put("exists", new FuncOperand("exists",1) {
+            @Override
+            protected Value apply(RLSupplier<Value>[] args) {
+                Value value = args[0].get();
+                return value.isEmpty()? Value.FALSE:Value.TRUE;
+            }
+        });
+
+        functions.put("isEmpty", new FuncOperand("isEmpty",1) {
+            @Override
+            protected Value apply(RLSupplier<Value>[] args) {
+                Value value = args[0].get();
+                return value.isEmpty()? Value.TRUE:Value.FALSE;
+            }
+        });
+
+        functions.put("length", new FuncOperand("length",1) {
+            @Override
+            protected Value apply(RLSupplier<Value>[] args) {
+                Value value = args[0].get();
+                if ( value.isArray() )
+                    return new LongValue( ((ArrayValue)value).size(), null );
+                return new LongValue(0,null);
+            }
+        });
         // time ranges from now
         // time is settled at compile time
         functions.put("age", new FuncOperand("age",2) {
 
             @Override
             public RLSupplier<Value> getEval(RLSupplier<Value>[] args) {
-                if ( args.length != arity )
-                    throw new QParseException("invalid number of arguments:"+name);
+                if ( args.length != arity ) {
+                    String err = args.length > 0 ? args[args.length - 1].get().getErrorString() : " - ";
+                    throw new QParseException("invalid number of arguments:" + name+ " "+err);
+                }
                 return new RLSupplier<Value>() {
                     long now = System.currentTimeMillis();
                     @Override
@@ -316,17 +384,19 @@ public class Query {
                     case "week": val = now - val*week; break;
                     case "month": val = now - val*month; break;
                     case "year": val = now - val*year; break;
-                    default: throw new QParseException("invalid arg in age(..):"+sv);
+                    default: throw new QParseException("invalid arg in age(..):"+sv+", "+args[1].get().getErrorString());
                 }
-                return new LongValue(val);
+                return new LongValue(val,args[0].get().getToken());
             }
         });
 
         functions.put("now", new FuncOperand("now",0) {
             @Override
             public RLSupplier<Value> getEval(RLSupplier<Value>[] args) {
-                if ( args.length != arity )
-                    throw new QParseException("invalid number of arguments:"+name);
+                if ( args.length != arity ) {
+                    String err = args.length > 0 ? args[args.length - 1].get().getErrorString() : " - ";
+                    throw new QParseException("invalid number of arguments:" + name+", "+err);
+                }
                 return new RLSupplier<Value>() {
                     long now = System.currentTimeMillis();
                     @Override
@@ -337,7 +407,7 @@ public class Query {
             }
 
             protected Value apply(RLSupplier<Value>[] args,long now) {
-                return new LongValue(now);
+                return new LongValue(now,null);
             }
         });
 

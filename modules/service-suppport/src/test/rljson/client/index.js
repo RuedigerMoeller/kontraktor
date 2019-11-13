@@ -1,7 +1,7 @@
 const k = require('kontraktor-client');
 
-function toES6Prom(kpromise) {
-  return new Promise((resolve, reject) => kpromise.then((r, e) => e ? reject(e) : resolve(r)));
+function toES6Prom(kpromise, mapfun = x => x) {
+  return new Promise((resolve, reject) => kpromise.then((r, e) => e ? reject(e) : resolve(mapfun(r))));
 }
 
 class Table {
@@ -15,20 +15,76 @@ class Table {
     return toES6Prom(this.session.ask("update",this.table,JSON.stringify(json)));
   }
   
+  updateAsync( json ) {
+    this.session.tell("updateAsync",this.table,JSON.stringify(json));
+  }
+
+  delete(key) {
+    return toES6Prom(this.session.ask("delete",this.table,key));
+  }
+  
+  deleteAsync(key) {
+    return toES6Prom(this.session.ask("deleteAsync",this.table,key));
+  }
+
+  fields() {
+    return toES6Prom(this.session.ask("fieldsOf",this.table), x => {
+      delete x._typ;
+      return x;
+    });
+  }
+  
+  selectAsync(query,cb) {
+    this.session.tell("select",this.table,query, (r,e) => {
+      if ( r ) cb( JSON.parse(r), null );
+      else cb(r,e);
+    });
+  }
+ 
+  async select(query,cb) {
+    return await new Promise( (resolve,reject) => {
+      const arr = [];
+      this.selectAsync(query, (r,e) => {
+        if ( r ) {
+          arr.push(r);
+        }
+        else if ( e ) {
+          reject(e);
+        }
+        else {
+          resolve(arr);
+        }
+      })
+    });
+  }
+  
 }
 
-function testSession(session) {
+async function testSession(session) {
   const creds = new Table(session,"credentials");
-  creds.update( {
-    key: '0x0x0x0x0',
-    name: 'Me',
-    array: [ 1, 2, 3, { x: 123.2 }, "hi", true ],
-    sub: {
-      oha: 'ne', tt: 13.22
-    }
-  })
-  .then( r => console.log("updated") )
-  .catch( e => console.log("erro") );
+  for ( var i=0; i < 30; i++ ) {
+    creds.update( {
+      key: Math.random()+'--'+i,
+      aName: 'Me'+i,
+      pastName: 'trollo'+i,
+      anArray: [ 5, 2, 3, { x: 123.2 }, "hi", true ],
+      aSub: {
+        oha: 'ne'+i, tt: 13.22, test: 'x', time: new Date().getTime(),
+      }
+    })
+    .then( r => console.log("updated") )
+    .catch( e => console.log("error", e) );
+  }
+  const x = await creds.fields();
+  console.log("fields",x);
+  try {
+//    const arr = await creds.select("(aName ** '15' || aName ** '13') && !exists(pastName) && exists(aSub.test)");
+//     const arr = await creds.select("aName ** 'me15' && aSub.time > age(1,'min')");
+    const arr = await creds.select("aSub.time > age(1,'sec') && anArray ** true");
+    arr.forEach( x => console.log(x) );
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 const kclient = new k.KClient().useProxies(false);
