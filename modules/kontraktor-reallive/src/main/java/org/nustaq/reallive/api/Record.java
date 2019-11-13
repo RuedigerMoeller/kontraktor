@@ -1,6 +1,7 @@
 package org.nustaq.reallive.api;
 
 import org.nustaq.reallive.query.EvalContext;
+import org.nustaq.reallive.query.LongValue;
 import org.nustaq.reallive.query.StringValue;
 import org.nustaq.reallive.query.Value;
 import org.nustaq.reallive.records.MapRecord;
@@ -38,7 +39,9 @@ public interface Record extends Serializable, EvalContext {
     @Override
     default Value getValue(String field) {
         if ( "_key".equals(field))
-            return new StringValue( getKey().toString() );
+            return new StringValue( getKey(), null );
+        if ( "_lastModified".equals(field))
+            return new LongValue( getLastModified(), null );
         return EvalContext.super.getValue(field);
     }
 

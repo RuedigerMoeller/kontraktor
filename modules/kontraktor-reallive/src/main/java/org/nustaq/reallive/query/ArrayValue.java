@@ -1,14 +1,13 @@
 package org.nustaq.reallive.query;
 
-/**
- * Created by moelrue on 27.08.2015.
- */
-public class StringValue implements Value {
+import java.util.Arrays;
 
+public class ArrayValue implements Value {
+
+    Object[] value;
     QToken token;
-    String value;
 
-    public StringValue(String value, QToken token) {
+    public ArrayValue(Object[] value, QToken token) {
         this.value = value;
         this.token = token;
     }
@@ -20,17 +19,17 @@ public class StringValue implements Value {
 
     @Override
     public double getDoubleValue() {
-        return Double.parseDouble(value);
+        return value.length;
     }
 
     @Override
     public long getLongValue() {
-        return Long.parseLong(value);
+        return value.length;
     }
 
     @Override
     public String getStringValue() {
-        return value;
+        return "[array]";
     }
 
     @Override
@@ -40,18 +39,15 @@ public class StringValue implements Value {
 
     @Override
     public Value negate() {
-        return isTrue() ? new StringValue("", token) : new StringValue("1",token);
+        return this;
     }
 
     @Override
     public boolean isEmpty() {
-        return value == null || value.length() == 0;
+        return value == null || value.length == 0;
     }
 
-    @Override
-    public String toString() {
-        return "StringValue{" +
-                "value='" + value + '\'' +
-                '}';
+    public long size() {
+        return value.length;
     }
 }

@@ -16,6 +16,8 @@ public interface EvalContext {
             return new DoubleValue(((Number) val).doubleValue(), null);
         } else if ( val instanceof Number ) {
             return new LongValue(((Number) val).longValue(), null);
+        } else if ( val instanceof Object[] ) {
+            return new ArrayValue((Object[]) val, null);
         } else {
             return new StringValue(val.toString(), null);
         }
