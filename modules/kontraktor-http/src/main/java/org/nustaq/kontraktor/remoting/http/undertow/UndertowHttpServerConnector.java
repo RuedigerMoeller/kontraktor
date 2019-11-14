@@ -171,6 +171,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
 
 
         if ( ! isEmptyLP ) {
+            httpObjectSocket.updateLastRemoteCallTimeStamp();
             handleRegularRequest(exchange, httpObjectSocket, received, sinkchannel);
             return;
         }

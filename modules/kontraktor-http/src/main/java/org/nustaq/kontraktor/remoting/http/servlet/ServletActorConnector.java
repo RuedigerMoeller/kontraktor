@@ -99,6 +99,7 @@ public class ServletActorConnector extends AbstractHttpServerConnector {
         boolean isEmptyLP = received.length == 1 && received[0] instanceof Number;
 
         if ( ! isEmptyLP ) {
+            httpObjectSocket.updateLastRemoteCallTimeStamp();
             handleRegularRequest(aCtx, httpObjectSocket, received);
             return;
         }

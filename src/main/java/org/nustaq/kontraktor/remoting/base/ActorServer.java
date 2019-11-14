@@ -24,6 +24,7 @@ import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -120,6 +121,11 @@ public class ActorServer {
                         ((ServingActor) facade).clientDisconnected(reg,writesocket.getConnectionIdentifier());
                     }
                     reg.disconnect();
+                    try {
+                        writesocket.close();
+                    } catch (IOException e) {
+                        Log.Info(this,e);
+                    }
                 }
             };
         });
