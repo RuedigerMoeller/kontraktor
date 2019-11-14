@@ -22,13 +22,15 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
 
     public static int REQUEST_RESULTING_FUTURE_TIMEOUT = 3000; // max wait time for a returned promise to fulfil
     public static long SESSION_TIMEOUT_MS = TimeUnit.MINUTES.toMillis(30); // 30 minutes
+    public static long IDLE_SESSION_TIMEOUT_MS = TimeUnit.HOURS.toMillis(12); // 30 minutes
 
     protected Actor facade;
     protected HashMap<String,HttpObjectSocket> sessions = new HashMap<>(); // use only from facade thread
 
     protected FSTConfiguration conf = FSTConfiguration.createJsonConfiguration(false,false); // used for authdata
     protected Function<ObjectSocket, ObjectSink> factory;
-    protected long sessionTimeout = SESSION_TIMEOUT_MS;
+    protected long sessionTimeout = SESSION_TIMEOUT_MS; // time to kill after longpoll vanishes
+    private long idleSessionTimeout = IDLE_SESSION_TIMEOUT_MS; // time to kill if no activity (remote call) is going on
     protected volatile boolean isClosed = false;
     protected ActorServer actorServer;
     protected Function<KHttpExchange,ConnectionAuthResult> connectionVerifier;
@@ -47,7 +49,8 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
             if ( now- socket.getLongPollTaskTime() >= HttpObjectSocket.LP_TIMEOUT/2 ) {
                 socket.triggerLongPoll();
             }
-            if ( now- socket.getLastUse() > getSessionTimeout() ) {
+            if ( now - socket.getLastUse() > getSessionTimeout() || now - socket.getLastRemoteCallMS() > getIdleSessionTimeout() ) {
+                socket.triggerLongPoll();
                 toRemove.add(entry.getKey());
             }
         });
@@ -167,4 +170,11 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
     }
 
 
+    public long getIdleSessionTimeout() {
+        return idleSessionTimeout;
+    }
+
+    public void setIdleSessionTimeout(long idleSessionTimeout) {
+        this.idleSessionTimeout = idleSessionTimeout;
+    }
 }
