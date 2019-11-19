@@ -104,6 +104,7 @@ public class ActorServer {
                 ((ServingActor) facade).clientConnected(reg,writesocket.getConnectionIdentifier());
             }
             return new ObjectSink() {
+                protected boolean closed = false;
 
                 @Override
                 public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures, Object securityContext) {
@@ -116,12 +117,16 @@ public class ActorServer {
 
                 @Override
                 public void sinkClosed() {
+                    if ( closed ) {
+                        return;
+                    }
                     Log.Info(ActorServer.this,"disconnected a client "+System.identityHashCode(reg)+", "+writesocket.getConnectionIdentifier());
                     if ( facade instanceof ServingActor ) {
                         ((ServingActor) facade).clientDisconnected(reg,writesocket.getConnectionIdentifier());
                     }
                     reg.disconnect();
                     try {
+                        closed = true;
                         writesocket.close();
                     } catch (IOException e) {
                         Log.Info(this,e);
