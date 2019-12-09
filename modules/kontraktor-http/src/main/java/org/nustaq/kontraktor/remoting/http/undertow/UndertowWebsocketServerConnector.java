@@ -220,8 +220,10 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
             }
             if ( sink != null ) {
                 ObjectSink objectSink = sink.get();
-                if (objectSink != null)
+                if (objectSink != null) {
+                    sink.clear();
                     objectSink.sinkClosed();
+                }
             }
             conf = null;
             channel = null;
