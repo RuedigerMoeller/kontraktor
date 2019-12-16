@@ -1,4 +1,5 @@
 const k = require('kontraktor-client');
+const uuid = require('uuid/v1');
 
 function toES6Prom(kpromise, mapfun = x => x) {
   return new Promise((resolve, reject) => kpromise.then((r, e) => e ? reject(e) : resolve(mapfun(r))));
@@ -41,6 +42,7 @@ class Table {
     });
   }
  
+  // returns arry of result objects
   async select(query,cb) {
     return await new Promise( (resolve,reject) => {
       const arr = [];
@@ -58,30 +60,66 @@ class Table {
     });
   }
   
+  subscribe(query,cb,errorCallback) {
+    let id = uuid();
+    this.session.tell("subscribe", id, this.table, query, (r,e) => {
+        if ( r ) {
+          cb(JSON.parse(r));
+        }
+        else {
+          if ( errorCallback )
+            errorCallback(e);
+          else
+            console.error(e);
+        }
+      });
+    return id;
+  }
+
 }
 
 async function testSession(session) {
   const creds = new Table(session,"credentials");
-  for ( var i=0; i < 30; i++ ) {
-    creds.update( {
-      key: Math.random()+'--'+i,
-      aName: 'Me'+i,
-      pastName: 'trollo'+i,
-      anArray: [ 5, 2, 3, { x: 123.2 }, "hi", true ],
-      aSub: {
-        oha: 'ne'+i, tt: 13.22, test: 'x', time: new Date().getTime(),
-      }
-    })
-    .then( r => console.log("updated") )
-    .catch( e => console.log("error", e) );
-  }
+  // for ( var i=0; i < 30; i++ ) {
+  //   creds.update( {
+  //     key: Math.random()+'--'+i,
+  //     aName: 'Me'+i,
+  //     pastName: 'trollo'+i,
+  //     anArray: [ 5, 2, 3, { x: 123.2 }, "hi", true ],
+  //     aSub: {
+  //       oha: 'ne'+i, tt: 13.22, test: 'x', time: new Date().getTime(),
+  //     }
+  //   })
+  //   .then( r => console.log("updated") )
+  //   .catch( e => console.log("error", e) );
+  // }
   const x = await creds.fields();
   console.log("fields",x);
   try {
 //    const arr = await creds.select("(aName ** '15' || aName ** '13') && !exists(pastName) && exists(aSub.test)");
 //     const arr = await creds.select("aName ** 'me15' && aSub.time > age(1,'min')");
-    const arr = await creds.select("aSub.time > age(1,'sec') && anArray ** true");
+    const arr = await creds.select("aSub.time > age(10000,'sec') && anArray ** true");
     arr.forEach( x => console.log(x) );
+    
+    creds.subscribe("aName ** 'you'", change => {
+      console.log("CHANGE",change);
+    });
+    
+    setTimeout( () => {
+      creds.update( {
+          key: arr[0].key,
+          aName: 'you'+Math.random()
+        }
+      );
+    }, 2000);
+    setTimeout( () => {
+      creds.update( {
+          key: arr[0].key,
+          aName: 'you'+Math.random(),
+          aSub: { ...arr[0].aSub, oha: "anders" }
+        }
+      );
+    }, 2000);
   } catch (e) {
     console.error(e);
   }

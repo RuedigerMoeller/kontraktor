@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "kontraktor-client": "^4.27.2"
+    "kontraktor-client": "^4.27.2",
+    "uuid": "^3.3.3"
   }
 }

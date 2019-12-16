@@ -42,7 +42,7 @@ public class RLJsonServer extends Actor<RLJsonServer> {
     }
 
     public IPromise<RLJsonAuthResult> authenticate(String user, String pwd ) {
-        // FIXME, check cr4edentials
+        // FIXME, check credentials
         RLJsonSession session = AsActor(
             RLJsonSession.class,
             // randomly distribute session actors among clientThreads
