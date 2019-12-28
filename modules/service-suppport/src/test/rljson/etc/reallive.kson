@@ -1,4 +1,6 @@
 SimpleRLConfig {
+
+  bindPort: 8087
   dataDir: "./data"
   numNodes: 5
 
@@ -6,5 +8,6 @@ SimpleRLConfig {
     { name: test  ### defaults: sizeMB: 100 filePath: USE_BASE_DIR storageType: CACHED
     }
     { name: credentials }
+    { name: feed }
   ]
 }

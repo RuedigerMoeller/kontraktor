@@ -126,7 +126,7 @@ async function testSession(session) {
 }
 
 const kclient = new k.KClient().useProxies(false);
-const url = "ws://localhost:8081/ws";
+const url = "ws://localhost:8087/ws";
 
 kclient.connect(url, "WS")
 .timeoutIn(10000)

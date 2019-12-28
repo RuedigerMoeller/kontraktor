@@ -1,0 +1,11 @@
+name: test
+description: ""
+author: Rüdiger Möller <moru0011@gmail.com>
+version: 0.0.0
+
+dependencies:
+  uuid: ^2.0.4
+  kontraktor_client: ^0.0.3
+
+environment:
+  sdk: ">=2.2.0 <3.0.0"

@@ -14,6 +14,8 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.ChangeMessage;
 import org.nustaq.reallive.api.RealLiveTable;
 import org.nustaq.reallive.api.Record;
+import org.nustaq.reallive.api.Subscriber;
+import org.nustaq.reallive.impl.QueryPredicate;
 import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.UpdateMessage;
 import org.nustaq.reallive.query.QParseException;
@@ -23,15 +25,33 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RLJsonSession extends Actor<RLJsonSession> implements RemotedActor {
 
+    public static int senderIdRangeStart=100_000, senderIdRangeEnd = 500_000; // WARNING: needs organization for multiple instances
+
+    static AtomicInteger senderIdCount;
+
     private RLJsonServer server;
     private DataClient dClient;
+    int senderId;
 
     public void init(RLJsonServer server, DataClient dataClient ) {
+        synchronized (RLJsonSession.class ) {
+            if ( senderIdCount == null )
+                senderIdCount = new AtomicInteger(senderIdRangeStart);
+            senderId = senderIdCount.getAndIncrement();
+            if ( senderId >= senderIdRangeEnd ) {
+                senderIdCount.set(senderIdRangeStart);
+            }
+        }
         this.server = server;
         this.dClient = dataClient;
+    }
+
+    public IPromise<Integer> getSenderId() {
+        return resolve(senderId);
     }
 
     public IPromise update(String table, String json ) {
@@ -56,7 +76,7 @@ public class RLJsonSession extends Actor<RLJsonSession> implements RemotedActor 
         Record record = toRecord(members);
         if ( record.getKey() == null )
             throw new RuntimeException("no key in record");
-        tbl.mergeRecord(record);
+        tbl.mergeRecord(senderId,record);
     }
 
     public IPromise delete(String table, String key ) {
@@ -107,11 +127,27 @@ public class RLJsonSession extends Actor<RLJsonSession> implements RemotedActor 
         });
     }
 
-    Map<String,Callback> subscriptions = new HashMap<>();
+    static class SubsEntry {
+        Callback feCB;
+        Subscriber subs;
+
+        public SubsEntry(Callback feCB, Subscriber subs) {
+            this.feCB = feCB;
+            this.subs = subs;
+        }
+    }
+
+    Map<String,SubsEntry> subscriptions = new HashMap<>();
     public void unsubscribe( String uuid ) {
-        Callback callback = subscriptions.get(uuid);
-        if ( callback != null )
-            callback.finish();
+        SubsEntry subsEntry = subscriptions.get(uuid);
+        if ( subsEntry != null ) {
+            Callback callback = subsEntry.feCB;
+            dClient.unsubscribe(subsEntry.subs.getId());
+            if (callback != null) {
+                callback.finish();
+                subscriptions.remove(uuid);
+            }
+        }
     }
 
     public void subscribe(String uuid, String table, String query, Callback<String> res) {
@@ -119,13 +155,30 @@ public class RLJsonSession extends Actor<RLJsonSession> implements RemotedActor 
         AtomicBoolean hadErr = new AtomicBoolean(false);
         if ( tbl == null )
             res.reject("table '"+table+"' not found");
-        subscriptions.put(uuid,res);
-        tbl.subscribeOn(query, (change) -> {
+        Subscriber subscriber = tbl.subscribeOn(query, (change) -> {
+            if (change != null)
+                res.pipe(fromChange(change).toString());
+            else
+                res.finish();
+        });
+        subscriptions.put(uuid, new SubsEntry(res,subscriber));
+    }
+
+    public IPromise<Long> subscribeSyncing(String uuid, String table, long timeStamp, String query, Callback<String> res) {
+        RealLiveTable tbl = dClient.tbl(table);
+        AtomicBoolean hadErr = new AtomicBoolean(false);
+        if ( tbl == null )
+            res.reject("table '"+table+"' not found");
+        QueryPredicate filter = new QueryPredicate(query);
+        Subscriber subs = new Subscriber( rec -> rec.getLastModified() >= timeStamp && filter.test(rec),(change) -> {
             if ( change != null )
                 res.pipe(fromChange(change).toString());
             else
                 res.finish();
         });
+        subscriptions.put(uuid,new SubsEntry(res,subs));
+        tbl.subscribe(subs);
+        return resolve(System.currentTimeMillis());
     }
 
     protected JsonObject fromChange( ChangeMessage change ) {
@@ -175,7 +228,7 @@ public class RLJsonSession extends Actor<RLJsonSession> implements RemotedActor 
         RealLiveTable tbl = dClient.tbl(table);
         if ( tbl == null )
             throw new RuntimeException("table '"+table+"' not found");
-        tbl.remove(key);
+        tbl.remove(senderId,key);
     }
 
     JsonObject fromRecord(Record r) {

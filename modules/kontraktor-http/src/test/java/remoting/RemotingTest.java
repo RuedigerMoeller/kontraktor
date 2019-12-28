@@ -1,7 +1,9 @@
 package remoting;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
@@ -17,6 +19,8 @@ import org.nustaq.kontraktor.remoting.tcp.TCPPublisher;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
 
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.nustaq.kontraktor.Actors.AsActor;
 
 public class RemotingTest {
 
@@ -49,6 +53,19 @@ public class RemotingTest {
         // Http-Longpoll
         new HttpPublisher(serv,"0.0.0.0","/httpapi",7779).publish().await();
         fromRemote(new HttpConnectable(RemotingTA.class,"http://localhost:7779/httpapi"));
+    }
+
+    @Ignore
+    @Test public void testLimit() throws InterruptedException {
+        RemotingTA serv = Actors.AsActor(RemotingTA.class);
+        // Http-Longpoll
+        new HttpPublisher(serv,"0.0.0.0","/httpapi",7779).publish().await();
+
+        RemotingTA client = (RemotingTA) new HttpConnectable(RemotingTA.class, "http://localhost:7779/httpapi").connect().await();
+        for ( int i=0; i < 200; i++ ) {
+            client.yes().then( (r,e)-> System.out.println(r+" "+e));
+            Thread.sleep(10_000);
+        }
     }
 
     private void fromRemote(ConnectableActor con) {

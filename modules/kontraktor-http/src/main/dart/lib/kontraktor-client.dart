@@ -1,6 +1,9 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'package:uuid/uuid.dart';
+
+var uuid = Uuid();
 
 class KontraktorConnection {
 
@@ -14,6 +17,10 @@ class KontraktorConnection {
 
   KontraktorConnection(url) {
     this.url = url;
+  }
+
+  bool isDisconnected() {
+    return sid == null;
   }
 
   Future<bool> connect() async {
@@ -229,5 +236,129 @@ class RemoteActor {
 
   Future ask( String method, List args ) => con._ask(method,args,proxyId);
   void tell( String method, List args ) => con._tell(method,args,proxyId);
+
+}
+
+class RLTable {
+
+  RemoteActor session;
+  String table;
+
+  RLTable(session,table) {
+    this.session = session;
+    this.table = table;
+  }
+
+  Future<Map> update( Map jsonObject ) {
+    return session.ask("update", [table,jsonEncode(jsonObject)]);
+  }
+
+  updateSilent( Map jsonObject ) {
+    session.tell("updateAsync",[table,jsonEncode(jsonObject)]);
+  }
+
+  Future<bool> delete(key) {
+    return session.ask("delete",[this.table,key]);
+  }
+
+  deleteSilent(key) {
+    this.session.tell("deleteAsync",[table,key]);
+  }
+
+  Future<Set<String>>fields() {
+    Completer comp = Completer();
+    session.ask("fieldsOf", [table, (x) {
+      print( x );
+    }]);
+    return comp.future;
+  }
+
+  selectAsync(String query, Function(dynamic,dynamic) cb) {
+    session.tell("select", [table, query, (r,e) {
+      if ( r != null )
+        cb( jsonDecode(r), null );
+      else
+        cb(r,e);
+    }]);
+  }
+
+  // returns array of result objects
+  Future<List<Map>> select(String query) async {
+    Completer comp = Completer<List<Map>>();
+    var res = List<Map>();
+    selectAsync(query, (r,e) {
+      if ( r != null ) {
+        res.add(r);
+      }
+      else if ( e != null ) {
+        comp.completeError(e);
+      } else {
+        comp.complete(res);
+      }
+    });
+    return comp.future;
+  }
+
+  String subscribe(String query, Function(dynamic,dynamic) cb) {
+    String id = uuid.v4();
+    session.tell("subscribe", [id, this.table, query, (r,e) {
+      if ( r != null ) {
+        cb(jsonDecode(r),e);
+      }
+      else {
+        cb(r,e);
+      }
+    }]);
+    return id;
+  }
+
+  /**
+   * returns [ subsid (for unsubscribing), timestamp to be used for next syncing subscriptions]
+   * timestamp can be updated if records with higher lasteModified come in
+   */
+  Future<List> subscribeSyncing(String table, int timeStamp, String query, Function(dynamic,dynamic) cb) async {
+    String subsid = uuid.v4();
+    int timestamp = await session.ask("subscribeSyncing", [subsid, this.table, timeStamp, query, (r,e) {
+      if ( r != null ) {
+        cb(jsonDecode(r),e);
+      }
+      else {
+        cb(r,e);
+      }
+    }]);
+    return [subsid,timestamp];
+  }
+
+  String unsubscribe( String id ) {
+    session.tell("unsubscribe", [id]);
+  }
+
+}
+
+class RLJsonSession {
+  KontraktorConnection con;
+  RemoteActor session;
+  int senderId;
+  String url;
+
+  RLJsonSession(String url) {
+    con = KontraktorConnection(url);
+  }
+
+  Future<bool> authenticate( String user, String pwd ) async {
+    if ( con.isDisconnected() ) {
+      await con.connect();
+      print("connected");
+    }
+    var login = await con.ask("authenticate", [ user, pwd ] );
+    session = login["session"];
+    senderId = await session.ask("getSenderId",[]);
+    print("sessionId ${con.sid}, senderId $senderId");
+    return true;
+  }
+
+  RLTable createTableProxy(String name) {
+    return RLTable(session,name);
+  }
 
 }
