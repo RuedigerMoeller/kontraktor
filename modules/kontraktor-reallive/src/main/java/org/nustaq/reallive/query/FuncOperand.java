@@ -20,8 +20,10 @@ public class FuncOperand implements Serializable {
     }
 
     public RLSupplier<Value> getEval(RLSupplier<Value> args[]) {
-        if ( args.length != arity )
-            throw new QParseException("invalid number of arguments:"+name);
+        if ( args.length != arity ) {
+            String err = args.length > 0 ? args[args.length-1].get().getErrorString() : " - ";
+            throw new QParseException("invalid number of arguments in function:" + name + " " + err);
+        }
         return () -> apply(args);
     }
 

@@ -18,6 +18,7 @@ package org.nustaq.kontraktor.remoting.http.undertow;
 
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
+import io.undertow.util.HeaderMap;
 import io.undertow.util.Headers;
 import io.undertow.util.Methods;
 import org.nustaq.kontraktor.*;
@@ -113,16 +114,24 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
 
     protected void requestReceived( HttpServerExchange exchange, byte[] postData, String path) {
         // already executed in facade thread
-        while ( path.startsWith("/") )
-            path = path.substring(1);
 
-        if ( path.trim().length() > 0 ) {
-            String[] split = path.split("/");
-            HttpObjectSocket httpObjectSocket = sessions.get(split[0]);
+        HeaderMap requestHeaders = exchange.getRequestHeaders();
+        String sid = requestHeaders.getFirst("sid");
+        String[] split = {};
+        if ( sid == null ) {
+            while ( path.startsWith("/") )
+                path = path.substring(1);
+            if (path.trim().length() > 0) {
+                split = path.split("/");
+                sid = split[0];
+            }
+        }
+        if ( sid != null && sid.length() > 0 ) {
+            HttpObjectSocket httpObjectSocket = sessions.get(sid);
             if ( httpObjectSocket != null ) {
                 handleClientRequest(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null);
             } else {
-                httpObjectSocket = restoreSessionFromId(split[0]);
+                httpObjectSocket = restoreSessionFromId(sid);
                 if ( httpObjectSocket != null ) {
                     handleClientRequest(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null);
                 } else {
@@ -162,6 +171,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
 
 
         if ( ! isEmptyLP ) {
+            httpObjectSocket.updateLastRemoteCallTimeStamp();
             handleRegularRequest(exchange, httpObjectSocket, received, sinkchannel);
             return;
         }

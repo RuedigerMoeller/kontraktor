@@ -1,5 +1,7 @@
 package org.nustaq.reallive.query;
 
+import org.nustaq.kontraktor.util.Log;
+
 import java.io.Serializable;
 
 /**
@@ -19,7 +21,7 @@ public class Operator implements Serializable {
         this.name = name;
     }
 
-    public Operator(String name, int order, int arity) {
+    public Operator(String name, int order, int arity ) {
         this.order = order;
         this.name = name;
         this.arity = arity;
@@ -46,13 +48,15 @@ public class Operator implements Serializable {
     }
 
     protected Value compare(Value vb, Value va) {
-        if ( va.isString() || vb.isString() ) {
-            return new StringValue(stringOp(va.getStringValue(),vb.getStringValue()));
+        if ( va == null || vb == null )
+            return Value.FALSE;
+        if (va.isString() || vb.isString()) {
+            return new StringValue(stringOp(va.getStringValue(), vb.getStringValue()), null);
         }
-        if ( va.isDouble() || vb.isDouble() ) {
-            return new DoubleValue(doubleOp(va.getDoubleValue(), vb.getDoubleValue()));
+        if (va.isDouble() || vb.isDouble()) {
+            return new DoubleValue(doubleOp(va.getDoubleValue(), vb.getDoubleValue()), null);
         }
-        return new LongValue(longOp(va.getLongValue(),vb.getLongValue()));
+        return new LongValue(longOp(va.getLongValue(), vb.getLongValue()), null);
     }
 
     protected long longOp(long longValue, long longValue1) {

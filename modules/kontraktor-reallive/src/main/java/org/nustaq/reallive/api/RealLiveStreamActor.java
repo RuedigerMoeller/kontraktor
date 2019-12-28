@@ -32,8 +32,9 @@ public interface RealLiveStreamActor extends SafeRealLiveStreamActor {
     /**
      * sends null,null as marker for finish (so null cannot be a valid result of the spore)
      */
-    @CallerSideMethod default <I,O> void forEach(Spore<I,O> spore, Callback<O> result) {
+    @CallerSideMethod default <O> void forEach(Spore<Record,O> spore, Callback<O> result) {
         spore.setForEach(result).onFinish( () -> result.complete(null,null) );
+        forEachWithSpore(spore);
     }
 
 }

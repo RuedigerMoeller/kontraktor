@@ -47,7 +47,8 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
     public static int HTTP_BATCH_SIZE = 500; // batch messages to partially make up for http 1.1 synchronous design failure
 
     final Runnable closeAction;
-    long lastUse = System.currentTimeMillis();
+    long lastUse = System.currentTimeMillis(); // updated on long poll calls also
+    long lastRemoteCallMS = System.currentTimeMillis(); // updated on regular calls
     long creation = lastUse;
     String sessionId;
     BinaryQueue queue = new BinaryQueue(4096);
@@ -68,6 +69,14 @@ public class HttpObjectSocket extends WebObjectSocket implements ObjectSink {
 
     public void updateTimeStamp() {
         lastUse = System.currentTimeMillis();
+    }
+
+    public void updateLastRemoteCallTimeStamp() {
+        lastRemoteCallMS = System.currentTimeMillis();
+    }
+
+    public long getLastRemoteCallMS() {
+        return lastRemoteCallMS;
     }
 
     public long getLastUse() {

@@ -76,23 +76,24 @@ public class Parser {
         QScanner scanner = new QScanner(expression);
 
 		/* loop for handling each token - shunting-yard algorithm */
-        String stringToken,prevToken = null;
-        while ( (stringToken=scanner.readNext()) != null) {
-            if (isSeparator(stringToken)) {
+        QToken token,prevToken = null;
+        while ( (token=scanner.readNext()) != null) {
+            String tokenValue = token.getValue();
+            if (isSeparator(tokenValue)) {
                 while (!stackOperations.empty()
-                        && !isOpenBracket(stackOperations.lastElement())) {
+                        && !isOpenBracket(stackOperations.lastElement().toString())) {
                     stackRPN.push(stackOperations.pop());
                 }
-            } else if (isOpenBracket(stringToken)) {
+            } else if (isOpenBracket(tokenValue)) {
                 Object last = stackRPN.isEmpty() ? null : stackRPN.lastElement();
                 if ( last instanceof VarPath && isFunction(((VarPath) last).field)) {
                     stackRPN.pop();
                     stackOperations.push( functions.get(((VarPath) last).field) );
                 }
-                stackOperations.push(stringToken);
-            } else if (isCloseBracket(stringToken)) {
+                stackOperations.push(token);
+            } else if (isCloseBracket(tokenValue)) {
                 while (!stackOperations.empty()
-                        && !isOpenBracket(stackOperations.lastElement())) {
+                        && !isOpenBracket(stackOperations.lastElement().toString())) {
                     stackRPN.push(stackOperations.pop());
                 }
                 stackOperations.pop();
@@ -100,27 +101,27 @@ public class Parser {
                         && stackOperations.lastElement() instanceof FuncOperand) {
                     stackRPN.push(stackOperations.pop());
                 }
-            } else if (isNumber(stringToken)) {
-                if ( stringToken.indexOf('.')<0) {
-                    Long i = Long.parseLong(stringToken);
-                    stackRPN.push( new LongValue(i) );
+            } else if (isNumber(tokenValue)) {
+                if ( tokenValue.indexOf('.')<0) {
+                    Long i = Long.parseLong(tokenValue);
+                    stackRPN.push( new LongValue(i,token) );
                 } else {
-                    Double d = Double.parseDouble(stringToken);
-                    stackRPN.push( new DoubleValue(d) );
+                    Double d = Double.parseDouble(tokenValue);
+                    stackRPN.push( new DoubleValue(d,token) );
                 }
-            } else if (operators.containsKey(stringToken)) {
-                Operator op = operators.get(stringToken);
+            } else if (operators.containsKey(tokenValue)) {
+                Operator op = operators.get(tokenValue);
                 // test for prefix op
                 boolean prefix = false;
-                if ( (stringToken.equals("+") || stringToken.equals("-")) &&
+                if ( (tokenValue.equals("+") || tokenValue.equals("-")) &&
                          (prevToken == null ||
-                       operators.containsKey(prevToken) ||
-                       isOpenBracket(prevToken) ||
-                       isSeparator(prevToken)
+                       operators.containsKey(prevToken.getValue()) ||
+                       isOpenBracket(prevToken.getValue()) ||
+                       isSeparator(prevToken.getValue())
                      )
                    ) {
                     prefix = true;
-                    stackRPN.push(new LongValue(0));
+                    stackRPN.push(new LongValue(0,token));
                 }
                 while (!stackOperations.empty() && ! prefix
                         && stackOperations.lastElement() instanceof Operator
@@ -129,16 +130,21 @@ public class Parser {
                 }
                 stackOperations.push(op);
             } else {
-                if ( stringToken.startsWith("'") && stringToken.endsWith("'") ) {
-                    stackRPN.push(new StringValue(stringToken.substring(1, stringToken.length() - 1)));
-                } else if ( stringToken.startsWith("\"") && stringToken.endsWith("\"") ) {
-                    stackRPN.push(new StringValue(stringToken.substring(1, stringToken.length() - 1)));
-                } else //if ( stringToken.startsWith(VARIABLE+".") )
+                if ( tokenValue.startsWith("'") && tokenValue.endsWith("'") ) {
+                    stackRPN.push(new StringValue(tokenValue.substring(1, tokenValue.length() - 1),token));
+                } else if ( tokenValue.startsWith("\"") && tokenValue.endsWith("\"") ) {
+                    stackRPN.push(new StringValue(tokenValue.substring(1, tokenValue.length() - 1),token));
+                } else
                 {
-                    stackRPN.push(new VarPath(stringToken,ctxRef));
+                    if ( "true".equals(tokenValue) ) {
+                        stackRPN.push(new BooleanValue(true,token));
+                    } else if ( "false".equals(tokenValue) ) {
+                        stackRPN.push(new BooleanValue(false,token));
+                    } else
+                        stackRPN.push(new VarPath(tokenValue,ctxRef,token));
                 }
             }
-            prevToken = stringToken;
+            prevToken = token;
         }
         while (!stackOperations.empty()) {
             stackRPN.push(stackOperations.pop());
@@ -159,7 +165,7 @@ public class Parser {
     private RLSupplier<Value> evaluate() {
 		/* check if is there something to evaluate */
         if (stackRPN.empty()) {
-            return () -> new StringValue("");
+            return () -> new StringValue("", null);
         }
 
 		/* clean answer stack */
@@ -198,10 +204,34 @@ public class Parser {
         }
 
         if (stackAnswer.size() > 1) {
-            throw new QParseException("Some operator is missing");
+            throw new QParseException("Missing or unknown operator:"+findNearesToken(stackAnswer));
         }
 
         return (RLSupplier<Value>) stackAnswer.pop();
+    }
+
+    private String findNearesToken(Stack stack) {
+        int i = stack.size()-1;
+        while ( i >= 0 ) {
+            Object o = stack.get(i);
+            if ( o instanceof HasToken) {
+                return ((HasToken) o).getErrorString();
+            }
+            try {
+                boolean b = o instanceof RLSupplier;
+                if (b) {
+                    Object val = ((RLSupplier) o).get();
+                    if ( val instanceof HasToken) {
+                        HasToken hasToken = (HasToken) val;
+                        return hasToken != null ? hasToken.getErrorString() : "null";
+                    }
+                }
+            } catch (Exception e) {
+                //System.out.println("POK");
+            }
+            i--;
+        }
+        return null;
     }
 
     private boolean isNumber(String token) {
@@ -218,7 +248,7 @@ public class Parser {
     private boolean isSeparator(String token) {
         return token.equals(SEPARATOR);
     }
-    private boolean isOpenBracket(Object token) {
+    private boolean isOpenBracket(String token) {
         return "(".equals(token);
     }
     private boolean isCloseBracket(String token) {
@@ -241,7 +271,7 @@ public class Parser {
         System.out.println(nums.evaluate(hm));
 //        if ( 1 != 0 )
 //            return;
-        CompiledQuery ctrue = Query.compile("time < age(1,\"sec\")");
+        CompiledQuery ctrue = Query.compile("time < age(1,'sec')");
         CompiledQuery cfalse = Query.compile("time < age(5,'sec')");
         CompiledQuery tim = Query.compile("a<1000000000");
         CompiledQuery trUe = Query.compile("1");

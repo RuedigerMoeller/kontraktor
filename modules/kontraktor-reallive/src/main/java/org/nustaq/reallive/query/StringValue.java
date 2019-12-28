@@ -5,10 +5,17 @@ package org.nustaq.reallive.query;
  */
 public class StringValue implements Value {
 
+    QToken token;
     String value;
 
-    public StringValue(String value) {
+    public StringValue(String value, QToken token) {
         this.value = value;
+        this.token = token;
+    }
+
+    @Override
+    public QToken getToken() {
+        return token;
     }
 
     @Override
@@ -27,8 +34,18 @@ public class StringValue implements Value {
     }
 
     @Override
+    public Object getValue() {
+        return value;
+    }
+
+    @Override
     public Value negate() {
-        return isTrue() ? new StringValue("") : new StringValue("1");
+        return isTrue() ? new StringValue("", token) : new StringValue("1",token);
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return value == null || value.length() == 0;
     }
 
     @Override

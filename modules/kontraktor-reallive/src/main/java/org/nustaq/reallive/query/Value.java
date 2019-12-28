@@ -5,13 +5,20 @@ import java.io.Serializable;
 /**
  * Created by moelrue on 27.08.2015.
  */
-public interface Value extends Serializable {
-    Value TRUE = new LongValue(1);
-    Value FALSE = new LongValue(0);
+public interface Value extends Serializable, HasToken {
+    Value TRUE = new LongValue(1, null);
+    Value FALSE = new LongValue(0, null);
 
+    QToken getToken();
     double getDoubleValue();
     long getLongValue();
     String getStringValue();
+
+    default Object[] getArrayValue() {
+        return new Object[] { getValue() };
+    }
+
+    Object getValue();
 
     default boolean isDouble() {
         return this instanceof DoubleValue;
@@ -25,6 +32,8 @@ public interface Value extends Serializable {
         return this instanceof StringValue;
     }
 
+    default boolean isArray() { return this instanceof ArrayValue; }
+
     default boolean isTrue() {
         if (isString()) {
             String sv = getStringValue();
@@ -34,4 +43,6 @@ public interface Value extends Serializable {
     }
 
     Value negate();
+
+    boolean isEmpty();
 }

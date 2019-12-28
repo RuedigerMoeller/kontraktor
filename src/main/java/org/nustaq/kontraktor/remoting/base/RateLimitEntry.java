@@ -24,7 +24,7 @@ public class RateLimitEntry {
             lastCheck = now;
         else if ( now-lastCheck > interval ) {
             count = 0;
-            lastCheck = 0;
+            lastCheck = now;
         } else { // inside interval
             int maxCount = rateLimit.callsPerMinute() > 0 ? rateLimit.callsPerMinute() : rateLimit.callsPerSecond();
             if ( count >= maxCount ) {

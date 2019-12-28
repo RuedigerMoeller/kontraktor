@@ -3,12 +3,18 @@ package org.nustaq.reallive.query;
 /**
  * Created by ruedi on 27.08.2015.
  */
-public class DoubleValue implements Value {
+public class DoubleValue implements Value, NumberValue {
 
     double value;
+    QToken  token;
 
-    public DoubleValue(double value) {
-        this.value = value;
+    @Override
+    public QToken getToken() {
+        return token;
+    }
+
+    public DoubleValue(double value, QToken token) {
+        this.value = value; this.token = token;
     }
 
     @Override
@@ -27,8 +33,18 @@ public class DoubleValue implements Value {
     }
 
     @Override
+    public Object getValue() {
+        return value;
+    }
+
+    @Override
     public Value negate() {
-        return new DoubleValue(value*-1);
+        return new DoubleValue(value*-1, token);
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return value == 0;
     }
 
     @Override
@@ -37,4 +53,5 @@ public class DoubleValue implements Value {
                 "value=" + value +
                 '}';
     }
+
 }

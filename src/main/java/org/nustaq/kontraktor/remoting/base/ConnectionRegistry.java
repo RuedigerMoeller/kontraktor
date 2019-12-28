@@ -92,13 +92,15 @@ public abstract class ConnectionRegistry {
             return false;
         }
 
+        // fixme: cache this
         RateLimited rateLimited = ActorProxyFactory.getInheritedAnnotation(RateLimited.class, method);
         if ( rateLimited != null ) {
-            synchronized (this) {
+//            synchronized (this)
+            {
                 if (rateLimits == null) {
                     rateLimits = new ConcurrentHashMap();
+                    rateLimits.put(method.getName(), new RateLimitEntry(rateLimited));
                 }
-                rateLimits.put(method.getName(), new RateLimitEntry(rateLimited));
             }
         }
         // fixme: this slows down remote call performance somewhat.

@@ -24,6 +24,7 @@ import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -103,6 +104,7 @@ public class ActorServer {
                 ((ServingActor) facade).clientConnected(reg,writesocket.getConnectionIdentifier());
             }
             return new ObjectSink() {
+                protected boolean closed = false;
 
                 @Override
                 public void receiveObject(ObjectSink sink, Object received, List<IPromise> createdFutures, Object securityContext) {
@@ -115,11 +117,20 @@ public class ActorServer {
 
                 @Override
                 public void sinkClosed() {
+                    if ( closed ) {
+                        return;
+                    }
                     Log.Info(ActorServer.this,"disconnected a client "+System.identityHashCode(reg)+", "+writesocket.getConnectionIdentifier());
                     if ( facade instanceof ServingActor ) {
                         ((ServingActor) facade).clientDisconnected(reg,writesocket.getConnectionIdentifier());
                     }
                     reg.disconnect();
+                    try {
+                        closed = true;
+                        writesocket.close();
+                    } catch (IOException e) {
+                        Log.Info(this,e);
+                    }
                 }
             };
         });

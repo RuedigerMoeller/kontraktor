@@ -49,6 +49,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
     int port;
     Coding coding = new Coding(SerializerType.FSTSer);
     long sessionTimeout = TimeUnit.MINUTES.toMillis(30);
+    long idleSessionTimeout = TimeUnit.HOURS.toMillis(8);
     Actor facade;
     private Function<KHttpExchange,ConnectionAuthResult> connectionVerifier;
 
@@ -103,6 +104,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
             UndertowHttpServerConnector con = new UndertowHttpServerConnector(facade);
             con.setConnectionVerifier(connectionVerifier);
             con.setSessionTimeout(sessionTimeout);
+            con.setIdleSessionTimeout(idleSessionTimeout);
             actorServer = new ActorServer( con, facade, coding == null ? new Coding(SerializerType.FSTSer) : coding );
             con.setActorServer(actorServer);
             actorServer.start(disconnectCallback);
@@ -112,6 +114,15 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
             return new Promise<>(null,e);
         }
         return new Promise<>(actorServer);
+    }
+
+    public HttpPublisher idleSessionTimeout(final long idleSessionTimeout) {
+        this.idleSessionTimeout = idleSessionTimeout;
+        return this;
+    }
+
+    public long getIdleSessionTimeout() {
+        return idleSessionTimeout;
     }
 
     public HttpPublisher hostName(String hostName) {
