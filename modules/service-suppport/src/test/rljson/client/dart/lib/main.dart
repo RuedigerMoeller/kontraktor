@@ -20,7 +20,9 @@ main() async {
       var key = uuid.v4();
       feed.updateSilent({
         "key" : key,
-        "feedId" : feedId
+        "feedId" : feedId,
+        "int" : 1231123,
+        "dbl" : 123123.22
       });
       var ms = DateTime.now().millisecondsSinceEpoch;
       print("MS $ms");

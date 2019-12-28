@@ -287,7 +287,7 @@ public class RLJsonSession extends Actor<RLJsonSession> implements RemotedActor 
             } else if ( jsonValue.isNull() ) {
                 aNew.put(field,null);
             } else if ( jsonValue.isNumber() ) {
-                if ( jsonValue.asString().indexOf('.') >= 0 )
+                if ( jsonValue.toString().indexOf('.') >= 0 )
                     aNew.put(field,jsonValue.asDouble());
                 else
                     aNew.put(field,jsonValue.asLong());
