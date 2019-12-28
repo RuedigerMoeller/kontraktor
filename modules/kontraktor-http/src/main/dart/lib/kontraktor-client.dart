@@ -357,5 +357,8 @@ class RLJsonSession {
   RLTable createTableProxy(String name) {
     return RLTable(session,name);
   }
+}
 
+class SyncedRLTable {
+  
 }
