@@ -2,7 +2,7 @@ name: kontraktor_client
 description: An client to talk to java/javascript written kontraktor "remoted actors"
 author: Rüdiger Möller <moru0011@gmail.com>
 homepage: https://github.com/RuedigerMoeller/kontraktor
-version: 0.0.4
+version: 0.0.5
 
 dependencies:
   http: ^0.12.0+2

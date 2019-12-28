@@ -265,12 +265,9 @@ class RLTable {
     this.session.tell("deleteAsync",[table,key]);
   }
 
-  Future<Set<String>>fields() {
-    Completer comp = Completer();
-    session.ask("fieldsOf", [table, (x) {
-      print( x );
-    }]);
-    return comp.future;
+  Future<List>fields() async {
+    var res = await session.ask("fieldsOf", [table]);
+    return res;
   }
 
   selectAsync(String query, Function(dynamic,dynamic) cb) {

@@ -53,10 +53,10 @@ packages:
   kontraktor_client:
     dependency: "direct main"
     description:
-      name: kontraktor_client
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.0.4"
+      path: "/home/moru0011/IdeaProjects/kontraktor/modules/kontraktor-http/src/main/dart"
+      relative: false
+    source: path
+    version: "0.0.5"
   meta:
     dependency: transitive
     description:

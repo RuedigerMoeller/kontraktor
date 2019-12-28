@@ -22,12 +22,16 @@ main() async {
         "key" : key,
         "feedId" : feedId
       });
+      var ms = DateTime.now().millisecondsSinceEpoch;
+      print("MS $ms");
       feed.updateSilent({
         "key" : key,
-        "sampleData" : DateTime.now().millisecondsSinceEpoch
+        "sampleData" : ms
       });
     }
   });
+
+  print( await feed.fields() );
 
 
 }

@@ -249,6 +249,10 @@ public class RLJsonSession extends Actor<RLJsonSession> implements RemotedActor 
     private JsonValue fromJavaValue(Object value) {
         if ( value instanceof String ) {
             return Json.value((String)value);
+        } else if ( value instanceof Long ) {
+            return Json.value(((Number) value).longValue());
+        } else if ( value instanceof Integer ) {
+            return Json.value(((Number) value).intValue());
         } else if ( value instanceof Number ) {
             return Json.value(((Number) value).doubleValue());
         } else if ( value instanceof Boolean ) {
@@ -283,7 +287,10 @@ public class RLJsonSession extends Actor<RLJsonSession> implements RemotedActor 
             } else if ( jsonValue.isNull() ) {
                 aNew.put(field,null);
             } else if ( jsonValue.isNumber() ) {
-                aNew.put(field,jsonValue.asDouble());
+                if ( jsonValue.asString().indexOf('.') >= 0 )
+                    aNew.put(field,jsonValue.asDouble());
+                else
+                    aNew.put(field,jsonValue.asLong());
             } else if ( jsonValue.isBoolean() ) {
                 aNew.put(field,jsonValue.asBoolean());
             } else if ( jsonValue.isObject() ) {
