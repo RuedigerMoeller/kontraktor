@@ -3,19 +3,27 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:kontraktor_client/kontraktor-client.dart';
 
+var feedId = "bd8d1252-979f-44ef-bd5e-d6518ff622b0";
+
 main() async {
 
   RLJsonSession sess = RLJsonSession("http://localhost:8087/api");
   await sess.authenticate("u", "p");
   RLTable feed = sess.createTableProxy("feed");
+  TablePersistance pers = FileTablePersistance("./testdata");
 
-  var res = await feed.select("true");
-  String feedId = uuid.v4();
-  if ( res.length > 0 )
-    feedId = res[0]["feedId"];
+  await mutateFeed(feed,false);
+
+  SyncedRLTable sync = SyncedRLTable(feed,pers,"feedId == '$feedId'");
+  await sync.init();
+  sync.syncFromServer();
+
+}
+
+Future mutateFeed(RLTable feed, bool doprint ) async {
 
   feed.subscribe("feedId == '$feedId'", (r,e) async {
-    print( "broadcast $r $e");
+    if ( doprint ) print( "broadcast $r $e");
     if ( r["type"] == "QUERYDONE" ) {
       var key = uuid.v4();
       feed.updateSilent({
@@ -25,7 +33,7 @@ main() async {
         "dbl" : 123123.22
       });
       var ms = DateTime.now().millisecondsSinceEpoch;
-      print("MS $ms");
+      if ( doprint ) print("MS $ms");
       feed.updateSilent({
         "key" : key,
         "sampleData" : ms
@@ -33,8 +41,6 @@ main() async {
     }
   });
 
-  print( await feed.fields() );
-
-
+  if ( doprint ) print( await feed.fields() );
 }
 

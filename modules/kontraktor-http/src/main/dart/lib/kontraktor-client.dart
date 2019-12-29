@@ -2,6 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
 import 'package:uuid/uuid.dart';
+import 'dart:io';
 
 var uuid = Uuid();
 
@@ -241,37 +242,39 @@ class RemoteActor {
 
 class RLTable {
 
+  RLJsonSession jsonsession;
   RemoteActor session;
-  String table;
+  String name;
 
-  RLTable(session,table) {
-    this.session = session;
-    this.table = table;
+  RLTable(RLJsonSession session,String table) {
+    this.jsonsession = session;
+    this.session = jsonsession.session;
+    this.name = table;
   }
 
   Future<Map> update( Map jsonObject ) {
-    return session.ask("update", [table,jsonEncode(jsonObject)]);
+    return session.ask("update", [name,jsonEncode(jsonObject)]);
   }
 
   updateSilent( Map jsonObject ) {
-    session.tell("updateAsync",[table,jsonEncode(jsonObject)]);
+    session.tell("updateAsync",[name,jsonEncode(jsonObject)]);
   }
 
   Future<bool> delete(key) {
-    return session.ask("delete",[this.table,key]);
+    return session.ask("delete",[this.name,key]);
   }
 
   deleteSilent(key) {
-    this.session.tell("deleteAsync",[table,key]);
+    this.session.tell("deleteAsync",[name,key]);
   }
 
   Future<List>fields() async {
-    var res = await session.ask("fieldsOf", [table]);
+    var res = await session.ask("fieldsOf", [name]);
     return res;
   }
 
   selectAsync(String query, Function(dynamic,dynamic) cb) {
-    session.tell("select", [table, query, (r,e) {
+    session.tell("select", [name, query, (r,e) {
       if ( r != null )
         cb( jsonDecode(r), null );
       else
@@ -298,7 +301,7 @@ class RLTable {
 
   String subscribe(String query, Function(dynamic,dynamic) cb) {
     String id = uuid.v4();
-    session.tell("subscribe", [id, this.table, query, (r,e) {
+    session.tell("subscribe", [id, this.name, query, (r,e) {
       if ( r != null ) {
         cb(jsonDecode(r),e);
       }
@@ -313,9 +316,9 @@ class RLTable {
    * returns [ subsid (for unsubscribing), timestamp to be used for next syncing subscriptions]
    * timestamp can be updated if records with higher lasteModified come in
    */
-  Future<List> subscribeSyncing(String table, int timeStamp, String query, Function(dynamic,dynamic) cb) async {
+  Future<List> subscribeSyncing(int timeStamp, String query, Function(dynamic,dynamic) cb) async {
     String subsid = uuid.v4();
-    int timestamp = await session.ask("subscribeSyncing", [subsid, this.table, timeStamp, query, (r,e) {
+    int timestamp = await session.ask("subscribeSyncing", [subsid, this.name, timeStamp, query, (r,e) {
       if ( r != null ) {
         cb(jsonDecode(r),e);
       }
@@ -328,6 +331,10 @@ class RLTable {
 
   String unsubscribe( String id ) {
     session.tell("unsubscribe", [id]);
+  }
+
+  Future<bool> bulkUpdate(lts) {
+    session.ask("bulkUpdate",[jsonEncode(lts)]);
   }
 
 }
@@ -355,10 +362,262 @@ class RLJsonSession {
   }
 
   RLTable createTableProxy(String name) {
-    return RLTable(session,name);
+    return RLTable(this,name);
   }
 }
 
+abstract class TablePersistance {
+  // return map key => record
+  Future<Map<String,dynamic>> loadRecords(String tableName);
+  Future<Map<String,dynamic>> loadProps(String tableName);
+  // save all or just modified ones
+  void persistRecords(String tableName, Map recs, [Set<String> changedRecordKeys = null]);
+  void persistProps(String tableName, Map syncState);
+}
+
+class FileTablePersistance extends TablePersistance {
+
+  Directory base;
+
+  FileTablePersistance(String baseDir) {
+    base = Directory(baseDir);
+    base.createSync(recursive: true);
+  }
+
+  @override
+  Future<Map<String,dynamic>> loadProps(String tableName) async {
+    File target = File(base.path+"/${tableName}_props.json");
+    String s;
+    if ( ! target.existsSync() )
+      s = "{}";
+    else
+      s = target.readAsStringSync();
+    return jsonDecode(s);
+  }
+
+  @override
+  Future<Map<String,dynamic>> loadRecords(String tableName) async {
+    File target = File(base.path+"/${tableName}.json");
+    String s;
+    if ( ! target.existsSync() )
+      s = "{}";
+    else
+      s = target.readAsStringSync();
+    return jsonDecode(s);
+  }
+
+  @override
+  void persistProps(String tableName, Map syncState) {
+    File target = File(base.path+"/${tableName}_props.json");
+    target.writeAsString(jsonEncode(syncState));
+  }
+
+  @override
+  void persistRecords(String tableName, Map recs, [Set<String> changedRecordKeys = null]) {
+    File target = File(base.path+"/${tableName}.json");
+    target.writeAsString(jsonEncode(recs));
+  }
+
+}
+
 class SyncedRLTable {
-  
+
+  RLTable table;
+  TablePersistance persistance;
+  Map records;
+  Map prefs;
+  String query;
+  String subsId;
+  bool queryDone = false;
+  Set<String> initialSynced = Set();
+  int maxAgeMS;
+  Map<String,List<Map>> localTransactions = Map();
+
+  SyncedRLTable(this.table,this.persistance,this.query,[this.maxAgeMS = 0]);
+
+  Future init() async {
+    prefs = await persistance.loadProps(table.name);
+    if ( prefs["serverTS"] == null )
+      prefs["serverTS"] = 0;
+    records = await persistance.loadRecords(table.name);
+    if ( maxAgeMS > 0 ) {
+      var newRecs = Map();
+      int serverTS = prefs["serverTS"];
+      if ( serverTS > 0 ) {
+        records.forEach((k, v) {
+          if ( serverTS - v["lastModified"] < maxAgeMS ) {
+            newRecs[k] = v;
+          }
+        });
+        records = newRecs;
+        persistState();
+      }
+    }
+  }
+
+  Map<String,dynamic> operator [](String key) {
+    return records[key];
+  }
+
+  String createKey() {
+    return uuid.v4();
+  }
+
+  void addOrUpdate( Map<String,dynamic> values ) async {
+    String key = values["key"];
+    var record = records[key];
+    if ( record == null ) {
+      records[key] = values;
+    } else {
+      values.forEach( (k,v) {
+        record[k] = v;
+      });
+    }
+    List<Map> ltrans = localTransactions[key];
+    if ( ltrans == null ) {
+      ltrans = List<Map>();
+      localTransactions[key] = ltrans;
+    }
+    ltrans.add( values );
+    persistState( ids: Set()..add(key) );
+    //FIXME: persist un ack'ed transactions
+    // bulkupload
+    var lts = localTransactions;
+    localTransactions = Map();
+    try {
+      await table.bulkUpdate(lts);
+    } catch ( e ) {
+      // rollback
+      lts.forEach( (k,v) {
+        if ( localTransactions.containsKey(k) ) {
+          localTransactions[k].addAll(v);
+        } else {
+          localTransactions[k] = v;
+        }
+      });
+    }
+  }
+
+  void delete( String key ) {
+    var record = records[key];
+    if ( record == null )
+      return;
+    addOrUpdate({ "key": key, "_del": true });
+    records.remove(key);
+    persistState( ids: Set()..add(key) );
+  }
+
+  /**
+   * future resolves on query finished, further broadcasts are promoted via listener
+   */
+  Future syncFromServer() async {
+    var resarr = await table.subscribeSyncing(prefs["serverTS"], query, (res,err) {
+      if ( res != null ) {
+        //print("tsync event $res");
+        String type = res["type"];
+        switch (type) {
+          case "UPDATE":
+          case "ADD": {
+            // as query is time and feed based, "ADD" does not mean new record, but
+            // also changed record.
+            updateServerTS(res["record"]["lastModified"]);
+            // ignore self sent
+            if ( res["senderId"] == table.jsonsession.senderId)
+              return;
+            var newRecord = res["record"];
+            var key = newRecord["key"];
+            var oldRec = records[key];
+            var deleted = res["record"]["_del"];
+            if ( deleted != null ) {
+              if ( oldRec != null ) {
+                records.remove(key);
+                if ( queryDone ) {
+                  _fireDeletion(key,oldRec,res);
+                }
+                persistState(ids:Set()..add(key));
+              }
+              return;
+            }
+            if ( ! queryDone ) {
+              initialSynced.add(key);
+            }
+            if ( oldRec == null ) {
+              records[key] = newRecord;
+              if ( queryDone ) {
+                _fireRealAdd(key,newRecord,res);
+              }
+            }
+            else {
+              // FIXME: merge with local changes
+              if ( queryDone ) {
+                _fireRealUpdate(key,oldRec,newRecord,res);
+              }
+              records[key] = newRecord;
+            }
+            if ( queryDone ) {
+              persistState(ids:Set()..add(key));
+            }
+          } break;
+          case "REMOVE": { // can only happen after initial query
+            if ( queryDone ) { // should be always true
+              persistState();
+            }
+          } break;
+          case "QUERYDONE": {
+            queryDone = true;
+            persistState(ids: initialSynced);
+            _fireInitialSync();
+          } break;
+        }
+      }
+    });
+    updateServerTS(resarr[1]);
+    subsId = resarr[0];
+    //print("tsync res $resarr");
+  }
+
+  void persistState({Set<String> ids = null}) {
+    persistance.persistRecords(table.name, records, ids);
+    persistance.persistProps(table.name, prefs);
+  }
+
+  /**
+   * called when initial update query is finished. initalSynced
+   * contains changed keys
+   */
+  void _fireInitialSync() {
+    print("tsync: initial sync $initialSynced");
+  }
+
+  /**
+   * called when _del attribute has been set on an existing record
+   */
+  void _fireDeletion(key, rec, res) {
+    print("tsync: del flag $key $rec");
+  }
+
+  /**
+   *  called when add or update to locally unknown record happens
+   */
+  void _fireRealAdd(String key, Map rec, Map event) {
+    print("tsync: real add $key $rec");
+  }
+
+  /**
+   *  called when add or update to locally known record happens
+   */
+  void _fireRealUpdate(String key, Map oldRec, Map newRec, Map event) {
+    print("tsync: real upd $key $newRec");
+  }
+
+  void updateServerTS(int ts) {
+    if ( prefs["serverTS"] < ts ) {
+      print("updatets $ts cur: ${prefs['serverTS']}");
+      prefs["serverTS"] = ts;
+//      persistance.persistProps(table.name, prefs);
+    }
+  }
+
+
+
 }

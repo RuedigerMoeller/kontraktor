@@ -231,6 +231,25 @@ public class RLJsonSession extends Actor<RLJsonSession> implements RemotedActor 
         tbl.remove(senderId,key);
     }
 
+    /**
+     * @param table
+     * @param json - [ addOrUpdate, .. ]
+     * @return
+     */
+    public IPromise<Boolean> bulkUpdate(String table, String json ) {
+        try {
+            JsonArray parse = Json.parse(json).asArray();
+            RealLiveTable tbl = dClient.tbl(table);
+            parse.forEach( addupd -> {
+                JsonObject obj = addupd.asObject();
+                tbl.mergeRecord(senderId, toRecord(obj) );
+            });
+        } catch ( Exception e ) {
+            return reject(e);
+        }
+        return resolve(true);
+    }
+
     JsonObject fromRecord(Record r) {
         String[] fields = r.getFields();
         String key = r.getKey();
@@ -278,7 +297,7 @@ public class RLJsonSession extends Actor<RLJsonSession> implements RemotedActor 
         MapRecord aNew = MapRecord.New(null);
         members.names().forEach( field -> {
             if ( "key".equals(field) ) {
-                aNew.key(members.get(field).toString());
+                aNew.key(members.get(field).asString());
                 return;
             }
             JsonValue jsonValue = members.get(field);
