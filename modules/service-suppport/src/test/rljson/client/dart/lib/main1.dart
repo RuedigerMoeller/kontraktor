@@ -1,18 +1,17 @@
 import 'package:kontraktor_client/synced-real-live.dart';
-import 'package:kontraktor_client/real-live.dart';
+import 'package:uuid/uuid.dart';
+
+var uuid = Uuid();
 
 var feedId = "bd8d1252-979f-44ef-bd5e-d6518ff622b0";
 
 main() async {
 
-  RLJsonSession sess = RLJsonSession("http://localhost:8087/api");
-  await sess.authenticate("u", "p");
-  RLTable feed = sess.createTableProxy("feed");
-  TablePersistance pers = FileTablePersistance("./testdata1");
+  SyncedRealLive rl = SyncedRealLive().init("http://localhost:8087/api","./testdata1","u","pwd");
+  rl.initTable("feed","feedId == '$feedId'");
+  await rl.startConnection();
 
-  SyncedRLTable sync = SyncedRLTable(feed,pers,"feedId == '$feedId'");
-  await sync.init();
-  sync.syncFromServer();
+  SyncedRLTable sync = rl["feed"];
 
   sync.addOrUpdate({
     "key" : uuid.v4(),

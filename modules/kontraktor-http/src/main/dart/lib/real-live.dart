@@ -32,38 +32,36 @@ class RLJsonSession {
 class RLTable {
 
   RLJsonSession jsonsession;
-  RemoteActor session;
   String name;
 
   RLTable(RLJsonSession session,String table) {
     this.jsonsession = session;
-    this.session = jsonsession.session;
     this.name = table;
   }
 
   Future<Map> update( Map jsonObject ) {
-    return session.ask("update", [name,jsonEncode(jsonObject)]);
+    return jsonsession.session.ask("update", [name,jsonEncode(jsonObject)]);
   }
 
   updateSilent( Map jsonObject ) {
-    session.tell("updateAsync",[name,jsonEncode(jsonObject)]);
+    jsonsession.session.tell("updateAsync",[name,jsonEncode(jsonObject)]);
   }
 
   Future<bool> delete(key) {
-    return session.ask("delete",[this.name,key]);
+    return jsonsession.session.ask("delete",[this.name,key]);
   }
 
   deleteSilent(key) {
-    this.session.tell("deleteAsync",[name,key]);
+    this.jsonsession.session.tell("deleteAsync",[name,key]);
   }
 
   Future<List>fields() async {
-    var res = await session.ask("fieldsOf", [name]);
+    var res = await jsonsession.session.ask("fieldsOf", [name]);
     return res;
   }
 
   selectAsync(String query, Function(dynamic,dynamic) cb) {
-    session.tell("select", [name, query, (r,e) {
+    jsonsession.session.tell("select", [name, query, (r,e) {
       if ( r != null )
         cb( jsonDecode(r), null );
       else
@@ -90,7 +88,7 @@ class RLTable {
 
   String subscribe(String query, Function(dynamic,dynamic) cb) {
     String id = uuid.v4();
-    session.tell("subscribe", [id, this.name, query, (r,e) {
+    jsonsession.session.tell("subscribe", [id, this.name, query, (r,e) {
       if ( r != null ) {
         cb(jsonDecode(r),e);
       }
@@ -107,7 +105,7 @@ class RLTable {
    */
   Future<List> subscribeSyncing(int timeStamp, String query, Function(dynamic,dynamic) cb) async {
     String subsid = uuid.v4();
-    int timestamp = await session.ask("subscribeSyncing", [subsid, this.name, timeStamp, query, (r,e) {
+    int timestamp = await jsonsession.session.ask("subscribeSyncing", [subsid, this.name, timeStamp, query, (r,e) {
       if ( r != null ) {
         cb(jsonDecode(r),e);
       }
@@ -119,11 +117,11 @@ class RLTable {
   }
 
   String unsubscribe( String id ) {
-    session.tell("unsubscribe", [id]);
+    jsonsession.session.tell("unsubscribe", [id]);
   }
 
   Future<bool> bulkUpdate(lts) {
-    session.ask("bulkUpdate",[name,jsonEncode(lts)]);
+    jsonsession.session.ask("bulkUpdate",[name,jsonEncode(lts)]);
   }
 
 }

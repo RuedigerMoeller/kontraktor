@@ -59,18 +59,50 @@ class FileTablePersistance extends TablePersistance {
 
 class SyncedRealLive {
 
+  static SyncedRealLive singleton = SyncedRealLive();
+
   Map<String,SyncedRLTable> syncedTableCache = Map();
   TablePersistance persistance;
-  KontraktorConnection con;
   RLJsonSession session;
 
   String serverUrl;
   String localDataDir;
+  String usr, pwd;
+  bool connectLoopRunning = false;
 
-  SyncedRealLive(this.serverUrl,this.localDataDir);
+  SyncedRealLive init(String serverUrl,String localDataDir,String usr, String pwd) {
+    this.serverUrl = serverUrl; this.localDataDir = localDataDir; this.usr = usr; this.pwd = pwd;
+    persistance = FileTablePersistance(localDataDir);
+    return this;
+  }
 
   initTable(String name, query, [maxAgeMS = 0]) {
     syncedTableCache[name] = new SyncedRLTable(this, name, query, maxAgeMS);
+  }
+
+  startConnection() async {
+    if ( connectLoopRunning )
+      throw "connectloop already started";
+    connectLoopRunning = true;
+
+    List<Future> futs = List();
+    syncedTableCache.forEach( (name,st) => futs.add(st.init()) );
+    await Future.wait(futs);
+
+    await _connect();
+  }
+
+  _connect() async {
+    try {
+      var sess = RLJsonSession(serverUrl);
+      await sess.authenticate(usr, pwd);
+      session = sess;
+      _onSuccessfulConnection();
+    } catch (e) {
+      print("con: $e");
+      Future.delayed(Duration(milliseconds: 3000), () => _connect());
+    }
+
   }
 
   operator [](String tableName) {
@@ -83,6 +115,13 @@ class SyncedRealLive {
     }
     return null;
   }
+
+  void _onSuccessfulConnection() {
+    syncedTableCache.forEach( (name,st) {
+      st.syncFromServer();
+    });
+  }
+
 }
 
 class SyncedRLTable {
@@ -123,6 +162,7 @@ class SyncedRLTable {
         persistState();
       }
     }
+    _fireInitialLoad();
   }
 
   Map<String,dynamic> operator [](String key) {
@@ -319,6 +359,11 @@ class SyncedRLTable {
       prefs["serverTS"] = ts;
 //      persistance.persistProps(table.name, prefs);
     }
+  }
+
+  void _fireInitialLoad() {
+    print("tsync: initial load");
+    print("  size ${records.length}");
   }
 
 }

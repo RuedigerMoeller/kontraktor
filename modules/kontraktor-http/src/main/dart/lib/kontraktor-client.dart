@@ -23,16 +23,12 @@ class KontraktorConnection {
     return sid == null;
   }
 
-  Future<bool> connect() async {
-    try {
-      var response = await http.post(url);
-      if (response.statusCode == 200) {
-        sid = jsonDecode(response.body);
-        longPoll();
-        return true;
-      }
-    } catch (e,t) {
-      print("$e $t");
+  Future connect() async {
+    var response = await http.post(url);
+    if (response.statusCode == 200) {
+      sid = jsonDecode(response.body);
+      longPoll();
+      return true;
     }
     return false;
   }
