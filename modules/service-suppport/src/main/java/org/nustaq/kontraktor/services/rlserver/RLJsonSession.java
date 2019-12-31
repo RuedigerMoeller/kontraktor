@@ -238,11 +238,14 @@ public class RLJsonSession extends Actor<RLJsonSession> implements RemotedActor 
      */
     public IPromise<Boolean> bulkUpdate(String table, String json ) {
         try {
-            JsonArray parse = Json.parse(json).asArray();
+            JsonObject parse = Json.parse(json).asObject();
             RealLiveTable tbl = dClient.tbl(table);
-            parse.forEach( addupd -> {
-                JsonObject obj = addupd.asObject();
-                tbl.mergeRecord(senderId, toRecord(obj) );
+            parse.forEach( member -> {
+                member.getValue().asArray().forEach( addupd -> {
+                    JsonObject obj = addupd.asObject();
+                    Record rec = toRecord(obj);
+                    tbl.mergeRecord(senderId, rec);
+                });
             });
         } catch ( Exception e ) {
             return reject(e);
