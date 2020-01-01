@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class RLJsonSession extends Actor<RLJsonSession> implements RemotedActor {
+public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements RemotedActor {
 
     public static int senderIdRangeStart=100_000, senderIdRangeEnd = 500_000; // WARNING: needs organization for multiple instances
 

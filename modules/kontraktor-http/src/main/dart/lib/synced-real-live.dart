@@ -139,6 +139,8 @@ class SyncedRLTable {
   int maxAgeMS;
   Map<String,dynamic> localTransactions;
 
+  Function(String,Map,SyncedRLTable) listener;
+
   SyncedRLTable(this.source,this.tableName,this.query,[this.maxAgeMS = 0]);
 
   // loads persisted items from files
@@ -327,12 +329,15 @@ class SyncedRLTable {
   }
 
   /**
-   * called when initial update query is finished. initalSynced
+   * called when initial update query from server is finished. initalSynced
    * contains changed keys
    */
   void _fireInitialSync() {
     print("tsync: initial sync $initialSynced");
     print("  size ${records.length}");
+    if ( listener != null ) {
+      listener("initialSync", {"changedKeys":initialSynced},this);
+    }
   }
 
   /**
@@ -340,6 +345,9 @@ class SyncedRLTable {
    */
   void _fireDeletion(key, rec, res) {
     print("tsync: del flag $key $rec");
+    if ( listener != null ) {
+      listener("deletion", {"rec":rec,"event":res},this);
+    }
   }
 
   /**
@@ -347,6 +355,9 @@ class SyncedRLTable {
    */
   void _fireRealAdd(String key, Map rec, Map event) {
     print("tsync: real add $key $rec");
+    if ( listener != null ) {
+      listener("add", {"rec":rec,"event":event},this);
+    }
   }
 
   /**
@@ -354,6 +365,20 @@ class SyncedRLTable {
    */
   void _fireRealUpdate(String key, Map oldRec, Map newRec, Map event) {
     print("tsync: real upd $key $newRec");
+    if ( listener != null ) {
+      listener("update", {"rec":newRec,"oldRec":oldRec,"event":event},this);
+    }
+  }
+
+  /**
+   * local cache has been loaded
+   */
+  void _fireInitialLoad() {
+    print("tsync: initial load");
+    print("  size ${records.length}");
+    if ( listener != null ) {
+      listener("initialLoad", {},this);
+    }
   }
 
   void updateServerTS(int ts) {
@@ -364,9 +389,5 @@ class SyncedRLTable {
     }
   }
 
-  void _fireInitialLoad() {
-    print("tsync: initial load");
-    print("  size ${records.length}");
-  }
 
 }

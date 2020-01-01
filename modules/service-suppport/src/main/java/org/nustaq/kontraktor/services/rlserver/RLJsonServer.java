@@ -19,7 +19,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-public class RLJsonServer extends Actor<RLJsonServer> {
+public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
 
     public final static String T_CREDENTIALS = "credentials";
 
@@ -44,7 +44,7 @@ public class RLJsonServer extends Actor<RLJsonServer> {
     public IPromise<RLJsonAuthResult> authenticate(String user, String pwd ) {
         // FIXME, check credentials
         RLJsonSession session = AsActor(
-            RLJsonSession.class,
+            getSessionActorClazz(),
             // randomly distribute session actors among clientThreads
             clientThreads[rand.nextInt(clientThreads.length)]
         );
@@ -52,13 +52,24 @@ public class RLJsonServer extends Actor<RLJsonServer> {
         return resolve(new RLJsonAuthResult().session(session));
     }
 
+    protected Class<? extends RLJsonSession> getSessionActorClazz() {
+        return RLJsonSession.class;
+    }
+
     public static void main(String[] args) {
+        Class<RLJsonServer> appClazz = RLJsonServer.class;
+
+        startUp(args, appClazz);
+
+    }
+
+    public static void startUp(String[] args, Class appClazz) {
         if ( ! new File("./etc").exists() ) {
             System.out.println("Please run with project working dir");
             System.exit(-1);
         }
 
-        RLJsonServer app = AsActor(RLJsonServer.class);
+        RLJsonServer app = (RLJsonServer) AsActor(appClazz);
         app.init(args);
 
         Class CLAZZES[] = {
@@ -73,7 +84,7 @@ public class RLJsonServer extends Actor<RLJsonServer> {
             Diff.class,
         };
 
-        Log.Info(RLJsonServer.class,"listening on http://"+cfg.getBindIp()+":"+cfg.getBindPort());
+        Log.Info(appClazz,"listening on http://"+cfg.getBindIp()+":"+cfg.getBindPort());
 
         Http4K.Build(cfg.getBindIp(), cfg.getBindPort())
             .httpAPI("/api", app) // could also be websocket based (see IntrinsicReactJSX github project)
@@ -84,7 +95,6 @@ public class RLJsonServer extends Actor<RLJsonServer> {
                 .coding(new Coding(SerializerType.JsonNoRef, CLAZZES))
                 .buildWebsocket()
             .build();
-
     }
 
 }
