@@ -117,7 +117,8 @@ class SyncedRealLive {
   }
 
   void _onSuccessfulConnection() {
-    syncedTableCache.forEach( (name,st) {
+    syncedTableCache.forEach( (name,st) async {
+      await st.syncToServer();
       st.syncFromServer();
     });
   }
@@ -212,6 +213,8 @@ class SyncedRLTable {
     if ( table == null ) {
       return;
     }
+    if ( localTransactions.length == 0 )
+      return;
     // bulkupload
     var lts = localTransactions;
     localTransactions = Map();

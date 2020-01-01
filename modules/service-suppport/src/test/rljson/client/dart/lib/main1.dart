@@ -13,6 +13,7 @@ main() async {
 
   SyncedRLTable sync = rl["feed"];
 
+  print("adding ..");
   sync.addOrUpdate({
     "key" : uuid.v4(),
     "msg" : "Hello from main 1",
