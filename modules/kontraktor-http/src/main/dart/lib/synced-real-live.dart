@@ -3,7 +3,7 @@ import 'dart:io';
 import 'kontraktor-client.dart';
 import 'real-live.dart';
 
-abstract class TablePersistance {
+abstract class LocalPersistance {
   // return map key => record
   Future<Map<String,dynamic>> loadRecords(String tableName);
   Future<Map<String,dynamic>> loadProps(String tableName);
@@ -12,7 +12,7 @@ abstract class TablePersistance {
   void persistProps(String tableName, Map syncState);
 }
 
-class FileTablePersistance extends TablePersistance {
+class FileTablePersistance extends LocalPersistance {
 
   Directory base;
 
@@ -62,13 +62,14 @@ class SyncedRealLive {
   static SyncedRealLive singleton = SyncedRealLive();
 
   Map<String,SyncedRLTable> syncedTableCache = Map();
-  TablePersistance persistance;
+  LocalPersistance persistance;
   RLJsonSession session;
 
   String serverUrl;
   String localDataDir;
   String usr, pwd;
   bool connectLoopRunning = false;
+  Map rlProps = Map();
 
   SyncedRealLive init(String serverUrl,String localDataDir,String usr, String pwd) {
     this.serverUrl = serverUrl; this.localDataDir = localDataDir; this.usr = usr; this.pwd = pwd;
@@ -76,13 +77,25 @@ class SyncedRealLive {
     return this;
   }
 
-  initTable(String name, query, [maxAgeMS = 0]) {
-    syncedTableCache[name] = new SyncedRLTable(this, name, query, maxAgeMS);
+  initTable(String alias, String name, query, [maxAgeMS = 0]) {
+    syncedTableCache[alias] = new SyncedRLTable(this, name, query, maxAgeMS);
+  }
+
+  String getLocalId() {
+    var rlProp = rlProps["localId"];
+    if ( rlProp == null ) {
+      rlProps["localId"] = uuid.v4();
+      persistance.persistProps("_internal_", rlProps);
+      rlProp = rlProps["localId"];
+    }
+    return rlProp;
   }
 
   startConnection() async {
     if ( connectLoopRunning )
       throw "connectloop already started";
+
+    rlProps = await persistance.loadProps("_internal_");
     connectLoopRunning = true;
 
     List<Future> futs = List();
@@ -179,8 +192,10 @@ class SyncedRLTable {
   void addOrUpdate( Map<String,dynamic> values ) async {
     String key = values["key"];
     var record = records[key];
+    bool add = false;
     if ( record == null ) {
       records[key] = values;
+      add = true;
     } else {
       values.forEach( (k,v) {
         record[k] = v;
@@ -196,6 +211,7 @@ class SyncedRLTable {
     //FIXME: persist un ack'ed transactions
     // bulkupload
     syncToServer();
+    _fireLocalAddOrUpdate(add,records[key], values);
   }
 
   void delete( String key ) {
@@ -205,6 +221,7 @@ class SyncedRLTable {
     addOrUpdate({ "key": key, "_del": true });
     records.remove(key);
     persistState( ids: Set()..add(key) );
+    _fireLocalDelete(key);
   }
 
   /**
@@ -386,6 +403,20 @@ class SyncedRLTable {
       print("updatets $ts cur: ${prefs['serverTS']}");
       prefs["serverTS"] = ts;
 //      persistance.persistProps(table.name, prefs);
+    }
+  }
+
+  void _fireLocalAddOrUpdate(bool add, record, Map<String, dynamic> values) {
+    print("local AdUpd $add $record");
+    if ( listener != null ) {
+      listener("localAddUpd",{ "isAdd":add, "record": record,"changed":values},this);
+    }
+  }
+
+  void _fireLocalDelete(String key) {
+    print("local delete $key");
+    if ( listener != null ) {
+      listener("localDelete", { "key":key},this);
     }
   }
 
