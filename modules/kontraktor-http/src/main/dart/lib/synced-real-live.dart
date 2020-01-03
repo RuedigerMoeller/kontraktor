@@ -29,7 +29,14 @@ class FileTablePersistance extends LocalPersistance {
       s = "{}";
     else
       s = target.readAsStringSync();
-    return jsonDecode(s);
+    try {
+      return jsonDecode(s);
+    } catch (e,t) {
+      print("$e $t");
+      return {
+        "serverTS": 0
+      };
+    }
   }
 
   @override
@@ -40,19 +47,24 @@ class FileTablePersistance extends LocalPersistance {
       s = "{}";
     else
       s = target.readAsStringSync();
-    return jsonDecode(s);
+    try {
+      return jsonDecode(s);
+    } catch (e,t) {
+      print("$e $t");
+      return {};
+    }
   }
 
   @override
   void persistProps(String tableName, Map syncState) {
     File target = File(base.path+"/${tableName}_props.json");
-    target.writeAsString(jsonEncode(syncState));
+    target.writeAsStringSync(jsonEncode(syncState));
   }
 
   @override
   void persistRecords(String tableName, Map recs, [Set<String> changedRecordKeys = null]) {
     File target = File(base.path+"/${tableName}.json");
-    target.writeAsString(jsonEncode(recs));
+    target.writeAsStringSync(jsonEncode(recs));
   }
 
 }
