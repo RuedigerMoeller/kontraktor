@@ -163,6 +163,7 @@ class SyncedRLTable {
   Set<String> initialSynced = Set();
   int maxAgeMS;
   Map<String,dynamic> localTransactions;
+  int lastUpload = 0;
 
   Function(String,Map,SyncedRLTable) listener;
 
@@ -239,18 +240,22 @@ class SyncedRLTable {
   /**
    * upload pending local transactions
    */
-  Future syncToServer() async {
+  Future<int> syncToServer() async {
     RLTable table = source.getRLTable(tableName);
     if ( table == null ) {
-      return;
+      return 0;
     }
     if ( localTransactions.length == 0 )
-      return;
+      return 0;
     // bulkupload
     var lts = localTransactions;
     localTransactions = Map();
     try {
-      await table.bulkUpdate(lts);
+      int i = await table.bulkUpdate(lts);
+      if ( i > 0 ) {
+        lastUpload = i;
+        _fireLastUploadChanged(i);
+      }
     } catch ( e ) {
       print("$e");
       // rollback
@@ -429,6 +434,13 @@ class SyncedRLTable {
     print("local delete $key");
     if ( listener != null ) {
       listener("localDelete", { "key":key},this);
+    }
+  }
+
+  void _fireLastUploadChanged(int i) {
+    print("last upload changed $i");
+    if ( listener != null ) {
+      listener("uploadChnaged", { "time":i},this);
     }
   }
 

@@ -120,7 +120,7 @@ class RLTable {
     jsonsession.session.tell("unsubscribe", [id]);
   }
 
-  Future<bool> bulkUpdate(lts) {
+  Future<int> bulkUpdate(lts) {
     jsonsession.session.ask("bulkUpdate",[name,jsonEncode(lts)]);
   }
 

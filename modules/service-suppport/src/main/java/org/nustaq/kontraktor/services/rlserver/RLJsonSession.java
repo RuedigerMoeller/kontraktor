@@ -236,7 +236,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
      * @param json - [ addOrUpdate, .. ]
      * @return
      */
-    public IPromise<Boolean> bulkUpdate(String table, String json ) {
+    public IPromise<Long> bulkUpdate(String table, String json ) {
         try {
             JsonObject parse = Json.parse(json).asObject();
             RealLiveTable tbl = dClient.tbl(table);
@@ -250,7 +250,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
         } catch ( Exception e ) {
             return reject(e);
         }
-        return resolve(true);
+        return resolve(System.currentTimeMillis());
     }
 
     JsonObject fromRecord(Record r) {
