@@ -42,6 +42,7 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
     }
 
     public IPromise<RLJsonAuthResult> authenticate(String user, String pwd ) {
+        Log.Info(this,"authenticate session");
         // FIXME, check credentials
         RLJsonSession session = AsActor(
             getSessionActorClazz(),
