@@ -6,8 +6,12 @@ import org.nustaq.reallive.api.TableDescription;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.Map;
 
 public class SimpleRLConfig implements Serializable {
+
+    public static SimpleRLConfig get;
+
 
     String dataDir = "./data";
     int numNodes = 3;
@@ -19,6 +23,8 @@ public class SimpleRLConfig implements Serializable {
     String publicUrl = "http://localhost:"+bindPort;
     String bindIp = "0.0.0.0";
     String wsPublicUrl = "ws://localhost:"+bindPort+"/ws";
+
+    Map<String,Object> customData;
 
     int sessionTimeoutMinutes = 10;
 
@@ -35,6 +41,7 @@ public class SimpleRLConfig implements Serializable {
             String confString = kson.writeObject(clCfg);
             System.out.println("run with config from "+ new File(pathname).getCanonicalPath());
 //            System.out.println(confString);
+            get = clCfg;
             return clCfg;
         } catch (Exception e) {
             e.printStackTrace();
@@ -84,5 +91,9 @@ public class SimpleRLConfig implements Serializable {
 
     public int getSessionTimeoutMinutes() {
         return sessionTimeoutMinutes;
+    }
+
+    public Map<String, Object> getCustomData() {
+        return customData;
     }
 }
