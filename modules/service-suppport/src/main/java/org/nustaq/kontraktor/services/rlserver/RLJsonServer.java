@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.services.rlserver;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Scheduler;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.apputil.*;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
@@ -23,7 +24,7 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
 
     public final static String T_CREDENTIALS = "credentials";
 
-    static SimpleRLConfig cfg = SimpleRLConfig.read();
+    protected static SimpleRLConfig cfg = SimpleRLConfig.read();
 
     // threads to dispatch session onto
     private Scheduler clientThreads[];
@@ -57,6 +58,19 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
         return RLJsonSession.class;
     }
 
+    @CallerSideMethod
+    protected void createServer(RLJsonServer app, Class[] CLAZZES) {
+        Http4K.Build(cfg.getBindIp(), cfg.getBindPort())
+            .httpAPI("/api", app) // could also be websocket based (see IntrinsicReactJSX github project)
+            .coding(new Coding(SerializerType.JsonNoRef, CLAZZES))
+            .setSessionTimeout(TimeUnit.MINUTES.toMillis(cfg.getSessionTimeoutMinutes() ))
+            .buildHttpApi()
+//            .websocket("/ws", app)
+//                .coding(new Coding(SerializerType.JsonNoRef, CLAZZES))
+//                .buildWebsocket()
+            .build();
+    }
+
     public static void main(String[] args) {
         Class<RLJsonServer> appClazz = RLJsonServer.class;
 
@@ -87,15 +101,8 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
 
         Log.Info(appClazz,"listening on http://"+cfg.getBindIp()+":"+cfg.getBindPort());
 
-        Http4K.Build(cfg.getBindIp(), cfg.getBindPort())
-            .httpAPI("/api", app) // could also be websocket based (see IntrinsicReactJSX github project)
-                .coding(new Coding(SerializerType.JsonNoRef, CLAZZES))
-                .setSessionTimeout(TimeUnit.MINUTES.toMillis(cfg.getSessionTimeoutMinutes() ))
-                .buildHttpApi()
-            .websocket("/ws", app)
-                .coding(new Coding(SerializerType.JsonNoRef, CLAZZES))
-                .buildWebsocket()
-            .build();
+        app.createServer(app, CLAZZES);
     }
+
 
 }
