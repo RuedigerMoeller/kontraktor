@@ -65,20 +65,20 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
             .coding(new Coding(SerializerType.JsonNoRef, CLAZZES))
             .setSessionTimeout(TimeUnit.MINUTES.toMillis(cfg.getSessionTimeoutMinutes() ))
             .buildHttpApi()
-//            .websocket("/ws", app)
-//                .coding(new Coding(SerializerType.JsonNoRef, CLAZZES))
-//                .buildWebsocket()
+            .websocket("/ws", app)
+                .coding(new Coding(SerializerType.JsonNoRef, CLAZZES))
+                .buildWebsocket()
             .build();
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         Class<RLJsonServer> appClazz = RLJsonServer.class;
 
         startUp(args, appClazz);
 
     }
 
-    public static void startUp(String[] args, Class appClazz) {
+    public static void startUp(String[] args, Class appClazz) throws InterruptedException {
         if ( ! new File("./etc").exists() ) {
             System.out.println("Please run with project working dir");
             System.exit(-1);
@@ -100,6 +100,10 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
         };
 
         Log.Info(appClazz,"listening on http://"+cfg.getBindIp()+":"+cfg.getBindPort());
+
+        if ( cfg.runDataClusterInsideWebserver ) {
+            SingleProcessRLCluster.main(new String[0]);
+        }
 
         app.createServer(app, CLAZZES);
     }

@@ -16,16 +16,17 @@ import org.nustaq.reallive.api.RealLiveTable;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.api.Subscriber;
 import org.nustaq.reallive.impl.QueryPredicate;
+import org.nustaq.reallive.impl.RLUtil;
 import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.UpdateMessage;
 import org.nustaq.reallive.query.QParseException;
 import org.nustaq.reallive.records.MapRecord;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.lang.reflect.Array;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements RemotedActor {
 
@@ -76,7 +77,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
         Record record = toRecord(members);
         if ( record.getKey() == null )
             throw new RuntimeException("no key in record");
-        tbl.mergeRecord(senderId,record);
+        _internalUpdate(tbl,record);
     }
 
     public IPromise delete(String table, String key ) {
@@ -98,6 +99,20 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
             if ( r != null )
                 res.resolve(r.toArray(new String[r.size()]));
             else
+                res.reject(e);
+        });
+        return res;
+    }
+
+    public IPromise<String> get( String table, String key ) {
+        IPromise res = new Promise();
+        RealLiveTable tbl = dClient.tbl(table);
+        if ( tbl == null )
+            reject("table '"+table+"' not found");
+        tbl.get(key).then( (r,e) -> {
+            if ( r != null ) {
+                res.resolve(fromRecord(r).toString());
+            } else
                 res.reject(e);
         });
         return res;
@@ -232,6 +247,13 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
     }
 
     /**
+     * process a series of add/update operations. Input is a map<recordkey,list<updateObjects>.
+     * Atomic Array Ops can be done like
+     * { "array+" : value } - add value to existing array
+     * { "array-" : value } - remove all equal values from existing array
+     * { "array-+" : value } - add only if value does not yet exist (set-like behaviour)
+     * _NULL_ - can be used to denote null values (real null will be evicted by json )
+     *
      * @param table
      * @param json - [ addOrUpdate, .. ]
      * @return
@@ -243,14 +265,84 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
             parse.forEach( member -> {
                 member.getValue().asArray().forEach( addupd -> {
                     JsonObject obj = addupd.asObject();
-                    Record rec = toRecord(obj);
-                    tbl.mergeRecord(senderId, rec);
+                    Record newRecord = toRecord(obj);
+                    newRecord.key(member.getName());
+                    _internalUpdate(tbl, newRecord);
                 });
             });
         } catch ( Exception e ) {
             return reject(e);
         }
         return resolve(System.currentTimeMillis());
+    }
+
+    /**
+     * processes special ops like { "array+" : value } and _NULL_
+     * @param tbl
+     * @param newRecord
+     */
+    private void _internalUpdate(RealLiveTable tbl, Record newRecord) {
+        tbl.atomic(newRecord.getKey(), currentRecord -> {
+            if ( currentRecord != null ) {
+                String[] fields = newRecord.getFields();
+                for (int i = 0; i < fields.length; i++) {
+                    String field = fields[i];
+                    if ( field.endsWith("+") ) // atomic array insert
+                    {
+                        boolean set = field.endsWith("-+");
+                        Object toAdd = newRecord.get(field);
+                        String pureField = field.substring(0,field.length()- (set ? 2 : 1));
+                        Object o = currentRecord.get(pureField);
+                        if ( o instanceof Object[] ) {
+                            Object[] oldarr = (Object[]) o;
+                            boolean matched = false;
+                            if ( set ) {
+                                for (int j = 0; j < oldarr.length; j++) {
+                                    Object o1 = oldarr[j];
+                                    if ( Objects.deepEquals(o1,toAdd) ) {
+                                        matched = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if ( ! matched ) {
+                                Object newCopy[] = new Object[oldarr.length + 1];
+                                System.arraycopy(oldarr, 0, newCopy, 0, oldarr.length);
+                                newCopy[oldarr.length] = toAdd;
+                                currentRecord.put(pureField, newCopy);
+                            }
+                        } else {
+                            currentRecord.put( pureField, new Object[] { toAdd } );
+                        }
+                    } else if ( field.endsWith("-") ) // atomic array remove
+                    {
+                        String purefield = field.substring(0,field.length()-1);
+                        Object toRem = newRecord.get(field);
+                        if ("_NULL_".equals(toRem) )
+                            toRem = null;
+                        Object o = currentRecord.get(purefield);
+                        Object[] oldarr = (Object[]) o;
+                        Object finalToRem = toRem;
+                        Object[] collect = Arrays.asList(oldarr).stream().filter(x -> !Objects.deepEquals(x, finalToRem)).collect(Collectors.toList()).toArray();
+                        currentRecord.put(purefield,collect);
+                    } else {
+                        currentRecord.put(field,newRecord.getValue(field));
+                    }
+                }
+                return null;
+            }
+            Object[] keyVals = newRecord.getKeyVals();
+            for (int i = 0; i < keyVals.length; i+=2) {
+                String keyVal = (String) keyVals[i];
+                if ( keyVal.endsWith("-+") )
+                    keyVals[i] = keyVal.substring(0,keyVal.length()-2);
+                else if ( keyVal.endsWith("-") )
+                    keyVals[i] = keyVal.substring(0,keyVal.length()-1);
+                else if ( keyVal.endsWith("+") )
+                    keyVals[i] = keyVal.substring(0,keyVal.length()-1);
+            }
+            return RLUtil.get().addOrUpdate(senderId,newRecord.getKey(),keyVals);
+        });
     }
 
     JsonObject fromRecord(Record r) {
@@ -320,7 +412,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
             } else if ( jsonValue.isArray() ) {
                 aNew.put(field,toRecordArray(jsonValue.asArray()));
             } else {
-                throw new RuntimeException("huch:"+jsonValue.getClass());
+                throw new RuntimeException("unexpected json type:"+jsonValue.getClass());
             }
         });
         return aNew;
@@ -343,7 +435,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
             } else if ( jsonValue.isArray() ) {
                 res[i] = toRecordArray(jsonValue.asArray());
             } else {
-                throw new RuntimeException("huch:"+jsonValue.getClass());
+                throw new RuntimeException("unexpected json type:"+jsonValue.getClass());
             }
             i++;
         }

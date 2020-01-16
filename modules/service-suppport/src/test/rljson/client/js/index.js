@@ -15,6 +15,15 @@ class Table {
   update( json ) {
     return toES6Prom(this.session.ask("update",this.table,JSON.stringify(json)));
   }
+
+  // returns server timestamp { key: [ {addObj}, {addObj] ]
+  bulkUpdate( addOrUpdateObject ) {
+    return toES6Prom(this.session.ask("bulkUpdate",this.table,JSON.stringify(addOrUpdateObject)));
+  }
+
+  get( key ) {
+    return toES6Prom(this.session.ask("get",this.table,key));
+  }
   
   updateAsync( json ) {
     this.session.tell("updateAsync",this.table,JSON.stringify(json));
@@ -79,47 +88,18 @@ class Table {
 }
 
 async function testSession(session) {
-  const creds = new Table(session,"credentials");
-  // for ( var i=0; i < 30; i++ ) {
-  //   creds.update( {
-  //     key: Math.random()+'--'+i,
-  //     aName: 'Me'+i,
-  //     pastName: 'trollo'+i,
-  //     anArray: [ 5, 2, 3, { x: 123.2 }, "hi", true ],
-  //     aSub: {
-  //       oha: 'ne'+i, tt: 13.22, test: 'x', time: new Date().getTime(),
-  //     }
-  //   })
-  //   .then( r => console.log("updated") )
-  //   .catch( e => console.log("error", e) );
-  // }
-  const x = await creds.fields();
+  const feed = new Table(session,"feed");
+  const x = await feed.fields();
   console.log("fields",x);
   try {
-//    const arr = await creds.select("(aName ** '15' || aName ** '13') && !exists(pastName) && exists(aSub.test)");
-//     const arr = await creds.select("aName ** 'me15' && aSub.time > age(1,'min')");
-    const arr = await creds.select("aSub.time > age(10000,'sec') && anArray ** true");
-    arr.forEach( x => console.log(x) );
-    
-    creds.subscribe("aName ** 'you'", change => {
-      console.log("CHANGE",change);
+    let serverTS = await feed.bulkUpdate({
+      "TestIncrementals2" : [
+//        { "array-": "Hello1" },
+        { "array-+": "Hello1" },
+      ]
     });
-    
-    setTimeout( () => {
-      creds.update( {
-          key: arr[0].key,
-          aName: 'you'+Math.random()
-        }
-      );
-    }, 2000);
-    setTimeout( () => {
-      creds.update( {
-          key: arr[0].key,
-          aName: 'you'+Math.random(),
-          aSub: { ...arr[0].aSub, oha: "anders" }
-        }
-      );
-    }, 2000);
+    let rec = await feed.get("TestIncrementals2");
+    console.log("rec",rec);
   } catch (e) {
     console.error(e);
   }
