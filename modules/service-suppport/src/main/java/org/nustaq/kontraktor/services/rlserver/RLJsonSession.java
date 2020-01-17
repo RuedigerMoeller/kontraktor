@@ -167,7 +167,6 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
 
     public void subscribe(String uuid, String table, String query, Callback<String> res) {
         RealLiveTable tbl = dClient.tbl(table);
-        AtomicBoolean hadErr = new AtomicBoolean(false);
         if ( tbl == null )
             res.reject("table '"+table+"' not found");
         Subscriber subscriber = tbl.subscribeOn(query, (change) -> {
@@ -181,7 +180,6 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
 
     public IPromise<Long> subscribeSyncing(String uuid, String table, long timeStamp, String query, Callback<String> res) {
         RealLiveTable tbl = dClient.tbl(table);
-        AtomicBoolean hadErr = new AtomicBoolean(false);
         if ( tbl == null )
             res.reject("table '"+table+"' not found");
         QueryPredicate filter = new QueryPredicate(query);
@@ -251,7 +249,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
      * Atomic Array Ops can be done like
      * { "array+" : value } - add value to existing array
      * { "array-" : value } - remove all equal values from existing array
-     * { "array-+" : value } - add only if value does not yet exist (set-like behaviour)
+     * { "array?+" : value } - add only if value does not yet exist (set-like behaviour)
      * _NULL_ - can be used to denote null values (real null will be evicted by json )
      *
      * @param table
@@ -289,7 +287,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
                     String field = fields[i];
                     if ( field.endsWith("+") ) // atomic array insert
                     {
-                        boolean set = field.endsWith("-+");
+                        boolean set = field.endsWith("?+");
                         Object toAdd = newRecord.get(field);
                         String pureField = field.substring(0,field.length()- (set ? 2 : 1));
                         Object o = currentRecord.get(pureField);
@@ -326,7 +324,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
                         Object[] collect = Arrays.asList(oldarr).stream().filter(x -> !Objects.deepEquals(x, finalToRem)).collect(Collectors.toList()).toArray();
                         currentRecord.put(purefield,collect);
                     } else {
-                        currentRecord.put(field,newRecord.getValue(field));
+                        currentRecord.put(field,newRecord.get(field));
                     }
                 }
                 return null;
@@ -334,7 +332,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
             Object[] keyVals = newRecord.getKeyVals();
             for (int i = 0; i < keyVals.length; i+=2) {
                 String keyVal = (String) keyVals[i];
-                if ( keyVal.endsWith("-+") )
+                if ( keyVal.endsWith("?+") )
                     keyVals[i] = keyVal.substring(0,keyVal.length()-2);
                 else if ( keyVal.endsWith("-") )
                     keyVals[i] = keyVal.substring(0,keyVal.length()-1);

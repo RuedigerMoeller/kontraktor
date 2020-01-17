@@ -19,6 +19,7 @@ public class FuncOperand implements Serializable {
         return arity;
     }
 
+    // return a function evaluating the result of args
     public RLSupplier<Value> getEval(RLSupplier<Value> args[]) {
         if ( args.length != arity ) {
             String err = args.length > 0 ? args[args.length-1].get().getErrorString() : " - ";

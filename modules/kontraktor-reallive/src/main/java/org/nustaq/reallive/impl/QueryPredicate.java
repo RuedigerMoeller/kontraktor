@@ -11,17 +11,15 @@ import org.nustaq.reallive.query.Query;
 public class QueryPredicate<T> implements RLPredicate<T> {
 
     String query;
-    transient CompiledQuery compiled;
+    CompiledQuery compiled;
 
     public QueryPredicate(String query) {
         this.query = query;
+        compiled = Query.compile(query);
     }
 
     @Override
     public boolean test(T t) {
-        if ( compiled == null ) {
-            compiled = Query.compile(query);
-        }
         final boolean res = compiled.evaluate((EvalContext) t).isTrue();
         return res;
     }
