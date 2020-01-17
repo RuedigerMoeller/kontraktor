@@ -242,8 +242,8 @@ public class ShardedTable implements RealLiveTable {
     }
 
     @Override
-    public IPromise atomic(String key, RLFunction<Record, Object> action) {
-        return hashAny(key).atomic(key, action);
+    public IPromise atomic(int senderId, String key, RLFunction<Record, Object> action) {
+        return hashAny(key).atomic(senderId, key, action);
     }
 
     @Override

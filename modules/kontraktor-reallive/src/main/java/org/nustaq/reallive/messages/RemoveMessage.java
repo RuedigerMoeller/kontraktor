@@ -13,6 +13,11 @@ public class RemoveMessage implements ChangeMessage {
         this.deletedRow = rec;
         this.senderId = senderId;
     }
+    
+    public RemoveMessage senderId(int id) {
+        senderId = id;
+        return this;
+    }
 
     @Override
     public int getType() {

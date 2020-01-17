@@ -7,6 +7,10 @@ import org.nustaq.reallive.api.*;
  */
 public class QueryDoneMessage implements ChangeMessage {
 
+    public QueryDoneMessage senderId(int id) {
+        return this;
+    }
+
     @Override
     public int getType() {
         return QUERYDONE;

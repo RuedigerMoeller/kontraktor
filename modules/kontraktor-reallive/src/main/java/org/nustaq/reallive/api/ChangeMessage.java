@@ -16,6 +16,7 @@ public interface ChangeMessage extends Serializable {
 
     int getType();
     int getSenderId();
+    ChangeMessage senderId(int id);
 
     String getKey();
     ChangeMessage reduced(String[] reducedFields);

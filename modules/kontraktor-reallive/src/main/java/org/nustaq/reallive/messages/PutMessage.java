@@ -17,6 +17,11 @@ public class PutMessage implements ChangeMessage {
 
     private Record record;
 
+    public PutMessage senderId(int id) {
+        senderId = id;
+        return this;
+    }
+
     public Record getRecord() {
         return record;
     }

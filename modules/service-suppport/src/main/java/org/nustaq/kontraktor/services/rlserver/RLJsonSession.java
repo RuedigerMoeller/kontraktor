@@ -280,7 +280,8 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
      * @param newRecord
      */
     private void _internalUpdate(RealLiveTable tbl, Record newRecord) {
-        tbl.atomic(newRecord.getKey(), currentRecord -> {
+        int finalSID = this.senderId;
+        tbl.atomic(finalSID,newRecord.getKey(), currentRecord -> {
             if ( currentRecord != null ) {
                 String[] fields = newRecord.getFields();
                 for (int i = 0; i < fields.length; i++) {
@@ -339,7 +340,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
                 else if ( keyVal.endsWith("+") )
                     keyVals[i] = keyVal.substring(0,keyVal.length()-1);
             }
-            return RLUtil.get().addOrUpdate(senderId,newRecord.getKey(),keyVals);
+            return RLUtil.get().addOrUpdate(finalSID,newRecord.getKey(),keyVals);
         });
     }
 

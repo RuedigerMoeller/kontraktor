@@ -35,6 +35,11 @@ public class UpdateMessage implements ChangeMessage {
         this.senderId = senderId;
     }
 
+    public UpdateMessage senderId(int id) {
+        senderId = id;
+        return this;
+    }
+
     public Set<String> getForcedUpdateFields() {
         return forcedUpdateFields;
     }

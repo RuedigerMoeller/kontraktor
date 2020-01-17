@@ -168,7 +168,7 @@ public class StorageDriver implements ChangeReceiver {
      * @param action
      * @return the result of function.
      */
-    public IPromise atomicQuery(String key, RLFunction<Record,Object> action) {
+    public IPromise atomicQuery(int senderId, String key, RLFunction<Record,Object> action) {
         Record rec = getStore().get(key);
         if ( rec == null ) {
             final Object apply = action.apply(rec);
@@ -182,9 +182,10 @@ public class StorageDriver implements ChangeReceiver {
             final Object res = action.apply(pr);
             if ( res instanceof ChangeMessage )
             {
+                ((ChangeMessage) res).senderId(senderId);
                 receive( (ChangeMessage) res ) ;
             } else {
-                UpdateMessage updates = pr.getUpdates(0);
+                UpdateMessage updates = pr.getUpdates(senderId);
                 if (updates != null) {
                     receive(updates);
                 }

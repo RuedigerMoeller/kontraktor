@@ -22,6 +22,11 @@ public class AddMessage implements ChangeMessage {
         this.senderId = senderId;
     }
 
+    public AddMessage senderId(int id) {
+        senderId = id;
+        return this;
+    }
+
     public Record getRecord() {
         return record;
     }
