@@ -17,6 +17,21 @@ import java.util.Map;
  */
 public interface Record extends Serializable, EvalContext {
 
+    public static Record from( Object ... keyVals ) {
+        MapRecord aNew = MapRecord.New(null);
+        for (int i = 0; i < keyVals.length; i+=2) {
+            String key = (String) keyVals[i];
+            Object val = keyVals[i+1];
+            if ( key.equals("key") ) {
+                aNew.key((String) val);
+            } else
+                aNew.put(key,val);
+        }
+        if ( aNew.getKey() == null )
+            throw new RuntimeException("no key specified");
+        return aNew;
+    }
+
     String getKey();
     long getLastModified();
     void internal_setLastModified(long tim);

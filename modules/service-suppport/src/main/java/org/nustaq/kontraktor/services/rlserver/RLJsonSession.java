@@ -30,15 +30,15 @@ import java.util.stream.Collectors;
 
 public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements RemotedActor {
 
-    public static int senderIdRangeStart=100_000, senderIdRangeEnd = 500_000; // WARNING: needs organization for multiple instances
+    public static int senderIdRangeStart=100_000, senderIdRangeEnd = 5_000_000; // WARNING: needs organization for multiple instances
 
-    static AtomicInteger senderIdCount;
+    protected static AtomicInteger senderIdCount;
 
-    private RLJsonServer server;
-    private DataClient dClient;
-    int senderId;
+    protected RLJsonServer server;
+    protected DataClient dClient;
+    protected int senderId;
 
-    public void init(RLJsonServer server, DataClient dataClient ) {
+    public void init( RLJsonServer server, DataClient dataClient, Object userdata ) {
         synchronized (RLJsonSession.class ) {
             if ( senderIdCount == null )
                 senderIdCount = new AtomicInteger(senderIdRangeStart);

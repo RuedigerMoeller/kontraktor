@@ -27,10 +27,10 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
     protected static SimpleRLConfig cfg = SimpleRLConfig.read();
 
     // threads to dispatch session onto
-    private Scheduler clientThreads[];
-    private Random rand = new Random();
-    private RLJsonServerService service;
-    private DataClient dclient;
+    protected Scheduler clientThreads[];
+    protected Random rand = new Random();
+    protected RLJsonServerService service;
+    protected DataClient dclient;
 
     @Local
     public void init(String args[]) {
@@ -44,17 +44,21 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
 
     public IPromise<RLJsonAuthResult> authenticate(String user, String pwd ) {
         Log.Info(this,"authenticate session");
+        return createSession(new Object[]{ user,pwd });
+    }
+
+    protected IPromise<RLJsonAuthResult> createSession(Object customSessionData) {
         // FIXME, check credentials
         RLJsonSession session = AsActor(
-            getSessionActorClazz(),
+            getSessionActorClazz(customSessionData),
             // randomly distribute session actors among clientThreads
             clientThreads[rand.nextInt(clientThreads.length)]
         );
-        session.init(self(),dclient);
+        session.init(self(),dclient,customSessionData);
         return resolve(new RLJsonAuthResult().session(session));
     }
 
-    protected Class<? extends RLJsonSession> getSessionActorClazz() {
+    protected Class<? extends RLJsonSession> getSessionActorClazz(Object authData) {
         return RLJsonSession.class;
     }
 
