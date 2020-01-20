@@ -17,6 +17,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.http.undertow;
 
 import io.undertow.Undertow;
+import io.undertow.server.HttpServerExchange;
 import io.undertow.server.handlers.PathHandler;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
@@ -52,6 +53,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
     long idleSessionTimeout = TimeUnit.HOURS.toMillis(8);
     Actor facade;
     private Function<KHttpExchange,ConnectionAuthResult> connectionVerifier;
+    private Consumer<HttpServerExchange> prepareResponse;
 
     public HttpPublisher() {}
 
@@ -69,6 +71,11 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
 
     public HttpPublisher connectionVerifier(final Function<KHttpExchange, ConnectionAuthResult> connectionVerifier) {
         this.connectionVerifier = connectionVerifier;
+        return this;
+    }
+
+    public HttpPublisher prepareResponse(final Consumer<HttpServerExchange> prepareResponse) {
+        this.prepareResponse = prepareResponse;
         return this;
     }
 
@@ -101,7 +108,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
         ActorServer actorServer;
         try {
             Pair<PathHandler, Undertow> serverPair = Http4K.get().getServer(port, hostName);
-            UndertowHttpServerConnector con = new UndertowHttpServerConnector(facade);
+            UndertowHttpServerConnector con = new UndertowHttpServerConnector(facade, prepareResponse);
             con.setConnectionVerifier(connectionVerifier);
             con.setSessionTimeout(sessionTimeout);
             con.setIdleSessionTimeout(idleSessionTimeout);

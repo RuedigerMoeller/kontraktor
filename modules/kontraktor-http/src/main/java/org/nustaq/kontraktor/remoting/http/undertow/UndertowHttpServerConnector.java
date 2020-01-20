@@ -20,6 +20,7 @@ import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderMap;
 import io.undertow.util.Headers;
+import io.undertow.util.HttpString;
 import io.undertow.util.Methods;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.remoting.http.AbstractHttpServerConnector;
@@ -34,6 +35,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 12.05.2015.
@@ -66,8 +69,11 @@ import java.util.List;
  */
 public class UndertowHttpServerConnector extends AbstractHttpServerConnector implements HttpHandler {
 
-    public UndertowHttpServerConnector(Actor facade) {
+    Consumer<HttpServerExchange> prepareResponse;
+
+    public UndertowHttpServerConnector(Actor facade, Consumer<HttpServerExchange> prepareResponse) {
         super(facade);
+        this.prepareResponse = prepareResponse;
     }
 
     /**
@@ -153,6 +159,11 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
     }
 
     public void handleClientRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String lastSeenSequence) {
+
+        if ( prepareResponse != null ) {
+// e.g.            exchange.getResponseHeaders().add( new HttpString("Access-Control-Allow-Origin"), "*");
+            prepareResponse.accept(exchange);
+        }
 
         // dispatch incoming messages to actor(s)
         StreamSinkChannel sinkchannel = exchange.getResponseChannel();
