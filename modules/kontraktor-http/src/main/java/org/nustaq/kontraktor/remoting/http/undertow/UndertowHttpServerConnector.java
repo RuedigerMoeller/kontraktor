@@ -87,6 +87,15 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
     @Override
     public void handleRequest(HttpServerExchange exchange) throws Exception {
         if ( exchange.getRequestMethod() != Methods.POST ) {
+            if ( exchange.getRequestMethod() == Methods.OPTIONS ) {
+                if ( prepareResponse != null ) {
+// e.g.            exchange.getResponseHeaders().add( new HttpString("Access-Control-Allow-Origin"), "*");
+                    prepareResponse.accept(exchange);
+                }
+                exchange.setResponseCode(200);
+                exchange.endExchange();
+                return;
+            }
             exchange.setResponseCode(404);
             exchange.endExchange();
             return;
