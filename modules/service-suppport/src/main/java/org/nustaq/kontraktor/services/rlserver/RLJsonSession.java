@@ -142,7 +142,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
         });
     }
 
-    static class SubsEntry {
+    protected static class SubsEntry {
         Callback feCB;
         Subscriber subs;
 
@@ -152,7 +152,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
         }
     }
 
-    Map<String,SubsEntry> subscriptions = new HashMap<>();
+    protected Map<String,SubsEntry> subscriptions = new HashMap<>();
     public void unsubscribe( String uuid ) {
         SubsEntry subsEntry = subscriptions.get(uuid);
         if ( subsEntry != null ) {
