@@ -84,6 +84,16 @@ public class Parser {
                         && !isOpenBracket(stackOperations.lastElement().toString())) {
                     stackRPN.push(stackOperations.pop());
                 }
+            } else if (isOpenEckig(tokenValue)) {
+                stackOperations.push(tokenValue);
+            } else if (isCloseEckig(tokenValue)) {
+                List arr = new ArrayList();
+                while ( !stackRPN.empty()
+                    && !isOpenEckig(stackRPN.lastElement().toString())) {
+                    arr.add(stackRPN.pop());
+                }
+                stackRPN.pop();
+                stackRPN.push(new ArrayValue(arr.toArray(),token));
             } else if (isOpenBracket(tokenValue)) {
                 Object last = stackRPN.isEmpty() ? null : stackRPN.lastElement();
                 if ( last instanceof VarPath && isFunction(((VarPath) last).field)) {
@@ -195,11 +205,19 @@ public class Parser {
                 stackAnswer.push( vp.getEval() );
             } else if (token instanceof FuncOperand) {
                 FuncOperand func = (FuncOperand) token;
-                RLSupplier<Value> args[] = new RLSupplier[func.getArity()];
-                for (int i = 0; i < args.length; i++) {
-                    args[args.length-i-1] = ((RLSupplier<Value>)stackAnswer.pop());
+                if ( func.getArity() < 0 ) {
+                    int size = stackAnswer.size();
+                    RLSupplier<Value> args[] = new RLSupplier[size];
+                    for (int i = 0; i < size; i++) {
+                        args[size - i - 1] = ((RLSupplier<Value>) stackAnswer.pop());
+                    }
+                } else {
+                    RLSupplier<Value> args[] = new RLSupplier[func.getArity()];
+                    for (int i = 0; i < args.length; i++) {
+                        args[args.length - i - 1] = ((RLSupplier<Value>) stackAnswer.pop());
+                    }
+                    stackAnswer.push(func.getEval(args));
                 }
-                stackAnswer.push(func.getEval(args));
             }
         }
 
@@ -255,9 +273,15 @@ public class Parser {
         return token.equals(")");
     }
 
+    private boolean isOpenEckig(String token) {
+        return "[".equals(token);
+    }
+    private boolean isCloseEckig(String token) {
+        return token.equals("]");
+    }
     public static void main(String[] args) throws Throwable {
-//        Parser p = Query.newParser();
-//        CompiledQuery compile = p.compile("test == 'hallo' && a < 101 && a <= 100 && b > 199 && b >= 200 && a+b == 300 && !0");
+        Parser p = Query.newParser();
+        CompiledQuery compile = p.compile("1 ** [1,2]");
 //
         MapRecord hm = MapRecord.New("key")
             .put("test","hallo")
