@@ -10,7 +10,7 @@
 
 **/** - divide
 
-\** - a contains b case insensitive, also works for arrays
+\** - a contains b case insensitive, also works for arrays like prop ** [1,2,3] or [1,2,3] ** 2
 
 \*> - a endswith b case insensitive
 

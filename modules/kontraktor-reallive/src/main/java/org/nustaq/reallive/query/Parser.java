@@ -40,11 +40,11 @@ public class Parser {
     /* separator of arguments */
     private final String SEPARATOR = ",";
     /* temporary stack that holds operators, functions and brackets */
-    private Stack stackOperations = new Stack();
+    private QStack stackOperations = new QStack();
     /* stack for holding expression converted to reversed polish notation */
-    private Stack stackRPN = new Stack();
+    private QStack stackRPN = new QStack();
     /* stack for holding the lambda calculation tree */
-    private Stack stackAnswer = new Stack();
+    private QStack stackAnswer = new QStack();
 
     protected EvalContext ctxRef[];
 
@@ -57,7 +57,7 @@ public class Parser {
     public CompiledQuery compile(String query) {
         ctxRef = new EvalContext[1];
         parse(query);
-        return new CompiledQuery(evaluate(),ctxRef);
+        return new CompiledQuery(new Evaluator(stackRPN).evaluate(),ctxRef);
     }
 
     /**
@@ -80,19 +80,28 @@ public class Parser {
         while ( (token=scanner.readNext()) != null) {
             String tokenValue = token.getValue();
             if (isSeparator(tokenValue)) {
-                while (!stackOperations.empty()
+                if ( stackOperations.empty() || !isOpenEckig(stackOperations.lastElement().toString()) ) {
+                    // do this only in arglist, not array constant
+                    while (!stackOperations.empty()
                         && !isOpenBracket(stackOperations.lastElement().toString())) {
-                    stackRPN.push(stackOperations.pop());
+                        stackRPN.push(stackOperations.pop());
+                    }
                 }
             } else if (isOpenEckig(tokenValue)) {
+                stackRPN.push(tokenValue);
                 stackOperations.push(tokenValue);
             } else if (isCloseEckig(tokenValue)) {
+                while (!stackOperations.empty()
+                    && !isOpenEckig(stackOperations.lastElement().toString())) {
+                    stackRPN.push(stackOperations.pop());
+                }
                 List arr = new ArrayList();
                 while ( !stackRPN.empty()
                     && !isOpenEckig(stackRPN.lastElement().toString())) {
                     arr.add(stackRPN.pop());
                 }
                 stackRPN.pop();
+                stackOperations.pop(); // should be '['
                 stackRPN.push(new ArrayValue(arr.toArray(),token));
             } else if (isOpenBracket(tokenValue)) {
                 Object last = stackRPN.isEmpty() ? null : stackRPN.lastElement();
@@ -127,6 +136,7 @@ public class Parser {
                          (prevToken == null ||
                        operators.containsKey(prevToken.getValue()) ||
                        isOpenBracket(prevToken.getValue()) ||
+                       isOpenEckig(prevToken.getValue()) ||
                        isSeparator(prevToken.getValue())
                      )
                    ) {
@@ -164,94 +174,6 @@ public class Parser {
         Collections.reverse(stackRPN);
     }
 
-    /**
-     * Evaluates once parsed to a lambda term
-     *
-     * @return <code>String</code> representation of the result
-     * @throws <code>ParseException</code> if the input expression is not
-     *                                     correct
-     * @since 3.0
-     */
-    private RLSupplier<Value> evaluate() {
-		/* check if is there something to evaluate */
-        if (stackRPN.empty()) {
-            return () -> new StringValue("", null);
-        }
-
-		/* clean answer stack */
-        stackAnswer.clear();
-
-		/* get the clone of the RPN stack for further evaluating */
-        @SuppressWarnings("unchecked")
-        Stack stackRPN = (Stack) this.stackRPN.clone();
-
-		/* evaluating the RPN expression */
-        while (!stackRPN.empty()) {
-            Object token = stackRPN.pop();
-            if (token instanceof Value) {
-                stackAnswer.push( (RLSupplier) ()->token );
-            } else if (token instanceof Operator) {
-                int arity = ((Operator) token).getArity();
-                if ( arity == 2 ) {
-                    RLSupplier a = (RLSupplier) stackAnswer.pop();
-                    RLSupplier b = (RLSupplier) stackAnswer.pop();
-                    stackAnswer.push( ((Operator) token).getEval(a,b));
-                } else { // assume 1
-                    RLSupplier a = (RLSupplier) stackAnswer.pop();
-                    stackAnswer.push( ((Operator) token).getEval(a,null));
-                }
-            } else if (token instanceof VarPath) {
-                VarPath vp = (VarPath) token;
-                stackAnswer.push( vp.getEval() );
-            } else if (token instanceof FuncOperand) {
-                FuncOperand func = (FuncOperand) token;
-                if ( func.getArity() < 0 ) {
-                    int size = stackAnswer.size();
-                    RLSupplier<Value> args[] = new RLSupplier[size];
-                    for (int i = 0; i < size; i++) {
-                        args[size - i - 1] = ((RLSupplier<Value>) stackAnswer.pop());
-                    }
-                } else {
-                    RLSupplier<Value> args[] = new RLSupplier[func.getArity()];
-                    for (int i = 0; i < args.length; i++) {
-                        args[args.length - i - 1] = ((RLSupplier<Value>) stackAnswer.pop());
-                    }
-                    stackAnswer.push(func.getEval(args));
-                }
-            }
-        }
-
-        if (stackAnswer.size() > 1) {
-            throw new QParseException("Missing or unknown operator:"+findNearesToken(stackAnswer));
-        }
-
-        return (RLSupplier<Value>) stackAnswer.pop();
-    }
-
-    private String findNearesToken(Stack stack) {
-        int i = stack.size()-1;
-        while ( i >= 0 ) {
-            Object o = stack.get(i);
-            if ( o instanceof HasToken) {
-                return ((HasToken) o).getErrorString();
-            }
-            try {
-                boolean b = o instanceof RLSupplier;
-                if (b) {
-                    Object val = ((RLSupplier) o).get();
-                    if ( val instanceof HasToken) {
-                        HasToken hasToken = (HasToken) val;
-                        return hasToken != null ? hasToken.getErrorString() : "null";
-                    }
-                }
-            } catch (Exception e) {
-                //System.out.println("POK");
-            }
-            i--;
-        }
-        return null;
-    }
-
     private boolean isNumber(String token) {
         try {
             Double.parseDouble(token);
@@ -281,7 +203,6 @@ public class Parser {
     }
     public static void main(String[] args) throws Throwable {
         Parser p = Query.newParser();
-        CompiledQuery compile = p.compile("1 ** [1,2]");
 //
         MapRecord hm = MapRecord.New("key")
             .put("test","hallo")
@@ -289,6 +210,8 @@ public class Parser {
             .put("c", -1)
             .put("time", System.currentTimeMillis())
             .put("b", 200);
+
+        testArray(p, hm);
 
         Thread.sleep(2000);
         CompiledQuery nums = Query.compile("c!= -1");
@@ -325,5 +248,43 @@ public class Parser {
 //            System.out.println("COUNT: "+cnt);
 //        }
 
+    }
+
+    protected static void testArray(Parser p, MapRecord hm) {
+        CompiledQuery compile;
+        Value evaluate;
+
+        compile = p.compile("'hallo' ** [1,2,'ha'+'llo']");
+        evaluate = compile.evaluate(hm);
+        if ( ! evaluate.isTrue() )
+            throw new RuntimeException("test failure");
+
+        compile = p.compile("a ** [1,2,50+50]");
+        evaluate = compile.evaluate(hm);
+        if ( ! evaluate.isTrue() )
+            throw new RuntimeException("test failure");
+
+        compile = p.compile("a ** [1,2,100]");
+        evaluate = compile.evaluate(hm);
+        if ( ! evaluate.isTrue() )
+            throw new RuntimeException("test failure");
+
+        compile = p.compile("a ** [1,2,a]");
+        evaluate = compile.evaluate(hm);
+        if ( ! evaluate.isTrue() )
+            throw new RuntimeException("test failure");
+
+        compile = p.compile("100 ** [1,2,a]");
+        evaluate = compile.evaluate(hm);
+        if ( ! evaluate.isTrue() )
+            throw new RuntimeException("test failure");
+
+        compile = p.compile("'hallo' ** [1,2,test]");
+        evaluate = compile.evaluate(hm);
+        if ( ! evaluate.isTrue() )
+            throw new RuntimeException("test failure");
+
+
+        System.out.println("testArray success");
     }
 }

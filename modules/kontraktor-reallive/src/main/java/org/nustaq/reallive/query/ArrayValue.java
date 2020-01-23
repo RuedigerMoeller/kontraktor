@@ -50,4 +50,14 @@ public class ArrayValue implements Value {
     public long size() {
         return value.length;
     }
+
+    public RLSupplier getEval() {
+        QStack stackRPN = new QStack();
+        for (int i = 0; i < value.length; i++) {
+            stackRPN.add(value[i]);
+        }
+        Evaluator eval = new Evaluator(stackRPN);
+        eval.evaluate(true);
+        return () -> new ArrayValue(eval.getAnswerAsArray(),token);
+    }
 }

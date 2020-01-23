@@ -116,19 +116,39 @@ public class Query {
             protected Value compare(Value vb, Value va) {
                 if ( va.isArray() ) {
                     Object bval = vb.getValue();
-                    Object[] ov = (Object[]) va.getValue();
-                    for (int i = 0; i < ov.length; i++) {
-                        Object o = ov[i];
-                        if ( o instanceof Number && vb instanceof NumberValue) {
-                            if ( ((Number)o).doubleValue() == vb.getDoubleValue() )
-                                return Value.TRUE;
-                        }
-                        if ( o != null && o.equals(bval) )
-                            return Value.TRUE;
-                    }
-                    return Value.FALSE;
+                    Value bvalue = vb;
+                    Value avalue = va;
+                    return compareArray(bval, bvalue, avalue);
+                }
+                if ( vb.isArray() ) {
+                    Object bval = va.getValue();
+                    Value bvalue = va;
+                    Value avalue = vb;
+                    return compareArray(bval, bvalue, avalue);
                 }
                 return va.getStringValue().toLowerCase().indexOf(vb.getStringValue().toLowerCase()) >= 0 ? Value.TRUE:Value.FALSE;
+            }
+
+            private Value compareArray(Object bval, Value bvalue, Value avalue) {
+                Object[] ov = (Object[]) avalue.getValue();
+                for (int i = 0; i < ov.length; i++) {
+                    Object o = ov[i];
+                    if ( o instanceof RLSupplier)
+                        o = ((RLSupplier) o).get();
+                    if ( o instanceof Number && bvalue instanceof NumberValue) {
+                        if ( ((Number)o).doubleValue() == bvalue.getDoubleValue() )
+                            return Value.TRUE;
+                    } else if ( o instanceof NumberValue && bvalue instanceof NumberValue) {
+                        if ( ((Value)o).getDoubleValue() == bvalue.getDoubleValue() )
+                            return Value.TRUE;
+                    } else {
+                        if ( o instanceof Value )
+                            o = ((Value) o).getStringValue();
+                        if (o != null && o.toString().equals(bval.toString()))
+                            return Value.TRUE;
+                    }
+                }
+                return Value.FALSE;
             }
         });
 
