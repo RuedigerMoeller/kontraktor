@@ -207,6 +207,7 @@ public class Parser {
         MapRecord hm = MapRecord.New("key")
             .put("test","hallo")
             .put("a", 100)
+            .put("arr", new Object[] {100,"hallo",3} )
             .put("c", -1)
             .put("time", System.currentTimeMillis())
             .put("b", 200);
@@ -284,6 +285,25 @@ public class Parser {
         if ( ! evaluate.isTrue() )
             throw new RuntimeException("test failure");
 
+        compile = p.compile("'hallo' ** arr");
+        evaluate = compile.evaluate(hm);
+        if ( ! evaluate.isTrue() )
+            throw new RuntimeException("test failure");
+
+        compile = p.compile("1 ** arr");
+        evaluate = compile.evaluate(hm);
+        if ( evaluate.isTrue() )
+            throw new RuntimeException("test failure");
+
+        compile = p.compile("3 ** arr");
+        evaluate = compile.evaluate(hm);
+        if ( ! evaluate.isTrue() )
+            throw new RuntimeException("test failure");
+
+        compile = p.compile("'hallo1' ** arr");
+        evaluate = compile.evaluate(hm);
+        if ( evaluate.isTrue() )
+            throw new RuntimeException("test failure");
 
         System.out.println("testArray success");
     }
