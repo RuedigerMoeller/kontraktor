@@ -157,12 +157,13 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
         } else { // new session
             Object auth = null;
             // create connection. postdata is auth data
-            if ( postData != null && postData.length > 0 ) {
-                auth = conf.asObject(postData);
+//            if ( postData != null && postData.length > 0 ) {
+//                auth = conf.asObject(postData);
+//            }
+            if ( prepareResponse != null ) {
+                prepareResponse.accept(exchange);
             }
-
             // auth check goes here
-
             handleNewSession(new UndertowKHttpExchangeImpl(exchange));
         }
     }
@@ -170,7 +171,6 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
     public void handleClientRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String lastSeenSequence) {
 
         if ( prepareResponse != null ) {
-// e.g.            exchange.getResponseHeaders().add( new HttpString("Access-Control-Allow-Origin"), "*");
             prepareResponse.accept(exchange);
         }
 
