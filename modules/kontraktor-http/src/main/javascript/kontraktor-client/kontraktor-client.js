@@ -26,7 +26,7 @@ class KClientListener {
     console.error("invalid response")
   }
   onError(obj) {
-    console.error("connectionError",obj)
+    console.error("connectionError",obj);
   }
   onClosed() {
     console.warn("connection closed")
@@ -36,6 +36,12 @@ class KClientListener {
   }
   onLPFailure(count,status) {
     console.log("longpoll failed",count,status);
+  }
+  log() {
+    console.log.apply(this,arguments);
+  }
+  error() {
+    this.log.apply(this,arguments);
   }
 }
 
@@ -96,12 +102,12 @@ class KClient {
     } else if ( connectionMode && connectionMode.uname && connectionMode.token ) { // token
       socket = new KontraktorPollSocket(this,wsurl, true,connectionMode.token, connectionMode.uname );
     } else {
-      console.log("unknown connectionMode, default to HTLP");
+      this.listener.log("unknown connectionMode, default to HTLP");
       socket = new KontraktorPollSocket(this,wsurl, true );
     }
     const myHttpApp = new KontrActor(this,1,"RemoteApp");
     socket.onmessage( message => {
-      console.error("unexpected message");
+      this.listener.error("unexpected message");
       console.log(JSON.stringify(message, null, 2));
       this.listener.onError(message);
       if ( ! res.isCompleted() )
@@ -109,7 +115,7 @@ class KClient {
     });
     socket.onerror( err => {
       this.listener.onError(err);
-      console.log(err);
+      this.listener.log(err);
       if ( ! res.isCompleted() )
         res.complete(null,err);
     });
@@ -120,7 +126,7 @@ class KClient {
         if ( ! res.isCompleted() )
           res.complete(null,"closed");
         this.listener.onClosed();
-        console.log("closed connection");
+        this.listener.log("closed connection");
       }
       if ( ! res.isCompleted() )
         res.complete(null,"closed");
@@ -138,7 +144,7 @@ class KClient {
     const sequence = decodedResponse.seq[decodedResponse.seq.length-1];
     //console.log("GOT SEQUENCE:"+sequence);
     if ( sequence > 0 && sequence <= lastSeenSequence ) {
-      console.log("old data received:"+sequence+" last:"+lastSeenSequence);
+      this.listener.log("old data received:"+sequence+" last:"+lastSeenSequence);
       // return lastSeenSequence;
     }
     //console.log("resplen:"+respLen);
@@ -151,7 +157,7 @@ class KClient {
       if (!resp.obj.method && resp.obj.receiverKey) { // => callback
         const cb = this.futureMap[resp.obj.receiverKey];
         if (!cb) {
-          console.error("unhandled callback " + JSON.stringify(resp, null, 2));
+          this.listener.error("unhandled callback " + JSON.stringify(resp, null, 2));
         } else {
           const methodAndArgs = this.callMap[resp.obj.receiverKey];
           if ( resp.obj.serializedArgs ) {
@@ -178,7 +184,7 @@ class KClient {
             try {
               cb.complete(res, err); // promise.complete(result, error)
             } catch (e) {
-              console.log("error in callback method:",methodAndArgs,"ex:",e);
+              this.listener.log("error in callback method:",methodAndArgs,"ex:",e);
             }
           } else {
             const res = resp.obj.args.seq[1];
@@ -189,7 +195,7 @@ class KClient {
             try {
               cb.complete(res, err); // promise.complete(result, error)
             } catch (e) {
-              console.log("error in callback method:",methodAndArgs,"ex:",e);
+              this.listener.log("error in callback method:",methodAndArgs,"ex:",e);
             }
           }
         }
@@ -312,7 +318,7 @@ class KontraktorSocket {
           const response = JSON.parse(message.data);
           this.global.processSocketResponse(-1,response, this.automaticTransformResults, eventListener, this);
         } catch (err) {
-          console.error("unhandled decoding error:" + err);
+          this.global.listener.error("unhandled decoding error:" + err);
           if (this.socket.onerror)
             this.socket.onerror.apply(this, [err]);
         }
@@ -333,7 +339,7 @@ class KontraktorSocket {
             if (this.socket.onerror)
               this.socket.onerror.apply(this, [error]);
             else {
-              console.log("unhandled transmission error: " + error);
+              this.global.listener.log("unhandled transmission error: " + error);
             }
             if (this.incomingMessages.length > 0)
               parse.apply();
@@ -347,7 +353,7 @@ class KontraktorSocket {
               const response = JSON.parse(blob);
               this.global.processSocketResponse(-1,response, this.automaticTransformResults, eventListener.bind(this));
             } catch (err) {
-              console.error("unhandled decoding error:" + err);
+              this.global.listener.error("unhandled decoding error:" + err);
               if (this.socket.onerror)
                 this.socket.onerror.apply(this, [err]);
             }
@@ -427,13 +433,13 @@ class KontraktorPollSocket{
           try {
             cb.complete(res[0], res[1]); // promise.complete(result, error)
           } catch (ex) {
-            console.error(ex);
+            this.global.listener.error(ex);
           }
         } else {
           try {
             cb.complete(null, error ); // promise.complete(result, error)
           } catch (ex) {
-            console.error(ex);
+            this.global.listener.error(ex);
           }
         }
       }
@@ -442,7 +448,9 @@ class KontraktorPollSocket{
     }
   };
 
-  fireError() {
+  fireError(err) {
+    if (err)
+      this.lastError = err;
     this.termOpenCBs();
     if (this.onerrorHandler && this.lastError) {
       this.onerrorHandler.apply(this, [{event: "connection failure", status: this.lastError}]);
@@ -460,7 +468,7 @@ class KontraktorPollSocket{
   longPoll() {
     const sleepNoReqSent = 100;
     if ( this.doStop || ! this.doLongPoll ) {
-      console.log("lp stopped",this);
+      this.global.listener.log("lp stopped",this);
       return;
     }
     if ( ! this.isConnected ) {
@@ -472,7 +480,7 @@ class KontraktorPollSocket{
         setTimeout(this.longPoll.bind(this),sleepNoReqSent);
         return;
       }
-      console.log("futureMap SIZE ON LP *** ", cblen );
+      this.global.listener.log("futureMap SIZE ON LP *** ", cblen );
       const reqData = '{"styp":"array","seq":[1,'+this.lpSeqNo+']}';
       const request = new XMLHttpRequest();
       request.onreadystatechange = () => {
@@ -483,7 +491,7 @@ class KontraktorPollSocket{
         this.longPollUnderway--;
         if ( request.status !== 200 ) {
           this.lastError = request.status;
-          console.log("response error:"+request.status);
+          this.global.listener.log("response error:"+request.status);
           //fireError(); dont't give up on failed long poll
           this.pollErrorsInRow++;
           this.global.listener.onLPFailure(this.pollErrorsInRow,request.status);
@@ -505,7 +513,7 @@ class KontraktorPollSocket{
             setTimeout(this.longPoll.bind(this),200);
           }
         } catch (err) {
-          console.log(err);
+          this.global.listener.log(err);
           setTimeout(this.longPoll.bind(this),3000); // error, slow down
         }
       };
@@ -519,7 +527,7 @@ class KontraktorPollSocket{
         try {
           request.send(reqData); // this is actually auth data currently unused. keep stuff websocket alike for now
         } catch ( ex ) {
-          console.log("req error ",ex);
+          this.global.listener.log("req error ",ex);
         }
       }
     }
@@ -552,7 +560,7 @@ class KontraktorPollSocket{
   handleResurrection(sequence) {
     if (sequence === 1 && this.lpSeqNo >= 1) {
       this.lpSeqNo = 0;
-      console.log("session resurrection, reset sequence ");
+      this.global.listener.log("session resurrection, reset sequence ");
       //this.termOpenCBs(); wrong here as resurrection is detected AFTER a valid new callback has been registered
       this.global.listener.onResurrection();
     }
@@ -580,17 +588,17 @@ class KontraktorPollSocket{
           }
           this.lpSeqNo = this.global.processSocketResponse(this.lpSeqNo, respObject, true, this.onmessageHandler.bind(this));
         } catch (ex) {
-          console.error("exception in callback ", ex);
+          this.global.listener.error("exception in callback ", ex);
           res.complete(null, ex);
           return;
         }
         try {
           res.complete("", null);
         } catch (ex1) {
-          console.error("exception in promise callback ", ex1);
+          this.global.listener.error("exception in promise callback ", ex1);
         }
       } else {
-        console.log("resp is empty");
+        this.global.listener.log("resp is empty");
         res.complete("", null);
       }
     };
@@ -624,7 +632,7 @@ class KontraktorPollSocket{
     try {
       request.send(data);
     } catch (ex) {
-      console.error(ex);
+      this.global.listener.error(ex);
       res.complete(null,ex);
     }
     return res;
@@ -635,33 +643,38 @@ class KontraktorPollSocket{
   };
 
   connect() {
-    // connect and obtain sessionId
-    const request = new XMLHttpRequest();
-    request.onreadystatechange = () => {
-      if ( request.readyState !== XMLHttpRequest.DONE ) {
-        return;
-      }
-      if ( request.status !== 200 ) {
-        this.lastError = request.status;
-        this.fireError();
-        return;
-      }
-      this.sessionId = JSON.parse(request.responseText);
-      this.global.sessionId = this.sessionId;
-      this.isConnected = true;
-      console.log("sessionId:"+this.sessionId);
-      if ( this.onopenHandler ) {
-        this.fireOpen();
-      }
-    };
-    request.open("POST", this.url, true);
-    request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    if ( this.token )
-      request.setRequestHeader("JWT", this.token );
-    if ( this.uname )
-      request.setRequestHeader("ID", this.uname );
-    request.send("null"); // this is actually auth data currently unused. keep stuff websocket alike for now
-    return this;
+    try {
+      // connect and obtain sessionId
+      const request = new XMLHttpRequest();
+      request.onreadystatechange = () => {
+        if ( request.readyState !== XMLHttpRequest.DONE ) {
+          return;
+        }
+        if ( request.status !== 200 ) {
+          this.lastError = request.status;
+          this.fireError();
+          return;
+        }
+        this.sessionId = JSON.parse(request.responseText);
+        this.global.sessionId = this.sessionId;
+        this.isConnected = true;
+        this.global.listener.log("sessionId:"+this.sessionId);
+        if ( this.onopenHandler ) {
+          this.fireOpen();
+        }
+      };
+      request.open("POST", this.url, true);
+      request.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+      if ( this.token )
+        request.setRequestHeader("JWT", this.token );
+      if ( this.uname )
+        request.setRequestHeader("ID", this.uname );
+      request.send("null"); // this is actually auth data currently unused. keep stuff websocket alike for now
+      return this;
+    } catch (e) {
+      console.log(e);
+      this.fireError(e);
+    }
   }
 }
 
@@ -718,6 +731,10 @@ class KontrActor {
     this.socketHolder = global.currentSocket;
   }
 
+  isOffline() {
+    return false; // TODO: should check u8nderlying socket
+  }
+  
   /**
    * create a sequenced batch of remote calls
    */

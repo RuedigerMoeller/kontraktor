@@ -53,6 +53,15 @@ var jskXMLHttpRequest = function() {
         self.onreadystatechange();
       });
     });
+  
+    post_req.on("error", function (err) {
+      self.readyState = 4;
+      self.status = 502;
+      self.statusText = ""+err;
+      self.responseText = null;
+      self.onreadystatechange();
+    });
+    
     // post the data
     post_req.write(data);
     post_req.end();
