@@ -33,13 +33,14 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
     protected DataClient dclient;
 
     @Local
-    public void init(String args[]) {
+    public IPromise init(String args[]) {
         clientThreads = new Scheduler[cfg.getNumSessionThreads()];
         IntStream.range(0,cfg.getNumSessionThreads())
             .forEach( i -> clientThreads[i] = new SimpleScheduler(10000, true /*Important!*/ ));
         service = RLJsonServerService.start(args);
         service.setWebServer(self());
         dclient = service.getDClient();
+        return resolve();
     }
 
     public IPromise<RLJsonAuthResult> authenticate(String user, String pwd ) {
@@ -88,8 +89,12 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
             System.exit(-1);
         }
 
+        if ( cfg.runDataClusterInsideWebserver ) {
+            SingleProcessRLCluster.main(new String[0]);
+        }
+
         RLJsonServer app = (RLJsonServer) AsActor(appClazz);
-        app.init(args);
+        app.init(args).await(60_000);
 
         Class CLAZZES[] = {
             LoginData.class,
@@ -104,10 +109,6 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
         };
 
         Log.Info(appClazz,"listening on http://"+cfg.getBindIp()+":"+cfg.getBindPort());
-
-        if ( cfg.runDataClusterInsideWebserver ) {
-            SingleProcessRLCluster.main(new String[0]);
-        }
 
         app.createServer(app, CLAZZES);
     }

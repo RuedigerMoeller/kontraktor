@@ -18,7 +18,7 @@ public class SimpleRLConfig implements Serializable {
     TableDescription tables[];
     int numSessionThreads = 4;
     int bindPort = 8081;
-    boolean runDataClusterInsideWebserver = false;
+    boolean runDataClusterInsideWebserver = true;
 
     // API endpoint
     String publicUrl = "http://localhost:"+bindPort;

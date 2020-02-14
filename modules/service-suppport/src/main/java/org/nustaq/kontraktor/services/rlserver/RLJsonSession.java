@@ -262,10 +262,15 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
             RealLiveTable tbl = dClient.tbl(table);
             parse.forEach( member -> {
                 member.getValue().asArray().forEach( addupd -> {
-                    JsonObject obj = addupd.asObject();
-                    Record newRecord = toRecord(obj);
-                    newRecord.key(member.getName());
-                    _internalUpdate(tbl, newRecord);
+                    try {
+                        JsonObject obj = addupd.asObject();
+                        Record newRecord = toRecord(obj);
+                        newRecord.key(member.getName());
+                        _internalUpdate(tbl, newRecord);
+                        // avoid getting stuck
+                    } catch (Exception e) {
+                        Log.Error(this,e);
+                    }
                 });
             });
         } catch ( Exception e ) {
