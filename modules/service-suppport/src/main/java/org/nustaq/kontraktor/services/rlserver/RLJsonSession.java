@@ -284,7 +284,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
      * @param tbl
      * @param newRecord
      */
-    private void _internalUpdate(RealLiveTable tbl, Record newRecord) {
+    protected void _internalUpdate(RealLiveTable tbl, Record newRecord) {
         int finalSID = this.senderId;
         tbl.atomic(finalSID,newRecord.getKey(), currentRecord -> {
             if ( currentRecord != null ) {
@@ -349,7 +349,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
         });
     }
 
-    JsonObject fromRecord(Record r) {
+    protected JsonObject fromRecord(Record r) {
         String[] fields = r.getFields();
         String key = r.getKey();
         JsonObject res = new JsonObject();
@@ -364,7 +364,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
         return res;
     }
 
-    private JsonValue fromJavaValue(Object value) {
+    protected JsonValue fromJavaValue(Object value) {
         if ( value instanceof String ) {
             return Json.value((String)value);
         } else if ( value instanceof Long ) {
@@ -392,7 +392,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
         return Json.value(""+value);
     }
 
-    Record toRecord(JsonObject members) {
+    protected Record toRecord(JsonObject members) {
         MapRecord aNew = MapRecord.New(null);
         members.names().forEach( field -> {
             if ( "key".equals(field) ) {
@@ -422,7 +422,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
         return aNew;
     }
 
-    Object[] toRecordArray(JsonArray arr) {
+    protected Object[] toRecordArray(JsonArray arr) {
         Object res[] = new Object[arr.size()];
         int i = 0;
         for (JsonValue jsonValue : arr) {
