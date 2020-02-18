@@ -11,4 +11,7 @@ public class RLJsonAuthResult implements Serializable {
         return this;
     }
 
+    public RLJsonSession getSession() {
+        return session;
+    }
 }

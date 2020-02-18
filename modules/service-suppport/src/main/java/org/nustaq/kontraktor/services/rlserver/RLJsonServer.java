@@ -76,6 +76,11 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
             .build();
     }
 
+    @CallerSideMethod @Local
+    public DataClient getDClient() {
+        return getActor().dclient;
+    }
+
     public static void main(String[] args) throws InterruptedException {
         Class<RLJsonServer> appClazz = RLJsonServer.class;
 
