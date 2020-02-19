@@ -136,6 +136,7 @@ class KClient {
       this.remoteApp = myHttpApp;
       res.complete( this.proxies ? createActorProxy(myHttpApp) : myHttpApp ,null);
     });
+    socket.connect();
     return res;
   };
 
@@ -230,10 +231,6 @@ class KontraktorSocket {
     this.automaticTransformResults = true;
     this.protocols = protocols;
     this.url = url;
-    if ( protocols )
-      this.socket = new WebSocket(url,protocols);
-    else
-      this.socket = new WebSocket(url);
   }
 
   close( code, reason ) {
@@ -248,6 +245,13 @@ class KontraktorSocket {
     fun.apply(this,[]);
   };
 
+  connect() {
+    if ( this.protocols )
+      this.socket = new WebSocket(url,this.protocols);
+    else
+      this.socket = new WebSocket(url);
+  }
+  
   reconnect(refId) {
     const p = new kontraktor.KPromise();
     this.lpSeqNo = 0; // dummy for now
@@ -408,7 +412,6 @@ class KontraktorPollSocket{
     this.pollErrorsInRow = 0;
     this.longPollUnderway = 0;
     this.sendFun = null;
-    this.connect();
   }
 
   fireOpen() {
