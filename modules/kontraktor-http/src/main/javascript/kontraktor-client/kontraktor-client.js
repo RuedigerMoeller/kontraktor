@@ -2,11 +2,13 @@
 // matches kontraktor 4 json-no-ref encoded remoting
 
 const _kontraktor_IsNode = Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
+
 if ( _kontraktor_IsNode ) {
   if ( typeof window === 'undefined')
     window = {}; // node
   XMLHttpRequest = require("./xmlhttpdummy.js");
   WebSocket = require('ws');
+  console.debug("run using fetch api");
 }
 
 const kontraktor = typeof require !== 'undefined' ? require('kontraktor-common') : { KPromise:KPromise, DecodingHelper:DecodingHelper };
