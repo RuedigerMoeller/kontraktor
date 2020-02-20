@@ -2,13 +2,11 @@
 // matches kontraktor 4 json-no-ref encoded remoting
 
 const _kontraktor_IsNode = Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]';
-
 if ( _kontraktor_IsNode ) {
   if ( typeof window === 'undefined')
     window = {}; // node
   XMLHttpRequest = require("./xmlhttpdummy.js");
   WebSocket = require('ws');
-  console.debug("run using fetch api");
 }
 
 const kontraktor = typeof require !== 'undefined' ? require('kontraktor-common') : { KPromise:KPromise, DecodingHelper:DecodingHelper };
@@ -68,6 +66,7 @@ class KClient {
   }
 
   reset() {
+    this.termOpenCBs("reset");
     if ( this.hasSocket() )
       this.close();
     this.doStop = false;
@@ -82,6 +81,36 @@ class KClient {
     this.listener = new KClientListener();
     this.sessionId = null; // session id
   }
+
+  termOpenCBs(error) {
+    if ( ! this.futureMap )
+      return;
+    if ( ! error )
+      error = "connection error";
+    let keys = Object.keys(this.futureMap);
+    for (let i = 0; i < keys.length; i++) {
+      const cb = this.futureMap[keys[i]];
+      if (cb) {
+        const methodAndArgs = this.callMap[keys[i]];
+        let res = null;
+        if (this.callCache && (res = this.callCache.get(methodAndArgs))) {
+          try {
+            cb.complete(res[0], res[1]); // promise.complete(result, error)
+          } catch (ex) {
+            this.listener.error(ex);
+          }
+        } else {
+          try {
+            cb.complete(null, error ); // promise.complete(result, error)
+          } catch (ex) {
+            this.listener.error(ex);
+          }
+        }
+      }
+      delete this.futureMap[keys[i]];
+      delete this.callMap[keys[i]];
+    }
+  };
 
   // if set to false => only tell, ask style calls are allowed, else a proxy is generated which
   // generates tell/ask messages from methods called on the proxy. Use x.$methodname() if the method returns a promise (=ask).
@@ -253,7 +282,7 @@ class KontraktorSocket {
     else
       this.socket = new WebSocket(url);
   }
-  
+
   reconnect(refId) {
     const p = new kontraktor.KPromise();
     this.lpSeqNo = 0; // dummy for now
@@ -454,6 +483,10 @@ class KontraktorPollSocket{
   };
 
   fireError(err) {
+    if ( err === 0 ) // RN artifact http status code null for connectionr refused
+      err = 502;
+    if (this.lastError === 0)
+      this.lastError = 502;
     if (err)
       this.lastError = err;
     this.termOpenCBs();
@@ -619,7 +652,7 @@ class KontraktorPollSocket{
         tmp.apply(this,[]);
       }
       if ( request.status !== 200 ) {
-        this.lastError = request.status;
+        this.fireError(request.status);
         res.complete(null,request.status);
         return;
       }
@@ -652,6 +685,7 @@ class KontraktorPollSocket{
       // connect and obtain sessionId
       const request = new XMLHttpRequest();
       request.onreadystatechange = () => {
+        console.debug("ONREADYSTATE", request.readyState );
         if ( request.readyState !== XMLHttpRequest.DONE ) {
           return;
         }
@@ -739,7 +773,7 @@ class KontrActor {
   isOffline() {
     return false; // TODO: should check u8nderlying socket
   }
-  
+
   /**
    * create a sequenced batch of remote calls
    */
