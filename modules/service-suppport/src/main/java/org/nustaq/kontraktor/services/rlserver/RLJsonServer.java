@@ -22,9 +22,27 @@ import java.util.stream.IntStream;
 
 public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
 
-    public final static String T_CREDENTIALS = "credentials";
+    public static final Class[] CLAZZES = new Class[]{
+        LoginData.class,
+        MapRecord.class,
+        AddMessage.class,
+        UpdateMessage.class,
+        RemoveMessage.class,
+        QueryDoneMessage.class,
+        SessionEvent.class,
+        RLJsonAuthResult.class,
+        Diff.class,
+    };
 
-    protected static SimpleRLConfig cfg = SimpleRLConfig.read();
+    public static SimpleRLConfig Cfg() {
+        synchronized (RLJsonServer.class) {
+            if ( cfg == null )
+                cfg = SimpleRLConfig.read();
+            return cfg;
+        }
+    }
+
+    private static SimpleRLConfig cfg;
 
     // threads to dispatch session onto
     protected Scheduler clientThreads[];
@@ -34,8 +52,8 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
 
     @Local
     public IPromise init(String args[]) {
-        clientThreads = new Scheduler[cfg.getNumSessionThreads()];
-        IntStream.range(0,cfg.getNumSessionThreads())
+        clientThreads = new Scheduler[Cfg().getNumSessionThreads()];
+        IntStream.range(0,Cfg().getNumSessionThreads())
             .forEach( i -> clientThreads[i] = new SimpleScheduler(10000, true /*Important!*/ ));
         service = RLJsonServerService.start(args);
         service.setWebServer(self());
@@ -65,7 +83,7 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
 
     @CallerSideMethod
     protected void createServer(RLJsonServer app, Class[] CLAZZES) {
-        Http4K.Build(cfg.getBindIp(), cfg.getBindPort())
+        Http4K.Build(Cfg().getBindIp(), Cfg().getBindPort())
             .httpAPI("/api", app) // could also be websocket based (see IntrinsicReactJSX github project)
             .coding(new Coding(SerializerType.JsonNoRef, CLAZZES))
             .setSessionTimeout(TimeUnit.MINUTES.toMillis(cfg.getSessionTimeoutMinutes() ))
@@ -94,26 +112,14 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
             System.exit(-1);
         }
 
-        if ( cfg.runDataClusterInsideWebserver ) {
+        if ( Cfg().runDataClusterInsideWebserver ) {
             SingleProcessRLCluster.main(new String[0]);
         }
 
         RLJsonServer app = (RLJsonServer) AsActor(appClazz);
         app.init(args).await(60_000);
 
-        Class CLAZZES[] = {
-            LoginData.class,
-            MapRecord.class,
-            AddMessage.class,
-            UpdateMessage.class,
-            RemoveMessage.class,
-            QueryDoneMessage.class,
-            SessionEvent.class,
-            RLJsonAuthResult.class,
-            Diff.class,
-        };
-
-        Log.Info(appClazz,"listening on http://"+cfg.getBindIp()+":"+cfg.getBindPort());
+        Log.Info(appClazz,"listening on http://"+Cfg().getBindIp()+":"+Cfg().getBindPort());
 
         app.createServer(app, CLAZZES);
     }
