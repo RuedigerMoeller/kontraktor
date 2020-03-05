@@ -87,8 +87,14 @@ public class EmbeddedRealLive {
                     break;
             }
         }
-        table.init(memFactory, desc).await(30_000);
-        return new Promise(table);
+        Promise p = new Promise();
+        table.init(memFactory, desc).then( (r,e) -> {
+            if ( e == null )
+                p.resolve(table);
+            else
+                p.reject(e);
+        });
+        return p;
     }
 
 }

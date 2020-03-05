@@ -30,7 +30,6 @@
         <developerConnection>scm:git:git@github.com:RuedigerMoeller/kontraktor.git</developerConnection>
     </scm>
 
-
     <build>
         <plugins>
             <plugin>
@@ -71,6 +70,7 @@
                     </execution>
                 </executions>
             </plugin>
+
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
