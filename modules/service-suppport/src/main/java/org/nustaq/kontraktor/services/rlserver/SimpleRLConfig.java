@@ -58,6 +58,14 @@ public class SimpleRLConfig implements Serializable {
         return new SimpleRLConfig();
     }
 
+    public boolean isRunDataClusterInsideWebserver() {
+        return runDataClusterInsideWebserver;
+    }
+
+    public String getWsPublicUrl() {
+        return wsPublicUrl;
+    }
+
     public String getDataDir() {
         return dataDir;
     }

@@ -60,31 +60,34 @@ public class TableSpaceSharding implements TableSpace {
                 p.complete(r, e);
             });
         }
-        List<IPromise<RealLiveTable>> tables = Actors.all(results).await();
-
-        RealLiveTable tableShards[] = new RealLiveTable[tables.size()];
-        boolean errors = false;
-        for (int i = 0; i < tables.size(); i++) {
-            if ( tables.get(i).get() == null ) {
-                res.reject(tables.get(i).getError());
-                errors = true;
-                break;
-            } else {
-                int sno = i;//tables[i].get().shardNo();
-                if ( tableShards[sno] != null ) {
-                    res.reject("shard "+sno+" is present more than once");
+        Log.Info(this,"waiting for creation of tables ..");
+        Actors.all(results).then( (List<IPromise<RealLiveTable>> tables,Object err) -> {
+            Log.Info(this,"table creation (waiting finished)");
+            RealLiveTable tableShards[] = new RealLiveTable[tables.size()];
+            boolean errors = false;
+            for (int i = 0; i < tables.size(); i++) {
+                if ( tables.get(i).get() == null ) {
+                    res.reject(tables.get(i).getError());
                     errors = true;
                     break;
+                } else {
+                    int sno = i;//tables[i].get().shardNo();
+                    if ( tableShards[sno] != null ) {
+                        res.reject("shard "+sno+" is present more than once");
+                        errors = true;
+                        break;
+                    }
+                    tableShards[sno] = tables.get(i).get();
                 }
-                tableShards[sno] = tables.get(i).get();
             }
-        }
-        if ( ! errors ) {
-            ShardedTable ts = new ShardedTable(tableShards, desc );
-            tableMap.put(desc.getName(),ts);
-            tableDescriptionMap.put(desc.getName(),desc);
-            res.resolve(ts);
-        }
+            if ( ! errors ) {
+                ShardedTable ts = new ShardedTable(tableShards, desc );
+                tableMap.put(desc.getName(),ts);
+                tableDescriptionMap.put(desc.getName(),desc);
+                res.resolve(ts);
+            }
+        });
+
         return res;
     }
 
