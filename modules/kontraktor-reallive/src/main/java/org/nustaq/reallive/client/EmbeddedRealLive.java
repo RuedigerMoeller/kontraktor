@@ -53,6 +53,14 @@ public class EmbeddedRealLive {
                     break;
             }
         } else {
+            if ( Math.random() > .95 ) {
+                try {
+                    System.out.println("POKPOK PAUSING");
+                    Thread.sleep(30_000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
             String bp = dataDir == null ? desc.getFilePath() : dataDir;
             desc.filePath(bp);
             new File(bp).mkdirs();

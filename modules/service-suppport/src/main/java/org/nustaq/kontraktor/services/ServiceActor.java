@@ -23,7 +23,7 @@ import java.util.*;
  */
 public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
 
-    public static int DEFAULT_START_TIMEOUT = 360_000;
+    public static int DEFAULT_START_TIMEOUT = 60_000 * 10;
 
     public static ServiceActor RunTCP(String args[], Class<? extends ServiceActor> serviceClazz, Class<? extends ServiceArgs> argsClazz) {
         return RunTCP(args,serviceClazz,argsClazz, DEFAULT_START_TIMEOUT);
@@ -179,7 +179,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         Log.Info(this, "dc connected all shards");
 
         dclient = Actors.AsActor(DataClient.class);
-        dclient.connect(config.getDataCluster(),tsShard,self()).await(60_000);
+        dclient.connect(config.getDataCluster(),tsShard,self()).await(DEFAULT_START_TIMEOUT);
 
         Log.Info(this, "dc init done");
     }
