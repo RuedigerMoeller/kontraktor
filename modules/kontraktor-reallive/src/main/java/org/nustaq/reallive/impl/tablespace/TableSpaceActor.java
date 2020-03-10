@@ -15,6 +15,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
@@ -23,6 +24,8 @@ import java.util.function.Supplier;
  * groups a set of table definitions. Runs server/node -side
  */
 public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpace {
+
+    public static long MAX_WAIT_MMAP = TimeUnit.MINUTES.toMillis(5);
 
     HashMap<String,RealLiveTable> tables;
     HashMap<String,TableDescription> tableDesc;
@@ -60,7 +63,7 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
     }
 
     private RealLiveTableActor createTableActor(TableDescription desc) {
-        return (RealLiveTableActor) EmbeddedRealLive.get().createTable(desc,getBaseDir()).await();
+        return (RealLiveTableActor) EmbeddedRealLive.get().createTable(desc,getBaseDir()).await(MAX_WAIT_MMAP);
     }
 
     @Override
