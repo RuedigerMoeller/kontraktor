@@ -15,14 +15,14 @@ import java.util.stream.Stream;
  */
 public class CachedOffHeapStorage implements RecordStorage {
 
-    OffHeapRecordStorage offheap;
+    RecordPersistance persisted;
     HeapRecordStorage onHeap;
 
-    public CachedOffHeapStorage(OffHeapRecordStorage offheap, HeapRecordStorage onHeap) {
-        this.offheap = offheap;
+    public CachedOffHeapStorage(RecordPersistance persisted, HeapRecordStorage onHeap) {
+        this.persisted = persisted;
         this.onHeap = onHeap;
         List<Record> reput = new ArrayList();
-        offheap.forEachWithSpore(new Spore<Record, Object>() {
+        persisted.forEachWithSpore(new Spore<Record, Object>() {
             @Override
             public void remote(Record input) {
                 Record unwrap = StorageDriver.unwrap(input);
@@ -38,14 +38,14 @@ public class CachedOffHeapStorage implements RecordStorage {
         });
         for (int i = 0; i < reput.size(); i++) {
             Record record = reput.get(i);
-            offheap.put((String) record.getKey(),record);
+            persisted.put((String) record.getKey(),record);
         }
     }
 
     @Override
     public RecordStorage put(String key, Record value) {
         value.internal_updateLastModified();
-        offheap._put(key,value);
+        persisted._put(key,value);
         onHeap._put(key,value);
         return this;
     }
@@ -57,7 +57,7 @@ public class CachedOffHeapStorage implements RecordStorage {
 
     @Override
     public Record remove(String key) {
-        Record res = offheap.remove(key);
+        Record res = persisted.remove(key);
         onHeap.remove(key);
         return res;
     }
@@ -69,7 +69,7 @@ public class CachedOffHeapStorage implements RecordStorage {
 
     @Override
     public StorageStats getStats() {
-        return offheap.getStats();
+        return persisted.getStats();
     }
 
     @Override
@@ -79,7 +79,7 @@ public class CachedOffHeapStorage implements RecordStorage {
 
     @Override
     public void resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes) {
-        offheap.resizeIfLoadFactorLarger(loadFactor,maxGrowBytes);
+        persisted.resizeIfLoadFactorLarger(loadFactor,maxGrowBytes);
     }
 
     @Override

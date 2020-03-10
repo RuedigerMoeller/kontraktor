@@ -104,6 +104,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.eclipsesource.minimal-json</groupId>
+            <artifactId>minimal-json</artifactId>
+            <version>0.9.4</version>
+        </dependency>
+
+        <dependency>
             <scope>test</scope>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
