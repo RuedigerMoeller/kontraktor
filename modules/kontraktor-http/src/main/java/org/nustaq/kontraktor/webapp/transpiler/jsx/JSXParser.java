@@ -328,6 +328,9 @@ public class JSXParser implements ParseUtils {
 
     void parseImport(Inp in) {
         in.advance("import ".length());
+        if ( file.getAbsolutePath().endsWith("util/number.js")) {
+            int debug = 1;
+        }
         ImportSpec spec = new ImportSpec().requiredin(file);
         while (in.ch()>0) {
             in.skipWS();
@@ -362,7 +365,7 @@ public class JSXParser implements ParseUtils {
             } else {
                 // plain
                 StringBuilder sb = new StringBuilder();
-                while (isAttrNamePart(in.ch())) {
+                while (isAttrNamePart(in.ch()) || in.ch() == '*') {
                     sb.append(in.ch());
                     in.inc();
                 }
@@ -397,7 +400,7 @@ public class JSXParser implements ParseUtils {
             int debug = 1;
         } else {
             if (!in.match("from"))
-                throw new RuntimeException("expected from >" + in + "<");
+                throw new RuntimeException("expected from >" + in + "<   "+file.getAbsolutePath());
             in.advance(4);
             in.skipWS();
             StringBuilder src = readJSString(in);
