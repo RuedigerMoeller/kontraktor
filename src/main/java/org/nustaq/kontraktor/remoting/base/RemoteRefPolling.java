@@ -19,6 +19,7 @@ package org.nustaq.kontraktor.remoting.base;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.util.Log;
 
 import java.io.IOError;
@@ -47,6 +48,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  */
 public class RemoteRefPolling implements Runnable {
+
+    public static long EMPTY_Q_BACKOFF_WAIT_MILLIS = BackOffStrategy.SLEEP_NANOS/1000/1000;
+    public static long NONE_CONNETCED_WAIT_MILLIS = 100;
+
 
     ArrayList<ScheduleEntry> sendJobs = new ArrayList<>();
 
@@ -96,14 +101,14 @@ public class RemoteRefPolling implements Runnable {
                     else {
                         if ( remoteRefCounter == 0 ) // no remote actors registered
                         {
-                            Actor.current().delayed(100, this); // backoff massively
+                            Actor.current().delayed(NONE_CONNETCED_WAIT_MILLIS, this); // backoff massively
                         } else {
-                            Actor.current().delayed(1, this); // backoff a bit (remoteactors present, no messages)
+                            Actor.current().delayed(EMPTY_Q_BACKOFF_WAIT_MILLIS, this); // backoff a bit (remoteactors present, no messages)
                         }
                     }
                 } else {
                     // no schedule entries (== no clients)
-                    Actor.current().delayed(100, this );
+                    Actor.current().delayed(NONE_CONNETCED_WAIT_MILLIS, this );
                 }
             }
         } finally {

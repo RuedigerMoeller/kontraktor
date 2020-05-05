@@ -30,7 +30,7 @@ import java.util.concurrent.locks.*;
  */
 public class BackOffStrategy {
 
-    public static int SLEEP_NANOS = 2*1000 * 1000; // 2 millis
+    public static int SLEEP_NANOS = 20 * 1000 * 1000; // 20 millis
     public static int SPIN_UNTIL_YIELD = 10;
     public static int YIELD_UNTIL_PARK = 10;
     public static int PARK_UNTIL_SLEEP = 1;
