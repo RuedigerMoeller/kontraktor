@@ -29,8 +29,8 @@ public class Basic {
         TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
         ts.init();
 
-        ts.createOrLoadTable(new TableDescription("blogs").numEntries(500_000).storageType(TableDescription.StorageType.TEMP).sizeMB(500)).await();
-        ts.createOrLoadTable(new TableDescription("articles").numEntries(500_000 * 10).storageType(TableDescription.StorageType.TEMP).sizeMB(500 * 10)).await();
+        ts.createOrLoadTable(new TableDescription("blogs").numEntries(500_000).storageType(TableDescription.TEMP).sizeMB(500)).await();
+        ts.createOrLoadTable(new TableDescription("articles").numEntries(500_000 * 10).storageType(TableDescription.TEMP).sizeMB(500 * 10)).await();
 
         RealLiveTable blogs = ts.getTableAsync("blogs").await();
         RealLiveTable articles = ts.getTableAsync("articles").await();
@@ -346,7 +346,7 @@ public class Basic {
     @Test
     public void testActor() throws InterruptedException {
         RealLiveTableActor rls = Actors.AsActor(RealLiveTableActor.class,100_000);
-        rls.init( () -> new OffHeapRecordStorage(32, 500, 500_000), null);
+        rls.init( d -> new OffHeapRecordStorage(32, 500, 500_000), null);
 
         TA ta = Actors.AsActor(TA.class);
         ta.runTest(rls).await(20_000);
@@ -359,7 +359,7 @@ public class Basic {
         RealLiveTableActor rls[] = new RealLiveTableActor[8];
         for (int i = 0; i < rls.length; i++) {
             rls[i] = Actors.AsActor(RealLiveTableActor.class);
-            rls[i].init(() -> new OffHeapRecordStorage(32, 500 / rls.length, 700_000 / rls.length), null);
+            rls[i].init( d -> new OffHeapRecordStorage(32, 500 / rls.length, 700_000 / rls.length), null);
         }
         ShardedTable sharding = new ShardedTable(rls, null);
 
@@ -379,7 +379,7 @@ public class Basic {
             RealLiveTableActor rls[] = new RealLiveTableActor[8];
             for (int i = 0; i < rls.length; i++) {
                 rls[i] = Actors.AsActor(RealLiveTableActor.class);
-                rls[i].init( () -> new OffHeapRecordStorage(32, 1500/rls.length, 1_500_000/rls.length), null);
+                rls[i].init( d -> new OffHeapRecordStorage(32, 1500/rls.length, 1_500_000/rls.length), null);
             }
             ShardedTable sharding = new ShardedTable(rls, null);
 
@@ -393,7 +393,7 @@ public class Basic {
     @Test
     public void testActorOutside() throws InterruptedException {
         RealLiveTableActor rls = Actors.AsActor(RealLiveTableActor.class);
-        rls.init(() -> new OffHeapRecordStorage(32, 500,500_000),null);
+        rls.init( d -> new OffHeapRecordStorage(32, 500,500_000),null);
 
         TA ta = new TA();
         ta.runTest(rls).await();

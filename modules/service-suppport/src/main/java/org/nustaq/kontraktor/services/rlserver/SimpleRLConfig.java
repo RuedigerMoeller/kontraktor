@@ -12,7 +12,6 @@ public class SimpleRLConfig implements Serializable {
 
     public static SimpleRLConfig get;
 
-
     String dataDir = "./data";
     int numNodes = 3;
     TableDescription tables[];
@@ -24,6 +23,7 @@ public class SimpleRLConfig implements Serializable {
     String publicUrl = "http://localhost:"+bindPort;
     String bindIp = "0.0.0.0";
     String wsPublicUrl = "ws://localhost:"+bindPort+"/ws";
+    String mongoConnection; //"mongodb+srv://<username>:<password>@<cluster-address>/test?w=majority"
 
     Map<String,Object> customData;
 

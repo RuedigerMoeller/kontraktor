@@ -16,12 +16,12 @@ public class RecordJsonifier {
     }
 
     public JsonObject fromRecord(Record r) {
-        String[] fields = r.getFields();
         String key = r.getKey();
         JsonObject res = new JsonObject();
         if ( key != null )
             res.set("key",key);
         res.set("lastModified",r.getLastModified());
+        String[] fields = r.getFields();
         for (int i = 0; i < fields.length; i++) {
             String field = fields[i];
             Object value = r.get(field);

@@ -38,10 +38,10 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     int taCount = 0;
 
     @Local
-    public IPromise init(Supplier<RecordStorage> storeFactory, TableDescription desc) {
+    public IPromise init(Function<TableDescription,RecordStorage> storeFactory, TableDescription desc) {
         this.description = desc;
         Thread.currentThread().setName("Table "+(desc==null?"NULL":desc.getName())+" main");
-        RecordStorage store = storeFactory.get();
+        RecordStorage store = storeFactory.apply(desc);
         storageDriver = new StorageDriver(store);
         filterProcessor = new FilterProcessor(this);
         storageDriver.setListener( filterProcessor );

@@ -11,7 +11,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>service-support</artifactId>
-    <version>4.30.9</version>
+    <version>4.30.10</version>
 
     <description>service registry</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -99,7 +99,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>reallive</artifactId>
-            <version>4.30.4</version>
+            <version>4.30.5</version>
         </dependency>
 
         <dependency>
@@ -125,7 +125,13 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor-http</artifactId>
-            <version>4.30</version>
+            <version>4.30.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-reactivestreams</artifactId>
+            <version>1.13.1</version>
         </dependency>
 
         <dependency>

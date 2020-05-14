@@ -8,7 +8,7 @@ import org.nustaq.reallive.api.Record;
  */
 public interface RecordPersistance {
 
-    Record remove(String key);
+    Record remove(String key); // SOME IMPLEMENTATIONS ALWAYS RETURN NULL (method signature trouble)
 
     StorageStats getStats();
 

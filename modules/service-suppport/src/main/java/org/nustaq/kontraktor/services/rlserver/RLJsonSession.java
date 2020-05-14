@@ -360,7 +360,9 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
 
     @Override
     public void hasBeenUnpublished(String connectionIdentifier) {
-
+        Map<String,SubsEntry> copy = new HashMap<>(subscriptions.size());
+        copy.putAll(subscriptions);
+        copy.forEach( (k,en) -> unsubscribe(k) );
     }
 
     @Override

@@ -2,11 +2,14 @@ SimpleRLConfig {
 
   bindPort: 8087
   dataDir: "./data"
-  numNodes: 5
+  numNodes: 1
   runDataClusterInsideWebserver: true
 
+  mongoConnection: 'mongodb://localhost:27017/testrl'
+
   tables: [
-    { name: feed } ### defaults: sizeMB: 100 filePath: USE_BASE_DIR storageType: CACHED
-    { name: feedEntity }
+    { name: feed, storageType: CACHED } ### defaults: sizeMB: 100 filePath: USE_BASE_DIR storageType: CACHED
+    { name: feedEntity, storageType: CACHED }
   ]
+
 }

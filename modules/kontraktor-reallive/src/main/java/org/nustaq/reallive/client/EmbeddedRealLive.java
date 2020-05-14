@@ -13,6 +13,9 @@ import org.nustaq.reallive.impl.storage.HeapRecordStorage;
 import org.nustaq.reallive.impl.storage.OffHeapRecordStorage;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class EmbeddedRealLive {
@@ -21,6 +24,8 @@ public class EmbeddedRealLive {
     public static EmbeddedRealLive get() {
         return instance;
     }
+
+    public static Map<String,Function<TableDescription,RecordStorage>> sCustomRecordStorage = new HashMap<>();
 
     /**
      * WARNING: never create more than one table using the same file. This will
@@ -34,23 +39,26 @@ public class EmbeddedRealLive {
     public IPromise<RealLiveTable> createTable(TableDescription desc, String dataDir) {
         RealLiveTableActor table = Actors.AsActor(RealLiveTableActor.class);
 
-        Supplier<RecordStorage> memFactory;
+        Function<TableDescription,RecordStorage> memFactory;
         if (desc.getFilePath() == null) {
             Log.Info(this,"no file specified. all data in memory "+desc.getName());
             switch (desc.getStorageType()) {
-                case CACHED:
-                    memFactory = () -> new CachedOffHeapStorage(
+                case TableDescription.CACHED:
+                    memFactory = d -> new CachedOffHeapStorage(
                         new OffHeapRecordStorage(desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries()),
-                        new HeapRecordStorage());
+                        new HeapRecordStorage()
+                    );
+                    break;
+                case TableDescription.PERSIST:
+                    memFactory = d -> new OffHeapRecordStorage(desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries());
+                    break;
+                case TableDescription.TEMP:
+                    memFactory = d -> new HeapRecordStorage();
                     break;
                 default:
-                    Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to PERSIST");
-                case PERSIST:
-                    memFactory = () -> new OffHeapRecordStorage(desc.getKeyLen(), desc.getSizeMB(), desc.getNumEntries());
-                    break;
-                case TEMP:
-                    memFactory = () -> new HeapRecordStorage();
-                    break;
+                    memFactory = sCustomRecordStorage.get(desc.getStorageType());
+                    if ( memFactory == null )
+                        Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to PERSIST");
             }
         } else {
             String bp = dataDir == null ? desc.getFilePath() : dataDir;
@@ -58,9 +66,9 @@ public class EmbeddedRealLive {
             new File(bp).mkdirs();
             String file = bp + "/" + desc.getName() + "_" + desc.getShardNo() + ".bin";
             switch (desc.getStorageType()) {
-                case CACHED:
+                case TableDescription.CACHED:
                     Log.Info(this,"memory mapping file "+file);
-                    memFactory = () -> new CachedOffHeapStorage(
+                    memFactory = d -> new CachedOffHeapStorage(
                         new OffHeapRecordStorage(
                             file,
                             desc.getKeyLen(),
@@ -70,11 +78,9 @@ public class EmbeddedRealLive {
                         new HeapRecordStorage()
                     );
                     break;
-                default:
-                    Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to PERSIST");
-                case PERSIST:
+                case TableDescription.PERSIST:
                     Log.Info(this,"memory mapping file "+file);
-                    memFactory = () ->
+                    memFactory = d ->
                         new OffHeapRecordStorage(
                             file,
                             desc.getKeyLen(),
@@ -82,9 +88,13 @@ public class EmbeddedRealLive {
                             desc.getNumEntries()
                         );
                     break;
-                case TEMP:
-                    memFactory = () -> new HeapRecordStorage();
+                case TableDescription.TEMP:
+                    memFactory = d -> new HeapRecordStorage();
                     break;
+                default:
+                    memFactory = sCustomRecordStorage.get(desc.getStorageType());
+                    if ( memFactory == null )
+                        Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to PERSIST");
             }
         }
         Promise p = new Promise();

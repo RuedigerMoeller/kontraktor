@@ -7,11 +7,9 @@ import java.io.Serializable;
  */
 public class TableDescription implements Serializable, Cloneable {
 
-    public enum StorageType {
-        TEMP,
-        PERSIST,
-        CACHED
-    }
+    public static final String TEMP = "TEMP";
+    public static final String PERSIST = "PERSIST";
+    public static final String CACHED = "CACHED";
 
     String name;
     int sizeMB = 100;
@@ -19,7 +17,7 @@ public class TableDescription implements Serializable, Cloneable {
     int numEntries=100_000;
     int shardNo;
     int keyLen = 48;
-    String storageType = StorageType.CACHED.toString();
+    String storageType = CACHED;
 
     public TableDescription() {}
 
@@ -32,13 +30,13 @@ public class TableDescription implements Serializable, Cloneable {
         return this;
     }
 
-    public TableDescription storageType(final StorageType st) {
+    public TableDescription storageType(final String st) {
         this.storageType = st.toString();
         return this;
     }
 
-    public StorageType getStorageType() {
-        return StorageType.valueOf(storageType);
+    public String getStorageType() {
+        return storageType;
     }
 
     public TableDescription sizeMB(final int sizeMB) {

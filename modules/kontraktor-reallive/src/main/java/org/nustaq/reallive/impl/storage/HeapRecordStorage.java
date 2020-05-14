@@ -56,7 +56,6 @@ public class HeapRecordStorage implements RecordStorage {
 
     @Override
     public <T> void forEachWithSpore(Spore<Record, T> spore) {
-        long now = System.currentTimeMillis();
         for (Iterator<Map.Entry<Object, Record>> iterator = map.entrySet().iterator(); iterator.hasNext(); ) {
             Map.Entry<Object, Record> next = iterator.next();
             try {

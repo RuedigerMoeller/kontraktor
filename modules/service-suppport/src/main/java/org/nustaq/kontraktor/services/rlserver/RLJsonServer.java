@@ -107,7 +107,7 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
     }
 
     public static void startUp(String[] args, Class appClazz) throws InterruptedException {
-        if ( ! new File("./etc").exists() ) {
+        if ( ! new File(SimpleRLConfig.pathname).exists() ) {
             System.out.println("Please run with project working dir");
             System.exit(-1);
         }

@@ -35,11 +35,12 @@ public class CachedOffHeapStorage implements RecordStorage {
                 }
                 onHeap._put(input.getKey(), unwrap);
             }
-        });
-        for (int i = 0; i < reput.size(); i++) {
-            Record record = reput.get(i);
-            persisted.put((String) record.getKey(),record);
-        }
+        }.onFinish( () -> {
+            for (int i = 0; i < reput.size(); i++) {
+                Record record = reput.get(i);
+                persisted._put((String) record.getKey(),record);
+            }
+        }));
     }
 
     @Override
@@ -57,8 +58,8 @@ public class CachedOffHeapStorage implements RecordStorage {
 
     @Override
     public Record remove(String key) {
-        Record res = persisted.remove(key);
-        onHeap.remove(key);
+        persisted.remove(key);
+        Record res = onHeap.remove(key);
         return res;
     }
 
