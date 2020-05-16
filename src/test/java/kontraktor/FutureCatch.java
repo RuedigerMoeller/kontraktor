@@ -47,19 +47,19 @@ public class FutureCatch {
             AtomicBoolean er = new AtomicBoolean(false);
             AtomicBoolean ex = new AtomicBoolean(false);
             debounce(100, "test", () -> er.set(true) );
-            yield(10);
+            kYield(10);
             debounce(100, "test", () -> er.set(true) );
-            yield(50);
+            kYield(50);
             debounce(100, "test", () -> er.set(true) );
-            yield(50);
+            kYield(50);
             debounce(100, "test", () -> er.set(true) );
-            yield(50);
+            kYield(50);
             debounce(100, "test", () -> er.set(true) );
-            yield(50);
+            kYield(50);
             debounce(100, "test", () -> er.set(true) );
-            yield(10);
+            kYield(10);
             debounce(100, "test", () -> ex.set(true) );
-            yield(200);
+            kYield(200);
             return resolve(!er.get() && ex.get());
         }
 

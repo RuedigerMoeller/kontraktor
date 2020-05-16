@@ -6,7 +6,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import javax.xml.bind.DatatypeConverter;
+//import javax.xml.bind.DatatypeConverter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -45,9 +45,10 @@ public class JWTUtil {
     }
 
     public static Claims getClaims(String jwt, String secret) {
-        return Jwts.parser()
-                .setSigningKey(DatatypeConverter.parseBase64Binary(secret))
-                .parseClaimsJws(jwt).getBody();
+        return null;
+//        Jwts.parser()
+//                .setSigningKey(DatatypeConverter.parseBase64Binary(secret))
+//                .parseClaimsJws(jwt).getBody();
     }
 
     public static String readSecret(String fi) throws IOException {

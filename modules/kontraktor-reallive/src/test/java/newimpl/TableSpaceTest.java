@@ -13,6 +13,7 @@ import org.nustaq.reallive.api.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by ruedi on 14.08.2015.

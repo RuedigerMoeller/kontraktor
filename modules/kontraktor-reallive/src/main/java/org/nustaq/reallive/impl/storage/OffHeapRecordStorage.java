@@ -17,6 +17,8 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import org.nustaq.reallive.api.Record;
+
 
 /**
  * Created by moelrue on 05.08.2015.

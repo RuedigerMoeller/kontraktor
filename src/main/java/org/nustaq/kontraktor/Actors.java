@@ -414,8 +414,8 @@ public class Actors {
      * processes messages from mailbox / callbackqueue until no messages are left
      * NOP if called from non actor thread.
      */
-    public static void yield() {
-        yield(0);
+    public static void kYield() {
+        kYield(0);
     }
 
     /**
@@ -426,7 +426,7 @@ public class Actors {
      *
      * @param timeout
      */
-    public static void yield(long timeout) {
+    public static void kYield(long timeout) {
         long endtime = 0;
         if ( timeout > 0 ) {
             endtime = System.currentTimeMillis() + timeout;

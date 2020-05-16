@@ -18,7 +18,7 @@ public class GeneratorTest {
             for ( int i = 0; i < 5; i++ ) {
                 for ( int ii = 0; ii < 5; ii++ ) {
                     iterator.pipe(new int[] {i,ii});
-                    yield(interval);
+                    kYield(interval);
                 }
             }
             iterator.finish();

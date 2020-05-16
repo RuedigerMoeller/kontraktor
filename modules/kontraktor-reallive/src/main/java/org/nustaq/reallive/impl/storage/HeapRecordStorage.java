@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.stream.Stream;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by ruedi on 03/08/15.

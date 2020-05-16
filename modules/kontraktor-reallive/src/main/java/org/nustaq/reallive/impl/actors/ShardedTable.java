@@ -16,10 +16,11 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
 import java.util.stream.Collectors;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by moelrue on 06.08.2015.
- * Provides a single view on to a sharded table
+ * Provides a single view on to a sharded table client side
  */
 public class ShardedTable implements RealLiveTable {
     public static boolean DUMP_IN_PROC_CHANGES = false;
@@ -77,11 +78,13 @@ public class ShardedTable implements RealLiveTable {
 
     private void globalListen(ChangeMessage change) {
         boolean fin = globalListenReady.get();
-        if ( !fin && change.isDoneMsg() ) {
-            if ( DUMP_IN_PROC_CHANGES ) {
-                Log.Info(this, "Global Listen Ready");
+        if ( !fin ) {
+            if (change.isDoneMsg()) {
+                if (DUMP_IN_PROC_CHANGES) {
+                    Log.Info(this, "Global Listen Ready");
+                }
+                globalListenReady.set(true);
             }
-            globalListenReady.set(true);
         }
         else if (fin) {
             if ( DUMP_IN_PROC_CHANGES ) {

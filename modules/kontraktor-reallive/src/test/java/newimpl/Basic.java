@@ -1,5 +1,6 @@
 package newimpl;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
@@ -18,6 +19,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by ruedi on 04.08.2015.
@@ -216,7 +218,7 @@ public class Basic {
 
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
-                yield();
+                kYield();
                 rls.add( "k" + i,
                         "name", "rm",
                         "age", rand,
@@ -228,7 +230,7 @@ public class Basic {
 
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
-                yield();
+                kYield();
                 rls.update( "k" + i,
                    "name", "rm"+(int)(Math.random()*i),
                    "age", rand,
@@ -239,7 +241,7 @@ public class Basic {
             System.out.println("UPDATE SIZE" + rls.size().await());
 
             for ( int i = 0; i < 500_000; i++ ) {
-                yield();
+                kYield();
                 rls.remove( "k" + (int) (Math.random() * 1_000_000));
             }
             rls.ping().await();
@@ -247,7 +249,7 @@ public class Basic {
 
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
-                yield();
+                kYield();
                 rls.merge( "k" + i,
                         "name", "rm",
                         "age", rand
@@ -266,7 +268,7 @@ public class Basic {
             for (Iterator<Map.Entry> iterator = m.entrySet().iterator(); iterator.hasNext(); ) {
                 Map.Entry next = iterator.next();
                 Record copy = (Record) next.getValue();
-                yield();
+                kYield();
                 if ( count.incrementAndGet() % 100_000 == 0 )
                     System.out.println("compared "+count.get());
                 rl.get((String) next.getKey()).then(rlRec -> {
@@ -354,7 +356,7 @@ public class Basic {
         rls.stop();
     }
 
-    @Test
+    @Test @Ignore // invalid since filtering has changed thread architecture. does not work in process anymore
     public void testActorShard() throws InterruptedException {
         RealLiveTableActor rls[] = new RealLiveTableActor[8];
         for (int i = 0; i < rls.length; i++) {

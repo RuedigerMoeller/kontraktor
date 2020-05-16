@@ -6,6 +6,7 @@ import org.nustaq.reallive.impl.RLUtil;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by ruedi on 04.08.2015.

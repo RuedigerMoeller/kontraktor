@@ -12,7 +12,7 @@
 
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>reallive</artifactId>
-    <version>4.30.5</version>
+    <version>5.0.0</version>
 
     <description>persistent inmemory datagrid based on kontraktor</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -36,9 +36,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.1</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>14</source>
+                    <target>14</target>
                 </configuration>
             </plugin>
 
@@ -100,7 +101,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor</artifactId>
-            <version>4.30</version>
+            <version>5.0.0</version>
         </dependency>
 
         <dependency>

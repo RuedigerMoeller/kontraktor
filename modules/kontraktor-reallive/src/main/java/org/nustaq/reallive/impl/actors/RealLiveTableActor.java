@@ -16,7 +16,9 @@ import org.nustaq.reallive.records.RecordWrapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.*;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by ruedi on 06.08.2015.
@@ -26,8 +28,9 @@ import java.util.function.*;
  */
 public class RealLiveTableActor extends Actor<RealLiveTableActor> implements RealLiveTable {
 
+    public static final long REPORT_INTERVAL = TimeUnit.MINUTES.toMillis(1);
     public static int MAX_QUERY_BATCH_SIZE = 10;
-    public static boolean DUMP_QUERY_TIME = false;
+    public static boolean DUMP_QUERY_TIME = true;
 
     StorageDriver storageDriver;
     FilterProcessor filterProcessor;
@@ -36,14 +39,15 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     ArrayList<QueryQEntry> queuedSpores = new ArrayList();
 
     int taCount = 0;
+    long lastReportTime = System.currentTimeMillis();
 
     @Local
     public IPromise init(Function<TableDescription,RecordStorage> storeFactory, TableDescription desc) {
         this.description = desc;
         Thread.currentThread().setName("Table "+(desc==null?"NULL":desc.getName())+" main");
         RecordStorage store = storeFactory.apply(desc);
-        storageDriver = new StorageDriver(store);
         filterProcessor = new FilterProcessor(this);
+        storageDriver = new StorageDriver(store);
         storageDriver.setListener( filterProcessor );
         return resolve();
     }
@@ -93,40 +97,35 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
 
     public void _subscribe(RLPredicate pred, Callback cb, int id) {
         checkThread();
+        long now = System.currentTimeMillis();
+        if ( now-lastReportTime > REPORT_INTERVAL) {
+            Log.Info(this,"mem report filterProc "+filterProcessor.getFilterSize()+", receiverSideSubsMap:"+receiverSideSubsMap.size() );
+            lastReportTime = now;
+        }
         Subscriber localSubs = new Subscriber(pred, change -> {
             cb.pipe(change);
         }).serverSideCB(cb);
         String sid = addChannelIdIfPresent(cb, ""+id);
         receiverSideSubsMap.put(sid,localSubs);
 
-        FilterSpore spore = new FilterSpore(localSubs.getFilter()).modifiesResult(false);
-        spore.onFinish( () -> localSubs.getReceiver().receive(RLUtil.get().done()) );
-        spore.setForEach((r, e) -> {
-            if (Actors.isResult(e)) {
-                localSubs.getReceiver().receive(new AddMessage(0,(Record) r));
-            } else {
-                // FIXME: pass errors
-                // FIXME: called in case of error only (see onFinish above)
-                localSubs.getReceiver().receive(RLUtil.get().done());
-            }
-        });
-        if ( pred instanceof KeySetSubscriber.KSPredicate ) {
-            KeySetSubscriber.KSPredicate<Record> p = (KeySetSubscriber.KSPredicate) pred;
-            p.getKeys().forEach( key -> {
-                Record record = storageDriver.getStore().get(key);
-                if ( record != null ) {
-                    localSubs.getReceiver().receive(new AddMessage(0,record));
-                }
-            });
+        if ( pred instanceof RLNoQueryPredicate ) {
             localSubs.getReceiver().receive(RLUtil.get().done());
             filterProcessor.startListening(localSubs);
         } else {
-            if ( pred instanceof RLNoQueryPredicate ) {
-                localSubs.getReceiver().receive(RLUtil.get().done());
-            } else {
-                forEachDirect(spore); // removed queuing, ot tested well enough
-            }
-            filterProcessor.startListening(localSubs);
+            FilterSpore spore = new FilterSpore(localSubs.getFilter()).modifiesResult(false);
+            spore.onFinish( () -> localSubs.getReceiver().receive(RLUtil.get().done()) );
+            spore.setForEach((r, e) -> {
+                if (Actors.isResult(e)) {
+                    localSubs.getReceiver().receive(new AddMessage(0,(Record) r));
+                } else {
+                    // FIXME: pass errors
+                    // FIXME: called in case of error only (see onFinish above)
+                    localSubs.getReceiver().receive(RLUtil.get().done());
+                }
+            });
+            forEachQueued(spore, () -> {
+                filterProcessor.startListening(localSubs);
+            });
         }
     }
 
@@ -167,8 +166,8 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
                 qqentry.spore.finish();
                 qqentry.onFin.run();
             });
-            if (DUMP_QUERY_TIME)
-                System.out.println("tim for "+queuedSpores.size()+" "+(System.currentTimeMillis()-tim));
+            if (DUMP_QUERY_TIME && queuedSpores.size() > 0)
+                System.out.println("tim for "+queuedSpores.size()+" "+(System.currentTimeMillis()-tim)+" per q:"+(System.currentTimeMillis()-tim)/queuedSpores.size());
             queuedSpores.clear();
             return;
         }

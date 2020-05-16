@@ -7,6 +7,7 @@ import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.records.PatchingRecord;
 import org.nustaq.reallive.records.RecordWrapper;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by moelrue on 03.08.2015.

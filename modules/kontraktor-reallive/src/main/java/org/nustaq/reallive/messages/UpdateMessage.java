@@ -3,6 +3,7 @@ package org.nustaq.reallive.messages;
 import org.nustaq.reallive.api.*;
 
 import java.util.*;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by moelrue on 03.08.2015.

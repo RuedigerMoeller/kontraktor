@@ -5,6 +5,7 @@ import org.nustaq.reallive.api.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Objects;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by ruedi on 03/08/15.

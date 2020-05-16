@@ -1,6 +1,7 @@
 package org.nustaq.reallive.impl;
 
 import org.nustaq.reallive.api.*;
+import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.records.*;
 

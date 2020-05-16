@@ -67,7 +67,7 @@ public class BackOffStrategy {
         this.nanosToPark = nanosToPark; return this;
     }
 
-    public void yield(int count) {
+    public void kYield(int count) {
         if ( count > sleepCount || count < 0 ) {
             LockSupport.parkNanos(nanosToPark);
         } else if ( count > parkCount) {

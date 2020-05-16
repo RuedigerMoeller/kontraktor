@@ -1,11 +1,16 @@
 package org.nustaq.reallive.query;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by moelrue on 27.08.2015.
  */
 public class VarPath implements Serializable, HasToken  {
+
+    static Map<String,String[]> sEvalCache = new HashMap<>();
+
     String field;
     String fields[];
     EvalContext ctx[];
@@ -15,13 +20,15 @@ public class VarPath implements Serializable, HasToken  {
         this.field = field;
         this.ctx = ctx;
         this.token = token;
-        if ( field.indexOf('.') >= 0 ) {
+        fields = sEvalCache.get(field);
+        if ( fields == null && field.indexOf('.') >= 0 ) {
             fields = field.split("\\.");
             if ( fields.length > 0 )
                 this.field = fields[0];
             else {
                 int debug = 1;
             }
+            sEvalCache.put(field,fields);
         }
     }
 

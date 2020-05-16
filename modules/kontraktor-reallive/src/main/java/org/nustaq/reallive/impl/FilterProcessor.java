@@ -7,6 +7,7 @@ import org.nustaq.reallive.records.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.nustaq.reallive.api.Record;
 
 /**
  * Created by moelrue on 04.08.2015.
@@ -135,5 +136,9 @@ public class FilterProcessor implements ChangeReceiver {
             }
         }
         toRem.forEach( s -> unsubscribe(s));
+    }
+
+    public int getFilterSize() {
+        return filterList.size();
     }
 }

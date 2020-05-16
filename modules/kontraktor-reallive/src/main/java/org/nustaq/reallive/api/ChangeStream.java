@@ -4,6 +4,8 @@ import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.reallive.impl.QueryPredicate;
 import org.nustaq.reallive.query.QParseException;
 
+import java.util.HashSet;
+
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -39,9 +41,12 @@ public interface ChangeStream extends SafeChangeStream {
      * @return
      */
     default @CallerSideMethod Subscriber observe(String[] keys, ChangeReceiver rec) {
-        KeySetSubscriber subs = new KeySetSubscriber(keys,rec);
-        subscribe(subs);
-        return subs;
+        HashSet set = new HashSet();
+        for (int i = 0; i < keys.length; i++) {
+            String key = keys[i];
+            set.add(key);
+        }
+        return subscribeOn( record -> set.contains(record.getKey()), rec );
     }
 
     default @CallerSideMethod Subscriber listen(RLNoQueryPredicate<Record> filter,ChangeReceiver rec) {

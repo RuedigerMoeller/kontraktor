@@ -154,6 +154,7 @@ public class JSR356ClientConnector implements ActorClientConnector {
         }
 
         public void sendBinary(byte[] message) {
+            System.out.println("message size "+message.length);
             if ( DumpProtocol ) {
                 System.out.println("requ:");
                 System.out.println(new String(message,0));

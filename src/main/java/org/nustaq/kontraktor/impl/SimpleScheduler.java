@@ -90,7 +90,7 @@ public class SimpleScheduler implements Scheduler {
 
     @Override
     public void pollDelay(int count) {
-        backOffStrategy.yield(count);
+        backOffStrategy.kYield(count);
     }
 
     @Override

@@ -10,6 +10,8 @@ import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
+import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
+import org.nustaq.kontraktor.remoting.tcp.TCPPublisher;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.messages.*;
@@ -92,6 +94,9 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
                 .coding(new Coding(SerializerType.JsonNoRef, CLAZZES))
                 .buildWebsocket()
             .build();
+        new TCPPublisher(app,7654)
+//            .coding( new Coding(SerializerType.JsonNoRef,RLJsonServer.CLAZZES) )
+            .publish( dis -> System.out.println("disconnected"));
     }
 
     @CallerSideMethod @Local
@@ -117,7 +122,7 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
         }
 
         RLJsonServer app = (RLJsonServer) AsActor(appClazz);
-        app.init(args).await(60_000);
+        app.init(args).await(5*60_000);
 
         Log.Info(appClazz,"listening on http://"+Cfg().getBindIp()+":"+Cfg().getBindPort());
 

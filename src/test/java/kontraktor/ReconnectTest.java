@@ -11,6 +11,8 @@ import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * Created by ruedi on 4/10/2016.
  */
@@ -18,7 +20,7 @@ public class ReconnectTest {
 
     public static class ServiceA extends Actor<ServiceA> {
         public IPromise promise(int val) {
-            Log.Info(this,"pinged "+val);
+//            Log.Info(this,"pinged "+val);
             return resolve(val);
         }
         @Override
@@ -41,8 +43,18 @@ public class ReconnectTest {
         }
 
         public void pingLoop() {
-            service.promise(count++);
-            delayed(1000,()->pingLoop());
+            AtomicInteger rcount = new AtomicInteger();
+            long tim = System.currentTimeMillis();
+            for ( int i = 0; i < 500_000; i++ ) {
+                rcount.incrementAndGet();
+                service.promise(count++).then( () -> {
+                    rcount.decrementAndGet();
+                    if ( rcount.get() == 0 ) {
+                        System.out.println("done loop "+(System.currentTimeMillis()-tim));
+                        delayed( 1000, () -> pingLoop());
+                    }
+                });
+            }
         }
 
     }
