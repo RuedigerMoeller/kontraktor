@@ -15,6 +15,7 @@ public class VarPath implements Serializable, HasToken  {
     String fields[];
     EvalContext ctx[];
     QToken token;
+    String path;
 
     public VarPath(String field, EvalContext[] ctx, QToken token) {
         this.field = field;
@@ -23,6 +24,7 @@ public class VarPath implements Serializable, HasToken  {
         fields = sEvalCache.get(field);
         if ( fields == null && field.indexOf('.') >= 0 ) {
             fields = field.split("\\.");
+            path = field;
             if ( fields.length > 0 )
                 this.field = fields[0];
             else {
@@ -32,28 +34,16 @@ public class VarPath implements Serializable, HasToken  {
         }
     }
 
+    public String getPath() {
+        return path;
+    }
+
     public RLSupplier<Value> getEval() {
         return new SupplierWithToken<Value>() {
             @Override
             public Value get() {
-                if ( ctx[0] != null ) {
-                    if ( fields != null && fields.length > 0 ) {
-                        EvalContext currentRec = null;
-                        for (int i = 0; i < fields.length-1; i++) {
-                            Object o = ctx[0].get(fields[i]);
-                            if ( o instanceof EvalContext == false )
-                                return null;
-                            currentRec = (EvalContext) o;
-                        }
-                        if ( currentRec != null ) {
-                            return currentRec.getValue(fields[fields.length-1]);
-                        }
-                        return null;
-                    } else {
-                        return ctx[0].getValue(field);
-                    }
-                }
-                return null;
+                EvalContext ectx = ctx[0];
+                return evaluate(ectx);
             }
 
             @Override
@@ -61,6 +51,27 @@ public class VarPath implements Serializable, HasToken  {
                 return VarPath.this.getToken();
             }
         };
+    }
+
+    public Value evaluate(EvalContext ectx) {
+        if ( ectx != null ) {
+            if ( fields != null && fields.length > 0 ) {
+                EvalContext currentRec = null;
+                for (int i = 0; i < fields.length-1; i++) {
+                    Object o = ectx.get(fields[i]);
+                    if ( o instanceof EvalContext == false )
+                        return null;
+                    currentRec = (EvalContext) o;
+                }
+                if ( currentRec != null ) {
+                    return currentRec.getValue(fields[fields.length-1]);
+                }
+                return null;
+            } else {
+                return ectx.getValue(field);
+            }
+        }
+        return null;
     }
 
     public QToken getToken() {

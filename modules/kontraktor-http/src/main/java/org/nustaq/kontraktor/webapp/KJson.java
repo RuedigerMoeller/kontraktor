@@ -5,6 +5,9 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.WriterConfig;
 
 public class KJson {
+    public static String objs(Object ... keyval) {
+        return obj(keyval).toString();
+    }
 
     public static JsonObject obj(Object ... keyval) {
         JsonObject res = new JsonObject();

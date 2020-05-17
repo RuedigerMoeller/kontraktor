@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.Scheduler;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.apputil.*;
+import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
@@ -105,10 +106,9 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
     }
 
     public static void main(String[] args) throws InterruptedException {
+        BackOffStrategy.SLEEP_NANOS = 5 * 1000 * 1000; // 20 millis
         Class<RLJsonServer> appClazz = RLJsonServer.class;
-
         startUp(args, appClazz);
-
     }
 
     public static void startUp(String[] args, Class appClazz) throws InterruptedException {

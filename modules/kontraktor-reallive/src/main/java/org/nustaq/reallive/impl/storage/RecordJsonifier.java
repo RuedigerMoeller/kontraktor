@@ -88,6 +88,23 @@ public class RecordJsonifier {
         return aNew;
     }
 
+    public Object toJavaValue(JsonValue jsonValue) {
+        if ( jsonValue.isString() ) {
+            return jsonValue.asString();
+        } else if ( jsonValue.isNull() ) {
+            return null;
+        } else if ( jsonValue.isNumber() ) {
+            if ( jsonValue.toString().indexOf('.') >= 0 )
+                return jsonValue.asDouble();
+            else
+                return jsonValue.asLong();
+        } else if ( jsonValue.isBoolean() ) {
+            return jsonValue.asBoolean();
+        } else {
+            throw new RuntimeException("unexpected json type:"+jsonValue.getClass());
+        }
+    }
+
     public Object[] toRecordArray(JsonArray arr) {
         Object res[] = new Object[arr.size()];
         int i = 0;

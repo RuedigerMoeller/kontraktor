@@ -18,6 +18,7 @@ public class TableDescription implements Serializable, Cloneable {
     int shardNo;
     int keyLen = 48;
     String storageType = CACHED;
+    String hashIndexed[] = {};
 
     public TableDescription() {}
 
@@ -28,6 +29,10 @@ public class TableDescription implements Serializable, Cloneable {
     public TableDescription name(final String name) {
         this.name = name;
         return this;
+    }
+
+    public String[] getHashIndexed() {
+        return hashIndexed;
     }
 
     public TableDescription storageType(final String st) {

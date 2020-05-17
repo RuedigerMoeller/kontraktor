@@ -11,10 +11,8 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.RemotedActor;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.reallive.api.ChangeMessage;
-import org.nustaq.reallive.api.RealLiveTable;
+import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.api.Record;
-import org.nustaq.reallive.api.Subscriber;
 import org.nustaq.reallive.impl.QueryPredicate;
 import org.nustaq.reallive.impl.RLUtil;
 import org.nustaq.reallive.impl.storage.RecordJsonifier;
@@ -117,6 +115,48 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
                 res.reject(e);
         });
         return res;
+    }
+
+    // test
+    public void selectHashed(String table, String indexPath2hashKeyJson, String query, Callback<String> res) {
+        RealLiveTable tbl = dClient.tbl(table);
+        AtomicBoolean hadErr = new AtomicBoolean(false);
+        if ( tbl == null )
+            res.reject("table '"+table+"' not found");
+        JsonObject parse;
+        try {
+            parse = Json.parse(indexPath2hashKeyJson).asObject();
+        } catch (Exception e) {
+            Log.Info(this,e);
+            res.reject(e);
+            return;
+        }
+        RLHashIndexPredicate predicate = new RLHashIndexPredicate(new QueryPredicate(query));
+        parse.names().forEach( name -> {
+            if ( name.startsWith("-") ) {
+                predicate.subtract(name.substring(1),RecordJsonifier.get().toJavaValue(parse.get(name)));
+            } else if ( name.startsWith("/") ) {
+                predicate.intersect(name.substring(1),RecordJsonifier.get().toJavaValue(parse.get(name)));
+            } else
+                predicate.join(name,RecordJsonifier.get().toJavaValue(parse.get(name)));
+        });
+        tbl.forEach( predicate, (r, e) -> {
+            if ( r != null )
+                res.pipe(fromRecord(r).toString());
+            else if ( e != null ) {
+                if (!hadErr.get()) {
+                    if (e instanceof QParseException) {
+                        res.reject("Error in Query:" + ((QParseException) e).getMessage());
+                    } else
+                        res.reject(e);
+                    hadErr.set(true);
+                } else {
+                    // do nothing
+                }
+            }
+            else
+                res.finish();
+        });
     }
 
     public void select(String table, String query, Callback<String> res) {

@@ -6,6 +6,7 @@ import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.api.Record;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * acts as a passive listener to maintain state
@@ -14,24 +15,41 @@ import java.util.*;
  */
 public class HashIndex implements StorageIndex {
 
+    private final String hashPath;
     RLFunction<Record,Object> hashGetter;
     HashMap<Object, Set<String>> index = new HashMap<>();
     HashMap key2HashVal = new HashMap();
 
-    public HashIndex(RLFunction<Record, Object> hashGetter) {
+    public HashIndex(RLFunction<Record, Object> hashGetter, String hashPath) {
         this.hashGetter = hashGetter;
+        this.hashPath = hashPath;
+    }
+
+    public String getHashPath() {
+        return hashPath;
+    }
+
+    public RLFunction<Record, Object> getHashGetter() {
+        return hashGetter;
+    }
+
+    public HashMap<Object, Set<String>> getIndex() {
+        return index;
+    }
+
+    public HashMap getKey2HashVal() {
+        return key2HashVal;
     }
 
     @Override
     public void put(String key, Record value) {
-        Object hkey = hashGetter.apply(value);
-        if ( hkey == null )
-            hkey = "_NULL_";
+        Object hkey = unifyKey(hashGetter.apply(value));
         Object oldHKey = key2HashVal.get(key);
         if ( hkey.equals(oldHKey) )
             return;
         // remove
-        index.get(oldHKey).remove(key);
+        if ( oldHKey != null )
+            index.get(oldHKey).remove(key);
         key2HashVal.put(key,hkey);
         Set<String> strings = index.get(hkey);
         if ( strings == null ) {
@@ -39,6 +57,19 @@ public class HashIndex implements StorageIndex {
             index.put(hkey,strings);
         }
         strings.add(key);
+    }
+
+    public static Object unifyKey(Object key) {
+        if ( key instanceof Byte ||
+            key instanceof Short ||
+            key instanceof Integer ||
+            key instanceof Long )
+            return ((Number) key).longValue();
+        if ( key instanceof Float || key instanceof Double )
+            return ((Number) key).doubleValue();
+        if ( key == null )
+            return "_NULL_";
+        return key;
     }
 
     @Override
@@ -70,5 +101,23 @@ public class HashIndex implements StorageIndex {
                 break;
         }
         spore.finish();
+    }
+
+    public static void main(String[] args) {
+        HashMap mp = new HashMap();
+        mp.put( unifyKey(Byte.valueOf((byte) 125)),"Hello");
+        System.out.println(mp.get(unifyKey(125))+" "+mp.get(unifyKey(Long.valueOf(125))));
+    }
+
+    public Stream<String> getKeys(Object key) {
+        return getKeySet(key).stream();
+    }
+
+    public Set<String> getKeySet(Object key) {
+        Set<String> strings = index.get(unifyKey(key));
+        if ( strings == null ) {
+            return Collections.<String>emptySet();
+        }
+        return strings;
     }
 }

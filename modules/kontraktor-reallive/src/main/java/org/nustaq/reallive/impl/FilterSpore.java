@@ -24,6 +24,10 @@ public class FilterSpore extends Spore<Record,Record> {
         }
     };
 
+    public RLPredicate<Record> getFilter() {
+        return filter;
+    }
+
     @Override
     public void remote(Record input) {
         if (modifiesResult) {

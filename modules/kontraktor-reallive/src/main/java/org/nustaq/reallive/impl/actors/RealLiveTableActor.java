@@ -7,17 +7,27 @@ import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.remoting.encoding.CallbackRefSerializer;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.impl.*;
+import org.nustaq.reallive.impl.storage.HashIndex;
+import org.nustaq.reallive.impl.storage.IndexedRecordStorage;
 import org.nustaq.reallive.impl.storage.StorageStats;
 import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.PutMessage;
 import org.nustaq.reallive.messages.RemoveMessage;
+import org.nustaq.reallive.query.QToken;
+import org.nustaq.reallive.query.Value;
+import org.nustaq.reallive.query.VarPath;
 import org.nustaq.reallive.records.RecordWrapper;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.nustaq.reallive.api.Record;
 
 /**
@@ -36,6 +46,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     FilterProcessor filterProcessor;
     HashMap<String,Subscriber> receiverSideSubsMap = new HashMap();
     TableDescription description;
+    IndexedRecordStorage indexedStorage = new IndexedRecordStorage();
     ArrayList<QueryQEntry> queuedSpores = new ArrayList();
 
     int taCount = 0;
@@ -46,10 +57,34 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
         this.description = desc;
         Thread.currentThread().setName("Table "+(desc==null?"NULL":desc.getName())+" main");
         RecordStorage store = storeFactory.apply(desc);
+        indexedStorage.wrapped(store);
+        createIndizes(store);
         filterProcessor = new FilterProcessor(this);
-        storageDriver = new StorageDriver(store);
+        storageDriver = new StorageDriver(indexedStorage);
         storageDriver.setListener( filterProcessor );
         return resolve();
+    }
+
+    private void createIndizes(RecordStorage rawStorage) {
+        if ( description.getHashIndexed() != null && description.getHashIndexed().length > 0) {
+            for (int i = 0; i < description.getHashIndexed().length; i++) {
+                String path = description.getHashIndexed()[i];
+                VarPath vp = new VarPath(path,null, new QToken(path,"",0 ));
+                indexedStorage.addIndex( new HashIndex( rec -> {
+                    Value evaluate = vp.evaluate(rec);
+                    if ( evaluate == null )
+                        return null;
+                    return evaluate.getValue();
+                },
+                    path
+                ));
+            }
+            rawStorage.forEach( rec -> true, (r,e) -> {
+                if ( r != null )
+                    indexedStorage.initializeFromRecord(r);
+            });
+            int debug = 1;
+        }
     }
 
     @Override
@@ -140,12 +175,67 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     private void forEachQueued( Spore s, Runnable r ) {
-        queuedSpores.add(new QueryQEntry(s,r));
-        self()._execQueriesOrDelay(queuedSpores.size(),taCount);
+        if ( s instanceof FilterSpore && ((FilterSpore) s).getFilter() instanceof RLHashIndexPredicate ) {
+            processHashedFilter(s);
+        } else {
+            queuedSpores.add(new QueryQEntry(s, r));
+            delayed(1, () -> _execQueriesOrDelay(queuedSpores.size(), taCount) );
+        }
+    }
+
+    private void processHashedFilter(Spore s) {
+        long tim = System.currentTimeMillis();
+        RLHashIndexPredicate pathes = (RLHashIndexPredicate) ((FilterSpore) s).getFilter();
+        Stream<String> keys;
+        if ( pathes.getPath().size() == 1 ) {
+            RLHashIndexPredicate.RLPath path = pathes.getPath(0);
+            HashIndex idx = indexedStorage.getHashIndex( path.getPathString());
+            if ( idx == null ) {
+                s.complete(null,"hashIndex "+ path.getPathString()+" not found");
+                return;
+            }
+            keys = idx.getKeys(path.getKey());
+        } else {
+            Set<String> res = null;
+            for (int i = 0; i < pathes.getPath().size(); i++) {
+                RLHashIndexPredicate.RLPath path = pathes.getPath(i);
+                HashIndex idx = indexedStorage.getHashIndex(path.getPathString());
+                if ( idx == null ) {
+                    s.complete(null,"hashIndex "+path.getPathString()+" not found");
+                    return;
+                }
+                Set<String> keySet = idx.getKeySet(path.getKey());
+                if ( res == null )
+                    res = new HashSet<>(Math.max(keySet.size(),800));
+                if ( path instanceof RLHashIndexPredicate.JoinPath ) {
+                    res.addAll(keySet);
+                } else if ( path instanceof RLHashIndexPredicate.SubtractPath ) {
+                    res.removeAll(keySet);
+                } else if ( path instanceof RLHashIndexPredicate.IntersectionPath ) {
+                    res.retainAll(keySet);
+                }
+            }
+            keys = res.stream();
+        }
+        keys.forEach(key -> {
+            Record record = storageDriver.getStore().get(key);
+            if ( record != null ) {
+                try {
+                    s.remote(record);
+                } catch (Exception e) {
+                    s.complete(null,e);
+                }
+            } else {
+                Log.Error(this,"corrupted index cannot find "+key);
+            }
+        });
+        s.finish();
+        if (DUMP_QUERY_TIME)
+            Log.Info(this,"hashed query on "+description.getName()+"::"+pathes.getPath()+" "+(System.currentTimeMillis()-tim));
     }
 
     public void _execQueriesOrDelay(int size, int taCount) {
-        if ( (queuedSpores.size() == size && this.taCount == taCount) || queuedSpores.size() > MAX_QUERY_BATCH_SIZE) {
+//        if ( (queuedSpores.size() == size && this.taCount == taCount) || queuedSpores.size() > MAX_QUERY_BATCH_SIZE) {
             long tim = System.currentTimeMillis();
             Consumer<Record> recordConsumer = rec -> {
                 for (int i = 0; i < queuedSpores.size(); i++) {
@@ -170,8 +260,8 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
                 System.out.println("tim for "+queuedSpores.size()+" "+(System.currentTimeMillis()-tim)+" per q:"+(System.currentTimeMillis()-tim)/queuedSpores.size());
             queuedSpores.clear();
             return;
-        }
-        _execQueriesOrDelay(queuedSpores.size(),this.taCount);
+//        }
+//        self()._execQueriesOrDelay(queuedSpores.size(),this.taCount);
     }
 
     protected String addChannelIdIfPresent(Callback cb, String sid) {
