@@ -20,7 +20,7 @@ public class TestRLJson {
 
     public static final int TIMEOUT_MILLIS = 5*60_000;
 
-    public static void main(String[] args) {
+    public static void _main(String[] args) {
         QueryPredicate plain = new QueryPredicate("subob.x == 13 && field < 10");
         QueryPredicate plain1 = new QueryPredicate("subob.x == 13 && (field < 10 || key ** 'POK')");
         QueryPredicate klammer = new QueryPredicate("(a == 'x' && b == 'y') || ( z == 3 || o == 5)");
@@ -28,7 +28,7 @@ public class TestRLJson {
         System.out.println("");
     }
 
-    public static void _main(String[] args) {
+    public static void main(String[] args) {
         BackOffStrategy.SLEEP_NANOS = 5 * 1000 * 1000; // 20 millis
         boolean QUERY = false;
         boolean UPSERT = false;
@@ -58,7 +58,7 @@ public class TestRLJson {
             ).toString()
         );
 
-        while( server == null )
+//        while( server == null )
         {
             ArrayList hashR = new ArrayList();
             long hashTim = System.currentTimeMillis();

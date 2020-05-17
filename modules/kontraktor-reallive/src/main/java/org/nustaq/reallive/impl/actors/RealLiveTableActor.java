@@ -180,7 +180,8 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
             processHashedFilter(s);
         } else if ( s instanceof FilterSpore && ((FilterSpore) s).getFilter() instanceof QueryPredicate ) {
             QueryPredicate p = (QueryPredicate) ((FilterSpore) s).getFilter();
-            int debug = 1;
+            queuedSpores.add(new QueryQEntry(s, r));
+            delayed(1, () -> _execQueriesOrDelay(queuedSpores.size(), taCount) );
         } else {
             queuedSpores.add(new QueryQEntry(s, r));
             delayed(1, () -> _execQueriesOrDelay(queuedSpores.size(), taCount) );
