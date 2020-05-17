@@ -1,4 +1,5 @@
-# Reactive Streams.remoted
+# Reactive Streams.remoted 
+# Abandonned for now
 
 Remotable Implementation of the reactive streams 1.0 spec (http://www.reactive-streams.org/) based on Kontraktor (distributed) actors.
 

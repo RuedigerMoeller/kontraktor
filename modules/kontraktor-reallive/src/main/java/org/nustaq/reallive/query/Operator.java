@@ -27,6 +27,14 @@ public class Operator implements Serializable {
         this.arity = arity;
     }
 
+    public int getOrder() {
+        return order;
+    }
+
+    public String getName() {
+        return name;
+    }
+
     public int getArity() {
         return arity;
     }

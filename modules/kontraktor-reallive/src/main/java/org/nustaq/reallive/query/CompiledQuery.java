@@ -20,4 +20,8 @@ public class CompiledQuery implements Serializable {
         return compiled.get();
     }
 
+    public String getHashIndex() {
+        return null;
+    }
+
 }

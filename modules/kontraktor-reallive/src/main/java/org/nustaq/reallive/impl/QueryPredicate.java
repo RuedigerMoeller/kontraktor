@@ -18,6 +18,10 @@ public class QueryPredicate<T> implements RLPredicate<T> {
         compiled = Query.compile(query);
     }
 
+    public CompiledQuery getCompiled() {
+        return compiled;
+    }
+
     @Override
     public boolean test(T t) {
         final boolean res = compiled.evaluate((EvalContext) t).isTrue();

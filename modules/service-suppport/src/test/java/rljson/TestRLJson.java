@@ -8,6 +8,8 @@ import org.nustaq.kontraktor.services.rlserver.RLJsonAuthResult;
 import org.nustaq.kontraktor.services.rlserver.RLJsonServer;
 import org.nustaq.kontraktor.services.rlserver.RLJsonSession;
 import org.nustaq.kontraktor.util.PromiseLatch;
+import org.nustaq.reallive.impl.QueryPredicate;
+import org.nustaq.reallive.query.Operator;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -19,6 +21,14 @@ public class TestRLJson {
     public static final int TIMEOUT_MILLIS = 5*60_000;
 
     public static void main(String[] args) {
+        QueryPredicate plain = new QueryPredicate("subob.x == 13 && field < 10");
+        QueryPredicate plain1 = new QueryPredicate("subob.x == 13 && (field < 10 || key ** 'POK')");
+        QueryPredicate klammer = new QueryPredicate("(a == 'x' && b == 'y') || ( z == 3 || o == 5)");
+        QueryPredicate keiner = new QueryPredicate("y < 100 || (a == 'x' && b == 'y') && ( z == 3 && o == 5)");
+        System.out.println("");
+    }
+
+    public static void _main(String[] args) {
         BackOffStrategy.SLEEP_NANOS = 5 * 1000 * 1000; // 20 millis
         boolean QUERY = false;
         boolean UPSERT = false;
@@ -48,7 +58,7 @@ public class TestRLJson {
             ).toString()
         );
 
-//        while( server != null )
+        while( server == null )
         {
             ArrayList hashR = new ArrayList();
             long hashTim = System.currentTimeMillis();
@@ -89,7 +99,7 @@ public class TestRLJson {
             long timup = System.currentTimeMillis();
             for (int i = 0; i < recordNum; i++) {
                 session.update("feed", obj(
-                    "key", "5resbdhzkeepsdk37ff4a8fa9cc5ea" + i,
+                    "key", "5reskopkodk37ff4a8fa9cc5ea" + i,
                     "array", arr(1, 2, 3, 4, 5),
                     "subob", obj("x", (int)(Math.random()*100), "random", Math.random()),
                     "field",""+(int)(Math.random()*100)

@@ -14,6 +14,7 @@ import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.PutMessage;
 import org.nustaq.reallive.messages.RemoveMessage;
+import org.nustaq.reallive.query.CompiledQuery;
 import org.nustaq.reallive.query.QToken;
 import org.nustaq.reallive.query.Value;
 import org.nustaq.reallive.query.VarPath;
@@ -177,6 +178,9 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     private void forEachQueued( Spore s, Runnable r ) {
         if ( s instanceof FilterSpore && ((FilterSpore) s).getFilter() instanceof RLHashIndexPredicate ) {
             processHashedFilter(s);
+        } else if ( s instanceof FilterSpore && ((FilterSpore) s).getFilter() instanceof QueryPredicate ) {
+            QueryPredicate p = (QueryPredicate) ((FilterSpore) s).getFilter();
+            int debug = 1;
         } else {
             queuedSpores.add(new QueryQEntry(s, r));
             delayed(1, () -> _execQueriesOrDelay(queuedSpores.size(), taCount) );
@@ -235,33 +239,30 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     public void _execQueriesOrDelay(int size, int taCount) {
-//        if ( (queuedSpores.size() == size && this.taCount == taCount) || queuedSpores.size() > MAX_QUERY_BATCH_SIZE) {
-            long tim = System.currentTimeMillis();
-            Consumer<Record> recordConsumer = rec -> {
-                for (int i = 0; i < queuedSpores.size(); i++) {
-                    QueryQEntry qqentry = queuedSpores.get(i);
-                    Spore spore = qqentry.spore;
-                    if (!spore.isFinished()) {
-                        try {
-                            spore.remote(rec);
-                        } catch (Throwable ex) {
-                            Log.Warn(this,ex,"exception in spore "+spore);
-                            spore.complete(null, ex);
-                        }
+        long tim = System.currentTimeMillis();
+        Consumer<Record> recordConsumer = rec -> {
+            for (int i = 0; i < queuedSpores.size(); i++) {
+                QueryQEntry qqentry = queuedSpores.get(i);
+                Spore spore = qqentry.spore;
+                if (!spore.isFinished()) {
+                    try {
+                        spore.remote(rec);
+                    } catch (Throwable ex) {
+                        Log.Warn(this,ex,"exception in spore "+spore);
+                        spore.complete(null, ex);
                     }
                 }
-            };
-            storageDriver.getStore().stream().forEach(recordConsumer);
-            queuedSpores.forEach( qqentry -> {
-                qqentry.spore.finish();
-                qqentry.onFin.run();
-            });
-            if (DUMP_QUERY_TIME && queuedSpores.size() > 0)
-                System.out.println("tim for "+queuedSpores.size()+" "+(System.currentTimeMillis()-tim)+" per q:"+(System.currentTimeMillis()-tim)/queuedSpores.size());
-            queuedSpores.clear();
-            return;
-//        }
-//        self()._execQueriesOrDelay(queuedSpores.size(),this.taCount);
+            }
+        };
+        storageDriver.getStore().stream().forEach(recordConsumer);
+        queuedSpores.forEach( qqentry -> {
+            qqentry.spore.finish();
+            qqentry.onFin.run();
+        });
+        if (DUMP_QUERY_TIME && queuedSpores.size() > 0)
+            System.out.println("tim for "+queuedSpores.size()+" "+(System.currentTimeMillis()-tim)+" per q:"+(System.currentTimeMillis()-tim)/queuedSpores.size());
+        queuedSpores.clear();
+        return;
     }
 
     protected String addChannelIdIfPresent(Callback cb, String sid) {

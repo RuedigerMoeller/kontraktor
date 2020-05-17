@@ -45,6 +45,8 @@ public class Parser {
     private QStack stackRPN = new QStack();
     /* stack for holding the lambda calculation tree */
     private QStack stackAnswer = new QStack();
+    /* tokens left to right, contains token or operators / values / varpath */
+    private List tokenList = new ArrayList();
 
     protected EvalContext ctxRef[];
 
@@ -57,7 +59,16 @@ public class Parser {
     public CompiledQuery compile(String query) {
         ctxRef = new EvalContext[1];
         parse(query);
+        String test = checkForIndex();
         return new CompiledQuery(new Evaluator(stackRPN).evaluate(),ctxRef);
+    }
+
+    private String checkForIndex() {
+        return null;
+    }
+
+    public List getTokenList() {
+        return tokenList;
     }
 
     /**
@@ -72,6 +83,7 @@ public class Parser {
         /* cleaning stacks */
         stackOperations.clear();
         stackRPN.clear();
+        tokenList.clear();
 
         QScanner scanner = new QScanner(expression);
 
@@ -80,6 +92,7 @@ public class Parser {
         while ( (token=scanner.readNext()) != null) {
             String tokenValue = token.getValue();
             if (isSeparator(tokenValue)) {
+                tokenList.add(token);
                 if ( stackOperations.empty() || !isOpenEckig(stackOperations.lastElement().toString()) ) {
                     // do this only in arglist, not array constant
                     while (!stackOperations.empty()
@@ -88,9 +101,11 @@ public class Parser {
                     }
                 }
             } else if (isOpenEckig(tokenValue)) {
+                tokenList.add(token);
                 stackRPN.push(tokenValue);
                 stackOperations.push(tokenValue);
             } else if (isCloseEckig(tokenValue)) {
+                tokenList.add(token);
                 while (!stackOperations.empty()
                     && !isOpenEckig(stackOperations.lastElement().toString())) {
                     stackRPN.push(stackOperations.pop());
@@ -104,6 +119,7 @@ public class Parser {
                 stackOperations.pop(); // should be '['
                 stackRPN.push(new ArrayValue(arr.toArray(),token));
             } else if (isOpenBracket(tokenValue)) {
+                tokenList.add(token);
                 Object last = stackRPN.isEmpty() ? null : stackRPN.lastElement();
                 if ( last instanceof VarPath && isFunction(((VarPath) last).field)) {
                     stackRPN.pop();
@@ -111,6 +127,7 @@ public class Parser {
                 }
                 stackOperations.push(token);
             } else if (isCloseBracket(tokenValue)) {
+                tokenList.add(token);
                 while (!stackOperations.empty()
                         && !isOpenBracket(stackOperations.lastElement().toString())) {
                     stackRPN.push(stackOperations.pop());
@@ -123,10 +140,14 @@ public class Parser {
             } else if (isNumber(tokenValue)) {
                 if ( tokenValue.indexOf('.')<0) {
                     Long i = Long.parseLong(tokenValue);
-                    stackRPN.push( new LongValue(i,token) );
+                    LongValue val = new LongValue(i, token);
+                    stackRPN.push(val);
+                    tokenList.add(val);
                 } else {
                     Double d = Double.parseDouble(tokenValue);
-                    stackRPN.push( new DoubleValue(d,token) );
+                    DoubleValue val = new DoubleValue(d, token);
+                    stackRPN.push(val);
+                    tokenList.add(val);
                 }
             } else if (operators.containsKey(tokenValue)) {
                 Operator op = operators.get(tokenValue);
@@ -141,27 +162,40 @@ public class Parser {
                      )
                    ) {
                     prefix = true;
-                    stackRPN.push(new LongValue(0,token));
+                    LongValue val = new LongValue(0, token);
+                    stackRPN.push(val);
                 }
                 while (!stackOperations.empty() && ! prefix
                         && stackOperations.lastElement() instanceof Operator
                         && op.getPrecedence() <= ((Operator)stackOperations.lastElement()).getPrecedence() ) {
                     stackRPN.push(stackOperations.pop());
                 }
+                tokenList.add(op);
                 stackOperations.push(op);
             } else {
                 if ( tokenValue.startsWith("'") && tokenValue.endsWith("'") ) {
-                    stackRPN.push(new StringValue(tokenValue.substring(1, tokenValue.length() - 1),token));
+                    StringValue val = new StringValue(tokenValue.substring(1, tokenValue.length() - 1), token);
+                    tokenList.add(val);
+                    stackRPN.push(val);
                 } else if ( tokenValue.startsWith("\"") && tokenValue.endsWith("\"") ) {
-                    stackRPN.push(new StringValue(tokenValue.substring(1, tokenValue.length() - 1),token));
+                    StringValue val = new StringValue(tokenValue.substring(1, tokenValue.length() - 1), token);
+                    stackRPN.push(val);
+                    tokenList.add(val);
                 } else
                 {
                     if ( "true".equals(tokenValue) ) {
-                        stackRPN.push(new BooleanValue(true,token));
+                        BooleanValue val = new BooleanValue(true, token);
+                        stackRPN.push(val);
+                        tokenList.add(val);
                     } else if ( "false".equals(tokenValue) ) {
-                        stackRPN.push(new BooleanValue(false,token));
-                    } else
-                        stackRPN.push(new VarPath(tokenValue,ctxRef,token));
+                        BooleanValue val = new BooleanValue(false, token);
+                        stackRPN.push(val);
+                        tokenList.add(val);
+                    } else {
+                        VarPath val = new VarPath(tokenValue, ctxRef, token);
+                        stackRPN.push(val);
+                        tokenList.add(val);
+                    }
                 }
             }
             prevToken = token;

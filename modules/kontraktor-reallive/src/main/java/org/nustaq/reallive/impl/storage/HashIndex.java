@@ -1,5 +1,6 @@
 package org.nustaq.reallive.impl.storage;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.Spore;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.*;
@@ -17,8 +18,8 @@ public class HashIndex implements StorageIndex {
 
     private final String hashPath;
     RLFunction<Record,Object> hashGetter;
-    HashMap<Object, Set<String>> index = new HashMap<>();
-    HashMap key2HashVal = new HashMap();
+    Object2ObjectOpenHashMap<Object, Set<String>> index = new Object2ObjectOpenHashMap<>();
+    Object2ObjectOpenHashMap<String,Object> key2HashVal = new Object2ObjectOpenHashMap<>();
 
     public HashIndex(RLFunction<Record, Object> hashGetter, String hashPath) {
         this.hashGetter = hashGetter;
@@ -33,11 +34,11 @@ public class HashIndex implements StorageIndex {
         return hashGetter;
     }
 
-    public HashMap<Object, Set<String>> getIndex() {
+    public Map<Object, Set<String>> getIndex() {
         return index;
     }
 
-    public HashMap getKey2HashVal() {
+    public Map<String,Object> getKey2HashVal() {
         return key2HashVal;
     }
 
