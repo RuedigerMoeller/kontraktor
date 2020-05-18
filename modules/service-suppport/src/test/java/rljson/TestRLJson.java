@@ -58,7 +58,15 @@ public class TestRLJson {
             ).toString()
         );
 
-//        while( server == null )
+        session.update("feed",
+            obj(
+                "key", "POKPOKPOK",
+                "array", arr(1,2,3,4,5),
+                "subob", obj("x", 77, "random", Math.random() )
+            ).toString()
+        );
+
+        //        while( server == null )
         {
             ArrayList hashR = new ArrayList();
             long hashTim = System.currentTimeMillis();

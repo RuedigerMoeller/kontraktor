@@ -40,14 +40,13 @@ import org.nustaq.reallive.api.Record;
 public class RealLiveTableActor extends Actor<RealLiveTableActor> implements RealLiveTable {
 
     public static final long REPORT_INTERVAL = TimeUnit.MINUTES.toMillis(1);
-    public static int MAX_QUERY_BATCH_SIZE = 10;
     public static boolean DUMP_QUERY_TIME = true;
 
     StorageDriver storageDriver;
     FilterProcessor filterProcessor;
     HashMap<String,Subscriber> receiverSideSubsMap = new HashMap();
     TableDescription description;
-    IndexedRecordStorage indexedStorage = new IndexedRecordStorage();
+    IndexedRecordStorage indexedStorage = new IndexedRecordStorage(); // holds indizes
     ArrayList<QueryQEntry> queuedSpores = new ArrayList();
 
     int taCount = 0;

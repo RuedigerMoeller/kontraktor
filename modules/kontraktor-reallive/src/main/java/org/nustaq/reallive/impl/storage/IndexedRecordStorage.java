@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+/**
+ * wraps a record storage and keeps a list of indices up-to-date by watching operations on the store
+ */
 public class IndexedRecordStorage implements RecordStorage {
     RecordStorage wrapped;
     List<StorageIndex> indices = new ArrayList();
