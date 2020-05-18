@@ -9,8 +9,6 @@ import java.util.Map;
  */
 public class VarPath implements Serializable, HasToken  {
 
-    static Map<String,String[]> sEvalCache = new HashMap<>();
-
     String field;
     String fields[];
     EvalContext ctx[];
@@ -21,8 +19,7 @@ public class VarPath implements Serializable, HasToken  {
         this.field = field;
         this.ctx = ctx;
         this.token = token;
-        fields = sEvalCache.get(field);
-        if ( fields == null && field.indexOf('.') >= 0 ) {
+        if ( field.indexOf('.') >= 0 ) {
             fields = field.split("\\.");
             path = field;
             if ( fields.length > 0 )
@@ -30,7 +27,6 @@ public class VarPath implements Serializable, HasToken  {
             else {
                 int debug = 1;
             }
-            sEvalCache.put(field,fields);
         }
     }
 

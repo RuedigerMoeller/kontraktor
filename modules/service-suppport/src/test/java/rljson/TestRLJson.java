@@ -93,6 +93,19 @@ public class TestRLJson {
         });
         p1.await();
 
+        ArrayList hashR2 = new ArrayList();
+        long hashTim2 = System.currentTimeMillis();
+        Promise p2 = new Promise();
+        session.select("feed","subob.x == 88 && ( field == '13' || _key ** 77 )", (r,e) -> {
+            if ( r != null ) {
+                hashR2.add(r);
+            } else {
+                System.out.println("no-hashresult size "+hashR2.size()+" "+(System.currentTimeMillis()-hashTim2));
+                p2.complete();
+            }
+        });
+        p2.await();
+
         long tim = System.currentTimeMillis();
 
         if ( UPSERT ) {

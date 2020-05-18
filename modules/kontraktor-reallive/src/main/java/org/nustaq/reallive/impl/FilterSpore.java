@@ -28,6 +28,10 @@ public class FilterSpore extends Spore<Record,Record> {
         return filter;
     }
 
+    // danger! can have side effects
+    public void _setFilter(RLPredicate<Record> f) {
+        filter = f;
+    }
     @Override
     public void remote(Record input) {
         if (modifiesResult) {

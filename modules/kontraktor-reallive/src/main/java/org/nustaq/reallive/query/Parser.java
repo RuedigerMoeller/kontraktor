@@ -19,6 +19,7 @@
  */
 package org.nustaq.reallive.query;
 
+import org.nustaq.reallive.api.RLHashIndexPredicate;
 import org.nustaq.reallive.records.MapRecord;
 
 import java.util.*;
@@ -50,7 +51,6 @@ public class Parser {
 
     protected EvalContext ctxRef[];
 
-
     Parser(HashMap<String, FuncOperand> functions, HashMap<String, Operator> operators) {
         this.functions = functions;
         this.operators = operators;
@@ -59,11 +59,27 @@ public class Parser {
     public CompiledQuery compile(String query) {
         ctxRef = new EvalContext[1];
         parse(query);
-        String test = checkForIndex();
-        return new CompiledQuery(new Evaluator(stackRPN).evaluate(),ctxRef);
+        CompiledQuery compiledQuery = new CompiledQuery(new Evaluator(stackRPN).evaluate(), ctxRef).hashIndex(checkForIndex());
+        return compiledQuery;
     }
 
-    private String checkForIndex() {
+    private RLHashIndexPredicate checkForIndex() {
+        if ( tokenList.size() >= 4 ) {
+            if ( tokenList.get(0) instanceof VarPath &&
+                tokenList.get(1) instanceof Operator && ((Operator) tokenList.get(1)).getName().equals("==") &&
+                tokenList.get(2) instanceof Value &&
+                tokenList.get(3) instanceof Operator && ((Operator) tokenList.get(3)).getName().equals("&&")
+            ) {
+                return new RLHashIndexPredicate(((VarPath) tokenList.get(0)).getPath(), ((Value) tokenList.get(2)).getValue(),null);
+            }
+        } else if ( tokenList.size() == 3 ) {
+            if ( tokenList.get(0) instanceof VarPath &&
+                tokenList.get(1) instanceof Operator && ((Operator) tokenList.get(1)).getName().equals("==") &&
+                tokenList.get(2) instanceof Value
+            ) {
+                return new RLHashIndexPredicate(((VarPath) tokenList.get(0)).getPath(), ((Value) tokenList.get(2)).getValue(),null);
+            }
+        }
         return null;
     }
 

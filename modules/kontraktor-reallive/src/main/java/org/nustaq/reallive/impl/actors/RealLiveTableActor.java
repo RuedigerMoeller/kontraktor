@@ -178,10 +178,23 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     private void forEachQueued( Spore s, Runnable r ) {
         if ( s instanceof FilterSpore && ((FilterSpore) s).getFilter() instanceof RLHashIndexPredicate ) {
             processHashedFilter(s);
-        } else if ( s instanceof FilterSpore && ((FilterSpore) s).getFilter() instanceof QueryPredicate ) {
-            QueryPredicate p = (QueryPredicate) ((FilterSpore) s).getFilter();
-            queuedSpores.add(new QueryQEntry(s, r));
-            delayed(1, () -> _execQueriesOrDelay(queuedSpores.size(), taCount) );
+        } else if ( s instanceof FilterSpore &&
+            ((FilterSpore) s).getFilter() instanceof QueryPredicate &&
+            ((QueryPredicate<Record>) ((FilterSpore) s).getFilter()).getCompiled().getHashIndex() != null
+        ) {
+            FilterSpore fisp = (FilterSpore) s;
+            QueryPredicate p = (QueryPredicate) fisp.getFilter();
+            // check wether this is an axtual index
+            String indexString = p.getCompiled().getHashIndex().getPath(0).getPathString();
+            if ( indexedStorage.getHashIndex(indexString) != null ) {
+                Log.Info(this,"detected index use in query "+p.getQuery());
+                // reminder: check if sideeffects matter in case of weird behaviour
+                fisp._setFilter(p.getCompiled().getHashIndex());
+                processHashedFilter(fisp);
+            } else {
+                queuedSpores.add(new QueryQEntry(s, r));
+                delayed(1, () -> _execQueriesOrDelay(queuedSpores.size(), taCount) );
+            }
         } else {
             queuedSpores.add(new QueryQEntry(s, r));
             delayed(1, () -> _execQueriesOrDelay(queuedSpores.size(), taCount) );
@@ -236,7 +249,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
         });
         s.finish();
         if (DUMP_QUERY_TIME)
-            Log.Info(this,"hashed query on "+description.getName()+"::"+pathes.getPath()+" "+(System.currentTimeMillis()-tim));
+            Log.Info(this,"hashed query on "+description.getName()+"::"+pathes+" "+(System.currentTimeMillis()-tim));
     }
 
     public void _execQueriesOrDelay(int size, int taCount) {

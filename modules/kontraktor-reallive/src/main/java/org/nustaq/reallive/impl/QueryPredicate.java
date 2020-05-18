@@ -16,10 +16,16 @@ public class QueryPredicate<T> implements RLPredicate<T> {
     public QueryPredicate(String query) {
         this.query = query;
         compiled = Query.compile(query);
+        if ( compiled.getHashIndex() != null )
+            compiled.getHashIndex().subQuery(this);
     }
 
     public CompiledQuery getCompiled() {
         return compiled;
+    }
+
+    public String getQuery() {
+        return query;
     }
 
     @Override

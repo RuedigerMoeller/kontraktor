@@ -1,5 +1,7 @@
 package org.nustaq.reallive.query;
 
+import org.nustaq.reallive.api.RLHashIndexPredicate;
+
 import java.io.Serializable;
 
 /**
@@ -9,6 +11,7 @@ public class CompiledQuery implements Serializable {
 
     RLSupplier<Value> compiled;
     EvalContext[] ref;
+    RLHashIndexPredicate hashIndex;
 
     public CompiledQuery(RLSupplier<Value> compiled, EvalContext[] ref) {
         this.compiled = compiled;
@@ -20,8 +23,13 @@ public class CompiledQuery implements Serializable {
         return compiled.get();
     }
 
-    public String getHashIndex() {
-        return null;
+    public RLHashIndexPredicate getHashIndex() {
+        return hashIndex;
+    }
+
+    public CompiledQuery hashIndex(RLHashIndexPredicate h) {
+        hashIndex = h;
+        return this;
     }
 
 }

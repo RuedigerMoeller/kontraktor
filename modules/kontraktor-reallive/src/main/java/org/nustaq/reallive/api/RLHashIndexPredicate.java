@@ -92,6 +92,11 @@ public class RLHashIndexPredicate implements RLPredicate<Record> {
         return this;
     }
 
+    public RLHashIndexPredicate subQuery( RLPredicate sq ) {
+        subQuery = sq;
+        return this;
+    }
+
     @Override
     public boolean test(Record t) {
         boolean res = false;
@@ -123,4 +128,11 @@ public class RLHashIndexPredicate implements RLPredicate<Record> {
         return pathes.get(i);
     }
 
+    @Override
+    public String toString() {
+        return "RLHashIndexPredicate{" +
+            "pathes=" + pathes +
+            ", subQuery=" + subQuery +
+            '}';
+    }
 }
