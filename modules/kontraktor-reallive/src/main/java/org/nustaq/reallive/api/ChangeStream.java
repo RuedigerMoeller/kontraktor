@@ -1,7 +1,7 @@
 package org.nustaq.reallive.api;
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
-import org.nustaq.reallive.impl.QueryPredicate;
+import org.nustaq.reallive.server.QueryPredicate;
 import org.nustaq.reallive.query.QParseException;
 
 import java.util.HashSet;

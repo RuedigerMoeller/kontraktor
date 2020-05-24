@@ -1,6 +1,6 @@
 package org.nustaq.kontraktor.services;
 
-import org.nustaq.kontraktor.services.rlclient.DataCfg;
+import org.nustaq.kontraktor.services.datacluster.DataCfg;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
 import org.nustaq.reallive.api.TableDescription;
@@ -27,6 +27,10 @@ public class ClusterCfg implements Serializable {
         return read(pathname);
     }
 
+    public static boolean exists() {
+        return new File(pathname).exists();
+    }
+
     public static ClusterCfg read(String pathname) {
         Kson kson = new Kson().map( ClusterCfg.class, DataCfg.class, TableDescription.class );
         try {
@@ -42,6 +46,7 @@ public class ClusterCfg implements Serializable {
             try {
                 String sampleconf = kson.writeObject(new ClusterCfg());
                 System.out.println("Try:\n"+sampleconf);
+                Thread.sleep(1000);
                 System.exit(1);
             } catch (Exception e1) {
                 e1.printStackTrace();
@@ -61,7 +66,6 @@ public class ClusterCfg implements Serializable {
         this.dataCluster = dataCluster;
         return this;
     }
-
 
     public static void main(String[] args) {
         ClusterCfg read = read();

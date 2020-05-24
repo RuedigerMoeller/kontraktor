@@ -1,7 +1,6 @@
 package org.nustaq.kontraktor.services.rlserver;
 
 import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import org.nustaq.kontraktor.Actor;
@@ -13,15 +12,12 @@ import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.api.Record;
-import org.nustaq.reallive.impl.QueryPredicate;
-import org.nustaq.reallive.impl.RLUtil;
-import org.nustaq.reallive.impl.storage.RecordJsonifier;
-import org.nustaq.reallive.messages.AddMessage;
+import org.nustaq.reallive.server.QueryPredicate;
+import org.nustaq.reallive.server.RLUtil;
+import org.nustaq.reallive.server.storage.RecordJsonifier;
 import org.nustaq.reallive.messages.UpdateMessage;
 import org.nustaq.reallive.query.QParseException;
-import org.nustaq.reallive.records.MapRecord;
 
-import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;

@@ -1,5 +1,6 @@
 package org.nustaq.kontraktor.services;
 
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 
 import java.io.Serializable;
@@ -83,5 +84,9 @@ public class ServiceDescription implements Serializable {
                 ", lastPing=" + lastPing +
                 ", timeout=" + timeout +
                 '}';
+    }
+
+    public Class<? extends Actor> getActorClazz() {
+        return connectable.getActorClass();
     }
 }

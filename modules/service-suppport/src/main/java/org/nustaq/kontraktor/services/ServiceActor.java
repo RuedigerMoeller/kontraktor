@@ -1,9 +1,10 @@
 package org.nustaq.kontraktor.services;
 
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.remoting.base.ReconnectableRemoteRef;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
+import org.nustaq.kontraktor.services.datacluster.DataShard;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
-import org.nustaq.kontraktor.services.rlclient.DataShard;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
@@ -12,16 +13,20 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
+import org.nustaq.reallive.server.actors.TableSpaceActor;
 import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.function.BiConsumer;
 
 /**
  * Created by ruedi on 12.08.2015.
  */
 public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
+
+    public static final String REGISTRY_DISCONNECTED = "registry disconnected";
+    public static final String REGISTRY_RECONNECTED = "registry reconnected";
 
     public static int DEFAULT_START_TIMEOUT = 60_000 * 10;
 
@@ -70,9 +75,12 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
 
     IPromise initComplete;
 
+    List<BiConsumer<String,Object>> serviceEventListener;
+
     public IPromise init(ConnectableActor registryConnectable, ServiceArgs options, boolean autoRegister) {
         initComplete = new Promise();
         this.cmdline = options;
+        serviceEventListener = new ArrayList<>();
 
         if ( ! options.isAsyncLog() ) {
             Log.SetSynchronous();
@@ -97,8 +105,30 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         return initComplete;
     }
 
-    protected void onRegistryDisconnected() {
+    /**
+     * runs on client side, receives forwarded service event received from service actor
+     *
+     * @param l
+     */
+    public void addServiceEventListener(BiConsumer<String,Object> l) {
+        if ( ! serviceEventListener.contains(l) )
+            serviceEventListener.add(l);
+    }
 
+    public void removeServiceEventListener(BiConsumer<String,Object> l) {
+        serviceEventListener.remove(l);
+    }
+
+    @CallerSideMethod public ServiceRegistry getServiceRegistry() {
+        return (ServiceRegistry) getActor().serviceRegistry.get();
+    }
+
+    protected void fireServiceEvent(String ev, Object arg) {
+        serviceEventListener.forEach( con -> con.accept(ev,arg));
+    }
+
+    protected void onRegistryDisconnected() {
+        fireServiceEvent(REGISTRY_DISCONNECTED,null);
     }
 
     protected void onRegistryConnected(boolean autoRegister) {
@@ -140,6 +170,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         // re-register and resubscription is already handled
         // subclasse might want to update configuration and check if
         // services have been relocated
+        fireServiceEvent(REGISTRY_RECONNECTED,null);
         Log.Info(this, "service registry reconnected.");
     }
 
@@ -206,6 +237,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
     }
 
     protected void publishSelf() {
+        Log.Info(this,"registering at service registry "+getServiceDescription().getName());
         int defaultPort = getPort();
         // service does not expose itself
         if ( defaultPort <= 0 ) {
@@ -253,6 +285,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
             config = (ClusterCfg) cdr;
             notifyConfigChanged();
         }
+        fireServiceEvent(eventId,cdr);
     }
 
     /**

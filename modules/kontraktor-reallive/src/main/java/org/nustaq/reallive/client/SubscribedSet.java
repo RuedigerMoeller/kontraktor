@@ -1,7 +1,7 @@
 package org.nustaq.reallive.client;
 
-import org.nustaq.reallive.impl.StorageDriver;
-import org.nustaq.reallive.impl.storage.HeapRecordStorage;
+import org.nustaq.reallive.server.StorageDriver;
+import org.nustaq.reallive.server.storage.HeapRecordStorage;
 import org.nustaq.reallive.api.*;
 
 import java.util.HashMap;

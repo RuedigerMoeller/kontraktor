@@ -8,8 +8,7 @@ import org.nustaq.kontraktor.services.rlserver.RLJsonAuthResult;
 import org.nustaq.kontraktor.services.rlserver.RLJsonServer;
 import org.nustaq.kontraktor.services.rlserver.RLJsonSession;
 import org.nustaq.kontraktor.util.PromiseLatch;
-import org.nustaq.reallive.impl.QueryPredicate;
-import org.nustaq.reallive.query.Operator;
+import org.nustaq.reallive.server.QueryPredicate;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;

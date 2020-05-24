@@ -24,6 +24,7 @@ public class SimpleRLConfig implements Serializable {
     String bindIp = "0.0.0.0";
     String wsPublicUrl = "ws://localhost:"+bindPort+"/ws";
     String mongoConnection; //"mongodb+srv://<username>:<password>@<cluster-address>/test?w=majority"
+    int tcpPort = 7654;
 
     Map<String,Object> customData;
 

@@ -1,0 +1,30 @@
+ClusterCfg {
+  publicHostUrl: "http://localhost:8888"
+  dataCluster:
+    DataCfg {
+      isDynamic: true
+      dataDir: [ "/tmp/reallife" ]
+      schema:
+        [
+          {
+            name: dummy
+            sizeMB: 100
+            filePath: USE_BASE_DIR
+            numEntries: 100000
+            keyLen: 48
+            storageType: CACHED
+            hashIndexed: [ ]
+          }
+          {
+            name: feed
+            sizeMB: 100
+            filePath: USE_BASE_DIR
+            numEntries: 100000
+            keyLen: 48
+            storageType: CACHED
+            hashIndexed: [ ]
+          }
+        ]
+      shardQSize: 64000
+    }
+}

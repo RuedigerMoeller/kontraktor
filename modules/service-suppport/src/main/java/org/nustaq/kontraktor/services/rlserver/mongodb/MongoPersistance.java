@@ -8,8 +8,8 @@ import org.nustaq.kontraktor.Spore;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.api.TableDescription;
-import org.nustaq.reallive.impl.storage.RecordPersistance;
-import org.nustaq.reallive.impl.storage.StorageStats;
+import org.nustaq.reallive.server.storage.RecordPersistance;
+import org.nustaq.reallive.server.storage.StorageStats;
 
 import java.util.concurrent.atomic.AtomicInteger;
 

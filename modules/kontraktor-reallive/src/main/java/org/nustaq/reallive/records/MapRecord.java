@@ -1,7 +1,6 @@
 package org.nustaq.reallive.records;
 
-import org.nustaq.reallive.api.*;
-import org.nustaq.reallive.impl.RLUtil;
+import org.nustaq.reallive.server.RLUtil;
 
 import java.util.HashMap;
 import java.util.Map;

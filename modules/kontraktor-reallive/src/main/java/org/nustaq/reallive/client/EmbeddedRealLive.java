@@ -7,16 +7,15 @@ import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.RealLiveTable;
 import org.nustaq.reallive.api.RecordStorage;
 import org.nustaq.reallive.api.TableDescription;
-import org.nustaq.reallive.impl.actors.RealLiveTableActor;
-import org.nustaq.reallive.impl.storage.CachedOffHeapStorage;
-import org.nustaq.reallive.impl.storage.HeapRecordStorage;
-import org.nustaq.reallive.impl.storage.OffHeapRecordStorage;
+import org.nustaq.reallive.server.actors.RealLiveTableActor;
+import org.nustaq.reallive.server.storage.CachedOffHeapStorage;
+import org.nustaq.reallive.server.storage.HeapRecordStorage;
+import org.nustaq.reallive.server.storage.OffHeapRecordStorage;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class EmbeddedRealLive {
 

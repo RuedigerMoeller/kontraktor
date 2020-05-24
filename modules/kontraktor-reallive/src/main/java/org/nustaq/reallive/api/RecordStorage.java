@@ -1,8 +1,8 @@
 package org.nustaq.reallive.api;
 
 
-import org.nustaq.reallive.impl.storage.RecordPersistance;
-import org.nustaq.reallive.impl.storage.StorageStats;
+import org.nustaq.reallive.server.storage.RecordPersistance;
+import org.nustaq.reallive.server.storage.StorageStats;
 
 import java.util.stream.Stream;
 

@@ -1,6 +1,6 @@
 package org.nustaq.reallive.api;
 
-import org.nustaq.reallive.impl.storage.HashIndex;
+import org.nustaq.reallive.server.storage.HashIndex;
 import org.nustaq.reallive.query.QToken;
 import org.nustaq.reallive.query.Value;
 import org.nustaq.reallive.query.VarPath;

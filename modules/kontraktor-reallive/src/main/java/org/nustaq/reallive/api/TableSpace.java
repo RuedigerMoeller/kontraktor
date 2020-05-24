@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.reallive.messages.StateMessage;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by ruedi on 08.08.2015.

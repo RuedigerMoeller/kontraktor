@@ -1,10 +1,6 @@
 package rlcluster;
 
-import org.nustaq.kontraktor.services.ServiceRegistry;
-import org.nustaq.kontraktor.services.rlclient.DataShard;
 import org.nustaq.kontraktor.util.Log;
-
-import java.util.concurrent.atomic.AtomicReference;
 
 public class WobblyServiceReg extends TestCluster
 {

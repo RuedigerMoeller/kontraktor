@@ -9,21 +9,15 @@ import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
-import org.nustaq.kontraktor.services.rlclient.DataShard;
+import org.nustaq.kontraktor.services.datacluster.DataShard;
+import org.nustaq.kontraktor.services.rlserver.SingleProcessRLClusterArgs;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
-import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.api.TableDescription;
-import org.nustaq.reallive.messages.AddMessage;
-import org.nustaq.reallive.messages.QueryDoneMessage;
-import org.nustaq.reallive.messages.RemoveMessage;
-import org.nustaq.reallive.messages.UpdateMessage;
-import org.nustaq.reallive.records.MapRecord;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -51,10 +45,10 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     public static final String AVAILABLE = "available";
     public static final String TIMEOUT = "timeout";
 
-    HashMap<String, List<ServiceDescription>> services;
-    Map<String,StatusEntry> statusMap;
-    List<Callback> listeners;
-    ClusterCfg config;
+    protected HashMap<String, List<ServiceDescription>> services;
+    protected Map<String,StatusEntry> statusMap;
+    protected List<Callback> listeners;
+    protected ClusterCfg config;
 
     @Local
     public void init(ClusterCfg cfg) {
@@ -90,6 +84,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     }
 
     public void registerService( ServiceDescription desc ) {
+        Log.Info(this,"registering service "+desc);
         List<ServiceDescription> serviceList = getServiceList(desc.getName());
         serviceList.add(desc);
         desc.receiveHeartbeat();
@@ -104,6 +99,13 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
                 servMap.put(name, list.get(0));
         });
         return resolve(servMap);
+    }
+
+    protected ServiceDescription getService(String name) {
+        List<ServiceDescription> serviceList = getServiceList(name);
+        if ( serviceList.size() > 0 )
+            return serviceList.get(0);
+        return null;
     }
 
     public void subscribe( Callback<Pair<String,ServiceDescription>> cb ) {
@@ -265,7 +267,6 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         return options;
     }
 
-
     private IPromise<RestApi> getRest() {
         RestApi restApi = AsActor(RestApi.class, getScheduler());
         restApi.init(self());
@@ -292,6 +293,16 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
                 StatusEntry.class
             );
         }
+
+        public IPromise getBalance() {
+            reg.balanceDynShards();
+            return resolve("<html>balancing done</html>");
+        }
+
+        public IPromise get() {
+            return resolve("<html>try <a href='/mon/services'>/mon/services</a> or <a href='/mon/stati'>/mon/stati</a> </html>");
+        }
+
         // GET ./services
         public IPromise getServices() {
             Promise p = new Promise();
@@ -309,7 +320,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             });
             return p;
         }
-        // GET ./services
+        // GET ./stati
         public IPromise getStati() {
             Promise p = new Promise();
             reg.getStati().then( (r,e) -> {
@@ -326,6 +337,11 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             });
             return p;
         }
+    }
+
+    public IPromise balanceDynShards() {
+        // empty see DynDataRegistry
+        return resolve(null);
     }
 
     public IPromise<List<StatusEntry>> getStati() {
@@ -345,30 +361,38 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     }
 
     public static ServiceRegistry start(RegistryArgs options) {
-        return start(options,null);
+        return start(options,null, ServiceRegistry.class);
     }
 
-    public static ServiceRegistry start(RegistryArgs _options, ClusterCfg cfg) {
+    public static void start(SingleProcessRLClusterArgs options, ClusterCfg cfg) {
+        start(options,cfg,ServiceRegistry.class);
+    }
+
+    public static ServiceRegistry start(RegistryArgs _options, ClusterCfg cfg, Class<? extends ServiceRegistry> clazz) {
         options = _options;
 
         if ( ! _options.isAsyncLog() ) {
             Log.SetSynchronous();
         }
 
+        if ( _options.getClustercfg() != null )
+            ClusterCfg.pathname = _options.getClustercfg();
 
-        ServiceRegistry serviceRegistry = Actors.AsActor(ServiceRegistry.class);
+        ServiceRegistry serviceRegistry = Actors.AsActor(clazz);
         serviceRegistry.init(cfg);
 
+        Log.Info(ServiceRegistry.class,"listening on "+_options.getRegistryHost()+" "+_options.getRegistryPort());
         new TCPNIOPublisher(serviceRegistry,_options.getRegistryPort()).publish(actor -> {
             Log.Info(null, actor + " has disconnected");
         });
 
+        Log.Info(ServiceRegistry.class,"monport on http://"+_options.getMonhost()+":"+_options.getMonport()+"/mon");
         Http4K.Build(_options.getMonhost(), _options.getMonport() )
-            .restAPI("/mon",serviceRegistry.getRest().await())
+            .restAPI("/mon", serviceRegistry.getRest().await())
             .build();
 
         // log service activity
-        serviceRegistry.subscribe((pair, err) -> {
+        serviceRegistry.subscribe(( pair, err) -> {
             Log.Info(serviceRegistry.getClass(), pair.car() + " " + pair.cdr());
         });
 

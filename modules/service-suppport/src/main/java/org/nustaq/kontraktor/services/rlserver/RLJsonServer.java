@@ -94,7 +94,7 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
                 .coding(new Coding(SerializerType.JsonNoRef, CLAZZES))
                 .buildWebsocket()
             .build();
-        new TCPPublisher(app,7654)
+        new TCPPublisher(app,Cfg().tcpPort)
 //            .coding( new Coding(SerializerType.JsonNoRef,RLJsonServer.CLAZZES) )
             .publish( dis -> System.out.println("disconnected"));
     }
@@ -105,7 +105,7 @@ public class RLJsonServer<T extends RLJsonServer> extends Actor<T> {
     }
 
     public static void main(String[] args) throws InterruptedException {
-        BackOffStrategy.SLEEP_NANOS = 5 * 1000 * 1000; // 20 millis
+        BackOffStrategy.SLEEP_NANOS = 5 * 1000 * 1000; // 5 millis
         Class<RLJsonServer> appClazz = RLJsonServer.class;
         startUp(args, appClazz);
     }

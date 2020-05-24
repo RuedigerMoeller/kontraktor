@@ -5,7 +5,6 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.*;
-import org.nustaq.reallive.impl.RLUtil;
 import org.nustaq.reallive.messages.AddMessage;
 import org.nustaq.reallive.messages.QueryDoneMessage;
 import org.nustaq.reallive.query.QParseException;

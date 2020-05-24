@@ -1,13 +1,16 @@
 package org.nustaq.kontraktor.services.rlclient;
 
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.services.datacluster.DataCfg;
 import org.nustaq.kontraktor.services.ServiceActor;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.services.datacluster.dynamic.DynClusterDistribution;
+import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataServiceRegistry;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.reallive.impl.actors.ShardedTable;
-import org.nustaq.reallive.impl.tablespace.ClusteredTableSpaceClient;
-import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
-import org.nustaq.reallive.impl.tablespace.TableSpaceSharding;
+import org.nustaq.reallive.client.ShardedTable;
+import org.nustaq.reallive.client.ClusteredTableSpaceClient;
+import org.nustaq.reallive.server.actors.TableSpaceActor;
+import org.nustaq.reallive.client.TableSpaceSharding;
 import org.nustaq.reallive.api.RLPredicate;
 import org.nustaq.reallive.api.RealLiveTable;
 import org.nustaq.reallive.api.Record;
@@ -32,19 +35,34 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
     ServiceActor hostingService;
     TableSpaceActor shards[];
     HashMap<String,RealLiveTable> syncTableAccess;
+    DynClusterDistribution currentMapping; // only used in dyn clusters
 
     public IPromise connect( DataCfg config, TableSpaceActor shards[], ServiceActor hostingService ) {
         this.config = config;
         this.hostingService=hostingService;
         this.shards = shards;
         syncTableAccess = new HashMap();
-        tableSpaceSharding = new TableSpaceSharding(shards);
+        tableSpaceSharding = createTableSpaceSharding(shards);
         tableSpaceSharding.init().await();
+        if ( hostingService.getServiceRegistry() instanceof DynDataServiceRegistry ) {
+            hostingService.addServiceEventListener((event, arg) -> handleServiceEvent((String) event, arg));
+            currentMapping = ((DynDataServiceRegistry) hostingService.getServiceRegistry()).getActiveDistribution().await();
+        }
         TableDescription[] schema = config.getSchema();
         return all( schema.length, i -> {
             TableDescription desc = schema[i];
             return initTable(desc);
         });
+    }
+
+    protected void handleServiceEvent(String event, Object arg) {
+        if ( event.equals(DynDataServiceRegistry.RECORD_DISTRIBUTION) ) {
+            currentMapping = (DynClusterDistribution) arg;
+        }
+    }
+
+    protected TableSpaceSharding createTableSpaceSharding(TableSpaceActor[] shards) {
+        return new TableSpaceSharding(shards);
     }
 
     private IPromise<Object> initTable(TableDescription desc) {
@@ -71,6 +89,36 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
     @CallerSideMethod
     public RealLiveTable tbl(String name ) {
         return (RealLiveTable) getActor().syncTableAccess.get(name);
+    }
+
+    public IPromise<Integer> getNoShards() {
+        return resolve(shards.length);
+    }
+
+    public void nodeDisconnected(Actor act) {
+        syncTableAccess.values().forEach( table -> ((ShardedTable)table).removeNode(act.getActorRef()));
+    }
+
+    @CallerSideMethod
+    public TableSpaceActor[] getShards() {
+        return getActor().shards;
+    }
+
+    public void unsubscribe(int subsId) {
+        syncTableAccess.values().forEach( table -> table.unsubscribeById(subsId));
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // utils for shardwise special processing
+    //
+
+    public void processSharded(String tableName, RLPredicate<Record> predicate, int shardNo, Callback<Record> cb  ) {
+        TableSpaceActor shard = shards[shardNo];
+        shard.getTableAsync(tableName).then(t -> {
+            RealLiveTable table = t;
+            table.forEach(predicate, cb);
+        });
     }
 
     /**
@@ -147,30 +195,5 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         } catch (IOException e) {
             Log.Error(this,e);
         }
-    }
-
-    public IPromise<Integer> getNoShards() {
-        return resolve(shards.length);
-    }
-
-    public void processSharded(String tableName, RLPredicate<Record> predicate, int shardNo, Callback<Record> cb  ) {
-        TableSpaceActor shard = shards[shardNo];
-        shard.getTableAsync(tableName).then(t -> {
-            RealLiveTable table = t;
-            table.forEach(predicate, cb);
-        });
-    }
-
-    public void nodeDisconnected(Actor act) {
-        syncTableAccess.values().forEach( table -> ((ShardedTable)table).removeNode(act.getActorRef()));
-    }
-
-    @CallerSideMethod
-    public TableSpaceActor[] getShards() {
-        return getActor().shards;
-    }
-
-    public void unsubscribe(int subsId) {
-        syncTableAccess.values().forEach( table -> table.unsubscribeById(subsId));
     }
 }

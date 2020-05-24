@@ -1,13 +1,8 @@
 package org.nustaq.kontraktor.services.rlserver.mongodb;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.nustaq.reallive.api.Record;
-import org.nustaq.reallive.impl.storage.RecordJsonifier;
 import org.nustaq.reallive.records.MapRecord;
 
 import java.util.ArrayList;

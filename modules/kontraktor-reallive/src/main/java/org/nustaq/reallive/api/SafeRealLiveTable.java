@@ -2,7 +2,7 @@ package org.nustaq.reallive.api;
 
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
-import org.nustaq.reallive.impl.storage.StorageStats;
+import org.nustaq.reallive.server.storage.StorageStats;
 
 /**
  * contains only methods without lambdas (avoids issues caused by lambda version changes).

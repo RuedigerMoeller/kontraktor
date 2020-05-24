@@ -6,8 +6,8 @@ import org.junit.Test;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
-import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
-import org.nustaq.reallive.impl.tablespace.TableSpaceSharding;
+import org.nustaq.reallive.server.actors.TableSpaceActor;
+import org.nustaq.reallive.client.TableSpaceSharding;
 import org.nustaq.reallive.api.*;
 
 import java.util.concurrent.atomic.AtomicInteger;

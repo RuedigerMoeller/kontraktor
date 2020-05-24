@@ -7,12 +7,12 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.PromiseLatch;
-import org.nustaq.reallive.impl.actors.RealLiveTableActor;
-import org.nustaq.reallive.impl.actors.ShardedTable;
-import org.nustaq.reallive.impl.tablespace.TableSpaceActor;
+import org.nustaq.reallive.server.actors.RealLiveTableActor;
+import org.nustaq.reallive.client.ShardedTable;
+import org.nustaq.reallive.server.actors.TableSpaceActor;
 import org.nustaq.reallive.api.*;
-import org.nustaq.reallive.impl.*;
-import org.nustaq.reallive.impl.storage.*;
+import org.nustaq.reallive.server.*;
+import org.nustaq.reallive.server.storage.*;
 import org.nustaq.reallive.records.MapRecord;
 
 import java.util.Iterator;

@@ -1,0 +1,20 @@
+SimpleRLConfig {
+
+  bindPort: 8086
+  dataDir: "./data"
+  numNodes: 11
+  runDataClusterInsideWebserver: false
+  tcpPort: 7653
+
+  #mongoConnection: 'mongodb://localhost:27017/testrl'
+
+  tables: [
+    {
+        name: feed, storageType: CACHED, sizeMB: 10,
+        hashIndexed: [ "subob.x", "field" ]
+    }
+    ### defaults: sizeMB: 100 filePath: USE_BASE_DIR storageType: CACHED
+    #{ name: feedEntity, storageType: CACHED }
+  ]
+
+}

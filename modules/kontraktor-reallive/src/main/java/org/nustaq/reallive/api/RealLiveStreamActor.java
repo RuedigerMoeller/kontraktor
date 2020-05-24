@@ -2,9 +2,9 @@ package org.nustaq.reallive.api;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
-import org.nustaq.reallive.impl.FilterSpore;
-import org.nustaq.reallive.impl.MapSpore;
-import org.nustaq.reallive.impl.QueryPredicate;
+import org.nustaq.reallive.server.FilterSpore;
+import org.nustaq.reallive.server.MapSpore;
+import org.nustaq.reallive.server.QueryPredicate;
 import org.nustaq.reallive.query.QParseException;
 
 
