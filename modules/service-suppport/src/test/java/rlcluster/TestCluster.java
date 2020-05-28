@@ -1,5 +1,6 @@
 package rlcluster;
 
+import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.services.*;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.services.datacluster.DataShard;

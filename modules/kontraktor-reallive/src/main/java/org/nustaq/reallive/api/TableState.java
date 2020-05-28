@@ -1,10 +1,14 @@
 package org.nustaq.reallive.api;
+import org.nustaq.reallive.server.actors.RealLiveTableActor;
 import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.BitSet;
 
 public class TableState implements Serializable {
 
-    Object associatedShard; // service description, cannot ref from here
+    transient RealLiveTableActor associatedTableShard; // service description, cannot ref from here
+    String associatedShardName; // dependency terror
     String tableName;
     ClusterTableRecordMapping mapping;
     long numElements;
@@ -15,15 +19,16 @@ public class TableState implements Serializable {
         this.tableName = name;
     }
 
-    /**
-     * @return servicedescription
-     */
-    public Object getAssociatedShard() {
-        return associatedShard;
+    public RealLiveTableActor getAssociatedTableShard() {
+        return associatedTableShard;
     }
 
     public ClusterTableRecordMapping getMapping() {
         return mapping;
+    }
+
+    public int getNumBuckets() {
+        return getMapping().getBitset().cardinality();
     }
 
     public long getNumElements() {
@@ -34,9 +39,18 @@ public class TableState implements Serializable {
         return tableName;
     }
 
-    public TableState associatedShard(Object assiatedShard) {
-        this.associatedShard = assiatedShard;
+    public TableState associatedTableShard(RealLiveTableActor assiatedShard ) {
+        this.associatedTableShard = assiatedShard;
         return this;
+    }
+
+    public TableState associatedShardName(String name ) {
+        this.associatedShardName = name;
+        return this;
+    }
+
+    public String getAssociatedShardName() {
+        return associatedShardName;
     }
 
     public TableState mapping(ClusterTableRecordMapping mapping) {
@@ -60,9 +74,28 @@ public class TableState implements Serializable {
             "tableName='" + tableName + '\'' +
             ", mapping=" + mapping +
             ", numElements=" + numElements +
-            ", assShard="+associatedShard+
+            ", assShard="+ associatedTableShard +
             '}';
     }
 
 
+    public boolean containsBucket(int i) {
+        return mapping.getBitset().get(i);
+    }
+
+    public void addBuckets(int [] transfer ) {
+        getMapping().addBuckets(transfer);
+    }
+
+    public int[] takeBuckets(int transfer) {
+        int[] res = new int[transfer];
+        BitSet bitset = getMapping().getBitset();
+        int bitPos = 0;
+        for (int i = 0; i < res.length; i++) {
+            res[i] = bitset.nextSetBit(bitPos);
+            bitPos = res[i];
+            bitset.set(bitPos,false);
+        }
+        return res;
+    }
 }

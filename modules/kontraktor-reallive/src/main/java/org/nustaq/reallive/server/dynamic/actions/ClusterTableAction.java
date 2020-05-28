@@ -1,23 +1,23 @@
-package org.nustaq.kontraktor.services.datacluster.dynamic.actions;
+package org.nustaq.reallive.server.dynamic.actions;
 
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.services.ServiceDescription;
-import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataShard;
+import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 
 import java.io.Serializable;
 
 public abstract class ClusterTableAction implements Serializable {
 
-    String tableName;
-    String shardName;
-    String otherShard;
+    protected String tableName;
+    protected String shardName;
+    protected String otherShard;
 
     public ClusterTableAction(String tableName, String shardName) {
         this.tableName = tableName;
         this.shardName = shardName;
     }
 
-    public abstract IPromise action(DynDataShard remoteRef, ServiceDescription otherRef );
+    public abstract IPromise action(Actor remoteRef /*datashard*/, ServiceDescription otherRef );
 
     public String getTableName() {
         return tableName;

@@ -2,12 +2,10 @@ package org.nustaq.kontraktor.services.rlserver;
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.services.ServiceActor;
-import org.nustaq.kontraktor.services.ServiceArgs;
-import org.nustaq.kontraktor.services.ServiceDescription;
+import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
 
 import java.io.File;
-import java.util.concurrent.TimeUnit;
 
 public class RLJsonServerService extends ServiceActor<RLJsonServerService> {
 

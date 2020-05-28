@@ -1,7 +1,6 @@
-package org.nustaq.kontraktor.services;
+package org.nustaq.kontraktor.remoting.base;
 
 import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 
 import java.io.Serializable;
 import java.util.UUID;
@@ -87,6 +86,8 @@ public class ServiceDescription implements Serializable {
     }
 
     public Class<? extends Actor> getActorClazz() {
+        if ( connectable == null )
+            return null;
         return connectable.getActorClass();
     }
 }

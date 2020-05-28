@@ -21,6 +21,8 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
 
     public static long MAX_WAIT_MMAP = TimeUnit.MINUTES.toMillis(5);
 
+    public transient String __clientsideTag; // might contain shard id on remote side (servicename)
+
     protected HashMap<String,RealLiveTableActor> tables;
     protected HashMap<String,TableDescription> tableDesc;
     protected List<Callback<StateMessage>> stateListeners;

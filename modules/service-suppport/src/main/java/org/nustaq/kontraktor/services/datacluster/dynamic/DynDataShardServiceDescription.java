@@ -1,6 +1,6 @@
 package org.nustaq.kontraktor.services.datacluster.dynamic;
 
-import org.nustaq.kontraktor.services.ServiceDescription;
+import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 
 import java.util.BitSet;
 

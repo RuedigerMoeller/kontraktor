@@ -38,6 +38,8 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     public static final long REPORT_INTERVAL = TimeUnit.MINUTES.toMillis(1);
     public static boolean DUMP_QUERY_TIME = true;
 
+    public transient String __clientSideTag; // usually data shard name
+
     StorageDriver storageDriver;
     FilterProcessor filterProcessor;
     HashMap<String,Subscriber> receiverSideSubsMap = new HashMap();
@@ -76,14 +78,13 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
                     path
                 ));
             }
-            rawStorage.forEach( rec -> true, (r,e) -> {
-                if ( r != null ) {
-                    indexedStorage.initializeFromRecord(r);
-                    mapping.setBucket(r.getKey().hashCode(),true);
-                }
-            });
-            int debug = 1;
         }
+        rawStorage.forEach( rec -> true, (r,e) -> {
+            if ( r != null ) {
+                indexedStorage.initializeFromRecord(r);
+                mapping.setBucket( mapping.getBucket(r.getKey().hashCode()),true);
+            }
+        });
         Log.Info(this,"index creation done "+description.getName()+" "+description.getShardNo());
     }
 
@@ -171,6 +172,10 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     public IPromise _setMapping(ClusterTableRecordMapping mapping) {
         this.mapping = mapping;
         return resolve(true);
+    }
+
+    @CallerSideMethod public ClusterTableRecordMapping getMapping() {
+        return getActor().mapping;
     }
 
     static class QueryQEntry {
@@ -426,6 +431,14 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     public void remove(int senderId, String key) {
         RemoveMessage remove = RLUtil.get().remove(senderId, key);
         receive(remove);
+    }
+
+    public void _removeSilent(String key) {
+        storageDriver.getStore().remove(key);
+    }
+
+    public void _addSilent(Record rec) {
+        storageDriver.getStore()._put(rec.getKey(),rec);
     }
 
     public IPromise<TableState> getTableState() {

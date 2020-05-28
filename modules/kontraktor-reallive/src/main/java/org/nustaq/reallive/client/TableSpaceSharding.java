@@ -5,6 +5,7 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.reallive.server.actors.RealLiveTableActor;
 import org.nustaq.reallive.server.actors.TableSpaceActor;
 import org.nustaq.reallive.server.storage.StorageStats;
 import org.nustaq.reallive.api.RealLiveTable;
@@ -21,9 +22,9 @@ import java.util.stream.Collectors;
  */
 public class TableSpaceSharding implements TableSpace {
 
-    List<TableSpaceActor> shards = new ArrayList<>();
-    HashMap<String,RealLiveTable> tableMap = new HashMap();
-    HashMap<String,TableDescription> tableDescriptionMap = new HashMap();
+    protected List<TableSpaceActor> shards = new ArrayList<>();
+    protected HashMap<String,RealLiveTable> tableMap = new HashMap();
+    protected HashMap<String,TableDescription> tableDescriptionMap = new HashMap();
 
     public TableSpaceSharding(TableSpaceActor[] shards) {
         Arrays.stream(shards).forEach( sh -> addShard(sh));
@@ -41,22 +42,25 @@ public class TableSpaceSharding implements TableSpace {
     }
 
     @Override
-    public IPromise<RealLiveTable> createOrLoadTable(TableDescription desc) {
+    public IPromise<RealLiveTable> createOrLoadTable(TableDescription desc0) {
         Promise<RealLiveTable> res = new Promise();
         ArrayList<IPromise<RealLiveTable>> results = new ArrayList();
         for (int i = 0; i < shards.size(); i++) {
             TableSpaceActor shard = shards.get(i);
-            IPromise<RealLiveTable> table = shard.createOrLoadTable(desc.clone().shardNo(i));
+            TableDescription desc = desc0.clone().shardId(shard.__clientsideTag).shardNo(-1);
+            IPromise<RealLiveTable> remoteTable = shard.createOrLoadTable(desc);
             Promise p = new Promise();
             results.add(p);
-            final int finalI = i;
-            table.then((r, e) -> {
-                if (e == null)
-                    Log.Info(this, "table creation: "+desc.getName()+" "+ finalI);
+            final String finalId = shard.__clientsideTag;
+            remoteTable.then((r, e) -> {
+                if (e == null) {
+                    Log.Info(this, "table creation: " + desc.getName() + " " + finalId);
+                    ((RealLiveTableActor) r).__clientSideTag = finalId;
+                }
                 else if ( e instanceof Throwable )
-                    Log.Info(this, (Throwable) e,"failed table creation: " + desc.getName() + " "+ finalI );
+                    Log.Info(this, (Throwable) e,"failed table creation: " + desc.getName() + " "+ finalId );
                 else
-                    Log.Info(this, "failed table creation: " + desc.getName() + " "+ finalI +" "+e);
+                    Log.Info(this, "failed table creation: " + desc.getName() + " "+ finalId +" "+e);
                 p.complete(r, e);
             });
         }
@@ -81,9 +85,9 @@ public class TableSpaceSharding implements TableSpace {
                 }
             }
             if ( ! errors ) {
-                ShardedTable ts = createShardedTable(desc, tableShards);
-                tableMap.put(desc.getName(),ts);
-                tableDescriptionMap.put(desc.getName(),desc);
+                ShardedTable ts = createShardedTable(desc0, tableShards);
+                tableMap.put(desc0.getName(),ts);
+                tableDescriptionMap.put(desc0.getName(),desc0);
                 res.resolve(ts);
             }
         });

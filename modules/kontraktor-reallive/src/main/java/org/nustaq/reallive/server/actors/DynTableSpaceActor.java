@@ -1,6 +1,7 @@
 package org.nustaq.reallive.server.actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.reallive.server.actors.RealLiveTableActor;
 import org.nustaq.reallive.server.actors.TableSpaceActor;
 import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
@@ -37,4 +38,5 @@ public class DynTableSpaceActor extends TableSpaceActor {
             return reject("table "+tableName+" not initialized");
         return realLiveTableActor._setMapping(mapping);
     }
+
 }

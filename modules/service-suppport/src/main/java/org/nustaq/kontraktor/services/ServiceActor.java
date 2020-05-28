@@ -2,8 +2,13 @@ package org.nustaq.kontraktor.services;
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.remoting.base.ReconnectableRemoteRef;
+import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.services.datacluster.DataShard;
+import org.nustaq.kontraktor.services.rlclient.dynamic.DynDataClient;
+import org.nustaq.reallive.server.dynamic.DynClusterDistribution;
+import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataServiceRegistry;
+import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataShard;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
@@ -13,6 +18,7 @@ import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.reallive.server.actors.DynTableSpaceActor;
 import org.nustaq.reallive.server.actors.TableSpaceActor;
 import org.nustaq.serialization.util.FSTUtil;
 
@@ -34,6 +40,14 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         return RunTCP(args,serviceClazz,argsClazz, DEFAULT_START_TIMEOUT);
     }
 
+    public static ServiceActor RunTCP(String args[], Class<? extends ServiceActor> serviceClazz, Class<? extends ServiceArgs> argsClazz, Class<? extends ServiceRegistry> serviceRegistryClass) {
+        return RunTCP(args,serviceClazz, argsClazz, serviceRegistryClass, DEFAULT_START_TIMEOUT);
+    }
+
+    public static ServiceActor RunTCP( String args[], Class<? extends ServiceActor> serviceClazz, Class<? extends ServiceArgs> argsClazz, long timeout) {
+        return RunTCP(args,serviceClazz,argsClazz,ServiceRegistry.class,timeout);
+    }
+
     /**
      * run & connect a service with given cmdline args and classes
      *
@@ -44,19 +58,22 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
      * @throws IllegalAccessException
      * @throws InstantiationException
      */
-    public static ServiceActor RunTCP( String args[], Class<? extends ServiceActor> serviceClazz, Class<? extends ServiceArgs> argsClazz, long timeout) {
+    public static ServiceActor RunTCP( String args[], Class<? extends ServiceActor> serviceClazz, Class<? extends ServiceArgs> argsClazz, Class<? extends ServiceRegistry> serviceRegistryClass, long timeout) {
         ServiceArgs options = null;
         try {
             options = ServiceRegistry.parseCommandLine(args, null, argsClazz.newInstance());
         } catch (Exception e) {
             FSTUtil.rethrow(e);
         }
-        return RunTCP(options, serviceClazz, timeout);
+        return RunTCP(options, serviceClazz, serviceRegistryClass, timeout);
+    }
+    public static ServiceActor RunTCP(ServiceArgs options, Class<? extends ServiceActor> serviceClazz, long timeout) {
+        return RunTCP(options,serviceClazz,ServiceRegistry.class,timeout);
     }
 
-    public static ServiceActor RunTCP(ServiceArgs options, Class<? extends ServiceActor> serviceClazz, long timeout) {
+    public static ServiceActor RunTCP(ServiceArgs options, Class<? extends ServiceActor> serviceClazz, Class<? extends ServiceRegistry> serviceRegistryClass, long timeout) {
         ServiceActor myService = AsActor(serviceClazz);
-        TCPConnectable connectable = new TCPConnectable(ServiceRegistry.class, options.getRegistryHost(), options.getRegistryPort());
+        TCPConnectable connectable = new TCPConnectable(serviceRegistryClass, options.getRegistryHost(), options.getRegistryPort());
 
         myService.init( connectable, options, true).await(timeout);
         Log.Info(myService.getClass(), "Init finished");
@@ -67,14 +84,13 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
     public static final String UNCONNECTED = "UNCONNECTED";
 
     protected ReconnectableRemoteRef<ServiceRegistry> serviceRegistry;
-    protected Map<String,Object> requiredServices;
+    protected Map<String,Object> requiredServices; // also contains DynDataShards in case of dynamic clusters
     protected ClusterCfg config;
     protected ServiceDescription serviceDescription;
     protected ServiceArgs cmdline;
     protected DataClient dclient;
-
+    protected DynClusterDistribution currentDistribution;
     IPromise initComplete;
-
     List<BiConsumer<String,Object>> serviceEventListener;
 
     public IPromise init(ConnectableActor registryConnectable, ServiceArgs options, boolean autoRegister) {
@@ -149,8 +165,10 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
             Log.Info(this, "waiting for required services ..");
             awaitRequiredServices().then((r, e) -> {
                 if (e == null) {
-                    if (needsDataCluster()) {
-                        initRealLive(); // awaits
+                    if (isFixedDataCluster()) {
+                        initRealLiveFixed(); // awaits
+                    } else if ( isDynamicDataCluster() ) {
+                        initRealLiveDynamic(); // awaits
                     }
                     Log.Info(this, "got all required services ..");
                     // all required services are there, now
@@ -176,11 +194,12 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
 
     protected IPromise awaitRequiredServices() {
         Promise p = new Promise();
+        Log.Info(this, "connecting required services ..");
         awaitRequiredServicesInternal(p);
         return p;
     }
 
-    private void awaitRequiredServicesInternal(Promise p) {
+    protected void awaitRequiredServicesInternal(Promise p) {
         connectRequiredServices().then( () -> {
             long missing = requiredServices.values().stream().filter(serv -> serv == UNCONNECTED).count();
             if ( missing > 0 ) {
@@ -190,13 +209,104 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
                         Log.Warn(this,"    "+name);
                 });
                 delayed(2000, () -> awaitRequiredServicesInternal(p));
+            } else if ( isDynamicDataCluster() ) {
+                // wait for valid cluster distribution
+                ServiceRegistry serviceRegistry = this.serviceRegistry.get();
+                if ( serviceRegistry instanceof DynDataServiceRegistry == false ) {
+                    Log.Error(this,"Fatal: need DynDataServiceRegistry to manage dynamic data cluster");
+                    delayed(1000, () -> System.exit(2));
+                }
+                DynDataServiceRegistry reg = (DynDataServiceRegistry) serviceRegistry;
+                try {
+                    DynClusterDistribution distribution = reg.getActiveDistribution().await();
+                    if ( distribution != null ) {
+                        Log.Info(this,"received distribution, start initializing dataclient ");
+                        serviceRegistry.getServiceMap().then( (smap,err) -> {
+                           if ( smap != null ) {
+                               List proms = new ArrayList<>();
+                               smap.values().stream()
+                                   .filter( desc -> desc.getName().startsWith(DynDataShard.DATA_SHARD_NAME))
+                                   .forEach( desc -> {
+                                       Promise sp = new Promise();
+                                       proms.add(sp);
+                                       connectService(desc).then( (r,e) -> {
+                                           if ( r != null ) {
+                                               Log.Info(this,"dyndatacluster init connecting "+desc);
+                                               requiredServices.put(desc.getName(),r);
+                                               sp.resolve();
+                                           } else {
+                                               Log.Error(this, "failed to connect "+desc);
+                                               sp.reject(e);
+                                           }
+                                       });
+                                   });
+                               allMapped(proms).await();
+                               setCurrentDistribution(distribution);
+                               p.resolve();
+                           } else {
+                               p.reject("could not aquire servicemap");
+                           }
+                        });
+                    } else {
+                        Log.Info(this,"wait for distribution map ..");
+                        delayed(2000, () -> awaitRequiredServicesInternal(p));
+                    }
+                } catch (Exception e) {
+                    Log.Error(this,e);
+                }
             } else {
                 p.resolve();
             }
         });
     }
 
-    private void initRealLive() {
+    private void setCurrentDistribution(DynClusterDistribution distribution) {
+        currentDistribution = distribution;
+    }
+
+    protected void initRealLiveDynamic() {
+        Log.Info(this, "init datacluster client");
+        int nShards = currentDistribution.getNumberOfShards();
+        Log.Info(this, "number of shards "+nShards);
+        DynDataShard shards[] =  new DynDataShard[nShards];
+        DynTableSpaceActor tsShard[] = new DynTableSpaceActor[nShards];
+        Map<String, ServiceDescription> serviceMap = serviceRegistry.get().getServiceMap().await();
+        int i = 0;
+        for (Iterator<String> iterator = serviceMap.keySet().iterator(); iterator.hasNext(); ) {
+            String serviceName =  iterator.next();
+            if ( serviceName.startsWith(DynDataShard.DATA_SHARD_NAME) ) {
+                shards[i] = getService(serviceName);
+                if ( shards[i] == null ) {
+                    Log.Error(this,"FATAL: announced shard not found/connected:"+serviceName);
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    System.exit(1);
+                } else {
+                    Log.Info(this, "connect to shard " + serviceName);
+                    tsShard[i] = shards[i].getTableSpace().await();
+                    tsShard[i].__clientsideTag = serviceName;
+                }
+                i++;
+            }
+        }
+        if ( i != nShards )
+        {
+            Log.Error(this,"FATAL: number dyndatashards contradicts distribution");
+            delayed(1000,() -> System.exit(1));
+        }
+        Log.Info(this, "dc connected all shards");
+
+        dclient = Actors.AsActor(DynDataClient.class);
+        ((DynDataClient) dclient).setInitialMapping(currentDistribution);
+        dclient.connect(config.getDataCluster(),tsShard,self()).await(DEFAULT_START_TIMEOUT);
+        Log.Info(this, "dc init done");
+        Log.Info(this,"\n"+currentDistribution);
+    }
+
+    protected void initRealLiveFixed() {
         Log.Info(this, "init datacluster client");
         int nShards = config.getDataCluster().getNumberOfShards();
         Log.Info(this, "number of shards "+nShards);
@@ -206,6 +316,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
             shards[i] = getService(DataShard.DATA_SHARD_NAME + i);
             Log.Info(this,"connect to shard "+i);
             tsShard[i] = shards[i].getTableSpace().await();
+            tsShard[i].__clientsideTag = DataShard.DATA_SHARD_NAME + i;
         }
         Log.Info(this, "dc connected all shards");
 
@@ -259,7 +370,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
     }
 
     protected String[] getAllServiceNames() {
-        if ( needsDataCluster() ) {
+        if ( isFixedDataCluster() ) {
             String[] rn = getRequiredServiceNames();
             int numberOfShards = config.getDataCluster().getNumberOfShards();
             String s[] = Arrays.copyOf(rn,rn.length+numberOfShards);
@@ -271,8 +382,12 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         return getRequiredServiceNames();
     }
 
-    protected boolean needsDataCluster() {
-        return true;
+    protected boolean isFixedDataCluster() {
+        return ! isDynamicDataCluster();
+    }
+
+    protected boolean isDynamicDataCluster() {
+        return false;
     }
 
     protected abstract String[] getRequiredServiceNames();
@@ -284,6 +399,9 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         if ( ServiceRegistry.CONFIGUPDATE.equals(eventId) ) {
             config = (ClusterCfg) cdr;
             notifyConfigChanged();
+        }
+        if ( DynDataServiceRegistry.RECORD_DISTRIBUTION.equals(eventId) ) {
+            setCurrentDistribution((DynClusterDistribution) cdr);
         }
         fireServiceEvent(eventId,cdr);
     }
@@ -313,7 +431,6 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
      * @return
      */
     public IPromise connectRequiredServices() {
-        Log.Info(this, "connecting required services ..");
         if ( requiredServices.size() == 0 ) {
             return resolve();
         }
@@ -331,7 +448,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
                     IPromise connect;
                     try {
                         Log.Info(this,"connect "+serviceDescription.getConnectable());
-                        connect = serviceDescription.getConnectable().connect(null, act -> serviceDisconnected(act) );
+                        connect = connectService(serviceDescription);
                     } catch (Throwable th) {
                         Log.Error(this, th, "failed to connect "+serviceDescription.getName() );
                         continue;
@@ -342,7 +459,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
                     connect.then((actor, connectionError) -> {
                         if (actor != null) {
                             requiredServices.put(servName, actor);
-                            Log.Info(this,"connected requireed service "+servName);
+                            Log.Info(this,"connected required service "+servName);
                             notify.complete();
                         } else {
                             requiredServices.put(servName,UNCONNECTED);
@@ -359,6 +476,10 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
             all(servicePromis).then( res );
         });
         return res;
+    }
+
+    protected IPromise<Actor> connectService(ServiceDescription serviceDescription) {
+        return serviceDescription.getConnectable().connect(null, act -> serviceDisconnected(act) );
     }
 
     protected void serviceDisconnected(Actor act) {

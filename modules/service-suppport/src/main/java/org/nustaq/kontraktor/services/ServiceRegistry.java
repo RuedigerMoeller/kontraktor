@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.services;
 import com.beust.jcommander.JCommander;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
+import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.Http4K;

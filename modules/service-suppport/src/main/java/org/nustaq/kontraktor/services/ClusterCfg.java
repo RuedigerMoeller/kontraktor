@@ -57,9 +57,15 @@ public class ClusterCfg implements Serializable {
 
     String publicHostUrl = "http://localhost:8888";
 
+    boolean dynAutoStart = true; // automatically trigger data cluster start once full hash coverage is achieved
+
     DataCfg dataCluster = new DataCfg();
     public DataCfg getDataCluster() {
         return dataCluster;
+    }
+
+    public boolean isDynAutoStart() {
+        return dynAutoStart;
     }
 
     public ClusterCfg dataCluster(final DataCfg dataCluster) {

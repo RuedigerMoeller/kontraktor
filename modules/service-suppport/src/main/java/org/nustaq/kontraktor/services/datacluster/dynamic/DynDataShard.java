@@ -4,19 +4,24 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
+import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.services.*;
 import org.nustaq.kontraktor.services.datacluster.DataCfg;
 import org.nustaq.kontraktor.services.datacluster.DataShardArgs;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.reallive.api.RealLiveTable;
 import org.nustaq.reallive.api.TableState;
+import org.nustaq.reallive.server.actors.RealLiveTableActor;
 import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
 import org.nustaq.reallive.server.actors.DynTableSpaceActor;
-import org.nustaq.reallive.server.actors.TableSpaceActor;
 
+import org.nustaq.reallive.api.Record;
 import java.io.File;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 public class DynDataShard extends ServiceActor<DynDataShard>  {
@@ -81,10 +86,12 @@ public class DynDataShard extends ServiceActor<DynDataShard>  {
         Arrays.stream(config.getDataCluster().getSchema())
             .forEach( td -> {
                 try {
+                    td.shardId(getServiceDescription().getName());
+                    td.shardNo(getCmdline().getShardNo());
                     tableSpace.createOrLoadTable(td).await(WAIT_TABLE_LOAD);
                     Log.Info(this, "loaded table " + td.getName());
                 } catch (Exception e) {
-                    Log.Error(this,"failed to initialize table");
+                    Log.Error(this,e, "failed to initialize table");
                 }
             });
         Log.Info(this,"wait table space ping");
@@ -95,12 +102,12 @@ public class DynDataShard extends ServiceActor<DynDataShard>  {
         );
     }
 
-    public IPromise<TableSpaceActor> getTableSpace() {
+    public IPromise<DynTableSpaceActor> getTableSpace() {
         return resolve(tableSpace);
     }
 
     @Override
-    protected boolean needsDataCluster() {
+    protected boolean isFixedDataCluster() {
         return false;
     }
 
@@ -127,7 +134,7 @@ public class DynDataShard extends ServiceActor<DynDataShard>  {
     public IPromise<Map<String, TableState>> getStates() {
         Promise p = new Promise();
         tableSpace.getStates().then( (r,e) -> {
-            r.values().stream().forEach( ts -> ts.associatedShard(serviceDescription));
+            r.values().stream().forEach( ts -> ts.associatedShardName(serviceDescription.getName()));
             p.complete(r,e);
         });
         return p;
@@ -160,4 +167,46 @@ public class DynDataShard extends ServiceActor<DynDataShard>  {
         return ds;
     }
 
+    public IPromise _moveHashShards(String tableName, int[] hashShards2Move, ServiceDescription otherRef) {
+        Promise res = new Promise();
+        otherRef.getConnectable().connect( (connector,e) -> {}, actor -> {
+           Log.Info(this,"lost connection to other shard ref "+otherRef);
+        }).then( (remote,err) -> {
+            if ( remote != null ) {
+                ClusterTableRecordMapping mapping = new ClusterTableRecordMapping();
+                mapping.addBuckets(hashShards2Move);
+                try {
+                    RealLiveTableActor table = (RealLiveTableActor) tableSpace.getTableAsync(tableName).await();
+                    List<Record> toTransmit = new ArrayList<>();
+                    table.forEach( record -> mapping.matches(record.getKey().hashCode()) , (r,e) -> {
+                        if ( r != null )
+                            toTransmit.add(r);
+                        else {
+                            Log.Info(this,"transmitting "+tableName+" "+toTransmit.size()+" records to "+otherRef.getName());
+                            ((DynDataShard)remote)._receiveHashTransmission( tableName, hashShards2Move, toTransmit )
+                                .then( (rr,ee) -> {
+                                    if ( rr != null ) {
+                                        toTransmit.forEach(rec->table._removeSilent(rec.getKey()));
+                                        res.resolve();
+                                    } else
+                                        res.reject(ee);
+                                });
+                        }
+                    });
+                } catch (Exception e) {
+                    res.reject(e);
+                }
+            } else
+                res.reject(err);
+        });
+        return res;
+    }
+
+    public IPromise _receiveHashTransmission(String tableName, int[] hashShards2Move, List<Record> toTransmit) {
+        // FIXME: suppress notifications
+        Log.Info(this,"received transmision of "+toTransmit.size()+" records to "+tableName);
+        RealLiveTableActor table = (RealLiveTableActor) tableSpace.getTableAsync(tableName).await();
+        toTransmit.forEach( rec -> table._addSilent(rec));
+        return resolve();
+    }
 }

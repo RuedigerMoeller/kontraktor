@@ -1,8 +1,6 @@
-package org.nustaq.kontraktor.services.datacluster.dynamic;
+package org.nustaq.reallive.server.dynamic;
 
-import org.nustaq.kontraktor.services.ServiceDescription;
-import org.nustaq.kontraktor.services.datacluster.dynamic.actions.AssignMappingAction;
-import org.nustaq.kontraktor.services.datacluster.dynamic.actions.ClusterTableAction;
+import org.nustaq.reallive.server.dynamic.actions.ClusterTableAction;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.TableState;
 import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
@@ -31,12 +29,20 @@ public class DynClusterTableDistribution implements Serializable {
     public static final int INTERSECT = 1;
     public static final int INCOMPLETE = 2;
     public static final int EMPTY = 4;
-    int sanitize() {
+    public static final int TABLE_MISSING = 8;
+
+    public int sanitize() {
         List<TableState> l = tableStates;
         int res = 0;
+        int numNodes = -1;
         BitSet bs = new BitSet(ClusterTableRecordMapping.NUM_BUCKET);
         for (int i = 0; i < l.size(); i++) {
             TableState tableState = l.get(i);
+            if ( numNodes < 0 )
+                numNodes = l.size();
+            else if ( l.size() != numNodes ) {
+                res |= TABLE_MISSING;
+            }
             BitSet tableBS = tableState.getMapping().getBitset();
             if ( bs.intersects(tableBS) ) {
                 Log.Warn(this, "data intersection "+tableState);
@@ -63,29 +69,14 @@ public class DynClusterTableDistribution implements Serializable {
         tableStates.add(value);
     }
 
-    public void initFromEmpty() {
-        int numNodes = tableStates.size();
-        int tsCount = 0;
-        for (int i = 0; i < ClusterTableRecordMapping.NUM_BUCKET; i++ ) {
-            TableState tableState = tableStates.get(tsCount++);
-            tableState.getMapping().setBucket(i,true);
-            if ( tsCount >= numNodes )
-                tsCount = 0;
-        }
-        setActions(new ArrayList<>());
-        tableStates.forEach( tstate -> getActions().add(
-            new AssignMappingAction(
-                tstate.getTableName(),
-                ((ServiceDescription)tstate.getAssociatedShard()).getName(),
-                tstate.getMapping()
-            )
-        ));
-    }
-
     public List<ClusterTableAction> getActions() {
         if ( actions == null )
-            return Collections.emptyList();
+            actions = new ArrayList<>();
         return actions;
+    }
+
+    public void addAction( ClusterTableAction action ) {
+        getActions().add(action);
     }
 
     public void setActions(List<ClusterTableAction> actions) {
@@ -97,12 +88,21 @@ public class DynClusterTableDistribution implements Serializable {
         StringBuilder s = new StringBuilder(100);
         s.append("=> "+getName()+"\n");
         tableStates.forEach(
-            ts -> s.append(((ServiceDescription) ts.getAssociatedShard()).getName()+" "+ts.getMapping()+" "+ts.getNumElements()+"\n"));
+            ts -> s.append(ts.getAssociatedShardName()+" "+ts.getMapping()+" "+ts.getNumElements()+"\n"));
         s.append("\n");
         return s.toString();
     }
 
     public void clearActions() {
         actions = null;
+    }
+
+    public boolean covers(int i) {
+        for (int j = 0; j < tableStates.size(); j++) {
+            TableState tableState = tableStates.get(j);
+            if ( tableState.containsBucket(i) )
+                return true;
+        }
+        return false;
     }
 }

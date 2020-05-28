@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.services;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 
 /**

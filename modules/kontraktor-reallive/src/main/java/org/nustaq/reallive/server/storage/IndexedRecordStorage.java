@@ -46,6 +46,11 @@ public class IndexedRecordStorage implements RecordStorage {
         return wrapped.put(key,value);
     }
 
+    @Override
+    public RecordPersistance _put(String key, Record value) {
+        return put(key,value);
+    }
+
     public void initializeFromRecord(Record value) {
         if ( indices != null ) {
             indices.forEach( ind -> ind.put(value.getKey(),value) );

@@ -1,6 +1,7 @@
 package org.nustaq.reallive.server.storage;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.UUID;
 
@@ -10,7 +11,6 @@ public class ClusterTableRecordMapping implements Serializable {
 //    public static final int NUM_BUCKET = 512;
 //    public static final long BUCKET_SHIFT = (32-9);
     public static final int NUM_BUCKET = 1<<5;
-    public static final long BUCKET_SHIFT = (32-5);
 
     public boolean matches(int hashKey) {
         int bucket = getBucket(hashKey);
@@ -18,7 +18,13 @@ public class ClusterTableRecordMapping implements Serializable {
     }
 
     public int getBucket(int hashKey) {
-        return hashKey>>>BUCKET_SHIFT;
+        return (hashKey&0x7fffffff)%NUM_BUCKET;
+    }
+
+    public void addBuckets( int[] buckets ) {
+        for (int i = 0; i < buckets.length; i++) {
+            bs.set(buckets[i],true);
+        }
     }
 
     public void setBucket(int index, boolean b) {

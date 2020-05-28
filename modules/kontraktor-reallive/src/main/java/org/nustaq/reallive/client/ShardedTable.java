@@ -3,6 +3,7 @@ package org.nustaq.reallive.client;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.server.FilterProcessor;
+import org.nustaq.reallive.server.dynamic.DynClusterDistribution;
 import org.nustaq.reallive.server.storage.StorageStats;
 import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.server.RLUtil;
@@ -15,6 +16,7 @@ import org.nustaq.reallive.records.RecordWrapper;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.nustaq.reallive.api.Record;
 
@@ -26,11 +28,12 @@ public class ShardedTable implements RealLiveTable {
     public static boolean DUMP_IN_PROC_CHANGES = false;
 
     final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap(); // real subscriptions only
-    private TableDescription description;
-    private HashMap<Integer,RealLiveTable> shardMap = new HashMap();
-    private Set<RealLiveTable> shards = new HashSet<>();
-    private FilterProcessor proc = new FilterProcessor(this);
-    AtomicBoolean globalListenReady = new AtomicBoolean(false);
+
+    protected TableDescription description;
+    protected HashMap<Integer,RealLiveTable> tableShardMap = new HashMap();
+    protected Set<RealLiveTable> shards = new HashSet<>();
+    protected FilterProcessor proc = new FilterProcessor(this);
+    protected AtomicBoolean globalListenReady = new AtomicBoolean(false);
 
     public ShardedTable(RealLiveTable[] shards, TableDescription desc) {
         this.description = desc;
@@ -96,10 +99,10 @@ public class ShardedTable implements RealLiveTable {
     }
 
     public void removeTableShard(RealLiveTable shard2Remove) {
-        for (Iterator<Map.Entry<Integer, RealLiveTable>> iterator = shardMap.entrySet().iterator(); iterator.hasNext(); ) {
+        for (Iterator<Map.Entry<Integer, RealLiveTable>> iterator = tableShardMap.entrySet().iterator(); iterator.hasNext(); ) {
             Map.Entry<Integer, RealLiveTable> next = iterator.next();
             if ( next.getValue() == shard2Remove ) {
-                shardMap.remove(next.getKey());
+                tableShardMap.remove(next.getKey());
                 shards.remove(shard2Remove);
                 return;
             }
@@ -107,8 +110,8 @@ public class ShardedTable implements RealLiveTable {
     }
 
     protected RealLiveTable getTableForKey(String key) {
-        int h = Math.abs(key.hashCode())%shardMap.size();
-        RealLiveTable table = shardMap.get(h);
+        int h = Math.abs(key.hashCode())% tableShardMap.size();
+        RealLiveTable table = tableShardMap.get(h);
         if ( table == null ) {
             Log.Warn(this, "cannot map keyHash " + h);
             return null; // FIXME: needs to be handled in methods below

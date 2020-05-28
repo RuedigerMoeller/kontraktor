@@ -7,7 +7,7 @@ import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.services.ServiceActor;
 import org.nustaq.kontraktor.services.ServiceArgs;
-import org.nustaq.kontraktor.services.ServiceDescription;
+import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.services.ServiceRegistry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.server.actors.TableSpaceActor;
@@ -76,7 +76,7 @@ public class DataShard extends ServiceActor<DataShard> {
     }
 
     @Override
-    protected boolean needsDataCluster() {
+    protected boolean isFixedDataCluster() {
         return false;
     }
 

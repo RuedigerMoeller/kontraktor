@@ -1,8 +1,9 @@
-package org.nustaq.kontraktor.services.datacluster.dynamic.actions;
+package org.nustaq.kontraktor.services.datacluster.dynamic;
 
+import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.services.ServiceDescription;
-import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataShard;
+import org.nustaq.kontraktor.remoting.base.ServiceDescription;
+import org.nustaq.reallive.server.dynamic.actions.ClusterTableAction;
 import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
 
 /**
@@ -18,8 +19,8 @@ public class AssignMappingAction extends ClusterTableAction {
     ClusterTableRecordMapping mapping;
 
     @Override
-    public IPromise action(DynDataShard remoteRef, ServiceDescription otherRef) {
-        return remoteRef._setMapping( tableName,mapping);
+    public IPromise action(Actor remoteRef, ServiceDescription otherRef) {
+        return ((DynDataShard)remoteRef)._setMapping( tableName,mapping);
     }
 
     @Override

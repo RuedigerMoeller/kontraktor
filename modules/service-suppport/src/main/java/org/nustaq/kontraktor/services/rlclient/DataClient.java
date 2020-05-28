@@ -4,8 +4,6 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.services.datacluster.DataCfg;
 import org.nustaq.kontraktor.services.ServiceActor;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
-import org.nustaq.kontraktor.services.datacluster.dynamic.DynClusterDistribution;
-import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataServiceRegistry;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.client.ShardedTable;
 import org.nustaq.reallive.client.ClusteredTableSpaceClient;
@@ -31,11 +29,10 @@ import java.util.concurrent.TimeUnit;
  */
 public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<T> {
 
-    DataCfg config;
-    ServiceActor hostingService;
-    TableSpaceActor shards[];
-    HashMap<String,RealLiveTable> syncTableAccess;
-    DynClusterDistribution currentMapping; // only used in dyn clusters
+    protected DataCfg config;
+    protected ServiceActor hostingService;
+    protected TableSpaceActor shards[];
+    protected HashMap<String,RealLiveTable> syncTableAccess;
 
     public IPromise connect( DataCfg config, TableSpaceActor shards[], ServiceActor hostingService ) {
         this.config = config;
@@ -44,10 +41,6 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         syncTableAccess = new HashMap();
         tableSpaceSharding = createTableSpaceSharding(shards);
         tableSpaceSharding.init().await();
-        if ( hostingService.getServiceRegistry() instanceof DynDataServiceRegistry ) {
-            hostingService.addServiceEventListener((event, arg) -> handleServiceEvent((String) event, arg));
-            currentMapping = ((DynDataServiceRegistry) hostingService.getServiceRegistry()).getActiveDistribution().await();
-        }
         TableDescription[] schema = config.getSchema();
         return all( schema.length, i -> {
             TableDescription desc = schema[i];
@@ -55,17 +48,11 @@ public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<
         });
     }
 
-    protected void handleServiceEvent(String event, Object arg) {
-        if ( event.equals(DynDataServiceRegistry.RECORD_DISTRIBUTION) ) {
-            currentMapping = (DynClusterDistribution) arg;
-        }
-    }
-
     protected TableSpaceSharding createTableSpaceSharding(TableSpaceActor[] shards) {
         return new TableSpaceSharding(shards);
     }
 
-    private IPromise<Object> initTable(TableDescription desc) {
+    protected IPromise<Object> initTable(TableDescription desc) {
         Promise p = new Promise();
         tableSpaceSharding.createOrLoadTable(desc).then( (r, e) -> {
             if ( r != null ) {

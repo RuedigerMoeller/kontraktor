@@ -15,7 +15,8 @@ public class TableDescription implements Serializable, Cloneable {
     int sizeMB = 100;
     String filePath = TableSpace.USE_BASE_DIR;
     int numEntries=100_000;
-    int shardNo;
+    int shardNo; // fixed cluster
+    String shardId; // dynamic cluster
     int keyLen = 48;
     String storageType = CACHED;
     String hashIndexed[] = {};
@@ -29,6 +30,10 @@ public class TableDescription implements Serializable, Cloneable {
     public TableDescription name(final String name) {
         this.name = name;
         return this;
+    }
+
+    public String getShardId() {
+        return shardId;
     }
 
     public String[] getHashIndexed() {
@@ -107,4 +112,12 @@ public class TableDescription implements Serializable, Cloneable {
         return null;
     }
 
+    public TableDescription shardId(String shardId) {
+        this.shardId = shardId;
+        return this;
+    }
+
+    public String getFileModifier() {
+        return ""+shardNo;
+    }
 }
