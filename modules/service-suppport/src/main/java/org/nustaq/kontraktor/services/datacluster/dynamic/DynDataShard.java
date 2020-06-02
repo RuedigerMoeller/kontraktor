@@ -167,7 +167,7 @@ public class DynDataShard extends ServiceActor<DynDataShard>  {
         return ds;
     }
 
-    public IPromise _moveHashShards(String tableName, int[] hashShards2Move, ServiceDescription otherRef) {
+    public IPromise _moveHashShardsTo(String tableName, int[] hashShards2Move, ServiceDescription otherRef) {
         Promise res = new Promise();
         otherRef.getConnectable().connect( (connector,e) -> {}, actor -> {
            Log.Info(this,"lost connection to other shard ref "+otherRef);

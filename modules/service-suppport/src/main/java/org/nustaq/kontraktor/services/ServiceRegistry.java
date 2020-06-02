@@ -10,6 +10,7 @@ import org.nustaq.kontraktor.remoting.http.undertow.Http4K;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
+import org.nustaq.kontraktor.rest.FromQuery;
 import org.nustaq.kontraktor.services.datacluster.DataShard;
 import org.nustaq.kontraktor.services.rlserver.SingleProcessRLClusterArgs;
 import org.nustaq.kontraktor.util.Log;
@@ -300,6 +301,14 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             return resolve("<html>balancing done</html>");
         }
 
+        public IPromise getRelease(@FromQuery("shard") String shard ) {
+            if ( reg.getServiceMap().await().get(shard) == null ) {
+                return resolve("<html>unknown shard '"+shard+"' </html>");
+            }
+            reg.releaseDynShard(shard);
+            return resolve("<html>released "+shard+" </html>");
+        }
+
         public IPromise get() {
             return resolve("<html>try <a href='/mon/services'>/mon/services</a> or <a href='/mon/stati'>/mon/stati</a> </html>");
         }
@@ -341,6 +350,11 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     }
 
     public IPromise balanceDynShards() {
+        // empty see DynDataRegistry
+        return resolve(null);
+    }
+
+    public IPromise releaseDynShard(String name) {
         // empty see DynDataRegistry
         return resolve(null);
     }

@@ -74,7 +74,7 @@ public class TableState implements Serializable {
             "tableName='" + tableName + '\'' +
             ", mapping=" + mapping +
             ", numElements=" + numElements +
-            ", assShard="+ associatedTableShard +
+            ", assShardName="+ associatedShardName +
             '}';
     }
 
@@ -91,10 +91,22 @@ public class TableState implements Serializable {
         int[] res = new int[transfer];
         BitSet bitset = getMapping().getBitset();
         int bitPos = 0;
+        int emptyCount = 0;
         for (int i = 0; i < res.length; i++) {
             res[i] = bitset.nextSetBit(bitPos);
-            bitPos = res[i];
-            bitset.set(bitPos,false);
+            if ( res[i] < 0 ) {
+                emptyCount++;
+            } else {
+                bitPos = res[i];
+                bitset.set(bitPos, false);
+            }
+        }
+        if ( emptyCount > 0 ) {
+            int[] newRes = new int[res.length-emptyCount];
+            for (int i = 0; i < newRes.length; i++) {
+                newRes[i] = res[i];
+            }
+            return newRes;
         }
         return res;
     }

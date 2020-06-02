@@ -17,7 +17,7 @@ public class MoveHashShardsAction extends ClusterTableAction {
 
     @Override
     public IPromise action(Actor remoteRef, ServiceDescription otherRef) {
-        return ((DynDataShard)remoteRef)._moveHashShards( tableName, hashShards2Move, otherRef );
+        return ((DynDataShard)remoteRef)._moveHashShardsTo( tableName, hashShards2Move, otherRef );
     }
 
 }

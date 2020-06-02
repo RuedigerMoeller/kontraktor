@@ -50,6 +50,63 @@ public class DynDataServiceRegistry extends ServiceRegistry {
         super.broadCastTimeOut(desc);
     }
 
+    public IPromise releaseDynShard(String shardName2Release) {
+        Promise p = new Promise();
+        collectRecordDistribution().then( (distribution,error) -> {
+            if (error != null) {
+                p.reject(error);
+                return;
+            }
+            distribution.getTableNames()
+                .forEach( tableName -> {
+                    DynClusterTableDistribution tblDist = distribution.have(tableName);
+                    List<TableState> states = tblDist.getStates();
+                    TableState toRelease = null;
+                    for (int i = 0; i < states.size(); i++) {
+                        TableState tableState = states.get(i);
+                        if ( shardName2Release.equals(tableState.getAssociatedShardName()) ) {
+                            toRelease = tableState;
+                            break;
+                        }
+                    }
+                    int buckets = toRelease.getNumBuckets();
+                    int bucketsPerNode = buckets/(states.size())+1;
+                    for (int i = 0; i < states.size(); i++) {
+                        TableState tableState = states.get(i);
+                        if ( ! shardName2Release.equals(tableState.getAssociatedShardName()) ) {
+                            int[] bucketsToRemove = toRelease.takeBuckets(bucketsPerNode);
+                            if ( bucketsToRemove.length > 0 ) {
+                                tblDist.addAction(new MoveHashShardsAction(
+                                    bucketsToRemove,
+                                    tableName,
+                                    toRelease.getAssociatedShardName(),
+                                    tableState.getAssociatedShardName()
+                                ));
+                            }
+                            break;
+                        }
+                    }
+                    // execute actions
+                    List collect = distribution.getDistributions().entrySet().stream().map(en -> executeActions(en.getValue())).collect(Collectors.toList());
+                    all(collect).then( (plist,finErr) -> {
+                        Log.Info(this, "*****************************************************************************************************");
+                        Log.Info(this, "table release processed ");
+                        if ( finErr != null ) {
+                            Log.Error(this, "  with ERROR:" + finErr);
+                            p.reject(finErr);
+                        }
+                        else {
+                            distribution.clearActions();
+                            publishDistribution(distribution);
+                            p.resolve();
+                        }
+                        Log.Info(this, "*****************************************************************************************************");
+                    });
+                });
+        });
+        return p;
+    }
+
     public IPromise balanceDynShards() {
         Promise p = new Promise();
         // get full cluster distribution state
@@ -63,7 +120,6 @@ public class DynDataServiceRegistry extends ServiceRegistry {
 
             distribution.getTableNames()
                 .forEach( tableName -> computeDistributionActions(distribution.have(tableName)));
-
 
             // execute actions
             List collect = distribution.getDistributions().entrySet().stream().map(en -> executeActions(en.getValue())).collect(Collectors.toList());
@@ -157,10 +213,10 @@ public class DynDataServiceRegistry extends ServiceRegistry {
     }
 
     private IPromise executeActions(DynClusterTableDistribution tdist) {
+        if ( tdist.getActions().size() == 0 )
+            return resolve();
         Promise p = new Promise();
         List pendingActions = new ArrayList<>();
-        if ( pendingActions.size() == 0 )
-            return resolve(true);
         tdist.getActions().forEach(action -> {
             IPromise<DynDataShard> primaryShard = getOrConnect(action.getShardName());
             ServiceDescription other = null;

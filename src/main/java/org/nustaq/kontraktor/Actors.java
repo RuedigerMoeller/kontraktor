@@ -258,8 +258,6 @@ public class Actors {
      *
      */
     public static <T> IPromise<List<IPromise<T>>> all(List<IPromise<T>> futures) {
-        if ( futures.size() == 0 )
-            return new Promise<>(new ArrayList<>());
         Promise res = new Promise();
         awaitSettle(futures, res);
         return res;
