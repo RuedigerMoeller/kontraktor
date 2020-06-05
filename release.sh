@@ -2,6 +2,8 @@
 
 # MAC export GPG_TTY=$(tty)
 
+export GPG_TTY=$(tty)
+
 export PW=$1
 
 echo $1
@@ -11,6 +13,7 @@ mkdir target
 cd target
 rm *-jar-with*
 rm -r */
+rm *stale-data.txt
 jar -cf bundle.jar *
 cd ..
 mvn package install -Dmaven.test.skip=true -DadditionalJOption=-Xdoclint:none  # rebuild fat jars
@@ -26,13 +29,14 @@ mvn package install -Dmaven.test.skip=true -DadditionalJOption=-Xdoclint:none  #
 #cd ..
 #mvn package -Dmaven.test.skip=true # rebuild fat jars
 
-cd ../kontraktor-http
+cd modules/kontraktor-http
 
 mvn clean package -Dmaven.test.skip=true -DadditionalJOption=-Xdoclint:none gpg:sign  -Dgpg.passphrase=$PW
 mkdir target
 cd target
 rm -r */
 rm khttp.jar*
+rm *stale-data.txt
 jar -cf bundle.jar *
 cd ..
 mvn install -Dmaven.test.skip=true -DadditionalJOption=-Xdoclint:none # install
@@ -46,7 +50,6 @@ mvn install -Dmaven.test.skip=true -DadditionalJOption=-Xdoclint:none # install
 #rm -r */
 #jar -cf bundle.jar *
 #cd ..
-export GPG_TTY=$(tty)
 
 cd ../kontraktor-reallive
 mvn clean package -Dmaven.test.skip=true -DadditionalJOption=-Xdoclint:none gpg:sign  -Dgpg.passphrase=$PW
@@ -54,6 +57,7 @@ mkdir target
 cd target
 rm *-jar-with*
 rm -r */
+rm *stale-data.txt
 jar -cf bundle.jar *
 cd ..
 mvn package install -Dmaven.test.skip=true -DadditionalJOption=-Xdoclint:none # rebuild fat jars
@@ -63,6 +67,7 @@ mvn clean package -Dmaven.test.skip=true -DadditionalJOption=-Xdoclint:none gpg:
 mkdir target
 cd target
 rm *-jar-with*
+rm *stale-data.txt
 rm -r */
 jar -cf bundle.jar *
 cd ..
