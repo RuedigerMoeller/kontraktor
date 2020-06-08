@@ -31,7 +31,7 @@ public class VarPath implements Serializable, HasToken  {
     }
 
     public String getPath() {
-        return path;
+        return path != null ? path : field;
     }
 
     public RLSupplier<Value> getEval() {

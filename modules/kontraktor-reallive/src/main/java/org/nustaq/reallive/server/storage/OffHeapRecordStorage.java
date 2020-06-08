@@ -12,6 +12,7 @@ import org.nustaq.serialization.simpleapi.FSTCoder;
 import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -31,6 +32,7 @@ public class OffHeapRecordStorage implements RecordStorage {
 
     FSTSerializedOffheapMap<String,Record> store;
     int keyLen;
+    private String tableFile;
 
     protected OffHeapRecordStorage() {}
 
@@ -53,6 +55,7 @@ public class OffHeapRecordStorage implements RecordStorage {
 
     protected void init(String tableFile, int sizeMB, int estimatedNumRecords, int keyLen, boolean persist, Class... toReg) {
         this.keyLen = keyLen;
+        this.tableFile = tableFile;
         coder = new DefaultCoder();
         if ( toReg != null )
             coder.getConf().registerClass(toReg);
@@ -173,4 +176,34 @@ public class OffHeapRecordStorage implements RecordStorage {
         }
         spore.finish();
     }
+
+    static FSTConfiguration conf = FSTConfiguration.createDefaultConfiguration();
+    @Override
+    public void _saveMapping(ClusterTableRecordMapping mapping) {
+        if ( tableFile != null ) {
+            String noExt = tableFile.substring( 0, tableFile.lastIndexOf(".") );
+            try {
+                Files.write(new File(noExt+".mapping" ).toPath(), conf.asByteArray(mapping));
+            } catch (IOException e) {
+                Log.Error(this,e);
+            }
+        }
+    }
+
+    @Override
+    public ClusterTableRecordMapping _loadMapping() {
+        if ( tableFile != null ) {
+            String noExt = tableFile.substring( 0, tableFile.lastIndexOf(".") );
+            try {
+                File f = new File(noExt + ".mapping");
+                if ( ! f.exists() )
+                    return null;
+                return (ClusterTableRecordMapping) conf.asObject(Files.readAllBytes(f.toPath()));
+            } catch (IOException e) {
+                Log.Error(this,e);
+            }
+        }
+        return null;
+    }
+
 }

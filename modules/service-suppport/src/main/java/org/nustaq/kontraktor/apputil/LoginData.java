@@ -7,8 +7,8 @@ import java.io.Serializable;
 
 public class LoginData implements Serializable {
 
-    Actor session;
-    Record user; // userrecord
+    protected Actor session;
+    protected Record user; // userrecord
 
     public LoginData session(final Actor session) {
         this.session = session;

@@ -1,6 +1,7 @@
 package org.nustaq.reallive.api;
 
 
+import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
 import org.nustaq.reallive.server.storage.RecordPersistance;
 import org.nustaq.reallive.server.storage.StorageStats;
 
@@ -19,4 +20,5 @@ public interface RecordStorage extends RealLiveStreamActor, RecordPersistance {
     Stream<Record> stream();
     // administration level method
     void resizeIfLoadFactorLarger( double loadFactor, long maxGrow );
+
 }

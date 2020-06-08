@@ -21,7 +21,7 @@ public class DynShardedTable extends ShardedTable{
 
     protected RealLiveTable getTableForKey(String key) {
         List<TableState> states = tableDistributionSupplier.get().getStates();
-        int h = Math.abs(key.hashCode());
+        int h = key.hashCode();
         for (int i = 0; i < states.size(); i++) {
             TableState tableState = states.get(i);
             if ( tableState.getMapping().matches(h) ) {

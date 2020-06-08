@@ -266,6 +266,7 @@ public class DynDataServiceRegistry extends ServiceRegistry {
                 break;
             case INTERSECT:
             default:
+                System.out.println(distribution);
                 throw new RuntimeException("unhandled cluster distribution state "+distribution.getName());
         }
         //check balance

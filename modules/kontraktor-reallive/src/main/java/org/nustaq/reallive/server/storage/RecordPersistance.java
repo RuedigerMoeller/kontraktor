@@ -24,4 +24,11 @@ public interface RecordPersistance {
         throw new RuntimeException("not usable as persistance implementation");
     }
 
+    // can be empty op for cached/inmem storage
+    default void _saveMapping(ClusterTableRecordMapping mapping) {}
+    default ClusterTableRecordMapping _loadMapping() {
+        return null;
+    }
+
+
 }

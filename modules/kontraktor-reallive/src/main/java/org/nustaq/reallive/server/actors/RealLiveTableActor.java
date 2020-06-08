@@ -46,7 +46,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     TableDescription description;
     IndexedRecordStorage indexedStorage = new IndexedRecordStorage(); // holds indizes
     ArrayList<QueryQEntry> queuedSpores = new ArrayList();
-    ClusterTableRecordMapping mapping = new ClusterTableRecordMapping();
+    ClusterTableRecordMapping mapping;
 
     int taCount = 0;
     long lastReportTime = System.currentTimeMillis();
@@ -79,12 +79,26 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
                 ));
             }
         }
+        ClusterTableRecordMapping tmpMapping = new ClusterTableRecordMapping();
+        Promise done = new Promise();
         rawStorage.forEach( rec -> true, (r,e) -> {
             if ( r != null ) {
                 indexedStorage.initializeFromRecord(r);
-                mapping.setBucket( mapping.getBucket(r.getKey().hashCode()),true);
+                tmpMapping.setBucket( tmpMapping.getBucket(r.getKey().hashCode()),true);
+            } else {
+                done.resolve();
             }
         });
+        done.await(TimeUnit.MINUTES.toMillis(5));
+        ClusterTableRecordMapping savedMapping = rawStorage._loadMapping();
+        if ( savedMapping != null ) {
+            mapping = savedMapping;
+            Log.Info(this,"loaded mapping "+savedMapping);
+            Log.Info(this,"       induced "+tmpMapping);
+        } else {
+            Log.Info(this,"calculated mapping "+tmpMapping);
+            mapping = tmpMapping;
+        }
         Log.Info(this,"index creation done "+description.getName()+" "+description.getShardNo());
     }
 
@@ -171,6 +185,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
 
     public IPromise _setMapping(ClusterTableRecordMapping mapping) {
         this.mapping = mapping;
+        storageDriver._saveMapping(mapping);
         return resolve(true);
     }
 

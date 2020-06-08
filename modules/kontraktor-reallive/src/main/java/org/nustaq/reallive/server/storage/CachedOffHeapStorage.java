@@ -88,4 +88,12 @@ public class CachedOffHeapStorage implements RecordStorage {
         onHeap.forEachWithSpore(spore);
     }
 
+    // can be empty op for cached/inmem storage
+    public void _saveMapping(ClusterTableRecordMapping mapping) {
+        persisted._saveMapping(mapping);
+    }
+    public ClusterTableRecordMapping _loadMapping() {
+        return persisted._loadMapping();
+    }
+
 }

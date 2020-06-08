@@ -8,6 +8,7 @@ import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.records.PatchingRecord;
 import org.nustaq.reallive.records.RecordWrapper;
 import org.nustaq.reallive.api.Record;
+import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -240,4 +241,13 @@ public class StorageDriver implements ChangeReceiver {
         RemoveMessage remove = RLUtil.get().remove(senderId,key);
         receive(remove);
     }
+
+    public void _saveMapping(ClusterTableRecordMapping mapping) {
+        store._saveMapping(mapping);
+    }
+
+    public ClusterTableRecordMapping _loadMapping() {
+        return store._loadMapping();
+    }
+
 }

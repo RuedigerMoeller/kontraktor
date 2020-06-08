@@ -98,4 +98,14 @@ public class IndexedRecordStorage implements RecordStorage {
     public HashIndex getHashIndex(String path) {
         return hashIndizes.get(path);
     }
+
+    @Override
+    public void _saveMapping(ClusterTableRecordMapping mapping) {
+        wrapped._saveMapping(mapping);
+    }
+
+    @Override
+    public ClusterTableRecordMapping _loadMapping() {
+        return wrapped._loadMapping();
+    }
 }
