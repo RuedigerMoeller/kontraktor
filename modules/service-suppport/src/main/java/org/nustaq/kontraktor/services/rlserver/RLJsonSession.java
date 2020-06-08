@@ -179,19 +179,9 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
         });
     }
 
-    protected static class SubsEntry {
-        Callback feCB;
-        Subscriber subs;
-
-        public SubsEntry(Callback feCB, Subscriber subs) {
-            this.feCB = feCB;
-            this.subs = subs;
-        }
-    }
-
-    protected Map<String,SubsEntry> subscriptions = new HashMap<>();
+    protected Map<String, JsonSubsEntry> subscriptions = new HashMap<>();
     public void unsubscribe( String uuid ) {
-        SubsEntry subsEntry = subscriptions.get(uuid);
+        JsonSubsEntry subsEntry = subscriptions.get(uuid);
         if ( subsEntry != null ) {
             Callback callback = subsEntry.feCB;
             dClient.unsubscribe(subsEntry.subs.getId());
@@ -212,7 +202,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
             else
                 res.finish();
         });
-        subscriptions.put(uuid, new SubsEntry(res,subscriber));
+        subscriptions.put(uuid, new JsonSubsEntry(res,subscriber));
     }
 
     public IPromise<Long> subscribeSyncing(String uuid, String table, long timeStamp, String query, Callback<String> res) {
@@ -226,7 +216,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
             else
                 res.finish();
         });
-        subscriptions.put(uuid,new SubsEntry(res,subs));
+        subscriptions.put(uuid,new JsonSubsEntry(res,subs));
         tbl.subscribe(subs);
         return resolve(System.currentTimeMillis());
     }
@@ -396,7 +386,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
 
     @Override
     public void hasBeenUnpublished(String connectionIdentifier) {
-        Map<String,SubsEntry> copy = new HashMap<>(subscriptions.size());
+        Map<String, JsonSubsEntry> copy = new HashMap<>(subscriptions.size());
         copy.putAll(subscriptions);
         copy.forEach( (k,en) -> unsubscribe(k) );
     }

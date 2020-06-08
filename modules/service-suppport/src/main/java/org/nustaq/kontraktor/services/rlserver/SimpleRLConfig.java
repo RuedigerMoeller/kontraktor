@@ -12,23 +12,23 @@ public class SimpleRLConfig implements Serializable {
 
     public static SimpleRLConfig get;
 
-    String dataDir = "./data";
-    int numNodes = 3;
-    TableDescription tables[];
-    int numSessionThreads = 4;
-    int bindPort = 8081;
-    boolean runDataClusterInsideWebserver = true;
+    protected String dataDir = "./data";
+    protected int numNodes = 3;
+    protected TableDescription tables[];
+    protected int numSessionThreads = 4;
+    protected int bindPort = 8081;
+    protected boolean runDataClusterInsideWebserver = true;
 
     // API endpoint
-    String publicUrl = "http://localhost:"+bindPort;
-    String bindIp = "0.0.0.0";
-    String wsPublicUrl = "ws://localhost:"+bindPort+"/ws";
-    String mongoConnection; //"mongodb+srv://<username>:<password>@<cluster-address>/test?w=majority"
-    int tcpPort = 7654;
+    protected String publicUrl = "http://localhost:"+bindPort;
+    protected String bindIp = "0.0.0.0";
+    protected String wsPublicUrl = "ws://localhost:"+bindPort+"/ws";
+    protected String mongoConnection; //"mongodb+srv://<username>:<password>@<cluster-address>/test?w=majority"
+    protected int tcpPort = 7654;
 
-    Map<String,Object> customData;
+    protected Map<String,Object> customData;
 
-    int sessionTimeoutMinutes = 10;
+    protected int sessionTimeoutMinutes = 10;
 
     public static String pathname = "./etc/reallive.kson";
 
@@ -37,7 +37,11 @@ public class SimpleRLConfig implements Serializable {
     }
 
     public static SimpleRLConfig read(String pathname) {
-        Kson kson = new Kson().map( SimpleRLConfig.class, TableDescription.class );
+        return read(pathname,SimpleRLConfig.class);
+    }
+
+    public static SimpleRLConfig read(String pathname,Class<? extends SimpleRLConfig> simpleRLConfigClass) {
+        Kson kson = new Kson().map(simpleRLConfigClass, TableDescription.class );
         try {
             SimpleRLConfig clCfg = (SimpleRLConfig) kson.readObject(new File(pathname));
             String confString = kson.writeObject(clCfg);

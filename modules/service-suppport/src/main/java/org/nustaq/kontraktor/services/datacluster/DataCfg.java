@@ -19,6 +19,10 @@ public class DataCfg implements Serializable {
 
     int shardQSize = 64_000;
 
+    public void setDynamic(boolean dynamic) {
+        isDynamic = dynamic;
+    }
+
     public boolean isDynamic() {
         return isDynamic;
     }
