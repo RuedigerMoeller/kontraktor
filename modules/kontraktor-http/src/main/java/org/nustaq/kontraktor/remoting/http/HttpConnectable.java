@@ -164,4 +164,10 @@ public class HttpConnectable implements ConnectableActor {
         this.inboundQueueSize = inboundQSize;
         return this;
     }
+
+    @Override
+    public String getKey() {
+        return actorClz.getName()+url+coding;
+    }
+
 }

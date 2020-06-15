@@ -9,8 +9,8 @@ import java.io.Serializable;
 public abstract class ClusterTableAction implements Serializable {
 
     protected String tableName;
-    protected String shardName;
-    protected String otherShard;
+    protected String shardName; // node processing this action
+    protected String otherShard; // node to connect to in case
 
     public ClusterTableAction(String tableName, String shardName) {
         this.tableName = tableName;
@@ -45,4 +45,5 @@ public abstract class ClusterTableAction implements Serializable {
         this.otherShard = otherShard;
         return this;
     }
+
 }

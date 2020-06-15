@@ -13,6 +13,7 @@ import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.reallive.api.TableState;
 import org.nustaq.reallive.server.dynamic.DynClusterDistribution;
 import org.nustaq.reallive.server.dynamic.DynClusterTableDistribution;
+import org.nustaq.reallive.server.dynamic.actions.ClusterTableAction;
 import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
 
 import java.util.*;

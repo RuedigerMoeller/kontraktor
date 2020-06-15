@@ -173,12 +173,12 @@ public class DynDataShard extends ServiceActor<DynDataShard>  {
            Log.Info(this,"lost connection to other shard ref "+otherRef);
         }).then( (remote,err) -> {
             if ( remote != null ) {
-                ClusterTableRecordMapping mapping = new ClusterTableRecordMapping();
-                mapping.addBuckets(hashShards2Move);
+                ClusterTableRecordMapping movedMapping = new ClusterTableRecordMapping();
+                movedMapping.addBuckets(hashShards2Move);
                 try {
                     RealLiveTableActor table = (RealLiveTableActor) tableSpace.getTableAsync(tableName).await();
                     List<Record> toTransmit = new ArrayList<>();
-                    table.forEach( record -> mapping.matches(record.getKey().hashCode()) , (r,e) -> {
+                    table.forEach( record -> movedMapping.matches(record.getKey().hashCode()) , (r,e) -> {
                         if ( r != null )
                             toTransmit.add(r);
                         else {

@@ -105,4 +105,17 @@ public class DynClusterTableDistribution implements Serializable {
         }
         return false;
     }
+
+    public Map<String, List<ClusterTableAction>> collectByTarget() {
+        Map<String,List<ClusterTableAction>> res = new HashMap<>();
+        actions.forEach( action -> {
+            List<ClusterTableAction> actions = res.get(action.getShardName());
+            if ( actions == null ) {
+                actions = new ArrayList<>();
+                res.put(action.getShardName(),actions);
+            }
+            actions.add(action);
+        });
+        return res;
+    }
 }

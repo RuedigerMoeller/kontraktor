@@ -29,7 +29,7 @@ public class DynClusterTestClient extends ServiceActor<DynClusterTestClient> {
         DataClient dclient = (DataClient) serviceActor.getDataClient().await();
         RealLiveTable dummy = dclient.tbl("dummy");
         RealLiveTable feed = dclient.tbl("feed");
-        boolean modify = true;
+        boolean modify = false;
         int tim = (int) System.currentTimeMillis();
         if ( modify ) {
             for(int i = 0; i < REC_TO_ADD; i++ )

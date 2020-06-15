@@ -70,4 +70,10 @@ public class LocalConnectable implements ConnectableActor {
     public Actor getActor() {
         return actor;
     }
+
+    @Override
+    public String getKey() {
+        return "local:"+actor;
+    }
+
 }

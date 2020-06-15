@@ -6,8 +6,6 @@ SimpleRLConfig {
   runDataClusterInsideWebserver: false
   tcpPort: 7653
 
-  #mongoConnection: 'mongodb://localhost:27017/testrl'
-
   tables: [
     {
         name: feed, storageType: CACHED, sizeMB: 10,

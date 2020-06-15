@@ -120,6 +120,11 @@ public class WebSocketConnectable implements ConnectableActor {
     }
 
     @Override
+    public String getKey() {
+        return actorClass.getName()+url+coding;
+    }
+
+    @Override
     public String toString() {
         return "WebSocketConnectable{" +
                 "actorClass=" + actorClass +

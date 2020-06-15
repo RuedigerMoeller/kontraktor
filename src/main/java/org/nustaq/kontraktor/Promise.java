@@ -266,9 +266,9 @@ public class Promise<T> implements IPromise<T> {
                     return nextFuture;
                 }
             }
-            if (resultCB instanceof IPromise) {
-                return (IPromise) resultCB;
-            }
+//            if (resultCB instanceof IPromise) {
+//                return (IPromise) resultCB;
+//            }
             lock.set(false);
             while( !lock.compareAndSet(false,true) ) {}
             if (nextFuture == null) {

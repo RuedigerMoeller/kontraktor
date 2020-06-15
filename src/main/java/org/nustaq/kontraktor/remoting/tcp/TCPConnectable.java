@@ -133,6 +133,11 @@ public class TCPConnectable implements ConnectableActor {
     }
 
     @Override
+    public String getKey() {
+        return actorClz.getName()+host+port+coding;
+    }
+
+    @Override
     public String toString() {
         return "TCPConnectable{" +
             "host='" + host + '\'' +

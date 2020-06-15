@@ -30,9 +30,9 @@ public class TestRLJson {
     public static void main(String[] args) {
         BackOffStrategy.SLEEP_NANOS = 5 * 1000 * 1000; // 20 millis
         boolean QUERY = false;
-        boolean UPSERT = false;
-        int recordNum = 4_000_000;
-//        int recordNum = 100_000;
+        boolean UPSERT = true;
+//        int recordNum = 4_000_000;
+        int recordNum = 100_000;
 
 //        RLJsonServer server = (RLJsonServer) new WebSocketConnectable(RLJsonServer.class, "ws://localhost:8087/ws")
 //            .coding( new Coding(SerializerType.JsonNoRef,RLJsonServer.CLAZZES) )
