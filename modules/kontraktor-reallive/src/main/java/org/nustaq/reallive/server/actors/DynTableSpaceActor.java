@@ -39,4 +39,15 @@ public class DynTableSpaceActor extends TableSpaceActor {
         return realLiveTableActor._setMapping(mapping);
     }
 
+    /**
+     * forwards to table actors
+     *
+     * @param tableName
+     * @return
+     */
+    @CallerSideMethod
+    public ClusterTableRecordMapping getMapping(String tableName) {
+        RealLiveTableActor realLiveTableActor = getActor().tables.get(tableName);
+        return realLiveTableActor.getMapping();
+    }
 }

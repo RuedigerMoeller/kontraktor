@@ -184,6 +184,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     public IPromise _setMapping(ClusterTableRecordMapping mapping) {
+        Log.Info(this,"received mapping "+mapping);
         this.mapping = mapping;
         storageDriver._saveMapping(mapping);
         return resolve(true);

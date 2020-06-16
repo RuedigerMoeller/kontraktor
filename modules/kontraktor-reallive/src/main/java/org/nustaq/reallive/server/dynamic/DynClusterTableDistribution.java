@@ -1,5 +1,7 @@
 package org.nustaq.reallive.server.dynamic;
 
+import com.eclipsesource.json.JsonArray;
+import com.eclipsesource.json.JsonObject;
 import org.nustaq.reallive.server.dynamic.actions.ClusterTableAction;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.TableState;
@@ -93,6 +95,30 @@ public class DynClusterTableDistribution implements Serializable {
         return s.toString();
     }
 
+    public JsonObject toJsonObj() {
+        JsonObject res = new JsonObject();
+        res.set("table",getName());
+        JsonArray array = new JsonArray();
+        res.set("distribution",array);
+        tableStates.forEach(
+            ts -> {
+                JsonObject ob = new JsonObject();
+                array.add(ob);
+
+                ob.set("shard", ts.getAssociatedShardName());
+                ob.set("elements",ts.getNumElements());
+
+                JsonArray mapArr = new JsonArray();
+                ob.set("mapping", mapArr );
+                int[] buckets = ts.getMapping().getBucketsAsIA();
+                for (int i = 0; i < buckets.length; i++) {
+                    mapArr.add(buckets[i]);
+                }
+
+            });
+        return res;
+    }
+
     public void clearActions() {
         actions = null;
     }
@@ -118,4 +144,5 @@ public class DynClusterTableDistribution implements Serializable {
         });
         return res;
     }
+
 }

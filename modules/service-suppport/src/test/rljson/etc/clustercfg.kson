@@ -7,15 +7,6 @@ ClusterCfg {
       schema:
         [
           {
-            name: dummy
-            sizeMB: 100
-            filePath: USE_BASE_DIR
-            numEntries: 100000
-            keyLen: 48
-            storageType: CACHED
-            hashIndexed: [ ]
-          }
-          {
             name: feed
             sizeMB: 100
             filePath: USE_BASE_DIR

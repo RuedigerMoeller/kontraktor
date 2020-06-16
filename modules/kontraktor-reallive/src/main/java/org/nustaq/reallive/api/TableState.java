@@ -87,6 +87,7 @@ public class TableState implements Serializable {
         getMapping().addBuckets(transfer);
     }
 
+    // FIXME: randomize buckets
     public int[] takeBuckets(int transfer) {
         int[] res = new int[transfer];
         BitSet bitset = getMapping().getBitset();

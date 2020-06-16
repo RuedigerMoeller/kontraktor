@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.services;
 
 import com.beust.jcommander.JCommander;
+import com.eclipsesource.json.WriterConfig;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.base.ServiceDescription;
@@ -12,10 +13,12 @@ import org.nustaq.kontraktor.remoting.tcp.TCPNIOPublisher;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
 import org.nustaq.kontraktor.rest.FromQuery;
 import org.nustaq.kontraktor.services.datacluster.DataShard;
+import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataShard;
 import org.nustaq.kontraktor.services.rlserver.SingleProcessRLClusterArgs;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.reallive.api.TableDescription;
+import org.nustaq.reallive.server.dynamic.DynClusterDistribution;
 import org.nustaq.serialization.FSTConfiguration;
 
 import java.io.Serializable;
@@ -162,6 +165,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
 
     public static class StatusEntry implements Serializable {
         long time;
+        long startUpTime;
         Object status;
         String key;
         String name;
@@ -171,6 +175,10 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             this.status = status;
             this.key = key;
             this.name = name;
+        }
+
+        public long getStartUpTime() {
+            return startUpTime;
         }
 
         public long getTime() {
@@ -195,7 +203,13 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     }
 
     protected void updateStatus(long now, ServiceDescription td, String key, Serializable status) {
-        statusMap.put( key, new StatusEntry(now,status,key,td.getName()) );
+        StatusEntry prevStatusEntry = statusMap.get(key);
+        StatusEntry newEntry = new StatusEntry(now, status, key, td.getName());
+        if ( prevStatusEntry != null ) {
+            newEntry.startUpTime = prevStatusEntry.startUpTime;
+        } else
+            newEntry.startUpTime = System.currentTimeMillis();
+        statusMap.put( key, newEntry);
     }
 
     @Local public void checkTimeout() {
@@ -292,15 +306,23 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
                 Coding.class,
                 WebSocketConnectable.class,
                 Class.class,
-                StatusEntry.class
+                StatusEntry.class,
+                DynDataShard.class
             );
         }
 
         public IPromise getBalance() {
-            reg.balanceDynShards();
-            return resolve("<html>balancing done</html>");
+            Promise p = new Promise();
+            reg.balanceDynShards().then( (r,e) -> {
+                if ( e == null )
+                    p.resolve("<html>balancing done</html>");
+                else
+                    p.reject(e);
+            });
+            return p;
         }
 
+        // does not work yet. drop node
         public IPromise getRelease(@FromQuery("shard") String shard ) {
             if ( reg.getServiceMap().await().get(shard) == null ) {
                 return resolve("<html>unknown shard '"+shard+"' </html>");
@@ -310,7 +332,17 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         }
 
         public IPromise get() {
-            return resolve("<html>try <a href='/mon/services'>/mon/services</a> or <a href='/mon/stati'>/mon/stati</a> </html>");
+            return resolve("<html>try " +
+                "<a href='/mon/services'>/mon/services</a>" +
+                " or " +
+                "<a href='/mon/stati'>/mon/stati</a>" +
+                " or " +
+                "<a href='/mon/distribution'>/mon/distribution</a>" +
+                " or " +
+                "<a href='/mon/activeDistribution'>/mon/activeDistribution</a>" +
+                " or " +
+                "<a href='/mon/balance'>/mon/balance</a>" +
+                "</html>");
         }
 
         // GET ./services
@@ -330,6 +362,15 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             });
             return p;
         }
+
+        public IPromise getDistribution() {
+            return resolve(reg.getDynDataDistribution().await().toJsonObj().toString(WriterConfig.PRETTY_PRINT));
+        }
+
+        public IPromise getActiveDistribution() {
+            return resolve(reg.getActiveDynDataDistribution().await().toJsonObj().toString(WriterConfig.PRETTY_PRINT));
+        }
+
         // GET ./stati
         public IPromise getStati() {
             Promise p = new Promise();
@@ -349,11 +390,38 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         }
     }
 
+    /**
+     * only valid on DynData cluster, get distribution as reported by datanodes
+     *
+     * @return
+     */
+    public IPromise<DynClusterDistribution> getDynDataDistribution() {
+        return resolve(null);
+    }
+
+    /**
+     * only valid on DynData cluster, get distribution as assumed by registry
+     *
+     * @return
+     */
+    public IPromise<DynClusterDistribution> getActiveDynDataDistribution() {
+        return resolve(null);
+    }
+    /**
+     * only valid on DynData cluster, rebalance data load
+     *
+     * @return
+     */
     public IPromise balanceDynShards() {
         // empty see DynDataRegistry
         return resolve(null);
     }
 
+    /**
+     * drop node, remove all data !!not yet implemented!!
+     * @param name
+     * @return
+     */
     public IPromise releaseDynShard(String name) {
         // empty see DynDataRegistry
         return resolve(null);

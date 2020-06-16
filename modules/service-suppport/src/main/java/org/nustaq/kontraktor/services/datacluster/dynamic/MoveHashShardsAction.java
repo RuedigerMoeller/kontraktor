@@ -5,6 +5,8 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.reallive.server.dynamic.actions.ClusterTableAction;
 
+import java.util.Arrays;
+
 public class MoveHashShardsAction extends ClusterTableAction {
 
     int hashShards2Move[];
@@ -20,4 +22,10 @@ public class MoveHashShardsAction extends ClusterTableAction {
         return ((DynDataShard)remoteRef)._moveHashShardsTo( tableName, hashShards2Move, otherRef );
     }
 
+    @Override
+    public String toString() {
+        return "MoveHashShardsAction{" +
+            "hashShards2Move=" + Arrays.toString(hashShards2Move) + " " + getShardName()+" to "+getOtherShard()+" t:"+getTableName()+
+            '}';
+    }
 }

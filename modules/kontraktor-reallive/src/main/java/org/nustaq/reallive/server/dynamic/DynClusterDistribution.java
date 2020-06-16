@@ -1,5 +1,6 @@
 package org.nustaq.reallive.server.dynamic;
 
+import com.eclipsesource.json.JsonObject;
 import org.nustaq.reallive.api.TableState;
 import org.nustaq.reallive.server.actors.RealLiveTableActor;
 
@@ -71,4 +72,13 @@ public class DynClusterDistribution implements Serializable {
         });
         return res.toString();
     }
+
+    public JsonObject toJsonObj() {
+        JsonObject res = new JsonObject();
+        distributions.forEach( (k,v) -> {
+            res.set(k,v.toJsonObj());
+        });
+        return res;
+    }
+
 }

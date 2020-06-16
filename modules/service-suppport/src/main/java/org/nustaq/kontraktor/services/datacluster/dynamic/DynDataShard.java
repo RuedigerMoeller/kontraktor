@@ -3,6 +3,7 @@ package org.nustaq.kontraktor.services.datacluster.dynamic;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.remoting.KConnectionPool;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
@@ -30,10 +31,12 @@ public class DynDataShard extends ServiceActor<DynDataShard>  {
     public static int WAIT_TABLE_LOAD = 60_000;
 
     DynTableSpaceActor tableSpace; // groups table actors
+    KConnectionPool shardConnectionPool;
 
     @Override
     public IPromise init(ConnectableActor registryConnectable, ServiceArgs options, boolean auto /*ignored*/) {
         IPromise p = new Promise();
+        shardConnectionPool = new KConnectionPool();
         try {
             super.init(registryConnectable, options,false).then( (r,e) -> {
                 try {
@@ -167,46 +170,75 @@ public class DynDataShard extends ServiceActor<DynDataShard>  {
         return ds;
     }
 
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // balancing related stuff
+
     public IPromise _moveHashShardsTo(String tableName, int[] hashShards2Move, ServiceDescription otherRef) {
         Promise res = new Promise();
-        otherRef.getConnectable().connect( (connector,e) -> {}, actor -> {
-           Log.Info(this,"lost connection to other shard ref "+otherRef);
-        }).then( (remote,err) -> {
-            if ( remote != null ) {
-                ClusterTableRecordMapping movedMapping = new ClusterTableRecordMapping();
-                movedMapping.addBuckets(hashShards2Move);
-                try {
-                    RealLiveTableActor table = (RealLiveTableActor) tableSpace.getTableAsync(tableName).await();
-                    List<Record> toTransmit = new ArrayList<>();
-                    table.forEach( record -> movedMapping.matches(record.getKey().hashCode()) , (r,e) -> {
-                        if ( r != null )
-                            toTransmit.add(r);
-                        else {
-                            Log.Info(this,"transmitting "+tableName+" "+toTransmit.size()+" records to "+otherRef.getName());
-                            ((DynDataShard)remote)._receiveHashTransmission( tableName, hashShards2Move, toTransmit )
-                                .then( (rr,ee) -> {
-                                    if ( rr != null ) {
-                                        toTransmit.forEach(rec->table._removeSilent(rec.getKey()));
-                                        res.resolve();
-                                    } else
-                                        res.reject(ee);
-                                });
-                        }
-                    });
-                } catch (Exception e) {
-                    res.reject(e);
+        serialOn("RecordRedistribution#"+tableName, prom -> {
+            shardConnectionPool.getConnection(otherRef.getConnectable()).then( (remote,err) -> {
+                if ( remote != null ) {
+                    ClusterTableRecordMapping movedMapping = new ClusterTableRecordMapping();
+                    movedMapping.addBuckets(hashShards2Move);
+                    try {
+                        RealLiveTableActor table = (RealLiveTableActor) tableSpace.getTableAsync(tableName).await();
+                        List<Record> toTransmit = new ArrayList<>();
+                        table.forEach( record -> movedMapping.matches(record.getKey().hashCode()) , (r,e) -> {
+                            if ( r != null )
+                                toTransmit.add(r);
+                            else {
+                                Log.Info(this,"transmitting "+tableName+" "+toTransmit.size()+" records to "+otherRef.getName());
+                                ((DynDataShard)remote)._receiveHashTransmission( tableName, hashShards2Move, toTransmit )
+                                    .then( (rr,ee) -> {
+                                        if ( ee == null ) {
+                                            ClusterTableRecordMapping mapping = tableSpace.getMapping(tableName);
+                                            ClusterTableRecordMapping newMapping = ClusterTableRecordMapping.Copy(mapping);
+                                            newMapping.remove(hashShards2Move);
+
+                                            toTransmit.forEach(rec->table._removeSilent(rec.getKey()));
+
+                                            _setMapping(tableName,newMapping).then( (rrr,eee) -> {
+                                                Log.Info(this,"COMPLETE: transmitting "+tableName+" "+toTransmit.size()+" records to "+otherRef.getName());
+                                                prom.complete();
+                                            });
+                                            res.resolve();
+                                        } else {
+                                            res.reject(ee);
+                                            prom.complete();
+                                        }
+                                    });
+                            }
+                        });
+                    } catch (Exception e) {
+                        res.reject(e);
+                        prom.complete();
+                    }
+                } else {
+                    prom.complete();
+                    res.reject(err);
                 }
-            } else
-                res.reject(err);
+            });
         });
         return res;
     }
 
     public IPromise _receiveHashTransmission(String tableName, int[] hashShards2Move, List<Record> toTransmit) {
-        // FIXME: suppress notifications
-        Log.Info(this,"received transmision of "+toTransmit.size()+" records to "+tableName);
-        RealLiveTableActor table = (RealLiveTableActor) tableSpace.getTableAsync(tableName).await();
-        toTransmit.forEach( rec -> table._addSilent(rec));
-        return resolve();
+        Promise p = new Promise();
+        serialOn("RecordRedistribution#"+tableName, prom -> {
+            // FIXME: suppress notifications
+            Log.Info(this,"received transmision of "+toTransmit.size()+" records to "+tableName);
+            RealLiveTableActor table = (RealLiveTableActor) tableSpace.getTableAsync(tableName).await();
+
+            ClusterTableRecordMapping mapping = tableSpace.getMapping(tableName);
+            ClusterTableRecordMapping newMapping = ClusterTableRecordMapping.Copy(mapping);
+            newMapping.addBuckets(hashShards2Move);
+
+            toTransmit.forEach( rec -> table._addSilent(rec) );
+
+            _setMapping(tableName,newMapping).then( (r,e) -> prom.resolve() );
+            p.complete();
+        });
+        return p;
     }
 }

@@ -13,7 +13,6 @@ import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.reallive.api.TableState;
 import org.nustaq.reallive.server.dynamic.DynClusterDistribution;
 import org.nustaq.reallive.server.dynamic.DynClusterTableDistribution;
-import org.nustaq.reallive.server.dynamic.actions.ClusterTableAction;
 import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
 
 import java.util.*;
@@ -108,6 +107,15 @@ public class DynDataServiceRegistry extends ServiceRegistry {
         return p;
     }
 
+    @Override
+    public IPromise<DynClusterDistribution> getDynDataDistribution() {
+        return collectRecordDistribution();
+    }
+
+    public IPromise<DynClusterDistribution> getActiveDynDataDistribution() {
+        return resolve(activeDistribution);
+    }
+
     public IPromise balanceDynShards() {
         Promise p = new Promise();
         // get full cluster distribution state
@@ -119,8 +127,14 @@ public class DynDataServiceRegistry extends ServiceRegistry {
                 return;
             }
 
-            distribution.getTableNames()
-                .forEach( tableName -> computeDistributionActions(distribution.have(tableName)));
+            try {
+                distribution.getTableNames()
+                    .forEach( tableName -> computeDistributionActions(distribution.have(tableName)));
+            } catch (Exception e) {
+                Log.Error(this,e);
+                p.reject(e);
+                return;
+            }
 
             // execute actions
             List collect = distribution.getDistributions().entrySet().stream().map(en -> executeActions(en.getValue())).collect(Collectors.toList());
@@ -223,7 +237,7 @@ public class DynDataServiceRegistry extends ServiceRegistry {
             ServiceDescription other = null;
             if ( action.getOtherShard() != null )
                 other = getService(action.getOtherShard());
-            System.out.println(action);
+            System.out.println("processing:" + action);
             ServiceDescription finalOther = other;
             primaryShard.then( (shard, error) -> {
                 if ( error != null )
@@ -268,7 +282,7 @@ public class DynDataServiceRegistry extends ServiceRegistry {
             case INTERSECT:
             default:
                 System.out.println(distribution);
-                throw new RuntimeException("unhandled cluster distribution state "+distribution.getName());
+                throw new RuntimeException("unhandled cluster distribution state "+distribution.getName()+" "+sanRes);
         }
         //check balance
         int sum = 0;
@@ -297,8 +311,8 @@ public class DynDataServiceRegistry extends ServiceRegistry {
             int diffReceiver = recTS.getNumBuckets() - avg;
             int transfer = Math.min( -diffReceiver, diffSender );
             int transferHashes[] = sendTS.takeBuckets(transfer);
-            recTS.addBuckets(transferHashes);
-            for ( int i = 0; i < transfer; i++ ) {
+            if ( transferHashes.length > 0 ) {
+                recTS.addBuckets(transferHashes);
                 distribution.addAction(
                     new MoveHashShardsAction(
                         transferHashes,
