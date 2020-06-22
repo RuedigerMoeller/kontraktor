@@ -88,9 +88,11 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
 
     private <T> void delayedSend(List<String> keys, int recordLimit, Spore<Record, T> spore) {
         int i = keys.size()-1; int ii = 0;
+        RecordStorage store = storageDriver.getStore();
         while( i >= 0 && ii < recordLimit ) {
-            Record record = storageDriver.getStore().get(keys.get(i));
-            spore.remote(record);
+            Record record = store.get(keys.get(i));
+            if ( record != null )
+                spore.remote(record);
             keys.remove(i);
             ii++; i--;
         }
