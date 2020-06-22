@@ -30,4 +30,7 @@ public interface RLPredicate<T> extends Predicate<T>, Serializable {
                 : object -> targetRef.equals(object);
     }
 
+    default int getRecordLimit() {
+        return 0;
+    }
 }

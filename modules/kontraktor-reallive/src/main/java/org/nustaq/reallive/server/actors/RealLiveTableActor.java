@@ -127,7 +127,36 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
 
     @Override
     public <T> void forEachWithSpore(Spore<Record, T> spore) {
-        forEachQueued(spore, () -> {});
+        if ( spore instanceof FilterSpore && ((FilterSpore)spore).getFilter().getRecordLimit() > 0 ) {
+            FilterSpore newSpore = new FilterSpore(((FilterSpore) spore).getFilter());
+            List<String> keys = new ArrayList<>();
+            newSpore.onFinish( () -> {
+                delayedSend(keys,((FilterSpore)spore).getFilter().getRecordLimit(), spore);
+            });
+            newSpore.setForEach( (r, e) -> {
+                if (Actors.isResult(e)) {
+                    keys.add( ((Record)r).getKey());
+                }
+            });
+            forEachDirect(newSpore);
+        } else
+            forEachQueued(spore, () -> {});
+    }
+
+    private <T> void delayedSend(List<String> keys, int recordLimit, Spore<Record, T> spore) {
+        int i = keys.size()-1; int ii = 0;
+        while( i >= 0 && ii < recordLimit ) {
+            Record record = storageDriver.getStore().get(keys.get(i));
+            if ( record != null )
+                spore.remote(record);
+            keys.remove(i);
+            ii++; i--;
+        }
+        if ( keys.size() > 0 ) {
+            delayed(1000, () -> delayedSend(keys, recordLimit, spore));
+        } else {
+            spore.finish();
+        }
     }
 
     @Override

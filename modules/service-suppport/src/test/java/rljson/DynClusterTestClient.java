@@ -5,7 +5,12 @@ import org.nustaq.kontraktor.services.ServiceArgs;
 import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataServiceRegistry;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
+import org.nustaq.reallive.api.RLLimitedPredicate;
+import org.nustaq.reallive.api.RLPredicate;
 import org.nustaq.reallive.api.RealLiveTable;
+import org.nustaq.reallive.api.Record;
+
+import java.util.List;
 
 public class DynClusterTestClient extends ServiceActor<DynClusterTestClient> {
 
@@ -28,7 +33,8 @@ public class DynClusterTestClient extends ServiceActor<DynClusterTestClient> {
         ServiceActor serviceActor = ServiceActor.RunTCP(args, DynClusterTestClient.class, ServiceArgs.class, DynDataServiceRegistry.class);
         DataClient dclient = (DataClient) serviceActor.getDataClient().await();
         RealLiveTable feed = dclient.tbl("feed");
-        boolean modify = true;
+        boolean modify = false;
+        boolean slowQuery = true;
         int tim = 999;//(int) System.currentTimeMillis();
         if ( modify ) {
             for(int i = 0; i < REC_TO_ADD; i++ )
@@ -45,6 +51,20 @@ public class DynClusterTestClient extends ServiceActor<DynClusterTestClient> {
             }
         }
         feed.ping().await();
-        System.out.println("done");
+
+        List<Record> c = feed.queryList(x -> x.getLong("c") == 10).await();
+        System.out.println(c);
+
+        if ( slowQuery ) {
+            feed.subscribeOn(new RLLimitedPredicate<>(1000, rec -> true), (change) -> {
+                if ( change != null && ! change.isDoneMsg()) {
+                    System.out.println("change "+change);
+                } else {
+                    System.out.println("done "+change);
+                }
+            });
+        }
+
+        System.out.println("main done");
     }
 }

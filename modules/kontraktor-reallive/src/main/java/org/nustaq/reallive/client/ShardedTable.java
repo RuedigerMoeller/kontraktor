@@ -3,6 +3,7 @@ package org.nustaq.reallive.client;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.server.FilterProcessor;
+import org.nustaq.reallive.server.FilterSpore;
 import org.nustaq.reallive.server.dynamic.DynClusterDistribution;
 import org.nustaq.reallive.server.storage.StorageStats;
 import org.nustaq.reallive.api.*;
@@ -148,6 +149,12 @@ public class ShardedTable implements RealLiveTable {
         }
     }
 
+    protected void adjustLimitFilter(RLPredicate filter) {
+        if ( filter instanceof RLLimitedPredicate) {
+            ((RLLimitedPredicate)filter)._setLimit(Math.max(1,((RLLimitedPredicate) filter).getRecordLimit()/shards.size()));
+        }
+    }
+
     @Override
     public void unsubscribe(Subscriber subs) {
         proc.unsubscribe(subs);
@@ -157,7 +164,6 @@ public class ShardedTable implements RealLiveTable {
     public void unsubscribeById(int subsId) {
         proc.unsubscribeById(subsId);
     }
-
 
     public void realUnsubscribe(Subscriber subs) {
         if ( subs == null ) {
@@ -233,6 +239,8 @@ public class ShardedTable implements RealLiveTable {
 
     @Override
     public <T> void forEachWithSpore(Spore<Record, T> spore) {
+        if ( spore instanceof FilterSpore)
+            adjustLimitFilter(((FilterSpore) spore).getFilter());
         spore.setExpectedFinishCount(shards.size());
         shards.forEach( shard -> shard.forEachWithSpore(spore) );
     }

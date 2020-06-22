@@ -11,6 +11,7 @@ import org.nustaq.kontraktor.util.PromiseLatch;
 import org.nustaq.reallive.server.QueryPredicate;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.nustaq.kontraktor.webapp.KJson.*;
@@ -27,10 +28,10 @@ public class TestRLJson {
         System.out.println("");
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         BackOffStrategy.SLEEP_NANOS = 5 * 1000 * 1000; // 20 millis
         boolean QUERY = false;
-        boolean UPSERT = true;
+        boolean UPSERT = false;
 //        int recordNum = 4_000_000;
         int recordNum = 100_000;
 
@@ -189,4 +190,5 @@ public class TestRLJson {
         }
         return pl.getPromise();
     }
+
 }

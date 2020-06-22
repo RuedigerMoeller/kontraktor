@@ -52,4 +52,13 @@ public class FilterSpore extends Spore<Record,Record> {
         return this;
     }
 
+    public FilterSpore filter(RLPredicate<Record> filter) {
+        this.filter = filter;
+        return this;
+    }
+
+    public FilterSpore rec(ThreadLocal<PatchingRecord> rec) {
+        this.rec = rec;
+        return this;
+    }
 }
