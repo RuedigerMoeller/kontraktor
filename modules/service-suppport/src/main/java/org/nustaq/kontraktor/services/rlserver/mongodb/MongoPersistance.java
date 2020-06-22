@@ -12,7 +12,6 @@ import org.nustaq.reallive.impl.storage.RecordPersistance;
 import org.nustaq.reallive.impl.storage.StorageStats;
 
 import java.util.concurrent.atomic.AtomicInteger;
-
 import static com.mongodb.client.model.Filters.*;
 
 public class MongoPersistance implements RecordPersistance {
