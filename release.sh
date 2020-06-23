@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home
+
 export PW=$1
 
 echo $1
