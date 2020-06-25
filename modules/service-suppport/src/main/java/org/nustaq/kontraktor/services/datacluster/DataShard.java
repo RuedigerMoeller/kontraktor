@@ -97,7 +97,7 @@ public class DataShard extends ServiceActor<DataShard> {
 
     @Override
     protected Serializable getStatus() {
-        return "{ connections:"+(__connections != null ? __connections.size() : 0)+"}";
+        return "{ \"connections\":"+(__connections != null ? __connections.size() : 0)+"}";
     }
 
     public static void main(String[] args) {

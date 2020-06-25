@@ -131,7 +131,7 @@ public class DynDataShard extends ServiceActor<DynDataShard>  {
 
     @Override
     protected Serializable getStatus() {
-        return "{ connections:"+(__connections != null ? __connections.size() : 0)+"}";
+        return "{ \"connections\":"+(__connections != null ? __connections.size() : 0)+"}";
     }
 
     public IPromise<Map<String, TableState>> getStates() {
