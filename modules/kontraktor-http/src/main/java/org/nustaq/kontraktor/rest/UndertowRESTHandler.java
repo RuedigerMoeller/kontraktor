@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class UndertowRESTHandler implements HttpHandler {
@@ -31,15 +32,22 @@ public class UndertowRESTHandler implements HttpHandler {
     protected FSTConfiguration jsonConf = FSTConfiguration.createJsonConfiguration();
     protected Function<HeaderMap,IPromise> requestAuthenticator;
     protected Set<String> allowedMethods;
+    protected Consumer<HttpServerExchange> prepareResponse;
 
-    public UndertowRESTHandler(String basePath, Actor facade, Function<HeaderMap,IPromise> requestAuthenticator ) {
+    public UndertowRESTHandler(
+        String basePath,
+        Actor facade,
+        Function<HeaderMap,IPromise> requestAuthenticator,
+        Consumer<HttpServerExchange> prepareResponse
+    ) {
         this.basePath = basePath;
         this.facade = facade;
         this.requestAuthenticator = requestAuthenticator;
         allowedMethods = new HashSet<>();
         Arrays.stream(new String[] {
-            "get","put","patch","post","delete","head"
+            "get","put","patch","post","delete","head","option"
         }).forEach( s -> allowedMethods.add(s) );
+        this.prepareResponse = prepareResponse;
     }
 
     public void setAllowedMethods(Set<String> allowedMethods) {
@@ -64,6 +72,9 @@ public class UndertowRESTHandler implements HttpHandler {
     }
 
     private void handleInternal(HttpServerExchange exchange, Object credentials) {
+        if ( prepareResponse != null ) {
+            prepareResponse.accept(exchange);
+        }
         String requestPath = exchange.getRequestPath();
         requestPath = requestPath.substring(basePath.length());
         while ( requestPath.startsWith("/") ) {

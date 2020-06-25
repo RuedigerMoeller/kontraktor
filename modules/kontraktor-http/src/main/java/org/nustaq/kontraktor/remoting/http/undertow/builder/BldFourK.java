@@ -16,6 +16,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 package org.nustaq.kontraktor.remoting.http.undertow.builder;
 
 import io.undertow.server.HttpHandler;
+import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderMap;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
@@ -122,12 +123,16 @@ public class BldFourK {
     }
 
     public BldFourK restAPI( String urlPath, Actor restActor ) {
-        items.add(new BldHttpHandler(urlPath,new UndertowRESTHandler(urlPath,restActor,null)));
+        items.add(new BldHttpHandler(urlPath,new UndertowRESTHandler(urlPath,restActor,null,null)));
         return this;
     }
 
     public BldFourK restAPI(String urlPath, Actor restActor, Function<HeaderMap, IPromise> reqauth) {
-        items.add(new BldHttpHandler(urlPath,new UndertowRESTHandler(urlPath,restActor,reqauth)));
+        items.add(new BldHttpHandler(urlPath,new UndertowRESTHandler(urlPath,restActor,reqauth,null)));
+        return this;
+    }
+    public BldFourK restAPI(String urlPath, Actor restActor, Function<HeaderMap, IPromise> reqauth, Consumer<HttpServerExchange> prepareResponse ) {
+        items.add(new BldHttpHandler(urlPath,new UndertowRESTHandler(urlPath,restActor,reqauth, prepareResponse)));
         return this;
     }
 

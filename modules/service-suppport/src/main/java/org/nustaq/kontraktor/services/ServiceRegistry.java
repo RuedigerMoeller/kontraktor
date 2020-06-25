@@ -2,7 +2,10 @@ package org.nustaq.kontraktor.services;
 
 import com.beust.jcommander.JCommander;
 import com.eclipsesource.json.WriterConfig;
+import io.undertow.server.HttpServerExchange;
+import io.undertow.util.HeaderMap;
 import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
@@ -27,6 +30,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -248,6 +253,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     public static ServiceArgs parseCommandLine(String[] args, String concatArgs[], ServiceArgs options) {
 
         JCommander com = new JCommander();
+        com.setAcceptUnknownOptions(true);
         com.addObject(options);
         try {
             com.parse(args);
@@ -269,6 +275,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     public static ServiceArgs parseCommandLine(String[] args, ServiceArgs options) {
 
         JCommander com = new JCommander();
+        com.setAcceptUnknownOptions(true);
         com.addObject(options);
         try {
             com.parse(args);
@@ -471,7 +478,7 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
 
         Log.Info(ServiceRegistry.class,"monport on http://"+_options.getMonhost()+":"+_options.getMonport()+"/mon");
         Http4K.Build(_options.getMonhost(), _options.getMonport() )
-            .restAPI("/mon", serviceRegistry.getRest().await())
+            .restAPI("/mon", serviceRegistry.getRest().await(), serviceRegistry.getReqAuth(), serviceRegistry.getPrepareResponse() )
             .build();
 
         // log service activity
@@ -480,6 +487,16 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         });
 
         return serviceRegistry;
+    }
+
+    @CallerSideMethod
+    public Consumer<HttpServerExchange> getPrepareResponse() {
+        return null;
+    }
+
+    @CallerSideMethod
+    public Function<HeaderMap, IPromise> getReqAuth() {
+        return null;
     }
 
 

@@ -101,6 +101,7 @@ public class ServiceArgs {
     public static ServiceArgs parseCommandLine(String[] args, ServiceArgs options) {
 
         JCommander com = new JCommander();
+        com.setAcceptUnknownOptions(true);
         com.addObject(options);
         try {
             com.parse(args);
