@@ -1,6 +1,7 @@
 package org.nustaq.kontraktor.rest;
 
 import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 import io.undertow.server.HttpHandler;
@@ -157,6 +158,8 @@ public class UndertowRESTHandler implements HttpHandler {
                             Deque<String> strings = exchange.getQueryParameters().get(value);
                             if (strings != null) {
                                 args[i] = inferValue(parameterType, strings.getFirst());
+                            } else {
+                                args[i] = inferValue(parameterType, null);
                             }
                             continue;
                         } else if (parameterAnnotation[0].annotationType() == RequestPath.class) {
@@ -181,9 +184,9 @@ public class UndertowRESTHandler implements HttpHandler {
                         args[i] = exchange.getRequestHeaders();
                     } else if (parameterType == String[].class) {
                         args[i] = split;
-                    } else if (parameterType == JsonObject.class || parameterType == JsonValue.class) {
+                    } else if (postData != null && parameterType == JsonObject.class || parameterType == JsonValue.class) {
                         args[i] = Json.parse(new String(postData, "UTF-8"));
-                    } else if (parameterType == byte[].class) {
+                    } else if (postData != null && parameterType == byte[].class) {
                         args[i] = postData;
                     } else if (parameterType == Map.class) {
                         args[i] = exchange.getQueryParameters();
@@ -252,17 +255,23 @@ public class UndertowRESTHandler implements HttpHandler {
 
     private Object inferValue(Class<?> parameterType, String stringVal) {
         if ( parameterType == int.class ) {
-            return Integer.parseInt(stringVal);
+            return stringVal != null ? Integer.parseInt(stringVal) : 0;
         } else if (parameterType == long.class ) {
-            return Long.parseLong(stringVal);
+            return stringVal != null ? Long.parseLong(stringVal) : 0L;
         } else if ( parameterType == double.class ) {
-            return Double.parseDouble(stringVal);
+            return stringVal != null ? Double.parseDouble(stringVal) : 0;
         } else if ( parameterType == String.class ) {
             return stringVal;
+        } else if ( parameterType == JsonObject.class ) {
+            return stringVal != null ? Json.parse(stringVal).asObject() : null;
+        } else if ( parameterType == JsonArray.class ) {
+            return stringVal != null ? Json.parse(stringVal).asArray() : null;
+        } else if ( parameterType == JsonValue.class ) {
+            return stringVal != null ? Json.parse(stringVal) : null;
         }
-//        else if ( parameterType == String.class ) {
-//            return stringVal;
-//        }
+        else if ( parameterType == String[].class ) {
+            return stringVal != null ? stringVal.split(",") : null;
+        }
         return NOVAL;
     }
 
