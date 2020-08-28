@@ -151,8 +151,8 @@ class KClient {
         res.complete(null,err);
     });
     socket.onclose( () => {
-      const prev = this.socket;
-      this.socket = null;
+      const prev = this.currentSocket.socket;
+      this.currentSocket.socket = null;
       if ( prev ) {
         if ( ! res.isCompleted() )
           res.complete(null,"closed");
@@ -262,6 +262,10 @@ class KontraktorSocket {
     this.automaticTransformResults = true;
     this.protocols = protocols;
     this.url = url;
+    if ( this.protocols )
+      this.socket = new WebSocket(url,this.protocols);
+    else
+      this.socket = new WebSocket(url);
   }
 
   close( code, reason ) {
@@ -277,10 +281,6 @@ class KontraktorSocket {
   };
 
   connect() {
-    if ( this.protocols )
-      this.socket = new WebSocket(url,this.protocols);
-    else
-      this.socket = new WebSocket(url);
   }
 
   reconnect(refId) {
