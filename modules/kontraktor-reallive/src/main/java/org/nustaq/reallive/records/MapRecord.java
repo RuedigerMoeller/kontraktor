@@ -5,6 +5,8 @@ import org.nustaq.reallive.server.RLUtil;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.IntFunction;
+
 import org.nustaq.reallive.api.Record;
 
 /**
@@ -15,7 +17,39 @@ import org.nustaq.reallive.api.Record;
  */
 public class MapRecord implements Record {
 
-    public static boolean CHECK_TYPES = true;
+    public static Function<Object,Boolean> JDK_TYPE_CHECK = value -> {
+        Class<?> clazz = value.getClass();
+        String name = clazz.getName();
+        if ( isSimpleType(name) ||
+            (clazz.isArray() &&
+                (clazz.getComponentType().isPrimitive() ||
+                    isSimpleType(clazz.getComponentType().getName()) ) ) )
+        {
+            return true;
+        } else {
+            return false;
+        }
+    };
+
+    public static Function<Object,Boolean> JSON_CHECKER = value -> {
+        Class<?> clazz = value.getClass();
+        String name = clazz.getName();
+        if (
+            value instanceof String ||
+            value instanceof Number ||
+            value instanceof Boolean ||
+            value instanceof Record ||
+            value instanceof Object[]
+        )
+        {
+            return true;
+        } else {
+            return false;
+        }
+    };
+
+    Function<Object,Boolean> CHECK_TYPES = JDK_TYPE_CHECK;
+
     public static Class<? extends MapRecord> recordClass = MapRecord.class;
     public static Function<MapRecord,MapRecord> conversion;
 
@@ -81,6 +115,12 @@ public class MapRecord implements Record {
     }
 
     @Override
+    public Record internal_put(String key, Object value) {
+        map.put(key,value);
+        return this;
+    }
+
+    @Override
     public Record key(String key) {
         this.key = key;return this;
     }
@@ -104,26 +144,20 @@ public class MapRecord implements Record {
         if ( map.put(key, value) == null ) { // delete attribute
             fields = null;
         }
-        if (value == null)
+        if (value == null || _NULL_.equals(value) )
             map.remove(key);
-        else if ( CHECK_TYPES ){
-            Class<?> clazz = value.getClass();
-            String name = clazz.getName();
-            if ( isSimpleType(name) ||
-                (clazz.isArray() &&
-                    (clazz.getComponentType().isPrimitive() ||
-                        isSimpleType(clazz.getComponentType().getName()) ) ) )
-            {
+        else if ( CHECK_TYPES != null ) {
+            if ( CHECK_TYPES.apply(value) ) {
                 map.put(key,value);
             } else {
-                throw new RuntimeException("allowed values: jdk classes and instanceof Record");
+                throw new RuntimeException("tried to store non-allowed value types");
             }
         } else
             map.put(key,value);
         return this;
     }
 
-    private boolean isSimpleType(String name) {
+    private static boolean isSimpleType(String name) {
         return name.startsWith("java.") || name.startsWith("javax.") ||
             name.equals(MapRecord.class.getName());
     }

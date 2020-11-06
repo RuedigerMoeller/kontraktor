@@ -58,6 +58,12 @@ public class RecordWrapper implements Record {
     }
 
     @Override
+    public Record internal_put(String key, Object value) {
+        record.internal_put(key,value);
+        return this;
+    }
+
+    @Override
     public void internal_updateLastModified() {
         record.internal_updateLastModified();
     }

@@ -1,21 +1,22 @@
 package org.nustaq.reallive.api;
 
+import com.eclipsesource.json.WriterConfig;
 import org.nustaq.reallive.query.EvalContext;
 import org.nustaq.reallive.query.LongValue;
 import org.nustaq.reallive.query.StringValue;
 import org.nustaq.reallive.query.Value;
 import org.nustaq.reallive.records.MapRecord;
+import org.nustaq.reallive.server.storage.RecordJsonifier;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by moelrue on 03.08.2015.
  */
 public interface Record extends Serializable, EvalContext {
+
+    public static final String _NULL_ = "_NULL_";
 
     public static Record from( Object ... keyVals ) {
         MapRecord aNew = MapRecord.New(null);
@@ -25,10 +26,10 @@ public interface Record extends Serializable, EvalContext {
             if ( key.equals("key") ) {
                 aNew.key((String) val);
             } else
-                aNew.put(key,val);
+                if ( val == null )
+                    val = _NULL_;
+                aNew.internal_put(key,val);
         }
-        if ( aNew.getKey() == null )
-            throw new RuntimeException("no key specified");
         return aNew;
     }
 
@@ -37,6 +38,7 @@ public interface Record extends Serializable, EvalContext {
     void internal_setLastModified(long tim);
     void internal_incSequence();
     long getSequence(); // increments with each update of the record
+    Record internal_put(String key, Object value); // put without any prechecks / null processing
 
     default void internal_updateLastModified() {
         internal_setLastModified(System.currentTimeMillis());
@@ -60,6 +62,42 @@ public interface Record extends Serializable, EvalContext {
         return EvalContext.super.getValue(field);
     }
 
+    default Object mget( Object ... path ) {
+        if ( path.length == 0 )
+            return this;
+        Object current = this;
+        for( int i=0; i < path.length; i++) {
+            Object index = path[i];
+            if ( index instanceof String ) {
+                if ( current instanceof Record ) {
+                    current = ((Record) current).get((String) index);
+                } else {
+                    return null;
+                }
+            } else if ( index instanceof Number ) {
+                if ( current instanceof Object[] ) {
+                    current = ((Object[])current)[((Number) index).intValue()];
+                } else
+                    return null;
+            }
+        }
+        return current;
+    }
+
+    default Number mgetNum( Object ... path ) {
+        Object mget = mget(path);
+        if ( mget instanceof Number )
+            return (Number) mget;
+        return 0;
+    }
+
+    default String mgetString( Object ... path ) {
+        Object mget = mget(path);
+        if ( mget == null )
+            return "";
+        return mget.toString();
+    }
+
     default int getInt(String field) {
         Object val = get(field);
         if ( val == null )
@@ -79,51 +117,6 @@ public interface Record extends Serializable, EvalContext {
         if ( val == null )
             return MapRecord.New(null);
         return (Record) val;
-    }
-
-    /**
-     * creates and sets an empty record in case
-     * @param field
-     * @return
-     */
-    default Record rec(String field) {
-        Object val = get(field);
-        if ( val == null ) {
-            MapRecord aNew = MapRecord.New(null);
-            put(field,aNew);
-            return aNew;
-        }
-        return (Record) val;
-    }
-
-    /**
-     * creates and sets an empty list in case
-     * @param field
-     * @return
-     */
-    default List arr(String field) {
-        Object val = get(field);
-        if ( val == null ) {
-            ArrayList aNew = new ArrayList();
-            put(field,aNew);
-            return aNew;
-        }
-        return (List) val;
-    }
-
-    /**
-     * creates and sets an empty list in case
-     * @param field
-     * @return
-     */
-    default List<Record> recarr(String field) {
-        Object val = get(field);
-        if ( val == null ) {
-            ArrayList aNew = new ArrayList();
-            put(field,aNew);
-            return aNew;
-        }
-        return (List) val;
     }
 
     default double getDouble(String field) {
@@ -211,6 +204,138 @@ public interface Record extends Serializable, EvalContext {
             String field = fields[i];
             put( field, record.get(field) );
         }
+    }
+
+    /**
+     * remove special operators on this record attributes
+     */
+    default void stripOps() {
+        String[] fields = getFields();
+        for (int i = 0; i < fields.length; i++) {
+            String field = fields[i];
+            if ( field.endsWith("?+") ) {
+                put( field.substring(0,field.length()-2), get(field) );
+                put( field, null );
+            } else if ( field.endsWith("+") || field.endsWith("-") ) {
+                put( field.substring(0,field.length()-1), get(field) );
+                put( field, null );
+            }
+        }
+    }
+
+    /**
+     * merge all fields from given record to this including nested structures.
+     * Assumes pure json data types (String Number Boolean Object[] Record)
+     *
+     * attribute operators:
+     * '+' - insert into array
+     * '-' - remove from array
+     * '?+' - insert if not present into array
+     *
+     * @param record
+     */
+    default Record deepMerge(Record record) {
+        final String[] fields = record.getFields();
+        for (int i = 0; i < fields.length; i++) {
+            String field = fields[i];
+            String op = "";
+            Object foreignValue = record.get(field);
+            if ( field.endsWith("?+") ) {
+                op = "?+"; // add if not exists
+                field = field.substring(0,field.length()-2);
+            } else if ( field.endsWith("+") ) {
+                op = "+"; // add
+                field = field.substring(0,field.length()-1);
+            } else if ( field.endsWith("-") ) {
+                op = "-"; // remove if exists
+                field = field.substring(0,field.length()-1);
+            }
+            Object selfValue = get(field);
+            if ( selfValue == null ) {
+                put(field, foreignValue);
+            } else if ( selfValue instanceof Object[] ) {
+                handleArrayOp(field, op, foreignValue, (Object[]) selfValue);
+            } else if ( selfValue instanceof Record ) {
+                if ( op.length() == 0 ) {
+                    // no op => plain put
+                    put(field, foreignValue);
+                } else {
+                    switch ( op ) {
+                        case "-": {
+                            throw new RuntimeException("inconsistent operator '"+op+" on type Record field "+field);
+                        }
+                        case "+": {
+                            if ( foreignValue instanceof Record )
+                                put(field, ((Record) selfValue).deepMerge((Record) foreignValue));
+                            else
+                                throw new RuntimeException("inconsistent operator '"+op+" on type Record field "+field);
+                        } break;
+                        case "?+": {
+                            throw new RuntimeException("inconsistent operator '"+op+"' field "+field);
+                        }
+                        default:
+                            throw new RuntimeException("unknown operator '"+op+"' on  type Record field "+field);
+                    }
+                }
+            } else {
+                put(field, foreignValue);
+            }
+        }
+        return this;
+    }
+
+    private void handleArrayOp(String field, String op, Object foreignValue, Object[] selfValue) {
+        // handle array ops
+        if ( op.length() > 0 && foreignValue instanceof Object[] == false ) {
+            // chosed operator, but did not provide array
+            foreignValue = new Object[] { foreignValue };
+        }
+        switch ( op ) {
+            case "-": {
+
+            } break;
+            case "+":
+            case "?+": {
+                // merge arrays
+                Object[] foreignArr = (Object[]) foreignValue;
+                Object[] selfArr = selfValue;
+                ArrayList unmatched = new ArrayList();
+                for (int jj = 0; jj < foreignArr.length; jj++) {
+                    Object toAdd = foreignArr[jj];
+                    boolean matched = false;
+                    if ("?+".equals(op)) {
+                        for (int j = 0; j < selfArr.length; j++) {
+                            Object o1 = selfArr[j];
+                            if (Objects.deepEquals(o1, toAdd)) {
+                                matched = true;
+                                selfArr[j] = toAdd;
+                                break;
+                            }
+                        }
+                    }
+                    if (!matched) {
+                        unmatched.add(toAdd);
+                    }
+                }
+                if ( unmatched.size() > 0 ) {
+                    List<Object> objects = new ArrayList(Arrays.asList(selfArr));
+                    objects.addAll(unmatched);
+                    selfArr = objects.toArray();
+                    put( field,selfArr);
+                } else {
+                    put( field,selfArr);
+                }
+            } break;
+            case "": {
+                put(field, foreignValue);
+            } break;
+            default:
+                throw new RuntimeException("unknown operator '"+op+"'");
+        }
+    }
+
+    default String toPrettyString() {
+        return RecordJsonifier.get().fromRecord(this ).toString(WriterConfig.PRETTY_PRINT);
     }
 
 }

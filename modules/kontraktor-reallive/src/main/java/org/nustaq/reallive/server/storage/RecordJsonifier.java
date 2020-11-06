@@ -7,6 +7,17 @@ import com.eclipsesource.json.JsonValue;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.records.MapRecord;
 
+/**
+ * converts json to records and vice versa
+ *
+ * used types:
+ * String - string
+ * Boolean - boolean
+ * Long,Double - number
+ * Object[] - array
+ * Record - { }
+ *
+ */
 public class RecordJsonifier {
 
     static RecordJsonifier singleton = new RecordJsonifier();
