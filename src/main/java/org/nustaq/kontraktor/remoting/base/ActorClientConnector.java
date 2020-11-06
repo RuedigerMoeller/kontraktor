@@ -30,7 +30,7 @@ public interface ActorClientConnector {
     /**
      * used in most client and server connector implementations
      */
-    public static int OBJECT_MAX_BATCH_SIZE = 100;
+    public static int OBJECT_MAX_BATCH_SIZE = 500;
 
     IPromise connect(Function<ObjectSocket, ObjectSink> factory) throws Exception;
     IPromise closeClient();

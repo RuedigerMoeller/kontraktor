@@ -13,7 +13,7 @@
     <name>Kontraktor</name>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor</artifactId>
-    <version>5.1.0</version>
+    <version>5.1.1</version>
 
     <description>a light weight, efficient actor lib</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
