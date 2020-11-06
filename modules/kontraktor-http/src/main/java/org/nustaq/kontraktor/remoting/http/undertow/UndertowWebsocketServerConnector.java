@@ -108,11 +108,13 @@ public class UndertowWebsocketServerConnector implements ActorServerConnector {
                             sink.receiveObject(objectSocket.getConf().asObject(bytez), null, null );
                         }
 
+
                         @Override
                         protected void onFullBinaryMessage(WebSocketChannel channel, BufferedBinaryMessage message) throws IOException {
                             ByteBuffer[] data = message.getData().getResource();
                             byte[] bytez = Buffers.take(data, 0, data.length);
-                            sink.receiveObject(objectSocket.getConf().asObject(bytez), null, null );
+                            Object received = objectSocket.getConf().asObject(bytez);
+                            sink.receiveObject(received, null, null);
                         }
 
                     });

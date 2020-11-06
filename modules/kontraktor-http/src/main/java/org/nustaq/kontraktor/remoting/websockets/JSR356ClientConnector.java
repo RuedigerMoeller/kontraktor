@@ -16,6 +16,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.remoting.websockets;
 
+import afu.org.checkerframework.checker.units.qual.A;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
@@ -137,7 +138,9 @@ public class JSR356ClientConnector implements ActorClientConnector {
                 System.out.println("resp:");
                 System.out.println(new String(message,0));
             }
-            sink.receiveObject(conf.asObject(message), null, null );
+            Object received = conf.asObject(message);
+//            System.out.println("JSR REC "+count.get());
+            sink.receiveObject(received, null, null );
         }
 
         @OnMessage
@@ -154,27 +157,34 @@ public class JSR356ClientConnector implements ActorClientConnector {
         }
 
         public void sendBinary(byte[] message) {
-            System.out.println("message size "+message.length);
             if ( DumpProtocol ) {
                 System.out.println("requ:");
                 System.out.println(new String(message,0));
             }
-            Actor executor = Actor.current();
-            session.getAsyncRemote().sendBinary(ByteBuffer.wrap(message), new SendHandler() {
-                @Override
-                public void onResult(SendResult result) {
-                    if ( ! result.isOK() ) {
-                        executor.execute( () -> {
-                            FSTUtil.<RuntimeException>rethrow(result.getException());
-                            try {
-                                close();
-                            } catch (IOException e) {
-                                Log.Warn(this,e);
-                            }
-                        });
-                    }
-                }
-            });
+            try {
+                session.getBasicRemote().sendBinary(ByteBuffer.wrap(message));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            // UNDERTOW 2.2.2 Bug with async send.
+//            Actor executor = Actor.current();
+//            session.getAsyncRemote().sendBinary(ByteBuffer.wrap(message), new SendHandler() {
+//                @Override
+//                public void onResult(SendResult result) {
+//                    senRec.decrementAndGet();
+//                    System.out.println("SENDREC "+senRec);
+//                    if ( ! result.isOK() ) {
+//                        executor.execute( () -> {
+//                            FSTUtil.<RuntimeException>rethrow(result.getException());
+//                            try {
+//                                close();
+//                            } catch (IOException e) {
+//                                Log.Warn(this,e);
+//                            }
+//                        });
+//                    }
+//                }
+//            });
         }
 
         public void close() throws IOException {

@@ -15,6 +15,7 @@ See https://www.gnu.org/licenses/lgpl.txt
 */
 package org.nustaq.kontraktor.remoting.websockets;
 
+import afu.org.checkerframework.checker.units.qual.A;
 import org.nustaq.kontraktor.remoting.base.ActorClientConnector;
 import org.nustaq.kontraktor.remoting.base.ObjectSocket;
 import org.nustaq.serialization.FSTConfiguration;
@@ -76,6 +77,7 @@ public abstract class WebObjectSocket implements ObjectSocket {
 
     public abstract void sendBinary(byte[] message);
 
+    AtomicInteger debugCount = new AtomicInteger();
     @Override
     public void flush() throws Exception {
         if (DBGTHREADS) {
@@ -101,6 +103,8 @@ public abstract class WebObjectSocket implements ObjectSocket {
             objects.add(sendSequence.incrementAndGet()); // sequence
             Object[] objArr = objects.toArray();
             objects.clear();
+            debugCount.addAndGet(objArr.length);
+//            System.out.println("WOS sent "+debugCount.get()+" messages");
             sendBinary(conf.asByteArray(objArr));
         }
     }
