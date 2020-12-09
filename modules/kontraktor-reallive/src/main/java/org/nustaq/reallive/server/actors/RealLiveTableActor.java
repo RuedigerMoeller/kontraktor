@@ -428,6 +428,19 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     @Override
+    public void _deepMerge(int senderId, Record jsonrec) {
+        atomic( senderId, jsonrec.getKey(), rec -> {
+            if ( rec == null ) {
+                jsonrec.stripOps();
+                return RLUtil.get().put(senderId,jsonrec.getKey(),jsonrec);
+            } else {
+                rec.deepMerge(jsonrec);
+            }
+            return null;
+        });
+    }
+
+    @Override
     public IPromise<Boolean> add(int senderId, String key, Object... keyVals) {
         if ( storageDriver.getStore().get(key) != null )
             return resolve(false);

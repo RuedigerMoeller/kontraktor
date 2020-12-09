@@ -48,7 +48,7 @@ public class MapRecord implements Record {
         }
     };
 
-    Function<Object,Boolean> CHECK_TYPES = JDK_TYPE_CHECK;
+    static Function<Object,Boolean> CHECK_TYPES = JDK_TYPE_CHECK;
 
     public static Class<? extends MapRecord> recordClass = MapRecord.class;
     public static Function<MapRecord,MapRecord> conversion;

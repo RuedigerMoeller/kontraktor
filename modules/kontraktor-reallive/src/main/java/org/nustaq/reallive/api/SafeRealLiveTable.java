@@ -23,6 +23,7 @@ public interface SafeRealLiveTable extends ChangeReceiver, SafeChangeStream, Saf
 
     void put(int senderId, String key, Object... keyVals);
     void merge(int senderId, String key, Object... keyVals);
+    void _deepMerge(int senderId, Record jsonrec );
     IPromise<Boolean> add(int senderId, String key, Object... keyVals);
     void update(int senderId, String key, Object... keyVals);
     IPromise<Record> take(int senderId, String key);
@@ -50,6 +51,16 @@ public interface SafeRealLiveTable extends ChangeReceiver, SafeChangeStream, Saf
 
     @CallerSideMethod default void mergeRecord(Record rec) {
         this.mergeRecord(0,rec);
+    }
+    @CallerSideMethod default void deepMerge(int senderId, Record rec) {
+        if ( rec.getKey() == null )
+            throw new RuntimeException("no key set");
+        this._deepMerge(senderId,rec);
+    }
+    @CallerSideMethod default void deepMerge(Record rec) {
+        if ( rec.getKey() == null )
+            throw new RuntimeException("no key set");
+        this._deepMerge(0,rec);
     }
     @CallerSideMethod default void setRecord(Record rec) {
         this.setRecord(0,rec);

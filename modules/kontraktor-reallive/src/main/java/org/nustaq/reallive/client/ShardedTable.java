@@ -200,6 +200,11 @@ public class ShardedTable implements RealLiveTable {
         getTableForKey(key).receive(RLUtil.get().addOrUpdate(senderId, key, keyVals));
     }
 
+    @Override
+    public void _deepMerge(int senderId, Record jsonrec) {
+        getTableForKey(jsonrec.getKey())._deepMerge( senderId, jsonrec );
+    }
+
     public IPromise<Boolean> add(int senderId, String key, Object... keyVals) {
         return getTableForKey(key).add(senderId, key, keyVals);
     }
