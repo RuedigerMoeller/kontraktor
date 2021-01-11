@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home
+# MAC export GPG_TTY=$(tty)
 
 export PW=$1
 
