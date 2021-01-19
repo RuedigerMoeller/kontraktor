@@ -669,7 +669,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             if ( rce.getFutureKey() != 0 ) {
                     self().execute(() -> {
                         try {
-                            registry.receiveCBResult(objSocket, rce.getFutureKey(), null, th instanceof RateLimitException ? ""+th : FSTUtil.toString(th) );
+                            registry.receiveCBResult(objSocket, rce.getFutureKey(), null, th instanceof RateLimitException ? ""+th : "internal error");
                         } catch (Exception e) {
                             Log.Error(this,e);
                         }
