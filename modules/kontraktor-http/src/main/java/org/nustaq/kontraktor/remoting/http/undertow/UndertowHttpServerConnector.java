@@ -109,21 +109,27 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
         // read post data.
         ByteBuffer buf = ByteBuffer.allocate(len);
         requestChannel.getReadSetter().set( streamSourceChannel -> {
+            int bytesRead = 0;
+            try {
+                bytesRead = streamSourceChannel.read(buf);
+//                System.err.println("bytesRead: " + bytesRead + " stat: " + buf.toString());
+            } catch (IOException e) {
+                Log.Warn(this, e);
+            }
+            if ( buf.remaining() == 0 ) {
                 try {
-                    streamSourceChannel.read(buf);
+                    requestChannel.shutdownReads();
                 } catch (IOException e) {
-                    Log.Warn(this,e);
+                    Log.Warn(this, e);
                 }
-                if ( buf.remaining() == 0 ) {
-                    try {
-                        requestChannel.shutdownReads();
-                    } catch (IOException e) {
-                        Log.Warn(this,e);
-                    }
-                    facade.execute( () -> requestReceived( exchange, buf.array(), rpath ) );
+                // with ssl the "read" method is called twice, but second one is superfluous, NTL results in new session created;
+                // requestChannel.suspendReads() instead of shutdownReads() seems to prevent that, not sure what side effects
+                // that would have...please doublecheck!!
+                if (bytesRead > 0) {
+                    facade.execute(() -> requestReceived(exchange, buf.array(), rpath));
                 }
             }
-        );
+        });
         requestChannel.resumeReads();
     }
 
