@@ -6,7 +6,6 @@ import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.remoting.base.RemoteRefPolling;
-import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.HttpPublisher;
 import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;

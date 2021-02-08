@@ -44,6 +44,8 @@ public class DataShard extends ServiceActor<DataShard> {
     }
 
     protected int getPort() {
+        if ( getCmdline().getDsPortOverride() > 0 )
+            return getCmdline().getDsPortOverride();
         return cmdline.getDataShardPortBase()+getCmdline().getShardNo();
     }
 

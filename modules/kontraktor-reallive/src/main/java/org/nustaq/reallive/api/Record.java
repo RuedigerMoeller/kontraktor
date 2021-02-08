@@ -10,6 +10,8 @@ import org.nustaq.reallive.server.storage.RecordJsonifier;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -31,6 +33,15 @@ public interface Record extends Serializable, EvalContext {
                 aNew.internal_put(key,val);
         }
         return aNew;
+    }
+
+    public static Record fromMap( Map<String,Object> keyVals ) {
+        return from(
+            keyVals.entrySet().stream()
+                .flatMap( en -> Stream.of(en.getKey(),en.getValue()) )
+                .collect(Collectors.toList())
+                .toArray()
+        );
     }
 
     String getKey();
@@ -204,6 +215,10 @@ public interface Record extends Serializable, EvalContext {
             String field = fields[i];
             put( field, record.get(field) );
         }
+    }
+
+    default Record getRecord() {
+        return this;
     }
 
     /**

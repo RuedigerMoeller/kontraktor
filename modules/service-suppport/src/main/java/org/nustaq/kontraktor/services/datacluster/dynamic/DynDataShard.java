@@ -61,7 +61,9 @@ public class DynDataShard extends ServiceActor<DynDataShard>  {
     }
 
     protected int getPort() {
-        return cmdline.getDataShardPortBase()+ getShardNo();
+        if ( getCmdline().getDsPortOverride() > 0 )
+            return getCmdline().getDsPortOverride();
+        return cmdline.getDataShardPortBase()+getCmdline().getShardNo();
     }
 
     private int getShardNo() {

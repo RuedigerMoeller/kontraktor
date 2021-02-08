@@ -36,8 +36,15 @@ public class DataShardArgs extends ServiceArgs {
     @Parameter( required = true, names = { "-sn","-shardNo" })
     int shardNo;
 
+    @Parameter(names = {"-dsPortOverride"}, help = true, description = "override default exposure port (computed by portBase + shard_no)")
+    private int dsPortOverride = 0;
+
     public int getShardNo() {
         return shardNo;
+    }
+
+    public int getDsPortOverride() {
+        return dsPortOverride;
     }
 
     @Override

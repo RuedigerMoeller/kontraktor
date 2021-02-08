@@ -231,7 +231,6 @@ public class ShardedTable implements RealLiveTable {
         getTableForKey(key).receive(RLUtil.get().update(senderId, key, keyVals));
     }
 
-
     @Override
     public IPromise<Record> take(int senderId, String key) {
         return getTableForKey(key).take(senderId,key);

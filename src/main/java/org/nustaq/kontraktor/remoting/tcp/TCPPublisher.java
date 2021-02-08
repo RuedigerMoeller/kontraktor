@@ -27,9 +27,7 @@ import java.util.function.Consumer;
 
 /**
  * Created by ruedi on 18/06/15.
- * @Deprecated use TCPNIOPublisher instead.
  */
-@Deprecated
 public class TCPPublisher extends TCPNIOPublisher {
 
     public TCPPublisher() {
