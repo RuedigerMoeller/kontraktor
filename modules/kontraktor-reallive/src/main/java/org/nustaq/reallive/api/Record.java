@@ -20,25 +20,63 @@ public interface Record extends Serializable, EvalContext {
 
     public static final String _NULL_ = "_NULL_";
 
-    public static Record from( Object ... keyVals ) {
+    /**
+     * create new json'ish record from key value array.
+     *
+     * some value types are transformed / replaced automatically to ensure
+     * simple and easy-to-convert data structures
+     *
+     * - Map is transformed to Record
+     * - a Collection is transformed to Object[]
+     *
+     * @param keyVals
+     * @return
+     */
+    static Record from( Object ... keyVals ) {
         MapRecord aNew = MapRecord.New(null);
         for (int i = 0; i < keyVals.length; i+=2) {
             String key = (String) keyVals[i];
             Object val = keyVals[i+1];
             if ( key.equals("key") ) {
                 aNew.key((String) val);
-            } else
-                if ( val == null )
+            } else {
+                if (val == null)
                     val = _NULL_;
-                aNew.internal_put(key,val);
+                aNew.internal_put(key, val);
+            }
         }
         return aNew;
     }
 
-    public static Record fromMap( Map<String,Object> keyVals ) {
-        return from(
-            keyVals.entrySet().stream()
-                .flatMap( en -> Stream.of(en.getKey(),en.getValue()) )
+    /**
+     * transform map/collections into Record, Object[]
+     *
+     * - Map is transformed to Record
+     * - a Collection is transformed to Object[]
+     *
+     * @param val
+     * @return
+     */
+    static Object transform(Object val) {
+        if ( val instanceof Map ) {
+            return from((Map)val);
+        }
+        if ( val instanceof Collection ) {
+            return ((Collection) val).toArray(new Object[((Collection) val).size()]);
+        }
+        return val;
+    }
+
+    /**
+     * create a new record from given key and values
+     *
+     * @param map
+     * @return
+     */
+    static Record from( Map<String,Object> map ) {
+        return Record.from(
+            map.entrySet().stream()
+                .flatMap(en -> Stream.of(en.getKey(), en.getValue()))
                 .collect(Collectors.toList())
                 .toArray()
         );
@@ -61,7 +99,9 @@ public interface Record extends Serializable, EvalContext {
      * @param key
      */
     Record key(String key);
+
     String[] getFields();
+
     Record put( String field, Object value );
 
     @Override
@@ -123,10 +163,53 @@ public interface Record extends Serializable, EvalContext {
         return ((Number)val).longValue();
     }
 
-    default Record getRec(String field) {
+    /**
+     * gets field and transforms Object[] to arraylist in case
+     *
+     * @param field
+     * @return
+     */
+    default List asList( String field ) {
         Object val = get(field);
-        if ( val == null )
-            return MapRecord.New(null);
+        if ( val instanceof Object[] ) {
+            return new ArrayList(Arrays.asList((Object[])val));
+        }
+        else
+            return null;
+    }
+
+    /**
+     * gets field and transforms Object[] to HashSet in case
+     *
+     * @param field
+     * @return
+     */
+    default Set asSet( String field ) {
+        Object val = get(field);
+        if ( val instanceof Object[] ) {
+            return new HashSet(Arrays.asList((Object[])val));
+        }
+        else
+            return null;
+    }
+
+    default Record putTransforming( String field, Object value ) {
+        put(field,transform(value));
+        return this;
+    }
+
+    /**
+     * creates and sets an empty record in case
+     * @param field
+     * @return
+     */
+    default Record haveRec(String field) {
+        Object val = get(field);
+        if ( val == null ) {
+            MapRecord aNew = MapRecord.New(null);
+            put(field,aNew);
+            return aNew;
+        }
         return (Record) val;
     }
 
