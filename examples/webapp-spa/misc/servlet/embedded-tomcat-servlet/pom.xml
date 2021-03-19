@@ -8,7 +8,7 @@
     <name>embeddedTomcatSample Maven Webapp</name>
     <url>http://maven.apache.org</url>
     <properties>
-        <tomcat.version>8.5.15</tomcat.version>
+        <tomcat.version>10.0.4</tomcat.version>
     </properties>
     <dependencies>
         <dependency>
