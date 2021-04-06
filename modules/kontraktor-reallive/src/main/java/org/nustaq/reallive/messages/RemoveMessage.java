@@ -41,6 +41,11 @@ public class RemoveMessage implements ChangeMessage {
     }
 
     @Override
+    public ChangeMessage omit(String[] fields) {
+        return new RemoveMessage(senderId,deletedRow.omit(fields));
+    }
+
+    @Override
     public String toString() {
         return "RemoveMessage{" +
                 "record=" + deletedRow.asString() +

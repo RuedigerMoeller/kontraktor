@@ -73,6 +73,16 @@ public class UpdateMessage implements ChangeMessage {
             addIfNotExists);
     }
 
+    @Override
+    public ChangeMessage omit(String[] fields) {
+        return new UpdateMessage(
+            senderId, diff.omit(fields),
+            newRecord.omit(fields),
+            forcedUpdateFields,
+            addIfNotExists);
+    }
+
+
     public Diff getDiff() {
         return diff;
     }

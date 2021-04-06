@@ -47,6 +47,11 @@ public class PutMessage implements ChangeMessage {
     }
 
     @Override
+    public ChangeMessage omit(String[] fields) {
+        return new PutMessage(senderId,record.omit(fields));
+    }
+
+    @Override
     public String toString() {
         return "PutMessage{" +
                 ", record=" + record.asString() +

@@ -1,5 +1,6 @@
 package org.nustaq.reallive.api;
 
+import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.WriterConfig;
 import org.nustaq.reallive.query.EvalContext;
 import org.nustaq.reallive.query.LongValue;
@@ -142,6 +143,7 @@ public interface Record extends Serializable, EvalContext {
         return 0;
     }
 
+
     default String mgetString( Object ... path ) {
         Object mget = mget(path);
         if ( mget == null )
@@ -210,7 +212,30 @@ public interface Record extends Serializable, EvalContext {
             put(field,aNew);
             return aNew;
         }
-        return (Record) val;
+        return getRec(field);
+    }
+
+    /**
+     * return sub-record in case present
+     *
+     * @param field
+     * @return
+     */
+    default Record getRec(String field) {
+        Object val = get(field);
+        if ( val instanceof Record ) {
+            return (Record) val;
+        }
+        return null;
+    }
+
+    /**
+     * see asList
+     * @param field
+     * @return
+     */
+    default  <T> List<T> getAsList(String field ) {
+        return asList(field);
     }
 
     default double getDouble(String field) {
@@ -263,6 +288,25 @@ public interface Record extends Serializable, EvalContext {
         return rec;
     }
 
+    default Record omit(String[] fieldsToOmit) {
+        MapRecord rec = MapRecord.New(getKey());
+        HashSet<String> toOmit = new HashSet<>();
+        for (int i = 0; i < fieldsToOmit.length; i++) {
+            toOmit.add(fieldsToOmit[i]);
+        }
+        String[] fields = rec.getFields();
+        for (int i = 0; i < fields.length; i++) {
+            String field = fields[i];
+            if ( !toOmit.contains(field) ) {
+                Object val = get(field);
+                if ( val != null ) {
+                    rec.put(field,val);
+                }
+            }
+        }
+        return rec;
+    }
+
     default Record copied() {
         throw new RuntimeException("copy not implemented");
     }
@@ -278,6 +322,9 @@ public interface Record extends Serializable, EvalContext {
         return res;
     }
 
+    /**
+     * @return this record as a map
+     */
     default Map<String,Object> asMap() {
         HashMap<String,Object> res = new HashMap<>();
         final String[] fields = getFields();
@@ -434,6 +481,10 @@ public interface Record extends Serializable, EvalContext {
 
     default String toPrettyString() {
         return RecordJsonifier.get().fromRecord(this ).toString(WriterConfig.PRETTY_PRINT);
+    }
+
+    default JsonObject toJson() {
+        return RecordJsonifier.get().fromRecord(this);
     }
 
 }

@@ -55,4 +55,18 @@ public class DataShardArgs extends ServiceArgs {
     }
 
 
+    public DataShardArgs factory(Supplier<DataShardArgs> factory) {
+        this.factory = factory;
+        return this;
+    }
+
+    public DataShardArgs shardNo(int shardNo) {
+        this.shardNo = shardNo;
+        return this;
+    }
+
+    public DataShardArgs dsPortOverride(int dsPortOverride) {
+        this.dsPortOverride = dsPortOverride;
+        return this;
+    }
 }

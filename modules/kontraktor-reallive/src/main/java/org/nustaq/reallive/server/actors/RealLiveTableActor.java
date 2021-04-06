@@ -36,7 +36,7 @@ import org.nustaq.reallive.api.Record;
 public class RealLiveTableActor extends Actor<RealLiveTableActor> implements RealLiveTable {
 
     public static final long REPORT_INTERVAL = TimeUnit.MINUTES.toMillis(1);
-    public static boolean DUMP_QUERY_TIME = true;
+    public static boolean DUMP_QUERY_TIME = false;
 
     public transient String __clientSideTag; // usually data shard name
 

@@ -124,7 +124,7 @@ public class DynDataShard extends ServiceActor<DynDataShard>  {
     @Override
     protected ServiceDescription createServiceDescription() {
         return new ServiceDescription(DATA_SHARD_NAME + getShardNo())
-            .connectable( new TCPConnectable(DynDataShard.class, cmdline.getHost(), cmdline.getDataShardPortBase()+ getShardNo()));
+            .connectable( new TCPConnectable(DynDataShard.class, cmdline.getHost(), getPort()));
     }
 
     protected DataShardArgs getCmdline() {

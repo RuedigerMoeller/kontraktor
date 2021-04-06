@@ -57,6 +57,11 @@ public class AddMessage implements ChangeMessage {
     }
 
     @Override
+    public ChangeMessage omit(String fields[]) {
+        return new AddMessage(senderId, updateIfExisting,record.omit(fields));
+    };
+
+    @Override
     public String toString() {
         return "AddMessage{" +
                 "updateIfExisting=" + updateIfExisting +
