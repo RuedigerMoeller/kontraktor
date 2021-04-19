@@ -432,7 +432,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
         atomic( senderId, jsonrec.getKey(), rec -> {
             if ( rec == null ) {
                 jsonrec.stripOps();
-                return new PutMessage(senderId,jsonrec);
+                return new AddMessage(senderId,jsonrec);
             } else {
                 rec.deepMerge(jsonrec);
             }
