@@ -28,16 +28,19 @@ public class FilterProcessor implements ChangeReceiver {
         this.table = table;
     }
 
-    //FIXME: benchmark if cloning is faster
-    public synchronized void startListening( Subscriber subs ) {
-        filterList.add(subs);
+    public void startListening( Subscriber subs ) {
+        ArrayList newFilterList = new ArrayList<>(filterList);
+        newFilterList.add(subs);
+        filterList = newFilterList;
     }
 
-    public synchronized void unsubscribe( Subscriber subs ) {
-        filterList.remove(subs);
+    public void unsubscribe( Subscriber subs ) {
+        ArrayList newFilterList = new ArrayList<>(filterList);
+        newFilterList.remove(subs);
+        filterList = newFilterList;
     }
 
-    public synchronized void receive(ChangeMessage change) {
+    public void receive(ChangeMessage change) {
         switch (change.getType()) {
             case ChangeMessage.QUERYDONE:
                 break;
@@ -74,7 +77,9 @@ public class FilterProcessor implements ChangeReceiver {
             String changedField = changedFields[i];
             oldRec.put(changedField, oldValues[i]);
         }
-        for ( Subscriber subscriber : filterList ) {
+        for (int i = 0; i < filterList.size(); i++) {
+            Subscriber subscriber = filterList.get(i);
+
             boolean matchesOld = subscriber.getFilter().test(oldRec);
             boolean matchesNew = subscriber.getFilter().test(newRecord);
 
