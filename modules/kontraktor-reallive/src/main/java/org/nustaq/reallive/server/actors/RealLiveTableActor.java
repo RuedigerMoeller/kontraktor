@@ -55,6 +55,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     public IPromise init(Function<TableDescription,RecordStorage> storeFactory, TableDescription desc) {
         this.description = desc;
         Thread.currentThread().setName("Table "+(desc==null?"NULL":desc.getName())+" main");
+        Log.Info(this, "loading table "+desc.getName()+" "+desc.getStorageFile());
         RecordStorage store = storeFactory.apply(desc);
         indexedStorage.wrapped(store);
         createIndizes(store);

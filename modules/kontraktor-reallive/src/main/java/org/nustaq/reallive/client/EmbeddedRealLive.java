@@ -63,7 +63,7 @@ public class EmbeddedRealLive {
             String bp = dataDir == null ? desc.getFilePath() : dataDir;
             desc.filePath(bp);
             new File(bp).mkdirs();
-            String file = bp + "/" + desc.getName() + "_" + desc.getFileModifier() + ".bin";
+            String file = desc.getStorageFile();
             switch (desc.getStorageType()) {
                 case TableDescription.CACHED:
                     Log.Info(this,"memory mapping file "+file);

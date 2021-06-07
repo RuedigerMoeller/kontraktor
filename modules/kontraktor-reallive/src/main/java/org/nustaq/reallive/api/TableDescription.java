@@ -20,6 +20,7 @@ public class TableDescription implements Serializable, Cloneable {
     int keyLen = 48;
     String storageType = CACHED;
     String hashIndexed[] = {};
+    transient String alternativePath;
 
     public TableDescription() {}
 
@@ -119,5 +120,26 @@ public class TableDescription implements Serializable, Cloneable {
 
     public String getFileModifier() {
         return ""+shardNo;
+    }
+
+    public String getStorageFile() {
+        if ( alternativePath != null )
+            return getAlternativePath();
+        return getFilePath() + "/" + getName() + "_" + getFileModifier() + ".bin";
+    }
+
+    public String getAlternativePath() {
+        return alternativePath;
+    }
+
+    /**
+     * overrides computed path in case
+     *
+     * @param alternativePath
+     * @return
+     */
+    public TableDescription alternativePath(String alternativePath) {
+        this.alternativePath = alternativePath;
+        return this;
     }
 }

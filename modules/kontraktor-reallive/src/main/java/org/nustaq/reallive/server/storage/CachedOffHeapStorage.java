@@ -1,6 +1,7 @@
 package org.nustaq.reallive.server.storage;
 
 import org.nustaq.kontraktor.Spore;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.server.StorageDriver;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.api.RecordStorage;
@@ -23,17 +24,27 @@ public class CachedOffHeapStorage implements RecordStorage {
         this.onHeap = onHeap;
         List<Record> reput = new ArrayList();
         persisted.forEachWithSpore(new Spore<Record, Object>() {
+            boolean hadErr = false;
             @Override
             public void remote(Record input) {
-                Record unwrap = StorageDriver.unwrap(input);
-                if ( unwrap != input ) {
-                    reput.add(unwrap);
+                try {
+                    Record unwrap = StorageDriver.unwrap(input);
+                    if (unwrap != input) {
+                        reput.add(unwrap);
+                    }
+                    if (unwrap.getClass() != MapRecord.recordClass && MapRecord.conversion != null) {
+                        unwrap = MapRecord.conversion.apply((MapRecord) unwrap);
+                        reput.add(unwrap);
+                    }
+                    onHeap._put(input.getKey(), unwrap);
+                } catch (Exception e) {
+                    if ( hadErr )
+                        Log.Error(this, "no trace (repetition): "+e);
+                    else {
+                        hadErr = true;
+                        Log.Error(this,e);
+                    }
                 }
-                if ( unwrap.getClass() != MapRecord.recordClass && MapRecord.conversion != null ) {
-                    unwrap = MapRecord.conversion.apply((MapRecord) unwrap);
-                    reput.add(unwrap);
-                }
-                onHeap._put(input.getKey(), unwrap);
             }
         }.onFinish( () -> {
             for (int i = 0; i < reput.size(); i++) {

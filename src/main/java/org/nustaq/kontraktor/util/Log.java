@@ -103,7 +103,7 @@ public class Log extends Actor<Log> {
     }
 
     public LogWrapper defaultLogger = new LogWrapper() {
-        DateFormat formatter = new SimpleDateFormat("HH:mm:ss:SSS");
+        DateFormat formatter = new SimpleDateFormat("MM-dd HH:mm:ss:SSS");
         boolean initialized = false;
         @Override
         public void msg(Thread t, int sev, Object source, Throwable ex, String msg) {

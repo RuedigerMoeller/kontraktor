@@ -13,6 +13,9 @@ import org.nustaq.serialization.util.FSTUtil;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.Spliterators;
@@ -75,7 +78,28 @@ public class OffHeapRecordStorage implements RecordStorage {
     }
 
     protected FSTSerializedOffheapMap<String,Record> createPersistentMap(String tableFile, int sizeMB, int estimatedNumRecords, int keyLen) throws Exception {
-        return new FSTAsciiStringOffheapMap(tableFile, keyLen, FSTBinaryOffheapMap.MB*sizeMB,estimatedNumRecords, coder);
+        boolean fileExists = new File(tableFile).exists();
+        try {
+            return new FSTAsciiStringOffheapMap(tableFile, keyLen, FSTBinaryOffheapMap.MB * sizeMB, estimatedNumRecords, coder);
+        } catch (Exception e) {
+            Log.Error(this,e);
+            Log.Warn(this, "exception when trying to mount table file, will backup and recover");
+
+            if ( fileExists ) {
+                try {
+                    String corruptCopy = tableFile + "_corrupted";
+                    Path copied = Paths.get(corruptCopy);
+                    Path originalPath = Paths.get(tableFile);
+                    Files.copy(originalPath, copied, StandardCopyOption.REPLACE_EXISTING);
+                    Files.delete(originalPath);
+                    return createPersistentMap(tableFile, sizeMB, estimatedNumRecords, keyLen);
+                } catch (Exception ee) {
+                    Log.Error(this, "failed to copy/delete corrupt file");
+                    Log.Error(this, ee);
+                }
+            }
+        }
+        return null;
     }
 
     public StorageStats getStats() {
@@ -163,12 +187,12 @@ public class OffHeapRecordStorage implements RecordStorage {
     @Override
     public <T> void forEachWithSpore(Spore<Record, T> spore) {
         for (Iterator iterator = store.values(); iterator.hasNext(); ) {
-            Record record = (Record) iterator.next();
             try {
+                Record record = (Record) iterator.next();
                 spore.remote(record);
             } catch ( Throwable ex ) {
-                Log.Warn(this, ex, "exception in spore " + spore);
-                throw ex;
+                Log.Error(this, ex, "exception in spore " + ex);
+//                throw ex; risky as prevents loading of tables in case
             }
 
             if ( spore.isFinished() )
