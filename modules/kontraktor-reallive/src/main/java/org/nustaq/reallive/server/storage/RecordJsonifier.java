@@ -7,6 +7,11 @@ import com.eclipsesource.json.JsonValue;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.records.MapRecord;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 /**
  * converts json to records and vice versa
  *
@@ -59,14 +64,33 @@ public class RecordJsonifier {
                 jarr.add(fromJavaValue(arr[j]));
             }
             return jarr;
+        } else if ( value instanceof Collection ) {
+            JsonArray jarr = new JsonArray();
+            ((Collection<?>) value).forEach( v -> jarr.add(fromJavaValue(v)) );
+            return jarr;
         } else if ( value instanceof Record ) {
             return fromRecord((Record) value);
         } else if ( value == null ) {
             return Json.NULL;
+        } else if ( value instanceof JsonValue ) {
+            return (JsonValue) value;
+        } else if ( value instanceof Map ) {
+            return from((Map)value).toJson();
         } else {
+            if ( value != null )
+                System.out.println("unmapped data "+value.getClass().getName() );
             System.out.println("unmapped data "+value);
         }
         return Json.value(""+value);
+    }
+
+    public Record from( Map<String,Object> map ) {
+        return Record.from(
+            map.entrySet().stream()
+                .flatMap(en -> Stream.of(en.getKey(), fromJavaValue(en.getValue())))
+                .collect(Collectors.toList())
+                .toArray()
+        );
     }
 
     public Record toRecord(JsonObject members) {
@@ -138,6 +162,14 @@ public class RecordJsonifier {
             i++;
         }
         return res;
+    }
+
+    public static void main(String[] args) {
+        Record r = Record.from("x", Map.of("1", "val1", "2", Map.of("3", "val3")));
+        System.out.println(r.toPrettyString());
+        Record rr = Record.from(r.toJson());
+        System.out.println(r);
+        System.out.println(rr);
     }
 
 }

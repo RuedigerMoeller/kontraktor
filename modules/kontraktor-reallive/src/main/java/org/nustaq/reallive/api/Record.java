@@ -68,6 +68,10 @@ public interface Record extends Serializable, EvalContext {
         return val;
     }
 
+    static Record from( JsonObject jsonObject ) {
+        return RecordJsonifier.get().toRecord(jsonObject);
+    }
+
     /**
      * create a new record from given key and values
      *
@@ -75,12 +79,7 @@ public interface Record extends Serializable, EvalContext {
      * @return
      */
     static Record from( Map<String,Object> map ) {
-        return Record.from(
-            map.entrySet().stream()
-                .flatMap(en -> Stream.of(en.getKey(), en.getValue()))
-                .collect(Collectors.toList())
-                .toArray()
-        );
+        return RecordJsonifier.get().from(map);
     }
 
     String getKey();
@@ -330,7 +329,7 @@ public interface Record extends Serializable, EvalContext {
         final String[] fields = getFields();
         for (int i = 0; i < fields.length; i++) {
             String field = fields[i];
-            res.put(field,getValue(field));
+            res.put(field,get(field));
         }
         return res;
     }
