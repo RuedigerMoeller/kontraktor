@@ -20,6 +20,7 @@ import org.nustaq.kontraktor.impl.BackOffStrategy;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
+import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 
 import java.lang.reflect.InvocationHandler;
 import java.util.Queue;
@@ -43,7 +44,21 @@ public interface Scheduler extends Monitorable{
 
     Object enqueueCall(ConnectionRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB);
 
-    Object enqueueCallFromRemote(ConnectionRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB, Object securityContext, BiFunction<Actor, String, Boolean> callInterceptor);
+    /**
+     * Warning: side effects on RCE transient to pass Method object from lookup up the calling hierarchy
+     *
+     * @param reg
+     * @param sendingActor
+     * @param receiver
+     * @param methodName
+     * @param args
+     * @param isCB
+     * @param securityContext
+     * @param callInterceptor
+     * @param remoteCallEntry
+     * @return
+     */
+    Object enqueueCallFromRemote(ConnectionRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB, Object securityContext, BiFunction<Actor, String, Boolean> callInterceptor, RemoteCallEntry remoteCallEntry);
 
     void threadStopped(DispatcherThread th);
 
@@ -84,6 +99,13 @@ public interface Scheduler extends Monitorable{
      * is not precise as not thread safe'd.
      */
     int getNumActors();
+
+    /**
+     * maps a JsonMapped result of a promise in case
+     * @param result
+     * @return
+     */
+    Object mapResult( Object result, RemoteCallEntry rce );
 
 
 }

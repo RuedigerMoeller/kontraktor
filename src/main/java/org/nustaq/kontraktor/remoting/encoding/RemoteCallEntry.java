@@ -23,6 +23,7 @@ import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.coders.JSONAsString;
 
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 
 /**
@@ -33,13 +34,13 @@ public class RemoteCallEntry implements Serializable {
     public static final int MAILBOX = 0;
     public static final int CBQ = 1;
 
+    transient Method methodHandle;
+
     long receiverKey; // id of published actor in host, contains cbId in case of callbacks
     long futureKey; // id of future if any
     String method;
-    @ArgTypes
-    Object args[];
-    @JSONAsString
-    byte[] serializedArgs;
+    @ArgTypes Object args[];
+    @JSONAsString byte[] serializedArgs;
     int queue;
     boolean isContinue;
     Callback cb;
@@ -52,6 +53,15 @@ public class RemoteCallEntry implements Serializable {
         this.method = method;
         this.args = args;
         this.serializedArgs = serializedArgs;
+    }
+
+    public Method getMethodHandle() {
+        return methodHandle;
+    }
+
+    public RemoteCallEntry setMethodHandle(Method methodHandle) {
+        this.methodHandle = methodHandle;
+        return this;
     }
 
     public boolean isContinue() {

@@ -84,10 +84,19 @@ public class RecordJsonifier {
         return Json.value(""+value);
     }
 
+    public Object toRecordValue(Object value) {
+        if ( value instanceof Collection ) {
+            return ((Collection<?>) value).toArray(new Object[((Collection<?>) value).size()]);
+        } else if ( value instanceof Map ) {
+            return from((Map)value);
+        }
+        return value;
+    }
+
     public Record from( Map<String,Object> map ) {
         return Record.from(
             map.entrySet().stream()
-                .flatMap(en -> Stream.of(en.getKey(), fromJavaValue(en.getValue())))
+                .flatMap(en -> Stream.of(en.getKey(), toRecordValue(en.getValue())))
                 .collect(Collectors.toList())
                 .toArray()
         );

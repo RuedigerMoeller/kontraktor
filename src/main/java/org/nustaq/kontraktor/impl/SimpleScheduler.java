@@ -16,13 +16,22 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.impl;
 
+import com.eclipsesource.json.Json;
+import com.eclipsesource.json.JsonValue;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
+import org.nustaq.kontraktor.remoting.base.JsonMappable;
+import org.nustaq.kontraktor.remoting.base.JsonMapped;
+import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.util.Log;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -40,6 +49,8 @@ public class SimpleScheduler implements Scheduler {
      */
     public static long BLOCKED_MS_TIL_WARN = 1000;
     public static int DEFQSIZE = 32768; // will be alligned to 2^x
+
+    protected ObjectMapper mapper;
 
     protected BackOffStrategy backOffStrategy = new BackOffStrategy();
     protected DispatcherThread myThread;
@@ -62,6 +73,27 @@ public class SimpleScheduler implements Scheduler {
         this.qsize = qsize;
         myThread = new DispatcherThread(this,true);
         myThread.start();
+    }
+
+    /**
+     * maps a JsonMapped result of a promise
+     * @param result
+     * @return
+     */
+    public Object mapResult( Object result, RemoteCallEntry rce ) {
+        if ( result instanceof JsonValue)
+            return result.toString();
+        if ( result instanceof JsonMappable == false && ! rce.getMethodHandle().isAnnotationPresent(JsonMapped.class) )
+            return result;
+        if ( mapper == null ) {
+            mapper = ConnectionRegistry.CreateDefaultObjectMapper.get();
+        }
+        try {
+            return mapper.writeValueAsString(result);
+        } catch (JsonProcessingException e) {
+            Log.Warn(this,e);
+        }
+        return result;
     }
 
     /**
@@ -159,28 +191,48 @@ public class SimpleScheduler implements Scheduler {
 
     @Override
     public Object enqueueCall(Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
-        return enqueueCallFromRemote((ConnectionRegistry) receiver.__clientConnection,sendingActor,receiver,methodName,args,isCB, null, null);
+        return enqueueCallFromRemote((ConnectionRegistry) receiver.__clientConnection,sendingActor,receiver,methodName,args,isCB, null, null, null);
     }
 
     @Override
     public Object enqueueCall(ConnectionRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB) {
-        return enqueueCallFromRemote( reg,sendingActor,receiver,methodName,args,isCB, null, null);
+        return enqueueCallFromRemote( reg,sendingActor,receiver,methodName,args,isCB, null, null, null);
     }
 
     @Override
-    public Object enqueueCallFromRemote(ConnectionRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB, Object securityContext, BiFunction<Actor, String, Boolean> callInterceptor) {
+    public Object enqueueCallFromRemote(ConnectionRegistry reg, Actor sendingActor, Actor receiver, String methodName, Object[] args, boolean isCB, Object securityContext, BiFunction<Actor, String, Boolean> callInterceptor, RemoteCallEntry remoteCallEntry) {
         // System.out.println("dispatch "+methodName+" "+Thread.currentThread());
         // here sender + receiver are known in a ST context
         Actor actor = receiver.getActor();
         Method method = actor.__getCachedMethod(methodName, actor, callInterceptor);
+        Parameter[] parameterTypes = null;
+        if ( reg != null && reg.isJsonSerialized() )
+            parameterTypes = method.getParameters();
 
         if ( method == null )
             throw new RuntimeException("unknown method "+methodName+" on "+actor);
+        if ( remoteCallEntry != null )
+            remoteCallEntry.setMethodHandle(method);
         // scan for callbacks in arguments ..
         for (int i = 0; i < args.length; i++) {
             Object arg = args[i];
             if ( arg instanceof Callback) {
                 args[i] = new CallbackWrapper<>(sendingActor,(Callback<Object>) arg);
+            }
+            // process jsonmapped args (jackson object mapper / eclipse api)
+            if ( parameterTypes != null && arg instanceof String && (reg==null || reg.isJsonSerialized()) ) {
+                if ( parameterTypes[i].isAnnotationPresent(JsonMapped.class) || JsonMappable.class.isAssignableFrom(parameterTypes[i].getType()))
+                {
+                    if ( mapper == null )
+                        mapper = ConnectionRegistry.CreateDefaultObjectMapper.get();
+                    try {
+                        args[i] = mapper.readerFor(parameterTypes[i].getType()).readValue((String)arg);
+                    } catch (IOException e) {
+                        Log.Warn(this,e);
+                    }
+                } else if ( JsonValue.class.isAssignableFrom(parameterTypes[i].getType()) ) {
+                    args[i] = Json.parse((String)arg);
+                }
             }
         }
 

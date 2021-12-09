@@ -2,6 +2,7 @@ package org.nustaq.reallive.api;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.WriterConfig;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.query.EvalContext;
 import org.nustaq.reallive.query.LongValue;
 import org.nustaq.reallive.query.StringValue;
@@ -484,6 +485,34 @@ public interface Record extends Serializable, EvalContext {
 
     default JsonObject toJson() {
         return RecordJsonifier.get().fromRecord(this);
+    }
+
+    default boolean validateForJsonability() {
+        String[] fields = getFields();
+        Class allowed[] = { Number.class, Boolean.class, Object[].class, String.class };
+        for (int i = 0; i < fields.length; i++) {
+            String field = fields[i];
+            Object val = get(field);
+            if ( val != null ) {
+                boolean valid = false;
+                if ( val instanceof Record ) {
+                    valid = ((Record)val).validateForJsonability();
+                } else {
+                    for (int j = 0; j < allowed.length; j++) {
+                        Class aClass = allowed[j];
+                        if (aClass.isAssignableFrom(val.getClass())) {
+                            valid = true;
+                            break;
+                        }
+                    }
+                    if ( ! valid )
+                        System.err.println("invalid attribute value:"+val.getClass().getName()+" in field "+field);
+                }
+                if ( ! valid )
+                    return false;
+            }
+        }
+        return true;
     }
 
 }

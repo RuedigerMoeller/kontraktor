@@ -48,7 +48,7 @@ public interface RealLiveTable extends SafeRealLiveTable, ChangeStream, RealLive
             if ( r != null ) {
                 res.add(r);
             } else {
-                prom.resolve(res);
+                prom.complete(res,e);
             }
         });
         return prom;

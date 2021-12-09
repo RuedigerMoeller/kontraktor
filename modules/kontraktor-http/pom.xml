@@ -112,7 +112,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor</artifactId>
-            <version>5.1.1</version>
+            <version>5.1.3</version>
         </dependency>
 
         <dependency>
@@ -161,12 +161,6 @@
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>3.1.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.12</version>
         </dependency>
 
         <dependency>
@@ -224,7 +218,6 @@
             <artifactId>jjwt</artifactId>
             <version>0.7.0</version>
         </dependency>
-
     </dependencies>
 
 </project>

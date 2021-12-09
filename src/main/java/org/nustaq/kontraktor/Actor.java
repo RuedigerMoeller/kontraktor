@@ -638,7 +638,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
         try {
             if ( delayCode == RateLimitEntry.REJECT )
                 throw new RateLimitException();
-            Object future = getScheduler().enqueueCallFromRemote(registry, null, self(), rce.getMethod(), rce.getArgs(), false, null, callInterceptor);
+            Object future = getScheduler().enqueueCallFromRemote(registry, null, self(), rce.getMethod(), rce.getArgs(), false, null, callInterceptor, rce);
             if ( future instanceof IPromise) {
                 Promise p = null;
                 if ( createdFutures != null ) {
@@ -650,7 +650,11 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
                 ((IPromise) future).then( (r,e) -> {
                     Runnable runnable = () -> {
                         try {
-                            registry.receiveCBResult(objSocket, finalRce.getFutureKey(), r, e);
+                            Object finalR = r;
+                            if ( registry.isJsonSerialized() && finalRce.getMethodHandle() != null ) {
+                                finalR = getScheduler().mapResult(r,finalRce);
+                            }
+                            registry.receiveCBResult(objSocket, finalRce.getFutureKey(), finalR, e);
                             if (finalP != null)
                                 finalP.resolve();
                         } catch (Exception ex) {

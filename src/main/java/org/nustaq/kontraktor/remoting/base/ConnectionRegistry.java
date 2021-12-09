@@ -16,6 +16,11 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.remoting.base;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.annotations.RateLimited;
@@ -38,6 +43,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Created by moelrue on 5/7/15.
@@ -60,6 +66,23 @@ public abstract class ConnectionRegistry {
     }
 
     public static BiFunction remoteCallMapper; // if set, each remote call and callback is mapped through
+
+    public static Supplier<ObjectMapper> CreateDefaultObjectMapper = () -> {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE, false);
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
+        mapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
+        mapper.disable(DeserializationFeature.ADJUST_DATES_TO_CONTEXT_TIME_ZONE);
+//        mapper.registerModule(new JavaTimeModule());
+        return mapper;
+    };
+
+    public static boolean IsJsonConfiguration(FSTConfiguration conf ) {
+        return conf.getCoderSpecific() instanceof JsonFactory;
+    }
 
     public AtomicReference<Object> userData = new AtomicReference<>();
 
@@ -378,14 +401,14 @@ public abstract class ConnectionRegistry {
 
     // dispatch incoming remotecalls, return true if a future has been created
     protected boolean processRemoteCallEntry(ObjectSocket objSocket, RemoteCallEntry response, List<IPromise> createdFutures, Object authContext) throws Exception {
-        RemoteCallEntry read = response;
-        long receiverKey = read.getReceiverKey();
-        if (read.getQueue() == read.MAILBOX) {
+        RemoteCallEntry remoteCall = response;
+        long receiverKey = remoteCall.getReceiverKey();
+        if (remoteCall.getQueue() == remoteCall.MAILBOX) {
             if ( remoteCallMapper != null ) {
-                read = (RemoteCallEntry) remoteCallMapper.apply(this,read);
+                remoteCall = (RemoteCallEntry) remoteCallMapper.apply(this,remoteCall);
             }
             if ( facadeActor instanceof AbstractKrouter) {
-                facadeActor.__dispatchRemoteCall(objSocket,read,this,createdFutures, authContext, remoteCallInterceptor, 0);
+                facadeActor.__dispatchRemoteCall(objSocket,remoteCall,this,createdFutures, authContext, remoteCallInterceptor, 0);
             } else {
                 Actor targetActor = getPublishedActor(receiverKey);
                 if (receiverKey < 0 && targetActor == null) // forward
@@ -410,57 +433,57 @@ public abstract class ConnectionRegistry {
                 if ( receiverKey == 0 ) // special: invoke client callback set on client's remoteproxy
                 {
                     if ( getFacadeProxy() != null && getFacadeProxy().zzServerMsgCallback != null ) {
-                        read.unpackArgs(conf);
-                        getFacadeProxy().zzServerMsgCallback.complete(read,null);
+                        remoteCall.unpackArgs(conf);
+                        getFacadeProxy().zzServerMsgCallback.complete(remoteCall,null);
                     }
                     return false;
                 }
                 if (targetActor == null) {
-                    Log.Lg.error(this, null, "registry:" + System.identityHashCode(this) + " no actor found for key " + read);
+                    Log.Lg.error(this, null, "registry:" + System.identityHashCode(this) + " no actor found for key " + remoteCall);
                     throw new UnknownActorException("unknown actor id " + receiverKey);
                 }
                 long delay = 0;
                 if ( rateLimits != null ) {
-                    RateLimitEntry rateLimitEntry = rateLimits.get(read.getMethod());
+                    RateLimitEntry rateLimitEntry = rateLimits.get(remoteCall.getMethod());
                     if ( rateLimitEntry != null ) {
                         long now = System.currentTimeMillis();
-                        delay = rateLimitEntry.registerCall(now, read.getMethod());
+                        delay = rateLimitEntry.registerCall(now, remoteCall.getMethod());
                     }
                 }
-                targetActor.__dispatchRemoteCall(objSocket, read, this, createdFutures, authContext, remoteCallInterceptor, delay);
+                targetActor.__dispatchRemoteCall(objSocket, remoteCall, this, createdFutures, authContext, remoteCallInterceptor, delay);
             }
-        } else if (read.getQueue() == read.CBQ) {
+        } else if (remoteCall.getQueue() == remoteCall.CBQ) {
             if ( remoteCallMapper != null ) {
-                read = (RemoteCallEntry) remoteCallMapper.apply(this,read);
+                remoteCall = (RemoteCallEntry) remoteCallMapper.apply(this,remoteCall);
             }
             Callback publishedCallback = getPublishedCallback(receiverKey);
             if ( publishedCallback == null ) {
                 publishedCallback = getPublishedCallback(-receiverKey); // check forward
                 if ( publishedCallback != null ) {
-                    publishedCallback.complete(read,null); // in case of forwards => promote full remote call object
+                    publishedCallback.complete(remoteCall,null); // in case of forwards => promote full remote call object
                     return false;
                 }
-                if ( read.getArgs() != null && read.getArgs().length == 2 && read.getArgs()[1] instanceof InternalActorStoppedException ) {
+                if ( remoteCall.getArgs() != null && remoteCall.getArgs().length == 2 && remoteCall.getArgs()[1] instanceof InternalActorStoppedException ) {
                     // FIXME: this might happen frequently as messages are in flight.
                     // FIXME: need a better way to handle this. Frequently it is not an error.
                     Log.Warn(this,"call to stopped remote actor");
                 } else {
                     try {
-                        read.unpackArgs(getConf());
+                        remoteCall.unpackArgs(getConf());
                     } catch (Exception e) {
                         // quiet
                     }
-                    Log.Warn(this, "Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent. " + read);
+                    Log.Warn(this, "Publisher already deregistered, set error to 'Actor.CONT' in order to signal more messages will be sent. " + remoteCall);
                 }
             } else {
-                boolean isContinue = read.isContinue();
+                boolean isContinue = remoteCall.isContinue();
                 if ( publishedCallback instanceof CallbackWrapper && ((CallbackWrapper) publishedCallback).isRouted() ) {
-                    publishedCallback.complete(read,null);
+                    publishedCallback.complete(remoteCall,null);
                 } else {
-                    read.unpackArgs(conf);
+                    remoteCall.unpackArgs(conf);
                     if (isContinue)
-                        read.getArgs()[1] = Callback.CONT; // enable ==
-                    publishedCallback.complete(read.getArgs()[0], read.getArgs()[1]); // is a wrapper enqueuing in caller
+                        remoteCall.getArgs()[1] = Callback.CONT; // enable ==
+                    publishedCallback.complete(remoteCall.getArgs()[0], remoteCall.getArgs()[1]); // is a wrapper enqueuing in caller
                 }
                 if (!isContinue)
                     removePublishedObject(receiverKey);
@@ -530,7 +553,7 @@ public abstract class ConnectionRegistry {
     }
 
     public void receiveCBResult(ObjectSocket chan, long id, Object result, Object error) {
-        RemoteCallEntry rce = new RemoteCallEntry(0, id, null, null, conf.asByteArray(new Object[] {result,error}));
+        RemoteCallEntry rce = new RemoteCallEntry(0, id, null, null, conf.asByteArray(new Object[]{result, error}) );
         rce.setQueue(rce.CBQ);
         rce.setContinue( error == Actors.CONT );
         try {
@@ -736,5 +759,12 @@ public abstract class ConnectionRegistry {
             return objectSocket.getConnectionIdentifier();
         }
         return null;
+    }
+
+    Boolean jsonFlagCache;
+    public boolean isJsonSerialized() {
+        if ( jsonFlagCache == null )
+            jsonFlagCache = IsJsonConfiguration(conf);
+        return jsonFlagCache;
     }
 }
