@@ -397,7 +397,10 @@ public interface Record extends Serializable, EvalContext {
             }
             Object selfValue = get(field);
             if ( selfValue == null ) {
-                put(field, foreignValue);
+                if ( foreignValue instanceof Record ) {
+                    put(field, Record.from().deepMerge((Record) foreignValue));
+                } else
+                    put(field, foreignValue);
             } else if ( selfValue instanceof Object[] ) {
                 handleArrayOp(field, op, foreignValue, (Object[]) selfValue);
             } else if ( selfValue instanceof Record ) {

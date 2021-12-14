@@ -173,12 +173,71 @@ public class RecordJsonifier {
         return res;
     }
 
+    public static JsonObject jsonFrom(Object... keyVals) {
+        JsonObject obj = new JsonObject();
+        for (int i = 0; i < keyVals.length; i += 2) {
+            String key = (String) keyVals[i];
+            Object val = keyVals[i + 1];
+            if (val instanceof String) obj.set(key, (String) val);
+            else if (val == null) obj.set(key, Json.NULL);
+            else if (val instanceof Integer) obj.set(key, (int) val);
+            else if (val instanceof Double) obj.set(key, (double) val);
+            else if (val instanceof Long) obj.set(key, (long) val);
+            else if (val instanceof Float) obj.set(key, (float) val);
+            else if (val instanceof Boolean) obj.set(key, (boolean) val);
+            else if (val instanceof JsonObject) obj.set(key, (JsonObject) val);
+            else if (val instanceof Object[]) {
+                Object[] arr = (Object[]) val;
+                JsonArray jarr = jsonArrayFrom(arr);
+                obj.set(key, jarr);
+            } else throw new RuntimeException("unexpected type " + val);
+        }
+        return obj;
+    }
+
+    public static JsonArray jsonArrayFrom(Object ... arr) {
+        JsonArray jarr = new JsonArray();
+        for (Object o : arr) {
+            if (o instanceof String) jarr.add((String) o);
+            else if (o instanceof Integer) jarr.add((int) o);
+            else if (o instanceof Double) jarr.add((double) o);
+            else if (o instanceof Long) jarr.add((long) o);
+            else if (o instanceof Float) jarr.add((float) o);
+            else if (o instanceof Boolean) jarr.add((boolean) o);
+            else if (o instanceof Object[]) jarr.add(jsonArrayFrom((Object[]) o));
+            else if (o instanceof JsonObject) jarr.add((JsonObject) o);
+            else throw new RuntimeException("unexpected type " + o);
+        }
+        return jarr;
+    }
+
     public static void main(String[] args) {
-        Record r = Record.from("x", Map.of("1", "val1", "2", Map.of("3", "val3")));
-        System.out.println(r.toPrettyString());
-        Record rr = Record.from(r.toJson());
-        System.out.println(r);
-        System.out.println(rr);
+        JsonObject json = jsonFrom( "test", 13, "otherTest", "Hello");
+        String key = "9991";
+        Record targetRec = Record.from("appointmentProviderClass", Record.from());
+        System.out.println(targetRec.toPrettyString());
+        System.out.println();
+        Record rec = Record.from(
+            "key", key,
+            "availabilityRules" + "+",
+            Record.from("appointmentProviderClass" + "+", //not working
+                Record.from("rec",
+                    Record.from(json))));
+        System.out.println("merging:");
+        System.out.println(rec.toPrettyString());
+        System.out.println();
+        targetRec.deepMerge(
+            rec
+        );
+        System.out.println("result:");
+        System.out.println(targetRec.toPrettyString());
+        System.out.println();
+
+//        Record r = Record.from("x", Map.of("1", "val1", "2", Map.of("3", "val3")));
+//        System.out.println(r.toPrettyString());
+//        Record rr = Record.from(r.toJson());
+//        System.out.println(r);
+//        System.out.println(rr);
     }
 
 }
