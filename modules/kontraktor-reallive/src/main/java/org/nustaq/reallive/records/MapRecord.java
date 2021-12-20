@@ -150,7 +150,7 @@ public class MapRecord implements Record {
             if ( CHECK_TYPES.apply(value) ) {
                 map.put(key,value);
             } else {
-                throw new RuntimeException("tried to store non-allowed value types");
+                throw new RuntimeException("tried to store non-allowed value types "+ ((value!=null) ? value.getClass().getName() : "null") );
             }
         } else
             map.put(key,value);

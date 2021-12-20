@@ -370,10 +370,18 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             return p;
         }
 
+        /**
+         * as seen by data nodes
+         * @return
+         */
         public IPromise getDistribution() {
             return resolve(reg.getDynDataDistribution().await().toJsonObj().toString(WriterConfig.PRETTY_PRINT));
         }
 
+        /**
+         * as active in registry
+         * @return
+         */
         public IPromise getActiveDistribution() {
             return resolve(reg.getActiveDynDataDistribution().await().toJsonObj().toString(WriterConfig.PRETTY_PRINT));
         }
