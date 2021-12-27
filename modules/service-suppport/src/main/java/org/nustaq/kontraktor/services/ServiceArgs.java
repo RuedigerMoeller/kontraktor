@@ -27,8 +27,11 @@ public class ServiceArgs {
     @Parameter(names = {"-h","-help","-?", "--help"}, help = true, description = "display help")
     boolean help;
 
-    @Parameter(names = {"-host"}, help = true, description = "host address/name of this service")
+    @Parameter(names = {"-host"}, help = true, description = "host address/name of this service if published")
     private String host = "localhost";
+
+    @Parameter(names = {"-hostport"}, help = true, description = "port of this service if published")
+    private int hostport = -1;
 
     @Parameter(names = {"-dsPortBase"}, help = true, description = "port of data shard 0. port(shard_X) = portBase + X")
     private int dataShardPortBase = 30000;
@@ -53,6 +56,10 @@ public class ServiceArgs {
         } catch (UnknownHostException e) {
             Log.Warn(this,e);
         }
+    }
+
+    public int getHostport() {
+        return hostport;
     }
 
     public String getMonhost() {

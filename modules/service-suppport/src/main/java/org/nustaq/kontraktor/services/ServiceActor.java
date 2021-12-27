@@ -266,7 +266,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
 
     protected void initRealLiveDynamic() {
         Log.Info(this, "init datacluster client");
-        int nShards = currentDistribution.getNumberOfShards();
+        int nShards = currentDistribution == null ? 0 : currentDistribution.getNumberOfShards();
         Log.Info(this, "number of shards "+nShards);
         DynDataShard shards[] =  new DynDataShard[nShards];
         DynTableSpaceActor tsShard[] = new DynTableSpaceActor[nShards];
@@ -361,8 +361,18 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         });
     }
 
+    /**
+     * @return port this service wants to expose (with default tcp exposure)
+     */
     protected int getPort() {
-        return -1;
+        return cmdline.getHostport();
+    }
+
+    /**
+     * @return host this service wants to expose on (with default tcp exposure)
+     */
+    protected String getHost() {
+        return cmdline.getHost();
     }
 
     protected ServiceArgs getCmdline() {
@@ -511,6 +521,12 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         if ( serviceDescription == null )
             serviceDescription = createServiceDescription();
         return serviceDescription;
+    }
+
+    protected ConnectableActor createDefaultConnectable() {
+        if ( getPort() >= 0 )
+            return new TCPConnectable( getClass(), cmdline.getHost(), getPort() );
+        return null;
     }
 
 }

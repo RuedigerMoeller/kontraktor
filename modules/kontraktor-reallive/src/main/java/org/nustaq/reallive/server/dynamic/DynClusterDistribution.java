@@ -38,6 +38,10 @@ public class DynClusterDistribution implements Serializable {
     }
 
     public int getNumberOfShards() {
+        if ( distributions == null )
+            return 0;
+        if ( distributions.isEmpty() )
+            return 0;
         return distributions.values().iterator().next().getStates().size();
     }
 

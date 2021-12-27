@@ -1,7 +1,5 @@
 package remoting;
 
-import org.nustaq.kontraktor.remoting.base.JsonMappable;
-
 import java.io.Serializable;
 
 public class SampleDTO implements Serializable {

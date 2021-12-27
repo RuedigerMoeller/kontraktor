@@ -206,7 +206,7 @@ public class SimpleScheduler implements Scheduler {
         Actor actor = receiver.getActor();
         Method method = actor.__getCachedMethod(methodName, actor, callInterceptor);
         Parameter[] parameterTypes = null;
-        if ( reg != null && reg.isJsonSerialized() )
+        if ( reg != null && reg.isJsonSerialized() && method != null )
             parameterTypes = method.getParameters();
 
         if ( method == null )
