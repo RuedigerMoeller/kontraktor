@@ -1,5 +1,7 @@
 package org.nustaq.kontraktor.services.rlserver;
 
+import org.nustaq.kontraktor.services.ClusterCfg;
+import org.nustaq.kontraktor.services.datacluster.DataCfg;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kson.Kson;
 import org.nustaq.reallive.api.TableDescription;
@@ -110,4 +112,5 @@ public class SimpleRLConfig implements Serializable {
     public Map<String, Object> getCustomData() {
         return customData;
     }
+
 }

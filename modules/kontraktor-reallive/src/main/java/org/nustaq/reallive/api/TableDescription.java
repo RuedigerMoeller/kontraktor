@@ -20,6 +20,10 @@ public class TableDescription implements Serializable, Cloneable {
     int keyLen = 48;
     String storageType = CACHED;
     String hashIndexed[] = {};
+
+    int spreadOut = 0; // OFF
+    int spreadIndex = -1; // OFF - index of a spread in case
+
     transient String alternativePath;
 
     public TableDescription() {}
@@ -35,6 +39,14 @@ public class TableDescription implements Serializable, Cloneable {
 
     public String getShardId() {
         return shardId;
+    }
+
+    public int getSpreadOut() {
+        return spreadOut;
+    }
+
+    public int getSpreadIndex() {
+        return spreadIndex;
     }
 
     public String[] getHashIndexed() {
@@ -140,6 +152,16 @@ public class TableDescription implements Serializable, Cloneable {
      */
     public TableDescription alternativePath(String alternativePath) {
         this.alternativePath = alternativePath;
+        return this;
+    }
+
+    public TableDescription spreadIndex(int spreadIndex) {
+        this.spreadIndex = spreadIndex;
+        return this;
+    }
+
+    public TableDescription spreadOut(int i) {
+        spreadOut = i;
         return this;
     }
 }

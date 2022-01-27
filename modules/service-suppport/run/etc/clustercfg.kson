@@ -2,28 +2,22 @@ ClusterCfg {
   publicHostUrl: "http://localhost:8888"
   dataCluster:
     DataCfg {
+      isDynamic: true
       dataDir: [
         "./run/reallive"
-#        "./run/reallive"
-#        "./run/reallive"
       ]
       schema:
         [
           {
-            name: user
-            sizeMB: 10
+            name: test
             filePath: USE_BASE_DIR
-            numEntries: 100000
-            keyLen: 48
             storageType: CACHED
           }
           {
-            name: confirmation
-            sizeMB: 10
+            name: testSpread
             filePath: USE_BASE_DIR
-            numEntries: 100000
-            keyLen: 48
-            storageType: CACHED
+            storageType: PERSIST
+            spreadOut: 11
           }
         ]
       shardQSize: 64000

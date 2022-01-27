@@ -135,11 +135,20 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     }
 
     protected void broadCastTimeOut(ServiceDescription desc) {
-        Pair msg = new Pair(TIMEOUT,desc);
+        sendServiceBroadcast(TIMEOUT,desc);
+    }
+
+    public void sendServiceBroadcast( String messageId, Serializable message ) {
+        Pair msg = new Pair(messageId,message);
         for (int i = 0; i < listeners.size(); i++) {
             Callback cb = listeners.get(i);
             try {
-                cb.pipe(msg);
+                if ( ! cb.isTerminated() )
+                    cb.pipe(msg);
+                else {
+                    listeners.remove(i);
+                    i--;
+                }
             } catch (Throwable th) {
                 Log.Info(this, th);
                 listeners.remove(i);
