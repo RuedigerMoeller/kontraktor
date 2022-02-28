@@ -51,3 +51,8 @@
 
 **_lastModified** - record lastModified as long ms
 
+Example:
+
+(_key ** '7ba' && data.value < 100.0) || (title ** 'substring')
+
+
