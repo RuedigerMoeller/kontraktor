@@ -14,8 +14,6 @@ import java.util.*;
  */
 public class PatchingRecord extends RecordWrapper {
 
-    public static final Object NULL = new Object();
-
     MapRecord override;
     HashSet<String> forcedUpdate;
 
@@ -43,12 +41,21 @@ public class PatchingRecord extends RecordWrapper {
         return super.getFields();
     }
 
+    public PatchingRecord copied() {
+        PatchingRecord newReq = new PatchingRecord(record);
+        if ( override != null )
+            newReq.override = override.copied();
+        if (forcedUpdate != null)
+            newReq.forcedUpdate = (HashSet<String>) forcedUpdate.clone();
+        return newReq;
+    }
+
     @Override
     public Object get(String field) {
         if (override != null) {
             final Object r = override.get(field);
             if (r != null) {
-                return r == NULL ? null : r;
+                return r == _NULL_ ? null : r;
             }
         }
         return super.get(field);
@@ -59,8 +66,19 @@ public class PatchingRecord extends RecordWrapper {
         if (override == null)
             override = MapRecord.New(getKey());
         if ( value == null )
-            value = NULL;
-        return override.put(field, value);
+            value = _NULL_;
+        override.put(field, value);
+        return this;
+    }
+
+    public Record putWithOldField( String field, Object value, Object oldValue ) {
+        if (override == null)
+            override = MapRecord.New(getKey());
+        if ( value == null )
+            value = _NULL_;
+        override.put(field, value);
+        record.put( field, oldValue );
+        return this;
     }
 
     @Override

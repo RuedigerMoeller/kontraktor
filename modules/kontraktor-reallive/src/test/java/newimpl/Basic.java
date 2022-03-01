@@ -1,5 +1,6 @@
 package newimpl;
 
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
@@ -7,6 +8,9 @@ import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.PromiseLatch;
+import org.nustaq.reallive.messages.ChangeUtils;
+import org.nustaq.reallive.messages.Diff;
+import org.nustaq.reallive.records.PatchingRecord;
 import org.nustaq.reallive.server.actors.RealLiveTableActor;
 import org.nustaq.reallive.client.ShardedTable;
 import org.nustaq.reallive.server.actors.TableSpaceActor;
@@ -25,6 +29,22 @@ import org.nustaq.reallive.api.Record;
  * Created by ruedi on 04.08.2015.
  */
 public class Basic {
+
+    @Test public void diffing() {
+        Record from = Record.from(
+            "key", "aKey",
+            "test", "13",
+            "arr", new Object[] { 1,2,3,new Object[] {4,5,6} },
+            "sub", Record.from("a", "12", "b", "13")
+        );
+        Record test1 = Record.from(
+            "key", "aKey",
+            "test", "13",
+            "sub", Record.from("a", "12", "b", "14")
+        );
+        Diff diff = ChangeUtils.diff(from, test1);
+        Assert.assertTrue(!diff.isEmpty());
+    }
 
     @Test
     public void testTableSpace() {

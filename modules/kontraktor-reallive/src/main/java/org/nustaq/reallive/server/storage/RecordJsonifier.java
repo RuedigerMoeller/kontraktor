@@ -51,7 +51,7 @@ public class RecordJsonifier {
             return Json.value((String)value);
         } else if ( value instanceof Long ) {
             return Json.value(((Number) value).longValue());
-        } else if ( value instanceof Integer ) {
+        } else if ( value instanceof Integer || value instanceof Short || value instanceof Byte ) {
             return Json.value(((Number) value).intValue());
         } else if ( value instanceof Number ) {
             return Json.value(((Number) value).doubleValue());

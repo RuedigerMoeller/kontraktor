@@ -1,5 +1,7 @@
 package org.nustaq.reallive.client;
 
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.reallive.messages.QueryDoneMessage;
 import org.nustaq.reallive.server.StorageDriver;
 import org.nustaq.reallive.server.storage.HeapRecordStorage;
 import org.nustaq.reallive.api.*;

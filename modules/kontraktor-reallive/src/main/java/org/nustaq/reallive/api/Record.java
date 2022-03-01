@@ -103,6 +103,15 @@ public interface Record extends Serializable, EvalContext {
 
     String[] getFields();
 
+    default Set<String> getFieldSet() {
+        String[] fields = getFields();
+        HashSet res = new HashSet(fields.length);
+        for (int i = 0; i < fields.length; i++) {
+            res.add(fields[i]);
+        }
+        return res;
+    }
+
     Record put( String field, Object value );
 
     @Override
@@ -307,6 +316,9 @@ public interface Record extends Serializable, EvalContext {
         return rec;
     }
 
+    /**
+     * @return a shallow (!) copy of this record
+     */
     default Record copied() {
         throw new RuntimeException("copy not implemented");
     }
@@ -516,6 +528,28 @@ public interface Record extends Serializable, EvalContext {
             }
         }
         return true;
+    }
+
+    default boolean defaultEquals( Object other ) {
+        if ( other instanceof Record ) {
+            Record oRec = (Record) other;
+            if ( ! Objects.equals(getKey(),((Record) other).getKey()))
+                return false;
+            Set<String> fieldSet = getFieldSet();
+            Set<String> oFieldSet = oRec.getFieldSet();
+            if ( ! fieldSet.equals(oFieldSet.size()) )
+                return false;
+            for (Iterator<String> iterator = oFieldSet.iterator(); iterator.hasNext(); ) {
+                String field = iterator.next();
+                Object o = get(field);
+                Object oOther = oRec.get(field);
+                if ( !Objects.equals(o,oOther) ) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
     }
 
 }

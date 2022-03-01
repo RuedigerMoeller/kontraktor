@@ -85,4 +85,5 @@ public class ChangeUtils {
         String[] fields = merge(record.getFields(), prevRecord.getFields());
         return mayCopyAndDiff(record,prevRecord,fields,false, null);
     }
+
 }

@@ -2,8 +2,7 @@ package org.nustaq.reallive.records;
 
 import org.nustaq.reallive.server.RLUtil;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 
@@ -32,23 +31,45 @@ public class MapRecord implements Record {
     };
 
     public static Function<Object,Boolean> JSON_CHECKER = value -> {
-        Class<?> clazz = value.getClass();
-        String name = clazz.getName();
         if (
+            value == null ||
             value instanceof String ||
             value instanceof Number ||
             value instanceof Boolean ||
-            value instanceof Record ||
-            value instanceof Object[]
+            value instanceof Record
         )
         {
             return true;
         } else {
+            if ( value instanceof Object[] )
+            {
+                return checkTypesIn((Object[]) value);
+            }
             return false;
         }
     };
 
-    static Function<Object,Boolean> CHECK_TYPES = JDK_TYPE_CHECK;
+    private static Boolean checkTypesIn(Object[] value) {
+        Object[] arr = value;
+        for (int i = 0; i < arr.length; i++) {
+            Object o = arr[i];
+            if ( o == null ||
+                o instanceof String ||
+                o instanceof Number ||
+                o instanceof Boolean ||
+                o instanceof Record
+            ) {
+                continue;
+            } else {
+               if ( o instanceof Object[] && checkTypesIn((Object[]) o) )
+                   continue;
+               return false;
+            }
+        }
+        return true;
+    }
+
+    static Function<Object,Boolean> CHECK_TYPES = JSON_CHECKER;
 
     public static Class<? extends MapRecord> recordClass = MapRecord.class;
     public static Function<MapRecord,MapRecord> conversion;
@@ -150,7 +171,7 @@ public class MapRecord implements Record {
             if ( CHECK_TYPES.apply(value) ) {
                 map.put(key,value);
             } else {
-                throw new RuntimeException("tried to store non-allowed value types "+ ((value!=null) ? value.getClass().getName() : "null") );
+                throw new RuntimeException("tried to store non-allowed value types key:"+key+" val:"+((value!=null) ? value.getClass().getName() : "null") );
             }
         } else
             map.put(key,value);
@@ -180,5 +201,26 @@ public class MapRecord implements Record {
 
     private void internal_setSeq(long seq) {
         this.seq = seq;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return defaultEquals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        return getKey().hashCode();
+    }
+
+    @Override
+    public Set<String> getFieldSet() {
+        return map.keySet();
+    }
+
+    public static void main(String[] args) {
+        MapRecord rec = MapRecord.New("pok");
+        rec.put("x", new Object[] { 1,2,3});
+
     }
 }
