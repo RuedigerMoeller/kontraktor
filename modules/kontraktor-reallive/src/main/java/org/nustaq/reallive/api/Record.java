@@ -537,7 +537,7 @@ public interface Record extends Serializable, EvalContext {
                 return false;
             Set<String> fieldSet = getFieldSet();
             Set<String> oFieldSet = oRec.getFieldSet();
-            if ( ! fieldSet.equals(oFieldSet.size()) )
+            if ( fieldSet.size()!=oFieldSet.size() )
                 return false;
             for (Iterator<String> iterator = oFieldSet.iterator(); iterator.hasNext(); ) {
                 String field = iterator.next();
