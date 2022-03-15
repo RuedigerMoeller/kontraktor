@@ -113,4 +113,17 @@ public class SimpleRLConfig implements Serializable {
         return customData;
     }
 
+    public ClusterCfg createClusterConfig() {
+        ClusterCfg cfg = new ClusterCfg();
+        DataCfg datacfg = new DataCfg();
+        datacfg.schema(tables);
+        String dirs[] = new String[numNodes];
+        for (int i = 0; i < dirs.length; i++) {
+            dirs[i] = dataDir;
+        }
+        datacfg.dataDir(dirs);
+        cfg.dataCluster(datacfg);
+        return cfg;
+    }
+
 }

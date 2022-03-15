@@ -62,12 +62,20 @@ public class PatchingRecord extends RecordWrapper {
     }
 
     @Override
+    public Record internal_put(String field, Object value) {
+        if (override == null)
+            override = MapRecord.New(getKey());
+        override.internal_put(field, value);
+        return this;
+    }
+
+    @Override
     public Record put(String field, Object value) {
         if (override == null)
             override = MapRecord.New(getKey());
         if ( value == null )
             value = _NULL_;
-        override.put(field, value);
+        override.internal_put(field, value);
         return this;
     }
 

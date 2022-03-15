@@ -18,6 +18,8 @@ import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
  */
 public class StorageDriver implements ChangeReceiver {
 
+    public static boolean PROPAGATE_EMPTY_DIFFS = true;
+
     RecordStorage store;
     ChangeReceiver listener = change -> {};
 
@@ -52,7 +54,7 @@ public class StorageDriver implements ChangeReceiver {
                     receive( new AddMessage(change.getSenderId(),true,change.getRecord()));
                 } else {
                     Diff diff = ChangeUtils.diff(change.getRecord(), prevRecord);
-                    if ( ! diff.isEmpty() ) {
+                    if ( ! diff.isEmpty() || PROPAGATE_EMPTY_DIFFS ) {
                         Record newRecord = unwrap(change.getRecord()); // clarification
                         store.put(change.getKey(), newRecord);
                         listener.receive(new UpdateMessage(change.getSenderId(), diff, newRecord, null));
@@ -109,7 +111,7 @@ public class StorageDriver implements ChangeReceiver {
                     listener.receive( new AddMessage(change.getSenderId(), updateMessage.getNewRecord()) );
                 } else if ( updateMessage.getDiff() == null ) {
                     Diff diff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec);
-                    if ( ! diff.isEmpty() ) {
+                    if ( ! diff.isEmpty() || PROPAGATE_EMPTY_DIFFS ) {
                         Record newRecord = unwrap(oldRec); // clarification
                         store.put(change.getKey(), newRecord);
                         listener.receive(new UpdateMessage(change.getSenderId(), diff, newRecord, change.getForcedUpdateFields()));
@@ -117,7 +119,7 @@ public class StorageDriver implements ChangeReceiver {
                 } else {
                     // old values are actually not needed inside the diff
                     // however they are needed in a change notification for filter processing (need to reconstruct prev record)
-                    if ( ! updateMessage.getDiff().isEmpty() ) {
+                    if ( ! updateMessage.getDiff().isEmpty() || PROPAGATE_EMPTY_DIFFS ) {
                         Diff newDiff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec, updateMessage.getDiff().getChangedFields());
                         Record newRecord = unwrap(oldRec); // clarification
                         store.put(change.getKey(), newRecord);
