@@ -47,6 +47,16 @@ public class Basic {
     }
 
     @Test
+    public void testOmit() {
+        Record omit = Record.from(
+            "key", "test",
+            "a", Record.from("b", 10, "pwd", "erutz0w9rw0e9r8"),
+            "pwd", "wpeoriwe8rw9er8w9r"
+        ).omit("pwd");
+        Assert.assertTrue(omit.get("pwd") == null );
+    }
+
+    @Test
     public void testTableSpace() {
         TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
         ts.init();

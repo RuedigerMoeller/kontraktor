@@ -297,13 +297,13 @@ public interface Record extends Serializable, EvalContext {
         return rec;
     }
 
-    default Record omit(String[] fieldsToOmit) {
+    default Record omit(String ... fieldsToOmit) {
         MapRecord rec = MapRecord.New(getKey());
         HashSet<String> toOmit = new HashSet<>();
         for (int i = 0; i < fieldsToOmit.length; i++) {
             toOmit.add(fieldsToOmit[i]);
         }
-        String[] fields = rec.getFields();
+        String[] fields = getFields();
         for (int i = 0; i < fields.length; i++) {
             String field = fields[i];
             if ( !toOmit.contains(field) ) {
