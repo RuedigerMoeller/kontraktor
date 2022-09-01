@@ -13,6 +13,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import static org.nustaq.utils.TrafficMonitorUtil.monitorTraffic;
+
 /**
  * Created by ruedi on 19.06.17.
  *
@@ -35,7 +37,7 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
     protected volatile boolean isClosed = false;
     protected ActorServer actorServer;
     protected Function<KHttpExchange,ConnectionAuthResult> connectionVerifier;
-    private TrafficMonitor trafficMonitor;
+    protected TrafficMonitor trafficMonitor;
 
     public AbstractHttpServerConnector(Actor facade) {
         this.facade = facade;
@@ -138,7 +140,7 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
 
         // send auth response
         byte[] response = conf.asByteArray(sock.getSessionId());
-        monitorTraffic(sessionId, "out", exchange.getPath(), response.length);
+        monitorTraffic(trafficMonitor, sessionId, "out", exchange.getPath(), response.length);
         exchange.sendAuthResponse(response,sessionId);
     }
 
@@ -181,22 +183,5 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
 
     public void setTrafficMonitor(TrafficMonitor trafficMonitor) {
         this.trafficMonitor = trafficMonitor;
-    }
-
-    protected void monitorTraffic(final String sid, final String direction, final String path, final int length) {
-        if( trafficMonitor == null )  {
-            return;
-        }
-
-        switch (direction) {
-            case "in":
-                trafficMonitor.requestReceived(length, sid, path);
-                break;
-            case "out":
-                trafficMonitor.responseSend(length, sid, path);
-                break;
-            default:
-                throw new IllegalArgumentException("direction must be 'in' or 'out'");
-        }
     }
 }

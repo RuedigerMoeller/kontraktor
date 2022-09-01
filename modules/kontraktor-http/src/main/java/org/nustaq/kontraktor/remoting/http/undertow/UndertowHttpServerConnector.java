@@ -38,6 +38,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import static org.nustaq.utils.TrafficMonitorUtil.monitorTraffic;
+
 /**
  * Created by ruedi on 12.05.2015.
  *
@@ -187,7 +189,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
         Object received[] = (Object[]) httpObjectSocket.getConf().asObject(postData);
 
         boolean isEmptyLP = received.length == 1 && received[0] instanceof Number;
-        monitorTraffic(sid, "in", exchange.getRequestPath(), received.length);
+        monitorTraffic(trafficMonitor, sid, "in", exchange.getRequestPath(), received.length);
 
         if ( ! isEmptyLP ) {
             httpObjectSocket.updateLastRemoteCallTimeStamp();
@@ -233,7 +235,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
                     return;
                 Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
                 byte[] response = nextQueuedMessage.getFirst();
-                monitorTraffic(sid, "out", exchange.getPath(), response.length);
+                monitorTraffic(trafficMonitor, sid, "out", exchange.getPath(), response.length);
                 exchange.setResponseContentLength(response.length);
                 if (response.length == 0) {
                     exchange.endExchange();
@@ -265,7 +267,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
 
     protected void replyFromHistory(HttpServerExchange exchange, StreamSinkChannel sinkchannel, byte[] msg, final String sid) {
         ByteBuffer responseBuf = ByteBuffer.wrap(msg);
-        monitorTraffic(sid, "out", exchange.getRequestPath(), msg.length);
+        monitorTraffic(trafficMonitor, sid, "out", exchange.getRequestPath(), msg.length);
         exchange.setResponseContentLength(msg.length);
         sinkchannel.getWriteSetter().set(
             channel -> {
@@ -305,7 +307,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
             // piggy back outstanding lp messages, outstanding lp request is untouched
             Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
             byte[] response = nextQueuedMessage.getFirst();
-            monitorTraffic(sid, "out", exchange.getRequestPath(), response.length);
+            monitorTraffic(trafficMonitor, sid, "out", exchange.getRequestPath(), response.length);
             exchange.setResponseContentLength(response.length);
             if (response.length == 0) {
                 exchange.endExchange();

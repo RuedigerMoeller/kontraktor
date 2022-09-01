@@ -19,8 +19,9 @@ package org.nustaq.kontraktor.remoting.http.undertow;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
+import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.base.TrafficMonitor;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.undertow.builder.BldFourK;
@@ -41,6 +42,7 @@ public class WebSocketPublisher implements ActorPublisher {
     Actor facade;
     boolean sendStringMessages = false;
     boolean sendSid = false;
+    private TrafficMonitor trafficMonitor;
 
     public WebSocketPublisher() {}
 
@@ -113,6 +115,11 @@ public class WebSocketPublisher implements ActorPublisher {
         return this;
     }
 
+    @Override
+    public void setTrafficMonitor(final TrafficMonitor trafficMonitor) {
+        this.trafficMonitor = trafficMonitor;
+    }
+
     /**
      * node.js does not support full file api, so binary messages cannot be de'jsoned. Add an
      * option to send all data as String via websocket (FIXME: quite some overhead as byte array is UTF-8'ed)
@@ -138,5 +145,9 @@ public class WebSocketPublisher implements ActorPublisher {
     public WebSocketPublisher sendSid(boolean sendSid) {
         this.sendSid = sendSid;
         return this;
+    }
+
+    public TrafficMonitor getTrafficMonitor() {
+        return trafficMonitor;
     }
 }

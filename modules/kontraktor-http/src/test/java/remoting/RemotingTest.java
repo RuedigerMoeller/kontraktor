@@ -34,7 +34,7 @@ public class RemotingTest {
             .urlPath("/websocket")
             .port(7777)
             .serType(SerializerType.FSTSer);
-        pub.setTrafficMonitor(new TrafficMonitorImpl());
+        pub.setTrafficMonitor(new TrafficMonitorImpl("pub"));
         pub.publish().await();
         ((TrafficMonitorImpl) pub.getTrafficMonitor()).printAndClear();
 
@@ -46,7 +46,7 @@ public class RemotingTest {
 
         // TCP NIO
         final TCPNIOPublisher tcpnioPublisher = new TCPNIOPublisher(serv, 7778);
-        tcpnioPublisher.setTrafficMonitor(new TrafficMonitorImpl());
+        tcpnioPublisher.setTrafficMonitor(new TrafficMonitorImpl("tcpnioPublisher"));
         tcpnioPublisher.publish().await();
         fromRemote(new TCPConnectable(RemotingTA.class, "localhost", 7778));
         ((TrafficMonitorImpl) tcpnioPublisher.getTrafficMonitor()).printAndClear();
@@ -54,7 +54,7 @@ public class RemotingTest {
 
         // TCP Sync
         final TCPPublisher tcpPublisher = new TCPPublisher(serv, 7780);
-        tcpPublisher.setTrafficMonitor(new TrafficMonitorImpl());
+        tcpPublisher.setTrafficMonitor(new TrafficMonitorImpl("tcpPublisher"));
         tcpPublisher.publish().await();
         fromRemote(new TCPConnectable(RemotingTA.class, "localhost", 7780));
         ((TrafficMonitorImpl) tcpPublisher.getTrafficMonitor()).printAndClear();
@@ -62,7 +62,7 @@ public class RemotingTest {
 
         // Http-Longpoll
         final HttpPublisher httpPublisher = new HttpPublisher(serv, "0.0.0.0", "/httpapi", 7779);
-        httpPublisher.setTrafficMonitor(new TrafficMonitorImpl());
+        httpPublisher.setTrafficMonitor(new TrafficMonitorImpl("httpPublisher"));
         httpPublisher.publish().await();
         fromRemote(new HttpConnectable(RemotingTA.class, "http://localhost:7779/httpapi"));
         ((TrafficMonitorImpl) httpPublisher.getTrafficMonitor()).printAndClear();
@@ -107,7 +107,13 @@ public class RemotingTest {
         public static boolean VERBOSE = true;
         public static boolean IS_ACTIVE = true;
 
+        private final String name;
+
         private ConcurrentHashMap<String, Long> map = new ConcurrentHashMap<>();
+
+        public TrafficMonitorImpl(final String name) {
+            this.name = name;
+        }
 
         @Override
         public void requestReceived(int size, String sid, String path) {
@@ -138,7 +144,7 @@ public class RemotingTest {
                 final long result = storedBytesCount + bytesCountToBeAdded;
 
                 if (VERBOSE) {
-                    System.out.println("TrafficMonitorImpl - id '" + id + "': add " + bytesCountToBeAdded + ", total: " + result);
+                    System.out.println("TrafficMonitor(" + name + ") - id '" + id + "': add " + bytesCountToBeAdded + ", total: " + result);
                 }
 
                 return result;
@@ -146,10 +152,11 @@ public class RemotingTest {
         }
 
         public void printAndClear() {
+            System.out.println("Stats for TrafficMonitor(" + name + "):");
             map.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
                 .forEachOrdered(e -> {
-                    System.out.println(e.getKey() + ": " + e.getValue() + " bytes");
+                    System.out.println(" - " + e.getKey() + ": " + e.getValue() + " bytes");
                 });
 
             map = new ConcurrentHashMap<>();
