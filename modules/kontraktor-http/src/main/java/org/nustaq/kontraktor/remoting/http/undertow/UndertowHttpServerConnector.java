@@ -20,9 +20,10 @@ import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderMap;
 import io.undertow.util.Headers;
-import io.undertow.util.HttpString;
 import io.undertow.util.Methods;
-import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.http.AbstractHttpServerConnector;
 import org.nustaq.kontraktor.remoting.http.HttpObjectSocket;
 import org.nustaq.kontraktor.remoting.http.KHttpExchange;
@@ -36,7 +37,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * Created by ruedi on 12.05.2015.
@@ -144,11 +144,11 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
         if ( sid != null && sid.length() > 0 ) {
             HttpObjectSocket httpObjectSocket = sessions.get(sid);
             if ( httpObjectSocket != null ) {
-                handleClientRequest(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null);
+                handleClientRequest(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null, sid);
             } else {
                 httpObjectSocket = restoreSessionFromId(sid);
                 if ( httpObjectSocket != null ) {
-                    handleClientRequest(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null);
+                    handleClientRequest(exchange, httpObjectSocket, postData, split.length > 1 ? split[1] : null, sid);
                 } else {
                     exchange.setResponseCode(401);
                     exchange.endExchange();
@@ -168,8 +168,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
         }
     }
 
-    public void handleClientRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String lastSeenSequence) {
-
+    public void handleClientRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String lastSeenSequence, final String sid) {
         if ( prepareResponse != null ) {
             prepareResponse.accept(exchange);
         }
@@ -188,11 +187,11 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
         Object received[] = (Object[]) httpObjectSocket.getConf().asObject(postData);
 
         boolean isEmptyLP = received.length == 1 && received[0] instanceof Number;
-
+        monitorTraffic(sid, "in", received.length);
 
         if ( ! isEmptyLP ) {
             httpObjectSocket.updateLastRemoteCallTimeStamp();
-            handleRegularRequest(exchange, httpObjectSocket, received, sinkchannel);
+            handleRegularRequest(exchange, httpObjectSocket, received, sinkchannel, sid);
             return;
         }
 
@@ -212,7 +211,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
             byte[] msg = (byte[]) httpObjectSocket.takeStoredLPMessage(lastClientSeq + 1);
             if (msg!=null) {
 //                Log.Warn(this, "serve lp from history " + (lastClientSeq + 1) + " cur " + httpObjectSocket.getSendSequence());
-                replyFromHistory(exchange, sinkchannel, msg);
+                replyFromHistory(exchange, sinkchannel, msg, sid);
                 return;
             }
         }
@@ -221,25 +220,25 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
 
         sinkchannel.resumeWrites();
         // read next batch of pending messages from binary queue and send them
-        Pair<Runnable,KHttpExchange> lpTask = createLongPollTask( new UndertowKHttpExchangeImpl(exchange), httpObjectSocket, sinkchannel);
+        Pair<Runnable,KHttpExchange> lpTask = createLongPollTask( new UndertowKHttpExchangeImpl(exchange), httpObjectSocket, sinkchannel, sid);
         // release previous long poll request if present
         httpObjectSocket.cancelLongPoll();
         httpObjectSocket.setLongPollTask(lpTask);
     }
 
-    protected Pair<Runnable,KHttpExchange> createLongPollTask(KHttpExchange exchange, HttpObjectSocket httpObjectSocket, StreamSinkChannel sinkchannel) {
+    protected Pair<Runnable,KHttpExchange> createLongPollTask(KHttpExchange exchange, HttpObjectSocket httpObjectSocket, StreamSinkChannel sinkchannel, final String sid) {
         return new Pair<>(
             () -> {
                 if ( ! sinkchannel.isOpen() )
                     return;
                 Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
-                byte response[] = nextQueuedMessage.getFirst();
+                byte[] response = nextQueuedMessage.getFirst();
+                monitorTraffic(sid, "out", response.length);
                 exchange.setResponseContentLength(response.length);
                 if (response.length == 0) {
                     exchange.endExchange();
                 } else {
                     httpObjectSocket.storeLPMessage(nextQueuedMessage.getSecond(), response);
-
 
                     // FIXME: should be async ?
 //                    exchange.send(response);
@@ -264,8 +263,9 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
         );
     }
 
-    protected void replyFromHistory(HttpServerExchange exchange, StreamSinkChannel sinkchannel, byte[] msg) {
+    protected void replyFromHistory(HttpServerExchange exchange, StreamSinkChannel sinkchannel, byte[] msg, final String sid) {
         ByteBuffer responseBuf = ByteBuffer.wrap(msg);
+        monitorTraffic(sid, "out", msg.length);
         exchange.setResponseContentLength(msg.length);
         sinkchannel.getWriteSetter().set(
             channel -> {
@@ -295,15 +295,17 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
      * @param httpObjectSocket
      * @param received
      * @param sinkchannel
+     * @param sid
      */
-    protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object[] received, StreamSinkChannel sinkchannel) {
+    protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object[] received, StreamSinkChannel sinkchannel, final String sid) {
         ArrayList<IPromise> futures = new ArrayList<>();
         httpObjectSocket.getSink().receiveObject(received, futures, exchange.getRequestHeaders().getFirst("JWT") );
 
         Runnable reply = () -> {
             // piggy back outstanding lp messages, outstanding lp request is untouched
             Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
-            byte response[] = nextQueuedMessage.getFirst();
+            byte[] response = nextQueuedMessage.getFirst();
+            monitorTraffic(sid, "out", response.length);
             exchange.setResponseContentLength(response.length);
             if (response.length == 0) {
                 exchange.endExchange();

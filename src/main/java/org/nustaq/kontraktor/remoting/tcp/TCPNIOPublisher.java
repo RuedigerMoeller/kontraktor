@@ -20,6 +20,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.base.TrafficMonitor;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 
@@ -36,6 +37,7 @@ public class TCPNIOPublisher implements ActorPublisher {
     Actor facade;
     int port = 6543;
     Coding coding = new Coding( SerializerType.FSTSer );
+    private TrafficMonitor trafficMonitor;
 
     public TCPNIOPublisher() {
     }
@@ -60,6 +62,11 @@ public class TCPNIOPublisher implements ActorPublisher {
         return this;
     }
 
+    @Override
+    public void setTrafficMonitor(final TrafficMonitor trafficMonitor) {
+        this.trafficMonitor = trafficMonitor;
+    }
+
     public TCPNIOPublisher port(final int port) {
         this.port = port;
         return this;
@@ -80,6 +87,10 @@ public class TCPNIOPublisher implements ActorPublisher {
 
     public Coding getCoding() {
         return coding;
+    }
+
+    public TrafficMonitor getTrafficMonitor() {
+        return trafficMonitor;
     }
 
     @Override

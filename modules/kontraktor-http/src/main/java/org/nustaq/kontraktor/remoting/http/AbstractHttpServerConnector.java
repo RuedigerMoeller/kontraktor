@@ -6,6 +6,7 @@ import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.remoting.base.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
@@ -34,6 +35,7 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
     protected volatile boolean isClosed = false;
     protected ActorServer actorServer;
     protected Function<KHttpExchange,ConnectionAuthResult> connectionVerifier;
+    private TrafficMonitor trafficMonitor;
 
     public AbstractHttpServerConnector(Actor facade) {
         this.facade = facade;
@@ -100,7 +102,6 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
     }
 
     protected void handleNewSession(KHttpExchange exchange ) {
-
         String sessionId = null;
         if ( connectionVerifier != null ) {
 //            String token = exchange.getRequestHeaders().getFirst("token");
@@ -137,6 +138,7 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
 
         // send auth response
         byte[] response = conf.asByteArray(sock.getSessionId());
+        monitorTraffic(sessionId, "out", response.length);
         exchange.sendAuthResponse(response,sessionId);
     }
 
@@ -169,12 +171,32 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
         return actorServer;
     }
 
-
     public long getIdleSessionTimeout() {
         return idleSessionTimeout;
     }
 
     public void setIdleSessionTimeout(long idleSessionTimeout) {
         this.idleSessionTimeout = idleSessionTimeout;
+    }
+
+    public void setTrafficMonitor(TrafficMonitor trafficMonitor) {
+        this.trafficMonitor = trafficMonitor;
+    }
+
+    protected void monitorTraffic(final String sid, final String direction, final int length) {
+        if( trafficMonitor == null )  {
+            return;
+        }
+
+        switch (direction) {
+            case "in":
+                trafficMonitor.requestReceived(length, sid, null);
+                break;
+            case "out":
+                trafficMonitor.responseSend(length, sid, null);
+                break;
+            default:
+                throw new IllegalArgumentException("direction must be 'in' or 'out'");
+        }
     }
 }
