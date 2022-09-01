@@ -138,7 +138,7 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
 
         // send auth response
         byte[] response = conf.asByteArray(sock.getSessionId());
-        monitorTraffic(sessionId, "out", response.length);
+        monitorTraffic(sessionId, "out", exchange.getPath(), response.length);
         exchange.sendAuthResponse(response,sessionId);
     }
 
@@ -183,17 +183,17 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
         this.trafficMonitor = trafficMonitor;
     }
 
-    protected void monitorTraffic(final String sid, final String direction, final int length) {
+    protected void monitorTraffic(final String sid, final String direction, final String path, final int length) {
         if( trafficMonitor == null )  {
             return;
         }
 
         switch (direction) {
             case "in":
-                trafficMonitor.requestReceived(length, sid, null);
+                trafficMonitor.requestReceived(length, sid, path);
                 break;
             case "out":
-                trafficMonitor.responseSend(length, sid, null);
+                trafficMonitor.responseSend(length, sid, path);
                 break;
             default:
                 throw new IllegalArgumentException("direction must be 'in' or 'out'");

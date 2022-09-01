@@ -110,13 +110,15 @@ public class RemotingTest {
         private ConcurrentHashMap<String, Long> map = new ConcurrentHashMap<>();
 
         @Override
-        public void requestReceived(final int size, final String sid, final String path) {
-            add(sid + path + "#req#", size);
+        public void requestReceived(int size, String sid, String path) {
+            add(sid + " | " + (path == null ? "unknown path" : path) + " | req", size);
+            add(sid + " | sum req", size);
         }
 
         @Override
-        public void responseSend(final int size, final String sid, final String path) {
-            add(sid + path + "#res#", size);
+        public void responseSend(int size, String sid, String path) {
+            add(sid + " | " +  (path == null ? "unknown path" : path) + " | res", size);
+            add(sid + " | sum res", size);
         }
 
         public void add(String identifier, long bytesCountToBeAdded) {
@@ -135,7 +137,7 @@ public class RemotingTest {
 
                 final long result = storedBytesCount + bytesCountToBeAdded;
 
-                if ( VERBOSE ) {
+                if (VERBOSE) {
                     System.out.println("TrafficMonitorImpl - id '" + id + "': add " + bytesCountToBeAdded + ", total: " + result);
                 }
 
