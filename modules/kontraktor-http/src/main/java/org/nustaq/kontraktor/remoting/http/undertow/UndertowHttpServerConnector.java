@@ -313,7 +313,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
                 httpObjectSocket.storeLPMessage(nextQueuedMessage.cdr(), response);
 
                 //FIXME: ASYNC !!!
-                long tim = System.nanoTime();
+//                long tim = System.nanoTime();
                 ByteBuffer responseBuf = ByteBuffer.wrap(response);
                 try {
                     while (responseBuf.remaining()>0) {
