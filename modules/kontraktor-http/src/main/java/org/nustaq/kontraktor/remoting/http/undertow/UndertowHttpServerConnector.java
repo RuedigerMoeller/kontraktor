@@ -170,7 +170,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
         }
     }
 
-    public void handleClientRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String lastSeenSequence, final String sid) {
+    public void handleClientRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, byte[] postData, String lastSeenSequence, String sid) {
         if ( prepareResponse != null ) {
             prepareResponse.accept(exchange);
         }
@@ -228,7 +228,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
         httpObjectSocket.setLongPollTask(lpTask);
     }
 
-    protected Pair<Runnable,KHttpExchange> createLongPollTask(KHttpExchange exchange, HttpObjectSocket httpObjectSocket, StreamSinkChannel sinkchannel, final String sid) {
+    protected Pair<Runnable,KHttpExchange> createLongPollTask(KHttpExchange exchange, HttpObjectSocket httpObjectSocket, StreamSinkChannel sinkchannel, String sid) {
         return new Pair<>(
             () -> {
                 if ( ! sinkchannel.isOpen() )
@@ -265,7 +265,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
         );
     }
 
-    protected void replyFromHistory(HttpServerExchange exchange, StreamSinkChannel sinkchannel, byte[] msg, final String sid) {
+    protected void replyFromHistory(HttpServerExchange exchange, StreamSinkChannel sinkchannel, byte[] msg, String sid) {
         ByteBuffer responseBuf = ByteBuffer.wrap(msg);
         monitorTraffic(trafficMonitor, sid, "out", exchange.getRequestPath(), msg.length);
         exchange.setResponseContentLength(msg.length);
@@ -299,7 +299,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
      * @param sinkchannel
      * @param sid
      */
-    protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object[] received, StreamSinkChannel sinkchannel, final String sid) {
+    protected void handleRegularRequest(HttpServerExchange exchange, HttpObjectSocket httpObjectSocket, Object[] received, StreamSinkChannel sinkchannel, String sid) {
         ArrayList<IPromise> futures = new ArrayList<>();
         httpObjectSocket.getSink().receiveObject(received, futures, exchange.getRequestHeaders().getFirst("JWT") );
 

@@ -45,7 +45,7 @@ public class RemotingTest {
 
 
         // TCP NIO
-        final TCPNIOPublisher tcpnioPublisher = new TCPNIOPublisher(serv, 7778);
+        TCPNIOPublisher tcpnioPublisher = new TCPNIOPublisher(serv, 7778);
         tcpnioPublisher.setTrafficMonitor(new TrafficMonitorImpl("tcpnioPublisher"));
         tcpnioPublisher.publish().await();
         fromRemote(new TCPConnectable(RemotingTA.class, "localhost", 7778));
@@ -53,7 +53,7 @@ public class RemotingTest {
 
 
         // TCP Sync
-        final TCPPublisher tcpPublisher = new TCPPublisher(serv, 7780);
+        TCPPublisher tcpPublisher = new TCPPublisher(serv, 7780);
         tcpPublisher.setTrafficMonitor(new TrafficMonitorImpl("tcpPublisher"));
         tcpPublisher.publish().await();
         fromRemote(new TCPConnectable(RemotingTA.class, "localhost", 7780));
@@ -61,7 +61,7 @@ public class RemotingTest {
 
 
         // Http-Longpoll
-        final HttpPublisher httpPublisher = new HttpPublisher(serv, "0.0.0.0", "/httpapi", 7779);
+        HttpPublisher httpPublisher = new HttpPublisher(serv, "0.0.0.0", "/httpapi", 7779);
         httpPublisher.setTrafficMonitor(new TrafficMonitorImpl("httpPublisher"));
         httpPublisher.publish().await();
         fromRemote(new HttpConnectable(RemotingTA.class, "http://localhost:7779/httpapi"));
@@ -111,7 +111,7 @@ public class RemotingTest {
 
         private ConcurrentHashMap<String, Long> map = new ConcurrentHashMap<>();
 
-        public TrafficMonitorImpl(final String name) {
+        public TrafficMonitorImpl(String name) {
             this.name = name;
         }
 
@@ -141,7 +141,7 @@ public class RemotingTest {
                     storedBytesCount = 0L;
                 }
 
-                final long result = storedBytesCount + bytesCountToBeAdded;
+                long result = storedBytesCount + bytesCountToBeAdded;
 
                 if (VERBOSE) {
                     System.out.println("TrafficMonitor(" + name + ") - id '" + id + "': add " + bytesCountToBeAdded + ", total: " + result);
