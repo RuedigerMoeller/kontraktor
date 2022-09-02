@@ -37,7 +37,7 @@ public class TCPNIOPublisher implements ActorPublisher {
     Actor facade;
     int port = 6543;
     Coding coding = new Coding( SerializerType.FSTSer );
-    private TrafficMonitor trafficMonitor;
+    TrafficMonitor trafficMonitor;
 
     public TCPNIOPublisher() {
     }
