@@ -22,8 +22,9 @@ import io.undertow.server.handlers.PathHandler;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
+import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.base.TrafficMonitor;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.remoting.http.ConnectionAuthResult;
@@ -54,6 +55,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
     Actor facade;
     private Function<KHttpExchange,ConnectionAuthResult> connectionVerifier;
     private Consumer<HttpServerExchange> prepareResponse;
+    private TrafficMonitor trafficMonitor;
 
     public HttpPublisher() {}
 
@@ -112,6 +114,7 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
             con.setConnectionVerifier(connectionVerifier);
             con.setSessionTimeout(sessionTimeout);
             con.setIdleSessionTimeout(idleSessionTimeout);
+            con.setTrafficMonitor(trafficMonitor);
             actorServer = new ActorServer( con, facade, coding == null ? new Coding(SerializerType.FSTSer) : coding );
             con.setActorServer(actorServer);
             actorServer.start(disconnectCallback);
@@ -161,6 +164,11 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
         return this;
     }
 
+    @Override
+    public void setTrafficMonitor(TrafficMonitor trafficMonitor) {
+        this.trafficMonitor = trafficMonitor;
+    }
+
     public HttpPublisher setSessionTimeout(long sessionTimeout) {
         this.sessionTimeout = sessionTimeout;
         return this;
@@ -194,5 +202,9 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
 
     public Actor getFacade() {
         return facade;
+    }
+
+    public TrafficMonitor getTrafficMonitor() {
+        return trafficMonitor;
     }
 }

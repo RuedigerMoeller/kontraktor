@@ -12,7 +12,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-http</artifactId>
-    <version>5.1.6</version>
+    <version>5.1.7</version>
 
     <description>http connectivity for kontraktor</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -112,7 +112,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor</artifactId>
-            <version>5.1.3</version>
+            <version>5.1.5</version>
         </dependency>
 
         <dependency>

@@ -76,4 +76,9 @@ public class UndertowKHttpExchangeImpl implements KHttpExchange {
         );
         sinkchannel.resumeWrites();
     }
+
+    @Override
+    public String getPath() {
+        return ex.getRequestPath();
+    }
 }
