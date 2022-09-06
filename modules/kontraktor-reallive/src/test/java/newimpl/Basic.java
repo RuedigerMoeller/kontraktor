@@ -57,6 +57,30 @@ public class Basic {
     }
 
     @Test
+    public void testStripOps() {
+        Record test = Record.from(
+            "key", "test",
+            "a+", Record.from("b", 10, "pwd", "erutz0w9rw0e9r8"),
+            "pwd?+", "wpeoriwe8rw9er8w9r"
+        );
+        test.stripOps();
+        System.out.println(test.toPrettyString());
+        Assert.assertTrue(test.get("a+") == null );
+    }
+
+    @Test
+    public void testStripOpsPatched() {
+        Record test = new PatchingRecord(Record.from(
+            "key", "test",
+            "a+", Record.from("b", 10, "pwd", "erutz0w9rw0e9r8"),
+            "pwd?+", "wpeoriwe8rw9er8w9r"
+        ));
+        test.stripOps();
+        System.out.println(test.toPrettyString());
+        Assert.assertTrue(test.get("a+") == null );
+    }
+
+    @Test
     public void testTableSpace() {
         TableSpaceActor ts = Actors.AsActor(TableSpaceActor.class);
         ts.init();

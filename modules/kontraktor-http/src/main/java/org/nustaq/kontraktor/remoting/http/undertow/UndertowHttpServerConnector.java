@@ -38,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static org.nustaq.utils.TrafficMonitorUtil.monitorTraffic;
+import static org.nustaq.utils.TrafficMonitorUtil.*;
 
 /**
  * Created by ruedi on 12.05.2015.
@@ -189,7 +189,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
         Object received[] = (Object[]) httpObjectSocket.getConf().asObject(postData);
 
         boolean isEmptyLP = received.length == 1 && received[0] instanceof Number;
-        monitorTraffic(trafficMonitor, sid, "in", exchange.getRequestPath(), received.length);
+        monitorTraffic(trafficMonitor, sid, IN, exchange.getRequestPath(), received.length);
 
         if ( ! isEmptyLP ) {
             httpObjectSocket.updateLastRemoteCallTimeStamp();
@@ -235,7 +235,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
                     return;
                 Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
                 byte[] response = nextQueuedMessage.getFirst();
-                monitorTraffic(trafficMonitor, sid, "out", exchange.getPath(), response.length);
+                monitorTraffic(trafficMonitor, sid, OUT, exchange.getPath(), response.length);
                 exchange.setResponseContentLength(response.length);
                 if (response.length == 0) {
                     exchange.endExchange();
@@ -267,7 +267,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
 
     protected void replyFromHistory(HttpServerExchange exchange, StreamSinkChannel sinkchannel, byte[] msg, String sid) {
         ByteBuffer responseBuf = ByteBuffer.wrap(msg);
-        monitorTraffic(trafficMonitor, sid, "out", exchange.getRequestPath(), msg.length);
+        monitorTraffic(trafficMonitor, sid, OUT, exchange.getRequestPath(), msg.length);
         exchange.setResponseContentLength(msg.length);
         sinkchannel.getWriteSetter().set(
             channel -> {
@@ -307,7 +307,7 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
             // piggy back outstanding lp messages, outstanding lp request is untouched
             Pair<byte[], Integer> nextQueuedMessage = httpObjectSocket.getNextQueuedMessage();
             byte[] response = nextQueuedMessage.getFirst();
-            monitorTraffic(trafficMonitor, sid, "out", exchange.getRequestPath(), response.length);
+            monitorTraffic(trafficMonitor, sid, OUT, exchange.getRequestPath(), response.length);
             exchange.setResponseContentLength(response.length);
             if (response.length == 0) {
                 exchange.endExchange();
@@ -315,7 +315,6 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
                 httpObjectSocket.storeLPMessage(nextQueuedMessage.cdr(), response);
 
                 //FIXME: ASYNC !!!
-//                long tim = System.nanoTime();
                 ByteBuffer responseBuf = ByteBuffer.wrap(response);
                 try {
                     while (responseBuf.remaining()>0) {
@@ -324,7 +323,6 @@ public class UndertowHttpServerConnector extends AbstractHttpServerConnector imp
                 } catch (IOException e) {
                     Log.Warn(this,e);
                 }
-//                System.out.println("syncwrite time micros:"+(System.nanoTime()-tim)/1000);
                 exchange.endExchange();
             }
         };

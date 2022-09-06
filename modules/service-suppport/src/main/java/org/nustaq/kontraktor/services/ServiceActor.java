@@ -348,7 +348,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
     }
 
     protected void publishSelf() {
-        Log.Info(this,"registering at service registry "+getServiceDescription().getName());
+        Log.Info(this,"publishing self "+getServiceDescription().getName());
         int defaultPort = getPort();
         // service does not expose itself
         if ( defaultPort <= 0 ) {

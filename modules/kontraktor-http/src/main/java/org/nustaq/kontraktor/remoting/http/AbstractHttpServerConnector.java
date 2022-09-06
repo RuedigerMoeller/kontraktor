@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import static org.nustaq.utils.TrafficMonitorUtil.OUT;
 import static org.nustaq.utils.TrafficMonitorUtil.monitorTraffic;
 
 /**
@@ -140,7 +141,7 @@ public abstract class AbstractHttpServerConnector implements ActorServerConnecto
 
         // send auth response
         byte[] response = conf.asByteArray(sock.getSessionId());
-        monitorTraffic(trafficMonitor, sessionId, "out", exchange.getPath(), response.length);
+        monitorTraffic(trafficMonitor, sessionId, OUT, exchange.getPath(), response.length);
         exchange.sendAuthResponse(response,sessionId);
     }
 
