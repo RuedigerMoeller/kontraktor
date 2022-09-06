@@ -63,8 +63,9 @@ public class TCPNIOPublisher implements ActorPublisher {
     }
 
     @Override
-    public void setTrafficMonitor(TrafficMonitor trafficMonitor) {
+    public TCPNIOPublisher setTrafficMonitor(TrafficMonitor trafficMonitor) {
         this.trafficMonitor = trafficMonitor;
+        return this;
     }
 
     public TCPNIOPublisher port(final int port) {
