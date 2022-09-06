@@ -116,8 +116,9 @@ public class WebSocketPublisher implements ActorPublisher {
     }
 
     @Override
-    public void setTrafficMonitor(TrafficMonitor trafficMonitor) {
+    public WebSocketPublisher setTrafficMonitor(TrafficMonitor trafficMonitor) {
         this.trafficMonitor = trafficMonitor;
+        return this;
     }
 
     /**

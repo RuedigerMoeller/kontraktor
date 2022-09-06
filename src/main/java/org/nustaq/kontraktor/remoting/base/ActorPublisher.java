@@ -31,6 +31,6 @@ public interface ActorPublisher {
     }
     IPromise<ActorServer>  publish(Consumer<Actor> disconnectCallback);
     ActorPublisher facade( Actor facade );
-    void setTrafficMonitor(TrafficMonitor trafficMonitor);
+    ActorPublisher setTrafficMonitor(TrafficMonitor trafficMonitor);
 
 }

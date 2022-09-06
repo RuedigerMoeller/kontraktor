@@ -165,8 +165,9 @@ public class HttpPublisher implements ActorPublisher, Cloneable {
     }
 
     @Override
-    public void setTrafficMonitor(TrafficMonitor trafficMonitor) {
+    public HttpPublisher setTrafficMonitor(TrafficMonitor trafficMonitor) {
         this.trafficMonitor = trafficMonitor;
+        return this;
     }
 
     public HttpPublisher setSessionTimeout(long sessionTimeout) {
