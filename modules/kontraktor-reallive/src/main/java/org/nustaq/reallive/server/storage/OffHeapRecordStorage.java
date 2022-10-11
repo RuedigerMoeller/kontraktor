@@ -1,11 +1,15 @@
 package org.nustaq.reallive.server.storage;
 
+import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Spore;
+import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.offheap.FSTAsciiStringOffheapMap;
 import org.nustaq.offheap.FSTBinaryOffheapMap;
 import org.nustaq.offheap.FSTSerializedOffheapMap;
 import org.nustaq.reallive.api.*;
+import org.nustaq.reallive.server.FilebasedRemoveLog;
+import org.nustaq.reallive.server.RemoveLog;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
 import org.nustaq.serialization.simpleapi.FSTCoder;
@@ -36,6 +40,7 @@ public class OffHeapRecordStorage implements RecordStorage {
     FSTSerializedOffheapMap<String,Record> store;
     int keyLen;
     private String tableFile;
+    private RemoveLog removeLog;
 
     protected OffHeapRecordStorage() {}
 
@@ -65,6 +70,16 @@ public class OffHeapRecordStorage implements RecordStorage {
         if ( persist ) {
             try {
                 store = createPersistentMap(tableFile, sizeMB, estimatedNumRecords, keyLen);
+                Thread thread = Thread.currentThread();
+                if ( thread instanceof DispatcherThread) {
+                    removeLog = Actors.AsActor(FilebasedRemoveLog.class, ((DispatcherThread) thread).getScheduler());
+                } else {
+                    removeLog = Actors.AsActor(FilebasedRemoveLog.class);
+                }
+                File file = new File(tableFile);
+                File baseDir = file.getParentFile();
+                String tableName = file.getName().substring(0,file.getName().lastIndexOf('.'));
+                ((FilebasedRemoveLog)removeLog).init(baseDir.getAbsolutePath(),tableName);
             } catch (Exception e) {
                 FSTUtil.rethrow(e);
             }
@@ -160,6 +175,8 @@ public class OffHeapRecordStorage implements RecordStorage {
         if ( v != null ) {
             store.remove(key);
             v.internal_updateLastModified();
+            if ( removeLog != null )
+                removeLog.add(v.getLastModified(),v.getKey());
         }
         return v;
     }
@@ -182,6 +199,11 @@ public class OffHeapRecordStorage implements RecordStorage {
         if ( lf >= loadFactor ) {
             store.resizeStore(store.getCapacityMB()*1024l*1024l * 2,maxGrow);
         }
+    }
+
+    @Override
+    public RemoveLog getRemoveLog() {
+        return removeLog;
     }
 
     @Override

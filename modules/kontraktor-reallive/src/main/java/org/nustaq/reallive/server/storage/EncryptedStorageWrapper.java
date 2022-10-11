@@ -3,6 +3,7 @@ package org.nustaq.reallive.server.storage;
 import org.nustaq.kontraktor.Spore;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.api.RecordStorage;
+import org.nustaq.reallive.server.RemoveLog;
 
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -52,6 +53,11 @@ public class EncryptedStorageWrapper implements RecordStorage {
     @Override
     public void resizeIfLoadFactorLarger(double loadFactor, long maxGrow) {
         wrapped.resizeIfLoadFactorLarger(loadFactor,maxGrow);
+    }
+
+    @Override
+    public RemoveLog getRemoveLog() {
+        return wrapped.getRemoveLog();
     }
 
     @Override

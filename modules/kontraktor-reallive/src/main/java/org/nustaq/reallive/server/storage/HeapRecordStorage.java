@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.nustaq.reallive.api.Record;
+import org.nustaq.reallive.server.RemoveLog;
 
 /**
  * Created by ruedi on 03/08/15.
@@ -93,6 +94,11 @@ public class HeapRecordStorage implements RecordStorage {
     @Override
     public void resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes) {
         // do nothing
+    }
+
+    @Override
+    public RemoveLog getRemoveLog() {
+        return null;
     }
 
 

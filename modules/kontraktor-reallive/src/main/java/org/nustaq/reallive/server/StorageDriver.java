@@ -1,5 +1,6 @@
 package org.nustaq.reallive.server;
 
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.util.Log;
@@ -84,7 +85,8 @@ public class StorageDriver implements ChangeReceiver {
             case ChangeMessage.REMOVE:
             {
                 RemoveMessage removeMessage = (RemoveMessage) change;
-                Record v = store.remove(removeMessage.getKey());
+                String key = removeMessage.getKey();
+                Record v = store.remove(key);
                 if ( v != null ) {
                     listener.receive(new RemoveMessage(change.getSenderId(),unwrap(v)));
                 } else {
@@ -252,4 +254,19 @@ public class StorageDriver implements ChangeReceiver {
         return store._loadMapping();
     }
 
+    public void queryRemoveLog(long from, long to, Callback<RemoveLog.RemoveLogEntry> cb) {
+        RemoveLog removeLog = store.getRemoveLog();
+        if ( removeLog == null ) {
+            cb.finish();
+        } else {
+            removeLog.query(from,to,cb);
+        }
+    }
+
+    public void pruneRemoveLog( long maxAge ) {
+        RemoveLog removeLog = store.getRemoveLog();
+        if ( removeLog != null ) {
+            removeLog.prune(maxAge);
+        }
+    }
 }

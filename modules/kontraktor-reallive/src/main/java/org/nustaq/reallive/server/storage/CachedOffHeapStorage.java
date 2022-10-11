@@ -2,6 +2,7 @@ package org.nustaq.reallive.server.storage;
 
 import org.nustaq.kontraktor.Spore;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.reallive.server.RemoveLog;
 import org.nustaq.reallive.server.StorageDriver;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.api.RecordStorage;
@@ -92,6 +93,11 @@ public class CachedOffHeapStorage implements RecordStorage {
     @Override
     public void resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes) {
         persisted.resizeIfLoadFactorLarger(loadFactor,maxGrowBytes);
+    }
+
+    @Override
+    public RemoveLog getRemoveLog() {
+        return persisted.getRemoveLog();
     }
 
     @Override

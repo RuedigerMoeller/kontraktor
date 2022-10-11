@@ -1,7 +1,9 @@
 package org.nustaq.reallive.api;
 
+import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.reallive.server.RemoveLog;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,4 +69,7 @@ public interface RealLiveTable extends SafeRealLiveTable, ChangeStream, RealLive
         return prom;
     }
 
+    void queryRemoveLog( long start, long end, Callback<RemoveLog.RemoveLogEntry> cb );
+
+    void pruneRemoveLog( long maxAge );
 }

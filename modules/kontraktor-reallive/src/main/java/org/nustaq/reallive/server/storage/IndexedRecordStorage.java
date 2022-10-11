@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.Spore;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.api.RecordStorage;
 import org.nustaq.reallive.api.StorageIndex;
+import org.nustaq.reallive.server.RemoveLog;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -88,6 +89,11 @@ public class IndexedRecordStorage implements RecordStorage {
     @Override
     public void resizeIfLoadFactorLarger(double loadFactor, long maxGrow) {
         wrapped.resizeIfLoadFactorLarger(loadFactor,maxGrow);
+    }
+
+    @Override
+    public RemoveLog getRemoveLog() {
+        return wrapped.getRemoveLog();
     }
 
     @Override

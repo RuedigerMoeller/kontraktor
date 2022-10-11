@@ -2,6 +2,7 @@ package org.nustaq.reallive.server.storage;
 
 import org.nustaq.kontraktor.Spore;
 import org.nustaq.reallive.api.Record;
+import org.nustaq.reallive.server.RemoveLog;
 
 /**
  * interface can be used in conjunction with CachedRecordStorage to provide a persistance layer
@@ -30,5 +31,6 @@ public interface RecordPersistance {
         return null;
     }
 
+    RemoveLog getRemoveLog();
 
 }

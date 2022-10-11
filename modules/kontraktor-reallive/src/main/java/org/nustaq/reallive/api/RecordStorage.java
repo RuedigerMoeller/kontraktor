@@ -1,6 +1,7 @@
 package org.nustaq.reallive.api;
 
 
+import org.nustaq.reallive.server.RemoveLog;
 import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
 import org.nustaq.reallive.server.storage.RecordPersistance;
 import org.nustaq.reallive.server.storage.StorageStats;

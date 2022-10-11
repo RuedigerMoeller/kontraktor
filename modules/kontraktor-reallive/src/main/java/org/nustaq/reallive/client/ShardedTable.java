@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.server.FilterProcessor;
 import org.nustaq.reallive.server.FilterSpore;
+import org.nustaq.reallive.server.RemoveLog;
 import org.nustaq.reallive.server.dynamic.DynClusterDistribution;
 import org.nustaq.reallive.server.storage.StorageStats;
 import org.nustaq.reallive.api.*;
@@ -311,5 +312,25 @@ public class ShardedTable implements RealLiveTable {
         }).collect(Collectors.toList()).forEach( tableShard ->  {
             removeTableShard(tableShard);
         });
+    }
+
+    public void queryRemoveLog(long from, long to, Callback<RemoveLog.RemoveLogEntry> cb) {
+        for (Iterator<RealLiveTable> iterator = shards.iterator(); iterator.hasNext(); ) {
+            RealLiveTable next = iterator.next();
+            AtomicInteger count = new AtomicInteger();
+            next.queryRemoveLog(from, to, (r,e) -> {
+                if ( r == null ) {
+                    count.incrementAndGet();
+                    if ( count.get() == shards.size() ) {
+                        cb.finish();
+                    }
+                } else cb.pipe(r);
+            });
+        }
+    }
+
+    @Override
+    public void pruneRemoveLog(long maxAge) {
+        shards.stream().forEach( t -> t.pruneRemoveLog(maxAge));
     }
 }

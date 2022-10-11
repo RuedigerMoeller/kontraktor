@@ -506,4 +506,12 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
         );
     }
 
+    public void queryRemoveLog( long start, long end, Callback<RemoveLog.RemoveLogEntry> cb ) {
+        storageDriver.queryRemoveLog(start,end,cb);
+    }
+
+    @Override
+    public void pruneRemoveLog(long maxAge) {
+        storageDriver.pruneRemoveLog(maxAge);
+    }
 }
