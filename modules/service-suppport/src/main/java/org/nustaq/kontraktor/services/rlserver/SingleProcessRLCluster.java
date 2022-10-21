@@ -12,7 +12,6 @@ import org.nustaq.kontraktor.services.ServiceRegistry;
 import org.nustaq.kontraktor.services.datacluster.DataCfg;
 import org.nustaq.kontraktor.services.datacluster.DataShard;
 import org.nustaq.kontraktor.services.datacluster.DataShardArgs;
-import org.nustaq.kontraktor.services.rlserver.mongodb.MongoPersistance;
 import org.nustaq.reallive.api.RecordStorage;
 import org.nustaq.reallive.api.TableDescription;
 import org.nustaq.reallive.client.EmbeddedRealLive;
@@ -40,12 +39,6 @@ public class SingleProcessRLCluster {
         options = (SingleProcessRLClusterArgs) parseCommandLine(args,null,new SingleProcessRLClusterArgs());
         SimpleRLConfig scfg = SimpleRLConfig.read();
 
-        if ( scfg.mongoConnection != null ) {
-            EmbeddedRealLive.sCustomRecordStorage.put("MONGO", desc -> {
-               return createOrConnectMongoDBStorage(desc,scfg);
-            });
-        }
-
         ClusterCfg cfg = new ClusterCfg();
         DataCfg datacfg = new DataCfg();
         datacfg.schema(scfg.tables);
@@ -68,19 +61,5 @@ public class SingleProcessRLCluster {
             ex.execute(() -> DataShard.start(DataShardArgs.from(options,finalI)));
         }
     }
-
-    protected static RecordStorage createOrConnectMongoDBStorage(TableDescription desc, SimpleRLConfig scfg) {
-        synchronized (SingleProcessRLCluster.class) {
-            if ( mongoDB == null ) {
-                ConnectionString con = new ConnectionString(scfg.mongoConnection);
-                mongo = MongoClients.create(scfg.mongoConnection);
-                mongoDB = mongo.getDatabase(con.getDatabase());
-            }
-        }
-        MongoCollection<Document> collection = mongoDB.getCollection(desc.getName());
-        collection.createIndex(Indexes.hashed("key"));
-        return new CachedOffHeapStorage(new MongoPersistance(collection,desc),new HeapRecordStorage());
-    }
-
 }
 

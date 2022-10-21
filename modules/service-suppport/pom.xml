@@ -135,7 +135,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>reallive</artifactId>
-            <version>5.1.15</version>
+            <version>5.1.18</version>
         </dependency>
 
         <dependency>
@@ -161,7 +161,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor-http</artifactId>
-            <version>5.1.6</version>
+            <version>5.1.8</version>
         </dependency>
 
         <dependency>

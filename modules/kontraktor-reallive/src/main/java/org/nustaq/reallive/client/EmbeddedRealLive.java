@@ -24,7 +24,14 @@ public class EmbeddedRealLive {
         return instance;
     }
 
-    public static Map<String,Function<TableDescription,RecordStorage>> sCustomRecordStorage = new HashMap<>();
+    public IPromise<RealLiveTable> loadTable(String pathToBinFile) {
+        TableDescription ts = new TableDescription()
+            .storageType(TableDescription.PERSIST)
+            .numEntries(100_000)
+            .filePath(pathToBinFile)
+            .alternativePath(pathToBinFile);
+        return createTable(ts,null);
+    }
 
     /**
      * WARNING: never create more than one table using the same file. This will
@@ -55,9 +62,8 @@ public class EmbeddedRealLive {
                     memFactory = d -> new HeapRecordStorage();
                     break;
                 default:
-                    memFactory = sCustomRecordStorage.get(desc.getStorageType());
-                    if ( memFactory == null )
-                        Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to PERSIST");
+                    memFactory = d -> new HeapRecordStorage();
+                    Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to TEMP");
             }
         } else {
             String bp = dataDir == null ? desc.getFilePath() : dataDir;
@@ -91,9 +97,8 @@ public class EmbeddedRealLive {
                     memFactory = d -> new HeapRecordStorage();
                     break;
                 default:
-                    memFactory = sCustomRecordStorage.get(desc.getStorageType());
-                    if ( memFactory == null )
-                        Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to PERSIST");
+                    memFactory = d -> new HeapRecordStorage();
+                    Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to TEMP");
             }
         }
         Promise p = new Promise();

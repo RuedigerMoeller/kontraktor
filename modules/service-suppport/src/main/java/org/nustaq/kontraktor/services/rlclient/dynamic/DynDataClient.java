@@ -29,7 +29,8 @@ public class DynDataClient extends DataClient<DynDataClient> {
             Log.Error(this,"FATAL: not running with dynamic registry");
             delayed(1000, () -> System.exit(1));
         }
-        hostingService.addServiceEventListener((event, arg) -> handleServiceEvent((String) event, arg));
+        if ( hostingService != null )
+            hostingService.addServiceEventListener((event, arg) -> handleServiceEvent((String) event, arg));
         TableDescription[] schema = config.getSchema();
         return all( schema.length, i -> {
             TableDescription desc = schema[i];
@@ -42,6 +43,8 @@ public class DynDataClient extends DataClient<DynDataClient> {
     }
 
     protected boolean isDynDataCluster() {
+        if ( hostingService == null ) // in case of standalone client
+            return true;
         return hostingService.getServiceRegistry() instanceof DynDataServiceRegistry;
     }
 

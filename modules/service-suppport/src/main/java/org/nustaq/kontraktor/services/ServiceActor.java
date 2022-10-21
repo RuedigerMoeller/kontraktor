@@ -1,9 +1,11 @@
 package org.nustaq.kontraktor.services;
 
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.remoting.base.ReconnectableRemoteRef;
 import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
+import org.nustaq.kontraktor.services.datacluster.DataCfg;
 import org.nustaq.kontraktor.services.datacluster.DataShard;
 import org.nustaq.kontraktor.services.rlclient.dynamic.DynDataClient;
 import org.nustaq.reallive.server.dynamic.DynClusterDistribution;
@@ -25,6 +27,7 @@ import org.nustaq.serialization.util.FSTUtil;
 import java.io.Serializable;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * Created by ruedi on 12.08.2015.
@@ -263,8 +266,11 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
     private void setCurrentDistribution(DynClusterDistribution distribution) {
         currentDistribution = distribution;
     }
-
     protected void initRealLiveDynamic() {
+        dclient = InitRealLiveDynamic(currentDistribution,serviceRegistry.get(), name -> getService(name), self(), config.getDataCluster() );
+    }
+
+    protected void old_initRealLiveDynamic() {
         Log.Info(this, "init datacluster client");
         int nShards = currentDistribution == null ? 0 : currentDistribution.getNumberOfShards();
         Log.Info(this, "number of shards "+nShards);
@@ -304,6 +310,55 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         dclient.connect(config.getDataCluster(),tsShard,self()).await(DEFAULT_START_TIMEOUT);
         Log.Info(this, "dc init done");
         Log.Info(this,"\n"+currentDistribution);
+    }
+
+    public static DynDataClient InitRealLiveDynamic(
+        DynClusterDistribution currentDistribution,
+        ServiceRegistry serviceRegistry,
+        Function<String,DynDataShard> serviceMapper,
+        ServiceActor hostingService /* can be null */,
+        DataCfg schema
+    ) {
+        Log.Info(ServiceActor.class, "init datacluster client");
+        int nShards = currentDistribution == null ? 0 : currentDistribution.getNumberOfShards();
+        Log.Info(ServiceActor.class, "number of shards "+nShards);
+        DynDataShard shards[] =  new DynDataShard[nShards];
+        DynTableSpaceActor tsShard[] = new DynTableSpaceActor[nShards];
+        Map<String, ServiceDescription> serviceMap = serviceRegistry.getServiceMap().await();
+        int i = 0;
+        for (Iterator<String> iterator = serviceMap.keySet().iterator(); iterator.hasNext(); ) {
+            String serviceName =  iterator.next();
+            if ( serviceName.startsWith(DynDataShard.DATA_SHARD_NAME) ) {
+                shards[i] = serviceMapper.apply(serviceName);
+                if ( shards[i] == null ) {
+                    Log.Error(ServiceActor.class,"FATAL: announced shard not found/connected:"+serviceName);
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    System.exit(1);
+                } else {
+                    Log.Info(ServiceActor.class, "connect to shard " + serviceName);
+                    tsShard[i] = shards[i].getTableSpace().await();
+                    tsShard[i].__clientsideTag = serviceName;
+                }
+                i++;
+            }
+        }
+        if ( i != nShards )
+        {
+            Log.Error(ServiceActor.class,"FATAL: number dyndatashards contradicts distribution");
+            SimpleScheduler.DelayedCall(1000,() -> System.exit(1));
+        }
+        Log.Info(ServiceActor.class, "dc connected all shards");
+
+        DynDataClient dclient = Actors.AsActor(DynDataClient.class);
+        ((DynDataClient) dclient).setInitialMapping(currentDistribution);
+        dclient.connect(schema,tsShard,hostingService).await(DEFAULT_START_TIMEOUT);
+        Log.Info(ServiceActor.class, "dc init done");
+        Log.Debug(ServiceActor.class,"\n"+currentDistribution);
+        return dclient;
     }
 
     protected void initRealLiveFixed() {

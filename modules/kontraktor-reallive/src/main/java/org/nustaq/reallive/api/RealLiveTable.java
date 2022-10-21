@@ -3,6 +3,7 @@ package org.nustaq.reallive.api;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.reallive.server.RemoveLog;
 
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ public interface RealLiveTable extends SafeRealLiveTable, ChangeStream, RealLive
 
     void unsubscribeById(int subsId);
 
-    default IPromise<List<Record>> queryList(RLPredicate<Record> condition) {
+    @CallerSideMethod default IPromise<List<Record>> queryList(RLPredicate<Record> condition) {
         Promise prom = new Promise();
         List<Record> res = new ArrayList<>();
         forEach(condition, (r,e) -> {

@@ -54,7 +54,7 @@ public class TableSpaceSharding implements TableSpace {
             final String finalId = shard.__clientsideTag;
             remoteTable.then((r, e) -> {
                 if (e == null) {
-                    Log.Info(this, "table creation: " + desc.getName() + " " + finalId);
+                    Log.Debug(this, "table creation: " + desc.getName() + " " + finalId);
                     ((RealLiveTableActor) r).__clientSideTag = finalId;
                 }
                 else if ( e instanceof Throwable )
@@ -64,9 +64,9 @@ public class TableSpaceSharding implements TableSpace {
                 p.complete(r, e);
             });
         }
-        Log.Info(this,"waiting for creation of tables ..");
+        Log.Debug(this,"waiting for creation of tables ..");
         Actors.all(results).then( (List<IPromise<RealLiveTable>> tables,Object err) -> {
-            Log.Info(this,"table creation (waiting finished)");
+            Log.Debug(this,"table creation (waiting finished)");
             RealLiveTable tableShards[] = new RealLiveTable[tables.size()];
             boolean errors = false;
             for (int i = 0; i < tables.size(); i++) {

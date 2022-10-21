@@ -396,6 +396,10 @@ public class DynDataServiceRegistry extends ServiceRegistry {
         return resolve(null);
     }
 
+    public IPromise<Boolean> isDynamic() {
+        return resolve(true);
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public static void main(String[] args) {

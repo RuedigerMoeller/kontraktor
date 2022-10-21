@@ -341,7 +341,15 @@ public class SimpleScheduler implements Scheduler {
                 toRun.run();
             }
         }, millis);
+    }
 
+    public static void DelayedCall(long millis, Runnable toRun) {
+        Actors.delayedCalls.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                toRun.run();
+            }
+        }, millis);
     }
 
     @Override

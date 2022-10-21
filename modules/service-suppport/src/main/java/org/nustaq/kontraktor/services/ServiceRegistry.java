@@ -506,6 +506,10 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
         return serviceRegistry;
     }
 
+    public IPromise<Boolean> isDynamic() {
+        return resolve(false);
+    }
+
     @CallerSideMethod
     public Consumer<HttpServerExchange> getPrepareResponse() {
         return null;
