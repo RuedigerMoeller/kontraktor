@@ -130,10 +130,10 @@ public class OffHeapRecordStorage implements RecordStorage {
     @Override
     public RecordStorage put(String key, Record value) {
         value.internal_updateLastModified();
-        return _put(key,value);
+        return _rawPut(key,value);
     }
 
-    public RecordStorage _put(String key, Record value) {
+    public RecordStorage _rawPut(String key, Record value) {
         if ( protocol != null ) {
             try {
                 FSTConfiguration.getDefaultConfiguration().encodeToStream(protocol,new Object[] {"putRecord",key,value});

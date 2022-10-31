@@ -1,7 +1,9 @@
 package org.nustaq.reallive.client;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.server.FilterProcessor;
 import org.nustaq.reallive.server.FilterSpore;
 import org.nustaq.reallive.server.RemoveLog;
@@ -9,10 +11,6 @@ import org.nustaq.reallive.server.dynamic.DynClusterDistribution;
 import org.nustaq.reallive.server.storage.StorageStats;
 import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.server.RLUtil;
-import org.nustaq.reallive.messages.AddMessage;
-import org.nustaq.reallive.messages.PutMessage;
-import org.nustaq.reallive.messages.QueryDoneMessage;
-import org.nustaq.reallive.messages.RemoveMessage;
 import org.nustaq.reallive.records.RecordWrapper;
 
 import java.util.*;
@@ -32,7 +30,7 @@ public class ShardedTable implements RealLiveTable {
     final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap(); // real subscriptions only
 
     protected TableDescription description;
-    protected HashMap<Integer,RealLiveTable> tableShardMap = new HashMap();
+    protected Map<Integer,RealLiveTable> tableShardMap = new Object2ObjectOpenHashMap<>();
     protected Set<RealLiveTable> shards = new HashSet<>();
     protected FilterProcessor proc = new FilterProcessor(this);
     protected AtomicBoolean globalListenReady = new AtomicBoolean(false);
@@ -197,7 +195,7 @@ public class ShardedTable implements RealLiveTable {
         getTableForKey(key).receive(new PutMessage(senderId,RLUtil.get().record(key,keyVals)));
     }
 
-    public void merge(int senderId, String key, Object... keyVals) {
+    public void upsert(int senderId, String key, Object... keyVals) {
         getTableForKey(key).receive(RLUtil.get().addOrUpdate(senderId, key, keyVals));
     }
 
@@ -206,26 +204,38 @@ public class ShardedTable implements RealLiveTable {
         getTableForKey(jsonrec.getKey())._deepMerge( senderId, jsonrec );
     }
 
+    @Override
+    public void _join(int senderId, Record jsonrec) {
+        getTableForKey(jsonrec.getKey())._join( senderId, jsonrec );
+    }
+
     public IPromise<Boolean> add(int senderId, String key, Object... keyVals) {
         return getTableForKey(key).add(senderId, key, keyVals);
     }
 
     public IPromise<Boolean> addRecord(int senderId, Record rec) {
-        if ( rec instanceof RecordWrapper )
+        while ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         return getTableForKey(rec.getKey()).addRecord(senderId, rec);
     }
 
-    public void mergeRecord(int senderId, Record rec) {
-        if ( rec instanceof RecordWrapper )
+    public void upsertRecord(int senderId, Record rec) {
+        while ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         getTableForKey(rec.getKey()).receive(new AddMessage(senderId, true,rec));
     }
 
     public void setRecord(int senderId, Record rec) {
-        if ( rec instanceof RecordWrapper )
+        while ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         getTableForKey(rec.getKey()).receive(new PutMessage(senderId, rec));
+    }
+
+    @Override
+    public void setRecordAsIs(Record rec) {
+        while ( rec instanceof RecordWrapper )
+            rec = ((RecordWrapper) rec).getRecord();
+        getTableForKey(rec.getKey()).receive(new IdenticalPutMessage(0, rec));
     }
 
     public void update(int senderId, String key, Object... keyVals) {

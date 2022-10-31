@@ -51,14 +51,22 @@ public class StorageDriver implements ChangeReceiver {
             {
                 Record prevRecord = store.get(change.getKey());
                 if ( prevRecord == null ) {
-                    store.put(change.getKey(),unwrap(change.getRecord()));
-                    receive( new AddMessage(change.getSenderId(),true,change.getRecord()));
+                    if ( change.updateLastModified() )
+                        store.put(change.getKey(),unwrap(change.getRecord()));
+                    else
+                        store._rawPut(change.getKey(),unwrap(change.getRecord()));
+                    if ( change.generateChangeBroadcast() )
+                        receive( new AddMessage(change.getSenderId(),true,change.getRecord()));
                 } else {
                     Diff diff = ChangeUtils.diff(change.getRecord(), prevRecord);
                     if ( ! diff.isEmpty() || PROPAGATE_EMPTY_DIFFS ) {
                         Record newRecord = unwrap(change.getRecord()); // clarification
-                        store.put(change.getKey(), newRecord);
-                        listener.receive(new UpdateMessage(change.getSenderId(), diff, newRecord, null));
+                        if ( change.updateLastModified() )
+                            store.put(change.getKey(), newRecord);
+                        else
+                            store._rawPut(change.getKey(), newRecord);
+                        if ( change.generateChangeBroadcast() )
+                            listener.receive(new UpdateMessage(change.getSenderId(), diff, newRecord, null));
                     }
                 }
                 break;
@@ -75,10 +83,12 @@ public class StorageDriver implements ChangeReceiver {
                     Diff diff = ChangeUtils.copyAndDiff(addMessage.getRecord(), prevRecord);
                     Record newRecord = unwrap(prevRecord); // clarification
                     store.put(change.getKey(),newRecord);
-                    listener.receive( new UpdateMessage(change.getSenderId(), diff,newRecord,null) );
+                    if ( change.generateChangeBroadcast() )
+                        listener.receive( new UpdateMessage(change.getSenderId(), diff,newRecord,null) );
                 } else {
                     store.put(change.getKey(),unwrap(addMessage.getRecord()));
-                    listener.receive(addMessage);
+                    if ( change.generateChangeBroadcast() )
+                        listener.receive(addMessage);
                 }
                 break;
             }
@@ -88,7 +98,8 @@ public class StorageDriver implements ChangeReceiver {
                 String key = removeMessage.getKey();
                 Record v = store.remove(key);
                 if ( v != null ) {
-                    listener.receive(new RemoveMessage(change.getSenderId(),unwrap(v)));
+                    if ( change.generateChangeBroadcast() )
+                        listener.receive(new RemoveMessage(change.getSenderId(),unwrap(v)));
                 } else {
 //                    System.out.println("*********** failed remove "+change.getKey());
 //                    store.putRecord(change.getKey(), new MapRecord<K>(change.getKey()).putRecord("url", "POK"));
@@ -110,13 +121,15 @@ public class StorageDriver implements ChangeReceiver {
                         throw new RuntimeException("updated record does not exist, cannot fall back to 'Add' as UpdateMessage.newRecord is null");
                     }
                     store.put(change.getKey(),updateMessage.getNewRecord());
-                    listener.receive( new AddMessage(change.getSenderId(), updateMessage.getNewRecord()) );
+                    if ( change.generateChangeBroadcast() )
+                        listener.receive( new AddMessage(change.getSenderId(), updateMessage.getNewRecord()) );
                 } else if ( updateMessage.getDiff() == null ) {
                     Diff diff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec);
                     if ( ! diff.isEmpty() || PROPAGATE_EMPTY_DIFFS ) {
                         Record newRecord = unwrap(oldRec); // clarification
                         store.put(change.getKey(), newRecord);
-                        listener.receive(new UpdateMessage(change.getSenderId(), diff, newRecord, change.getForcedUpdateFields()));
+                        if ( change.generateChangeBroadcast() )
+                            listener.receive(new UpdateMessage(change.getSenderId(), diff, newRecord, change.getForcedUpdateFields()));
                     }
                 } else {
                     // old values are actually not needed inside the diff
@@ -125,7 +138,8 @@ public class StorageDriver implements ChangeReceiver {
                         Diff newDiff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec, updateMessage.getDiff().getChangedFields());
                         Record newRecord = unwrap(oldRec); // clarification
                         store.put(change.getKey(), newRecord);
-                        listener.receive(new UpdateMessage(change.getSenderId(), newDiff, newRecord, change.getForcedUpdateFields()));
+                        if ( change.generateChangeBroadcast() )
+                            listener.receive(new UpdateMessage(change.getSenderId(), newDiff, newRecord, change.getForcedUpdateFields()));
                     }
                 }
                 break;
@@ -184,7 +198,7 @@ public class StorageDriver implements ChangeReceiver {
             }
             return new Promise(apply);
         } else {
-            PatchingRecord pr = new PatchingRecord(rec);
+            PatchingRecord pr = new PatchingRecord(rec.deepCopied());
             final Object res = action.apply(pr);
             if ( res instanceof ChangeMessage )
             {

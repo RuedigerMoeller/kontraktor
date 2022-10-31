@@ -1,10 +1,10 @@
 package org.nustaq.reallive.server.storage;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.Spore;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.*;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -19,7 +19,7 @@ public class HeapRecordStorage implements RecordStorage {
     Map<Object,Record> map;
 
     public HeapRecordStorage() {
-        map = new HashMap();
+        map = new Object2ObjectOpenHashMap<>(1000);
     }
 
     public HeapRecordStorage(Map<Object,Record> map) {
@@ -29,10 +29,10 @@ public class HeapRecordStorage implements RecordStorage {
     @Override
     public RecordStorage put(String key, Record value) {
         value.internal_updateLastModified();
-        return _put(key,value);
+        return _rawPut(key,value);
     }
 
-    public RecordStorage _put(String key, Record value) {
+    public RecordStorage _rawPut(String key, Record value) {
         map.put(key,value);
         return this;
     }

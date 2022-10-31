@@ -2,6 +2,7 @@ package org.nustaq.kontraktor.services.datacluster;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.services.ClusterCfg;
@@ -126,6 +127,10 @@ public class DBClient {
 
     protected DBClientArgs createArgs() {
         return new DBClientArgs();
+    }
+
+    protected void exit( int code ) {
+        SimpleScheduler.DelayedCall(1000, () -> System.exit(code));
     }
 
     protected void executeCode() {

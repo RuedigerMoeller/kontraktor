@@ -21,7 +21,14 @@ public interface RecordPersistance {
 
     RecordPersistance put(String key, Record record);
 
-    default RecordPersistance _put(String key, Record value) {
+    /**
+     * does not update lastmodified timestamp
+     *
+     * @param key
+     * @param value
+     * @return
+     */
+    default RecordPersistance _rawPut(String key, Record value) {
         throw new RuntimeException("not usable as persistance implementation");
     }
 

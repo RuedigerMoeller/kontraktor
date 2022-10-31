@@ -304,7 +304,7 @@ public class Basic {
             for ( int i = 0; i < 1_000_000; i++ ) {
                 double rand = Math.random() * 10;
                 kYield();
-                rls.merge( "k" + i,
+                rls.upsert( "k" + i,
                         "name", "rm",
                         "age", rand
                         );
@@ -370,7 +370,7 @@ public class Basic {
                 int i1 = 500_000;
 //                int i1 = 50;
                 for (int i = 0; i < i1; i++) {
-                    rls.merge( "one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
+                    rls.upsert( "one" + i, "name", "emil", "age", 9, "full name", "Lienemann");
                 }
                 rls.update( "one13", "age", 10);
                 rls.remove( "one13");

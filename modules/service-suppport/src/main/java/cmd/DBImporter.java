@@ -68,7 +68,7 @@ public class DBImporter extends DBClient {
                         if ( rec != null ) {
                             count.incrementAndGet();
                             if ( args.getHours() <= 0 || rec.getLastModified() > minAge )
-                                remoteTable.setRecord(rec);
+                                remoteTable.setRecordAsIs(rec);
                         } else {
                             latch.countDown();
                             System.out.println("tablefile "+file.getName()+" entries "+count);
@@ -83,7 +83,7 @@ public class DBImporter extends DBClient {
             }
         });
         try {
-            Thread.sleep(10_000); // ensure queues are empty
+            Thread.sleep(30_000); // ensure queues are empty
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

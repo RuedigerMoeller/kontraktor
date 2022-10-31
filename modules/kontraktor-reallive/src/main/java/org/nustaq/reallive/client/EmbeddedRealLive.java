@@ -13,8 +13,6 @@ import org.nustaq.reallive.server.storage.HeapRecordStorage;
 import org.nustaq.reallive.server.storage.OffHeapRecordStorage;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 
 public class EmbeddedRealLive {

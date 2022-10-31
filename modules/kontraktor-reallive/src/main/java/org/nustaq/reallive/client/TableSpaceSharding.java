@@ -1,5 +1,6 @@
 package org.nustaq.reallive.client;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
@@ -23,8 +24,8 @@ import java.util.stream.Collectors;
 public class TableSpaceSharding implements TableSpace {
 
     protected List<TableSpaceActor> shards = new ArrayList<>();
-    protected HashMap<String,RealLiveTable> tableMap = new HashMap();
-    protected HashMap<String,TableDescription> tableDescriptionMap = new HashMap();
+    protected Map<String,RealLiveTable> tableMap = new Object2ObjectOpenHashMap<>();
+    protected Map<String,TableDescription> tableDescriptionMap = new Object2ObjectOpenHashMap<>();
 
     public TableSpaceSharding(TableSpaceActor[] shards) {
         Arrays.stream(shards).forEach( sh -> addShard(sh));

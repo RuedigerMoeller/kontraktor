@@ -2,7 +2,6 @@ package org.nustaq.reallive.api;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.WriterConfig;
-import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.query.EvalContext;
 import org.nustaq.reallive.query.LongValue;
 import org.nustaq.reallive.query.StringValue;
@@ -322,6 +321,9 @@ public interface Record extends Serializable, EvalContext {
     default Record copied() {
         throw new RuntimeException("copy not implemented");
     }
+    default MapRecord deepCopied() {
+        throw new RuntimeException("copy not implemented");
+    }
 
     default Object[] getKeyVals() {
         final String[] fields = getFields();
@@ -378,6 +380,56 @@ public interface Record extends Serializable, EvalContext {
                 put( field, null );
             }
         }
+    }
+
+    /**
+     * a simple tree merge (without any operators like deepMerge)
+     * copies all fields of given record to this.
+     * if this contains a record for a field e.g.
+     * this = { test: { a: 1, b: 2 } } and that = { test: { c: 1, b: 3 }} merging will be recursively
+     * resulting in { test: { a: 1, b: 3, c: 1 } }.
+     *
+     * for arrays all elements are appended if they do not yet exist.
+     * e.g. this = { test: [1,2,3] } and that = { test: [2,4,5] } will result in { test: [1,2,3,4,5] }
+     *
+     * @param that
+     * @return
+     */
+    default Record join( Record that ) {
+        final String[] fields = that.getFields();
+        for (int i = 0; i < fields.length; i++) {
+            String field = fields[i];
+            Object foreignValue = that.get(field);
+            Object selfValue = get(field);
+            if ( selfValue == null ) {
+                if ( foreignValue instanceof Record ) {
+                    put(field, Record.from().join((Record) foreignValue));
+                } else
+                    put(field, foreignValue);
+            } else if ( selfValue instanceof Object[] ) {
+                if ( foreignValue instanceof Object[] ) {
+                    // append foreign if not there
+                    List<Object> foreignList = Arrays.asList((Object[]) foreignValue);
+                    List<Object> selfList = new ArrayList<>(Arrays.asList((Object[]) selfValue));
+                    for (int j = 0; j < foreignList.size(); j++) {
+                        Object o = foreignList.get(j);
+                        if ( !selfList.contains(o) )
+                            selfList.add(o);
+                    }
+                    put( field, selfList.toArray() );
+                } else {
+                    put( field, foreignValue );
+                }
+            } else if ( selfValue instanceof Record ) {
+                if ( foreignValue instanceof Record )
+                    put(field, ((Record) selfValue).deepMerge((Record) foreignValue));
+                else
+                    put( field, foreignValue );
+            } else {
+                put(field, foreignValue);
+            }
+        }
+        return this;
     }
 
     /**
@@ -543,12 +595,25 @@ public interface Record extends Serializable, EvalContext {
                 String field = iterator.next();
                 Object o = get(field);
                 Object oOther = oRec.get(field);
-                if ( !Objects.equals(o,oOther) ) {
+                if ( o instanceof Number && oOther instanceof Number ) {
+                    if ( ((Number) o).doubleValue() != ((Number) oOther).doubleValue() )
+                        return false;
+                } else if ( !Objects.deepEquals(o,oOther) ) {
                     return false;
                 }
             }
             return true;
         }
+        return false;
+    }
+
+    /**
+     * called by the persistance layer after a record has been loaded from disk. can be used for type migration of an existing
+     * database.
+     * return true if the record should be re-persisted
+     */
+    default boolean _afterLoad() {
+        // do nothing
         return false;
     }
 

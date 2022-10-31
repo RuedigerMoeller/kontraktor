@@ -23,21 +23,30 @@ public class CachedOffHeapStorage implements RecordStorage {
     public CachedOffHeapStorage(RecordPersistance persisted, HeapRecordStorage onHeap) {
         this.persisted = persisted;
         this.onHeap = onHeap;
+        bootstrapCache(persisted, onHeap);
+    }
+
+    protected void bootstrapCache(RecordPersistance persisted, HeapRecordStorage onHeap) {
         List<Record> reput = new ArrayList();
+        // note: this runs local no remote spore is applied
         persisted.forEachWithSpore(new Spore<Record, Object>() {
             boolean hadErr = false;
             @Override
             public void remote(Record input) {
                 try {
-                    Record unwrap = StorageDriver.unwrap(input);
-                    if (unwrap != input) {
-                        reput.add(unwrap);
+                    Record finalRec = StorageDriver.unwrap(input);
+                    if (finalRec != input) {
+                        reput.add(finalRec);
                     }
-                    if (unwrap.getClass() != MapRecord.recordClass && MapRecord.conversion != null) {
-                        unwrap = MapRecord.conversion.apply((MapRecord) unwrap);
-                        reput.add(unwrap);
+                    // record class conversion
+                    if ( MapRecord.conversion != null && finalRec.getClass() != MapRecord.recordClass) {
+                        finalRec = MapRecord.conversion.apply((MapRecord) finalRec);
+                        reput.add(finalRec);
                     }
-                    onHeap._put(input.getKey(), unwrap);
+                    if ( finalRec._afterLoad() ) {
+                        reput.add(finalRec);
+                    }
+                    onHeap._rawPut(input.getKey(), finalRec);
                 } catch (Exception e) {
                     if ( hadErr )
                         Log.Error(this, "no trace (repetition): "+e);
@@ -50,7 +59,7 @@ public class CachedOffHeapStorage implements RecordStorage {
         }.onFinish( () -> {
             for (int i = 0; i < reput.size(); i++) {
                 Record record = reput.get(i);
-                persisted._put((String) record.getKey(),record);
+                persisted._rawPut((String) record.getKey(),record);
             }
         }));
     }
@@ -58,11 +67,15 @@ public class CachedOffHeapStorage implements RecordStorage {
     @Override
     public RecordStorage put(String key, Record value) {
         value.internal_updateLastModified();
-        persisted._put(key,value);
-        onHeap._put(key,value);
-        return this;
+        return _rawPut(key,value);
     }
 
+    @Override
+    public RecordStorage _rawPut(String key, Record value) {
+        persisted._rawPut(key,value);
+        onHeap._rawPut(key,value);
+        return this;
+    }
     @Override
     public Record get(String key) {
         return onHeap.get(key);

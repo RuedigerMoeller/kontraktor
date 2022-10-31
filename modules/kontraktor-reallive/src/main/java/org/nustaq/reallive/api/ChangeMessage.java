@@ -28,4 +28,17 @@ public interface ChangeMessage extends Serializable {
     default boolean isDoneMsg() { return getType() == QUERYDONE; }
     default boolean isAdd() { return getType() == ADD; }
     default Record getRecord() { return null; }
+
+    default boolean generateChangeBroadcast() {
+        return true;
+    }
+
+    /**
+     * currently supported for put message only. if returns false, lastmodified is not updated
+     * @return
+     */
+    default boolean updateLastModified() {
+        return true;
+    }
+
 }

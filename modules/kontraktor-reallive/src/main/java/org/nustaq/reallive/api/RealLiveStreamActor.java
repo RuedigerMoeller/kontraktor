@@ -32,7 +32,7 @@ public interface RealLiveStreamActor extends SafeRealLiveStreamActor {
         this.forEach(new QueryPredicate<Record>(query), cb);
     }
 
-    @CallerSideMethod default IPromise<List<Record>> queryList(String query) {
+    @CallerSideMethod default IPromise<List<Record>> listByQuery(String query) {
         Promise prom = new Promise();
         List<Record> res = new ArrayList<>();
         query(query, (r,e) -> {

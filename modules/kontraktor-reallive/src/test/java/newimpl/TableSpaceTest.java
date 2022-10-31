@@ -124,8 +124,8 @@ public class TableSpaceTest {
         test.forEach(rec -> true, (r, e) -> System.out.println("filter:" + r + " " + resultCount.incrementAndGet()));
 
         IntStream.range(0,100).forEach(i -> {
-            test.merge( "emöil" + i, "age", 9, "name", "Emil");
-            test.merge( "fölix" + i, "age", 17, "name", "Felix");
+            test.upsert( "emöil" + i, "age", 9, "name", "Emil");
+            test.upsert( "fölix" + i, "age", 17, "name", "Felix");
         });
 
         System.out.println(test.get("emil0").await());

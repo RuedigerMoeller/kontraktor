@@ -1,5 +1,6 @@
 package org.nustaq.reallive.server.storage;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.Spore;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.api.RecordStorage;
@@ -7,7 +8,6 @@ import org.nustaq.reallive.api.StorageIndex;
 import org.nustaq.reallive.server.RemoveLog;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 public class IndexedRecordStorage implements RecordStorage {
     RecordStorage wrapped;
     List<StorageIndex> indices = new ArrayList();
-    Map<String,HashIndex> hashIndizes = new HashMap<>();
+    Map<String,HashIndex> hashIndizes = new Object2ObjectOpenHashMap<>();
 
     public IndexedRecordStorage wrapped(RecordStorage r) {
         wrapped = r;
@@ -48,8 +48,11 @@ public class IndexedRecordStorage implements RecordStorage {
     }
 
     @Override
-    public RecordPersistance _put(String key, Record value) {
-        return put(key,value);
+    public RecordPersistance _rawPut(String key, Record value) {
+        if ( indices != null ) {
+            indices.forEach( ind -> ind.put(value.getKey(),value) );
+        }
+        return wrapped._rawPut(key,value);
     }
 
     public void initializeFromRecord(Record value) {

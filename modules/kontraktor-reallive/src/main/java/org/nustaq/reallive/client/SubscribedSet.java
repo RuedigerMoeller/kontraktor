@@ -1,5 +1,6 @@
 package org.nustaq.reallive.client;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.reallive.messages.QueryDoneMessage;
 import org.nustaq.reallive.server.StorageDriver;
@@ -29,7 +30,7 @@ public class SubscribedSet {
 
     public SubscribedSet(RealLiveTable source, boolean usConc) {
         this.source = source;
-        storage = new StorageDriver(new HeapRecordStorage( usConc ? new ConcurrentHashMap() : new HashMap() ) );
+        storage = new StorageDriver(new HeapRecordStorage( usConc ? new ConcurrentHashMap() : new Object2ObjectOpenHashMap<>() ) );
     }
 
     public void subscribe(RLPredicate<Record> filter) {

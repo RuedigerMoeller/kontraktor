@@ -1,5 +1,6 @@
 package org.nustaq.reallive.records;
 
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.reallive.server.RLUtil;
 
 import java.util.*;
@@ -85,7 +86,7 @@ public class MapRecord implements Record {
         return null;
     }
 
-    protected Map<String,Object> map = new HashMap();
+    protected Map<String,Object> map = new Object2ObjectOpenHashMap(3,0.75f);
 
     protected transient String fields[];
     protected String key;
@@ -199,6 +200,28 @@ public class MapRecord implements Record {
         return newReq;
     }
 
+    public MapRecord deepCopied() {
+        MapRecord newReq = MapRecord.New(getKey());
+        map.forEach( (k,v) -> newReq.put(k,mapValue(v)) );
+        newReq.internal_setLastModified(lastModified);
+        newReq.internal_setSeq(seq);
+        return newReq;
+    }
+
+    private static Object mapValue(Object v) {
+        if ( v instanceof Record )
+            v = ((Record) v).deepCopied();
+        else if ( v instanceof Object[] ) {
+            Object[] varr = (Object[]) v;
+            Object arr[] = Arrays.copyOf(varr, (varr).length );
+            for (int j = 0; j < arr.length; j++) {
+                arr[j] = mapValue(arr[j]);
+            }
+            return arr;
+        }
+        return v;
+    }
+
     private void internal_setSeq(long seq) {
         this.seq = seq;
     }
@@ -222,5 +245,20 @@ public class MapRecord implements Record {
         MapRecord rec = MapRecord.New("pok");
         rec.put("x", new Object[] { 1,2,3});
 
+    }
+
+    @Override
+    public boolean _afterLoad() {
+        if ( map instanceof HashMap ) {
+            Map<String, Object> newMap = new Object2ObjectOpenHashMap<>(map.size(),0.75f);
+            map.forEach( (k,v) -> {
+                newMap.put( k, v );
+                if ( v instanceof Record )
+                    ((Record) v)._afterLoad();
+            });
+            map = newMap;
+            return true;
+        }
+        return false;
     }
 }

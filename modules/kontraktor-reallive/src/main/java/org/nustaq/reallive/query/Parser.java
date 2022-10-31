@@ -35,8 +35,8 @@ import java.util.*;
  */
 public class Parser {
 
-    HashMap<String,FuncOperand> functions;
-    HashMap<String,Operator> operators;
+    Map<String,FuncOperand> functions;
+    Map<String,Operator> operators;
 
     /* separator of arguments */
     private final String SEPARATOR = ",";
@@ -51,7 +51,7 @@ public class Parser {
 
     protected EvalContext ctxRef[];
 
-    Parser(HashMap<String, FuncOperand> functions, HashMap<String, Operator> operators) {
+    Parser(Map<String, FuncOperand> functions, Map<String, Operator> operators) {
         this.functions = functions;
         this.operators = operators;
     }

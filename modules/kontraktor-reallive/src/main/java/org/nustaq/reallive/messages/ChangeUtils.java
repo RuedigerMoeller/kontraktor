@@ -40,7 +40,7 @@ public class ChangeUtils {
             Object oldValue = to.get(field);
             Object newValue = from.get(field);
 
-            if ( ! Objects.equals(oldValue, newValue) || (forced != null && forced.contains(field) )) {
+            if ( ! Objects.deepEquals(oldValue, newValue) || (forced != null && forced.contains(field) )) {
                 changedFields.add(field);
                 changedValues.add(oldValue);
                 if ( copy )
