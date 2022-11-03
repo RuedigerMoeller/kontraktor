@@ -7,7 +7,6 @@ import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.server.FilterProcessor;
 import org.nustaq.reallive.server.FilterSpore;
 import org.nustaq.reallive.server.RemoveLog;
-import org.nustaq.reallive.server.dynamic.DynClusterDistribution;
 import org.nustaq.reallive.server.storage.StorageStats;
 import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.server.RLUtil;
@@ -16,7 +15,6 @@ import org.nustaq.reallive.records.RecordWrapper;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.nustaq.reallive.api.Record;
 
@@ -149,8 +147,8 @@ public class ShardedTable implements RealLiveTable {
     }
 
     protected void adjustLimitFilter(RLPredicate filter) {
-        if ( filter instanceof RLLimitedPredicate) {
-            ((RLLimitedPredicate)filter)._setLimit(Math.max(1,((RLLimitedPredicate) filter).getRecordLimit()/shards.size()));
+        if ( filter instanceof RLRateLimitedPredicate) {
+            ((RLRateLimitedPredicate)filter)._setLimit(Math.max(1,((RLRateLimitedPredicate) filter).getRecordLimit()/shards.size()));
         }
     }
 

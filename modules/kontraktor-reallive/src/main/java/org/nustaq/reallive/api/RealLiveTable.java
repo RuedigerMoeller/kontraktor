@@ -57,9 +57,10 @@ public interface RealLiveTable extends SafeRealLiveTable, ChangeStream, RealLive
         return prom;
     }
 
+    @CallerSideMethod
     default IPromise<Record> find(RLPredicate<Record> condition) {
         Promise prom = new Promise();
-        queryList(condition).then( (r,e) -> {
+        queryList(new LimitedQuery(1,condition)).then( (r,e) -> {
             if ( e != null )
                 prom.reject(e);
             if ( r == null ) {
