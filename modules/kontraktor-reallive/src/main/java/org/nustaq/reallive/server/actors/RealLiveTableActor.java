@@ -8,6 +8,7 @@ import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.remoting.encoding.CallbackRefSerializer;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.messages.IdenticalPutMessage;
+import org.nustaq.reallive.messages.PutMessage;
 import org.nustaq.reallive.server.*;
 import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
 import org.nustaq.reallive.server.storage.HashIndex;
@@ -197,7 +198,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
             localSubs.getReceiver().receive(RLUtil.get().done());
             filterProcessor.startListening(localSubs);
         } else {
-            FilterSpore spore = new FilterSpore(localSubs.getFilter()).modifiesResult(false);
+            FilterSpore spore = new FilterSpore(localSubs.getFilter());
             spore.onFinish( () -> localSubs.getReceiver().receive(RLUtil.get().done()) );
             spore.setForEach((r, e) -> {
                 if (Actors.isResult(e)) {
@@ -399,13 +400,13 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     @Override
     public IPromise atomic(int senderId, String key, RLFunction<Record, Object> action) {
         taCount++;
-        return storageDriver.atomicQuery(senderId, key,action);
+        return storageDriver.atomic(senderId, key,action);
     }
 
     @Override
     public void atomicUpdate(RLPredicate<Record> filter, RLFunction<Record, Boolean> action) {
         taCount++;
-        storageDriver.atomicUpdate(filter, action);
+        storageDriver.atomicQuery(0, filter, action);
     }
 
     @Override
@@ -484,17 +485,19 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     public void setRecord(int senderId, Record rec) {
         while ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
-        receive(new IdenticalPutMessage(senderId, rec));
+        receive(new PutMessage(senderId, rec));
     }
 
     @Override
-    public void setRecordAsIs(Record r) {
-
+    public void setRecordAsIs(Record rec) {
+        while ( rec instanceof RecordWrapper )
+            rec = ((RecordWrapper) rec).getRecord();
+        receive(new IdenticalPutMessage(0, rec));
     }
 
     @Override
     public void update(int senderId, String key, Object... keyVals) {
-        receive(RLUtil.get().update(senderId, key, keyVals));
+        storageDriver.update(senderId,key, keyVals);
     }
 
     @Override

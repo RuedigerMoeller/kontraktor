@@ -11,7 +11,7 @@ import org.nustaq.reallive.records.PatchingRecord;
 public class FilterSpore extends Spore<Record,Record> {
 
     RLPredicate<Record> filter; // may modify record (gets patchable private copy
-    boolean modifiesResult;
+    boolean modifiesResult = false; // kept for serialization compat
 
     public FilterSpore(RLPredicate<Record> filter) {
         this.filter = filter;
@@ -34,22 +34,9 @@ public class FilterSpore extends Spore<Record,Record> {
     }
     @Override
     public void remote(Record input) {
-        if (modifiesResult) {
-            final PatchingRecord patchingRecord = rec.get();
-            patchingRecord.reset(input);
-            if (filter.test(patchingRecord)) {
-                stream(patchingRecord.unwrapOrCopy());
-            }
-        } else {
-            if (filter.test(input)) {
-                stream(input);
-            }
+        if (filter.test(input)) {
+            stream(input);
         }
-    }
-
-    public FilterSpore modifiesResult(boolean modifiesResult) {
-        this.modifiesResult = modifiesResult;
-        return this;
     }
 
     public FilterSpore filter(RLPredicate<Record> filter) {

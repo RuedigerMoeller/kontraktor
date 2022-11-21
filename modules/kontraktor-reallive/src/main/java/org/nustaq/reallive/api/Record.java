@@ -11,8 +11,6 @@ import org.nustaq.reallive.server.storage.RecordJsonifier;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -318,7 +316,7 @@ public interface Record extends Serializable, EvalContext {
     /**
      * @return a shallow (!) copy of this record
      */
-    default Record copied() {
+    default Record shallowCopy() {
         throw new RuntimeException("copy not implemented");
     }
     default MapRecord deepCopied() {
@@ -617,4 +615,25 @@ public interface Record extends Serializable, EvalContext {
         return false;
     }
 
+    /**
+     * tries to interpret the value as a long. In case its a string, its parsed.
+     * @param key
+     * @return
+     */
+    default long asLong(String key) {
+        return getValue(key).getLongValue();
+    }
+
+    /**
+     * tries to interpret the value as a double. In case its a string, its parsed.
+     * @param key
+     * @return
+     */
+    default double asDouble(String key) {
+        return getValue(key).getDoubleValue();
+    }
+
+    default Object[] getArr(String z) {
+        return (Object[]) get(z);
+    }
 }

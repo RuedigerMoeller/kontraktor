@@ -22,9 +22,6 @@ public interface ChangeMessage extends Serializable {
     ChangeMessage reduced(String[] reducedFields);
     ChangeMessage omit(String fields[]);
 
-    default Set<String> getForcedUpdateFields() {
-        return null;
-    }
     default boolean isDoneMsg() { return getType() == QUERYDONE; }
     default boolean isAdd() { return getType() == ADD; }
     default Record getRecord() { return null; }

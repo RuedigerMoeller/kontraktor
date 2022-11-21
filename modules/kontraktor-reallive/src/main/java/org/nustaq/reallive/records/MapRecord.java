@@ -192,7 +192,7 @@ public class MapRecord implements Record {
     /**
      * @return a shallow copy
      */
-    public MapRecord copied() {
+    public MapRecord shallowCopy() {
         MapRecord newReq = MapRecord.New(getKey());
         map.forEach( (k,v) -> newReq.put(k,v) );
         newReq.internal_setLastModified(lastModified);
@@ -213,7 +213,7 @@ public class MapRecord implements Record {
             v = ((Record) v).deepCopied();
         else if ( v instanceof Object[] ) {
             Object[] varr = (Object[]) v;
-            Object arr[] = Arrays.copyOf(varr, (varr).length );
+            Object arr[] = Arrays.copyOf(varr, varr.length );
             for (int j = 0; j < arr.length; j++) {
                 arr[j] = mapValue(arr[j]);
             }

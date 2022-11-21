@@ -15,7 +15,6 @@ import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
  * Created by moelrue on 03.08.2015.
  *
  * implements transaction processing on top of a physical storage
- *
  */
 public class StorageDriver implements ChangeReceiver {
 
@@ -29,19 +28,22 @@ public class StorageDriver implements ChangeReceiver {
         Log.Info(this,""+store.getStats());
     }
 
-    public StorageDriver() {
-    }
-
     public static Record unwrap(Record r) {
         if ( r instanceof PatchingRecord ) {
             return unwrap(((PatchingRecord) r).unwrapOrCopy());
         }
         if ( r instanceof RecordWrapper ) {
-            return unwrap(((RecordWrapper) r).getRecord());
+            return unwrap(r.getRecord());
         }
         return r;
     }
 
+    /**
+     * Semantics:
+     * We expect the change has NOT YET been applied.
+     * In case of updates we expect the diff to be correct. In case the diff is null, we compute it right here.
+     * @param change
+     */
     @Override
     public void receive(ChangeMessage change) {
         switch (change.getType()) {
@@ -58,37 +60,16 @@ public class StorageDriver implements ChangeReceiver {
                     if ( change.generateChangeBroadcast() )
                         receive( new AddMessage(change.getSenderId(),true,change.getRecord()));
                 } else {
-                    Diff diff = ChangeUtils.diff(change.getRecord(), prevRecord);
-                    if ( ! diff.isEmpty() || PROPAGATE_EMPTY_DIFFS ) {
-                        Record newRecord = unwrap(change.getRecord()); // clarification
+                    Record newRecord = change.getRecord();
+                    Diff diff = ChangeUtils.computeDiff(prevRecord,newRecord);
+                    if ( !diff.isEmpty() || PROPAGATE_EMPTY_DIFFS ) {
                         if ( change.updateLastModified() )
                             store.put(change.getKey(), newRecord);
                         else
                             store._rawPut(change.getKey(), newRecord);
                         if ( change.generateChangeBroadcast() )
-                            listener.receive(new UpdateMessage(change.getSenderId(), diff, newRecord, null));
+                            listener.receive(new UpdateMessage(change.getSenderId(), diff, newRecord));
                     }
-                }
-                break;
-            }
-            case ChangeMessage.ADD:
-            {
-                AddMessage addMessage = (AddMessage) change;
-                String key = addMessage.getKey();
-                Record prevRecord = store.get(key);
-                if ( prevRecord != null && ! addMessage.isUpdateIfExisting() ) {
-                    return;
-                }
-                if ( prevRecord != null ) {
-                    Diff diff = ChangeUtils.copyAndDiff(addMessage.getRecord(), prevRecord);
-                    Record newRecord = unwrap(prevRecord); // clarification
-                    store.put(change.getKey(),newRecord);
-                    if ( change.generateChangeBroadcast() )
-                        listener.receive( new UpdateMessage(change.getSenderId(), diff,newRecord,null) );
-                } else {
-                    store.put(change.getKey(),unwrap(addMessage.getRecord()));
-                    if ( change.generateChangeBroadcast() )
-                        listener.receive(addMessage);
                 }
                 break;
             }
@@ -112,34 +93,47 @@ public class StorageDriver implements ChangeReceiver {
                 }
                 break;
             }
+            case ChangeMessage.ADD:
+            {
+                AddMessage addMessage = (AddMessage) change;
+                String key = addMessage.getKey();
+                Record prevRecord = store.get(key);
+                if ( prevRecord != null && ! addMessage.isUpdateIfExisting() ) {
+                    return;
+                }
+                if ( prevRecord == null ) { // add
+                    store.put(change.getKey(), addMessage.getRecord());
+                    if ( change.generateChangeBroadcast() )
+                        listener.receive(addMessage);
+                    return;
+                }
+                // break; fall through to update
+                change = new UpdateMessage(addMessage.getSenderId(),null,addMessage.getRecord());
+            }
             case ChangeMessage.UPDATE:
             {
                 UpdateMessage updateMessage = (UpdateMessage) change;
-                Record oldRec = store.get(updateMessage.getKey());
-                if ( oldRec == null && updateMessage.isAddIfNotExists() ) {
+                Record previousRec = store.get(updateMessage.getKey());
+                if ( previousRec == null && updateMessage.isAddIfNotExists() ) {
                     if ( updateMessage.getNewRecord() == null ) {
                         throw new RuntimeException("updated record does not exist, cannot fall back to 'Add' as UpdateMessage.newRecord is null");
                     }
                     store.put(change.getKey(),updateMessage.getNewRecord());
                     if ( change.generateChangeBroadcast() )
                         listener.receive( new AddMessage(change.getSenderId(), updateMessage.getNewRecord()) );
-                } else if ( updateMessage.getDiff() == null ) {
-                    Diff diff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec);
-                    if ( ! diff.isEmpty() || PROPAGATE_EMPTY_DIFFS ) {
-                        Record newRecord = unwrap(oldRec); // clarification
-                        store.put(change.getKey(), newRecord);
-                        if ( change.generateChangeBroadcast() )
-                            listener.receive(new UpdateMessage(change.getSenderId(), diff, newRecord, change.getForcedUpdateFields()));
-                    }
                 } else {
+                    Diff diff = updateMessage.getDiff();
+                    Record updatedRecord = change.getRecord();
+                    if ( diff == null ) {
+                        diff = ChangeUtils.computeDiff(previousRec, updatedRecord);
+                    }
                     // old values are actually not needed inside the diff
                     // however they are needed in a change notification for filter processing (need to reconstruct prev record)
-                    if ( ! updateMessage.getDiff().isEmpty() || PROPAGATE_EMPTY_DIFFS ) {
-                        Diff newDiff = ChangeUtils.copyAndDiff(updateMessage.getNewRecord(), oldRec, updateMessage.getDiff().getChangedFields());
-                        Record newRecord = unwrap(oldRec); // clarification
-                        store.put(change.getKey(), newRecord);
+                    if ( ! diff.isEmpty() || PROPAGATE_EMPTY_DIFFS ) {
+                        diff.applyToOldRecord(previousRec,updatedRecord);
+                        store.put(change.getKey(), previousRec);
                         if ( change.generateChangeBroadcast() )
-                            listener.receive(new UpdateMessage(change.getSenderId(), newDiff, newRecord, change.getForcedUpdateFields()));
+                            listener.receive(new UpdateMessage(change.getSenderId(), diff, previousRec ));
                     }
                 }
                 break;
@@ -188,7 +182,7 @@ public class StorageDriver implements ChangeReceiver {
      * @param action
      * @return the result of function.
      */
-    public IPromise atomicQuery(int senderId, String key, RLFunction<Record,Object> action) {
+    public IPromise atomic(int senderId, String key, RLFunction<Record,Object> action) {
         Record rec = getStore().get(key);
         if ( rec == null ) {
             final Object apply = action.apply(rec);
@@ -198,41 +192,35 @@ public class StorageDriver implements ChangeReceiver {
             }
             return new Promise(apply);
         } else {
-            PatchingRecord pr = new PatchingRecord(rec.deepCopied());
+            Record pr = rec.deepCopied();
             final Object res = action.apply(pr);
             if ( res instanceof ChangeMessage )
             {
                 ((ChangeMessage) res).senderId(senderId);
                 receive( (ChangeMessage) res ) ;
             } else {
-                UpdateMessage updates = pr.getUpdates(senderId);
-                if (updates != null) {
-                    receive(updates);
-                }
+                Diff diff = ChangeUtils.computeDiff(rec, pr);
+                if ( !diff.isEmpty())
+                    receive(new UpdateMessage(senderId,diff,pr));
             }
             return new Promise(res);
         }
     }
 
-    public void atomicUpdate(RLPredicate<Record> filter, RLFunction<Record, Boolean> action) {
+    public void atomicQuery(int senderId, RLPredicate<Record> filter, RLFunction<Record, Boolean> action) {
         store.forEach(filter, (r,e) -> {
             if ( r != null ) {
-                PatchingRecord pr = new PatchingRecord(r);
+                Record pr = r.deepCopied();
                 Boolean res = action.apply(pr);
                 if (res==Boolean.FALSE) {
-                    receive(RLUtil.get().remove(0,pr.getKey()));
+                    receive(RLUtil.get().remove(senderId,pr.getKey()));
                 } else {
-                    UpdateMessage updates = pr.getUpdates(0);
-                    if (updates != null) {
-                        receive(updates);
-                    }
+                    Diff diff = ChangeUtils.computeDiff(r, pr);
+                    if ( ! diff.isEmpty() )
+                        receive(new UpdateMessage(senderId,diff,pr));
                 }
             }
         });
-    }
-
-    public void addOrUpdate(int senderId, String key, Object... keyVals) {
-        receive(RLUtil.get().addOrUpdate(senderId,key, keyVals));
     }
 
     public void add(int senderId, String key, Object... keyVals) {
@@ -243,16 +231,23 @@ public class StorageDriver implements ChangeReceiver {
         receive(new AddMessage(senderId,rec));
     }
 
-    public void addOrUpdateRec(int senderId, Record rec) {
-        receive(new AddMessage(senderId,true,rec));
-    }
-
     public void put(int senderId, Record rec) {
         receive( new PutMessage(senderId,rec) );
     }
 
     public void update(int senderId, String key, Object... keyVals) {
-        receive(RLUtil.get().update(senderId,key, keyVals));
+        Record currentRecord = getStore().get(key);
+        if ( currentRecord == null ) {
+            receive(RLUtil.get().add(senderId,key,keyVals));
+        } else {
+            Record modifiedRecord = currentRecord.deepCopied();
+            for (int i = 0; i < keyVals.length; i+=2) {
+                Object k = keyVals[i];
+                Object v = keyVals[i+1];
+                modifiedRecord.put((String)k,v);
+            }
+            receive(new UpdateMessage(senderId,null,modifiedRecord));
+        }
     }
 
     public void remove(int senderId, String key) {

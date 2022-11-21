@@ -42,7 +42,7 @@ public class Basic {
             "test", "13",
             "sub", Record.from("a", "12", "b", "14")
         );
-        Diff diff = ChangeUtils.diff(from, test1);
+        Diff diff = ChangeUtils.computeDiff(test1,from);
         Assert.assertTrue(!diff.isEmpty());
     }
 
@@ -63,18 +63,6 @@ public class Basic {
             "a+", Record.from("b", 10, "pwd", "erutz0w9rw0e9r8"),
             "pwd?+", "wpeoriwe8rw9er8w9r"
         );
-        test.stripOps();
-        System.out.println(test.toPrettyString());
-        Assert.assertTrue(test.get("a+") == null );
-    }
-
-    @Test
-    public void testStripOpsPatched() {
-        Record test = new PatchingRecord(Record.from(
-            "key", "test",
-            "a+", Record.from("b", 10, "pwd", "erutz0w9rw0e9r8"),
-            "pwd?+", "wpeoriwe8rw9er8w9r"
-        ));
         test.stripOps();
         System.out.println(test.toPrettyString());
         Assert.assertTrue(test.get("a+") == null );
@@ -221,46 +209,46 @@ public class Basic {
 //        }
 //    }
 //
-    @Test
-    public void bench() {
-        long tim = System.currentTimeMillis();
-        for ( int ii = 0; ii < 100; ii++) {
-            RLUtil cb = RLUtil.get();
-            StorageDriver stream = new StorageDriver(new HeapRecordStorage());
-            stream.setListener(change -> {
-                //System.out.println(change);
-            });
-            tim = System.currentTimeMillis();
-            for ( int i = 0; i < 100_000; i++ ) {
-                stream.receive(cb.add( 1,"one"+i,
-                    "name", "emil",
-                    "age", 9,
-                    "bla", 13,
-                    "y", 123.45,
-                    "y1", 123.45,
-                    "y2", 123.45,
-                    "y3", 123.45,
-                    "y4", 123.45,
-                    "y5", 123.45,
-                    "y6", 123.45,
-                    "y7", 123.45,
-                    "y8", 123.45,
-                    "y9", 123.45
-                ));
-            }
-            System.out.println("ADD "+(System.currentTimeMillis()-tim) );
-            tim = System.currentTimeMillis();
-            for ( int i = 0; i < 100_000; i++ ) {
-                stream.receive(cb.update(1,"one" + i, "age", 10));
-            }
-            System.out.println("UPD "+(System.currentTimeMillis()-tim) );
-            tim = System.currentTimeMillis();
-            for ( int i = 0; i < 100_000; i++ ) {
-                stream.receive(cb.remove(1,"one"+i) );
-            }
-            System.out.println("DEL "+(System.currentTimeMillis()-tim) );
-        }
-    }
+//    @Test
+//    public void bench() {
+//        long tim = System.currentTimeMillis();
+//        for ( int ii = 0; ii < 100; ii++) {
+//            RLUtil cb = RLUtil.get();
+//            StorageDriver stream = new StorageDriver(new HeapRecordStorage());
+//            stream.setListener(change -> {
+//                //System.out.println(change);
+//            });
+//            tim = System.currentTimeMillis();
+//            for ( int i = 0; i < 100_000; i++ ) {
+//                stream.receive(cb.add( 1,"one"+i,
+//                    "name", "emil",
+//                    "age", 9,
+//                    "bla", 13,
+//                    "y", 123.45,
+//                    "y1", 123.45,
+//                    "y2", 123.45,
+//                    "y3", 123.45,
+//                    "y4", 123.45,
+//                    "y5", 123.45,
+//                    "y6", 123.45,
+//                    "y7", 123.45,
+//                    "y8", 123.45,
+//                    "y9", 123.45
+//                ));
+//            }
+//            System.out.println("ADD "+(System.currentTimeMillis()-tim) );
+//            tim = System.currentTimeMillis();
+//            for ( int i = 0; i < 100_000; i++ ) {
+//                stream.receive(cb.new UpdateMessage(1,"one" + i, "age", 10));
+//            }
+//            System.out.println("UPD "+(System.currentTimeMillis()-tim) );
+//            tim = System.currentTimeMillis();
+//            for ( int i = 0; i < 100_000; i++ ) {
+//                stream.receive(cb.remove(1,"one"+i) );
+//            }
+//            System.out.println("DEL "+(System.currentTimeMillis()-tim) );
+//        }
+//    }
 
     public static class TA extends Actor<TA> {
 
