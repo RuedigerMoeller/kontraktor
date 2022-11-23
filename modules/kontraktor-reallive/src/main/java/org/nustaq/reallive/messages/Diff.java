@@ -1,7 +1,6 @@
 package org.nustaq.reallive.messages;
 
 import org.nustaq.kontraktor.util.Pair;
-import org.nustaq.reallive.api.Record;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -15,7 +14,7 @@ import java.util.HashSet;
 public class Diff implements Serializable {
 
     final String changedFields[];
-    final Object oldValues[]; // can be null if previous record is unknown (incoming change only, broadcast always fill this)
+    final Object oldValues[];
 
     public Diff(String[] changedFields, Object[] oldValues) {
         this.changedFields = changedFields;
@@ -105,15 +104,6 @@ public class Diff implements Serializable {
             }
         }
         return false;
-    }
-
-    public void applyToOldRecord( Record oldRec, Record newRec ) {
-        if ( changedFields != null ) {
-            for (int i = 0; i < changedFields.length; i++) {
-                String changedField = changedFields[i];
-                oldRec.put(changedField,newRec.get(changedField));
-            }
-        }
     }
 
 }

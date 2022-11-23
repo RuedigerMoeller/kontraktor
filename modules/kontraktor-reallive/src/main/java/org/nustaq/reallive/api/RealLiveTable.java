@@ -1,10 +1,7 @@
 package org.nustaq.reallive.api;
 
-import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.annotations.CallerSideMethod;
-import org.nustaq.reallive.server.RemoveLog;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,7 +41,7 @@ public interface RealLiveTable extends SafeRealLiveTable, ChangeStream, RealLive
 
     void unsubscribeById(int subsId);
 
-    @CallerSideMethod default IPromise<List<Record>> queryList(RLPredicate<Record> condition) {
+    default IPromise<List<Record>> queryList(RLPredicate<Record> condition) {
         Promise prom = new Promise();
         List<Record> res = new ArrayList<>();
         forEach(condition, (r,e) -> {
@@ -57,10 +54,9 @@ public interface RealLiveTable extends SafeRealLiveTable, ChangeStream, RealLive
         return prom;
     }
 
-    @CallerSideMethod
     default IPromise<Record> find(RLPredicate<Record> condition) {
         Promise prom = new Promise();
-        queryList(new LimitedQuery(1,condition)).then( (r,e) -> {
+        queryList(condition).then( (r,e) -> {
             if ( e != null )
                 prom.reject(e);
             if ( r == null ) {
@@ -71,7 +67,4 @@ public interface RealLiveTable extends SafeRealLiveTable, ChangeStream, RealLive
         return prom;
     }
 
-    void queryRemoveLog( long start, long end, Callback<RemoveLog.RemoveLogEntry> cb );
-
-    void pruneRemoveLog( long maxAge );
 }

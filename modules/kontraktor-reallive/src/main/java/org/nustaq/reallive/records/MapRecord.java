@@ -1,12 +1,10 @@
 package org.nustaq.reallive.records;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import org.nustaq.reallive.api.TransformFunction;
 import org.nustaq.reallive.server.RLUtil;
 
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.IntFunction;
 
 import org.nustaq.reallive.api.Record;
 
@@ -87,7 +85,7 @@ public class MapRecord implements Record {
         return null;
     }
 
-    protected Map<String,Object> map = new Object2ObjectOpenHashMap(3,0.75f);
+    protected Map<String,Object> map = new HashMap();
 
     protected transient String fields[];
     protected String key;
@@ -193,44 +191,12 @@ public class MapRecord implements Record {
     /**
      * @return a shallow copy
      */
-    public MapRecord shallowCopy() {
+    public MapRecord copied() {
         MapRecord newReq = MapRecord.New(getKey());
         map.forEach( (k,v) -> newReq.put(k,v) );
         newReq.internal_setLastModified(lastModified);
         newReq.internal_setSeq(seq);
         return newReq;
-    }
-
-    public MapRecord transformCopy(TransformFunction transform) {
-        MapRecord newReq = MapRecord.New(getKey());
-        map.forEach( (k,v) -> {
-            Object apply = transform.apply(k, -1, v);
-            if ( apply != v )
-                newReq.put(k, apply);
-            else
-                newReq.put(k, mapValue(apply,transform));
-        });
-        newReq.internal_setLastModified(lastModified);
-        newReq.internal_setSeq(seq);
-        return newReq;
-    }
-
-    private static Object mapValue(Object v, TransformFunction transform) {
-        if ( v instanceof Record )
-            v = ((Record) v).transformCopy(transform);
-        else if ( v instanceof Object[] ) {
-            Object[] valArr = (Object[]) v;
-            Object newArr[] = new Object[valArr.length];
-            for (int j = 0; j < newArr.length; j++) {
-                Object apply = transform.apply(null, j, valArr[j]);
-                if ( apply == valArr[j] )
-                    newArr[j] = mapValue(apply, transform);
-                else
-                    newArr[j] = apply;
-            }
-            return newArr;
-        }
-        return v;
     }
 
     private void internal_setSeq(long seq) {
@@ -256,20 +222,5 @@ public class MapRecord implements Record {
         MapRecord rec = MapRecord.New("pok");
         rec.put("x", new Object[] { 1,2,3});
 
-    }
-
-    @Override
-    public boolean _afterLoad() {
-        if ( map instanceof HashMap ) {
-            Map<String, Object> newMap = new Object2ObjectOpenHashMap<>(map.size(),0.75f);
-            map.forEach( (k,v) -> {
-                newMap.put( k, v );
-                if ( v instanceof Record )
-                    ((Record) v)._afterLoad();
-            });
-            map = newMap;
-            return true;
-        }
-        return false;
     }
 }

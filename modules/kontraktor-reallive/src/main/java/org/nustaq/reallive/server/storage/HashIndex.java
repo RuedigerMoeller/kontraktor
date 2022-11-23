@@ -18,8 +18,8 @@ public class HashIndex implements StorageIndex {
 
     private final String hashPath;
     RLFunction<Record,Object> hashGetter;
-    Map<Object, Set<String>> index = new Object2ObjectOpenHashMap<>();
-    Map<String,Object> key2HashVal = new Object2ObjectOpenHashMap<>();
+    Object2ObjectOpenHashMap<Object, Set<String>> index = new Object2ObjectOpenHashMap<>();
+    Object2ObjectOpenHashMap<String,Object> key2HashVal = new Object2ObjectOpenHashMap<>();
 
     public HashIndex(RLFunction<Record, Object> hashGetter, String hashPath) {
         this.hashGetter = hashGetter;

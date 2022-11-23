@@ -2,6 +2,8 @@ package org.nustaq.reallive.records;
 
 import org.nustaq.reallive.api.Record;
 
+import java.util.HashSet;
+
 /**
  * Created by ruedi on 22/08/15.
  *
@@ -105,8 +107,8 @@ public class RecordWrapper implements Record {
         return getKey().hashCode();
     }
 
-    public RecordWrapper shallowCopy() {
-        RecordWrapper newReq = new RecordWrapper(record.shallowCopy());
+    public RecordWrapper copied() {
+        RecordWrapper newReq = new RecordWrapper(record.copied());
         return newReq;
     }
 

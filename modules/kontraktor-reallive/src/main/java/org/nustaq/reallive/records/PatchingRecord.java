@@ -1,18 +1,21 @@
 package org.nustaq.reallive.records;
 
+import org.nustaq.reallive.server.RLUtil;
 import org.nustaq.reallive.api.Record;
+import org.nustaq.reallive.messages.UpdateMessage;
 
 import java.util.*;
 
 /**
  * Created by ruedi on 10.01.16.
  * <p>
- * overrides on write. Used in filter to patch old/new record from a diff.
- * Only detects changes on top-level (not inside nested records)
+ * overrides on write. Used to enable queries to patch result records (e.g. in order
+ * to submit results of cpu intensive computations)
  */
 public class PatchingRecord extends RecordWrapper {
 
     MapRecord override;
+    HashSet<String> forcedUpdate;
 
     public PatchingRecord(Record record) {
         super(record);
@@ -38,10 +41,12 @@ public class PatchingRecord extends RecordWrapper {
         return super.getFields();
     }
 
-    public PatchingRecord shallowCopy() {
+    public PatchingRecord copied() {
         PatchingRecord newReq = new PatchingRecord(record);
         if ( override != null )
-            newReq.override = override.shallowCopy();
+            newReq.override = override.copied();
+        if (forcedUpdate != null)
+            newReq.forcedUpdate = (HashSet<String>) forcedUpdate.clone();
         return newReq;
     }
 
@@ -74,6 +79,16 @@ public class PatchingRecord extends RecordWrapper {
         return this;
     }
 
+    public Record putWithOldField( String field, Object value, Object oldValue ) {
+        if (override == null)
+            override = MapRecord.New(getKey());
+        if ( value == null )
+            value = _NULL_;
+        override.put(field, value);
+        record.put( field, oldValue );
+        return this;
+    }
+
     @Override
     public String toString() {
         return "PatchingRecord{" +
@@ -95,6 +110,31 @@ public class PatchingRecord extends RecordWrapper {
     public void reset(Record input) {
         record = input;
         override = null;
+        forcedUpdate = null;
+    }
+
+    public void forceUpdate(String name) {
+        if (forcedUpdate == null) {
+            forcedUpdate = new HashSet();
+        }
+        forcedUpdate.add(name);
+    }
+
+    public Set<String> getForcedUpdates() {
+        return forcedUpdate;
+    }
+
+    public UpdateMessage getUpdates(int senderId) {
+        if (override == null)
+            return null;
+        Object update[] = new Object[override.size() * 2];
+        int idx = 0;
+        for (Iterator iterator = override.map.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry next = (Map.Entry) iterator.next();
+            update[idx++] = next.getKey();
+            update[idx++] = next.getValue();
+        }
+        return RLUtil.get().updateWithForced(senderId,getKey(), forcedUpdate, update);
     }
 
     public Record unwrapOrCopy() {

@@ -13,6 +13,8 @@ import org.nustaq.reallive.server.storage.HeapRecordStorage;
 import org.nustaq.reallive.server.storage.OffHeapRecordStorage;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 public class EmbeddedRealLive {
@@ -21,6 +23,8 @@ public class EmbeddedRealLive {
     public static EmbeddedRealLive get() {
         return instance;
     }
+
+    public static Map<String,Function<TableDescription,RecordStorage>> sCustomRecordStorage = new HashMap<>();
 
     public IPromise<RealLiveTable> loadTable(String pathToBinFile) {
         TableDescription ts = new TableDescription()
@@ -60,8 +64,9 @@ public class EmbeddedRealLive {
                     memFactory = d -> new HeapRecordStorage();
                     break;
                 default:
-                    memFactory = d -> new HeapRecordStorage();
-                    Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to TEMP");
+                    memFactory = sCustomRecordStorage.get(desc.getStorageType());
+                    if ( memFactory == null )
+                        Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to PERSIST");
             }
         } else {
             String bp = dataDir == null ? desc.getFilePath() : dataDir;
@@ -95,8 +100,9 @@ public class EmbeddedRealLive {
                     memFactory = d -> new HeapRecordStorage();
                     break;
                 default:
-                    memFactory = d -> new HeapRecordStorage();
-                    Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to TEMP");
+                    memFactory = sCustomRecordStorage.get(desc.getStorageType());
+                    if ( memFactory == null )
+                        Log.Error(this,"unknown storage type "+desc.getStorageType()+" default to PERSIST");
             }
         }
         Promise p = new Promise();

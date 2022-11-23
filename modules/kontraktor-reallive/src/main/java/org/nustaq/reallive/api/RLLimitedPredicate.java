@@ -1,15 +1,11 @@
 package org.nustaq.reallive.api;
 
-/**
- * a rate limited query. it limits the amount of results per second to the given value
- * @param <T>
- */
-public class RLRateLimitedPredicate<T> implements RLPredicate<T> {
+public class RLLimitedPredicate<T> implements RLPredicate<T> {
 
     int limit;
     RLPredicate query;
 
-    public RLRateLimitedPredicate(int limit, RLPredicate query) {
+    public RLLimitedPredicate(int limit, RLPredicate query) {
         this.limit = limit;
         this.query = query;
     }

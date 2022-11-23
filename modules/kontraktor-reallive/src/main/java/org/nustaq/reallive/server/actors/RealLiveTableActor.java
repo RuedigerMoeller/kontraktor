@@ -1,6 +1,5 @@
 package org.nustaq.reallive.server.actors;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import org.nustaq.kontraktor.annotations.Local;
@@ -8,7 +7,6 @@ import org.nustaq.kontraktor.impl.CallbackWrapper;
 import org.nustaq.kontraktor.remoting.encoding.CallbackRefSerializer;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.messages.IdenticalPutMessage;
-import org.nustaq.reallive.messages.PutMessage;
 import org.nustaq.reallive.server.*;
 import org.nustaq.reallive.server.storage.ClusterTableRecordMapping;
 import org.nustaq.reallive.server.storage.HashIndex;
@@ -16,6 +14,7 @@ import org.nustaq.reallive.server.storage.IndexedRecordStorage;
 import org.nustaq.reallive.server.storage.StorageStats;
 import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.messages.AddMessage;
+import org.nustaq.reallive.messages.PutMessage;
 import org.nustaq.reallive.messages.RemoveMessage;
 import org.nustaq.reallive.query.QToken;
 import org.nustaq.reallive.query.Value;
@@ -44,7 +43,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
 
     StorageDriver storageDriver;
     FilterProcessor filterProcessor;
-    Map<String,Subscriber> receiverSideSubsMap = new Object2ObjectOpenHashMap<>();
+    HashMap<String,Subscriber> receiverSideSubsMap = new HashMap();
     TableDescription description;
     IndexedRecordStorage indexedStorage = new IndexedRecordStorage(); // holds indizes
     ArrayList<QueryQEntry> queuedSpores = new ArrayList();
@@ -198,7 +197,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
             localSubs.getReceiver().receive(RLUtil.get().done());
             filterProcessor.startListening(localSubs);
         } else {
-            FilterSpore spore = new FilterSpore(localSubs.getFilter());
+            FilterSpore spore = new FilterSpore(localSubs.getFilter()).modifiesResult(false);
             spore.onFinish( () -> localSubs.getReceiver().receive(RLUtil.get().done()) );
             spore.setForEach((r, e) -> {
                 if (Actors.isResult(e)) {
@@ -400,13 +399,13 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     @Override
     public IPromise atomic(int senderId, String key, RLFunction<Record, Object> action) {
         taCount++;
-        return storageDriver.atomic(senderId, key,action);
+        return storageDriver.atomicQuery(senderId, key,action);
     }
 
     @Override
     public void atomicUpdate(RLPredicate<Record> filter, RLFunction<Record, Boolean> action) {
         taCount++;
-        storageDriver.atomicQuery(0, filter, action);
+        storageDriver.atomicUpdate(filter, action);
     }
 
     @Override
@@ -424,7 +423,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     @Override
-    public void upsert(int senderId, String key, Object... keyVals) {
+    public void merge(int senderId, String key, Object... keyVals) {
         if ( ((Object)key) instanceof Record )
             throw new RuntimeException("probably accidental method resolution fail. Use merge instead");
         receive(RLUtil.get().addOrUpdate(senderId, key, keyVals));
@@ -444,18 +443,6 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     @Override
-    public void _join(int senderId, Record jsonrec) {
-        atomic( senderId, jsonrec.getKey(), rec -> {
-            if ( rec == null ) {
-                return new AddMessage(senderId,jsonrec);
-            } else {
-                rec.join(jsonrec);
-            }
-            return null;
-        });
-    }
-
-    @Override
     public IPromise<Boolean> add(int senderId, String key, Object... keyVals) {
         if ( storageDriver.getStore().get(key) != null )
             return resolve(false);
@@ -465,7 +452,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
 
     @Override
     public IPromise<Boolean> addRecord(int senderId, Record rec) {
-        while ( rec instanceof RecordWrapper)
+        if ( rec instanceof RecordWrapper)
             rec = ((RecordWrapper) rec).getRecord();
         Record existing = storageDriver.getStore().get(rec.getKey());
         if ( existing != null )
@@ -475,29 +462,22 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     @Override
-    public void upsertRecord(int senderId, Record rec) {
-        while ( rec instanceof RecordWrapper )
+    public void mergeRecord(int senderId, Record rec) {
+        if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         receive(new AddMessage(senderId, true,rec));
     }
 
     @Override
     public void setRecord(int senderId, Record rec) {
-        while ( rec instanceof RecordWrapper )
+        if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         receive(new PutMessage(senderId, rec));
     }
 
     @Override
-    public void setRecordAsIs(Record rec) {
-        while ( rec instanceof RecordWrapper )
-            rec = ((RecordWrapper) rec).getRecord();
-        receive(new IdenticalPutMessage(0, rec));
-    }
-
-    @Override
     public void update(int senderId, String key, Object... keyVals) {
-        storageDriver.update(senderId,key, keyVals);
+        receive(RLUtil.get().update(senderId, key, keyVals));
     }
 
     @Override
@@ -518,7 +498,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     public void _addSilent(Record rec) {
-        storageDriver.getStore()._rawPut(rec.getKey(),rec);
+        storageDriver.getStore()._put(rec.getKey(),rec);
     }
 
     public IPromise<TableState> getTableState() {
@@ -527,12 +507,11 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
         );
     }
 
-    public void queryRemoveLog( long start, long end, Callback<RemoveLog.RemoveLogEntry> cb ) {
-        storageDriver.queryRemoveLog(start,end,cb);
+    @Override
+    public void setRecordAsIs(Record rec) {
+        while ( rec instanceof RecordWrapper )
+            rec = ((RecordWrapper) rec).getRecord();
+        receive(new IdenticalPutMessage(0, rec));
     }
 
-    @Override
-    public void pruneRemoveLog(long maxAge) {
-        storageDriver.pruneRemoveLog(maxAge);
-    }
 }

@@ -7,9 +7,6 @@ import org.nustaq.reallive.server.MapSpore;
 import org.nustaq.reallive.server.QueryPredicate;
 import org.nustaq.reallive.query.QParseException;
 
-import java.util.ArrayList;
-import java.util.List;
-
 
 /**
  * Created by ruedi on 04/08/15.
@@ -30,19 +27,6 @@ public interface RealLiveStreamActor extends SafeRealLiveStreamActor {
 
     @CallerSideMethod default void query(String query, Callback<Record> cb) throws QParseException {
         this.forEach(new QueryPredicate<Record>(query), cb);
-    }
-
-    @CallerSideMethod default IPromise<List<Record>> listByQuery(String query) {
-        Promise prom = new Promise();
-        List<Record> res = new ArrayList<>();
-        query(query, (r,e) -> {
-            if ( r != null ) {
-                res.add(r);
-            } else {
-                prom.complete(res,e);
-            }
-        });
-        return prom;
     }
 
     /**

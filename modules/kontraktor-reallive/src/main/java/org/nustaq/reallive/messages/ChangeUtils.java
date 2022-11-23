@@ -2,55 +2,15 @@ package org.nustaq.reallive.messages;
 
 import org.nustaq.reallive.api.*;
 
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Objects;
 import org.nustaq.reallive.api.Record;
-import org.nustaq.reallive.server.StorageDriver;
 
 /**
  * Created by ruedi on 03/08/15.
  */
 public class ChangeUtils {
-
-    /**
-     * compute deep differences between both records
-     *
-     * @param oldRec
-     * @param newRec
-     * @return a diff or null in case records are equal
-     */
-    public static Diff computeDiff(Record oldRec, Record newRec) {
-        oldRec = StorageDriver.unwrap(oldRec);
-        newRec = StorageDriver.unwrap(newRec);
-        String[] fields = oldRec.getFields();
-        Set<String> fieldSet = oldRec.getFieldSet();
-        List<String> changed = new ArrayList<>();
-        for (int i = 0; i < fields.length; i++) {
-            String field = fields[i];
-            Object oldVal = oldRec.get(field);
-            Object newVal = newRec.get(field);
-            if (!Objects.deepEquals(oldVal,newVal) ) {
-                changed.add(field);
-            }
-        }
-        fields = newRec.getFields();
-        for (int i = 0; i < fields.length; i++) {
-            String field = fields[i];
-            if ( !fieldSet.contains(field) ) {
-                Object oldVal = oldRec.get(field);
-                Object newVal = newRec.get(field);
-                if ( !Objects.deepEquals(oldVal,newVal) ) {
-                    changed.add(field);
-                }
-            }
-        }
-        Object changedOldValues[] = new Object[changed.size()];
-        for (int i = 0; i < changed.size(); i++) {
-            changedOldValues[i] = oldRec.get(changed.get(i));
-        }
-        return new Diff(changed.toArray(new String[changed.size()]),changedOldValues);
-    }
-
 
     /**
      * copy different (equals) fields and return resulting list of changed fields + old values
@@ -65,10 +25,14 @@ public class ChangeUtils {
     }
 
     public static Diff copyAndDiff(Record from, Record to, String[] fields) {
-        return mayCopyAndDiff(from, to, fields, true);
+        return mayCopyAndDiff(from, to, fields, true, null);
     }
 
-    public static Diff mayCopyAndDiff(Record from, Record to, String[] fields, boolean copy) {
+    public static Diff copyAndDiff(Record from, Record to, String[] fields, HashSet<String> forced) {
+        return mayCopyAndDiff(from, to, fields, true, forced);
+    }
+
+    public static Diff mayCopyAndDiff(Record from, Record to, String[] fields, boolean copy, HashSet<String> forced) {
         ArrayList<String> changedFields = new ArrayList();
         ArrayList<Object> changedValues = new ArrayList();
         for (int i = 0; i < fields.length; i++) {
@@ -76,7 +40,7 @@ public class ChangeUtils {
             Object oldValue = to.get(field);
             Object newValue = from.get(field);
 
-            if ( ! Objects.deepEquals(oldValue, newValue) ) {
+            if ( ! Objects.equals(oldValue, newValue) || (forced != null && forced.contains(field) )) {
                 changedFields.add(field);
                 changedValues.add(oldValue);
                 if ( copy )
@@ -88,11 +52,38 @@ public class ChangeUtils {
         return new Diff(cf,changedValues.toArray());
     }
 
+    public static int indexOf(String field, String[] changedFields) {
+        for (int i = 0; i < changedFields.length; i++) {
+            if ( field.equals(changedFields[i]) ) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     public static void copy(Record from, Record to, String ... fields) {
         for (int i = 0; i < fields.length; i++) {
             String field = fields[i];
             to.put(field,from.get(field));
         }
+    }
+
+    public static String[] merge( String fieldsA[], String fieldsB[] ) {
+        HashSet set = new HashSet();
+        for (int i = 0; i < fieldsA.length; i++) {
+            set.add(fieldsA[i]);
+        }
+        for (int i = 0; i < fieldsB.length; i++) {
+            set.add(fieldsB[i]);
+        }
+        String res[] = new String[set.size()];
+        set.toArray(res);
+        return res;
+    }
+
+    public static <K> Diff diff(Record record, Record prevRecord) {
+        String[] fields = merge(record.getFields(), prevRecord.getFields());
+        return mayCopyAndDiff(record,prevRecord,fields,false, null);
     }
 
 }

@@ -8,7 +8,9 @@ import java.util.UUID;
 public class ClusterTableRecordMapping implements Serializable {
 
     BitSet bs = new BitSet();
-    public static int NUM_BUCKET = 1<<5;
+//    public static final int NUM_BUCKET = 512;
+//    public static final long BUCKET_SHIFT = (32-9);
+    public static final int NUM_BUCKET = 1<<5;
 
     public static ClusterTableRecordMapping Copy(ClusterTableRecordMapping old) {
         ClusterTableRecordMapping nm = new ClusterTableRecordMapping();

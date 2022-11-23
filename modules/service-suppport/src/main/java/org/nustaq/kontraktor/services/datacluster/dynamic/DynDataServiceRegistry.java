@@ -22,6 +22,8 @@ import static org.nustaq.reallive.server.dynamic.DynClusterTableDistribution.*;
 
 public class DynDataServiceRegistry extends ServiceRegistry {
 
+    public final static boolean AUTO_REDISTRIBUTE = false;
+
     public static final String RECORD_DISTRIBUTION = "distribution";
 
     List<ServiceDescription> dynShards = new ArrayList<>();
@@ -86,22 +88,23 @@ public class DynDataServiceRegistry extends ServiceRegistry {
                             break;
                         }
                     }
-                    // execute actions
-                    List collect = distribution.getDistributions().entrySet().stream().map(en -> executeActions(en.getValue())).collect(Collectors.toList());
-                    all(collect).then( (plist,finErr) -> {
-                        Log.Info(this, "*****************************************************************************************************");
-                        Log.Info(this, "table release processed ");
-                        if ( finErr != null ) {
-                            Log.Error(this, "  with ERROR:" + finErr);
-                            p.reject(finErr);
-                        }
-                        else {
-                            distribution.clearActions();
-                            publishDistribution(distribution);
-                            p.resolve();
-                        }
-                        Log.Info(this, "*****************************************************************************************************");
-                    });
+                    if ( AUTO_REDISTRIBUTE ) {
+                        // execute actions
+                        List collect = distribution.getDistributions().entrySet().stream().map(en -> executeActions(en.getValue())).collect(Collectors.toList());
+                        all(collect).then((plist, finErr) -> {
+                            Log.Info(this, "*****************************************************************************************************");
+                            Log.Info(this, "table release processed ");
+                            if (finErr != null) {
+                                Log.Error(this, "  with ERROR:" + finErr);
+                                p.reject(finErr);
+                            } else {
+                                distribution.clearActions();
+                                publishDistribution(distribution);
+                                p.resolve();
+                            }
+                            Log.Info(this, "*****************************************************************************************************");
+                        });
+                    }
                 });
         });
         return p;

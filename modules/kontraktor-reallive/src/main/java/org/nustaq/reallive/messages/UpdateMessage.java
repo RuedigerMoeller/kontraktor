@@ -17,27 +17,32 @@ public class UpdateMessage implements ChangeMessage {
     final Diff diff;   // can be null => then just compare with current record
     final Record newRecord; // can nevere be null
     final boolean addIfNotExists ;
-    @Deprecated
-    Set<String> forcedUpdateFields; // kept for serialization compatibility
+    Set<String> forcedUpdateFields;
     int senderId;
 
-    public UpdateMessage(int senderId, Diff diff, Record newRecord) {
+    public UpdateMessage(int senderId, Diff diff, Record newRecord, Set<String> forcedUpdateFields) {
         this.diff = diff;
         this.newRecord = newRecord;
         this.addIfNotExists = true;
+        this.forcedUpdateFields = forcedUpdateFields;
         this.senderId = senderId;
     }
 
-    public UpdateMessage(int senderId,Diff diff, Record newRecord, boolean addIfNotExists) {
+    public UpdateMessage(int senderId,Diff diff, Record newRecord, Set<String> forcedUpdateFields, boolean addIfNotExists) {
         this.addIfNotExists = addIfNotExists;
         this.newRecord = newRecord;
         this.diff = diff;
+        this.forcedUpdateFields = forcedUpdateFields;
         this.senderId = senderId;
     }
 
     public UpdateMessage senderId(int id) {
         senderId = id;
         return this;
+    }
+
+    public Set<String> getForcedUpdateFields() {
+        return forcedUpdateFields;
     }
 
     public void setForcedUpdateFields(Set<String> forcedUpdateFields) {
@@ -64,6 +69,7 @@ public class UpdateMessage implements ChangeMessage {
         return new UpdateMessage(
             senderId, diff.reduced(reducedFields),
             newRecord.reduced(reducedFields),
+            forcedUpdateFields,
             addIfNotExists);
     }
 
@@ -72,6 +78,7 @@ public class UpdateMessage implements ChangeMessage {
         return new UpdateMessage(
             senderId, diff.omit(fields),
             newRecord.omit(fields),
+            forcedUpdateFields,
             addIfNotExists);
     }
 
@@ -90,14 +97,14 @@ public class UpdateMessage implements ChangeMessage {
 
     public Record getOldRecord() {
         if ( diff.getChangedFields() != null && diff.getChangedFields().length > 0 ) {
-            Record copied = getNewRecord().shallowCopy();
+            Record copied = getNewRecord().copied();
             for (int i = 0; i < diff.getChangedFields().length; i++) {
                 String k = diff.getChangedFields()[i];
                 copied.put(k,diff.getOldValues()[i]);
             }
             return copied;
         }
-        return getRecord().shallowCopy();
+        return getRecord().copied();
     }
 
     @Override

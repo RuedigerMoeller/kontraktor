@@ -1,6 +1,5 @@
 package org.nustaq.reallive.client;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
@@ -24,8 +23,8 @@ import java.util.stream.Collectors;
 public class TableSpaceSharding implements TableSpace {
 
     protected List<TableSpaceActor> shards = new ArrayList<>();
-    protected Map<String,RealLiveTable> tableMap = new Object2ObjectOpenHashMap<>();
-    protected Map<String,TableDescription> tableDescriptionMap = new Object2ObjectOpenHashMap<>();
+    protected HashMap<String,RealLiveTable> tableMap = new HashMap();
+    protected HashMap<String,TableDescription> tableDescriptionMap = new HashMap();
 
     public TableSpaceSharding(TableSpaceActor[] shards) {
         Arrays.stream(shards).forEach( sh -> addShard(sh));
@@ -55,7 +54,7 @@ public class TableSpaceSharding implements TableSpace {
             final String finalId = shard.__clientsideTag;
             remoteTable.then((r, e) -> {
                 if (e == null) {
-                    Log.Debug(this, "table creation: " + desc.getName() + " " + finalId);
+                    Log.Info(this, "table creation: " + desc.getName() + " " + finalId);
                     ((RealLiveTableActor) r).__clientSideTag = finalId;
                 }
                 else if ( e instanceof Throwable )
@@ -65,9 +64,9 @@ public class TableSpaceSharding implements TableSpace {
                 p.complete(r, e);
             });
         }
-        Log.Debug(this,"waiting for creation of tables ..");
+        Log.Info(this,"waiting for creation of tables ..");
         Actors.all(results).then( (List<IPromise<RealLiveTable>> tables,Object err) -> {
-            Log.Debug(this,"table creation (waiting finished)");
+            Log.Info(this,"table creation (waiting finished)");
             RealLiveTable tableShards[] = new RealLiveTable[tables.size()];
             boolean errors = false;
             for (int i = 0; i < tables.size(); i++) {

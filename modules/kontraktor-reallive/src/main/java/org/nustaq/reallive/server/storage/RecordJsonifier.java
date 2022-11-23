@@ -115,7 +115,10 @@ public class RecordJsonifier {
             } else if ( jsonValue.isNull() ) {
                 aNew.put(field,null);
             } else if ( jsonValue.isNumber() ) {
-                aNew.put(field,fromJsonNumber(jsonValue));
+                if ( jsonValue.toString().indexOf('.') >= 0 )
+                    aNew.put(field,jsonValue.asDouble());
+                else
+                    aNew.put(field,jsonValue.asLong());
             } else if ( jsonValue.isBoolean() ) {
                 aNew.put(field,jsonValue.asBoolean());
             } else if ( jsonValue.isObject() ) {
@@ -127,17 +130,6 @@ public class RecordJsonifier {
             }
         });
         return aNew;
-    }
-
-    private Number fromJsonNumber(JsonValue val) {
-        if ( val.toString().indexOf('.') >= 0 )
-            return val.asDouble();
-        else {
-            long res = val.asLong();
-            if ( res < Integer.MAX_VALUE && res > Integer.MIN_VALUE )
-                return (int)res;
-            return res;
-        }
     }
 
     public Object toJavaValue(JsonValue jsonValue) {
@@ -166,7 +158,7 @@ public class RecordJsonifier {
             } else if ( jsonValue.isNull() ) {
                 res[i] = null;
             } else if ( jsonValue.isNumber() ) {
-                res[i] = fromJsonNumber(jsonValue);
+                res[i] = jsonValue.asDouble();
             } else if ( jsonValue.isBoolean() ) {
                 res[i] = jsonValue.asBoolean();
             } else if ( jsonValue.isObject() ) {

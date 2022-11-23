@@ -25,11 +25,7 @@ public class StringValue implements Value {
 
     @Override
     public long getLongValue() {
-        try {
-            return Long.parseLong(value);
-        } catch (NumberFormatException e) {
-            return (long) Double.parseDouble(value);
-        }
+        return Long.parseLong(value);
     }
 
     @Override

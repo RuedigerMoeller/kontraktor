@@ -2,7 +2,6 @@ package org.nustaq.reallive.server.dynamic;
 
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.reallive.server.dynamic.actions.ClusterTableAction;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.TableState;
@@ -134,7 +133,7 @@ public class DynClusterTableDistribution implements Serializable {
     }
 
     public Map<String, List<ClusterTableAction>> collectByTarget() {
-        Map<String,List<ClusterTableAction>> res = new Object2ObjectOpenHashMap<>();
+        Map<String,List<ClusterTableAction>> res = new HashMap<>();
         actions.forEach( action -> {
             List<ClusterTableAction> actions = res.get(action.getShardName());
             if ( actions == null ) {

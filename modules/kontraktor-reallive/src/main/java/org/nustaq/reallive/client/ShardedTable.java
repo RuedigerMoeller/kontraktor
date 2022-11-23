@@ -1,12 +1,11 @@
 package org.nustaq.reallive.client;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.messages.*;
 import org.nustaq.reallive.server.FilterProcessor;
 import org.nustaq.reallive.server.FilterSpore;
-import org.nustaq.reallive.server.RemoveLog;
+import org.nustaq.reallive.server.dynamic.DynClusterDistribution;
 import org.nustaq.reallive.server.storage.StorageStats;
 import org.nustaq.reallive.api.*;
 import org.nustaq.reallive.server.RLUtil;
@@ -15,6 +14,7 @@ import org.nustaq.reallive.records.RecordWrapper;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.nustaq.reallive.api.Record;
 
@@ -28,7 +28,7 @@ public class ShardedTable implements RealLiveTable {
     final ConcurrentHashMap<Subscriber,List<Subscriber>> subsMap = new ConcurrentHashMap(); // real subscriptions only
 
     protected TableDescription description;
-    protected Map<Integer,RealLiveTable> tableShardMap = new Object2ObjectOpenHashMap<>();
+    protected HashMap<Integer,RealLiveTable> tableShardMap = new HashMap();
     protected Set<RealLiveTable> shards = new HashSet<>();
     protected FilterProcessor proc = new FilterProcessor(this);
     protected AtomicBoolean globalListenReady = new AtomicBoolean(false);
@@ -147,8 +147,8 @@ public class ShardedTable implements RealLiveTable {
     }
 
     protected void adjustLimitFilter(RLPredicate filter) {
-        if ( filter instanceof RLRateLimitedPredicate) {
-            ((RLRateLimitedPredicate)filter)._setLimit(Math.max(1,((RLRateLimitedPredicate) filter).getRecordLimit()/shards.size()));
+        if ( filter instanceof RLLimitedPredicate) {
+            ((RLLimitedPredicate)filter)._setLimit(Math.max(1,((RLLimitedPredicate) filter).getRecordLimit()/shards.size()));
         }
     }
 
@@ -193,7 +193,7 @@ public class ShardedTable implements RealLiveTable {
         getTableForKey(key).receive(new PutMessage(senderId,RLUtil.get().record(key,keyVals)));
     }
 
-    public void upsert(int senderId, String key, Object... keyVals) {
+    public void merge(int senderId, String key, Object... keyVals) {
         getTableForKey(key).receive(RLUtil.get().addOrUpdate(senderId, key, keyVals));
     }
 
@@ -202,29 +202,24 @@ public class ShardedTable implements RealLiveTable {
         getTableForKey(jsonrec.getKey())._deepMerge( senderId, jsonrec );
     }
 
-    @Override
-    public void _join(int senderId, Record jsonrec) {
-        getTableForKey(jsonrec.getKey())._join( senderId, jsonrec );
-    }
-
     public IPromise<Boolean> add(int senderId, String key, Object... keyVals) {
         return getTableForKey(key).add(senderId, key, keyVals);
     }
 
     public IPromise<Boolean> addRecord(int senderId, Record rec) {
-        while ( rec instanceof RecordWrapper )
+        if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         return getTableForKey(rec.getKey()).addRecord(senderId, rec);
     }
 
-    public void upsertRecord(int senderId, Record rec) {
-        while ( rec instanceof RecordWrapper )
+    public void mergeRecord(int senderId, Record rec) {
+        if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         getTableForKey(rec.getKey()).receive(new AddMessage(senderId, true,rec));
     }
 
     public void setRecord(int senderId, Record rec) {
-        while ( rec instanceof RecordWrapper )
+        if ( rec instanceof RecordWrapper )
             rec = ((RecordWrapper) rec).getRecord();
         getTableForKey(rec.getKey()).receive(new PutMessage(senderId, rec));
     }
@@ -237,7 +232,7 @@ public class ShardedTable implements RealLiveTable {
     }
 
     public void update(int senderId, String key, Object... keyVals) {
-        getTableForKey(key).update(senderId,key,keyVals);
+        getTableForKey(key).receive(RLUtil.get().update(senderId, key, keyVals));
     }
 
     @Override
@@ -322,23 +317,5 @@ public class ShardedTable implements RealLiveTable {
         });
     }
 
-    public void queryRemoveLog(long from, long to, Callback<RemoveLog.RemoveLogEntry> cb) {
-        for (Iterator<RealLiveTable> iterator = shards.iterator(); iterator.hasNext(); ) {
-            RealLiveTable next = iterator.next();
-            AtomicInteger count = new AtomicInteger();
-            next.queryRemoveLog(from, to, (r,e) -> {
-                if ( r == null ) {
-                    count.incrementAndGet();
-                    if ( count.get() == shards.size() ) {
-                        cb.finish();
-                    }
-                } else cb.pipe(r);
-            });
-        }
-    }
 
-    @Override
-    public void pruneRemoveLog(long maxAge) {
-        shards.stream().forEach( t -> t.pruneRemoveLog(maxAge));
-    }
 }

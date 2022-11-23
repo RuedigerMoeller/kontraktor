@@ -22,15 +22,14 @@ public interface SafeRealLiveTable extends ChangeReceiver, SafeChangeStream, Saf
     IPromise<Record> get(String key);
 
     void put(int senderId, String key, Object... keyVals);
-    void upsert(int senderId, String key, Object... keyVals);
+    void merge(int senderId, String key, Object... keyVals);
     void _deepMerge(int senderId, Record jsonrec );
-    void _join(int senderId, Record jsonrec );
     IPromise<Boolean> add(int senderId, String key, Object... keyVals);
     void update(int senderId, String key, Object... keyVals);
     IPromise<Record> take(int senderId, String key);
     void remove(int senderId, String key);
 
-    void upsertRecord(int senderId, Record rec);
+    void mergeRecord(int senderId, Record rec);
     void setRecord(int senderId, Record rec);
 
     /**
@@ -45,8 +44,8 @@ public interface SafeRealLiveTable extends ChangeReceiver, SafeChangeStream, Saf
     @CallerSideMethod default void put(String key, Object... keyVals) {
         this.put(0,key,keyVals);
     }
-    @CallerSideMethod default void upsert(String key, Object... keyVals) {
-        this.upsert(0,key,keyVals);
+    @CallerSideMethod default void merge(String key, Object... keyVals) {
+        this.merge(0,key,keyVals);
     }
     @CallerSideMethod default IPromise<Boolean> add(String key, Object... keyVals) {
         return this.add(0,key,keyVals);
@@ -58,8 +57,8 @@ public interface SafeRealLiveTable extends ChangeReceiver, SafeChangeStream, Saf
         this.remove(0,key);
     }
 
-    @CallerSideMethod default void upsertRecord(Record rec) {
-        this.upsertRecord(0,rec);
+    @CallerSideMethod default void mergeRecord(Record rec) {
+        this.mergeRecord(0,rec);
     }
     @CallerSideMethod default void deepMerge(int senderId, Record rec) {
         if ( rec.getKey() == null )
@@ -70,16 +69,6 @@ public interface SafeRealLiveTable extends ChangeReceiver, SafeChangeStream, Saf
         if ( rec.getKey() == null )
             throw new RuntimeException("no key set");
         this._deepMerge(0,rec);
-    }
-    @CallerSideMethod default void join(int senderId, Record rec) {
-        if ( rec.getKey() == null )
-            throw new RuntimeException("no key set");
-        this._join(senderId,rec);
-    }
-    @CallerSideMethod default void join(Record rec) {
-        if ( rec.getKey() == null )
-            throw new RuntimeException("no key set");
-        this._join(0,rec);
     }
     @CallerSideMethod default void setRecord(Record rec) {
         this.setRecord(0,rec);

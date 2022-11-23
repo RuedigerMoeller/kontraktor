@@ -2,7 +2,6 @@ package org.nustaq.reallive.server.storage;
 
 import org.nustaq.kontraktor.Spore;
 import org.nustaq.reallive.api.Record;
-import org.nustaq.reallive.server.RemoveLog;
 
 /**
  * interface can be used in conjunction with CachedRecordStorage to provide a persistance layer
@@ -21,14 +20,7 @@ public interface RecordPersistance {
 
     RecordPersistance put(String key, Record record);
 
-    /**
-     * does not update lastmodified timestamp
-     *
-     * @param key
-     * @param value
-     * @return
-     */
-    default RecordPersistance _rawPut(String key, Record value) {
+    default RecordPersistance _put(String key, Record value) {
         throw new RuntimeException("not usable as persistance implementation");
     }
 
@@ -37,7 +29,5 @@ public interface RecordPersistance {
     default ClusterTableRecordMapping _loadMapping() {
         return null;
     }
-
-    RemoveLog getRemoveLog();
 
 }

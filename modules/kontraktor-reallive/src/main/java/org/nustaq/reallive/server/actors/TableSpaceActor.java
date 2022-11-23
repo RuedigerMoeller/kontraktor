@@ -1,6 +1,5 @@
 package org.nustaq.reallive.server.actors;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.impl.SimpleScheduler;
@@ -15,7 +14,6 @@ import org.nustaq.reallive.messages.StateMessage;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -30,16 +28,16 @@ public class TableSpaceActor extends Actor<TableSpaceActor> implements TableSpac
 
     public transient String __clientsideTag; // might contain shard id on remote side (servicename)
 
-    protected Map<String,RealLiveTableActor> tables;
-    protected Map<String,TableDescription> tableDesc;
+    protected HashMap<String,RealLiveTableActor> tables;
+    protected HashMap<String,TableDescription> tableDesc;
     protected List<Callback<StateMessage>> stateListeners;
 
     protected String baseDir;
     @Local
     public void init() {
-        tables = new Object2ObjectOpenHashMap<>();
+        tables = new HashMap();
         stateListeners = new ArrayList();
-        tableDesc = new Object2ObjectOpenHashMap<>();
+        tableDesc = new HashMap();
     }
 
     /**

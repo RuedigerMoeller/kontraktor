@@ -1,15 +1,14 @@
 package org.nustaq.reallive.server.storage;
 
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.Spore;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.*;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.nustaq.reallive.api.Record;
-import org.nustaq.reallive.server.RemoveLog;
 
 /**
  * Created by ruedi on 03/08/15.
@@ -19,7 +18,7 @@ public class HeapRecordStorage implements RecordStorage {
     Map<Object,Record> map;
 
     public HeapRecordStorage() {
-        map = new Object2ObjectOpenHashMap<>(1000);
+        map = new HashMap();
     }
 
     public HeapRecordStorage(Map<Object,Record> map) {
@@ -29,10 +28,10 @@ public class HeapRecordStorage implements RecordStorage {
     @Override
     public RecordStorage put(String key, Record value) {
         value.internal_updateLastModified();
-        return _rawPut(key,value);
+        return _put(key,value);
     }
 
-    public RecordStorage _rawPut(String key, Record value) {
+    public RecordStorage _put(String key, Record value) {
         map.put(key,value);
         return this;
     }
@@ -94,11 +93,6 @@ public class HeapRecordStorage implements RecordStorage {
     @Override
     public void resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes) {
         // do nothing
-    }
-
-    @Override
-    public RemoveLog getRemoveLog() {
-        return null;
     }
 
 

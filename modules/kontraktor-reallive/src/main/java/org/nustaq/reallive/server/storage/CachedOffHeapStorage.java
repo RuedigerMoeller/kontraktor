@@ -2,7 +2,6 @@ package org.nustaq.reallive.server.storage;
 
 import org.nustaq.kontraktor.Spore;
 import org.nustaq.kontraktor.util.Log;
-import org.nustaq.reallive.server.RemoveLog;
 import org.nustaq.reallive.server.StorageDriver;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.api.RecordStorage;
@@ -23,30 +22,21 @@ public class CachedOffHeapStorage implements RecordStorage {
     public CachedOffHeapStorage(RecordPersistance persisted, HeapRecordStorage onHeap) {
         this.persisted = persisted;
         this.onHeap = onHeap;
-        bootstrapCache(persisted, onHeap);
-    }
-
-    protected void bootstrapCache(RecordPersistance persisted, HeapRecordStorage onHeap) {
         List<Record> reput = new ArrayList();
-        // note: this runs local no remote spore is applied
         persisted.forEachWithSpore(new Spore<Record, Object>() {
             boolean hadErr = false;
             @Override
             public void remote(Record input) {
                 try {
-                    Record finalRec = StorageDriver.unwrap(input);
-                    if (finalRec != input) {
-                        reput.add(finalRec);
+                    Record unwrap = StorageDriver.unwrap(input);
+                    if (unwrap != input) {
+                        reput.add(unwrap);
                     }
-                    // record class conversion
-                    if ( MapRecord.conversion != null && finalRec.getClass() != MapRecord.recordClass) {
-                        finalRec = MapRecord.conversion.apply((MapRecord) finalRec);
-                        reput.add(finalRec);
+                    if (unwrap.getClass() != MapRecord.recordClass && MapRecord.conversion != null) {
+                        unwrap = MapRecord.conversion.apply((MapRecord) unwrap);
+                        reput.add(unwrap);
                     }
-                    if ( finalRec._afterLoad() ) {
-                        reput.add(finalRec);
-                    }
-                    onHeap._rawPut(input.getKey(), finalRec);
+                    onHeap._put(input.getKey(), unwrap);
                 } catch (Exception e) {
                     if ( hadErr )
                         Log.Error(this, "no trace (repetition): "+e);
@@ -59,7 +49,7 @@ public class CachedOffHeapStorage implements RecordStorage {
         }.onFinish( () -> {
             for (int i = 0; i < reput.size(); i++) {
                 Record record = reput.get(i);
-                persisted._rawPut((String) record.getKey(),record);
+                persisted._put((String) record.getKey(),record);
             }
         }));
     }
@@ -67,15 +57,11 @@ public class CachedOffHeapStorage implements RecordStorage {
     @Override
     public RecordStorage put(String key, Record value) {
         value.internal_updateLastModified();
-        return _rawPut(key,value);
-    }
-
-    @Override
-    public RecordStorage _rawPut(String key, Record value) {
-        persisted._rawPut(key,value);
-        onHeap._rawPut(key,value);
+        persisted._put(key,value);
+        onHeap._put(key,value);
         return this;
     }
+
     @Override
     public Record get(String key) {
         return onHeap.get(key);
@@ -106,11 +92,6 @@ public class CachedOffHeapStorage implements RecordStorage {
     @Override
     public void resizeIfLoadFactorLarger(double loadFactor, long maxGrowBytes) {
         persisted.resizeIfLoadFactorLarger(loadFactor,maxGrowBytes);
-    }
-
-    @Override
-    public RemoveLog getRemoveLog() {
-        return persisted.getRemoveLog();
     }
 
     @Override

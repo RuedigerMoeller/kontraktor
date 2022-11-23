@@ -49,14 +49,20 @@ public class RLUtil {
         return new AddMessage( senderId, true, (Record) record);
     }
 
-    public UpdateMessage delme_update(int senderId, String key, Object... keyVals) {
+    public UpdateMessage updateWithForced(int senderId, String key, Set forced, Object... keyVals) {
+        UpdateMessage update = update(senderId,key, keyVals);
+        update.setForcedUpdateFields(forced);
+        return update;
+    }
+
+    public UpdateMessage update(int senderId, String key, Object... keyVals) {
         String fi[] = new String[keyVals.length / 2];
         for (int i = 0; i < fi.length; i++) {
             fi[i] = (String) keyVals[i * 2];
         }
         Diff d = new Diff(fi, null);
         Object record = record(key, keyVals);
-        return new UpdateMessage(senderId, d, (Record) record);
+        return new UpdateMessage(senderId, d, (Record) record, null);
     }
 
     public Record record(String key, Object... keyVals) {

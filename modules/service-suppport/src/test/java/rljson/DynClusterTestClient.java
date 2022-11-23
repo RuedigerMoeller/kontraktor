@@ -5,7 +5,7 @@ import org.nustaq.kontraktor.services.ServiceArgs;
 import org.nustaq.kontraktor.remoting.base.ServiceDescription;
 import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataServiceRegistry;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
-import org.nustaq.reallive.api.RLRateLimitedPredicate;
+import org.nustaq.reallive.api.RLLimitedPredicate;
 import org.nustaq.reallive.api.RealLiveTable;
 import org.nustaq.reallive.api.Record;
 
@@ -55,7 +55,7 @@ public class DynClusterTestClient extends ServiceActor<DynClusterTestClient> {
         System.out.println(c);
 
         if ( slowQuery ) {
-            feed.subscribeOn(new RLRateLimitedPredicate<>(1000, rec -> true), (change) -> {
+            feed.subscribeOn(new RLLimitedPredicate<>(1000, rec -> true), (change) -> {
                 if ( change != null && ! change.isDoneMsg()) {
                     System.out.println("change "+change);
                 } else {

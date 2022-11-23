@@ -1,7 +1,6 @@
 package org.nustaq.reallive.server.dynamic;
 
 import com.eclipsesource.json.JsonObject;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.reallive.api.TableState;
 import org.nustaq.reallive.server.actors.RealLiveTableActor;
 
@@ -9,7 +8,7 @@ import java.io.Serializable;
 import java.util.*;
 
 public class DynClusterDistribution implements Serializable {
-    Map<String,DynClusterTableDistribution> distributions = new Object2ObjectOpenHashMap<>(); // tablename to tabledist
+    Map<String,DynClusterTableDistribution> distributions = new HashMap<>(); // tablename to tabledist
 
     public void add(DynClusterTableDistribution ts) {
         if ( distributions.containsKey(ts.getName()))
