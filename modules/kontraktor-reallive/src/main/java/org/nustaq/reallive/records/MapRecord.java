@@ -1,11 +1,12 @@
 package org.nustaq.reallive.records;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
+import org.nustaq.reallive.api.TransformFunction;
 import org.nustaq.reallive.server.RLUtil;
 
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.IntFunction;
 
 import org.nustaq.reallive.api.Record;
 
@@ -200,24 +201,34 @@ public class MapRecord implements Record {
         return newReq;
     }
 
-    public MapRecord deepCopied() {
+    public MapRecord transformCopy(TransformFunction transform) {
         MapRecord newReq = MapRecord.New(getKey());
-        map.forEach( (k,v) -> newReq.put(k,mapValue(v)) );
+        map.forEach( (k,v) -> {
+            Object apply = transform.apply(k, -1, v);
+            if ( apply != v )
+                newReq.put(k, apply);
+            else
+                newReq.put(k, mapValue(apply,transform));
+        });
         newReq.internal_setLastModified(lastModified);
         newReq.internal_setSeq(seq);
         return newReq;
     }
 
-    private static Object mapValue(Object v) {
+    private static Object mapValue(Object v, TransformFunction transform) {
         if ( v instanceof Record )
-            v = ((Record) v).deepCopied();
+            v = ((Record) v).transformCopy(transform);
         else if ( v instanceof Object[] ) {
-            Object[] varr = (Object[]) v;
-            Object arr[] = Arrays.copyOf(varr, varr.length );
-            for (int j = 0; j < arr.length; j++) {
-                arr[j] = mapValue(arr[j]);
+            Object[] valArr = (Object[]) v;
+            Object newArr[] = new Object[valArr.length];
+            for (int j = 0; j < newArr.length; j++) {
+                Object apply = transform.apply(null, j, valArr[j]);
+                if ( apply == valArr[j] )
+                    newArr[j] = mapValue(apply, transform);
+                else
+                    newArr[j] = apply;
             }
-            return arr;
+            return newArr;
         }
         return v;
     }

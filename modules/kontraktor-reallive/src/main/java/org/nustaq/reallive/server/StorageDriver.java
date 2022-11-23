@@ -192,7 +192,7 @@ public class StorageDriver implements ChangeReceiver {
             }
             return new Promise(apply);
         } else {
-            Record pr = rec.deepCopied();
+            Record pr = rec.deepCopy();
             final Object res = action.apply(pr);
             if ( res instanceof ChangeMessage )
             {
@@ -210,7 +210,7 @@ public class StorageDriver implements ChangeReceiver {
     public void atomicQuery(int senderId, RLPredicate<Record> filter, RLFunction<Record, Boolean> action) {
         store.forEach(filter, (r,e) -> {
             if ( r != null ) {
-                Record pr = r.deepCopied();
+                Record pr = r.deepCopy();
                 Boolean res = action.apply(pr);
                 if (res==Boolean.FALSE) {
                     receive(RLUtil.get().remove(senderId,pr.getKey()));
@@ -240,7 +240,7 @@ public class StorageDriver implements ChangeReceiver {
         if ( currentRecord == null ) {
             receive(RLUtil.get().add(senderId,key,keyVals));
         } else {
-            Record modifiedRecord = currentRecord.deepCopied();
+            Record modifiedRecord = currentRecord.deepCopy();
             for (int i = 0; i < keyVals.length; i+=2) {
                 Object k = keyVals[i];
                 Object v = keyVals[i+1];

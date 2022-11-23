@@ -45,7 +45,7 @@ public class RecordUpdateAndBCastTest {
         Assert.assertTrue(2 == (Integer) updateBroadcase.getNewRecord().mget("y", "a"));
         Assert.assertTrue(1 == (Integer) updateBroadcase.getOldRecord().mget("y", "a"));
 
-        Record copied = test.deepCopied();
+        Record copied = test.deepCopy();
         copied.getArr("z")[2] = 4;
         table.join(  copied );
         while( broadCasts[3] == null ) Thread.yield();

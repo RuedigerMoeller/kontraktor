@@ -11,6 +11,7 @@ import org.nustaq.reallive.server.storage.RecordJsonifier;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.function.BiFunction;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -319,7 +320,12 @@ public interface Record extends Serializable, EvalContext {
     default Record shallowCopy() {
         throw new RuntimeException("copy not implemented");
     }
-    default MapRecord deepCopied() {
+
+    default MapRecord deepCopy() {
+        return transformCopy( (k,i,v) -> v );
+    }
+
+    default MapRecord transformCopy(TransformFunction transform) {
         throw new RuntimeException("copy not implemented");
     }
 

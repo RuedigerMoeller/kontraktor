@@ -39,7 +39,6 @@ public class RemoveLogTest {
         Thread.sleep(5_000l);
         frl.prune( 5000 );
         countEntries(frl, now);
-        Thread.sleep(10_000l);
     }
 
     private static void countEntries(FilebasedRemoveLog frl, long now) {
