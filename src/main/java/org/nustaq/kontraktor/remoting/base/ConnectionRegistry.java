@@ -21,6 +21,8 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.annotations.RateLimited;
@@ -31,6 +33,7 @@ import org.nustaq.kontraktor.remoting.encoding.*;
 import org.nustaq.kontraktor.routers.AbstractKrouter;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.serializers.FSTMapSerializer;
 
 import java.io.IOError;
 import java.io.IOException;
@@ -61,7 +64,8 @@ public abstract class ConnectionRegistry {
     public static void registerDefaultClassMappings(FSTConfiguration conf) {
         conf.registerCrossPlatformClassMapping(new String[][]{
             {"call", RemoteCallEntry.class.getName()},
-            {"cbw", CallbackWrapper.class.getName()}
+            {"cbw", CallbackWrapper.class.getName()},
+            {"fmap", Object2ObjectOpenHashMap.class.getName()}
         });
     }
 
@@ -167,6 +171,7 @@ public abstract class ConnectionRegistry {
         conf.registerClass(Spore.class);
         conf.registerClass(CallbackWrapper.class);
         conf.registerClass(Actor.class);
+        conf.registerSerializer(Object2ObjectOpenHashMap.class, new FSTMapSerializer(), true);
 	}
 
 	public int getOpenRemoteMappingsCount() {

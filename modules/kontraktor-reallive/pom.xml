@@ -12,7 +12,7 @@
 
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>reallive</artifactId>
-    <version>5.1.21</version>
+    <version>5.1.22</version>
 
     <description>persistent inmemory datagrid based on kontraktor</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -136,7 +136,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor</artifactId>
-            <version>5.1.6</version>
+            <version>5.1.7</version>
         </dependency>
 
         <dependency>

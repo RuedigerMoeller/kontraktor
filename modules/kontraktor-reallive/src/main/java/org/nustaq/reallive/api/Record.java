@@ -11,7 +11,6 @@ import org.nustaq.reallive.server.storage.RecordJsonifier;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.function.BiFunction;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -110,6 +109,14 @@ public interface Record extends Serializable, EvalContext {
         return res;
     }
 
+    /**
+     * puts a key value pair. type checking is applied to ensure data is json compatible.
+     * if value is null, the key is removed.
+     *
+     * @param field
+     * @param value
+     * @return
+     */
     Record put( String field, Object value );
 
     @Override
@@ -317,17 +324,21 @@ public interface Record extends Serializable, EvalContext {
     /**
      * @return a shallow (!) copy of this record
      */
-    default Record shallowCopy() {
-        throw new RuntimeException("copy not implemented");
-    }
+    Record shallowCopy();
 
-    default MapRecord deepCopy() {
+    default Record deepCopy() {
         return transformCopy( (k,i,v) -> v );
     }
 
-    default MapRecord transformCopy(TransformFunction transform) {
-        throw new RuntimeException("copy not implemented");
-    }
+    /**
+     * copies recursively applying given function to each value.
+     * if the transform returns v, its an identity copy
+     * if the transform returns null, the given key is removed from outer record. (if outer container is array, its removed)
+     *
+     * @param transform
+     * @return
+     */
+    Record transformCopy(TransformFunction transform);
 
     default Object[] getKeyVals() {
         final String[] fields = getFields();
@@ -351,18 +362,6 @@ public interface Record extends Serializable, EvalContext {
             res.put(field,get(field));
         }
         return res;
-    }
-
-    /**
-     * copy all fields from given record to this
-     * @param record
-     */
-    default void merge(Record record) {
-        final String[] fields = record.getFields();
-        for (int i = 0; i < fields.length; i++) {
-            String field = fields[i];
-            put( field, record.get(field) );
-        }
     }
 
     default Record getRecord() {
@@ -642,4 +641,6 @@ public interface Record extends Serializable, EvalContext {
     default Object[] getArr(String z) {
         return (Object[]) get(z);
     }
+
+    boolean containsKey(String x);
 }

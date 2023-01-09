@@ -21,6 +21,7 @@ import org.nustaq.reallive.records.MapRecord;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import org.nustaq.reallive.api.Record;
@@ -73,13 +74,31 @@ public class Basic {
         Record r = Record.from(
             "x", null,
             "y",1,
-            "z",2
+            "z", new Object[] { 1,"y",3, "y" }
         );
         Record cpy = r.deepCopy();
         System.out.println(r.toPrettyString());
         System.out.println(cpy.toPrettyString());
+        Record rr = r.transformCopy((k, i, v) -> ("y".equals(k) || "y".equals(v)) ? null : v);
+        System.out.println(rr.toPrettyString());
+        Assert.assertTrue(cpy.containsKey("x"));
+        Assert.assertTrue(cpy.get("x") == Record._NULL_ );
+        Assert.assertTrue(rr.getArr("z").length == 2 );
         Assert.assertTrue(r.equals(cpy));
-        r.transformCopy( (k,i,v) -> "y".equals(k) ? null : v );
+    }
+
+    @Test
+    public void testJoinNullHandling() {
+        Record r = Record.from(
+            "x", 1,
+            "y",1
+        );
+        Record toJoin = Record.from(
+            "x", null
+        );
+        r.join(toJoin);
+        Assert.assertTrue(!r.containsKey("x"));
+        System.out.println(r.toPrettyString());
     }
 
     @Test

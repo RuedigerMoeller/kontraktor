@@ -110,4 +110,9 @@ public class PatchingRecord extends RecordWrapper {
         res.seq = getSequence();
         return res;
     }
+
+    @Override
+    public boolean containsKey(String x) {
+        return super.containsKey(x) || override.containsKey(x);
+    }
 }

@@ -5,7 +5,6 @@ import org.nustaq.reallive.api.TransformFunction;
 import org.nustaq.reallive.server.RLUtil;
 
 import java.util.*;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.nustaq.reallive.api.Record;
@@ -38,7 +37,7 @@ public class MapRecord implements Record {
             value instanceof String ||
             value instanceof Number ||
             value instanceof Boolean ||
-            value instanceof Record
+            value instanceof Record && !(value instanceof RecordWrapper)
         )
         {
             return true;
@@ -201,14 +200,16 @@ public class MapRecord implements Record {
         return newReq;
     }
 
-    public MapRecord transformCopy(TransformFunction transform) {
+    public Record transformCopy(TransformFunction transform) {
         MapRecord newReq = MapRecord.New(getKey());
         map.forEach( (k,v) -> {
             Object apply = transform.apply(k, -1, v);
-            if ( apply != v )
-                newReq.put(k, apply);
-            else
-                newReq.put(k, mapValue(apply,transform));
+            if ( apply != null ) {
+                if (apply != v)
+                    newReq.internal_put(k, apply);
+                else
+                    newReq.internal_put(k, mapValue(apply, transform));
+            }
         });
         newReq.internal_setLastModified(lastModified);
         newReq.internal_setSeq(seq);
@@ -216,17 +217,35 @@ public class MapRecord implements Record {
     }
 
     private static Object mapValue(Object v, TransformFunction transform) {
+        final Object NULLMARKER = new Object();
         if ( v instanceof Record )
             v = ((Record) v).transformCopy(transform);
         else if ( v instanceof Object[] ) {
+            int nullcount = 0;
             Object[] valArr = (Object[]) v;
             Object newArr[] = new Object[valArr.length];
             for (int j = 0; j < newArr.length; j++) {
                 Object apply = transform.apply(null, j, valArr[j]);
                 if ( apply == valArr[j] )
                     newArr[j] = mapValue(apply, transform);
-                else
-                    newArr[j] = apply;
+                else {
+                    if ( apply == null ) {
+                        // value has been changed and is null => remove
+                        newArr[j] = NULLMARKER;
+                        nullcount++;
+                    }
+                    else
+                        newArr[j] = apply;
+                }
+            }
+            if ( nullcount > 0 ) {
+                Object resized[] = new Object[newArr.length-nullcount];
+                int idx = 0;
+                for (int i = 0; i < newArr.length; i++) {
+                    if ( newArr[i] != NULLMARKER )
+                        resized[idx++] = newArr[i];
+                }
+                return resized;
             }
             return newArr;
         }
@@ -271,5 +290,10 @@ public class MapRecord implements Record {
             return true;
         }
         return false;
+    }
+
+    @Override
+    public boolean containsKey(String x) {
+        return map.containsKey(x);
     }
 }

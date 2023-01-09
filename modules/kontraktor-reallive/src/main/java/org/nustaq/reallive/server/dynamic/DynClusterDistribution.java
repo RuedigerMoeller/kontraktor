@@ -70,6 +70,16 @@ public class DynClusterDistribution implements Serializable {
         return true;
     }
 
+    public boolean isEmpty() {
+        for (Iterator<DynClusterTableDistribution> iterator = distributions.values().iterator(); iterator.hasNext(); ) {
+            DynClusterTableDistribution dynClusterTableDistribution = iterator.next();
+            if ( ! dynClusterTableDistribution.isEmpty() ) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public String toString() {
         StringBuilder res = new StringBuilder(200);
         distributions.forEach( (k,v) -> {

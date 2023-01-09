@@ -13,12 +13,6 @@ ClusterCfg {
             filePath: USE_BASE_DIR
             storageType: CACHED
           }
-          {
-            name: testSpread
-            filePath: USE_BASE_DIR
-            storageType: PERSIST
-            spreadOut: 11
-          }
         ]
       shardQSize: 64000
     }
