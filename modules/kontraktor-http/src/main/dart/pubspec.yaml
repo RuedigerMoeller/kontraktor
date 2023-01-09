@@ -5,7 +5,7 @@ homepage: https://github.com/RuedigerMoeller/kontraktor
 version: 0.0.5
 
 dependencies:
-  http: ^0.12.0+2
+  http: ">=0.12.0+2 <0.14.0"
   uuid: ^2.0.4
 
 environment:
