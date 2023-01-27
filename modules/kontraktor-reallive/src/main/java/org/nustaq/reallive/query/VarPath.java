@@ -56,18 +56,18 @@ public class VarPath implements Serializable, HasToken  {
                 for (int i = 0; i < fields.length-1; i++) {
                     Object o = ectx.get(fields[i]);
                     if ( o instanceof EvalContext == false )
-                        return null;
+                        return NullValue.NULL;
                     currentRec = (EvalContext) o;
                 }
                 if ( currentRec != null ) {
                     return currentRec.getValue(fields[fields.length-1]);
                 }
-                return null;
+                return NullValue.NULL;
             } else {
                 return ectx.getValue(field);
             }
         }
-        return null;
+        return NullValue.NULL;
     }
 
     public QToken getToken() {

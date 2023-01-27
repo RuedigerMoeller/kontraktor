@@ -11,8 +11,8 @@ public class Query {
         return newParser().compile(query);
     }
 
-    static HashMap<String, FuncOperand> functions;
-    static HashMap<String, Operator> operators;
+    public static HashMap<String, FuncOperand> functions;
+    public static HashMap<String, Operator> operators;
 
     static {
         functions = new HashMap<>();

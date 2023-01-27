@@ -24,7 +24,7 @@ public class DynDataServiceRegistry extends ServiceRegistry {
     final static boolean AUTO_REDISTRIBUTE = false;
     public static final String RECORD_DISTRIBUTION = "distribution";
     public static final int INTERVAL_AUTOSTART_TRIAL_MILLIS = 2000;
-    public static boolean ACTIONS_ENABLED = false;
+    public static boolean ACTIONS_ENABLED = true;
     public static int TRIALS_FOR_AUTOSTART = 15;
 
     List<ServiceDescription> dynShards = new ArrayList<>();
