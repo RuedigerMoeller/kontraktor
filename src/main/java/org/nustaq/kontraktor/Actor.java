@@ -599,7 +599,8 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
     @CallerSideMethod public Method __getCachedMethod(String methodName, Actor actor, BiFunction<Actor, String, Boolean> callInterceptor) {
         // FIXME: this will fail once an actor is used with different interceptor policies (remoted twice with different policies)
         // assumption: only remote calls can be intercepted, interceptor != null => remote call
-        if (callInterceptor != null) {
+        boolean isRemoteCall = callInterceptor != null;
+        if (isRemoteCall) {
             if ( interceptedCache == null ) {
                 interceptedCache = new ConcurrentHashMap(7);
             }
@@ -608,7 +609,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
                 methodCache = new ConcurrentHashMap(7);
             }
         }
-        ConcurrentHashMap mcache = callInterceptor != null ? interceptedCache:methodCache;
+        ConcurrentHashMap mcache = isRemoteCall ? interceptedCache:methodCache;
         Method method = (Method) mcache.get(methodName);
         if ( method == null ) {
             Method[] methods = actor.getActor().getClass().getMethods();
@@ -622,7 +623,7 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
                     }
                 }
             }
-        } else if ( callInterceptor != null ){
+        } else if (isRemoteCall){ // is this necessary ? already handled by using intercepted cache
             if ( !callInterceptor.apply(actor,methodName) ) {
                 return null;
             }

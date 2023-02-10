@@ -19,6 +19,7 @@ package org.nustaq.kontraktor.remoting.tcp;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
 import org.nustaq.kontraktor.util.Log;
@@ -78,4 +79,5 @@ public class TCPPublisher extends TCPNIOPublisher {
     public Coding getCoding() {
         return super.getCoding();
     }
+
 }

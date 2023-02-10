@@ -109,35 +109,7 @@ public abstract class ConnectionRegistry {
     protected boolean isObsolete;
     protected Map<String,RateLimitEntry> rateLimits;
     private Actor facadeActor;
-    protected BiFunction<Actor,String,Boolean> remoteCallInterceptor =
-    (actor,methodName) -> {
-        Method method = actor.__getCachedMethod(methodName, actor, null);
-        if ( method == null ) {
-            Log.Warn(null, "no such method on "+actor.getClass().getSimpleName()+"#"+methodName);
-        }
-        if ( method == null || ActorProxyFactory.getInheritedAnnotation(Local.class,method) != null ) {
-            return false;
-        }
-
-        // fixme: cache this
-        RateLimited rateLimited = ActorProxyFactory.getInheritedAnnotation(RateLimited.class, method);
-        if ( rateLimited != null ) {
-//            synchronized (this)
-            {
-                if (rateLimits == null) {
-                    rateLimits = new ConcurrentHashMap();
-                    rateLimits.put(method.getName(), new RateLimitEntry(rateLimited));
-                }
-            }
-        }
-        // fixme: this slows down remote call performance somewhat.
-        // checks should be done before putting methods into cache
-        if ( secured && ActorProxyFactory.getInheritedAnnotation(Remoted.class,method) == null ) {
-            Log.Warn(null, "method not @Remoted "+actor.getClass().getSimpleName()+"#"+methodName);
-            return false;
-        }
-        return true;
-    };
+    protected BiFunction<Actor,String,Boolean> remoteCallInterceptor = new RemoteCallInterceptor();
 
 
     public ConnectionRegistry(FSTConfiguration conf, Coding coding) {
