@@ -3,6 +3,8 @@ package kontraktor;
 import org.junit.Test;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.Actors;
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.KontraktorSettings;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
 import org.nustaq.kontraktor.remoting.base.ConnectableActor;
@@ -24,8 +26,10 @@ public class RemotingSecurityTest {
             System.out.println("shouldNotCallLocalMethods");
         }
 
-        public void allowed() {
-            System.out.println("allowed");
+        public IPromise allowed(String arg,Object x) {
+            System.out.println("allowed "+arg);
+            //throw new RuntimeException("an exception");
+            return reject("error string");
         }
 
     }
@@ -42,7 +46,7 @@ public class RemotingSecurityTest {
     public void runClient() {
         RServer client = (RServer) new TCPConnectable().host("localhost").port(4567).actorClass(RServer.class).connect().await();
 //        client.ShouldNotCallStaticMethods();
-        client.shouldNotCallLocalMethods();
+        client.allowed("fail please", null ).then( (r,e) -> System.out.println("r:"+r+" e:"+e));
         try {
             Thread.sleep(100_000l);
         } catch (InterruptedException e) {
@@ -51,6 +55,7 @@ public class RemotingSecurityTest {
     }
 
     public static void main(String[] args) {
+        KontraktorSettings.FORWARD_EXCEPTIONS_TO_REMOTE = false;
         if ( args.length > 0 )
             new RemotingSecurityTest().runClient();
         else

@@ -650,13 +650,17 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
                 final Promise finalP = p;
                 final RemoteCallEntry finalRce = rce;
                 ((IPromise) future).then( (r,e) -> {
+                    if ( ! KontraktorSettings.FORWARD_EXCEPTIONS_TO_REMOTE && e instanceof Throwable ) {
+                        e = KontraktorSettings.GENERIC_REMOTE_ERROR;
+                    }
+                    Object finalE = e;
                     Runnable runnable = () -> {
                         try {
                             Object finalR = r;
                             if ( registry.isJsonSerialized() && finalRce.getMethodHandle() != null ) {
                                 finalR = getScheduler().mapResult(r,finalRce);
                             }
-                            registry.receiveCBResult(objSocket, finalRce.getFutureKey(), finalR, e);
+                            registry.receiveCBResult(objSocket, finalRce.getFutureKey(), finalR, finalE);
                             if (finalP != null)
                                 finalP.resolve();
                         } catch (Exception ex) {
@@ -675,7 +679,12 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
             if ( rce.getFutureKey() != 0 ) {
                     self().execute(() -> {
                         try {
-                            registry.receiveCBResult(objSocket, rce.getFutureKey(), null, th instanceof RateLimitException ? ""+th : FSTUtil.toString(th) );
+                            String errorString = th instanceof RateLimitException ? "" + th : FSTUtil.toString(th);
+                            if ( ! KontraktorSettings.FORWARD_EXCEPTIONS_TO_REMOTE && th instanceof RemoteMethodNotFoundException ) {
+                                errorString = KontraktorSettings.GENERIC_REMOTE_ERROR.toString();
+                                Log.Error(this,th);
+                            }
+                            registry.receiveCBResult(objSocket, rce.getFutureKey(), null, errorString);
                         } catch (Exception e) {
                             Log.Error(this,e);
                         }
