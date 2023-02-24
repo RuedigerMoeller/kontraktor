@@ -142,7 +142,17 @@ public class UndertowRESTHandler implements HttpHandler {
         }
     }
 
+    public static interface ParseAndDispatchREST {
+        void parseAndDispatch(HttpServerExchange exchange, String[] split, String rawPath, Method m, byte[] postData, Object credentials);
+    }
+
+    public static ParseAndDispatchREST RESTRequestHandler = null;
+
     private void parseAndDispatch(HttpServerExchange exchange, String[] split, String rawPath, Method m, byte[] postData, Object credentials) {
+        if ( RESTRequestHandler != null ) {
+            RESTRequestHandler.parseAndDispatch(exchange,split,rawPath,m,postData,credentials);
+            return;
+        }
         try {
             Class<?>[] parameterTypes = m.getParameterTypes();
             Annotation[][] parameterAnnotations = m.getParameterAnnotations();

@@ -3,6 +3,7 @@ package org.nustaq.reallive.messages;
 import org.nustaq.reallive.api.ChangeMessage;
 import org.nustaq.reallive.api.Record;
 
+
 /**
  * Created by ruedi on 07/08/15.
  */
@@ -54,8 +55,8 @@ public class PutMessage implements ChangeMessage {
     @Override
     public String toString() {
         return "PutMessage{" +
-                ", record=" + record.asString() +
-                '}';
+            ", record=" + record.asString() +
+            '}';
     }
 
 }
