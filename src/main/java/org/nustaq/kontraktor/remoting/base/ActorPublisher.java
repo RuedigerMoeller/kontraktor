@@ -33,4 +33,8 @@ public interface ActorPublisher {
     ActorPublisher facade( Actor facade );
     ActorPublisher setTrafficMonitor(TrafficMonitor trafficMonitor);
 
+    default ConnectableActor getConnectable(String host, Class<? extends Actor> actorClazz) {
+        throw new RuntimeException("not implemented");
+    }
+
 }

@@ -1,6 +1,7 @@
 package org.nustaq.reallive.records;
 
 import org.nustaq.reallive.api.Record;
+import org.nustaq.reallive.api.TransformFunction;
 
 /**
  * Created by ruedi on 22/08/15.
@@ -31,6 +32,11 @@ public class RecordWrapper implements Record {
 
     public Record getRecord() {
         return record;
+    }
+
+    @Override
+    public boolean containsKey(String x) {
+        return record.containsKey(x);
     }
 
     public String getKey() {
@@ -88,6 +94,7 @@ public class RecordWrapper implements Record {
         return record.put(field,value);
     }
 
+
     @Override
     public String toString() {
         return "RecordWrapper{" +
@@ -105,9 +112,14 @@ public class RecordWrapper implements Record {
         return getKey().hashCode();
     }
 
-    public RecordWrapper shallowCopy() {
-        RecordWrapper newReq = new RecordWrapper(record.shallowCopy());
-        return newReq;
+    public Record shallowCopy() {
+        return record.shallowCopy();
     }
+
+    @Override
+    public Record transformCopy(TransformFunction transform) {
+        return record.transformCopy(transform);
+    }
+
 
 }

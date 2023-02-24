@@ -51,48 +51,4 @@ public class ChangeUtils {
         return new Diff(changed.toArray(new String[changed.size()]),changedOldValues);
     }
 
-
-    /**
-     * copy different (equals) fields and return resulting list of changed fields + old values
-     *
-     * @param from
-     * @param to
-     * @return
-     */
-    public static Diff copyAndDiff(Record from, Record to) {
-        String[] fields = from.getFields();
-        return copyAndDiff(from, to, fields);
-    }
-
-    public static Diff copyAndDiff(Record from, Record to, String[] fields) {
-        return mayCopyAndDiff(from, to, fields, true);
-    }
-
-    public static Diff mayCopyAndDiff(Record from, Record to, String[] fields, boolean copy) {
-        ArrayList<String> changedFields = new ArrayList();
-        ArrayList<Object> changedValues = new ArrayList();
-        for (int i = 0; i < fields.length; i++) {
-            String field = fields[i];
-            Object oldValue = to.get(field);
-            Object newValue = from.get(field);
-
-            if ( ! Objects.deepEquals(oldValue, newValue) ) {
-                changedFields.add(field);
-                changedValues.add(oldValue);
-                if ( copy )
-                    to.put(field, newValue);
-            }
-        }
-        String cf[] = new String[changedFields.size()];
-        changedFields.toArray(cf);
-        return new Diff(cf,changedValues.toArray());
-    }
-
-    public static void copy(Record from, Record to, String ... fields) {
-        for (int i = 0; i < fields.length; i++) {
-            String field = fields[i];
-            to.put(field,from.get(field));
-        }
-    }
-
 }

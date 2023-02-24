@@ -21,6 +21,8 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.annotations.RateLimited;
@@ -31,6 +33,7 @@ import org.nustaq.kontraktor.remoting.encoding.*;
 import org.nustaq.kontraktor.routers.AbstractKrouter;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.serializers.FSTMapSerializer;
 
 import java.io.IOError;
 import java.io.IOException;
@@ -61,7 +64,8 @@ public abstract class ConnectionRegistry {
     public static void registerDefaultClassMappings(FSTConfiguration conf) {
         conf.registerCrossPlatformClassMapping(new String[][]{
             {"call", RemoteCallEntry.class.getName()},
-            {"cbw", CallbackWrapper.class.getName()}
+            {"cbw", CallbackWrapper.class.getName()},
+            {"fmap", Object2ObjectOpenHashMap.class.getName()}
         });
     }
 
@@ -105,35 +109,7 @@ public abstract class ConnectionRegistry {
     protected boolean isObsolete;
     protected Map<String,RateLimitEntry> rateLimits;
     private Actor facadeActor;
-    protected BiFunction<Actor,String,Boolean> remoteCallInterceptor =
-    (actor,methodName) -> {
-        Method method = actor.__getCachedMethod(methodName, actor, null);
-        if ( method == null ) {
-            Log.Warn(null, "no such method on "+actor.getClass().getSimpleName()+"#"+methodName);
-        }
-        if ( method == null || ActorProxyFactory.getInheritedAnnotation(Local.class,method) != null ) {
-            return false;
-        }
-
-        // fixme: cache this
-        RateLimited rateLimited = ActorProxyFactory.getInheritedAnnotation(RateLimited.class, method);
-        if ( rateLimited != null ) {
-//            synchronized (this)
-            {
-                if (rateLimits == null) {
-                    rateLimits = new ConcurrentHashMap();
-                    rateLimits.put(method.getName(), new RateLimitEntry(rateLimited));
-                }
-            }
-        }
-        // fixme: this slows down remote call performance somewhat.
-        // checks should be done before putting methods into cache
-        if ( secured && ActorProxyFactory.getInheritedAnnotation(Remoted.class,method) == null ) {
-            Log.Warn(null, "method not @Remoted "+actor.getClass().getSimpleName()+"#"+methodName);
-            return false;
-        }
-        return true;
-    };
+    protected BiFunction<Actor,String,Boolean> remoteCallInterceptor = new RemoteCallInterceptor();
 
 
     public ConnectionRegistry(FSTConfiguration conf, Coding coding) {
@@ -167,6 +143,7 @@ public abstract class ConnectionRegistry {
         conf.registerClass(Spore.class);
         conf.registerClass(CallbackWrapper.class);
         conf.registerClass(Actor.class);
+        conf.registerSerializer(Object2ObjectOpenHashMap.class, new FSTMapSerializer(), true);
 	}
 
 	public int getOpenRemoteMappingsCount() {

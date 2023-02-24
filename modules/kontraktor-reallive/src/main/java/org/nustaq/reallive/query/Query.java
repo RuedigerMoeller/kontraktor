@@ -11,18 +11,21 @@ public class Query {
         return newParser().compile(query);
     }
 
+    public static HashMap<String, FuncOperand> functions;
+    public static HashMap<String, Operator> operators;
+
+    static {
+        functions = new HashMap<>();
+        defaultFun(functions);
+        operators = new HashMap<>();
+        defaultOps(operators);
+    }
+
     public static Value eval(String query,EvalContext ctx) {
         return newParser().compile(query).evaluate(ctx);
     }
 
     protected static Parser newParser() {
-
-        HashMap<String,FuncOperand> functions = new HashMap();
-        defaultFun(functions);
-
-        HashMap<String,Operator> operators = new HashMap();
-        defaultOps(operators);
-
         return new Parser(functions,operators);
     }
 

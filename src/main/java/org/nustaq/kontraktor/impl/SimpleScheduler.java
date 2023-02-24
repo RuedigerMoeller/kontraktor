@@ -210,7 +210,7 @@ public class SimpleScheduler implements Scheduler {
             parameterTypes = method.getParameters();
 
         if ( method == null )
-            throw new RuntimeException("unknown method "+methodName+" on "+actor);
+            throw new RemoteMethodNotFoundException("unknown method "+methodName+" on "+actor);
         if ( remoteCallEntry != null )
             remoteCallEntry.setMethodHandle(method);
         // scan for callbacks in arguments ..

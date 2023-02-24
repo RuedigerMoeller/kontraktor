@@ -1,6 +1,5 @@
 package org.nustaq.kontraktor.services.datacluster.dynamic;
 
-import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.services.ClusterCfg;
@@ -22,7 +21,11 @@ import static org.nustaq.reallive.server.dynamic.DynClusterTableDistribution.*;
 
 public class DynDataServiceRegistry extends ServiceRegistry {
 
+    final static boolean AUTO_REDISTRIBUTE = false;
     public static final String RECORD_DISTRIBUTION = "distribution";
+    public static final int INTERVAL_AUTOSTART_TRIAL_MILLIS = 2000;
+    public static boolean ACTIONS_ENABLED = true;
+    public static int TRIALS_FOR_AUTOSTART = 15;
 
     List<ServiceDescription> dynShards = new ArrayList<>();
     Map<String,DynDataShard> primaryDynShards = new HashMap<>();
@@ -35,7 +38,7 @@ public class DynDataServiceRegistry extends ServiceRegistry {
             dynShards.add(desc);
             if ( ! autoStartUnderway && config.isDynAutoStart() ) {
                 autoStartUnderway = true;
-                delayed(1000, () -> waitForAutoStart() );
+                delayed(1000, () -> waitForAutoStart(TRIALS_FOR_AUTOSTART) );
             }
         }
     }
@@ -71,19 +74,21 @@ public class DynDataServiceRegistry extends ServiceRegistry {
                     }
                     int buckets = toRelease.getNumBuckets();
                     int bucketsPerNode = buckets/(states.size())+1;
-                    for (int i = 0; i < states.size(); i++) {
-                        TableState tableState = states.get(i);
-                        if ( ! shardName2Release.equals(tableState.getAssociatedShardName()) ) {
-                            int[] bucketsToRemove = toRelease.takeBuckets(bucketsPerNode);
-                            if ( bucketsToRemove.length > 0 ) {
-                                tblDist.addAction(new MoveHashShardsAction(
-                                    bucketsToRemove,
-                                    tableName,
-                                    toRelease.getAssociatedShardName(),
-                                    tableState.getAssociatedShardName()
-                                ));
+                    if ( AUTO_REDISTRIBUTE ) {
+                        for (int i = 0; i < states.size(); i++) {
+                            TableState tableState = states.get(i);
+                            if (!shardName2Release.equals(tableState.getAssociatedShardName())) {
+                                int[] bucketsToRemove = toRelease.takeBuckets(bucketsPerNode);
+                                if (bucketsToRemove.length > 0) {
+                                    tblDist.addAction(new MoveHashShardsAction(
+                                        bucketsToRemove,
+                                        tableName,
+                                        toRelease.getAssociatedShardName(),
+                                        tableState.getAssociatedShardName()
+                                    ));
+                                }
+                                break;
                             }
-                            break;
                         }
                     }
                     // execute actions
@@ -136,8 +141,16 @@ public class DynDataServiceRegistry extends ServiceRegistry {
                 return;
             }
 
+            // scenario from prod:
+            //   - host system update triggered random restart of datanodes
+            //   - panic redistribution lead to all records being added to a remaining node
+            //   - after restart lots of intersections
+            // therefore autobalance as of now should be disabled.
+
             // execute actions
-            List collect = distribution.getDistributions().entrySet().stream().map(en -> executeActions(en.getValue())).collect(Collectors.toList());
+            List collect = ACTIONS_ENABLED ?
+                distribution.getDistributions().entrySet().stream().map(en -> executeActions(en.getValue())).collect(Collectors.toList()) :
+                List.of();
             all(collect).then( (plist,finErr) -> {
                 Log.Info(this, "*****************************************************************************************************");
                 Log.Info(this, "all table distributions processed ");
@@ -159,14 +172,23 @@ public class DynDataServiceRegistry extends ServiceRegistry {
     /**
      * collects distribution and triggers a balance as soon full coverage is present
      */
-    protected void waitForAutoStart() {
+    protected void waitForAutoStart(int trial) {
         collectRecordDistribution().then( (dist,err) -> {
             if ( dist != null && dist.hasFullCoverage() ) {
                 Log.Info(this,"**** auto start dyn cluster ****");
                 execute( () -> balanceDynShards() );
             } else {
-                Log.Info(this,"autostarter waiting for hash coverage ... ");
-                delayed(2000, () -> waitForAutoStart() );
+                if ( dist.isEmpty() ) {
+                    Log.Info(this,"empty cluster detected, auto balance");
+                    balanceDynShards();
+                } else {
+                    Log.Info(this, "autostarter waiting for hash coverage ... ");
+//                    if ( trial <= 0 )
+//                    {
+//                        Log.Info(this, "autostarter waiting for hash coverage timed out");
+//                    } else
+                        delayed(INTERVAL_AUTOSTART_TRIAL_MILLIS, () -> waitForAutoStart(trial-1));
+                }
             }
         });
     }
@@ -284,50 +306,51 @@ public class DynDataServiceRegistry extends ServiceRegistry {
                 System.out.println(distribution);
                 throw new RuntimeException("unhandled cluster distribution state "+distribution.getName()+" "+sanRes);
         }
-        //check balance
-        int sum = 0;
-        List<TableState> states = distribution.getStates();
-        for (int i = 0; i < states.size(); i++) {
-            TableState tableState = states.get(i);
-            sum += tableState.getMapping().getBitset().cardinality();
-        }
-        int avg = sum / states.size();
-        List<TableState> receiver = new ArrayList<>();
-        List<TableState> sender = new ArrayList<>();
-        for (int i = 0; i < states.size(); i++) {
-            TableState tableState = states.get(i);
-            int diff = tableState.getNumBuckets()-avg;
-            if ( diff >= 2 )
-                sender.add(tableState);
-            else if ( diff <= -2 )
-                receiver.add(tableState);
-        }
-        sender.sort( (a,b) -> a.getNumBuckets() - b.getNumBuckets() );
-        receiver.sort( (b,a) -> a.getNumBuckets() - b.getNumBuckets() );
-        while ( sender.size() > 0 && receiver.size() > 0 ) {
-            TableState sendTS = sender.get(0);
-            TableState recTS = receiver.get(0);
-            int diffSender = sendTS.getNumBuckets() - avg;
-            int diffReceiver = recTS.getNumBuckets() - avg;
-            int transfer = Math.min( -diffReceiver, diffSender );
-            int transferHashes[] = sendTS.takeBuckets(transfer);
-            if ( transferHashes.length > 0 ) {
-                recTS.addBuckets(transferHashes);
-                distribution.addAction(
-                    new MoveHashShardsAction(
-                        transferHashes,
-                        sendTS.getTableName(),
-                        sendTS.getAssociatedShardName(),
-                        recTS.getAssociatedShardName()
-                    )
-                );
+        if ( AUTO_REDISTRIBUTE ) {
+            //check balance
+            int sum = 0;
+            List<TableState> states = distribution.getStates();
+            for (int i = 0; i < states.size(); i++) {
+                TableState tableState = states.get(i);
+                sum += tableState.getMapping().getBitset().cardinality();
             }
-            if ( sendTS.getNumBuckets()-avg > avg-recTS.getNumBuckets() )
-                receiver.remove(0);
-            else
-                sender.remove(0);
+            int avg = sum / states.size();
+            List<TableState> receiver = new ArrayList<>();
+            List<TableState> sender = new ArrayList<>();
+            for (int i = 0; i < states.size(); i++) {
+                TableState tableState = states.get(i);
+                int diff = tableState.getNumBuckets() - avg;
+                if (diff >= 2)
+                    sender.add(tableState);
+                else if (diff <= -2)
+                    receiver.add(tableState);
+            }
+            sender.sort((a, b) -> a.getNumBuckets() - b.getNumBuckets());
+            receiver.sort((b, a) -> a.getNumBuckets() - b.getNumBuckets());
+            while (sender.size() > 0 && receiver.size() > 0) {
+                TableState sendTS = sender.get(0);
+                TableState recTS = receiver.get(0);
+                int diffSender = sendTS.getNumBuckets() - avg;
+                int diffReceiver = recTS.getNumBuckets() - avg;
+                int transfer = Math.min(-diffReceiver, diffSender);
+                int transferHashes[] = sendTS.takeBuckets(transfer);
+                if (transferHashes.length > 0) {
+                    recTS.addBuckets(transferHashes);
+                    distribution.addAction(
+                        new MoveHashShardsAction(
+                            transferHashes,
+                            sendTS.getTableName(),
+                            sendTS.getAssociatedShardName(),
+                            recTS.getAssociatedShardName()
+                        )
+                    );
+                }
+                if (sendTS.getNumBuckets() - avg > avg - recTS.getNumBuckets())
+                    receiver.remove(0);
+                else
+                    sender.remove(0);
+            }
         }
-
     }
 
     // had to be moved here as requires a lot of refs to kontraktor kluster

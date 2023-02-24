@@ -319,8 +319,10 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         ServiceActor hostingService /* can be null */,
         DataCfg schema
     ) {
-        Log.Info(ServiceActor.class, "init datacluster client");
+        Log.Info(ServiceActor.class, "try init datacluster client");
         int nShards = currentDistribution == null ? 0 : currentDistribution.getNumberOfShards();
+        if ( nShards == 0 )
+            return null;
         Log.Info(ServiceActor.class, "number of shards "+nShards);
         DynDataShard shards[] =  new DynDataShard[nShards];
         DynTableSpaceActor tsShard[] = new DynTableSpaceActor[nShards];

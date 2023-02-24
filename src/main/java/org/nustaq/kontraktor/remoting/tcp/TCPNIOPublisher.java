@@ -20,6 +20,7 @@ import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.remoting.base.ActorPublisher;
 import org.nustaq.kontraktor.remoting.base.ActorServer;
+import org.nustaq.kontraktor.remoting.base.ConnectableActor;
 import org.nustaq.kontraktor.remoting.base.TrafficMonitor;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
@@ -102,4 +103,14 @@ public class TCPNIOPublisher implements ActorPublisher {
                    ", coding=" + coding +
                    '}';
     }
+
+    @Override
+    public ConnectableActor getConnectable(String host, Class<? extends Actor> actorClazz) {
+        return new TCPConnectable()
+            .actorClass(actorClazz)
+            .coding(getCoding())
+            .host(host)
+            .port(getPort());
+    }
+
 }

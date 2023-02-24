@@ -10,6 +10,7 @@ import org.nustaq.kontraktor.services.ServiceActor;
 import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataServiceRegistry;
 import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataShard;
 import org.nustaq.kontraktor.services.rlclient.DataClient;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.RealLiveTable;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.server.dynamic.DynClusterDistribution;
@@ -46,15 +47,24 @@ public class DBClient {
             }
         });
         ClusterCfg cluster = registry.getConfig().await();
-        DynClusterDistribution activeDistribution = registry.getActiveDistribution().await();
-        dclient = ServiceActor.InitRealLiveDynamic(
-            activeDistribution,
-            registry,
-            name -> shardMap.get(name),
-            null,
-            cluster.getDataCluster()
-        );
-
+        do {
+            DynClusterDistribution activeDistribution = registry.getActiveDistribution().await();
+            dclient = ServiceActor.InitRealLiveDynamic(
+                activeDistribution,
+                registry,
+                name -> shardMap.get(name),
+                null,
+                cluster.getDataCluster()
+            );
+            if ( dclient == null ) {
+                Log.Info(this,"waiting blocking for dclient to become available");
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        } while (dclient == null);
         return dclient;
     }
 

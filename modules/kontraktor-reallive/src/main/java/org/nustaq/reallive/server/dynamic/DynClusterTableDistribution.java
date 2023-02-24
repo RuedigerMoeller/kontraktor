@@ -146,4 +146,12 @@ public class DynClusterTableDistribution implements Serializable {
         return res;
     }
 
+    public boolean isEmpty() {
+        for (int j = 0; j < tableStates.size(); j++) {
+            TableState tableState = tableStates.get(j);
+            if ( tableState.getNumBuckets() != 0 )
+                return false;
+        }
+        return true;
+    }
 }
