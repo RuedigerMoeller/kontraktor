@@ -47,11 +47,13 @@ public interface RealLiveTable extends SafeRealLiveTable, ChangeStream, RealLive
     @CallerSideMethod default IPromise<List<Record>> queryList(RLPredicate<Record> condition) {
         Promise prom = new Promise();
         List<Record> res = new ArrayList<>();
-        forEach(condition, (r,e) -> {
-            if ( r != null ) {
-                res.add(r);
-            } else {
-                prom.complete(res,e);
+        forEach(condition, (r,e) -> { // race condition if this is used at callerside in a multithreaded way
+            synchronized (res) {
+                if (r != null) {
+                    res.add(r);
+                } else {
+                    prom.complete(res, e);
+                }
             }
         });
         return prom;
