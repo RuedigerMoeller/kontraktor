@@ -4,6 +4,7 @@ import org.nustaq.kontraktor.Callback;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.reallive.server.RemoveLog;
 
 import java.util.ArrayList;
