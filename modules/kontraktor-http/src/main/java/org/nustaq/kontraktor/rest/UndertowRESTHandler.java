@@ -143,14 +143,14 @@ public class UndertowRESTHandler implements HttpHandler {
     }
 
     public static interface ParseAndDispatchREST {
-        void parseAndDispatch(HttpServerExchange facade, FSTConfiguration jsonConf, String[] split, String rawPath, Method m, byte[] postData, Object credentials);
+        void parseAndDispatch(HttpServerExchange exchange, UndertowRESTHandler handler, String[] split, String rawPath, Method m, byte[] postData, Object credentials);
     }
 
     public static ParseAndDispatchREST RESTRequestHandler = null;
 
     private void parseAndDispatch(HttpServerExchange exchange, String[] split, String rawPath, Method m, byte[] postData, Object credentials) {
         if ( RESTRequestHandler != null ) {
-            RESTRequestHandler.parseAndDispatch(exchange,jsonConf, split,rawPath,m,postData,credentials);
+            RESTRequestHandler.parseAndDispatch(exchange, this, split,rawPath,m,postData,credentials);
             return;
         }
         try {
@@ -285,4 +285,31 @@ public class UndertowRESTHandler implements HttpHandler {
         return NOVAL;
     }
 
+    public String getBasePath() {
+        return basePath;
+    }
+
+    public Actor getFacade() {
+        return facade;
+    }
+
+    public FSTConfiguration getJsonConf() {
+        return jsonConf;
+    }
+
+    public Function<HeaderMap, IPromise> getRequestAuthenticator() {
+        return requestAuthenticator;
+    }
+
+    public Set<String> getAllowedMethods() {
+        return allowedMethods;
+    }
+
+    public Consumer<HttpServerExchange> getPrepareResponse() {
+        return prepareResponse;
+    }
+
+    public static ParseAndDispatchREST getRESTRequestHandler() {
+        return RESTRequestHandler;
+    }
 }
