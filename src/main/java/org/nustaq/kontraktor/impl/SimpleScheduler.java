@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.monitoring.Monitorable;
 import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
-import org.nustaq.kontraktor.remoting.base.JsonMappable;
+import org.nustaq.kontraktor.remoting.base.JsonMapable;
 import org.nustaq.kontraktor.remoting.base.JsonMapped;
 import org.nustaq.kontraktor.remoting.encoding.RemoteCallEntry;
 import org.nustaq.kontraktor.util.Log;
@@ -83,7 +83,7 @@ public class SimpleScheduler implements Scheduler {
     public Object mapResult( Object result, RemoteCallEntry rce ) {
         if ( result instanceof JsonValue)
             return result.toString();
-        if ( result instanceof JsonMappable == false && ! rce.getMethodHandle().isAnnotationPresent(JsonMapped.class) )
+        if ( result instanceof JsonMapable == false && ! rce.getMethodHandle().isAnnotationPresent(JsonMapped.class) )
             return result;
         if ( mapper == null ) {
             mapper = ConnectionRegistry.CreateDefaultObjectMapper.get();
@@ -221,7 +221,7 @@ public class SimpleScheduler implements Scheduler {
             }
             // process jsonmapped args (jackson object mapper / eclipse api)
             if ( parameterTypes != null && arg instanceof String && (reg==null || reg.isJsonSerialized()) ) {
-                if ( parameterTypes[i].isAnnotationPresent(JsonMapped.class) || JsonMappable.class.isAssignableFrom(parameterTypes[i].getType()))
+                if ( parameterTypes[i].isAnnotationPresent(JsonMapped.class) || JsonMapable.class.isAssignableFrom(parameterTypes[i].getType()))
                 {
                     if ( mapper == null )
                         mapper = ConnectionRegistry.CreateDefaultObjectMapper.get();

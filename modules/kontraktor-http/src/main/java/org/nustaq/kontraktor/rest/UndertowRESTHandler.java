@@ -4,12 +4,16 @@ import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.undertow.server.HttpHandler;
 import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderMap;
 import io.undertow.util.Headers;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.remoting.base.ConnectionRegistry;
+import org.nustaq.kontraktor.remoting.base.JsonMapable;
+import org.nustaq.kontraktor.remoting.base.JsonMapped;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.kontraktor.util.Pair;
 import org.nustaq.serialization.FSTConfiguration;
@@ -28,6 +32,7 @@ import java.util.function.Function;
 public class UndertowRESTHandler implements HttpHandler {
 
     protected static final Object NOVAL = new Object();
+    protected ObjectMapper mapper;
     protected String basePath;
     protected Actor facade;
     protected FSTConfiguration jsonConf = FSTConfiguration.createJsonConfiguration();
@@ -49,6 +54,15 @@ public class UndertowRESTHandler implements HttpHandler {
             "get","put","patch","post","delete","head","option"
         }).forEach( s -> allowedMethods.add(s) );
         this.prepareResponse = prepareResponse;
+        mapper = ConnectionRegistry.CreateDefaultObjectMapper.get();
+    }
+
+    public ObjectMapper getMapper() {
+        return mapper;
+    }
+
+    public void setMapper(ObjectMapper mapper) {
+        this.mapper = mapper;
     }
 
     public void setAllowedMethods(Set<String> allowedMethods) {
@@ -194,10 +208,16 @@ public class UndertowRESTHandler implements HttpHandler {
                         args[i] = exchange.getRequestHeaders();
                     } else if (parameterType == String[].class) {
                         args[i] = split;
-                    } else if (postData != null && parameterType == JsonObject.class || parameterType == JsonValue.class) {
+                    } else if (postData != null && (parameterType == JsonObject.class || parameterType == JsonValue.class) ) {
                         args[i] = Json.parse(new String(postData, "UTF-8"));
-                    } else if (postData != null && parameterType == byte[].class) {
-                        args[i] = postData;
+                    } else if (postData != null) {
+                        if (parameterType == byte[].class) {
+                            args[i] = postData;
+                        } else {
+                            if (JsonMapable.class.isAssignableFrom(parameterType)) {
+                                args[i] = getMapper().readValue(postData,parameterType);
+                            }
+                        }
                     } else if (parameterType == Map.class) {
                         args[i] = exchange.getQueryParameters();
                     } else {
