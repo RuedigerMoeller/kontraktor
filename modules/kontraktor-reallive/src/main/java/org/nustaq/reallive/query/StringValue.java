@@ -1,5 +1,7 @@
 package org.nustaq.reallive.query;
 
+import org.nustaq.reallive.api.Record;
+
 /**
  * Created by moelrue on 27.08.2015.
  */
@@ -49,7 +51,7 @@ public class StringValue implements Value {
 
     @Override
     public boolean isEmpty() {
-        return value == null || value.length() == 0;
+        return value == null || value.length() == 0 || Record._NULL_.equals(value);
     }
 
     @Override

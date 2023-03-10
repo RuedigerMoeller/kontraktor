@@ -52,9 +52,9 @@ public class VarPath implements Serializable, HasToken  {
     public Value evaluate(EvalContext ectx) {
         if ( ectx != null ) {
             if ( fields != null && fields.length > 0 ) {
-                EvalContext currentRec = null;
+                EvalContext currentRec = ectx;
                 for (int i = 0; i < fields.length-1; i++) {
-                    Object o = ectx.get(fields[i]);
+                    Object o = currentRec.get(fields[i]);
                     if ( o instanceof EvalContext == false )
                         return NullValue.NULL;
                     currentRec = (EvalContext) o;
