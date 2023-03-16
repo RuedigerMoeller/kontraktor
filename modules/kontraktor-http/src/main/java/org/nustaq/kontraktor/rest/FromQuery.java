@@ -12,4 +12,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.PARAMETER)
 public @interface FromQuery {
     String value();
+    String desc() default "";
 }

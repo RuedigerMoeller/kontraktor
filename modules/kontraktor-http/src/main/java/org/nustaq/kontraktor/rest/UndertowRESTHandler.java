@@ -32,6 +32,9 @@ import java.util.function.Function;
 public class UndertowRESTHandler implements HttpHandler {
 
     protected static final Object NOVAL = new Object();
+    public static final String[] METHODS = {
+        "get", "put", "patch", "post", "delete", "head", "option"
+    };
     protected ObjectMapper mapper;
     protected String basePath;
     protected Actor facade;
@@ -50,9 +53,7 @@ public class UndertowRESTHandler implements HttpHandler {
         this.facade = facade;
         this.requestAuthenticator = requestAuthenticator;
         allowedMethods = new HashSet<>();
-        Arrays.stream(new String[] {
-            "get","put","patch","post","delete","head","option"
-        }).forEach( s -> allowedMethods.add(s) );
+        Arrays.stream(METHODS).forEach(s -> allowedMethods.add(s) );
         this.prepareResponse = prepareResponse;
         mapper = ConnectionRegistry.CreateDefaultObjectMapper.get();
     }
@@ -257,6 +258,8 @@ public class UndertowRESTHandler implements HttpHandler {
                             exchange.getResponseSender().send(""+((Pair) r).cdr());
                         } else if ( r instanceof JsonValue ) {
                             exchange.getResponseSender().send(r.toString());
+                        } else if ( r instanceof JsonMapable ) {
+                            exchange.getResponseSender().send(((JsonMapable)r).toJsonString());
                         } else if ( r instanceof Serializable ) {
                             byte[] bytes = jsonConf.asByteArray(r);
                             exchange.getResponseSender().send(ByteBuffer.wrap(bytes));

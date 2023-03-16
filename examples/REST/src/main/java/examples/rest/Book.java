@@ -1,11 +1,13 @@
 package examples.rest;
 
+import org.nustaq.kontraktor.remoting.base.JsonMapable;
+
 import java.io.Serializable;
 
-public class Book implements Serializable {
+public class Book implements Serializable, JsonMapable {
     String title;
     String id;
-    String author;
+    Author author;
 
     public String getTitle() {
         return title;
@@ -15,7 +17,7 @@ public class Book implements Serializable {
         return id;
     }
 
-    public String getAuthor() {
+    public Author getAuthor() {
         return author;
     }
 
@@ -29,7 +31,7 @@ public class Book implements Serializable {
         return this;
     }
 
-    public Book author(String author) {
+    public Book author(Author author) {
         this.author = author;
         return this;
     }

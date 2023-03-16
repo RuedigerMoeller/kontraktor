@@ -12,7 +12,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>de.ruedigermoeller</groupId>
     <artifactId>kontraktor-http</artifactId>
-    <version>5.1.11</version>
+    <version>5.1.13</version>
 
     <description>http connectivity for kontraktor</description>
     <url>https://github.com/RuedigerMoeller/kontraktor</url>
@@ -112,7 +112,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor</artifactId>
-            <version>5.1.10</version>
+            <version>5.1.11</version>
         </dependency>
 
         <dependency>
@@ -223,6 +223,12 @@
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt</artifactId>
             <version>0.7.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-core</artifactId>
+            <version>2.2.8</version>
         </dependency>
     </dependencies>
 
