@@ -13,7 +13,7 @@ public interface JsonMapable {
     ObjectMapper mapper = ConnectionRegistry.CreateDefaultObjectMapper.get();
     default String toJsonString() {
         try {
-            return Json.parse(mapper.writeValueAsString(this)).toString(WriterConfig.PRETTY_PRINT);
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(this);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

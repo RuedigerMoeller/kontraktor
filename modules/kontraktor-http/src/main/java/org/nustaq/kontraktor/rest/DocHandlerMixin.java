@@ -105,6 +105,10 @@ public interface DocHandlerMixin {
         lineHeader(res, httpMethod.toUpperCase(),"#fff",false);
         res.append("<div style='display: inline-block;margin: 2px;'><b>"+path+"</b></div>");
         ApiOp apiOp = method.getAnnotation(ApiOp.class);
+        if ( apiOp != null && apiOp.docPostDataDTO() != Void.class ) {
+            // always override reflection with explicit declaration
+            postDTO = apiOp.docPostDataDTO();
+        }
         if ( apiOp != null && summary.isEmpty() )
             summary = apiOp.summary();
         if ( ! summary.isEmpty() ) {
@@ -126,8 +130,8 @@ public interface DocHandlerMixin {
             String dtoStr = postDTO.getSimpleName();
             dtoStr = getDTOString(postDTO, dtoStr);
             lineHeader(res, "post data","none");
-            if ( apiOp != null && ! apiOp.container().isEmpty() ) {
-                dtoStr = apiOp.container()+" of \n"+dtoStr;
+            if ( apiOp != null && ! apiOp.requestContainer().isEmpty() ) {
+                dtoStr = apiOp.requestContainer()+" of \n"+dtoStr;
             }
             res.append("<div style='vertical-align: top;display: inline-block; margin: 2px;'><pre>"+dtoStr+"</pre></div>");
         }
@@ -184,6 +188,8 @@ public interface DocHandlerMixin {
     }
 
     private String getDTOString(Class clz, String dtoStr) {
+        if ( !JsonMapable.class.isAssignableFrom(clz) )
+            return dtoStr;
         try {
             JsonMapable o = (JsonMapable) clz.newInstance();
             if ( o != null ) {
