@@ -2,6 +2,7 @@ package org.nustaq.reallive.api;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.WriterConfig;
+import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.query.EvalContext;
 import org.nustaq.reallive.query.LongValue;
 import org.nustaq.reallive.query.StringValue;
@@ -11,6 +12,8 @@ import org.nustaq.reallive.server.storage.RecordJsonifier;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -273,7 +276,7 @@ public interface Record extends Serializable, EvalContext {
         return val.toString();
     }
 
-    default String asString() {
+    default String asLoggingString() {
         String[] fields = getFields();
         String res = "[  *"+getKey()+"  ";
         for (int i = 0; i < fields.length; i++) {
@@ -643,4 +646,60 @@ public interface Record extends Serializable, EvalContext {
     }
 
     boolean containsKey(String x);
+
+    /**
+     * example: r.replaceInValues( (field,index,value) => field != null && field.equals("pwd") ? "" : value );
+     * @param objectMapper
+     * @return
+     */
+    default boolean replaceValues(TransformFunction objectMapper) {
+        try {
+            String[] fields = getFields();
+            boolean changed = false;
+            for (int i = 0; i < fields.length; i++) {
+                String field = fields[i];
+                Object val = get(field);
+                if (val != null) {
+                    if (val instanceof Record) {
+                        changed |= ((Record) val).replaceValues(objectMapper);
+                    } else if ( val instanceof Object[] ) {
+                        Object[] arr = (Object[]) val;
+                        changed |= replaceInArray(objectMapper, arr);
+                    } else {
+                        Object apply = objectMapper.apply(field,-1, val);
+                        if (apply != val) // change ?
+                        {
+                            put(field, apply);
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            return changed;
+        } catch (Exception e) {
+            Log.Error(this, e);
+            return false;
+        }
+    }
+
+    private static boolean replaceInArray(TransformFunction objectMapper, Object[] arr) {
+        boolean changed = false;
+        for (int j = 0; j < arr.length; j++) {
+            Object o = arr[j];
+            if ( o instanceof Record) {
+                changed |= ((Record) o).replaceValues(objectMapper);
+            } else if ( o instanceof Object[] ) {
+                changed |= replaceInArray(objectMapper, (Object[]) o);
+            } else {
+                Object apply = objectMapper.apply(null,j, o);
+                if (apply != o) // change ?
+                {
+                    arr[j] = o ;
+                    changed = true;
+                }
+            }
+        }
+        return changed;
+    }
+
 }

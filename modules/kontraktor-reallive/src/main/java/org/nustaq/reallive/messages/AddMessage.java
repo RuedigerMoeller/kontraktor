@@ -65,7 +65,7 @@ public class AddMessage implements ChangeMessage {
     public String toString() {
         return "AddMessage{" +
                 "updateIfExisting=" + updateIfExisting +
-                ", record=" + record.asString() +
+                ", record=" + record.asLoggingString() +
                 '}';
     }
 }

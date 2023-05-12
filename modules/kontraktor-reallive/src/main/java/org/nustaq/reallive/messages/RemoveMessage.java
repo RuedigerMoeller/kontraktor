@@ -48,7 +48,7 @@ public class RemoveMessage implements ChangeMessage {
     @Override
     public String toString() {
         return "RemoveMessage{" +
-                "record=" + deletedRow.asString() +
+                "record=" + deletedRow.asLoggingString() +
                 '}';
     }
 

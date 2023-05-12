@@ -186,7 +186,7 @@ public class MapRecord implements Record {
 
     @Override
     public String toString() {
-        return "MapRecord{" + asString() + '}';
+        return "MapRecord{" + asLoggingString() + '}';
     }
 
     /**

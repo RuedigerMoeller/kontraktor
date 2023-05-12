@@ -55,7 +55,7 @@ public class PutMessage implements ChangeMessage {
     @Override
     public String toString() {
         return "PutMessage{" +
-            ", record=" + record.asString() +
+            ", record=" + record.asLoggingString() +
             '}';
     }
 

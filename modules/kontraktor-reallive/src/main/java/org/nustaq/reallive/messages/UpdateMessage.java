@@ -109,7 +109,7 @@ public class UpdateMessage implements ChangeMessage {
     public String toString() {
         return "UpdateMessage{" +
                 "diff=" + diff +
-                ", newRecord=" + newRecord.asString() +
+                ", newRecord=" + newRecord.asLoggingString() +
                 ", addIfNotExists=" + addIfNotExists +
                 '}';
     }
