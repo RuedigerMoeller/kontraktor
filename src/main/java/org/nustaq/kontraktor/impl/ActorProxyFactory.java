@@ -316,7 +316,7 @@ public class ActorProxyFactory {
                 method.setBody(body);
                 cc.addMethod(method);
 
-                if (verbosity > 0 && originalMethod.getAnnotation(Local.class) != null) {
+                if (verbosity > 0 && originalMethod.getAnnotation(Local.class) == null) {
                     if (verbosity > 1 || !isActorBuiltInMethodName) {
                         final String params = Arrays.stream(originalMethod.getParameterTypes()).map(CtClass::getSimpleName).collect(Collectors.joining(", "));
                         System.out.printf("Endpoint at: %s.%s(%s) -> %s%n", orig.getName(), originalMethod.getName(), params, originalMethod.getReturnType().getSimpleName());
