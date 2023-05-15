@@ -1,4 +1,4 @@
-package kontraktor;
+package org.nustaq.kontraktor.util;
 
 import org.nustaq.kontraktor.*;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
