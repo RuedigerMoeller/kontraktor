@@ -21,6 +21,7 @@ import org.nustaq.kontraktor.annotations.AsCallback;
 import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import javassist.*;
 import javassist.bytecode.AccessFlag;
+import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.util.FSTUtil;
 
@@ -315,11 +316,11 @@ public class ActorProxyFactory {
                 method.setBody(body);
                 cc.addMethod(method);
 
-                if(verbosity > 0) {
+                if (verbosity > 0 && originalMethod.getAnnotation(Local.class) != null) {
                     if (verbosity > 1 || !isActorBuiltInMethodName) {
-                        final String params = Arrays.stream(method.getParameterTypes()).map(ctClass -> ctClass.getSimpleName()).collect(Collectors.joining(", "));
-                        System.out.printf("Endpoint at: %s.%s(%s) -> %s%n", cc.getName(), method.getName(), params, method.getReturnType().getSimpleName());
-                    }
+                        final String params = Arrays.stream(originalMethod.getParameterTypes()).map(CtClass::getSimpleName).collect(Collectors.joining(", "));
+                        System.out.printf("Endpoint at: %s.%s(%s) -> %s%n", orig.getName(), originalMethod.getName(), params, originalMethod.getReturnType().getSimpleName());
+                   }
                 }
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {

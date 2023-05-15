@@ -30,7 +30,7 @@ import static org.junit.Assert.assertTrue;
 public class BasicTest {
 
     static {
-        ActorProxyFactory.setVerbosity(1);
+        ActorProxyFactory.setVerbosity(2);
     }
 
     public static class Bench extends Actor<Bench> {
