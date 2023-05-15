@@ -7,6 +7,7 @@ import org.nustaq.kontraktor.annotations.*;
 import org.nustaq.kontraktor.Promise;
 import org.junit.Test;
 import org.nustaq.kontraktor.impl.ActorBlockedException;
+import org.nustaq.kontraktor.impl.ActorProxyFactory;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.util.Log;
 
@@ -27,6 +28,10 @@ import static org.junit.Assert.assertTrue;
  * Created by ruedi on 06.05.14.
  */
 public class BasicTest {
+
+    static {
+        ActorProxyFactory.setVerbosity(1);
+    }
 
     public static class Bench extends Actor<Bench> {
         protected int count;

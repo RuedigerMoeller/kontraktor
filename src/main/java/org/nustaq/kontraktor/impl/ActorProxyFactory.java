@@ -32,6 +32,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -63,7 +64,17 @@ public class ActorProxyFactory {
 
     Map<Class,Class> generatedProxyClasses = new HashMap<Class, Class>();
 
+    protected static int verbosity = 0;
+
     public ActorProxyFactory() {
+    }
+
+    /**
+     * Set verbosity level of proxy generation
+     * @param verbosity 0: off, 1: log public available methods , 2: log *all* public available methods
+     */
+    public static void setVerbosity(int verbosity) {
+        ActorProxyFactory.verbosity = verbosity;
     }
 
     public <T> T instantiateProxy(Actor target) {
@@ -238,6 +249,8 @@ public class ActorProxyFactory {
             allowed &= !originalMethod.getDeclaringClass().getName().equals(Object.class.getName()) &&
                        !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName());
 
+            boolean isActorBuiltInMethodName = false;
+
             // exceptions: async built-in actor methods that can be called
             if ( //originalMethod.getName().equals("executeInActorThread") || // needed again ! see spore
                 // async methods at actor class. FIXME: add annotation
@@ -258,6 +271,7 @@ public class ActorProxyFactory {
                  originalMethod.getName().equals("close")
             )
             {
+                isActorBuiltInMethodName = true;
                 allowed = true;
             }
 
@@ -300,6 +314,13 @@ public class ActorProxyFactory {
                     "}";
                 method.setBody(body);
                 cc.addMethod(method);
+
+                if(verbosity > 0) {
+                    if (verbosity > 1 || !isActorBuiltInMethodName) {
+                        final String params = Arrays.stream(method.getParameterTypes()).map(ctClass -> ctClass.getSimpleName()).collect(Collectors.joining(", "));
+                        System.out.printf("Endpoint at: %s.%s(%s) -> %s%n", cc.getName(), method.getName(), params, method.getReturnType().getSimpleName());
+                    }
+                }
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
                 if (isCallerSide || method.getName().equals("toString") || method.getName().equals("__stopImpl") ) {
