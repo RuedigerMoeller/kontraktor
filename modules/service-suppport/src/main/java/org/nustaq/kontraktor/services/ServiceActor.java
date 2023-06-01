@@ -116,6 +116,7 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
             @Override
             public void remoteConnected(Actor connected) {
                 execute( () -> {
+                    Log.Info(this,".. connected");
                     onRegistryConnected(autoRegister);
                 });
             }

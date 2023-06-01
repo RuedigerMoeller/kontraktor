@@ -1,0 +1,13 @@
+SimpleRLConfig {
+
+  bindPort: 8087
+  dataDir: "./data"
+  numNodes: 1
+
+  tables: [
+    {
+        name: test, storageType: CACHED, sizeMB: 10
+    }
+  ]
+
+}

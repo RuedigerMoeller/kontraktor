@@ -1,9 +1,10 @@
-package dyncluster;
+package soa;
 
 import org.nustaq.kontraktor.services.ClusterCfg;
 import org.nustaq.kontraktor.services.RegistryArgs;
 import org.nustaq.kontraktor.services.ServiceRegistry;
 import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataServiceRegistry;
+import org.nustaq.kontraktor.services.rlserver.SimpleRLConfig;
 
 public class MyServiceRegistry extends DynDataServiceRegistry {
 
@@ -16,9 +17,12 @@ public class MyServiceRegistry extends DynDataServiceRegistry {
             RegistryArgs.New()
         );
 
-        ClusterCfg cfg = ClusterCfg.read();
-        DynDataServiceRegistry reg = (DynDataServiceRegistry) ServiceRegistry.start(options, cfg, MyServiceRegistry.class);
+        SimpleRLConfig scfg = SimpleRLConfig.read();
 
+        ClusterCfg cfg = scfg.createClusterConfig();
+        cfg.getDataCluster().setDynamic(true);
+
+        DynDataServiceRegistry reg = (DynDataServiceRegistry) ServiceRegistry.start(options, cfg, MyServiceRegistry.class);
         if ( AUTO_BALANCE ) {
             // as we do not run any datanodes, we can immediately trigger balancing
             // this is required as all connecting nodes will only start up once a balance is triggered

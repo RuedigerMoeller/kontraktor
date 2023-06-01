@@ -1,4 +1,4 @@
-package dyncluster;
+package soa;
 
 import org.nustaq.kontraktor.services.datacluster.DataShardArgs;
 import org.nustaq.kontraktor.services.datacluster.dynamic.DynDataShard;
