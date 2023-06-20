@@ -400,7 +400,7 @@ public class Actors {
      * abbreviation for Promise creation to make code more concise
      *
      */
-    public static IPromise complete() {
+    public static  IPromise<String> complete() {
         return new Promise<>("dummy");
     }
 
@@ -408,7 +408,7 @@ public class Actors {
      * abbreviation for Promise creation to make code more concise
      *
      */
-    public static IPromise resolve() {
+    public static IPromise<String> resolve() {
         return new Promise<>("dummy");
     }
 
