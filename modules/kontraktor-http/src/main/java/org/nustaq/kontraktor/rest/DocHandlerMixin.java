@@ -248,6 +248,9 @@ public interface DocHandlerMixin {
             Class clz = pair.cdr();
             String type = clz.getSimpleName();
             res+=pair.car().value()+"=&lt;"+ type +"&gt;";
+            if (i < li.size() - 1) {
+                res += "&";
+            }
         }
         return res;
     }
