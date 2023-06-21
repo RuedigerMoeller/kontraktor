@@ -205,7 +205,9 @@ public class UndertowRESTHandler implements HttpHandler {
                         }
                     }
                     // specials
-                    if (parameterType == HeaderMap.class) {
+                    if (parameterType == HttpServerExchange.class) {
+                        args[i] = exchange;
+                    } else if (parameterType == HeaderMap.class) {
                         args[i] = exchange.getRequestHeaders();
                     } else if (parameterType == String[].class) {
                         args[i] = split;
