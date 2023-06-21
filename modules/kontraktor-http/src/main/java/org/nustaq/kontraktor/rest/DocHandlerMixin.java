@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.undertow.server.HttpServerExchange;
 import io.undertow.util.HeaderMap;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.IPromise;
@@ -303,6 +304,7 @@ public interface DocHandlerMixin {
                 }
             }
             if (JsonMapable.class.isAssignableFrom(parType) ||
+                parType == HttpServerExchange.class ||
                 parType == HeaderMap.class ||
                 parType == String[].class ||
                 parType == byte[].class ||
