@@ -14,7 +14,7 @@ import org.nustaq.reallive.server.actors.TableSpaceActor;
 
 import java.util.HashMap;
 
-public class DynDataClient extends DataClient<DynDataClient> {
+public class DynDataClient extends DataClient {
 
     DynClusterDistribution currentMapping;
 

@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
  * connector actor to rl data cluster
  *
  */
-public class DataClient<T extends DataClient> extends ClusteredTableSpaceClient<T> {
+public class DataClient extends ClusteredTableSpaceClient<DataClient> {
 
     protected DataCfg config;
     protected ServiceActor hostingService;

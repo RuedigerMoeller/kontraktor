@@ -408,8 +408,8 @@ public class Actors {
      * abbreviation for Promise creation to make code more concise
      *
      */
-    public static IPromise resolve() {
-        return new Promise<>("dummy");
+    public static <T> IPromise<T> resolve() {
+        return resolve(null);
     }
 
     /**

@@ -5,13 +5,13 @@
 * A boilerplate free and consistent abstraction for asynchronous remote communication powered by a **distributed actor-model**
 * One important application of this abstraction are **SPA WebApplications** enabling Java to back modern SPA javascript client frameworks like React.js, Polymer.js, .. (transpilation, packaging, optimization). Different to webpack/browserify etc. kontraktor does this on the fly (when running in prod mode) without an extra build step using pure java. [see IntrinsicReact example](https://github.com/RuedigerMoeller/InstrinsicReactJSX)
 * separates network transport (TCP, WebSockets, Http) and message encoding (fast-serialization, json, ..) from application code. 
-* **asynchronous, non-blocking,high performance**
+* **asynchronous, non-blocking,high performance******
 * production proven
 
 [Documentation](https://github.com/RuedigerMoeller/kontraktor/wiki)
 
 [Code Examples](https://github.com/RuedigerMoeller/kontraktor/tree/trunk/examples), [Related Blogpost's](https://juptr.io/@kontraktor)
-
+****
 [React Example](https://github.com/RuedigerMoeller/InstrinsicReactJSX)
 
 ## What can I use it for ?
