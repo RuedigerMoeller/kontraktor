@@ -93,11 +93,11 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
     protected ServiceArgs cmdline;
     protected DataClient dclient;
     protected DynClusterDistribution currentDistribution;
-    IPromise initComplete;
+    IPromise<Void> initComplete;
     List<BiConsumer<String,Object>> serviceEventListener;
 
-    public IPromise init(ConnectableActor registryConnectable, ServiceArgs options, boolean autoRegister) {
-        initComplete = new Promise();
+    public IPromise<Void> init(ConnectableActor registryConnectable, ServiceArgs options, boolean autoRegister) {
+        initComplete = new Promise<>();
         this.cmdline = options;
         serviceEventListener = new ArrayList<>();
 
@@ -195,14 +195,14 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
         Log.Info(this, "service registry reconnected.");
     }
 
-    protected IPromise awaitRequiredServices() {
-        Promise p = new Promise();
+    protected IPromise<Void> awaitRequiredServices() {
+        IPromise<Void> p = new Promise<>();
         Log.Info(this, "connecting required services ..");
         awaitRequiredServicesInternal(p);
         return p;
     }
 
-    protected void awaitRequiredServicesInternal(Promise p) {
+    protected void awaitRequiredServicesInternal(IPromise<Void> p) {
         connectRequiredServices().then( () -> {
             long missing = requiredServices.values().stream().filter(serv -> serv == UNCONNECTED).count();
             if ( missing > 0 ) {
@@ -226,11 +226,11 @@ public abstract class ServiceActor<T extends ServiceActor> extends Actor<T> {
                         Log.Info(this,"received distribution, start initializing dataclient ");
                         serviceRegistry.getServiceMap().then( (smap,err) -> {
                            if ( smap != null ) {
-                               List proms = new ArrayList<>();
+                               List<IPromise<Void>> proms = new ArrayList<>();
                                smap.values().stream()
                                    .filter( desc -> desc.getName().startsWith(DynDataShard.DATA_SHARD_NAME))
                                    .forEach( desc -> {
-                                       Promise sp = new Promise();
+                                       IPromise<Void> sp = new Promise<>();
                                        proms.add(sp);
                                        connectService(desc).then( (r,e) -> {
                                            if ( r != null ) {

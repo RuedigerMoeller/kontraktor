@@ -239,6 +239,7 @@ public class Actors {
      * returns a future which is settled once all promises provided are settled
      *
      */
+    @SafeVarargs
     public static <T> IPromise<IPromise<T>[]> all(IPromise<T>... futures) {
         Promise res = new Promise();
         awaitSettle(futures, res);
@@ -288,6 +289,7 @@ public class Actors {
     /**
      * await until all futures are settled and stream their results
      */
+    @SafeVarargs
     public static <T> Stream<T> awaitAll(long timeoutMS, IPromise<T>... futures) {
         return streamHelper(all(futures).await(timeoutMS));
     }
@@ -295,6 +297,7 @@ public class Actors {
     /**
      * await until all futures are settled and stream their results. Uses Actors.DEFAULT_TIMEOUT
      */
+    @SafeVarargs
     public static <T> Stream<T> awaitAll(IPromise<T>... futures) {
         return streamHelper(all(futures).await());
     }
@@ -313,6 +316,7 @@ public class Actors {
      * returns a future which is settled once one of the futures provided gets settled
      *
      */
+    @SafeVarargs
     public static <T> IPromise<T> race( IPromise<T>... futures ) {
         Promise p = new Promise();
         AtomicBoolean fin = new AtomicBoolean(false);
@@ -352,6 +356,7 @@ public class Actors {
      * @param <T>
      * @return
      */
+    @SafeVarargs
     public static <T> Stream<T> stream(T... t) {
         return Arrays.stream(t);
     }
@@ -400,8 +405,8 @@ public class Actors {
      * abbreviation for Promise creation to make code more concise
      *
      */
-    public static IPromise complete() {
-        return new Promise<>("dummy");
+    public static <T> IPromise<T> complete() {
+        return new Promise<>(null);
     }
 
     /**
@@ -540,6 +545,7 @@ public class Actors {
      * @param <T>
      * @return
      */
+    @SafeVarargs
     private static <T> Stream<T> streamHelper(IPromise<T>... completedPromises) {
         return Arrays.stream(completedPromises).map(future -> future.get());
     }
