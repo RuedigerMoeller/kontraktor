@@ -400,8 +400,8 @@ public class Actors {
      * abbreviation for Promise creation to make code more concise
      *
      */
-    public static IPromise complete() {
-        return new Promise<>("dummy");
+    public static <T> IPromise<T> complete() {
+        return new Promise<>(null);
     }
 
     /**

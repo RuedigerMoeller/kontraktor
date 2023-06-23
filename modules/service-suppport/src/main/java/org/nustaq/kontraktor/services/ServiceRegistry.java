@@ -259,8 +259,8 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
     }
 
     public static RegistryArgs options;
-    public static ServiceArgs parseCommandLine(String[] args, String concatArgs[], ServiceArgs options) {
 
+    public static <T extends ServiceArgs> T parseCommandLine(String[] args, String concatArgs[], T options) {
         JCommander com = new JCommander();
         com.setAcceptUnknownOptions(true);
         com.addObject(options);
@@ -269,25 +269,6 @@ public class ServiceRegistry extends Actor<ServiceRegistry> {
             if ( concatArgs != null ) {
                 parseCommandLine(concatArgs,null,options);
             }
-        } catch (Exception ex) {
-            System.out.println("command line error: '"+ex.getMessage()+"'");
-            options.help = true;
-        }
-        if ( options.help ) {
-            com.usage();
-            System.exit(-1);
-        }
-        return options;
-    }
-
-    // for production hotfix, remove !
-    public static ServiceArgs parseCommandLine(String[] args, ServiceArgs options) {
-
-        JCommander com = new JCommander();
-        com.setAcceptUnknownOptions(true);
-        com.addObject(options);
-        try {
-            com.parse(args);
         } catch (Exception ex) {
             System.out.println("command line error: '"+ex.getMessage()+"'");
             options.help = true;
