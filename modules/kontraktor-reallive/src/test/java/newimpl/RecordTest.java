@@ -29,7 +29,7 @@ public class RecordTest {
             "sub", Record.from("a", "12", "b", "14")
         );
         Diff diff = ChangeUtils.computeDiff(test1,from);
-        Assert.assertTrue(!diff.isEmpty());
+        Assert.assertFalse(diff.isEmpty());
     }
 
     @Test
@@ -39,7 +39,7 @@ public class RecordTest {
             "a", Record.from("b", 10, "pwd", "erutz0w9rw0e9r8"),
             "pwd", "wpeoriwe8rw9er8w9r"
         ).omit("pwd");
-        Assert.assertTrue(omit.get("pwd") == null );
+        Assert.assertNull(omit.get("pwd"));
     }
 
     @Test
@@ -51,7 +51,7 @@ public class RecordTest {
         );
         test.stripOps();
         System.out.println(test.toPrettyString());
-        Assert.assertTrue(test.get("a+") == null );
+        Assert.assertNull(test.get("a+"));
     }
 
     @Test
@@ -68,8 +68,8 @@ public class RecordTest {
         System.out.println(rr.toPrettyString());
         Assert.assertTrue(cpy.containsKey("x"));
         Assert.assertTrue(cpy.get("x") == Record._NULL_ );
-        Assert.assertTrue(rr.getArr("z").length == 2 );
-        Assert.assertTrue(r.equals(cpy));
+        Assert.assertEquals(2, rr.getArr("z").length);
+        Assert.assertEquals(r, cpy);
     }
 
     @Test
@@ -82,7 +82,7 @@ public class RecordTest {
             "x", null
         );
         r.join(toJoin);
-        Assert.assertTrue(!r.containsKey("x"));
+        Assert.assertFalse(r.containsKey("x"));
         System.out.println(r.toPrettyString());
     }
 
@@ -107,7 +107,7 @@ public class RecordTest {
         });
         System.out.println(r.toPrettyString());
         System.out.println(transformCpy.toPrettyString());
-        Assert.assertTrue(r.equals(cpy));
+        Assert.assertEquals(r, cpy);
     }
 
     @Test
@@ -126,5 +126,28 @@ public class RecordTest {
 
         record.put(testKey, null);
         assertEquals(0, record.getFields().length);
+    }
+
+    @Test
+    public void testOmitRecursivelyInPlace() {
+        final String testKey = "testKey";
+        final Record record = Record.from(
+                "key", "1",
+                testKey, "testValue1",
+                "subRecord1", Record.from(
+                        "key", "2",
+                        testKey, "testValue2",
+                        "subRecord2", Record.from(
+                                "key", "3",
+                                testKey, "testValue3"
+                        )
+                )
+        );
+
+        assertEquals(3, StringUtils.countMatches(record.toPrettyString(), testKey));
+        record.omitRecursivelyInPlace(testKey);
+        assertEquals(0, StringUtils.countMatches(record.toPrettyString(), testKey));
+        record.omitRecursivelyInPlace(testKey);
+        assertEquals(0, StringUtils.countMatches(record.toPrettyString(), testKey));
     }
 }
