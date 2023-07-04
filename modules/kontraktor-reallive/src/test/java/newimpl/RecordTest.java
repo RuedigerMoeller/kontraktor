@@ -1,35 +1,20 @@
 package newimpl;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.util.PromiseLatch;
 import org.nustaq.reallive.messages.ChangeUtils;
 import org.nustaq.reallive.messages.Diff;
-import org.nustaq.reallive.records.PatchingRecord;
-import org.nustaq.reallive.server.actors.RealLiveTableActor;
-import org.nustaq.reallive.client.ShardedTable;
-import org.nustaq.reallive.server.actors.TableSpaceActor;
-import org.nustaq.reallive.api.*;
-import org.nustaq.reallive.server.*;
-import org.nustaq.reallive.server.storage.*;
-import org.nustaq.reallive.records.MapRecord;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.IntStream;
 import org.nustaq.reallive.api.Record;
+
+import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertTrue;
 
 /**
  * Created by ruedi on 04.08.2015.
  */
-public class Basic {
+public class RecordTest {
 
     @Test public void diffing() {
         Record from = Record.from(
@@ -123,5 +108,23 @@ public class Basic {
         System.out.println(r.toPrettyString());
         System.out.println(transformCpy.toPrettyString());
         Assert.assertTrue(r.equals(cpy));
+    }
+
+    @Test
+    public void testPutNullIdempotency() {
+        final String testKey = "test";
+        final Record record = Record.from(
+                "key", "1",
+                testKey, "testValue1"
+        );
+
+        assertEquals(1, record.getFields().length);
+        assertEquals(testKey, record.getFields()[0]);
+
+        record.put(testKey, null);
+        assertEquals(0, record.getFields().length);
+
+        record.put(testKey, null);
+        assertEquals(0, record.getFields().length);
     }
 }
