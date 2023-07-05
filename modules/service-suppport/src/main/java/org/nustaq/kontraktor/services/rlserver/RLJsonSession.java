@@ -179,11 +179,12 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
         });
     }
 
-    protected Map<String, JsonSubsEntry> subscriptions = new HashMap<>();
+    protected Map<String, JsonSubsEntry<String>> subscriptions = new HashMap<>();
+
     public void unsubscribe( String uuid ) {
-        JsonSubsEntry subsEntry = subscriptions.get(uuid);
+        JsonSubsEntry<String> subsEntry = subscriptions.get(uuid);
         if ( subsEntry != null ) {
-            Callback callback = subsEntry.feCB;
+            Callback<String> callback = subsEntry.feCB;
             dClient.unsubscribe(subsEntry.subs.getId());
             if (callback != null) {
                 callback.finish();
@@ -202,7 +203,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
             else
                 res.finish();
         });
-        subscriptions.put(uuid, new JsonSubsEntry(res,subscriber));
+        subscriptions.put(uuid, new JsonSubsEntry<>(res,subscriber));
     }
 
     public IPromise<Long> subscribeSyncing(String uuid, String table, long timeStamp, String query, Callback<String> res) {
@@ -216,7 +217,7 @@ public class RLJsonSession<T extends RLJsonSession> extends Actor<T> implements 
             else
                 res.finish();
         });
-        subscriptions.put(uuid,new JsonSubsEntry(res,subs));
+        subscriptions.put(uuid,new JsonSubsEntry<>(res,subs));
         tbl.subscribe(subs);
         return resolve(System.currentTimeMillis());
     }

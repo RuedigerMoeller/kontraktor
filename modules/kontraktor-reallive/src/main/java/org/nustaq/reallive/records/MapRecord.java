@@ -166,9 +166,10 @@ public class MapRecord implements Record {
         if ( map.put(key, value) == null ) { // delete attribute
             fields = null;
         }
-        if (value == null || _NULL_.equals(value) )
+        if (value == null || _NULL_.equals(value) ) {
             map.remove(key);
-        else if ( CHECK_TYPES != null ) {
+            fields = null;
+        } else if ( CHECK_TYPES != null ) {
             if ( CHECK_TYPES.apply(value) ) {
                 map.put(key,value);
             } else {

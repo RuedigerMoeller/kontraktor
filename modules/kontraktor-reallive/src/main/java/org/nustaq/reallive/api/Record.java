@@ -16,8 +16,6 @@ import org.nustaq.reallive.server.storage.RecordJsonifier;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 /**
  * Created by moelrue on 03.08.2015.
@@ -190,10 +188,12 @@ public interface Record extends Serializable, EvalContext {
 
     /**
      * gets field and transforms Object[] to arraylist in case
+     * @deprecated use getAsList
      *
      * @param field
      * @return
      */
+    @Deprecated
     default List asList( String field ) {
         Object val = get(field);
         if ( val instanceof Object[] ) {
@@ -209,7 +209,7 @@ public interface Record extends Serializable, EvalContext {
      * @param field
      * @return
      */
-    default Set asSet( String field ) {
+    default Set<Object> asSet( String field ) {
         Object val = get(field);
         if ( val instanceof Object[] ) {
             return new HashSet(Arrays.asList((Object[])val));
@@ -257,7 +257,7 @@ public interface Record extends Serializable, EvalContext {
      * @param field
      * @return
      */
-    default  <T> List<T> getAsList(String field ) {
+    default <T> List<T> getAsList(String field ) {
         return asList(field);
     }
 
@@ -328,6 +328,41 @@ public interface Record extends Serializable, EvalContext {
             }
         }
         return rec;
+    }
+
+    default void omitRecursivelyInPlace(String... fieldNamesToOmit) {
+        omitRecursivelyInPlace(this, Set.of(fieldNamesToOmit));
+    }
+
+    static void omitRecursivelyInPlace(Record rec, Set<String> fieldNamesToOmit) {
+        String[] fieldNames = rec.getFields();
+        for (String fieldName : fieldNames) {
+            if (fieldNamesToOmit.contains(fieldName)) {
+                rec.put(fieldName, null);
+                continue;
+            }
+            final Object property = rec.get(fieldName);
+            omitRecursivelyInPlace(property, fieldNamesToOmit);
+        }
+    }
+
+    private static void omitRecursivelyInPlace(final Object obj, final Set<String> fieldNamesToOmit) {
+        if (obj == null) {
+            return;
+        }
+
+        final Class<?> aClass = obj.getClass();
+        if (obj instanceof Record) {
+            omitRecursivelyInPlace((Record) obj, fieldNamesToOmit);
+            return;
+        }
+
+        if (Object[].class.equals(aClass)) {
+            final Object[] arr = (Object[]) obj;
+            for (Object a : arr) {
+                omitRecursivelyInPlace(a, fieldNamesToOmit);
+            }
+        }
     }
 
     /**
