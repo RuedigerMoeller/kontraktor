@@ -1,35 +1,20 @@
 package newimpl;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.nustaq.kontraktor.Actor;
-import org.nustaq.kontraktor.Actors;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.Promise;
-import org.nustaq.kontraktor.util.PromiseLatch;
 import org.nustaq.reallive.messages.ChangeUtils;
 import org.nustaq.reallive.messages.Diff;
-import org.nustaq.reallive.records.PatchingRecord;
-import org.nustaq.reallive.server.actors.RealLiveTableActor;
-import org.nustaq.reallive.client.ShardedTable;
-import org.nustaq.reallive.server.actors.TableSpaceActor;
-import org.nustaq.reallive.api.*;
-import org.nustaq.reallive.server.*;
-import org.nustaq.reallive.server.storage.*;
-import org.nustaq.reallive.records.MapRecord;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.IntStream;
 import org.nustaq.reallive.api.Record;
+
+import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertTrue;
 
 /**
  * Created by ruedi on 04.08.2015.
  */
-public class Basic {
+public class RecordTest {
 
     @Test public void diffing() {
         Record from = Record.from(
@@ -44,7 +29,7 @@ public class Basic {
             "sub", Record.from("a", "12", "b", "14")
         );
         Diff diff = ChangeUtils.computeDiff(test1,from);
-        Assert.assertTrue(!diff.isEmpty());
+        Assert.assertFalse(diff.isEmpty());
     }
 
     @Test
@@ -54,7 +39,7 @@ public class Basic {
             "a", Record.from("b", 10, "pwd", "erutz0w9rw0e9r8"),
             "pwd", "wpeoriwe8rw9er8w9r"
         ).omit("pwd");
-        Assert.assertTrue(omit.get("pwd") == null );
+        Assert.assertNull(omit.get("pwd"));
     }
 
     @Test
@@ -66,7 +51,7 @@ public class Basic {
         );
         test.stripOps();
         System.out.println(test.toPrettyString());
-        Assert.assertTrue(test.get("a+") == null );
+        Assert.assertNull(test.get("a+"));
     }
 
     @Test
@@ -83,8 +68,8 @@ public class Basic {
         System.out.println(rr.toPrettyString());
         Assert.assertTrue(cpy.containsKey("x"));
         Assert.assertTrue(cpy.get("x") == Record._NULL_ );
-        Assert.assertTrue(rr.getArr("z").length == 2 );
-        Assert.assertTrue(r.equals(cpy));
+        Assert.assertEquals(2, rr.getArr("z").length);
+        Assert.assertEquals(r, cpy);
     }
 
     @Test
@@ -97,7 +82,7 @@ public class Basic {
             "x", null
         );
         r.join(toJoin);
-        Assert.assertTrue(!r.containsKey("x"));
+        Assert.assertFalse(r.containsKey("x"));
         System.out.println(r.toPrettyString());
     }
 
@@ -122,6 +107,47 @@ public class Basic {
         });
         System.out.println(r.toPrettyString());
         System.out.println(transformCpy.toPrettyString());
-        Assert.assertTrue(r.equals(cpy));
+        Assert.assertEquals(r, cpy);
+    }
+
+    @Test
+    public void testPutNullIdempotency() {
+        final String testKey = "test";
+        final Record record = Record.from(
+                "key", "1",
+                testKey, "testValue1"
+        );
+
+        assertEquals(1, record.getFields().length);
+        assertEquals(testKey, record.getFields()[0]);
+
+        record.put(testKey, null);
+        assertEquals(0, record.getFields().length);
+
+        record.put(testKey, null);
+        assertEquals(0, record.getFields().length);
+    }
+
+    @Test
+    public void testOmitRecursivelyInPlace() {
+        final String testKey = "testKey";
+        final Record record = Record.from(
+                "key", "1",
+                testKey, "testValue1",
+                "subRecord1", Record.from(
+                        "key", "2",
+                        testKey, "testValue2",
+                        "subRecord2", Record.from(
+                                "key", "3",
+                                testKey, "testValue3"
+                        )
+                )
+        );
+
+        assertEquals(3, StringUtils.countMatches(record.toPrettyString(), testKey));
+        record.omitRecursivelyInPlace(testKey);
+        assertEquals(0, StringUtils.countMatches(record.toPrettyString(), testKey));
+        record.omitRecursivelyInPlace(testKey);
+        assertEquals(0, StringUtils.countMatches(record.toPrettyString(), testKey));
     }
 }
