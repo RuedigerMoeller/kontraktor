@@ -57,9 +57,9 @@ public class Mailer extends Actor<Mailer> {
         this.settings = conf;
     }
 
-    public static String applyTemplate(String templateFileRelativeToTemplateDir, Map<String,Object> data, BiFunction<String,Object,String> mapFun) throws IOException {
+    public static String applyTemplate(String templateFileRelativeToTemplateDir, Map<String,?> data, BiFunction<String,Object,String> mapFun) throws IOException {
         String t = new String(Files.readAllBytes(Paths.get(Mailer.get().getActor().settings.getTemplateBase()+templateFileRelativeToTemplateDir)), "UTF-8");
-        for (Map.Entry<String, Object> e : data.entrySet()) {
+        for (Map.Entry<String, ?> e : data.entrySet()) {
             t = t.replace( "$"+e.getKey()+"$", mapFun.apply(e.getKey(),e.getValue()));
         }
         return t;

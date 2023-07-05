@@ -112,7 +112,7 @@ public interface RegistrationMixin<SELF extends Actor<SELF>> extends LinkMapperM
 
     static String applyTemplate(RegistrationRecord rec, String template) {
         try {
-            Map<String, Object> data = rec != null ? rec.asMap() : new HashMap<>();
+            Map<String, ?> data = rec != null ? rec.asMap() : new HashMap<>();
             return Mailer.applyTemplate(template, data,(k, v) -> ""+v);
         } catch (IOException e) {
             Log.Warn(RegistrationMixin.class,e);

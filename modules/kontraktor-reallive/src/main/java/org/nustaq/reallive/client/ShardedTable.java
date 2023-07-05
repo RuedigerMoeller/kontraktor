@@ -180,7 +180,7 @@ public class ShardedTable implements RealLiveTable {
     }
 
     @Override
-    public IPromise atomic(int senderId, String key, RLFunction<Record, Object> action) {
+    public IPromise atomic(int senderId, String key, RLFunction<Record, ?> action) {
         return getTableForKey(key).atomic(senderId, key, action);
     }
 
@@ -259,7 +259,7 @@ public class ShardedTable implements RealLiveTable {
     }
 
     @Override
-    public IPromise ping() {
+    public IPromise<?> ping() {
         List<IPromise<Object>> futs = new ArrayList();
         return Actors.all( shards.stream().map( shard -> shard.ping() ).collect(Collectors.toList()));
     }

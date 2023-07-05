@@ -182,7 +182,7 @@ public class StorageDriver implements ChangeReceiver {
      * @param action
      * @return the result of function.
      */
-    public IPromise atomic(int senderId, String key, RLFunction<Record,Object> action) {
+    public IPromise atomic(int senderId, String key, RLFunction<Record,?> action) {
         Record rec = getStore().get(key);
         if ( rec == null ) {
             final Object apply = action.apply(rec);

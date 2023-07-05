@@ -398,7 +398,7 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
     }
 
     @Override
-    public IPromise atomic(int senderId, String key, RLFunction<Record, Object> action) {
+    public IPromise atomic(int senderId, String key, RLFunction<Record, ?> action) {
         taCount++;
         return storageDriver.atomic(senderId, key,action);
     }

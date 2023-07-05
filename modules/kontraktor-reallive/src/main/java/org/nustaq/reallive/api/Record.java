@@ -2,7 +2,11 @@ package org.nustaq.reallive.api;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.WriterConfig;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.nustaq.kontraktor.util.Log;
+import org.nustaq.reallive.jackson.RecordDeserializer;
+import org.nustaq.reallive.jackson.RecordSerializer;
 import org.nustaq.reallive.query.EvalContext;
 import org.nustaq.reallive.query.LongValue;
 import org.nustaq.reallive.query.StringValue;
@@ -18,6 +22,8 @@ import java.util.function.Function;
 /**
  * Created by moelrue on 03.08.2015.
  */
+@JsonSerialize(using = RecordSerializer.class)
+@JsonDeserialize(using = RecordDeserializer.class)
 public interface Record extends Serializable, EvalContext {
 
     public static final String _NULL_ = "_NULL_";
@@ -79,7 +85,7 @@ public interface Record extends Serializable, EvalContext {
      * @param map
      * @return
      */
-    static Record from( Map<String,Object> map ) {
+    static Record from( Map<String,?> map ) {
         return RecordJsonifier.get().from(map);
     }
 
@@ -357,7 +363,7 @@ public interface Record extends Serializable, EvalContext {
     /**
      * @return this record as a map
      */
-    default Map<String,Object> asMap() {
+    default Map<String,?> asMap() {
         HashMap<String,Object> res = new HashMap<>();
         final String[] fields = getFields();
         for (int i = 0; i < fields.length; i++) {
@@ -415,8 +421,8 @@ public interface Record extends Serializable, EvalContext {
             } else if ( selfValue instanceof Object[] ) {
                 if ( foreignValue instanceof Object[] ) {
                     // append foreign if not there
-                    List<Object> foreignList = Arrays.asList((Object[]) foreignValue);
-                    List<Object> selfList = new ArrayList<>(Arrays.asList((Object[]) selfValue));
+                    List<?> foreignList = Arrays.asList((Object[]) foreignValue);
+                    List selfList = new ArrayList<>(Arrays.asList((Object[]) selfValue));
                     for (int j = 0; j < foreignList.size(); j++) {
                         Object o = foreignList.get(j);
                         if ( !selfList.contains(o) )
@@ -536,7 +542,7 @@ public interface Record extends Serializable, EvalContext {
                     }
                 }
                 if ( unmatched.size() > 0 ) {
-                    List<Object> objects = new ArrayList(Arrays.asList(selfArr));
+                    List<?> objects = new ArrayList(Arrays.asList(selfArr));
                     objects.addAll(unmatched);
                     selfArr = objects.toArray();
                     put( field,selfArr);

@@ -93,7 +93,7 @@ public class RecordJsonifier {
         return value;
     }
 
-    public Record from( Map<String,Object> map ) {
+    public Record from( Map<String,?> map ) {
         return Record.from(
             map.entrySet().stream()
                 .flatMap(en -> Stream.of(en.getKey(), toRecordValue(en.getValue())))
