@@ -259,9 +259,20 @@ public class ShardedTable implements RealLiveTable {
     }
 
     @Override
-    public IPromise<?> ping() {
-        List<IPromise<Object>> futs = new ArrayList();
-        return Actors.all( shards.stream().map( shard -> shard.ping() ).collect(Collectors.toList()));
+    public IPromise<Object> ping() {
+        IPromise<Object> result = new Promise<>();
+        Actors.allMapped(shards
+                .stream()
+                .map(shard -> shard.ping())
+                .collect(Collectors.toList())
+        ).then((List<Object> pingResults, Object error) -> {
+            if(error != null) {
+                result.reject(error);
+            } else {
+                result.resolve(pingResults);
+            }
+        });
+        return result;
     }
 
     @Override

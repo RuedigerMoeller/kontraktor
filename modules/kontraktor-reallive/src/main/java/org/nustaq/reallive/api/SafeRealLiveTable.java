@@ -12,7 +12,7 @@ import org.nustaq.reallive.server.storage.StorageStats;
  */
 public interface SafeRealLiveTable extends ChangeReceiver, SafeChangeStream, SafeRealLiveStreamActor {
 
-    IPromise<?> ping();
+    IPromise<Object> ping();
     IPromise<TableDescription> getDescription();
     void stop();
     IPromise<StorageStats> getStats();
