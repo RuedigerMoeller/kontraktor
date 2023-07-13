@@ -398,7 +398,7 @@ public interface Record extends Serializable, EvalContext {
     /**
      * @return this record as a map
      */
-    default Map<String,?> asMap() {
+    default Map<String,Object> asMap() {
         HashMap<String,Object> res = new HashMap<>();
         final String[] fields = getFields();
         for (int i = 0; i < fields.length; i++) {
