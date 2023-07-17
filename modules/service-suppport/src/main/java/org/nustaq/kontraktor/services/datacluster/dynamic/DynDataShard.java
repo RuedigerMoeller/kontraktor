@@ -34,8 +34,8 @@ public class DynDataShard extends ServiceActor<DynDataShard>  {
     KConnectionPool shardConnectionPool;
 
     @Override
-    public IPromise init(ConnectableActor registryConnectable, ServiceArgs options, boolean auto /*ignored*/) {
-        IPromise p = new Promise();
+    public IPromise<Void> init(ConnectableActor registryConnectable, ServiceArgs options, boolean auto /*ignored*/) {
+        IPromise<Void> p = new Promise<>();
         shardConnectionPool = new KConnectionPool();
         try {
             super.init(registryConnectable, options,false).then( (r,e) -> {
