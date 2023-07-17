@@ -3,6 +3,8 @@ package org.nustaq.reallive.client;
 import org.nustaq.kontraktor.Actors;
 import org.nustaq.kontraktor.IPromise;
 import org.nustaq.kontraktor.Promise;
+import org.nustaq.kontraktor.Scheduler;
+import org.nustaq.kontraktor.impl.SimpleScheduler;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.reallive.api.RealLiveTable;
 import org.nustaq.reallive.api.RecordStorage;
@@ -31,6 +33,10 @@ public class EmbeddedRealLive {
         return createTable(ts,null);
     }
 
+    public IPromise<RealLiveTable> createTable(TableDescription desc, String dataDir) {
+        return createTable(desc, dataDir,new SimpleScheduler());
+    }
+
     /**
      * WARNING: never create more than one table using the same file. This will
      * result in corrupted data for sure. As actor refs (tables) are thread save,
@@ -40,8 +46,8 @@ public class EmbeddedRealLive {
      * @param dataDir - if null use path from description
      * @return a thread save actor reference to a newly loaded or created table
      */
-    public IPromise<RealLiveTable> createTable(TableDescription desc, String dataDir) {
-        RealLiveTableActor table = Actors.AsActor(RealLiveTableActor.class);
+    public IPromise<RealLiveTable> createTable(TableDescription desc, String dataDir, Scheduler scheduler) {
+        RealLiveTableActor table = Actors.AsActor(RealLiveTableActor.class,scheduler);
 
         Function<TableDescription,RecordStorage> memFactory;
         if (desc.getFilePath() == null) {
