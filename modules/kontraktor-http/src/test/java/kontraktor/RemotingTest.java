@@ -15,7 +15,7 @@ import org.nustaq.kontraktor.remoting.tcp.TCPConnectable;
 import org.nustaq.kontraktor.remoting.tcp.TCPServerConnector;
 import org.nustaq.kontraktor.remoting.http.undertow.WebSocketPublisher;
 import org.nustaq.kontraktor.remoting.websockets.WebSocketConnectable;
-import org.nustaq.kontraktor.remoting.websockets._JSR356ServerConnector;
+//import org.nustaq.kontraktor.remoting.websockets._JSR356ServerConnector;
 import org.nustaq.kontraktor.util.RateMeasure;
 
 import java.io.Serializable;
@@ -96,21 +96,21 @@ public class RemotingTest {
     // fixme: add minbin tests
     // fixme: increase basic test coverage
 
-    @Test @Ignore
-    public void testWSJSR() throws Exception {
-        checkSequenceErrors = true;
-        RemotingTestService service = Actors.AsActor(RemotingTestService.class, Q_SIZE);
-        ActorServer publisher = _JSR356ServerConnector.Publish(service, "ws://localhost:8081/ws", null).await();
-        RemotingTestService client = (RemotingTestService)
-            new WebSocketConnectable(RemotingTestService.class, "ws://localhost:8081/ws")
-                .connect()
-                .await(9999999);
-        CountDownLatch latch = new CountDownLatch(1);
-        runWithClient( client, latch );
-        latch.await();
-        Thread.sleep(2000); // wait for outstanding callbacks
-        publisher.close();
-    }
+//    @Test @Ignore
+//    public void testWSJSR() throws Exception {
+//        checkSequenceErrors = true;
+//        RemotingTestService service = Actors.AsActor(RemotingTestService.class, Q_SIZE);
+//        ActorServer publisher = _JSR356ServerConnector.Publish(service, "ws://localhost:8081/ws", null).await();
+//        RemotingTestService client = (RemotingTestService)
+//            new WebSocketConnectable(RemotingTestService.class, "ws://localhost:8081/ws")
+//                .connect()
+//                .await(9999999);
+//        CountDownLatch latch = new CountDownLatch(1);
+//        runWithClient( client, latch );
+//        latch.await();
+//        Thread.sleep(2000); // wait for outstanding callbacks
+//        publisher.close();
+//    }
 
 
     @Test

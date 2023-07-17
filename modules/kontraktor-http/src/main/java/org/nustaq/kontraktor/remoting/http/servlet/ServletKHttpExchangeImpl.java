@@ -1,10 +1,10 @@
 package org.nustaq.kontraktor.remoting.http.servlet;
 
+import jakarta.servlet.AsyncContext;
+import jakarta.servlet.http.HttpServletResponse;
 import org.nustaq.kontraktor.remoting.http.KHttpExchange;
 import org.nustaq.kontraktor.util.Log;
 
-import javax.servlet.AsyncContext;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 

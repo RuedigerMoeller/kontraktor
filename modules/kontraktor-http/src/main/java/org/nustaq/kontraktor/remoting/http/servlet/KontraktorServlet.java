@@ -1,6 +1,10 @@
 package org.nustaq.kontraktor.remoting.http.servlet;
 
 import io.undertow.server.handlers.resource.Resource;
+import jakarta.servlet.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.nustaq.kontraktor.Actor;
 import org.nustaq.kontraktor.remoting.encoding.Coding;
 import org.nustaq.kontraktor.remoting.encoding.SerializerType;
@@ -11,16 +15,8 @@ import org.nustaq.kontraktor.webapp.javascript.HtmlImportShim;
 import org.nustaq.kontraktor.webapp.transpiler.JSXIntrinsicTranspiler;
 import org.nustaq.utils.FileUtil;
 
-import javax.servlet.*;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.nio.file.Files;
 
 /**
  * Created by ruedi on 19.06.17.
