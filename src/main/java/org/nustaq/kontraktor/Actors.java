@@ -241,7 +241,7 @@ public class Actors {
      */
     @SafeVarargs
     public static <T> IPromise<IPromise<T>[]> all(IPromise<T>... futures) {
-        Promise res = new Promise();
+        IPromise<IPromise<T>[]> res = new Promise<>();
         awaitSettle(futures, res);
         return res;
     }
@@ -259,9 +259,15 @@ public class Actors {
      *
      */
     public static <T> IPromise<List<IPromise<T>>> all(List<IPromise<T>> futures) {
-        Promise res = new Promise();
+        IPromise<List<IPromise<T>>> res = new Promise<>();
         awaitSettle(futures, res);
         return res;
+    }
+
+    @SafeVarargs
+    public static <T> IPromise<List<T>> allMapped(IPromise<T>... futures) {
+        List<IPromise<T>> futureList = List.of(futures);
+        return allMapped(futureList);
     }
 
     /**

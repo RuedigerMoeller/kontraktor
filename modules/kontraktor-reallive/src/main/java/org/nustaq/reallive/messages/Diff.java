@@ -35,7 +35,7 @@ public class Diff implements Serializable {
      * @param fieldId
      * @return
      */
-    public Pair<Boolean,?> hasValueChanged(String fieldId) {
+    public Pair<Boolean,Object> hasValueChanged(String fieldId) {
         for (int i = 0; i < changedFields.length; i++) {
             String changedField = changedFields[i];
             if ( fieldId.equals(changedField) ) {

@@ -30,7 +30,7 @@ public class HashIndex implements StorageIndex {
         return hashPath;
     }
 
-    public RLFunction<Record, ?> getHashGetter() {
+    public RLFunction<Record, Object> getHashGetter() {
         return hashGetter;
     }
 
@@ -38,7 +38,7 @@ public class HashIndex implements StorageIndex {
         return index;
     }
 
-    public Map<String,?> getKey2HashVal() {
+    public Map<String,Object> getKey2HashVal() {
         return key2HashVal;
     }
 
