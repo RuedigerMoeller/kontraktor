@@ -1,9 +1,6 @@
 package org.nustaq.reallive.server.storage;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
+import com.eclipsesource.json.*;
 import org.nustaq.reallive.api.Record;
 import org.nustaq.reallive.records.MapRecord;
 
@@ -78,8 +75,8 @@ public class RecordJsonifier {
             return from((Map)value).toJson();
         } else {
             if ( value != null )
-                System.out.println("unmapped data "+value.getClass().getName() );
-            System.out.println("unmapped data "+value);
+                System.err.println("unmapped data "+value.getClass().getName() );
+            System.err.println("unmapped data "+value);
         }
         return Json.value(""+value);
     }
@@ -105,11 +102,17 @@ public class RecordJsonifier {
     public Record toRecord(JsonObject members) {
         MapRecord aNew = MapRecord.New(null);
         members.names().forEach( field -> {
+            JsonValue jsonValue = members.get(field);
             if ( "key".equals(field) ) {
-                aNew.key(members.get(field).asString());
+                if(jsonValue == null || jsonValue.isNull()) {
+                    aNew.key(null);
+                }else if(jsonValue.isString()) {
+                    aNew.key(jsonValue.asString());
+                } else {
+                    System.err.println("key is not of type string in " + members.toString(WriterConfig.PRETTY_PRINT));
+                }
                 return;
             }
-            JsonValue jsonValue = members.get(field);
             if ( jsonValue.isString() ) {
                 aNew.put(field,jsonValue.asString());
             } else if ( jsonValue.isNull() ) {
