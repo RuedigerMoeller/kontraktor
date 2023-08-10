@@ -49,7 +49,7 @@
         <dependency>
             <groupId>de.ruedigermoeller</groupId>
             <artifactId>kontraktor-http</artifactId>
-            <version>5.1.13</version>
+            <version>5.2.0</version>
         </dependency>
 
     </dependencies>
