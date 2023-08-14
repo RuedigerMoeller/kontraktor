@@ -1,18 +1,19 @@
 package kontraktor;
 
 import org.junit.Ignore;
-import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.IPromise;
-import org.nustaq.kontraktor.annotations.*;
-import org.nustaq.kontraktor.Promise;
 import org.junit.Test;
+import org.nustaq.kontraktor.*;
+import org.nustaq.kontraktor.annotations.InThread;
 import org.nustaq.kontraktor.impl.ActorBlockedException;
+import org.nustaq.kontraktor.impl.ActorProxyFactory;
 import org.nustaq.kontraktor.impl.DispatcherThread;
 import org.nustaq.kontraktor.util.Log;
 
 import java.net.URL;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Scanner;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -20,13 +21,18 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 
-import static org.nustaq.kontraktor.Actors.*;
 import static org.junit.Assert.assertTrue;
+import static org.nustaq.kontraktor.Actors.AsActor;
 
 /**
  * Created by ruedi on 06.05.14.
  */
 public class BasicTest {
+
+    static {
+        ActorProxyFactory.setDefaultVerbosity(0);
+        ActorProxyFactory.setVerbosity(1, Bench.class);
+    }
 
     public static class Bench extends Actor<Bench> {
         protected int count;
