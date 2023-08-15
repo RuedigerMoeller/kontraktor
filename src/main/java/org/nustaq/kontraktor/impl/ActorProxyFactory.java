@@ -16,11 +16,15 @@ See https://www.gnu.org/licenses/lgpl.txt
 
 package org.nustaq.kontraktor.impl;
 
-import org.nustaq.kontraktor.*;
-import org.nustaq.kontraktor.annotations.AsCallback;
-import org.nustaq.kontraktor.annotations.CallerSideMethod;
 import javassist.*;
 import javassist.bytecode.AccessFlag;
+import org.nustaq.kontraktor.Actor;
+import org.nustaq.kontraktor.ActorProxy;
+import org.nustaq.kontraktor.Callback;
+import org.nustaq.kontraktor.IPromise;
+import org.nustaq.kontraktor.annotations.AsCallback;
+import org.nustaq.kontraktor.annotations.CallerSideMethod;
+import org.nustaq.kontraktor.annotations.Local;
 import org.nustaq.kontraktor.util.Log;
 import org.nustaq.serialization.util.FSTUtil;
 
@@ -32,6 +36,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Copyright (c) 2012, Ruediger Moeller. All rights reserved.
@@ -62,8 +67,30 @@ import java.util.*;
 public class ActorProxyFactory {
 
     Map<Class,Class> generatedProxyClasses = new HashMap<Class, Class>();
+    static Map<String,Integer> verbosityByProxyClassName = new HashMap<>();
+    static int defaultVerbosity = 0;
 
     public ActorProxyFactory() {
+    }
+
+    /**
+     * Set verbosity level of proxy generation
+     * @param verbosity 0: off, 1: log public available methods , 2: log *all* public available methods
+     */
+    public static void setDefaultVerbosity(int verbosity) {
+        ActorProxyFactory.defaultVerbosity = verbosity;
+    }
+
+    /**
+     * Set verbosity level of proxy generation for certain Actor impl only
+     * This has a higher priority than global setVerbosity()
+     * @param verbosity 0: off, 1: log public available methods , 2: log *all* public available methods
+     */
+    @SafeVarargs
+    public static void setVerbosity(int verbosity, Class<? extends Actor>... clazz) {
+        for (Class<? extends Actor> aClass : clazz) {
+            verbosityByProxyClassName.put(aClass.getName(), verbosity);
+        }
     }
 
     public <T> T instantiateProxy(Actor target) {
@@ -193,6 +220,9 @@ public class ActorProxyFactory {
 //        cc.addMethod( CtMethod.make( "public void __setDispatcher( "+ DispatcherThread.class.getName()+" d ) { __target.__dispatcher(d); }", cc ) );
         CtMethod[] methods = getSortedPublicCtMethods(orig,false);
 
+        int localVerbosity = verbosityByProxyClassName.getOrDefault(orig.getName(), 0);
+        int verbosity = Math.max(defaultVerbosity, localVerbosity);
+
         for (int i = 0; i < methods.length; i++) {
             CtMethod method = methods[i];
             CtMethod originalMethod = method;
@@ -238,6 +268,8 @@ public class ActorProxyFactory {
             allowed &= !originalMethod.getDeclaringClass().getName().equals(Object.class.getName()) &&
                        !originalMethod.getDeclaringClass().getName().equals(Actor.class.getName());
 
+            boolean isActorBuiltInMethodName = false;
+
             // exceptions: async built-in actor methods that can be called
             if ( //originalMethod.getName().equals("executeInActorThread") || // needed again ! see spore
                 // async methods at actor class. FIXME: add annotation
@@ -258,6 +290,7 @@ public class ActorProxyFactory {
                  originalMethod.getName().equals("close")
             )
             {
+                isActorBuiltInMethodName = true;
                 allowed = true;
             }
 
@@ -300,6 +333,13 @@ public class ActorProxyFactory {
                     "}";
                 method.setBody(body);
                 cc.addMethod(method);
+
+                if (verbosity > 0 && originalMethod.getAnnotation(Local.class) == null) {
+                    if (verbosity > 1 || !isActorBuiltInMethodName) {
+                        final String params = Arrays.stream(originalMethod.getParameterTypes()).map(CtClass::getSimpleName).collect(Collectors.joining(", "));
+                        System.out.printf("Endpoint at: %s.%s(%s) -> %s%n", orig.getName(), originalMethod.getName(), params, originalMethod.getReturnType().getSimpleName());
+                    }
+                }
             } else if ( (method.getModifiers() & (AccessFlag.NATIVE|AccessFlag.FINAL|AccessFlag.STATIC)) == 0 )
             {
                 if (isCallerSide || method.getName().equals("toString") || method.getName().equals("__stopImpl") ) {
