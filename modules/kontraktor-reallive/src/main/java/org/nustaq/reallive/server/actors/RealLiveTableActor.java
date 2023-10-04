@@ -329,14 +329,21 @@ public class RealLiveTableActor extends Actor<RealLiveTableActor> implements Rea
                 }
             }
         };
-        storageDriver.getStore().stream().forEach(recordConsumer);
-        queuedSpores.forEach( qqentry -> {
-            qqentry.spore.finish();
-            qqentry.onFin.run();
-        });
-        if (DUMP_QUERY_TIME && queuedSpores.size() > 0)
-            System.out.println("tim for "+queuedSpores.size()+" "+(System.currentTimeMillis()-tim)+" per q:"+(System.currentTimeMillis()-tim)/queuedSpores.size());
-        queuedSpores.clear();
+        try {
+            storageDriver.getStore().stream().forEach(recordConsumer);
+            queuedSpores.forEach(qqentry -> {
+                try {
+                    qqentry.spore.finish();
+                    qqentry.onFin.run();
+                } catch (Throwable th) {
+                    Log.Error(this, th);
+                }
+            });
+            if (DUMP_QUERY_TIME && queuedSpores.size() > 0)
+                System.out.println("tim for " + queuedSpores.size() + " " + (System.currentTimeMillis() - tim) + " per q:" + (System.currentTimeMillis() - tim) / queuedSpores.size());
+        } finally {
+            queuedSpores.clear();
+        }
         return;
     }
 

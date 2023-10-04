@@ -43,12 +43,17 @@ public interface Record extends Serializable, EvalContext {
         for (int i = 0; i < keyVals.length; i+=2) {
             String key = (String) keyVals[i];
             Object val = keyVals[i+1];
+            val = RecordJsonifier.get().toRecordValue(val);
             if ( key.equals("key") ) {
                 aNew.key((String) val);
             } else {
                 if (val == null)
                     val = _NULL_;
-                aNew.internal_put(key, val);
+                if ( MapRecord.CHECK_TYPES.apply(val) ) {
+                    aNew.internal_put(key, val);
+                } else {
+                    throw new RuntimeException("tried to store non-allowed value types key:"+key+" val:"+((val!=null) ? val.getClass().getName() : "null") );
+                }
             }
         }
         return aNew;
@@ -199,8 +204,10 @@ public interface Record extends Serializable, EvalContext {
         if ( val instanceof Object[] ) {
             return new ArrayList(Arrays.asList((Object[])val));
         }
+        else if ( val instanceof Collection )
+            return new ArrayList((Collection) val);
         else
-            return null;
+            return new ArrayList(); // avoid unserializable special collections of jdk
     }
 
     /**
@@ -214,8 +221,10 @@ public interface Record extends Serializable, EvalContext {
         if ( val instanceof Object[] ) {
             return new HashSet(Arrays.asList((Object[])val));
         }
+        else if ( val instanceof Collection )
+            return new HashSet<>((Collection) val);
         else
-            return null;
+            return new HashSet<>(); // avoid unserializable special collections of jdk
     }
 
     default Record putTransforming( String field, Object value ) {

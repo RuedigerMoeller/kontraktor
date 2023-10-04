@@ -89,6 +89,8 @@ import java.util.function.Consumer;
  */
 public class Actor<SELF extends Actor> extends Actors implements Serializable, Monitorable, Executor {
 
+    public static RemoteCallMonitor remoteCallMonitor;
+
     /**
      * contains sender of a message if one actor messages to another actor
      */
@@ -637,6 +639,8 @@ public class Actor<SELF extends Actor> extends Actors implements Serializable, M
      */
     @CallerSideMethod public boolean __dispatchRemoteCall(ObjectSocket objSocket, RemoteCallEntry rce, ConnectionRegistry registry, List<IPromise> createdFutures, Object authContext, BiFunction<Actor, String, Boolean> callInterceptor, long delayCode) {
         rce.unpackArgs(registry.getConf());
+        if ( remoteCallMonitor != null )
+            remoteCallMonitor.remoteCallObserved(this,objSocket,rce,authContext);
         try {
             if ( delayCode == RateLimitEntry.REJECT )
                 throw new RateLimitException();

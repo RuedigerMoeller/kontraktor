@@ -70,7 +70,7 @@ public class MapRecord implements Record {
         return true;
     }
 
-    static Function<Object,Boolean> CHECK_TYPES = JSON_CHECKER;
+    public static Function<Object,Boolean> CHECK_TYPES = JSON_CHECKER;
 
     public static Class<? extends MapRecord> recordClass = MapRecord.class;
     public static Function<MapRecord,MapRecord> conversion;
