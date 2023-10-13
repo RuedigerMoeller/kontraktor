@@ -9,7 +9,7 @@
     </parent>
 
     <properties>
-        <kotlin.version>1.1.2-2</kotlin.version>
+        <kotlin.version>1.6.0</kotlin.version>
     </properties>
 
     <modelVersion>4.0.0</modelVersion>
